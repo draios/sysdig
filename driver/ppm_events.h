@@ -70,6 +70,7 @@ struct event_filler_arguments {
  */
 #define PPM_AUTOFILL NULL
 #define PPM_MAX_AUTOFILL_ARGS 4
+#define PPM_MAX_ARG_SIZE 65535
 
 /*
  * Return codes

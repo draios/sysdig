@@ -108,12 +108,16 @@ unsigned long ppm_copy_from_user(void *to, const void __user *from, unsigned lon
  * On some kernels (e.g. 2.6.39), even with preemption disabled, the strncpy_from_user,
  * instead of returning -1 after a page fault, schedules the process, so we drop events
  * because of the preemption. This function reads the user buffer in atomic chunks, and
- * returns when there's an error or the terminator is found
+ * returns when there's an error or the terminator is found.
+ *
+ * This function always NUL terminates the destination buffer (unless n is 0 of course)
+ * and returns the number of characters written, excluding NUL. Original strlcpy()
+ * returns the length of the source string, excluding NUL.
  */
-long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n)
+long ppm_strlcpy_from_user(char *to, const char __user *from, unsigned long n)
 {
 	long string_length = 0;
-	long res = -1;
+	long res = 0;
 	unsigned long bytes_to_read = 4;
 	int j;
 
@@ -129,7 +133,7 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n)
 
 		if (!ppm_access_ok(VERIFY_READ, from, bytes_to_read)) {
 			res = -1;
-			goto strncpy_end;
+			goto strlcpy_end;
 		}
 
 		if (__copy_from_user_inatomic(to, from, bytes_to_read)) {
@@ -137,25 +141,30 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n)
 			 * Page fault
 			 */
 			res = -1;
-			goto strncpy_end;
+			goto strlcpy_end;
 		}
 
 		n -= bytes_to_read;
 		from += bytes_to_read;
 
 		for (j = 0; j < bytes_to_read; ++j) {
-			++string_length;
-
 			if (!*to) {
 				res = string_length;
-				goto strncpy_end;
+				goto strlcpy_end;
 			}
 
+			if (n == 0 && j + 1 == bytes_to_read) {
+				*to = '\0';
+				res = string_length;
+				goto strlcpy_end;
+			}
+
+			++string_length;
 			++to;
 		}
 	}
 
-strncpy_end:
+strlcpy_end:
 	pagefault_enable();
 	return res;
 }
@@ -420,6 +429,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 	const struct ppm_param_info *param_info;
 	int len = -1;
 	u16 *psize = (u16 *)(args->buffer + args->curarg * sizeof(u16));
+	unsigned long max_arg_size = args->arg_data_size;
 
 	if (unlikely(args->curarg >= args->nargs)) {
 		pr_err("(%u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u tid:%u\n",
@@ -436,6 +446,9 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 
 	if (unlikely(args->arg_data_size == 0))
 		return PPM_FAILURE_BUFFER_FULL;
+
+	if (max_arg_size > PPM_MAX_ARG_SIZE)
+		max_arg_size = PPM_MAX_ARG_SIZE;
 
 	param_info = &(g_event_info[args->event_type].params[args->curarg]);
 	if (param_info->type == PT_DYN && param_info->info != NULL) {
@@ -467,35 +480,26 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 	case PT_FSPATH:
 		if (likely(val != 0)) {
 			if (fromuser) {
-				len = ppm_strncpy_from_user(args->buffer + args->arg_data_offset,
-					(const char __user *)(unsigned long)val, args->arg_data_size);
+				len = ppm_strlcpy_from_user(args->buffer + args->arg_data_offset,
+					(const char __user *)(unsigned long)val, max_arg_size);
 
 				if (unlikely(len < 0))
 					return PPM_FAILURE_INVALID_USER_MEMORY;
 			} else {
 				len = strlcpy(args->buffer + args->arg_data_offset,
 								(const char *)(unsigned long)val,
-								args->arg_data_size);
-
-				if (++len > args->arg_data_size)
-					len = args->arg_data_size;
+								max_arg_size);
 			}
-
-			/*
-			 * Make sure the string is null-terminated
-			 */
-			*(char *)(args->buffer + args->arg_data_offset + len) = 0;
 		} else {
 			/*
 			 * Handle NULL pointers
 			 */
 			len = strlcpy(args->buffer + args->arg_data_offset,
-				"(NULL)",
-				args->arg_data_size);
-
-			if (++len > args->arg_data_size)
-				len = args->arg_data_size;
+				"(NULL)", max_arg_size);
 		}
+
+		if (++len > max_arg_size)
+			len = max_arg_size;
 
 		break;
 	case PT_BYTEBUF:
@@ -536,8 +540,8 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 							val_len = sl;
 					}
 
-					if (unlikely((val_len) >= args->arg_data_size))
-						val_len = args->arg_data_size;
+					if (unlikely(val_len >= max_arg_size))
+						val_len = max_arg_size;
 
 					if (val_len > dpi_lookahead_size) {
 						len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset + dpi_lookahead_size,
@@ -698,7 +702,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 		return PPM_FAILURE_BUG;
 	}
 
-	ASSERT(len <= 65535);
+	ASSERT(len <= PPM_MAX_ARG_SIZE);
 	ASSERT(len <= args->arg_data_size);
 
 	*psize += (u16)len;

@@ -1017,13 +1017,8 @@ static int accumulate_argv_or_env(const char __user * __user *argv,
 		if (available < 1)
 			return PPM_FAILURE_BUFFER_FULL;
 
-		n_bytes_copied = ppm_strncpy_from_user(&str_storage[len], p,
+		n_bytes_copied = ppm_strlcpy_from_user(&str_storage[len], p,
 						       available);
-
-		/* ppm_strncpy_from_user includes the trailing \0 in its return
-		 * count. I want to pretend it was strncpy_from_user() so I
-		 * subtract off the 1 */
-		n_bytes_copied--;
 
 		if (n_bytes_copied < 0)
 			return PPM_FAILURE_INVALID_USER_MEMORY;
@@ -1068,13 +1063,8 @@ static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 		if (available < 1)
 			return PPM_FAILURE_BUFFER_FULL;
 
-		n_bytes_copied = ppm_strncpy_from_user(&str_storage[len], p,
+		n_bytes_copied = ppm_strlcpy_from_user(&str_storage[len], p,
 						       available);
-
-		/* ppm_strncpy_from_user includes the trailing \0 in its return
-		 * count. I want to pretend it was strncpy_from_user() so I
-		 * subtract off the 1 */
-		n_bytes_copied--;
 
 		if (n_bytes_copied < 0) {
 			printk(pr_fmt("Error on copy here3"));
