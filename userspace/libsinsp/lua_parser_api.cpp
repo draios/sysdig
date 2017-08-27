@@ -228,7 +228,7 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 					fprintf(stderr, "%s\n", err.c_str());
 					throw sinsp_exception("parser API error");
 				}
-				int n = luaL_getn(ls, 3);  /* get size of table */
+				int n = (int)lua_objlen(ls, 3);  /* get size of table */
 				for (i=1; i<=n; i++)
 				{
 					lua_rawgeti(ls, 3, i);
