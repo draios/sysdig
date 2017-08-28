@@ -184,7 +184,7 @@ bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr, sinsp
 				//
 				// We have a container info with a valid container IP. Let's use it.
 				//
-				if(addr == container_info.m_container_ip)
+				if(addr == htonl(container_info.m_container_ip))
 				{
 					return true;
 				}
@@ -203,7 +203,7 @@ bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr, sinsp
 
 				for(auto it = clist->begin(); it != clist->end(); ++it)
 				{
-					if(it->second.m_container_ip == addr)
+					if(htonl(it->second.m_container_ip) == addr)
 					{
 						return true;
 					}
