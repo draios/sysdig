@@ -193,11 +193,9 @@ bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr, sinsp
 			{
 				//
 				// Container info is valid, but the IP address is zero.
-				// This happens for example in the case of kubernetes pods, where we are
-				// typically unable to get the address for one of the containers in the pod.
-				// In that case, the address can be fetched from another of the containers
-				// in the pod, so we scan the list looking for matches. If no match is found,
-				// We just jump to checking the host interfaces.
+				// Scan the list of the containers looking for matches.
+				// If no match is found, we just jump to checking the
+				// host interfaces.
 				//
 				const unordered_map<string, sinsp_container_info>* clist = m_inspector->m_container_manager.get_containers();
 

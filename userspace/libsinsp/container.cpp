@@ -712,7 +712,7 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 		{
 			sinsp_container_info pcnt;
 			pcnt.m_id = net_mode.substr(net_mode.find(":") + 1);
-			if (!get_container(pcnt.m_id, &pcnt))
+			if(!get_container(pcnt.m_id, &pcnt))
 			{
 				parse_docker(&pcnt);
 			}
