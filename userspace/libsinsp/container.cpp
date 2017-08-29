@@ -119,6 +119,10 @@ bool sinsp_container_manager::remove_inactive_containers()
 		{
 			if(containers_in_use.find(it->first) == containers_in_use.end())
 			{
+				if(m_inspector->m_parser->m_fd_listener)
+				{
+					m_inspector->m_parser->m_fd_listener->on_remove_container(m_containers[it->first]);
+				}
 				m_containers.erase(it++);
 			}
 			else
@@ -570,7 +574,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["Mounts"] = mounts;
 
 	char addrbuff[100];
-	uint32_t iph = ntohl(container_info.m_container_ip);
+	uint32_t iph = htonl(container_info.m_container_ip);
 	inet_ntop(AF_INET, &iph, addrbuff, sizeof(addrbuff));
 	container["ip"] = addrbuff;
 
@@ -700,11 +704,29 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	const Json::Value& net_obj = root["NetworkSettings"];
 
 	string ip = net_obj["IPAddress"].asString();
-	if(inet_pton(AF_INET, ip.c_str(), &container->m_container_ip) == -1)
+	if(ip.empty())
 	{
-		ASSERT(false);
+		const Json::Value& hconfig_obj = root["HostConfig"];
+		string net_mode = hconfig_obj["NetworkMode"].asString();
+		if(strncmp(net_mode.c_str(), "container:", strlen("container:")) == 0)
+		{
+			sinsp_container_info pcnt;
+			pcnt.m_id = net_mode.substr(net_mode.find(":") + 1);
+			if(!get_container(pcnt.m_id, &pcnt))
+			{
+				parse_docker(&pcnt);
+			}
+			container->m_container_ip = pcnt.m_container_ip;
+		}
 	}
-	container->m_container_ip = ntohl(container->m_container_ip);
+	else
+	{
+		if(inet_pton(AF_INET, ip.c_str(), &container->m_container_ip) == -1)
+		{
+			ASSERT(false);
+		}
+		container->m_container_ip = ntohl(container->m_container_ip);
+	}
 
 	vector<string> ports = net_obj["Ports"].getMemberNames();
 	for(vector<string>::const_iterator it = ports.begin(); it != ports.end(); ++it)
