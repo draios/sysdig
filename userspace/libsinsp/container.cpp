@@ -574,7 +574,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["Mounts"] = mounts;
 
 	char addrbuff[100];
-	uint32_t iph = ntohl(container_info.m_container_ip);
+	uint32_t iph = htonl(container_info.m_container_ip);
 	inet_ntop(AF_INET, &iph, addrbuff, sizeof(addrbuff));
 	container["ip"] = addrbuff;
 
