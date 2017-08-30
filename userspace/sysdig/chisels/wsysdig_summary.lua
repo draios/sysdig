@@ -654,7 +654,7 @@ function build_output()
 			name = 'Running Containers',
 			desc = 'Total number of containers that were running during the capture',
 			category = 'general',
-			targetView = 'syscalls',
+			targetView = 'containers',
 			data = gsummary.containerCount
 		}
 	end
