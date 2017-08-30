@@ -1213,6 +1213,23 @@ int lua_cbacks::set_interval_s(lua_State *ls)
 	return 0;
 }
 
+int lua_cbacks::set_precise_interval_ns(lua_State *ls)
+{
+	lua_getglobal(ls, "sichisel");
+
+	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+	lua_pop(ls, 1);
+
+	uint64_t interval = (uint64_t)lua_tonumber(ls, 1);
+
+	ASSERT(ch);
+	ASSERT(ch->m_lua_cinfo);
+
+	ch->m_lua_cinfo->set_callback_precise_interval(interval);
+
+	return 0;
+}
+
 int lua_cbacks::exec(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");

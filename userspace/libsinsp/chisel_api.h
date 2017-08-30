@@ -53,6 +53,7 @@ public:
 	static int set_event_formatter(lua_State *ls);
 	static int set_interval_ns(lua_State *ls);
 	static int set_interval_s(lua_State *ls);
+	static int set_precise_interval_ns(lua_State *ls);
 	static int exec(lua_State *ls);
 	static int log(lua_State *ls);
 	static int udp_setpeername(lua_State *ls);

@@ -133,6 +133,7 @@ const static struct luaL_reg ll_chisel [] =
 	{"set_event_formatter", &lua_cbacks::set_event_formatter},
 	{"set_interval_ns", &lua_cbacks::set_interval_ns},
 	{"set_interval_s", &lua_cbacks::set_interval_s},
+	{"set_precise_interval_ns", &lua_cbacks::set_precise_interval_ns},
 	{"exec", &lua_cbacks::exec},
 	{NULL,NULL}
 };
@@ -162,6 +163,7 @@ chiselinfo::chiselinfo(sinsp* inspector)
 
 #ifdef HAS_LUA_CHISELS
 	m_callback_interval = 0;
+	m_callback_precise_interval = 0;
 #endif
 }
 
@@ -227,6 +229,11 @@ void chiselinfo::set_formatter(string formatterstr)
 void chiselinfo::set_callback_interval(uint64_t interval)
 {
 	m_callback_interval = interval;
+}
+
+void chiselinfo::set_callback_precise_interval(uint64_t interval)
+{
+	m_callback_precise_interval = interval;
 }
 #endif
 
@@ -1537,6 +1544,10 @@ void sinsp_chisel::first_event_inits(sinsp_evt* evt)
 	{
 		m_lua_last_interval_sample_time = ts - ts % m_lua_cinfo->m_callback_interval;
 	}
+	else if(m_lua_cinfo->m_callback_precise_interval != 0)
+	{
+		m_lua_last_interval_sample_time = ts;
+	}
 
 	m_lua_is_first_evt = false;
 }
@@ -1666,6 +1677,41 @@ void sinsp_chisel::do_timeout(sinsp_evt* evt)
 
 			m_lua_last_interval_sample_time = sample_time;
 			m_lua_last_interval_ts = ts;
+		}
+	}
+	else if(m_lua_cinfo->m_callback_precise_interval != 0)
+	{
+		uint64_t ts = evt->get_ts();
+		uint64_t interval = m_lua_cinfo->m_callback_precise_interval;
+
+		if(ts - m_lua_last_interval_sample_time >= interval)
+		{
+			uint64_t t;
+			int64_t delta = 0;
+
+			for(t = m_lua_last_interval_sample_time; t <= ts - interval; t += interval)
+			{
+				lua_getglobal(m_ls, "on_interval");
+
+				lua_pushnumber(m_ls, (double)(t / 1000000000));
+				lua_pushnumber(m_ls, (double)(t % 1000000000));
+				lua_pushnumber(m_ls, (double)interval);
+
+				if(lua_pcall(m_ls, 3, 1, 0) != 0)
+				{
+					throw sinsp_exception(m_filename + " chisel error: calling on_interval() failed:" + lua_tostring(m_ls, -1));
+				}
+
+				int oeres = lua_toboolean(m_ls, -1);
+				lua_pop(m_ls, 1);
+
+				if(oeres == false)
+				{
+					throw sinsp_exception("execution terminated by the " + m_filename + " chisel");
+				}
+			}
+
+			m_lua_last_interval_sample_time = t;
 		}
 	}
 }
