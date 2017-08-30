@@ -27,7 +27,7 @@ require "common"
 args =
 {
 	{
-		name = "file_duration",
+		name = "composite_args",
 		description = "The number of events in the file. If this argument is not specified, the chisel will just scan the file, compute the number of events and then relaunch itself with the number as argument.",
 		argtype = "int",
 		optional = true
@@ -36,6 +36,7 @@ args =
 
 local disable_index = true	-- change this if you are working on this script and don't want to be bothered by indexing
 local n_samples = 400
+local arg_n_timeline_samples = n_samples
 local json = require ("dkjson")
 local gsummary = {} -- The global summary
 local ssummary = {} -- Last sample's summary
@@ -48,8 +49,19 @@ local index_format_version = 1	-- Increase this if the content or the format of 
 
 -- Argument notification callback
 function on_set_arg(name, val)
-	if name == "file_duration" then
-		arg_file_duration = val
+	if name == "composite_args" then
+		vals = split(val, ",")
+
+		local val1n = tonumber(vals[1])
+
+		if val1n ~= 0 and val1n < n_samples then
+			arg_n_timeline_samples = val1n
+		end
+		
+		if vals[2] ~= nil then
+			arg_file_duration = vals[2]
+		end
+
 		return true
 	end
 
@@ -58,18 +70,37 @@ end
 -------------------------------------------------------------------------------
 -- Summary handling helpers
 -------------------------------------------------------------------------------
-function create_category_basic(excludable, noteworthy)
-	return {tot=0, max=0, timeLine={}, excludable=excludable, noteworthy=noteworthy}
+function create_category_basic(excludable, noteworthy, aggregation)
+	aggregation = aggregation or 'sum'
+
+	return {
+		tot=0, 
+		max=0, 
+		timeLine={}, 
+		excludable=excludable, 
+		noteworthy=noteworthy,
+		aggregation=aggregation
+	}
 end
 
-function create_category_table(excludable, noteworthy)
-	return {tot=0, max=0, timeLine={}, table={}, excludable=excludable, noteworthy=noteworthy}
+function create_category_table(excludable, noteworthy, aggregation)
+	aggregation = aggregation or 'sum'
+
+	return {
+		tot=0, 
+		max=0, 
+		timeLine={}, 
+		table={},
+		excludable=excludable, 
+		noteworthy=noteworthy,
+		aggregation=aggregation
+	}
 end
 
 function reset_summary(s)
-	s.SpawnedProcs = create_category_basic(true, true)
-	s.procCount = create_category_table(false, false)
+	s.procCount = create_category_table(false, false, 'avg')
 	s.containerCount = create_category_table(false, false)
+	s.SpawnedProcs = create_category_basic(true, true)
 	s.syscallCount = create_category_basic(false, false)
 	s.fileCount = create_category_table(true, false)
 	s.fileBytes = create_category_basic(false, false)
@@ -124,6 +155,53 @@ function add_summaries(ts_s, ts_ns, dst, src)
 			for tk, tv in pairs(v.table) do
 				dt[tk] = tv
 			end
+		end
+	end
+end
+
+function generate_subsampled_timeline(src, nsamples, op)
+	local res = {}
+	local ratio = math.ceil(#src / nsamples)
+	local k = 0
+	local accumulator = 0
+	local etime = src[1].t
+	local max = 0
+	local tot = 0
+
+	for j = 1,#src,1 do
+		k = k + 1
+		accumulator = accumulator + src[j].v
+
+		if k >= ratio then
+			if op == 'avg' then
+				accumulator = accumulator / k
+			end
+
+			res[#res+1] = {t=etime, v=accumulator}
+
+			tot = tot + accumulator
+			if accumulator > max then
+				max = accumulator
+			end
+			k = 0
+			accumulator = 0
+			etime = src[j].t
+		end
+	end
+
+	return{timeLine=res, tot=tot, max=max}
+end
+
+function subsample_timelines(jtable)
+	if arg_n_timeline_samples ~= 0 and arg_n_timeline_samples ~= n_samples then
+		for k, v in pairs(jtable.metrics) do
+			local data = v.data
+			st = generate_subsampled_timeline(data.timeLine, 
+				arg_n_timeline_samples, 
+				data.aggregation)
+
+			v.data.timeLine = st.timeLine
+			v.data.max = st.max
 		end
 	end
 end
@@ -236,7 +314,7 @@ function on_init()
 		return true
 	end
 
-    chisel.set_interval_ns(arg_file_duration / n_samples)
+	chisel.set_precise_interval_ns(arg_file_duration / (n_samples - 1))
 	percent_update_sample_period = math.floor(n_samples / 100 * 3)
 	if percent_update_sample_period < 2 then
 		percent_update_sample_period = 1
@@ -972,15 +1050,14 @@ function build_output()
 		}
 	end
 
-	resstr = json.encode(jtable, { indent = true })
-	return resstr
+	return jtable
 end
 
 -- Callback called by the engine at the end of the capture
 function on_capture_end(ts_s, ts_ns, delta)
 	if arg_file_duration == nil then
 		local reltime = evt.field(freltime)
-		sysdig.run_sysdig('-r ' .. sysdig.get_evtsource_name() .. ' -c wsysdig_summary ' .. reltime)
+		sysdig.run_sysdig('-r ' .. sysdig.get_evtsource_name() .. ' -c wsysdig_summary ' .. arg_n_timeline_samples .. ',' .. reltime)
 		return true
 	end
 
@@ -997,9 +1074,14 @@ function on_capture_end(ts_s, ts_ns, delta)
 
 		sstr = f:read("*all")
 		f:close()
+
+		jtable = json.decode(sstr)
+		subsample_timelines(jtable)
+		sstr = json.encode(jtable, { indent = true })
 	else
 		add_summaries(ts_s, ts_ns, gsummary, ssummary)
-		sstr = build_output()
+		jtable = build_output()
+		sstr = json.encode(jtable, { indent = true })
 
 		if not disable_index then
 			os.execute('rm -fr ' .. dirname .. " 2> /dev/null")
@@ -1029,6 +1111,9 @@ function on_capture_end(ts_s, ts_ns, delta)
 			fv:write(index_format_version)
 			fv:close()
 		end
+
+		subsample_timelines(jtable)
+		sstr = json.encode(jtable, { indent = true })
 	end
 
 	print('{"progress": 100, "data": '.. sstr ..'}')
