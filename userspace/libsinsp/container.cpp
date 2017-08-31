@@ -599,6 +599,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 
 	evt->m_cpuid = 0;
 	evt->m_evtnum = 0;
+	evt->m_inspector = m_inspector;
 
 	scap_evt* scapevt = evt->m_pevt;
 

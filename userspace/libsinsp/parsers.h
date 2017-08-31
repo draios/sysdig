@@ -63,8 +63,8 @@ public:
 	sinsp_protodecoder* add_protodecoder(string decoder_name);
 	void register_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec);
 
-	void schedule_k8s_events(sinsp_evt *evt);
-	void schedule_mesos_events(sinsp_evt *evt);
+	void schedule_k8s_events();
+	void schedule_mesos_events();
 
 	//
 	// Protocol decoders callback lists
