@@ -191,6 +191,10 @@ static void print_views(sinsp_view_manager* view_manager)
 		jv["isRoot"] = vinfo.m_is_root;
 		jv["drilldownTarget"] = vinfo.m_drilldown_target;
 		jv["filter"] = vinfo.m_filter;
+		for(auto it = vinfo.m_applies_to.begin(); it != vinfo.m_applies_to.end(); ++it)
+		{
+			jv["appliesTo"].append(*it);
+		}
 		for(auto it = vinfo.m_tags.begin(); it != vinfo.m_tags.end(); ++it)
 		{
 			jv["tags"].append(*it);
