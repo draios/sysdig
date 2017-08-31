@@ -1069,7 +1069,7 @@ end
 function on_capture_end(ts_s, ts_ns, delta)
 	if arg_file_duration == nil then
 		local reltime = evt.field(freltime)
-		sysdig.run_sysdig('-r ""' .. sysdig.get_evtsource_name() .. '"" -c wsysdig_summary ' .. arg_n_timeline_samples .. ',' .. reltime)
+		sysdig.run_sysdig('-r "' .. sysdig.get_evtsource_name() .. '" -c wsysdig_summary ' .. arg_n_timeline_samples .. ',' .. reltime)
 		return true
 	end
 
