@@ -622,10 +622,22 @@ function should_include(category)
 	end
 end
 
+function get_category_table()
+	return {
+		'general',
+		'file',
+		'network',
+		'security',
+		'performance',
+		'logs'
+	}
+end
+
 function build_output()
 	local ctable = copytable(gsummary.containerCount.table)
+	local cat_table = get_category_table()
 	local res = {}
-	local jtable = {info={IndexFormatVersion=index_format_version, containers=ctable}, metrics=res}
+	local jtable = {info={IndexFormatVersion=index_format_version, categories=cat_table, containers=ctable}, metrics=res}
 
 	update_table_counts()
 
