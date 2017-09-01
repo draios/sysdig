@@ -505,6 +505,35 @@ void handle_end_of_file(bool print_progress, sinsp_evt_formatter* formatter = NU
 	}
 }
 
+vector<string> split_nextrun_args(string na)
+{
+	vector<string> res;
+	uint32_t laststart = 0;
+	uint32_t j;
+	bool inquote = false;
+
+	for(j = 0; j < na.size(); j++)
+	{
+		if(na[j] == '"')
+		{
+			inquote = !inquote;
+		}
+		else if(na[j] == ' ')
+		{
+			if(!inquote)
+			{
+				res.push_back(na.substr(laststart, j - laststart));
+				laststart = j + 1;
+			}
+		}
+	}
+
+	res.push_back(na.substr(laststart, j - laststart));
+	laststart = j + 1;
+
+	return res;
+}
+
 //
 // Event processing loop
 //
@@ -1517,7 +1546,7 @@ exit:
 		string na;
 		if((*it)->get_nextrun_args(&na))
 		{
-			res.m_next_run_args = sinsp_split(na, ' ');
+			res.m_next_run_args = split_nextrun_args(na);
 		}
 	}
 
