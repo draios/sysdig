@@ -199,6 +199,10 @@ static void print_views(sinsp_view_manager* view_manager)
 		{
 			jv["tags"].append(*it);
 		}
+		for(auto it = vinfo.m_tips.begin(); it != vinfo.m_tips.end(); ++it)
+		{
+			jv["tips"].append(*it);
+		}
 
 		root.append(jv);
 	}
