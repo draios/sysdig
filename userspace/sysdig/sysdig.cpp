@@ -522,7 +522,9 @@ vector<string> split_nextrun_args(string na)
 		{
 			if(!inquote)
 			{
-				res.push_back(na.substr(laststart, j - laststart));
+				string arg = na.substr(laststart, j - laststart);
+				replace_in_place(arg, "\"", "");
+				res.push_back(arg);
 				laststart = j + 1;
 			}
 		}
