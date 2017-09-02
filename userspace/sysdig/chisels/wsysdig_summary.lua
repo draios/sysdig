@@ -310,7 +310,6 @@ end
 -------------------------------------------------------------------------------
 function on_init()
 	if arg_file_duration == nil then
-		freltime = chisel.request_field("evt.reltime")
 		return true
 	end
 
@@ -1068,8 +1067,7 @@ end
 -- Callback called by the engine at the end of the capture
 function on_capture_end(ts_s, ts_ns, delta)
 	if arg_file_duration == nil then
-		local reltime = evt.field(freltime)
-		sysdig.run_sysdig('-r "' .. sysdig.get_evtsource_name() .. '" -c wsysdig_summary ' .. arg_n_timeline_samples .. ',' .. reltime)
+		sysdig.run_sysdig('-r "' .. sysdig.get_evtsource_name() .. '" -c wsysdig_summary ' .. arg_n_timeline_samples .. ',' .. delta)
 		return true
 	end
 
