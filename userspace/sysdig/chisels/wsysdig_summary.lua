@@ -637,6 +637,7 @@ function build_output()
 	local cat_table = get_category_table()
 	local res = {}
 	local jtable = {info={IndexFormatVersion=index_format_version, categories=cat_table, containers=ctable}, metrics=res}
+	local filter = sysdig.get_filter()
 
 	update_table_counts()
 
@@ -660,7 +661,7 @@ function build_output()
 		}
 	end
 
-	if(sysdig.get_filter() == '' and should_include(gsummary.containerCount)) then
+	if(not string.find(filter, 'container') and should_include(gsummary.containerCount)) then
 		res[#res+1] = {
 			name = 'Running Containers',
 			desc = 'Total number of containers that were running during the capture',
@@ -670,7 +671,7 @@ function build_output()
 		}
 	end
 
-	if(sysdig.get_filter() == '' and should_include(gsummary.syscallCount)) then
+	if(should_include(gsummary.syscallCount)) then
 		res[#res+1] = {
 			name = 'System Calls',
 			desc = 'Number of system calls performed by any process/container in the system',
@@ -1067,7 +1068,9 @@ end
 -- Callback called by the engine at the end of the capture
 function on_capture_end(ts_s, ts_ns, delta)
 	if arg_file_duration == nil then
-		sysdig.run_sysdig('-r "' .. sysdig.get_evtsource_name() .. '" -c wsysdig_summary ' .. arg_n_timeline_samples .. ',' .. delta)
+		sysdig.run_sysdig('-r "' .. sysdig.get_evtsource_name() .. 
+			'" -c wsysdig_summary ' .. arg_n_timeline_samples .. ',' .. delta .. ' ' ..
+			sysdig.get_filter())
 		return true
 	end
 
