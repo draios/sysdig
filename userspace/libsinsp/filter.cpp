@@ -1708,7 +1708,16 @@ void sinsp_filter_compiler::parse_check()
 	{
 		if(!(chk->get_fields()->m_flags & filter_check_info::FL_WORKS_ON_THREAD_TABLE))
 		{
-			throw sinsp_exception("the given filter is not supported for thread table filtering");
+			if(str_operand1 != "evt.rawtime" && 
+				str_operand1 != "evt.rawtime.s" && 
+				str_operand1 != "evt.rawtime.ns" && 
+				str_operand1 != "evt.time" && 
+				str_operand1 != "evt.time.s" && 
+				str_operand1 != "evt.datetime" && 
+				str_operand1 != "evt.reltime")
+			{
+				throw sinsp_exception("the given filter is not supported for thread table filtering");
+			}
 		}
 	}
 
