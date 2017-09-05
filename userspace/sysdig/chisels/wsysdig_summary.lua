@@ -99,7 +99,7 @@ end
 
 function reset_summary(s)
 	s.procCount = create_category_table(false, false, 'avg')
-	s.containerCount = create_category_table(false, false)
+	s.containerCount = create_category_table(false, false, 'avg')
 	s.executedCommands = create_category_basic(false, true)
 	s.syscallCount = create_category_basic(false, false)
 	s.fileCount = create_category_table(true, false)
@@ -114,7 +114,7 @@ function reset_summary(s)
 	s.netBytesW = create_category_basic(false, false)
 	s.notifications = create_category_basic(true, true)
 	if s.listeningPortCount == nil then
-		s.listeningPortCount = create_category_table(true, false)
+		s.listeningPortCount = create_category_table(true, false, 'avg')
 	end
 	s.newConnectionsO = create_category_basic(true, false)
 	s.newConnectionsI = create_category_basic(true, false)
