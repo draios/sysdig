@@ -100,7 +100,7 @@ end
 function reset_summary(s)
 	s.procCount = create_category_table(false, false, 'avg')
 	s.containerCount = create_category_table(false, false)
-	s.SpawnedProcs = create_category_basic(true, true)
+	s.executedCommands = create_category_basic(false, true)
 	s.syscallCount = create_category_basic(false, false)
 	s.fileCount = create_category_table(true, false)
 	s.fileBytes = create_category_basic(false, false)
@@ -122,7 +122,7 @@ function reset_summary(s)
 	s.fileDeletionsCount = create_category_basic(true, true)
 	s.newSymLinksCount = create_category_basic(true, true)
 	s.forkCount = create_category_basic(true, false)
-	s.openErrorCount = create_category_basic(true, false)
+	s.openErrorCount = create_category_basic(false, false)
 	s.connectErrorCount = create_category_basic(true, true)
 	s.sudoInvocations = create_category_basic(true, true)
 	s.setnsInvocations = create_category_basic(true, true)
@@ -486,7 +486,7 @@ function on_event()
 						end
 					end
 				elseif etype == 'execve' then
-					ssummary.SpawnedProcs.tot = ssummary.SpawnedProcs.tot + 1
+					ssummary.executedCommands.tot = ssummary.executedCommands.tot + 1
 
 					local exe = evt.field(fexe)
 					if exe == 'sudo' then
@@ -827,13 +827,13 @@ function build_output()
 		}
 	end
 
-	if should_include(gsummary.SpawnedProcs) then
+	if should_include(gsummary.executedCommands) then
 		res[#res+1] = {
 			name = 'Executed Commands',
 			desc = 'Number of new programs that have been executed during the observed interval',
 			category = 'security',
 			targetView = 'spy_users',
-			data = gsummary.SpawnedProcs
+			data = gsummary.executedCommands
 		}
 	end
 
@@ -897,18 +897,6 @@ function build_output()
 		}
 	end
 
-	if should_include(gsummary.forkCount) then
-		res[#res+1] = {
-			name = 'Fork Count',
-			desc = 'Count of processes and threads that have been created',
-			category = 'performance',
-			targetView = 'dig',
-			targetViewTitle = 'Clone executions',
-			targetViewFilter = 'evt.type=clone and evt.rawres=0',
-			data = gsummary.forkCount
-		}
-	end
-
 	if should_include(gsummary.openErrorCount) then
 		res[#res+1] = {
 			name = 'File Open Errors',
@@ -918,6 +906,18 @@ function build_output()
 			targetViewTitle = 'Failed open() calls',
 			targetViewFilter = 'evt.type=open and evt.rawres<0',
 			data = gsummary.openErrorCount
+		}
+	end
+	
+	if should_include(gsummary.forkCount) then
+		res[#res+1] = {
+			name = 'Fork Count',
+			desc = 'Count of processes and threads that have been created',
+			category = 'performance',
+			targetView = 'dig',
+			targetViewTitle = 'Clone executions',
+			targetViewFilter = 'evt.type=clone and evt.rawres=0',
+			data = gsummary.forkCount
 		}
 	end
 
