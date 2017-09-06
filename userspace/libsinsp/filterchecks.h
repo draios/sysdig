@@ -321,7 +321,7 @@ private:
 };
 
 //
-// thread sinsp_filter_check_syslog
+// thread sinsp_filter_check_thread
 //
 class sinsp_filter_check_thread : public sinsp_filter_check
 {
@@ -371,6 +371,7 @@ public:
 		TYPE_SID = 40,
 		TYPE_SNAME = 41,
 		TYPE_TTY = 42,
+		TYPE_EXEPATH = 43
 	};
 
 	sinsp_filter_check_thread();
