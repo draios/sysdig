@@ -148,7 +148,7 @@ function add_summaries(ts_s, ts_ns, dst, src)
 			dst[k].max = v.tot 
 		end
 		local tl = dst[k].timeLine
-		tl[#tl+1] = {t = time, v=v.tot}
+		tl[#tl+1] = {t=time, v=v.tot}
 
 		if v.table ~= nil then
 			local dt = dst[k].table
@@ -185,7 +185,9 @@ function generate_subsampled_timeline(src, nsamples, op)
 			end
 			k = 0
 			accumulator = 0
-			etime = src[j].t
+			if src[j + 1] ~= nil then
+				etime = src[j + 1].t
+			end
 		end
 	end
 
@@ -570,7 +572,7 @@ end
 -------------------------------------------------------------------------------
 -- Periodic timeout callback
 -------------------------------------------------------------------------------
-function on_interval(ts_s, ts_ns, delta)	
+function on_interval(ts_s, ts_ns, delta)
 	parse_thread_table_interval()
 	parse_container_table()
 
@@ -632,11 +634,18 @@ function get_category_table()
 	}
 end
 
-function build_output()
+function build_output(captureDuration)
 	local ctable = copytable(gsummary.containerCount.table)
 	local cat_table = get_category_table()
 	local res = {}
-	local jtable = {info={IndexFormatVersion=index_format_version, categories=cat_table, containers=ctable}, metrics=res}
+	local jtable = {
+		info={
+			IndexFormatVersion=index_format_version, 
+			categories=cat_table, 
+			containers=ctable,
+			durationNs=captureDuration
+		}, 
+		metrics=res}
 	local filter = sysdig.get_filter()
 
 	update_table_counts()
@@ -1093,7 +1102,7 @@ function on_capture_end(ts_s, ts_ns, delta)
 		sstr = json.encode(jtable, { indent = true })
 	else
 		add_summaries(ts_s, ts_ns, gsummary, ssummary)
-		jtable = build_output()
+		jtable = build_output(delta)
 		sstr = json.encode(jtable, { indent = true })
 
 		if not disable_index then
