@@ -114,6 +114,8 @@ const static struct luaL_reg ll_sysdig [] =
 	{"get_output_format", &lua_cbacks::get_output_format},
 	{"get_evtsource_name", &lua_cbacks::get_evtsource_name},
 	{"make_ts", &lua_cbacks::make_ts},
+	{"add_ts", &lua_cbacks::add_ts},
+	{"subtract_ts", &lua_cbacks::subtract_ts},
 	{"run_sysdig", &lua_cbacks::run_sysdig},
 	{"end_capture", &lua_cbacks::end_capture},
 	{"log", &lua_cbacks::log},

@@ -37,6 +37,8 @@ public:
 	static int set_output_format(lua_State *ls);
 	static int set_fatfile_dump_mode(lua_State *ls);
 	static int make_ts(lua_State *ls);
+	static int add_ts(lua_State *ls);
+	static int subtract_ts(lua_State *ls);
 	static int run_sysdig(lua_State *ls);
 	static int end_capture(lua_State *ls);
 	static int is_live(lua_State *ls);

@@ -496,6 +496,36 @@ int lua_cbacks::make_ts(lua_State *ls)
 	return 1;
 }
 
+int lua_cbacks::add_ts(lua_State *ls)
+{
+	lua_getglobal(ls, "sichisel");
+
+	uint64_t op1 = sinsp_numparser::parseu64(lua_tostring(ls, 1));
+	lua_pop(ls, 1);
+	uint64_t op2 = sinsp_numparser::parseu64(lua_tostring(ls, 2));
+	lua_pop(ls, 1);
+
+	uint64_t sum = (op1 + op2);
+
+	lua_pushstring(ls, to_string((long long) sum).c_str());
+	return 1;
+}
+
+int lua_cbacks::subtract_ts(lua_State *ls)
+{
+	lua_getglobal(ls, "sichisel");
+
+	uint64_t op1 = sinsp_numparser::parseu64(lua_tostring(ls, 1));
+	lua_pop(ls, 1);
+	uint64_t op2 = sinsp_numparser::parseu64(lua_tostring(ls, 2));
+	lua_pop(ls, 1);
+
+	uint64_t sum = (op1 + op2);
+
+	lua_pushstring(ls, to_string((long long) sum).c_str());
+	return 1;
+}
+
 int lua_cbacks::run_sysdig(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
