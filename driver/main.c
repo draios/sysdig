@@ -155,6 +155,7 @@ static struct class *g_ppm_class;
 static unsigned int g_ppm_numdevs;
 static int g_ppm_major;
 bool g_tracers_enabled = false;
+bool g_simple_mode_enabled = false;
 static const struct file_operations g_ppm_fops = {
 	.open = ppm_open,
 	.release = ppm_release,
@@ -575,6 +576,11 @@ static int ppm_release(struct inode *inode, struct file *filp)
 			tracepoint_synchronize_unregister();
 #endif
 			g_tracepoint_registered = false;
+
+			/*
+			 * While we're here, disable simple mode if it's active
+			 */
+			g_simple_mode_enabled = false;
 		} else {
 			ASSERT(false);
 		}
@@ -952,6 +958,13 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		ret = 0;
 		goto cleanup_ioctl;
 	}
+	case PPM_IOCTL_SET_SIMPLE_MODE:
+	{
+		vpr_info("PPM_IOCTL_SET_SIMPLE_MODE, consumer %p\n", consumer_id);
+		g_simple_mode_enabled = true;
+		ret = 0;
+		goto cleanup_ioctl;
+	}
 	default:
 		ret = -ENOTTY;
 		goto cleanup_ioctl;
@@ -1230,7 +1243,7 @@ static inline void record_drop_e(struct ppm_consumer_t *consumer, struct timespe
 static inline void record_drop_x(struct ppm_consumer_t *consumer, struct timespec *ts)
 {
 	struct event_data_t event_data = {0};
-	
+
 	if (record_event_consumer(consumer, PPME_DROP_X, UF_NEVER_DROP, ts, &event_data) == 0) {
 		consumer->need_to_insert_drop_x = 1;
 	} else {
@@ -1663,6 +1676,15 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		enum syscall_flags drop_flags = g_syscall_table[table_index].flags;
 		enum ppm_event_type type;
 
+		/*
+		 * Simple mode event filtering
+		 */
+		if (g_simple_mode_enabled) {
+			if((drop_flags & UF_SIMPLEDRIVER_KEEP) == 0) {
+				return;
+			}
+		}
+
 #ifdef __NR_socketcall
 		if (id == __NR_socketcall) {
 			used = true;
@@ -1712,6 +1734,15 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		int used = g_syscall_table[table_index].flags & UF_USED;
 		enum syscall_flags drop_flags = g_syscall_table[table_index].flags;
 		enum ppm_event_type type;
+
+		/*
+		 * Simple mode event filtering
+		 */
+		if (g_simple_mode_enabled) {
+			if((drop_flags & UF_SIMPLEDRIVER_KEEP) == 0) {
+				return;
+			}
+		}
 
 #ifdef __NR_socketcall
 		if (id == __NR_socketcall) {
@@ -2023,7 +2054,7 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 	case CPU_UP_PREPARE:
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	case CPU_UP_PREPARE_FROZEN:
-#endif	
+#endif
 		sd_action = 1;
 		break;
 	case CPU_DOWN_PREPARE:
@@ -2154,7 +2185,7 @@ int sysdig_init(void)
 	}
 
 	/*
-	 * Set up our callback in case we get a hotplug even while we are 
+	 * Set up our callback in case we get a hotplug even while we are
 	 * initializing the cpu structures
 	 */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
