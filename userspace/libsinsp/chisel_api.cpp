@@ -520,7 +520,7 @@ int lua_cbacks::subtract_ts(lua_State *ls)
 	uint64_t op2 = sinsp_numparser::parseu64(lua_tostring(ls, 2));
 	lua_pop(ls, 1);
 
-	uint64_t sum = (op1 + op2);
+	uint64_t sum = (op1 - op2);
 
 	lua_pushstring(ls, to_string((long long) sum).c_str());
 	return 1;
