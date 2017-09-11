@@ -37,7 +37,7 @@ vizinfo =
 	value_fld = "thread.exectime",
 	value_desc = "CPU%",
 	value_units = "timepct",
-	top_number = 10,
+	top_number = 50,
 	output_format = "normal"
 }
 

@@ -23,7 +23,7 @@ category = "I/O"
 args = {}
 
 -- The number of items to show
-TOP_NUMBER = 10
+TOP_NUMBER = 50
 
 -- Argument notification callback
 function on_set_arg(name, val)
