@@ -36,6 +36,7 @@ args =
 
 local disable_index = true	-- change this if you are working on this script and don't want to be bothered by indexing
 local n_samples = 400
+local sampling_period = 0
 local arg_n_timeline_samples = n_samples
 local json = require ("dkjson")
 local gsummary = {} -- The global summary
@@ -315,7 +316,8 @@ function on_init()
 		return true
 	end
 
-	chisel.set_precise_interval_ns(arg_file_duration / (n_samples - 1))
+	sampling_period = arg_file_duration / (n_samples - 1)
+	chisel.set_precise_interval_ns(sampling_period)
 	percent_update_sample_period = math.floor(n_samples / 100 * 3)
 	if percent_update_sample_period < 2 then
 		percent_update_sample_period = 1
@@ -643,8 +645,10 @@ function build_output(captureDuration)
 			IndexFormatVersion=index_format_version, 
 			categories=cat_table, 
 			containers=ctable,
-			durationNs=captureDuration
-		}, 
+			durationNs=captureDuration,
+			startTs = sysdig.get_firstevent_ts(),
+			endTs = sysdig.get_lastevent_ts()
+		},
 		metrics=res}
 	local filter = sysdig.get_filter()
 
