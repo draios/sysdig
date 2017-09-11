@@ -113,6 +113,8 @@ const static struct luaL_reg ll_sysdig [] =
 	{"is_print_container_data", &lua_cbacks::is_print_container_data},
 	{"get_output_format", &lua_cbacks::get_output_format},
 	{"get_evtsource_name", &lua_cbacks::get_evtsource_name},
+	{"get_firstevent_ts", &lua_cbacks::get_firstevent_ts},
+	{"get_lastevent_ts", &lua_cbacks::get_lastevent_ts},
 	{"make_ts", &lua_cbacks::make_ts},
 	{"add_ts", &lua_cbacks::add_ts},
 	{"subtract_ts", &lua_cbacks::subtract_ts},

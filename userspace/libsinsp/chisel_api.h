@@ -52,6 +52,8 @@ public:
 	static int is_print_container_data(lua_State *ls);
 	static int get_output_format(lua_State *ls);
 	static int get_evtsource_name(lua_State *ls);
+	static int get_firstevent_ts(lua_State *ls);
+	static int get_lastevent_ts(lua_State *ls);
 	static int set_event_formatter(lua_State *ls);
 	static int set_interval_ns(lua_State *ls);
 	static int set_interval_s(lua_State *ls);

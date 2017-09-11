@@ -1192,6 +1192,36 @@ int lua_cbacks::get_evtsource_name(lua_State *ls)
 	return 1;
 }
 
+int lua_cbacks::get_firstevent_ts(lua_State *ls)
+{
+	lua_getglobal(ls, "sichisel");
+
+	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+	lua_pop(ls, 1);
+
+	ASSERT(ch);
+	ASSERT(ch->m_lua_cinfo);
+
+	lua_pushstring(ls, to_string(ch->m_inspector->m_firstevent_ts).c_str());
+
+	return 1;
+}
+
+int lua_cbacks::get_lastevent_ts(lua_State *ls)
+{
+	lua_getglobal(ls, "sichisel");
+
+	sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+	lua_pop(ls, 1);
+
+	ASSERT(ch);
+	ASSERT(ch->m_lua_cinfo);
+
+	lua_pushstring(ls, to_string(ch->m_inspector->m_lastevent_ts).c_str());
+
+	return 1;
+}
+
 int lua_cbacks::set_event_formatter(lua_State *ls)
 {
 	lua_getglobal(ls, "sichisel");
