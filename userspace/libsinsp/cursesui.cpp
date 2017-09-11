@@ -1401,6 +1401,17 @@ Json::Value sinsp_cursesui::generate_json_info_section()
 			jcinfo["name"] = colnames[j];
 			jcinfo["size"] = colsizes[j];
 			jcinfo["type"] = param_type_to_string(m_datatable->m_types->at(j + off));
+			
+			sinsp_view_column_info* kinfo = wi->get_key();
+			if(kinfo)
+			{
+				jcinfo["drillDownKeyField"] = kinfo->m_field;
+				jcinfo["canDrillDown"] = true;
+			}
+			else
+			{
+				jcinfo["canDrillDown"] = false;
+			}
 
 			jlegend.append(jcinfo);
 		}
