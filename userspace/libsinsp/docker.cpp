@@ -374,7 +374,7 @@ void docker::emit_event(Json::Value& root, std::string type, std::string status,
 	//
 	// This is where the event is sent to the memdumper
 	//
-	//g_logger.log(std::move(evt), (severity_t)sinsp_logger::SEV_EVT_MDUMP_INFORMATION);
+	g_logger.log(std::move(evt), (severity_t)sinsp_logger::SEV_EVT_MDUMP_INFORMATION);
 }
 
 void docker::handle_event(Json::Value&& root)
