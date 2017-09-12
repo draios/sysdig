@@ -316,6 +316,10 @@ function on_init()
 		return true
 	end
 
+	if(sysdig.get_filter() ~= nil and sysdig.get_filter() ~= '') then
+		disable_index = true
+	end
+
 	sampling_period = arg_file_duration / (n_samples - 1)
 	chisel.set_precise_interval_ns(sampling_period)
 	percent_update_sample_period = math.floor(n_samples / 100 * 3)
@@ -1078,6 +1082,18 @@ function build_output(captureDuration)
 	return jtable
 end
 
+function load_index(dirname)
+	local f = io.open(dirname .. '/summary.json', "r")
+	if f == nil then
+		return nil
+	end
+
+	local res = f:read("*all")
+	f:close()
+
+	return res
+end
+
 -- Callback called by the engine at the end of the capture
 function on_capture_end(ts_s, ts_ns, delta)
 	if arg_file_duration == nil then
@@ -1091,15 +1107,12 @@ function on_capture_end(ts_s, ts_ns, delta)
 	local dirname = sysdig.get_evtsource_name() .. '_wd_index'
 
 	if file_cache_exists and not disable_index then
-		local f = io.open(dirname .. '/summary.json', "r")
-		if f == nil then
+		sstr = load_index(dirname)
+		if sstr == nil then
 			print('{"progress": 100, "error": "can\'t read the trace file index" }')
 			print(']}')
 			return false
 		end
-
-		sstr = f:read("*all")
-		f:close()
 
 		jtable = json.decode(sstr)
 		subsample_timelines(jtable)
