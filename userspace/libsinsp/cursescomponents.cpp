@@ -165,8 +165,33 @@ const char* spy_text_renderer::process_event_spy(sinsp_evt* evt, int64_t* len)
 	// Get the buffer
 	//
 	const char* resolved_argstr;
-	const char* argstr;
-	argstr = evt->get_param_value_str("data", &resolved_argstr, m_inspector->get_buffer_format());
+	char* argstr;
+	argstr = (char*)evt->get_param_value_str("data", &resolved_argstr, m_inspector->get_buffer_format());
+
+	//
+	// Trim initial or final \n
+	//
+	if(argstr)
+	{
+		uint32_t argstrlen = strlen(argstr);
+
+		if(argstrlen >= 1)
+		{
+			if(*argstr == '\n')
+			{
+				argstr++;
+				argstrlen--;
+			}
+
+			if(argstrlen >= 1)
+			{
+				if(argstr[argstrlen -1] == '\n')
+				{
+					argstr[argstrlen - 1] = 0;
+				}
+			}
+		}
+	}
 
 	return argstr;
 }
