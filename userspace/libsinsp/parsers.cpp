@@ -3656,6 +3656,11 @@ void sinsp_parser::parse_timerfd_create_exit(sinsp_evt *evt)
 	retval = *(int64_t *)parinfo->m_val;
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 
+	if(evt->m_tinfo == nullptr)
+	{
+		return;
+	}
+
 	//
 	// Check if the syscall was successful
 	//
