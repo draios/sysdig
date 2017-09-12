@@ -22,7 +22,7 @@ view_info =
 	description = "Lists the notification events that indicate the specific point in time when sysdig secure policies have been violated.",
 	tags = {"wsysdig"},
 	view_type = "list",
-	applies_to = {},
+	applies_to = {""},
 	filter = "evt.type=notification",
 	use_defaults = true,
 	columns = 
