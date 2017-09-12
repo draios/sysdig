@@ -627,7 +627,7 @@ public:
 				printf("{\"progress\": %.2lf,", rprogress);
 				printf("\"data\": %s", jdata.c_str());
 				printf("}");
-//				if(rprogress != 100 && next_res != SCAP_EOF)
+
 				if(next_res != SCAP_EOF)
 				{
 					printf(",");
