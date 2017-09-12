@@ -624,11 +624,11 @@ public:
 			{
 				string jdata = m_json_spy_renderer->get_data();
 				double rprogress = m_inspector->get_read_progress();
-
 				printf("{\"progress\": %.2lf,", rprogress);
 				printf("\"data\": %s", jdata.c_str());
 				printf("}");
-				if(rprogress != 100 && next_res != SCAP_EOF)
+//				if(rprogress != 100 && next_res != SCAP_EOF)
+				if(next_res != SCAP_EOF)
 				{
 					printf(",");
 				}
