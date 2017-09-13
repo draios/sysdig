@@ -772,7 +772,8 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 		parent, 
 		viz_type, 
 		sotype, 
-		m_parent->m_print_containers);
+		m_parent->m_print_containers,
+		sinsp_evt::PF_NORMAL);
 
 
 	if(viz_type == VIEW_ID_DIG)
