@@ -1165,13 +1165,10 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 					args_len = PAGE_SIZE;
 
 				if (unlikely(ppm_copy_from_user(args->str_storage, (const void __user *)mm->arg_start, args_len)))
-					return PPM_FAILURE_INVALID_USER_MEMORY;
-
-				args->str_storage[args_len - 1] = 0;
-			} else {
-				*args->str_storage = 0;
+					args_len = 0;
+				else
+					args->str_storage[args_len - 1] = 0;
 			}
-
 		} else {
 
 			/*
@@ -1184,9 +1181,13 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 			syscall_get_arguments(current, args->regs, 1, 1, &val);
 			args_len = accumulate_argv_or_env( (const char __user* __user *)val,
 							   args->str_storage, available);
+
 			if (unlikely(args_len < 0))
-				return args_len;
+				args_len = 0;
 		}
+
+		if (args_len == 0)
+			*args->str_storage = 0;
 
 		exe_len = strnlen(args->str_storage, args_len);
 		if (exe_len < args_len)
@@ -1410,11 +1411,9 @@ cgroups_error:
 					env_len = PAGE_SIZE;
 
 				if (unlikely(ppm_copy_from_user(args->str_storage, (const void __user *)mm->env_start, env_len)))
-					return PPM_FAILURE_INVALID_USER_MEMORY;
-
-				args->str_storage[env_len - 1] = 0;
-			} else {
-				*args->str_storage = 0;
+					env_len = 0;
+				else
+					args->str_storage[env_len - 1] = 0;
 			}
 		} else {
 			/*
@@ -1423,9 +1422,13 @@ cgroups_error:
 			syscall_get_arguments(current, args->regs, 2, 1, &val);
 			env_len = accumulate_argv_or_env( (const char __user* __user *)val,
 							  args->str_storage, available);
+
 			if (unlikely(env_len < 0))
-				return env_len;
+				env_len = 0;
 		}
+
+		if (env_len == 0)
+			*args->str_storage = 0;
 
 		/*
 		 * environ
