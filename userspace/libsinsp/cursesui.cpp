@@ -71,6 +71,7 @@ json_spy_renderer::json_spy_renderer(sinsp* inspector,
 	m_inspector = inspector;
 	m_filter = NULL;
 	m_root = Json::Value(Json::arrayValue);
+	m_linecnt = 0;
 
 	m_json_spy_renderer = new spy_text_renderer(inspector, 
 		parent,
@@ -107,6 +108,7 @@ void json_spy_renderer::process_event_spy(sinsp_evt* evt, int32_t next_res)
 	if(argstr != NULL)
 	{
 		Json::Value line;
+		m_linecnt++;
 
 		ppm_event_flags eflags = evt->get_info_flags();
 		if(eflags & EF_READS_FROM_FD)
@@ -168,6 +170,7 @@ void json_spy_renderer::process_event_dig(sinsp_evt* evt, int32_t next_res)
 
 	m_json_spy_renderer->m_formatter->tostring(evt, &line);
 	m_root.append(line);
+	m_linecnt++;
 }
 
 void json_spy_renderer::process_event(sinsp_evt* evt, int32_t next_res)
@@ -205,6 +208,11 @@ string json_spy_renderer::get_data()
 	m_root.clear();
 
 	return res;
+}
+
+uint64_t json_spy_renderer::get_count()
+{
+	return m_linecnt;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1437,9 +1445,10 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 	//
 	if(m_output_type == sinsp_table::OT_JSON && (m_inspector->is_live() || (m_eof > 0)))
 	{
-		printf("{\"progress\": 100, ");
-
 		sample = m_datatable->get_sample(get_time_delta());
+
+		printf("{\"progress\": 100, \"count\": %" PRIu64 ", ", 
+			m_datatable->m_json_output_lines_count);
 
 		Json::Value root = generate_json_info_section();
 

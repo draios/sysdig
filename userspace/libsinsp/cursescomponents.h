@@ -67,6 +67,7 @@ public:
 	sinsp_evt_formatter* m_formatter;
 	sinsp* m_inspector;
 	int32_t m_viz_type;
+	uint64_t m_linecnt;
 };
 
 #ifndef NOCURSESUI

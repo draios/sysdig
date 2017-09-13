@@ -296,6 +296,7 @@ public:
 	uint64_t m_prev_flush_time_ns;
 	uint64_t m_refresh_interval_ns;
 	vector<ppm_param_type>* m_types;
+	uint64_t m_json_output_lines_count;
 
 private:
 	inline void add_row(bool merging);

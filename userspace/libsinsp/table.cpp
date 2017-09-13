@@ -643,6 +643,7 @@ void sinsp_table::print_json(vector<sinsp_sample_row>* sample_data, uint64_t tim
 	string res;
 	uint32_t j = 0;
 	uint32_t k = 0;
+	m_json_output_lines_count = 0;
 
 	if(sample_data->size() == 0)
 	{
@@ -689,16 +690,14 @@ void sinsp_table::print_json(vector<sinsp_sample_row>* sample_data, uint64_t tim
 
 
 		auto key = get_row_key_name_and_val(k, false);
-		if(key.first != NULL)
-		{
-			int a = 0;
-		}
 
 		root["k"] = key.second;
 		root["d"] = jd;
 
 		res = writer.write(root);
 		printf("%s", res.substr(0, res.size() - 1).c_str());
+
+		m_json_output_lines_count++;
 
 		if(k >= m_json_last_row)
 		{

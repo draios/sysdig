@@ -337,11 +337,10 @@ public:
 		sinsp_evt::param_fmt text_fmt);
 
 	~json_spy_renderer();
-
 	void set_filter(string filter);
 	void process_event(sinsp_evt* evt, int32_t next_res);
-
 	string get_data();
+	uint64_t get_count();
 
 private:
 	void process_event_spy(sinsp_evt* evt, int32_t next_res);
@@ -351,6 +350,7 @@ private:
 	sinsp* m_inspector;
 	Json::Value m_root;
 	sinsp_filter* m_filter;
+	uint64_t m_linecnt;
 };
 
 class sinsp_cursesui
@@ -627,6 +627,10 @@ public:
 				string jdata = m_json_spy_renderer->get_data();
 				double rprogress = m_inspector->get_read_progress();
 				printf("{\"progress\": %.2lf,", rprogress);
+				if(next_res == SCAP_EOF)
+				{
+					printf(" \"count\": %" PRIu64 ", ", m_json_spy_renderer->get_count());
+				}
 				printf("\"data\": %s", jdata.c_str());
 				printf("}");
 

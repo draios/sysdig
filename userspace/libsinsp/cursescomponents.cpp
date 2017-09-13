@@ -59,6 +59,7 @@ spy_text_renderer::spy_text_renderer(sinsp* inspector,
 	m_formatter = NULL;
 	m_inspector = inspector;
 	m_viz_type = viz_type;
+	m_linecnt = 0;
 
 	//
 	// visualization-type inits
