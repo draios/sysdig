@@ -3852,7 +3852,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			scap_fd_type etype = evt->m_fdinfo->m_type;
 
-			if((etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK) || etype == SCAP_FD_UNIX_SOCK)
+			if(etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK)
 			{
 				return extract_buflen(evt);
 			}
@@ -3864,7 +3864,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			scap_fd_type etype = evt->m_fdinfo->m_type;
 
-			if((etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK) || etype == SCAP_FD_UNIX_SOCK)
+			if(etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK)
 			{
 				return extract_buflen(evt);
 			}
@@ -3876,7 +3876,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			scap_fd_type etype = evt->m_fdinfo->m_type;
 
-			if((etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK) || etype == SCAP_FD_UNIX_SOCK)
+			if(etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK)
 			{
 				return extract_buflen(evt);
 			}
