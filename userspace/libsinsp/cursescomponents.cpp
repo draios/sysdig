@@ -53,7 +53,8 @@ spy_text_renderer::spy_text_renderer(sinsp* inspector,
 	sinsp_cursesui* parent,
 	int32_t viz_type, 
 	sysdig_output_type sotype, 
-	bool print_containers)
+	bool print_containers,
+	sinsp_evt::param_fmt text_fmt)
 {
 	m_formatter = NULL;
 	m_inspector = inspector;
@@ -106,8 +107,9 @@ spy_text_renderer::spy_text_renderer(sinsp* inspector,
 	else
 	{
 		m_formatter = NULL;
-		m_inspector->set_buffer_format(sinsp_evt::PF_EOLS);
 	}
+
+	m_inspector->set_buffer_format(text_fmt);
 }
 
 spy_text_renderer::~spy_text_renderer()

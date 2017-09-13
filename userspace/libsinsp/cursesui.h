@@ -333,7 +333,8 @@ public:
 		sinsp_cursesui* parent,
 		int32_t viz_type, 
 		spy_text_renderer::sysdig_output_type sotype, 
-		bool print_containers);
+		bool print_containers,
+		sinsp_evt::param_fmt text_fmt);
 
 	~json_spy_renderer();
 
@@ -432,7 +433,8 @@ public:
 	sinsp_cursesui(sinsp* inspector, string event_source_name, 
 		string cmdline_capture_filter, uint64_t refresh_interval_ns, 
 		bool print_containers, sinsp_table::output_type output_type, bool is_mousedrag_available,
-		int32_t json_first_row, int32_t json_last_row, int32_t sorting_col);
+		int32_t json_first_row, int32_t json_last_row, int32_t sorting_col,
+		sinsp_evt::param_fmt json_spy_text_fmt);
 	~sinsp_cursesui();
 	void configure(sinsp_view_manager* views);
 	void start(bool is_drilldown, bool is_spy_switch);
@@ -802,6 +804,7 @@ private:
 	int32_t m_json_last_row;
 	int32_t m_sorting_col;
 	json_spy_renderer* m_json_spy_renderer;
+	sinsp_evt::param_fmt m_json_spy_text_fmt;
 };
 
 #endif // CSYSDIG

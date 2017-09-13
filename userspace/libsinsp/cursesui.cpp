@@ -65,7 +65,8 @@ json_spy_renderer::json_spy_renderer(sinsp* inspector,
 	sinsp_cursesui* parent,
 	int32_t viz_type, 
 	spy_text_renderer::sysdig_output_type sotype, 
-	bool print_containers)
+	bool print_containers,
+	sinsp_evt::param_fmt text_fmt)
 {
 	m_inspector = inspector;
 	m_filter = NULL;
@@ -75,7 +76,8 @@ json_spy_renderer::json_spy_renderer(sinsp* inspector,
 		parent,
 		viz_type, 
 		sotype, 
-		print_containers);
+		print_containers,
+		text_fmt);
 }
 
 json_spy_renderer::~json_spy_renderer()
@@ -216,7 +218,8 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	sinsp_table::output_type output_type,
 	bool is_mousedrag_available,
 	int32_t json_first_row, int32_t json_last_row,
-	int32_t sorting_col)
+	int32_t sorting_col,
+	sinsp_evt::param_fmt json_spy_text_fmt)
 {
 	m_inspector = inspector;
 	m_event_source_name = event_source_name;
@@ -252,6 +255,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_json_last_row = json_last_row;
 	m_sorting_col = sorting_col;
 	m_json_spy_renderer = NULL;
+	m_json_spy_text_fmt = json_spy_text_fmt;
 
 #ifndef NOCURSESUI
 	m_viz = NULL;
@@ -618,7 +622,8 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 				this,
 				m_selected_view,
 				spy_text_renderer::OT_NORMAL,
-				m_print_containers);
+				m_print_containers,
+				m_json_spy_text_fmt);
 
 			m_json_spy_renderer->set_filter(m_complete_filter);
 		}

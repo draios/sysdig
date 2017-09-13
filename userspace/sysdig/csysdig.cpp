@@ -69,6 +69,9 @@ static void usage()
 "csysdig version " SYSDIG_VERSION "\n"
 "Usage: csysdig [options] [filter]\n\n"
 "Options:\n"
+" -A, --print-ascii  When emitting JSON, only print the text portion of data buffers, and echo\n"
+"                    end-of-lines. This is useful to only display human-readable\n"
+"                    data.\n"
 " -d <period>, --delay=<period>\n"
 "                    Set the delay between updates, in milliseconds. This works\n"
 "                    similarly to the -d option in top.\n"
@@ -135,6 +138,8 @@ static void usage()
 "                    csysdig. Combine  this option with a command line filter for\n"
 "                    complete output customization.\n"
 " --version          Print version number.\n"
+" -X, --print-hex-ascii\n"
+"                    When emitting JSON, print data buffers in hex and ASCII.\n"
 "\n"
 "How to use csysdig:\n"
 "1. you can either see real time data, or analyze a trace file by using the -r\n"
@@ -306,9 +311,11 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	bool terminal_with_mouse = false;
 	bool force_tracers_capture = false;
 	bool force_term_compat = false;
+	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
 
 	static struct option long_options[] =
 	{
+		{"print-ascii", no_argument, 0, 'A' },
 		{"delay", required_argument, 0, 'd' },
 		{"exclude-users", no_argument, 0, 'E' },
 		{"from", required_argument, 0, 0 },
@@ -333,6 +340,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"to", required_argument, 0, 0 },
 		{"view", required_argument, 0, 'v' },
 		{"version", no_argument, 0, 0 },
+		{"print-hex-ascii", no_argument, 0, 'X'},
 		{0, 0, 0, 0}
 	};
 
@@ -351,7 +359,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-			"d:Ehk:K:jlm:n:p:Rr:s:Tv:", long_options, &long_index)) != -1)
+			"Ad:Ehk:K:jlm:n:p:Rr:s:Tv:X", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -360,6 +368,16 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				// Command line error 
 				//
 				throw sinsp_exception("command line error");
+				break;
+			case 'A':
+				if(event_buffer_format != sinsp_evt::PF_NORMAL)
+				{
+					fprintf(stderr, "you cannot specify more than one output format\n");
+					delete inspector;
+					return sysdig_init_res(EXIT_SUCCESS);
+				}
+
+				event_buffer_format = sinsp_evt::PF_EOLS;
 				break;
 			case 'd':
 				try
@@ -440,6 +458,16 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 			case 'v':
 				display_view = optarg;
+				break;
+			case 'X':
+				if(event_buffer_format != sinsp_evt::PF_NORMAL)
+				{
+					fprintf(stderr, "you cannot specify more than one output format\n");
+					delete inspector;
+					return sysdig_init_res(EXIT_FAILURE);
+				}
+
+				event_buffer_format = sinsp_evt::PF_HEXASCII;
 				break;
 			case 0:
 				{
@@ -654,7 +682,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				terminal_with_mouse,
 				json_first_row, 
 				json_last_row,
-				sorting_col);
+				sorting_col,
+				event_buffer_format);
 
 			ui.configure(&view_manager);
 

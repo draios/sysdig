@@ -59,7 +59,8 @@ public:
 		sinsp_cursesui* parent, 
 		int32_t viz_type, 
 		sysdig_output_type sotype, 
-		bool print_containers);
+		bool print_containers,
+		sinsp_evt::param_fmt text_fmt);
 	~spy_text_renderer();
 	const char* process_event_spy(sinsp_evt* evt, int64_t* len);
 
