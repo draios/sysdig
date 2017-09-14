@@ -684,8 +684,10 @@ static inline uint32_t open_flags_to_scap(unsigned long flags)
 		res |= PPM_O_DIRECT;
 #endif
 
+#ifdef O_DIRECTORY
 	if (flags & O_DIRECTORY)
 		res |= PPM_O_DIRECTORY;
+#endif
 
 #ifdef O_LARGEFILE
 	if (flags & O_LARGEFILE)

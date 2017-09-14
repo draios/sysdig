@@ -1812,7 +1812,6 @@ void sinsp_filter_compiler::parse_check()
 			//
 			// Create the 'or' sequence
 			//
-			uint32_t num_values = 0;
 			while(true)
 			{
 				// 'in' clause aware
@@ -1824,8 +1823,7 @@ void sinsp_filter_compiler::parse_check()
 				sinsp_filter_check* newchk = g_filterlist.new_filter_check_from_another(chk);
 				newchk->m_boolop = op;
 				newchk->m_cmpop = CO_EQ;
-				newchk->add_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1, num_values);
-				num_values++;
+				newchk->add_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
 
 				m_filter->add_check(newchk);
 

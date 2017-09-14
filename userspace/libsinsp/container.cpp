@@ -119,6 +119,10 @@ bool sinsp_container_manager::remove_inactive_containers()
 		{
 			if(containers_in_use.find(it->first) == containers_in_use.end())
 			{
+				if(m_inspector->m_parser->m_fd_listener)
+				{
+					m_inspector->m_parser->m_fd_listener->on_remove_container(m_containers[it->first]);
+				}
 				m_containers.erase(it++);
 			}
 			else
@@ -399,9 +403,14 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 				// First lookup if the container exists in our table, otherwise only if we are live check if it has
 				// an entry in /var/lib/rkt. In capture mode only the former will be used.
 				// In live mode former will be used only if we already hit that container
-				if( m_containers.find(rkt_podid + ":" + rkt_appname) != m_containers.end() ||
-					(query_os_for_missing_info && access(image_manifest_path, F_OK) == 0)
-					)
+				bool is_rkt_pod_id_valid = m_containers.find(rkt_podid + ":" + rkt_appname) != m_containers.end(); // if it's already on our table
+#ifdef HAS_CAPTURE
+				if(!is_rkt_pod_id_valid && query_os_for_missing_info)
+				{
+					is_rkt_pod_id_valid = (access(image_manifest_path, F_OK) == 0);
+				}
+#endif			
+				if(is_rkt_pod_id_valid)
 				{
 					container_info.m_type = CT_RKT;
 					container_info.m_id = rkt_podid + ":" + rkt_appname;
@@ -570,7 +579,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["Mounts"] = mounts;
 
 	char addrbuff[100];
-	uint32_t iph = ntohl(container_info.m_container_ip);
+	uint32_t iph = htonl(container_info.m_container_ip);
 	inet_ntop(AF_INET, &iph, addrbuff, sizeof(addrbuff));
 	container["ip"] = addrbuff;
 
@@ -595,6 +604,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 
 	evt->m_cpuid = 0;
 	evt->m_evtnum = 0;
+	evt->m_inspector = m_inspector;
 
 	scap_evt* scapevt = evt->m_pevt;
 
@@ -648,7 +658,7 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	char buf[256];
 	string json;
 	ssize_t res;
-	while((res = read(sock, buf, sizeof(buf))) != 0)
+	while((res = read(sock, buf, sizeof(buf) - 1)) != 0)
 	{
 		if(res == -1 || json.size() > MAX_JSON_SIZE_B)
 		{
@@ -700,11 +710,29 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	const Json::Value& net_obj = root["NetworkSettings"];
 
 	string ip = net_obj["IPAddress"].asString();
-	if(inet_pton(AF_INET, ip.c_str(), &container->m_container_ip) == -1)
+	if(ip.empty())
 	{
-		ASSERT(false);
+		const Json::Value& hconfig_obj = root["HostConfig"];
+		string net_mode = hconfig_obj["NetworkMode"].asString();
+		if(strncmp(net_mode.c_str(), "container:", strlen("container:")) == 0)
+		{
+			sinsp_container_info pcnt;
+			pcnt.m_id = net_mode.substr(net_mode.find(":") + 1);
+			if(!get_container(pcnt.m_id, &pcnt))
+			{
+				parse_docker(&pcnt);
+			}
+			container->m_container_ip = pcnt.m_container_ip;
+		}
 	}
-	container->m_container_ip = ntohl(container->m_container_ip);
+	else
+	{
+		if(inet_pton(AF_INET, ip.c_str(), &container->m_container_ip) == -1)
+		{
+			ASSERT(false);
+		}
+		container->m_container_ip = ntohl(container->m_container_ip);
+	}
 
 	vector<string> ports = net_obj["Ports"].getMemberNames();
 	for(vector<string>::const_iterator it = ports.begin(); it != ports.end(); ++it)

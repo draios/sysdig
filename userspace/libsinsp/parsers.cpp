@@ -1511,6 +1511,18 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(uint64_t));
 	evt->m_tinfo->m_pid = *(uint64_t *)parinfo->m_val;
 
+	//
+	// In case this thread is a fake entry,
+	// try to at least patch the parent, since
+	// we have it from the execve event
+	//
+	if(evt->m_tinfo->m_ptid == -1)
+	{
+		parinfo = evt->get_param(5);
+		ASSERT(parinfo->m_len == sizeof(uint64_t));
+		evt->m_tinfo->m_ptid = *(uint64_t *)parinfo->m_val;	
+	}
+
 	// Get the fdlimit
 	parinfo = evt->get_param(7);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
@@ -1767,7 +1779,7 @@ void schedule_more_k8s_evts(sinsp* inspector, void* data)
 	schedule_more_evts(inspector, data, inspector->get_k8s_client(), PPME_K8S_E);
 }
 
-void sinsp_parser::schedule_k8s_events(sinsp_evt *evt)
+void sinsp_parser::schedule_k8s_events()
 {
 #ifdef HAS_CAPTURE
 	//
@@ -1779,7 +1791,7 @@ void sinsp_parser::schedule_k8s_events(sinsp_evt *evt)
 		int event_count = k8s_client->get_capture_events().size();
 		if(event_count)
 		{
-			m_k8s_metaevents_state.m_piscapevt->tid = evt->get_tid();
+			m_k8s_metaevents_state.m_piscapevt->tid = 0;
 			m_k8s_metaevents_state.m_piscapevt->ts = m_inspector->m_lastevent_ts;
 			m_k8s_metaevents_state.m_new_group = true;
 			m_k8s_metaevents_state.m_n_additional_events_to_add = event_count;
@@ -1796,7 +1808,7 @@ void schedule_more_mesos_evts(sinsp* inspector, void* data)
 	schedule_more_evts(inspector, data, inspector->get_mesos_client(), PPME_MESOS_E);
 }
 
-void sinsp_parser::schedule_mesos_events(sinsp_evt *evt)
+void sinsp_parser::schedule_mesos_events()
 {
 #ifdef HAS_CAPTURE
 	//
@@ -1808,7 +1820,7 @@ void sinsp_parser::schedule_mesos_events(sinsp_evt *evt)
 		int event_count = mesos_client->get_capture_events().size();
 		if(event_count)
 		{
-			m_mesos_metaevents_state.m_piscapevt->tid = evt->get_tid();
+			m_mesos_metaevents_state.m_piscapevt->tid = 0;
 			m_mesos_metaevents_state.m_piscapevt->ts = m_inspector->m_lastevent_ts;
 			m_mesos_metaevents_state.m_new_group = true;
 			m_mesos_metaevents_state.m_n_additional_events_to_add = event_count;
@@ -3643,6 +3655,11 @@ void sinsp_parser::parse_timerfd_create_exit(sinsp_evt *evt)
 	parinfo = evt->get_param(0);
 	retval = *(int64_t *)parinfo->m_val;
 	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(evt->m_tinfo == nullptr)
+	{
+		return;
+	}
 
 	//
 	// Check if the syscall was successful

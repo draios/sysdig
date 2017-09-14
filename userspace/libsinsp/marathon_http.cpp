@@ -7,7 +7,6 @@
 #include "marathon_http.h"
 #include "curl/curl.h"
 #include "curl/easy.h"
-#include "curl/curlbuild.h"
 #define BUFFERSIZE 512 // b64 needs this macro
 #include "b64/encode.h"
 #include "sinsp.h"
