@@ -29,7 +29,7 @@ view_info =
 	{
 		{
 			name = "TIME",
-			field = "evt.time.s",
+			field = "evt.time",
 			description = "Time when the command was executed.",
 			colsize = 12,
 		},
