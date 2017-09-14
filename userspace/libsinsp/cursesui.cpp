@@ -39,6 +39,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "cursesui.h"
 
 extern int32_t g_csysdig_screen_w;
+extern bool g_csysdig_json_output;
 
 #ifndef NOCURSESUI
 #define ColorPair(i,j) COLOR_PAIR((7-i)*8+j)
@@ -264,6 +265,11 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_sorting_col = sorting_col;
 	m_json_spy_renderer = NULL;
 	m_json_spy_text_fmt = json_spy_text_fmt;
+
+	if(output_type == sinsp_table::OT_JSON)
+	{
+		g_csysdig_json_output = true;
+	}
 
 #ifndef NOCURSESUI
 	m_viz = NULL;

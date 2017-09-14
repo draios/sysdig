@@ -33,6 +33,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 extern sinsp_evttables g_infotables;
 int32_t g_csysdig_screen_w = -1;
+bool g_csysdig_json_output = false;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Helper functions
@@ -2897,7 +2898,14 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	switch(m_field_id)
 	{
 	case TYPE_TIME:
-		ts_to_string(evt->get_ts(), &m_strstorage, false, true);
+		if(g_csysdig_json_output)
+		{
+			m_strstorage = to_string(evt->get_ts());
+		}
+		else
+		{
+			ts_to_string(evt->get_ts(), &m_strstorage, false, true);
+		}
 		*len = m_strstorage.size();
 		return (uint8_t*)m_strstorage.c_str();
 	case TYPE_TIME_S:
