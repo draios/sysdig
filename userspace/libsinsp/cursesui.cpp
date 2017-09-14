@@ -1445,9 +1445,11 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 	//
 	if(m_output_type == sinsp_table::OT_JSON && (m_inspector->is_live() || (m_eof > 0)))
 	{
+		printf("{\"progress\": 100, ");
+
 		sample = m_datatable->get_sample(get_time_delta());
 
-		printf("{\"progress\": 100, \"count\": %" PRIu64 ", ", 
+		printf("\"count\": %" PRIu64 ", ", 
 			m_datatable->m_json_output_lines_count);
 
 		Json::Value root = generate_json_info_section();
