@@ -967,10 +967,6 @@ int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid,
 
 	if(flags == 0)
 	{
-if(e->type == PPME_NOTIFICATION_E)
-{
-	printf("/////////////////////////////// %p %p\n", handle, d);
-}
 		//
 		// Write the section header
 		//
