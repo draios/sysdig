@@ -778,6 +778,8 @@ public:
 	void refresh_proc_list() {
 		scap_refresh_proc_table(m_h);
 	}
+	void set_simpledriver_mode();
+
 VISIBILITY_PRIVATE
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE
