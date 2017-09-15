@@ -631,12 +631,13 @@ end
 
 function get_category_table()
 	return {
-		'general',
-		'file',
-		'network',
-		'security',
-		'performance',
-		'logs'
+		{id='general', name='General'},
+		{id='file', name='File'},
+		{id='network', name='Network'},
+		{id='security', name='Security'},
+		{id='performance', name='Performance'},
+		{id='logs', name='Logs'},
+		{id='infrastructure', name='Infrastructure'}
 	}
 end
 
