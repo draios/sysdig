@@ -234,10 +234,10 @@ function is_system_dir(filename)
 end
 
 function is_log_file(filename)
-	if(string.find(filename, '.log') or
+	if(string.find(filename, '%.log') or
 		string.find(filename, '_log') or
 		string.find(filename, '/var/log')) and
-		not (string.find(filename, '.gz') or string.find(filename, '.tgz'))
+		not (string.find(filename, '%.gz') or string.find(filename, '%.tgz'))
 	then
 		return true
 	end
@@ -1026,7 +1026,7 @@ function build_output(captureDuration)
 			category = 'logs',
 			targetView = 'echo',
 			targetViewTitle = 'Warning Application Log Messages',
-			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and evt.buffer contains arning',
+			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and (evt.buffer contains warn or evt.buffer contains Warn)',
 			data = gsummary.appLogCountW
 		}
 	end
@@ -1038,7 +1038,7 @@ function build_output(captureDuration)
 			category = 'logs',
 			targetView = 'echo',
 			targetViewTitle = 'Error Application Log Messages',
-			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and (evt.buffer contains rror or evt.buffer contains ritic or evt.buffer ergency rror or evt.buffer contains lert)',
+			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and (evt.buffer contains error or evt.buffer contains Error or evt.buffer contains critic or evt.buffer contains Critic or evt.buffer emergency or evt.buffer contains Emergency or evt.buffer contains alert or evt.buffer contains Alert)',
 			data = gsummary.appLogCountE
 		}
 	end
