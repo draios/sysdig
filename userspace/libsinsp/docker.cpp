@@ -229,6 +229,154 @@ void docker::set_event_json(json_ptr_t json, const std::string&)
 }
 
 #ifdef HAS_CAPTURE
+void docker::emit_event(Json::Value& root, std::string type, std::string status, bool send_to_backend)
+{
+	++m_event_counter;
+	std::string::size_type delim_pos = status.find(':');
+	if(delim_pos != std::string::npos)
+	{
+		status = status.substr(0, delim_pos);
+	}
+	g_logger.log("Docker EVENT: handling " + status + " of " + type, sinsp_logger::SEV_DEBUG);
+	severity_map_t::const_iterator it = m_severity_map.find(status);
+
+	severity_t severity;
+	std::string event_name = status;
+	std::string id = get_json_string(root, "id");
+	if(id.length() > 7 && id.substr(0, 7) == "sha256:") // untag and delete have "sha256:id" format
+	{
+		id.clear(); // ignore that (will be displayed in event description)
+	}
+	severity = it->second;
+	g_logger.log("Docker EVENT: severity for " + status + '=' + std::to_string(severity - sinsp_logger::SEV_EVT_MIN), sinsp_logger::SEV_DEBUG);
+	uint64_t epoch_time_s = static_cast<uint64_t>(~0);
+	Json::Value t = root["time"];
+	if(!t.isNull() && t.isConvertibleTo(Json::uintValue))
+	{
+		epoch_time_s = t.asUInt64();
+	}
+	g_logger.log("Docker EVENT: name=" + event_name + ", id=" + id +
+				", status=" + status + ", time=" + std::to_string(epoch_time_s),
+				sinsp_logger::SEV_DEBUG);
+	if(m_verbose)
+	{
+		std::cout << Json::FastWriter().write(root) << std::endl;
+	}
+
+	Json::Value no_value = Json::nullValue;
+	const Json::Value& actor = root["Actor"];
+	const Json::Value& attrib = actor.isNull() ? no_value : actor["Attributes"];
+	const Json::Value& img = attrib.isNull() ? no_value : attrib["image"];
+	std::string image;
+	if(!img.isNull() && img.isConvertibleTo(Json::stringValue))
+	{
+		image = img.asString();
+	}
+	event_scope scope;
+	if(m_machine_id.length())
+	{
+		scope.add("host.mac", m_machine_id);
+	}
+	if(is_image_event(event_name))
+	{
+		bool id_was_empty = false;
+		if(id.empty())
+		{
+			id = get_json_string(root, "id");
+			id_was_empty = true;
+		}
+		if(!id.empty())
+		{
+			scope.add("container.image", id);
+		}
+		else if(!image.empty())
+		{
+			scope.add("container.image", image);
+		}
+		else
+		{
+			g_logger.log("Cannot determine container image for Docker event.", sinsp_logger::SEV_WARNING);
+		}
+		if(id_was_empty) { id.clear(); }
+	}
+	else if(is_container_event(event_name))
+	{
+		if(id.length() >= 12)
+		{
+			scope.add("container.id", id.substr(0, 12));
+		}
+	}
+	if(status.length())
+	{
+		status.insert(0, "Event: ", 7);
+	}
+	if(!actor.isNull() && actor.isObject())
+	{
+		if(!attrib.isNull() && attrib.isObject())
+		{
+			if(!image.empty())
+			{
+				status.append("; Image: ").append(image);
+			}
+			if(!id.empty() && id != image)
+			{
+				status.append("; ID: ").append(id);
+			}
+			const Json::Value& name = attrib["name"];
+			if(!name.isNull() && name.isConvertibleTo(Json::stringValue))
+			{
+				status.append("; Name: ").append(name.asString());
+			}
+		}
+	}
+	sinsp_user_event::tag_map_t tags;
+	tags["source"] = "docker";
+	if(event_name.length())
+	{
+		if(type.length())
+		{
+			type[0] = toupper(type[0]);
+			event_name = type.append(1, ' ').append(translate_name(event_name));
+		}
+		else // older docker versions don't tell type
+		{
+			event_name[0] = toupper(event_name[0]);
+			event_name.insert(0, "Docker ");
+		}
+	}
+	std::string evt = sinsp_user_event::to_string(epoch_time_s, std::move(event_name),
+						std::move(status), std::move(scope), std::move(tags));
+
+	if(send_to_backend)
+	{
+		if(it != m_severity_map.end())
+		{
+			//
+			// This is where the event is sent to the backend
+			//
+			g_logger.log(evt, severity);
+
+			if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
+			{
+				g_logger.log("Docker EVENT: scheduled for sending\n" + evt, sinsp_logger::SEV_TRACE);
+			}
+		}
+		else
+		{
+			g_logger.log("Docker EVENT: status not supported: " + status, sinsp_logger::SEV_ERROR);
+			if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG)
+			{
+				g_logger.log(Json::FastWriter().write(root), sinsp_logger::SEV_DEBUG);
+			}
+		}
+	}
+
+	//
+	// This is where the event is sent to the memdumper
+	//
+	g_logger.log(std::move(evt), (severity_t)sinsp_logger::SEV_EVT_MDUMP);
+}
+
 void docker::handle_event(Json::Value&& root)
 {
 	if(m_event_filter && (m_event_counter < sinsp_user_event::max_events_per_cycle()))
@@ -297,141 +445,15 @@ void docker::handle_event(Json::Value&& root)
 				}
 			}
 		}
+
 		if(is_allowed)
 		{
-			++m_event_counter;
-			std::string::size_type delim_pos = status.find(':');
-			if(delim_pos != std::string::npos)
-			{
-				status = status.substr(0, delim_pos);
-			}
-			g_logger.log("Docker EVENT: handling " + status + " of " + type, sinsp_logger::SEV_DEBUG);
-			severity_map_t::const_iterator it = m_severity_map.find(status);
-			if(it != m_severity_map.end())
-			{
-				severity_t severity;
-				std::string event_name = status;
-				std::string id = get_json_string(root, "id");
-				if(id.length() > 7 && id.substr(0, 7) == "sha256:") // untag and delete have "sha256:id" format
-				{
-					id.clear(); // ignore that (will be displayed in event description)
-				}
-				severity = it->second;
-				g_logger.log("Docker EVENT: severity for " + status + '=' + std::to_string(severity - sinsp_logger::SEV_EVT_MIN), sinsp_logger::SEV_DEBUG);
-				uint64_t epoch_time_s = static_cast<uint64_t>(~0);
-				Json::Value t = root["time"];
-				if(!t.isNull() && t.isConvertibleTo(Json::uintValue))
-				{
-					epoch_time_s = t.asUInt64();
-				}
-				g_logger.log("Docker EVENT: name=" + event_name + ", id=" + id +
-							", status=" + status + ", time=" + std::to_string(epoch_time_s),
-							sinsp_logger::SEV_DEBUG);
-				if(m_verbose)
-				{
-					std::cout << Json::FastWriter().write(root) << std::endl;
-				}
-
-				Json::Value no_value = Json::nullValue;
-				const Json::Value& actor = root["Actor"];
-				const Json::Value& attrib = actor.isNull() ? no_value : actor["Attributes"];
-				const Json::Value& img = attrib.isNull() ? no_value : attrib["image"];
-				std::string image;
-				if(!img.isNull() && img.isConvertibleTo(Json::stringValue))
-				{
-					image = img.asString();
-				}
-				event_scope scope;
-				if(m_machine_id.length())
-				{
-					scope.add("host.mac", m_machine_id);
-				}
-				if(is_image_event(event_name))
-				{
-					bool id_was_empty = false;
-					if(id.empty())
-					{
-						id = get_json_string(root, "id");
-						id_was_empty = true;
-					}
-					if(!id.empty())
-					{
-						scope.add("container.image", id);
-					}
-					else if(!image.empty())
-					{
-						scope.add("container.image", image);
-					}
-					else
-					{
-						g_logger.log("Cannot determine container image for Docker event.", sinsp_logger::SEV_WARNING);
-					}
-					if(id_was_empty) { id.clear(); }
-				}
-				else if(is_container_event(event_name))
-				{
-					if(id.length() >= 12)
-					{
-						scope.add("container.id", id.substr(0, 12));
-					}
-				}
-				if(status.length())
-				{
-					status.insert(0, "Event: ", 7);
-				}
-				if(!actor.isNull() && actor.isObject())
-				{
-					if(!attrib.isNull() && attrib.isObject())
-					{
-						if(!image.empty())
-						{
-							status.append("; Image: ").append(image);
-						}
-						if(!id.empty() && id != image)
-						{
-							status.append("; ID: ").append(id);
-						}
-						const Json::Value& name = attrib["name"];
-						if(!name.isNull() && name.isConvertibleTo(Json::stringValue))
-						{
-							status.append("; Name: ").append(name.asString());
-						}
-					}
-				}
-				sinsp_user_event::tag_map_t tags;
-				tags["source"] = "docker";
-				if(event_name.length())
-				{
-					if(type.length())
-					{
-						type[0] = toupper(type[0]);
-						event_name = type.append(1, ' ').append(translate_name(event_name));
-					}
-					else // older docker versions don't tell type
-					{
-						event_name[0] = toupper(event_name[0]);
-						event_name.insert(0, "Docker ");
-					}
-				}
-				std::string evt = sinsp_user_event::to_string(epoch_time_s, std::move(event_name),
-									std::move(status), std::move(scope), std::move(tags));
-				g_logger.log(std::move(evt), severity);
-				if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
-				{
-					g_logger.log("Docker EVENT: scheduled for sending\n" + evt, sinsp_logger::SEV_TRACE);
-				}
-			}
-			else
-			{
-				g_logger.log("Docker EVENT: status not supported: " + status, sinsp_logger::SEV_ERROR);
-				if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG)
-				{
-					g_logger.log(Json::FastWriter().write(root), sinsp_logger::SEV_DEBUG);
-				}
-			}
+			emit_event(root, type, status, true);
 		}
 		else
 		{
+			emit_event(root, type, status, false);
+
 			if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
 			{
 				g_logger.log("Docker EVENT: status not permitted by filter: " + type +':' + status, sinsp_logger::SEV_TRACE);
