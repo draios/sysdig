@@ -664,6 +664,7 @@ function build_output(captureDuration)
 			desc = 'Sysdig Secure notifications. Sysdig secure inserts a "notification" event in the capture stream each time a policy triggers. This metric counts the notifications. Chart it over time to compare the other metrics with the point in time where policies were triggered.',
 			category = 'general',
 			targetView = 'notifications',
+			drillDownKey = 'NONE',
 			data = gsummary.notifications
 		}
 	end
@@ -674,6 +675,7 @@ function build_output(captureDuration)
 			desc = 'Total number of processes that were running during the capture',
 			category = 'general',
 			targetView = 'procs',
+			drillDownKey = '',
 			data = gsummary.procCount
 		}
 	end
@@ -684,6 +686,7 @@ function build_output(captureDuration)
 			desc = 'Total number of containers that were running during the capture',
 			category = 'general',
 			targetView = 'containers',
+			drillDownKey = '',
 			data = gsummary.containerCount
 		}
 	end
@@ -694,6 +697,7 @@ function build_output(captureDuration)
 			desc = 'Number of system calls performed by any process/container in the system',
 			category = 'general',
 			targetView = 'syscalls',
+			drillDownKey = '',
 			data = gsummary.syscallCount
 		}
 	end
@@ -704,6 +708,7 @@ function build_output(captureDuration)
 			desc = 'Amount of bytes read from or written to the file system',
 			category = 'file',
 			targetView = 'files',
+			drillDownKey = 'fd.directory',
 			targetViewSortingCol = 2,
 			data = gsummary.fileBytes
 		}
@@ -715,6 +720,7 @@ function build_output(captureDuration)
 			desc = 'Amount of bytes read from the file system',
 			category = 'file',
 			targetView = 'files',
+			drillDownKey = 'fd.directory',
 			targetViewSortingCol = 0,
 			data = gsummary.fileBytesR
 		}
@@ -726,6 +732,7 @@ function build_output(captureDuration)
 			desc = 'Amount of bytes written to the file system',
 			category = 'file',
 			targetView = 'files',
+			drillDownKey = 'fd.directory',
 			targetViewSortingCol = 1,
 			data = gsummary.fileBytesW
 		}
@@ -738,6 +745,7 @@ function build_output(captureDuration)
 			category = 'file',
 			targetView = 'files',
 			targetViewFilter = 'evt.is_io_write=true',
+			drillDownKey = 'fd.directory',
 			targetViewSortingCol = 2,
 			data = gsummary.fileCount
 		}
@@ -749,6 +757,7 @@ function build_output(captureDuration)
 			desc = 'Number of files that have been accessed during the capture',
 			category = 'file',
 			targetView = 'files',
+			drillDownKey = 'fd.directory',
 			targetViewSortingCol = 1,
 			targetViewFilter = 'evt.is_io_write=true',
 			data = gsummary.fileCountW
@@ -761,6 +770,7 @@ function build_output(captureDuration)
 			desc = 'Amount of bytes read from or written to the network',
 			category = 'network',
 			targetView = 'sports',
+			drillDownKey = 'fd.directory',
 			targetViewSortingCol = 4,
 			data = gsummary.netBytes
 		}
@@ -772,6 +782,7 @@ function build_output(captureDuration)
 			desc = 'Amount of bytes read from the network',
 			category = 'network',
 			targetView = 'sports',
+			drillDownKey = 'fd.sport',
 			targetViewSortingCol = 2,
 			data = gsummary.netBytesR
 		}
@@ -783,6 +794,7 @@ function build_output(captureDuration)
 			desc = 'Amount of bytes written to the network',
 			category = 'network',
 			targetView = 'sports',
+			drillDownKey = 'fd.sport',
 			targetViewSortingCol = 3,
 			data = gsummary.netBytesW
 		}
@@ -795,6 +807,7 @@ function build_output(captureDuration)
 			category = 'network',
 			targetView = 'connections',
 			targetViewFilter = 'evt.is_io=true',
+			drillDownKey = 'fd.sport',
 			targetViewSortingCol = 8,
 			data = gsummary.connectionCount
 		}
@@ -806,6 +819,7 @@ function build_output(captureDuration)
 			desc = 'Number of open ports on this system',
 			category = 'network',
 			targetView = 'port_bindings',
+			drillDownKey = 'fd.sport',
 			data = gsummary.listeningPortCount
 		}
 	end
@@ -816,6 +830,7 @@ function build_output(captureDuration)
 			desc = 'Number of open ports that have been added during the observation interval',
 			category = 'network',
 			targetView = 'port_bindings',
+			drillDownKey = 'fd.sport',
 			data = gsummary.newListeningPorts
 		}
 	end
@@ -828,6 +843,7 @@ function build_output(captureDuration)
 			targetView = 'dig',
 			targetViewTitle = 'Connect events',
 			targetViewFilter = 'evt.type=connect and evt.dir=< and fd.sport exists',
+			drillDownKey = 'NONE',
 			data = gsummary.newConnectionsO
 		}
 	end
@@ -840,6 +856,7 @@ function build_output(captureDuration)
 			targetView = 'dig',
 			targetViewTitle = 'Connect events',
 			targetViewFilter = 'evt.type=accept and evt.dir=< and fd.sport exists',
+			drillDownKey = 'NONE',
 			data = gsummary.newConnectionsI
 		}
 	end
@@ -850,6 +867,7 @@ function build_output(captureDuration)
 			desc = 'Number of new programs that have been executed during the observed interval',
 			category = 'security',
 			targetView = 'spy_users',
+			drillDownKey = 'NONE',
 			data = gsummary.executedCommands
 		}
 	end
@@ -862,6 +880,7 @@ function build_output(captureDuration)
 			targetView = 'dig',
 			targetViewTitle = 'Symlink creations',
 			targetViewFilter = '(evt.type=symlink or evt.type=symlinkat) and evt.dir=< and evt.failed = false',
+			drillDownKey = 'NONE',
 			data = gsummary.newSymLinksCount
 		}
 	end
@@ -874,6 +893,7 @@ function build_output(captureDuration)
 			targetViewSortingCol = 1,
 			targetView = 'files',
 			targetViewFilter = 'evt.is_io_write=true',
+			drillDownKey = 'NONE',
 			data = gsummary.sysFileCountW
 		}
 	end
@@ -886,6 +906,7 @@ function build_output(captureDuration)
 			targetView = 'dig',
 			targetViewTitle = 'File deletions',
 			targetViewFilter = 'evt.type=unlink or evt.type=unlinkat',
+			drillDownKey = 'NONE',
 			data = gsummary.fileDeletionsCount
 		}
 	end
@@ -898,6 +919,7 @@ function build_output(captureDuration)
 			targetView = 'dig',
 			targetViewTitle = 'Sudo executions',
 			targetViewFilter = 'evt.type=execve and evt.arg.exe=sudo',
+			drillDownKey = 'NONE',
 			data = gsummary.sudoInvocations
 		}
 	end
@@ -910,6 +932,7 @@ function build_output(captureDuration)
 			targetView = 'dig',
 			targetViewTitle = 'Setns executions',
 			targetViewFilter = 'evt.type=setns',
+			drillDownKey = 'NONE',
 			data = gsummary.setnsInvocations
 		}
 	end
@@ -922,6 +945,7 @@ function build_output(captureDuration)
 			targetView = 'dig',
 			targetViewTitle = 'Failed open() calls',
 			targetViewFilter = 'evt.type=open and evt.rawres<0',
+			drillDownKey = 'fd.directory',
 			data = gsummary.openErrorCount
 		}
 	end
@@ -934,6 +958,7 @@ function build_output(captureDuration)
 			targetView = 'dig',
 			targetViewTitle = 'Clone executions',
 			targetViewFilter = 'evt.type=clone and evt.rawres=0',
+			drillDownKey = 'NONE',
 			data = gsummary.forkCount
 		}
 	end
@@ -946,6 +971,7 @@ function build_output(captureDuration)
 			targetView = 'dig',
 			targetViewTitle = 'Failed connect() calls',
 			targetViewFilter = 'evt.type=connect and (fd.type=ipv4 or fd.type=ipv6) and evt.rawres<0 and evt.res!=EINPROGRESS',
+			drillDownKey = 'NONE',
 			data = gsummary.connectErrorCount
 		}
 	end
@@ -958,6 +984,7 @@ function build_output(captureDuration)
 			targetView = 'dig',
 			targetViewTitle = 'Received signals',
 			targetViewFilter = 'evt.type=signaldeliver',
+			drillDownKey = 'NONE',
 			data = gsummary.signalCount
 		}
 	end
@@ -970,6 +997,7 @@ function build_output(captureDuration)
 			targetView = 'dig',
 			targetViewTitle = 'List of segfault events',
 			targetViewFilter = 'evt.type=signaldeliver and evt.arg.sig=SIGSEV',
+			drillDownKey = 'NONE',
 			data = gsummary.segfaultCount
 		}
 	end
@@ -981,6 +1009,7 @@ function build_output(captureDuration)
 			category = 'performance',
 			targetView = 'slow_io',
 			targetViewSortingCol = 1,
+			drillDownKey = 'NONE',
 			data = gsummary.over1msFileIoCount
 		}
 	end
@@ -992,6 +1021,7 @@ function build_output(captureDuration)
 			category = 'performance',
 			targetView = 'slow_io',
 			targetViewSortingCol = 1,
+			drillDownKey = 'NONE',
 			data = gsummary.over10msFileIoCount
 		}
 	end
@@ -1003,6 +1033,7 @@ function build_output(captureDuration)
 			category = 'performance',
 			targetView = 'slow_io',
 			targetViewSortingCol = 1,
+			drillDownKey = 'NONE',
 			data = gsummary.over100msFileIoCount
 		}
 	end
@@ -1015,6 +1046,7 @@ function build_output(captureDuration)
 			targetView = 'echo',
 			targetViewTitle = 'Application Log Messages',
 			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true',
+			drillDownKey = 'NONE',
 			data = gsummary.appLogCount
 		}
 	end
@@ -1027,6 +1059,7 @@ function build_output(captureDuration)
 			targetView = 'echo',
 			targetViewTitle = 'Warning Application Log Messages',
 			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and (evt.buffer contains warn or evt.buffer contains Warn)',
+			drillDownKey = 'NONE',
 			data = gsummary.appLogCountW
 		}
 	end
@@ -1039,6 +1072,7 @@ function build_output(captureDuration)
 			targetView = 'echo',
 			targetViewTitle = 'Error Application Log Messages',
 			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and (evt.buffer contains error or evt.buffer contains Error or evt.buffer contains critic or evt.buffer contains Critic or evt.buffer emergency or evt.buffer contains Emergency or evt.buffer contains alert or evt.buffer contains Alert)',
+			drillDownKey = 'NONE',
 			data = gsummary.appLogCountE
 		}
 	end
@@ -1050,7 +1084,7 @@ function build_output(captureDuration)
 			category = 'logs',
 			targetView = 'spy_syslog',
 			targetViewTitle = 'Syslog Messages',
-	--		targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true',
+			drillDownKey = 'NONE',
 			data = gsummary.sysLogCount
 		}
 	end
@@ -1063,6 +1097,7 @@ function build_output(captureDuration)
 			targetView = 'spy_syslog',
 			targetViewTitle = 'Syslog Messages',
 			targetViewFilter = 'syslog.severity=4',
+			drillDownKey = 'NONE',
 			data = gsummary.sysLogCountW
 		}
 	end
@@ -1075,6 +1110,7 @@ function build_output(captureDuration)
 			targetView = 'spy_syslog',
 			targetViewTitle = 'Syslog Messages',
 			targetViewFilter = 'syslog.severity<4',
+			drillDownKey = 'NONE',
 			data = gsummary.sysLogCountE
 		}
 	end
