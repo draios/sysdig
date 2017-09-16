@@ -650,6 +650,13 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					}
 				}
 
+				if(std::find(it.m_viewinfo.m_tags.begin(), 
+					it.m_viewinfo.m_tags.end(), 
+					"nocsysdig") != it.m_viewinfo.m_tags.end())
+				{
+					continue;
+				}
+
 				view_manager.add(&it.m_viewinfo);
 			}
 		}
