@@ -18,9 +18,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 view_info = 
 {
 	id = "port_bindings",
-	name = "New Port bindings",
+	name = "Port bindings",
 	description = "Lists the creation (bind) and removal (close) of listening ports on the system.",
-	tags = {"default", "wsysdig"},
+	tags = {"default", "wsysdig", "nocsysdig"},
 	view_type = "list",
 	applies_to = {""},
 	filter = "(evt.type=bind and evt.dir=< and fd.type=ipv4) or (evt.type=close and evt.dir=> and fd.typechar=2 and fd.type=ipv4)",
