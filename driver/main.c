@@ -443,7 +443,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		ret = compat_register_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
 #else
-		ret = register_trace_syscall_enter(syscall_enter_probe);
+		ret = register_trace_syscall_exit(syscall_exit_probe);
 #endif
 		if (ret) {
 			pr_err("can't create the sys_exit tracepoint\n");
@@ -453,7 +453,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		ret = compat_register_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
 #else
-		ret = register_trace_syscall_exit(syscall_exit_probe);
+		ret = register_trace_syscall_enter(syscall_enter_probe);
 #endif
 		if (ret) {
 			pr_err("can't create the sys_enter tracepoint\n");
