@@ -107,8 +107,7 @@ unsigned long ppm_copy_from_user(void *to, const void __user *from, unsigned lon
 /*
  * On some kernels (e.g. 2.6.39), even with preemption disabled, the strncpy_from_user,
  * instead of returning -1 after a page fault, schedules the process, so we drop events
- * because of the preemption. This function reads the user buffer in atomic chunks, and
- * returns when there's an error or the terminator is found.
+ * because of the preemption.
  *
  * This function always NUL terminates the destination buffer (unless n is 0 of course)
  * and returns the number of characters written, excluding NUL. Original strlcpy()
@@ -118,53 +117,34 @@ long ppm_strlcpy_from_user(char *to, const char __user *from, unsigned long n)
 {
 	long string_length = 0;
 	long res = 0;
-	unsigned long bytes_to_read = 4;
-	int j;
 
 	pagefault_disable();
 
-	while (n) {
-		/*
-		 * Read bytes_to_read bytes at a time, and look for the terminator. Should be fast
-		 * since the copy_from_user is optimized for the processor
-		 */
-		if (n < bytes_to_read)
-			bytes_to_read = n;
+	while (n--) {
+		if (n == 0) {
+			*to = '\0';
+			res = string_length;
+			break;
+		}
 
-		if (!ppm_access_ok(VERIFY_READ, from, bytes_to_read)) {
+		if (!ppm_access_ok(VERIFY_READ, from, 1)) {
 			res = -1;
-			goto strlcpy_end;
+			break;
 		}
 
-		if (__copy_from_user_inatomic(to, from, bytes_to_read)) {
-			/*
-			 * Page fault
-			 */
+		if (__copy_from_user_inatomic(to, from++, 1)) {
 			res = -1;
-			goto strlcpy_end;
+			break;
 		}
 
-		n -= bytes_to_read;
-		from += bytes_to_read;
-
-		for (j = 0; j < bytes_to_read; ++j) {
-			if (!*to) {
-				res = string_length;
-				goto strlcpy_end;
-			}
-
-			if (n == 0 && j + 1 == bytes_to_read) {
-				*to = '\0';
-				res = string_length;
-				goto strlcpy_end;
-			}
-
-			++string_length;
-			++to;
+		if (!*to++) {
+			res = string_length;
+			break;
 		}
+
+		++string_length;
 	}
 
-strlcpy_end:
 	pagefault_enable();
 	return res;
 }
