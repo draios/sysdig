@@ -1762,8 +1762,18 @@ void sinsp_cursesui::spy_selection(string field, string val,
 		m_view_depth++;
 	}
 
+	string vfilter;
+	if(m_views.at(m_selected_view)->m_propagate_filter)
+	{
+		vfilter = m_views.at(m_selected_view)->get_filter(m_view_depth);
+	}
+	else
+	{
+		vfilter = "";
+	}
+
 	m_sel_hierarchy.push_back(field, val, column_info, 
-		m_views.at(m_selected_view)->get_filter(m_view_depth),
+		vfilter,
 		m_selected_view, m_selected_view_sidemenu_entry, 
 		&rowkeybak, srtcol, m_manual_filter, m_is_filter_sysdig, 
 		m_datatable->is_sorting_ascending(), true);
