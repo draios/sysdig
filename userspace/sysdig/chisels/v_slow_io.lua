@@ -22,7 +22,7 @@ view_info =
 	description = "Lists all of the file read and write calls that took more than 1ms to complete, sorted based on completion time.",
 	tags = {"Default", "wsysdig"},
 	view_type = "table",
-	applies_to = {"", "container.id", "proc.pid", "thread.tid", "proc.name", "k8s.pod.id", "k8s.rc.id", "k8s.rs.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
+	applies_to = {"", "container.id", "proc.pid", "thread.nametid", "thread.tid", "proc.name", "k8s.pod.id", "k8s.rc.id", "k8s.rs.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
 	filter = "evt.is_io=true and fd.type=file and (not fd.name contains '/dev/') and evt.latency>1000000",
 	use_defaults = true,
 	columns = 
