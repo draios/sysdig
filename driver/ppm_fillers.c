@@ -133,7 +133,9 @@ static int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args);
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 static int f_sys_signaldeliver_e(struct event_filler_arguments *args);
 #endif
-
+#ifdef CAPTURE_PAGE_FAULTS
+static int f_sys_pagefault_e(struct event_filler_arguments *args);
+#endif
 static int f_sys_setns_e(struct event_filler_arguments *args);
 static int f_sys_unshare_e(struct event_filler_arguments *args);
 static int f_sys_flock_e(struct event_filler_arguments *args);
@@ -386,6 +388,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_RMDIR_2_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_SYSCALL_UNSHARE_E] = {f_sys_unshare_e},
 	[PPME_SYSCALL_UNSHARE_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
+#ifdef CAPTURE_PAGE_FAULTS
+	[PPME_PAGE_FAULT_E] = {f_sys_pagefault_e},
+	[PPME_PAGE_FAULT_X] = {f_sys_empty},
+#endif
 };
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
@@ -5237,6 +5243,61 @@ static int f_sys_signaldeliver_e(struct event_filler_arguments *args)
 	 * signal number
 	 */
 	res = val_to_ring(args, args->signo, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+#endif
+
+#ifdef CAPTURE_PAGE_FAULTS
+static inline u32 pf_flags_to_scap(unsigned long flags)
+{
+	u32 res = 0;
+
+	/* Page fault error codes don't seem to be clearly defined in header
+	 * files througout the kernel except in some emulation modes (e.g. kvm)
+	 * which we can't assume to exist, so I just took the definitions from
+	 * the x86 manual. If we end up supporting another arch for page faults,
+	 * refactor this.
+	 */
+	if (flags & 0x1)
+		res |= PPM_PF_PROTECTION_VIOLATION;
+	else
+		res |= PPM_PF_PAGE_NOT_PRESENT;
+
+	if (flags & 0x2)
+		res |= PPM_PF_WRITE_ACCESS;
+	else
+		res |= PPM_PF_READ_ACCESS;
+
+	if (flags & 0x4)
+		res |= PPM_PF_USER_FAULT;
+	else
+		res |= PPM_PF_SUPERVISOR_FAULT;
+
+	if (flags & 0x8)
+		res |= PPM_PF_RESERVED_PAGE;
+
+	if (flags & 0x10)
+		res |= PPM_PF_INSTRUCTION_FETCH;
+
+	return res;
+}
+
+static int f_sys_pagefault_e(struct event_filler_arguments *args)
+{
+	int res;
+
+	res = val_to_ring(args, args->fault_data.address, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	res = val_to_ring(args, args->fault_data.regs->ip, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	res = val_to_ring(args, pf_flags_to_scap(args->fault_data.error_code), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
