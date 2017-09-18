@@ -1341,7 +1341,8 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmrss.b", "For the process main thread, this is the resident non-swapped memory for the process (in bytes). For the other threads, this field is zero."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.sid", "the session id of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.sname", "the name of the current process's session leader. This is either the process with pid=proc.sid or the eldest ancestor that has the same sid as the current process."},
-	{PT_INT32, EPF_NONE, PF_ID, "proc.tty", "The controlling terminal of the process. 0 for processes without a terminal."}
+	{PT_INT32, EPF_NONE, PF_ID, "proc.tty", "The controlling terminal of the process. 0 for processes without a terminal."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exepath", "The full executable path of the process."}
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -1670,6 +1671,10 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_EXE:
 		m_tstr = tinfo->get_exe();
+		*len = m_tstr.size();
+		return (uint8_t*)m_tstr.c_str();
+	case TYPE_EXEPATH:
+		m_tstr = tinfo->get_exepath();
 		*len = m_tstr.size();
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_ARGS:
@@ -2351,6 +2356,10 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the length of the binary data buffer, but only for output network I/O events."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_read", "'true' for open/openat events where the path was opened for reading"},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_write", "'true' for open/openat events where the path was opened for writing"},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.name", "for docker infrastructure events, the name of the event."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.id", "for docker infrastructure events, the id of the impacted container."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.name", "for docker infrastructure events, the name of the impacted container."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.image", "for docker infrastructure events, the image name of the impacted container."},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -3919,6 +3928,70 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			}
 
 			return (uint8_t*)&m_u32val;
+		}
+		break;
+	case TYPE_INFRA_DOCKER_NAME:
+	case TYPE_INFRA_DOCKER_CONTAINER_ID:
+	case TYPE_INFRA_DOCKER_CONTAINER_NAME:
+	case TYPE_INFRA_DOCKER_CONTAINER_IMAGE:
+		{
+			uint16_t etype = evt->m_pevt->type;
+
+			if(etype == PPME_INFRASTRUCTURE_EVENT_E)
+			{
+				sinsp_evt_param* parinfo = evt->get_param(2);
+				char* descstr = (char*)parinfo->m_val;
+				vector<string> elements = sinsp_split(descstr, ';');
+				for(string ute : elements)
+				{
+					string e = trim(ute);
+
+					if(m_field_id == TYPE_INFRA_DOCKER_NAME)
+					{
+						if(e.substr(0, sizeof("Event") - 1) == "Event")
+						{
+							vector<string> subelements = sinsp_split(e, ':');
+							ASSERT(subelements.size() == 2);
+							m_strstorage = trim(subelements[1]);
+							*len = m_strstorage.size();
+							return (uint8_t*)m_strstorage.c_str();
+						}
+					}
+					else if(m_field_id == TYPE_INFRA_DOCKER_CONTAINER_ID)
+					{
+						if(e.substr(0, sizeof("ID") - 1) == "ID")
+						{
+							vector<string> subelements = sinsp_split(e, ':');
+							ASSERT(subelements.size() == 2);
+							m_strstorage = trim(subelements[1]);
+							*len = m_strstorage.size();
+							return (uint8_t*)m_strstorage.c_str();
+						}
+					}
+					else if(m_field_id == TYPE_INFRA_DOCKER_CONTAINER_NAME)
+					{
+						if(e.substr(0, sizeof("Name") - 1) == "Name")
+						{
+							vector<string> subelements = sinsp_split(e, ':');
+							ASSERT(subelements.size() == 2);
+							m_strstorage = trim(subelements[1]);
+							*len = m_strstorage.size();
+							return (uint8_t*)m_strstorage.c_str();
+						}
+					}
+					else if(m_field_id == TYPE_INFRA_DOCKER_CONTAINER_IMAGE)
+					{
+						if(e.substr(0, sizeof("Image") - 1) == "Image")
+						{
+							vector<string> subelements = sinsp_split(e, ':');
+							ASSERT(subelements.size() == 2);
+							m_strstorage = trim(subelements[1]);
+							*len = m_strstorage.size();
+							return (uint8_t*)m_strstorage.c_str();
+						}
+					}
+				}
+			}
 		}
 		break;
 	default:

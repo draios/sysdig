@@ -91,7 +91,8 @@ static void usage()
 "                    after being parsed by the state system. Events are\n"
 "                    normally filtered before being analyzed, which is more\n"
 "                    efficient, but can cause state (e.g. FD names) to be lost.\n"
-" -D, --debug        Capture events about sysdig itself and print additional\n"
+" -D, --debug        Capture events about sysdig itself, display internal events\n"
+"                    in addition to system events, and print additional\n"
 "                    logging on standard error.\n"
 " -E, --exclude-users\n"
 "                    Don't create the user/group tables by querying the OS when\n"
@@ -169,6 +170,7 @@ static void usage()
 " -M <num_seconds>   Stop collecting after <num_seconds> reached.\n"
 " -n <num>, --numevents=<num>\n"
 "                    Stop capturing after <num> events\n"
+" --page-faults      Capture user/kernel major/minor page faults\n"
 " -P, --progress     Print progress on stderr while processing trace files\n"
 " -p <output_format>, --print=<output_format>\n"
 "                    Specify the format to be used when printing the events.\n"
@@ -728,6 +730,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string* k8s_api_cert = 0;
 	string* mesos_api = 0;
 	bool force_tracers_capture = false;
+	bool page_faults = false;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -763,6 +766,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"list-markdown", no_argument, 0, 0 },
 		{"mesos-api", required_argument, 0, 'm'},
 		{"numevents", required_argument, 0, 'n' },
+		{"page-faults", no_argument, 0, 0 },
 		{"progress", required_argument, 0, 'P' },
 		{"print", required_argument, 0, 'p' },
 		{"quiet", no_argument, 0, 'q' },
@@ -882,6 +886,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			case 'D':
 				inspector->set_debug_mode(true);
+				inspector->set_internal_events_mode(true);
 				inspector->set_log_stderr();
 				break;
 			case 'E':
@@ -1156,6 +1161,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				list_flds = true;
 				list_flds_markdown = true;
 			}
+
+			if(string(long_options[long_index].name) == "page-faults")
+			{
+				page_faults = true;
+			}
 		}
 
 		//
@@ -1385,6 +1395,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			if(force_tracers_capture)
 			{
 				inspector->enable_tracers_capture();
+			}
+
+			if(page_faults)
+			{
+				inspector->enable_page_faults();
 			}
 
 			duration = ((double)clock()) / CLOCKS_PER_SEC;

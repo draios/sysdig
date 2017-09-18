@@ -1553,21 +1553,24 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 		if(tinfo)
 		{
-			string cwd = tinfo->get_cwd();
-
-			if(payload_len + cwd.length() >= m_resolved_paramstr_storage.size())
+			if (strncmp(payload, "<NA>", 4) != 0)
 			{
-				m_resolved_paramstr_storage.resize(payload_len + cwd.length() + 1, 0);
-			}
+				string cwd = tinfo->get_cwd();
 
-			if(!sinsp_utils::concatenate_paths(&m_resolved_paramstr_storage[0],
-				(uint32_t)m_resolved_paramstr_storage.size(),
-				(char*)cwd.c_str(),
-				(uint32_t)cwd.length(),
-				payload,
-				payload_len))
-			{
-				m_resolved_paramstr_storage[0] = 0;
+				if(payload_len + cwd.length() >= m_resolved_paramstr_storage.size())
+				{
+					m_resolved_paramstr_storage.resize(payload_len + cwd.length() + 1, 0);
+				}
+
+				if(!sinsp_utils::concatenate_paths(&m_resolved_paramstr_storage[0],
+					(uint32_t)m_resolved_paramstr_storage.size(),
+					(char*)cwd.c_str(),
+					(uint32_t)cwd.length(),
+					payload,
+					payload_len))
+				{
+					m_resolved_paramstr_storage[0] = 0;
+				}
 			}
 		}
 		else

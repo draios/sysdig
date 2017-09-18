@@ -35,6 +35,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 /*
  * Various crap that a callback might need
  */
+struct fault_data_t {
+	unsigned long address;
+	struct pt_regs *regs;
+	unsigned long error_code;
+};
+
 struct event_filler_arguments {
 	struct ppm_consumer_t *consumer;
 	char *buffer; /* the buffer that will be filled with the data */
@@ -50,6 +56,10 @@ struct event_filler_arguments {
 	u32 arg_data_offset;
 	u32 arg_data_size;
 	enum ppm_event_type event_type;	/* the event type */
+	/* Eventually convert this to an event_info union and move all the
+	 * below per-event params in this union, it's not good to waste kernel
+	 * stack since all this stuff is always exclusive
+	 */
 	struct pt_regs *regs; /* the registers containing the call arguments */
 	struct task_struct *sched_prev; /* for context switch events, the task that is being schduled out */
 	struct task_struct *sched_next; /* for context switch events, the task that is being schduled in */
@@ -63,6 +73,7 @@ struct event_filler_arguments {
 	int signo; /* Signal number */
 	__kernel_pid_t spid; /* PID of source process */
 	__kernel_pid_t dpid; /* PID of destination process */
+	struct fault_data_t fault_data; /* For page faults */
 };
 
 /*
