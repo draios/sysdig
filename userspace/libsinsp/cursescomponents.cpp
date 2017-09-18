@@ -46,6 +46,8 @@ using namespace std;
 #include "cursesui.h"
 #include "utils.h"
 
+extern bool g_filterchecks_force_raw_times;
+
 ///////////////////////////////////////////////////////////////////////////////
 // spy_text_renderer implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -60,6 +62,7 @@ spy_text_renderer::spy_text_renderer(sinsp* inspector,
 	m_inspector = inspector;
 	m_viz_type = viz_type;
 	m_linecnt = 0;
+	g_filterchecks_force_raw_times = false;
 
 	//
 	// visualization-type inits

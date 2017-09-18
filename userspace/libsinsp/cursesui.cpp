@@ -39,7 +39,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "cursesui.h"
 
 extern int32_t g_csysdig_screen_w;
-extern bool g_csysdig_json_output;
+extern bool g_filterchecks_force_raw_times;
 
 #ifndef NOCURSESUI
 #define ColorPair(i,j) COLOR_PAIR((7-i)*8+j)
@@ -268,7 +268,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 
 	if(output_type == sinsp_table::OT_JSON)
 	{
-		g_csysdig_json_output = true;
+		g_filterchecks_force_raw_times = true;
 	}
 
 #ifndef NOCURSESUI
