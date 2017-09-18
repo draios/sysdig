@@ -321,7 +321,7 @@ private:
 };
 
 //
-// thread sinsp_filter_check_syslog
+// thread sinsp_filter_check_thread
 //
 class sinsp_filter_check_thread : public sinsp_filter_check
 {
@@ -371,6 +371,7 @@ public:
 		TYPE_SID = 40,
 		TYPE_SNAME = 41,
 		TYPE_TTY = 42,
+		TYPE_EXEPATH = 43
 	};
 
 	sinsp_filter_check_thread();
@@ -467,7 +468,11 @@ public:
 		TYPE_BUFLEN_NET_IN = 58,
 		TYPE_BUFLEN_NET_OUT = 59,
 		TYPE_ISOPEN_READ = 60,
-		TYPE_ISOPEN_WRITE = 61
+		TYPE_ISOPEN_WRITE = 61,
+		TYPE_INFRA_DOCKER_NAME = 62,
+		TYPE_INFRA_DOCKER_CONTAINER_ID = 63,
+		TYPE_INFRA_DOCKER_CONTAINER_NAME = 64,
+		TYPE_INFRA_DOCKER_CONTAINER_IMAGE = 65
 	};
 
 	sinsp_filter_check_event();

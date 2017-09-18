@@ -155,6 +155,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 										       detected to be the source in a shell pipe. */
 #define PPM_CL_PIPE_DST (1 << 22)			/* libsinsp-specific flag. Set if this thread has been 
 										       detected to be the destination in a shell pipe. */
+#define PPM_CL_CLONE_CHILD_CLEARTID (1 << 23)
+#define PPM_CL_CLONE_CHILD_SETTID (1 << 24)
+#define PPM_CL_CLONE_SETTLS (1 << 25)
+#define PPM_CL_CLONE_STOPPED (1 << 26)
+#define PPM_CL_CLONE_VFORK (1 << 27)
+#define PPM_CL_CLONE_NEWCGROUP (1 << 28)
 
 /*
  * Futex Operations
@@ -812,9 +818,13 @@ enum ppm_event_type {
 	PPME_SYSCALL_EXECVE_17_X = 283,
 	PPME_SYSCALL_UNSHARE_E = 284,
 	PPME_SYSCALL_UNSHARE_X = 285,
-	PPME_PAGE_FAULT_E = 286,
-	PPME_PAGE_FAULT_X = 287,
-	PPM_EVENT_MAX = 288
+	PPME_INFRASTRUCTURE_EVENT_E = 286,
+	PPME_INFRASTRUCTURE_EVENT_X = 287,
+	PPME_SYSCALL_EXECVE_18_E = 288,
+	PPME_SYSCALL_EXECVE_18_X = 289,
+	PPME_PAGE_FAULT_E = 290,
+	PPME_PAGE_FAULT_X = 291,
+	PPM_EVENT_MAX = 292
 };
 /*@}*/
 
@@ -1314,8 +1324,8 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_ENABLE_SIGNAL_DELIVER _IO(PPM_IOCTL_MAGIC, 15)
 #define PPM_IOCTL_GET_PROCLIST _IO(PPM_IOCTL_MAGIC, 16)
 #define PPM_IOCTL_SET_TRACERS_CAPTURE _IO(PPM_IOCTL_MAGIC, 17)
-#define PPM_IOCTL_ENABLE_PAGE_FAULTS _IO(PPM_IOCTL_MAGIC, 18)
-
+#define PPM_IOCTL_SET_SIMPLE_MODE _IO(PPM_IOCTL_MAGIC, 18)
+#define PPM_IOCTL_ENABLE_PAGE_FAULTS _IO(PPM_IOCTL_MAGIC, 19)
 
 extern const struct ppm_name_value socket_families[];
 extern const struct ppm_name_value file_flags[];

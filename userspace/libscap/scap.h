@@ -206,6 +206,7 @@ typedef struct scap_threadinfo
 	uint64_t sid; ///< The session id of the process containing this thread.
 	char comm[SCAP_MAX_PATH_SIZE]; ///< Command name (e.g. "top")
 	char exe[SCAP_MAX_PATH_SIZE]; ///< argv[0] (e.g. "sshd: user@pts/4")
+	char exepath[SCAP_MAX_PATH_SIZE]; ///< full executable path
 	char args[SCAP_MAX_ARGS_SIZE]; ///< Command line arguments (e.g. "-d1")
 	uint16_t args_len; ///< Command line arguments length
 	char env[SCAP_MAX_ENV_SIZE]; ///< Environment
@@ -941,6 +942,7 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 int32_t scap_write_proclist_header(scap_t *handle, scap_dumper_t *d, uint32_t totlen);
 int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t totlen);
 int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo);
+int32_t scap_enable_simpledriver_mode(scap_t* handle);
 
 #ifdef __cplusplus
 }

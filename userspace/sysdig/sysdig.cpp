@@ -91,7 +91,8 @@ static void usage()
 "                    after being parsed by the state system. Events are\n"
 "                    normally filtered before being analyzed, which is more\n"
 "                    efficient, but can cause state (e.g. FD names) to be lost.\n"
-" -D, --debug        Capture events about sysdig itself and print additional\n"
+" -D, --debug        Capture events about sysdig itself, display internal events\n"
+"                    in addition to system events, and print additional\n"
 "                    logging on standard error.\n"
 " -E, --exclude-users\n"
 "                    Don't create the user/group tables by querying the OS when\n"
@@ -885,6 +886,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			case 'D':
 				inspector->set_debug_mode(true);
+				inspector->set_internal_events_mode(true);
 				inspector->set_log_stderr();
 				break;
 			case 'E':

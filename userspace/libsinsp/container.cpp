@@ -403,9 +403,14 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 				// First lookup if the container exists in our table, otherwise only if we are live check if it has
 				// an entry in /var/lib/rkt. In capture mode only the former will be used.
 				// In live mode former will be used only if we already hit that container
-				if( m_containers.find(rkt_podid + ":" + rkt_appname) != m_containers.end() ||
-					(query_os_for_missing_info && access(image_manifest_path, F_OK) == 0)
-					)
+				bool is_rkt_pod_id_valid = m_containers.find(rkt_podid + ":" + rkt_appname) != m_containers.end(); // if it's already on our table
+#ifdef HAS_CAPTURE
+				if(!is_rkt_pod_id_valid && query_os_for_missing_info)
+				{
+					is_rkt_pod_id_valid = (access(image_manifest_path, F_OK) == 0);
+				}
+#endif			
+				if(is_rkt_pod_id_valid)
 				{
 					container_info.m_type = CT_RKT;
 					container_info.m_id = rkt_podid + ":" + rkt_appname;
@@ -599,6 +604,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 
 	evt->m_cpuid = 0;
 	evt->m_evtnum = 0;
+	evt->m_inspector = m_inspector;
 
 	scap_evt* scapevt = evt->m_pevt;
 
@@ -652,7 +658,7 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	char buf[256];
 	string json;
 	ssize_t res;
-	while((res = read(sock, buf, sizeof(buf))) != 0)
+	while((res = read(sock, buf, sizeof(buf) - 1)) != 0)
 	{
 		if(res == -1 || json.size() > MAX_JSON_SIZE_B)
 		{

@@ -471,7 +471,12 @@ public:
 				// connection. The m_wants_send flag has to be checked by the caller and request re-sent, otherwise
 				// this pipeline will remain idle. To force client-initiated socket close on chunked transfer end,
 				// set the m_close_on_chunked_end flag to true (default).
-				if(m_close_on_chunked_end) { return CONNECTION_CLOSED; }
+				if(m_close_on_chunked_end)
+				{
+					g_logger.log("Socket handler (" + m_id + ") chunked response ended",
+						     sinsp_logger::SEV_DEBUG);
+					return CONNECTION_CLOSED;
+				}
 				m_wants_send = true;
 				if(reinit) { init_http_parser(); }
 			}
@@ -510,10 +515,12 @@ public:
 				}
 				if(iolen > 0) { len_read += iolen; }
 				m_sock_err = errno;
+				sinsp_logger::severity sev = (iolen < 0 && m_sock_err != EAGAIN) ?
+					sinsp_logger::SEV_DEBUG : sinsp_logger::SEV_TRACE;
 				g_logger.log("Socket handler (" + m_id + ") " + m_url.to_string(false) + ", iolen=" +
-							 std::to_string(iolen) + ", data=" + std::to_string(len_read) + " bytes, "
-							 "errno=" + std::to_string(m_sock_err) + " (" + strerror(m_sock_err) + ')',
-							 sinsp_logger::SEV_TRACE);
+					     std::to_string(iolen) + ", data=" + std::to_string(len_read) + " bytes, "
+					     "errno=" + std::to_string(m_sock_err) + " (" + strerror(m_sock_err) + ')',
+					     sev);
 				/* uncomment to see raw HTTP stream data in trace logs
 					if((iolen > 0) && g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
 					{
@@ -535,6 +542,14 @@ public:
 					{
 						if(m_ssl_connection)
 						{
+							int err = SSL_get_error(m_ssl_connection, iolen);
+							if (err != SSL_ERROR_ZERO_RETURN)
+							{
+								g_logger.log("Socket handler(" + m_id + "): SSL conn closed with code "
+									     + std::to_string(err),
+									     sinsp_logger::SEV_DEBUG);
+							}
+
 							int sd = SSL_get_shutdown(m_ssl_connection);
 							if(sd == 0)
 							{
@@ -576,6 +591,9 @@ public:
 						int err = SSL_get_error(m_ssl_connection, iolen);
 						if(err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE)
 						{
+							g_logger.log("Socket handler(" + m_id + "): received SSL error"
+								     + std::to_string(err),
+								     sinsp_logger::SEV_ERROR);
 							goto connection_error;
 						}
 					}
@@ -607,11 +625,6 @@ public:
 			}
 		}
 		return is_error ? m_sock_err : CONNECTION_CLOSED;
-	}
-
-	static bool is_connection_closed(int val)
-	{
-		return val == CONNECTION_CLOSED;
 	}
 
 	void on_error(const std::string& /*err*/, bool /*disconnect*/)
@@ -700,7 +713,7 @@ public:
 	}
 
 	static json_ptr_t try_parse(json_query& jq, const std::string& json, const std::string& filter,
-								const std::string& id, const std::string& url)
+				    const std::string& id, const std::string& url)
 	{
 		std::string filtered_json(json);
 		if(!filter.empty())
@@ -710,9 +723,22 @@ public:
 			if(jq.process(json, filter))
 			{
 				filtered_json = jq.result();
+				if (filtered_json.empty() && !jq.get_error().empty())
+				{
+					g_logger.log("Socket handler (" + id + "), [" +
+						     url + "] filter result is empty \"" +
+						     jq.get_error() + "\"; JSON: <" +
+						     json + ">, jq filter: <" + filter + '>',
+						     sinsp_logger::SEV_DEBUG);
+				}
 			}
 			else
 			{
+				g_logger.log("Socket handler (" + id + "), [" +
+					     url + "] filter processing error \"" +
+					     jq.get_error() + "\"; JSON: <" +
+					     json + ">, jq filter: <" + filter + '>',
+					     sinsp_logger::SEV_DEBUG);
 				return nullptr;
 			}
 		}

@@ -627,6 +627,19 @@ public:
 	void set_fatfile_dump_mode(bool enable_fatfile);
 
 	/*!
+	  \brief Set internal events mode.
+
+	  \note By default, internal events, such as events that note
+                when new containers or orchestration entities have
+                been created, are not returned in sinsp::next(). (They
+                are always written to capture files, to ensure that
+                the full state can be reconstructed when capture files
+                are read). Enabling internal events mode will result
+                in these events being returned.
+	*/
+	void set_internal_events_mode(bool enable_internal_events);
+
+	/*!
 	  \brief Set whether Sysdig should resolve hostnames and port protocols or not.
 
 	  \note Sysdig can use the system library functions getservbyport and so to
@@ -753,7 +766,6 @@ public:
 	bool setup_cycle_writer(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
 	void add_meta_event(sinsp_evt *metaevt);
-	void add_meta_event_and_repeat(sinsp_evt *metaevt);
 	void add_meta_event_callback(meta_event_callback cback, void* data);
 	void remove_meta_event_callback();
 	void filter_proc_table_when_saving(bool filter);
@@ -767,6 +779,8 @@ public:
 	void refresh_proc_list() {
 		scap_refresh_proc_table(m_h);
 	}
+	void set_simpledriver_mode();
+
 VISIBILITY_PRIVATE
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE
@@ -863,6 +877,7 @@ private:
 	string m_input_filename;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;
+	bool m_isinternal_events_enabled;
 	bool m_hostname_and_port_resolution_enabled;
 	char m_output_time_flag;
 	uint32_t m_max_evt_output_len;
@@ -1015,8 +1030,14 @@ public:
 	sinsp_evt m_meta_evt; // XXX this should go away
 	char* m_meta_evt_buf; // XXX this should go away
 	bool m_meta_evt_pending; // XXX this should go away
+
+	int32_t m_meta_skipped_evt_res;
+	sinsp_evt* m_meta_skipped_evt;
+
+	//
+	// meta event management for other sources like k8s, mesos.
+	//
 	sinsp_evt* m_metaevt;
-	sinsp_evt* m_skipped_evt;
 	meta_event_callback m_meta_event_callback;
 	void* m_meta_event_callback_data;
 
