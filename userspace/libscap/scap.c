@@ -1087,7 +1087,7 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 	//
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_set_inode_of_dev_null not supported on this scap mode");
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_tracers_capture not supported on this scap mode");
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
@@ -1096,7 +1096,31 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 	{
 		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_TRACERS_CAPTURE))
 		{
-			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
+	}
+
+	return SCAP_SUCCESS;
+}
+#endif
+
+#if defined(HAS_CAPTURE)
+int32_t scap_enable_page_faults(scap_t *handle)
+{
+	if(handle->m_mode != SCAP_MODE_LIVE)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_page_faults not supported on this scap mode");
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	if(handle->m_ndevs)
+	{
+		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_ENABLE_PAGE_FAULTS))
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
 			ASSERT(false);
 			return SCAP_FAILURE;
 		}
