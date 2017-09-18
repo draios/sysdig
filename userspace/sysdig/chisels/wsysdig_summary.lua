@@ -167,11 +167,11 @@ function reset_summary(s)
 	s.over10msFileIoCount = create_category_basic(true, false)
 	s.over100msFileIoCount = create_category_basic(true, true)
 	s.appLogCount = create_category_basic(false, false)
-	s.appLogCountW = create_category_basic(false, false)
-	s.appLogCountE = create_category_basic(false, true)
+	s.appLogCountW = create_category_basic(true, false)
+	s.appLogCountE = create_category_basic(true, true)
 	s.sysLogCount = create_category_basic(false, false)
-	s.sysLogCountW = create_category_basic(false, false)
-	s.sysLogCountE = create_category_basic(false, true)
+	s.sysLogCountW = create_category_basic(true, false)
+	s.sysLogCountE = create_category_basic(true, true)
 	s.dockerEvtsCount = create_category_basic(false, true)
 	for i, v in ipairs(container_evt_types) do
 		local ccat = 'dockerEvtsCount' .. v[1] .. " " .. v[2]
@@ -487,10 +487,13 @@ function on_event()
 										ssummary.appLogCount.tot = ssummary.appLogCount.tot + 1
 
 										local ls = string.lower(msg)
-										
-										if string.find(ls, "warn") ~= nil then
+
+										if string.find(ls, "warn") or string.find(ls, "Warn") ~= nil then
 											ssummary.appLogCountW.tot = ssummary.appLogCountW.tot + 1
-										elseif string.find(msg, "err") or string.find(msg, "critic") or string.find(msg, "emergency") or string.find(msg, "alert") then
+										elseif string.find(msg, "err") or string.find(msg, "Err") or 
+											string.find(msg, "crit") or string.find(msg, "Crit") or 
+											string.find(msg, "emergency") or string.find(msg, "Emergency") or 
+											string.find(msg, "alert") or string.find(msg, "Alert") then
 											ssummary.appLogCountE.tot = ssummary.appLogCountE.tot + 1
 										end
 									end
@@ -534,7 +537,7 @@ function on_event()
 							ssummary.sysReqCountHttp.tot = ssummary.sysReqCountHttp.tot + 1
 							
 							local parts = split(buf, ' ')
-							if tonumber(parts[2]) ~= 400 then
+							if tonumber(parts[2]) ~= 200 then
 								ssummary.sysErrCountHttp.tot = ssummary.sysErrCountHttp.tot + 1
 							end
 						end
@@ -1013,7 +1016,7 @@ function build_output(captureDuration)
 			category = 'performance',
 			targetView = 'echo',
 			targetViewTitle = 'HTTP responses',
-			targetViewFilter = 'fd.type=ipv4 and evt.buffer contains HTTP/',
+			targetViewFilter = 'fd.type=ipv4 and evt.buffer contains "HTTP/"',
 			drillDownKey = 'fd.directory',
 			data = gsummary.sysReqCountHttp
 		}
@@ -1026,7 +1029,7 @@ function build_output(captureDuration)
 			category = 'performance',
 			targetView = 'echo',
 			targetViewTitle = 'HTTP responses',
-			targetViewFilter = 'fd.type=ipv4 and evt buffer contains HTTP/',
+			targetViewFilter = 'fd.type=ipv4 and evt.buffer contains "HTTP/"',
 			drillDownKey = 'fd.directory',
 			data = gsummary.sysErrCountHttp
 		}
@@ -1166,7 +1169,7 @@ function build_output(captureDuration)
 			category = 'logs',
 			targetView = 'echo',
 			targetViewTitle = 'Error Application Log Messages',
-			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and (evt.buffer contains error or evt.buffer contains Error or evt.buffer contains critic or evt.buffer contains Critic or evt.buffer emergency or evt.buffer contains Emergency or evt.buffer contains alert or evt.buffer contains Alert)',
+			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and (evt.buffer contains error or evt.buffer contains Error or evt.buffer contains critic or evt.buffer contains Critic or evt.buffer contains emergency or evt.buffer contains Emergency or evt.buffer contains alert or evt.buffer contains Alert)',
 			drillDownKey = 'NONE',
 			data = gsummary.appLogCountE
 		}
