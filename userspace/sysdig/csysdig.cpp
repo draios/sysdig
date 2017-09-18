@@ -110,6 +110,7 @@ static void usage()
 "                    Print program logs into the given file.\n"
 " -n <num>, --numevents=<num>\n"
 "                    Stop capturing after <num> events\n"
+" --page-faults      Capture user/kernel major/minor page faults\n"
 " -pc, -pcontainer\n"
 "                    Instruct csysdig to use a container-friendly format in its\n"
 "                    views.\n"
@@ -312,7 +313,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	bool force_tracers_capture = false;
 	bool force_term_compat = false;
 	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
-
+	bool page_faults = false;
+	
 	static struct option long_options[] =
 	{
 		{"print-ascii", no_argument, 0, 'A' },
@@ -328,6 +330,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"list-views", no_argument, 0, 0},
 		{"mesos-api", required_argument, 0, 'm'},
 		{"numevents", required_argument, 0, 'n' },
+		{"page-faults", no_argument, 0, 0 },
 		{"print", required_argument, 0, 'p' },
 		{"resolve-ports", no_argument, 0, 'R'},
 		{"readfile", required_argument, 0, 'r' },
@@ -515,6 +518,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					else if(optname == "list-views")
 					{
 						list_views = true;
+					}
+					else if(optname == "page-faults")
+					{
+						page_faults = true;
 					}
 				}
 				break;
@@ -797,6 +804,11 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			if(force_tracers_capture)
 			{
 				inspector->enable_tracers_capture();
+			}
+
+			if(page_faults)
+			{
+				inspector->enable_page_faults();
 			}
 
 			//

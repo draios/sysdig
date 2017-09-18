@@ -364,6 +364,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 
 	m_comm = pi->comm;
 	m_exe = pi->exe;
+	m_exepath = pi->exepath;
 	set_args(pi->args, pi->args_len);
 	if(is_main_thread())
 	{
@@ -460,6 +461,11 @@ string sinsp_threadinfo::get_comm()
 string sinsp_threadinfo::get_exe()
 {
 	return m_exe;
+}
+
+string sinsp_threadinfo::get_exepath()
+{
+	return m_exepath;
 }
 
 void sinsp_threadinfo::set_args(const char* args, size_t len)
@@ -1412,6 +1418,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			sizeof(uint64_t) +	// sid
 			2 + MIN(tinfo.m_comm.size(), SCAP_MAX_PATH_SIZE) +
 			2 + MIN(tinfo.m_exe.size(), SCAP_MAX_PATH_SIZE) +
+			2 + MIN(tinfo.m_exepath.size(), SCAP_MAX_PATH_SIZE) +
 			2 + sctinfo.args_len +
 			2 + MIN(tcwd.size(), SCAP_MAX_PATH_SIZE) +
 			sizeof(uint64_t) +	// fdlimit

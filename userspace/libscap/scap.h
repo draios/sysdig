@@ -206,6 +206,7 @@ typedef struct scap_threadinfo
 	uint64_t sid; ///< The session id of the process containing this thread.
 	char comm[SCAP_MAX_PATH_SIZE]; ///< Command name (e.g. "top")
 	char exe[SCAP_MAX_PATH_SIZE]; ///< argv[0] (e.g. "sshd: user@pts/4")
+	char exepath[SCAP_MAX_PATH_SIZE]; ///< full executable path
 	char args[SCAP_MAX_ARGS_SIZE]; ///< Command line arguments (e.g. "-d1")
 	uint16_t args_len; ///< Command line arguments length
 	char env[SCAP_MAX_ENV_SIZE]; ///< Environment
@@ -930,6 +931,7 @@ void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh);
 uint64_t scap_ftell(scap_t *handle);
 void scap_fseek(scap_t *handle, uint64_t off);
 int32_t scap_enable_tracers_capture(scap_t* handle);
+int32_t scap_enable_page_faults(scap_t *handle);
 uint64_t scap_get_unexpected_block_readsize(scap_t* handle);
 int32_t scap_proc_add(scap_t* handle, uint64_t tid, scap_threadinfo* tinfo);
 int32_t scap_fd_add(scap_threadinfo* tinfo, uint64_t fd, scap_fdinfo* fdinfo);
