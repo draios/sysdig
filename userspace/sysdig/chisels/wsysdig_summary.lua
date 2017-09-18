@@ -177,6 +177,8 @@ function reset_summary(s)
 		local ccat = 'dockerEvtsCount' .. v[1] .. " " .. v[2]
 		s[ccat] = create_category_basic(true, true)
 	end
+	s.sysReqCountHttp = create_category_basic(false, true)
+	s.sysErrCountHttp = create_category_basic(false, true)
 end
 
 function add_summaries(ts_s, ts_ns, dst, src)
@@ -526,6 +528,17 @@ function on_event()
 							ssummary.netBytes.tot = ssummary.netBytes.tot + buflen
 							ssummary.netBytesR.tot = ssummary.netBytesR.tot + buflen
 						end
+
+						local buf = evt.field(fbuffer)
+						if string.starts(buf, 'HTTP/') then
+							ssummary.sysReqCountHttp.tot = ssummary.sysReqCountHttp.tot + 1
+							
+							local parts = split(buf, ' ')
+							if tonumber(parts[2]) ~= 400 then
+								ssummary.sysErrCountHttp.tot = ssummary.sysErrCountHttp.tot + 1
+							end
+						end
+
 					elseif fdtype == 'unix' then
 						if iswrite then
 							-- apps can write to syslog using unix pipes
@@ -990,6 +1003,32 @@ function build_output(captureDuration)
 			targetViewFilter = 'evt.type=setns',
 			drillDownKey = 'NONE',
 			data = gsummary.setnsInvocations
+		}
+	end
+
+	if should_include(gsummary.sysReqCountHttp) then
+		res[#res+1] = {
+			name = 'HTTP Requests',
+			desc = 'Number of HTTP requests',
+			category = 'performance',
+			targetView = 'echo',
+			targetViewTitle = 'HTTP responses',
+			targetViewFilter = 'fd.type=ipv4 and evt.buffer contains HTTP/',
+			drillDownKey = 'fd.directory',
+			data = gsummary.sysReqCountHttp
+		}
+	end
+
+	if should_include(gsummary.sysErrCountHttp) then
+		res[#res+1] = {
+			name = 'HTTP Errors',
+			desc = 'Number of HTTP responses with code different from 400',
+			category = 'performance',
+			targetView = 'echo',
+			targetViewTitle = 'HTTP responses',
+			targetViewFilter = 'fd.type=ipv4 and evt buffer contains HTTP/',
+			drillDownKey = 'fd.directory',
+			data = gsummary.sysErrCountHttp
 		}
 	end
 
