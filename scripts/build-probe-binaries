@@ -30,15 +30,15 @@ if [ ! -d $BASEDIR/output ]; then
 fi
 
 if [ $PROBE_NAME = "sysdigcloud-probe" ]; then
-        PROBE_REPO_NAME="agent"
+	PROBE_REPO_NAME="agent"
 else
-        PROBE_REPO_NAME=$(echo $PROBE_NAME | cut -f1 -d-)
+	PROBE_REPO_NAME=$(echo $PROBE_NAME | cut -f1 -d-)
 fi
 
 function update_code_for {
-        repo=$1
+	repo=$1
 	if [ ! -d $repo ]; then
-                git clone git@github.com:draios/$repo.git
+		git clone git@github.com:draios/$repo.git
 	fi
 
 	cd $repo
@@ -46,13 +46,13 @@ function update_code_for {
 	# The UEK builder container doesn't have git credentials
 	# It relies on the non-UEK builds doing the pull earlier
 	if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
-	        git pull
+		git pull
 	fi
 
 	if [ $PROBE_REPO_NAME = $repo ]; then
-	        git checkout $PROBE_VERSION
+		git checkout $PROBE_VERSION
 	else
-	        git checkout $PROBE_REPO_NAME/$PROBE_VERSION
+		git checkout $PROBE_REPO_NAME/$PROBE_VERSION
 	fi
 
 	# Remove everything other than the files actually belonging to
@@ -75,11 +75,11 @@ function build_probe {
 		update_code_for sysdig
 
 		if [ $PROBE_NAME != "sysdig-probe" ]; then
-		        update_code_for falco
+			update_code_for falco
 		fi
 
 		if [ $PROBE_NAME = "sysdigcloud-probe" ]; then
-		        update_code_for agent
+			update_code_for agent
 		fi
 
 		cd $PROBE_REPO_NAME
