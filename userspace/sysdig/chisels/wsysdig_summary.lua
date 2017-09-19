@@ -938,7 +938,7 @@ function build_output(captureDuration)
 			name = 'Executed Commands',
 			desc = 'Number of new programs that have been executed during the observed interval',
 			category = 'security',
-			targetView = 'spy_users',
+			targetView = 'spy_users_wsysdig',
 			drillDownKey = 'NONE',
 			data = gsummary.executedCommands
 		}
