@@ -1371,6 +1371,7 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, 	scap_threadi
 
 	strncpy(sctinfo->comm, tinfo.m_comm.c_str(), SCAP_MAX_PATH_SIZE);
 	strncpy(sctinfo->exe, tinfo.m_exe.c_str(), SCAP_MAX_PATH_SIZE);
+	strncpy(sctinfo->exepath, tinfo.m_exepath.c_str(), SCAP_MAX_PATH_SIZE);
 	tinfo.args_to_scap(sctinfo);
 	tinfo.env_to_scap(sctinfo);
 	string tcwd = (tinfo.m_cwd == "")? "/": tinfo.m_cwd;
