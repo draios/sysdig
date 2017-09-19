@@ -528,14 +528,11 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 	//
 	// This is a real user level process. Allocate the procinfo structure.
 	//
-	tinfo = (scap_threadinfo*)malloc(sizeof(scap_threadinfo));
-	if(tinfo == NULL)
+	if((tinfo = scap_proc_alloc(handle)) == NULL)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (1)");
+		// Error message saved in handle->m_lasterr
 		return SCAP_FAILURE;
 	}
-
-	memset(tinfo, 0, sizeof(scap_threadinfo));
 
 	tinfo->tid = tid;
 	if(parenttid != -1)
@@ -1056,6 +1053,18 @@ void scap_refresh_proc_table(scap_t* handle)
 {
 }
 #endif // HAS_CAPTURE
+
+struct scap_threadinfo *scap_proc_alloc(scap_t *handle)
+{
+	struct scap_threadinfo *tinfo = (struct scap_threadinfo*) calloc(1, sizeof(scap_threadinfo));
+	if(tinfo == NULL)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "process table allocation error (1)");
+		return NULL;
+	}
+
+	return tinfo;
+}
 
 void scap_proc_free(scap_t* handle, struct scap_threadinfo* proc)
 {

@@ -919,6 +919,7 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 // like getpid() but returns the global PID even inside a container
 int32_t scap_getpid_global(scap_t* handle, int64_t* pid);
 
+struct scap_threadinfo *scap_proc_alloc(scap_t* handle);
 void scap_proc_free(scap_t* handle, struct scap_threadinfo* procinfo);
 int32_t scap_stop_dropping_mode(scap_t* handle);
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);
