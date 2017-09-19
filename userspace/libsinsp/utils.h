@@ -350,3 +350,5 @@ struct ci_compare
 ///////////////////////////////////////////////////////////////////////////////
 
 bool set_socket_blocking(int sock, bool block);
+
+unsigned int read_num_possible_cpus(void);

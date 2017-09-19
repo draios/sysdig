@@ -167,6 +167,7 @@ static unsigned int g_ppm_numdevs;
 static int g_ppm_major;
 bool g_tracers_enabled = false;
 bool g_simple_mode_enabled = false;
+static DEFINE_PER_CPU(long, g_n_tracepoint_hit) = 0;
 static const struct file_operations g_ppm_fops = {
 	.open = ppm_open,
 	.release = ppm_release,
@@ -518,6 +519,7 @@ cleanup_open:
 
 static int ppm_release(struct inode *inode, struct file *filp)
 {
+	int cpu;
 	int ret;
 	struct ppm_ring_buffer_context *ring;
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
@@ -604,6 +606,11 @@ static int ppm_release(struct inode *inode, struct file *filp)
 			 * While we're here, disable simple mode if it's active
 			 */
 			g_simple_mode_enabled = false;
+
+			// Reset tracepoint counter
+			for_each_possible_cpu(cpu) {
+				per_cpu(g_n_tracepoint_hit, cpu) = 0;
+			}
 		} else {
 			ASSERT(false);
 		}
@@ -619,6 +626,7 @@ cleanup_release:
 
 static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
+	int cpu;
 	int ret;
 	struct task_struct *consumer_id = filp->private_data;
 	struct ppm_consumer_t *consumer = NULL;
@@ -724,6 +732,18 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		ret = 0;
 cleanup_ioctl_procinfo:
 		vfree((void*)proclist_info);
+		goto cleanup_ioctl_nolock;
+	}
+
+	if (cmd == PPM_IOCTL_GET_N_TRACEPOINT_HIT) {
+		long __user* counters = (long __user*) arg;
+		for_each_possible_cpu(cpu) {
+			if ( put_user(per_cpu(g_n_tracepoint_hit, cpu), &counters[cpu]) ) {
+				ret = -EINVAL;
+				goto cleanup_ioctl_nolock;
+			}
+		}
+		ret = 0;
 		goto cleanup_ioctl_nolock;
 	}
 
@@ -1801,6 +1821,8 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	}
 #endif
 
+	this_cpu_inc(g_n_tracepoint_hit);
+
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
 		struct event_data_t event_data;
@@ -1876,6 +1898,8 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	}
 #endif
 
+	this_cpu_inc(g_n_tracepoint_hit);
+
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
 		struct event_data_t event_data;
@@ -1926,6 +1950,8 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 {
 	struct event_data_t event_data;
 
+	this_cpu_inc(g_n_tracepoint_hit);
+
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	if (unlikely(current->flags & PF_KTHREAD)) {
 #else
@@ -1959,6 +1985,8 @@ TRACEPOINT_PROBE(sched_switch_probe, bool preempt, struct task_struct *prev, str
 {
 	struct event_data_t event_data;
 
+	this_cpu_inc(g_n_tracepoint_hit);
+
 	event_data.category = PPMC_CONTEXT_SWITCH;
 	event_data.event_info.context_data.sched_prev = prev;
 	event_data.event_info.context_data.sched_next = next;
@@ -1971,6 +1999,8 @@ TRACEPOINT_PROBE(sched_switch_probe, bool preempt, struct task_struct *prev, str
 TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_sigaction *ka)
 {
 	struct event_data_t event_data;
+
+	this_cpu_inc(g_n_tracepoint_hit);
 
 	event_data.category = PPMC_SIGNAL;
 	event_data.event_info.signal_data.sig = sig;

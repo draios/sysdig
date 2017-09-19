@@ -780,7 +780,9 @@ public:
 		scap_refresh_proc_table(m_h);
 	}
 	void set_simpledriver_mode();
+	vector<long> get_n_tracepoint_hit();
 
+	static unsigned num_possible_cpus();
 VISIBILITY_PRIVATE
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE
@@ -1049,6 +1051,7 @@ public:
 	uint64_t m_last_procrequest_tod;
 	sinsp_proc_metainfo m_meinfo;
 
+	static unsigned int m_num_possible_cpus;
 #if defined(HAS_CAPTURE)
 	int64_t m_sysdig_pid;
 #endif
