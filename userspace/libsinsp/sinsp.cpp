@@ -523,6 +523,16 @@ void sinsp::set_simpledriver_mode()
 	}
 }
 
+long sinsp::get_n_tracepoint_hit()
+{
+	long ret = 0;
+	if(scap_get_n_tracepoint_hit(m_h, &ret) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));		
+	}
+	return ret;
+}
+
 std::string sinsp::get_error_desc(const std::string& msg)
 {
 #ifdef _WIN32

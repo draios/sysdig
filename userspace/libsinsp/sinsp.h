@@ -780,6 +780,7 @@ public:
 		scap_refresh_proc_table(m_h);
 	}
 	void set_simpledriver_mode();
+	long get_n_tracepoint_hit();
 
 VISIBILITY_PRIVATE
 
