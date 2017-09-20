@@ -1031,7 +1031,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 	uint64_t ts = evt->get_ts();
 
-	if(m_firstevent_ts == 0)
+	if(m_firstevent_ts == 0 && evt->m_pevt->type != PPME_CONTAINER_JSON_E)
 	{
 		m_firstevent_ts = ts;
 	}
