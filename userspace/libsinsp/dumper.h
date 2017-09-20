@@ -122,6 +122,11 @@ public:
 		return scap_get_memorydumper_curpos(m_dumper);
 	}
 
+	inline void set_inspector(sinsp *inspector)
+	{
+		m_inspector = inspector;
+	}
+
 private:
 	sinsp* m_inspector;
 	scap_dumper_t* m_dumper;
