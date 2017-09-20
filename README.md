@@ -38,7 +38,7 @@ For support using sysdig, please contact [the official mailing list](https://gro
 Join the Community
 ---
 * Contact the [official mailing list](https://groups.google.com/forum/#!forum/sysdig) for support and to talk with other users
-* Follow us on [Twitter](https://twitter.com/sysdig) for the Chisel of the Week
+* Follow us on [Twitter](https://twitter.com/sysdig)
 * This is our [blog](https://sysdig.com/blog/). There are many like it, but this one is ours.
 * Join our [Public Slack](https://slack.sysdig.com) channel for sysdig announcements and discussions.
 
