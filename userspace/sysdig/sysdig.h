@@ -98,7 +98,6 @@ struct summary_table_entry_rsort_comparer
 // Printer functions
 //
 void list_fields(bool verbose, bool markdown);
-const char* param_type_to_string(ppm_param_type pt);
 void list_events(sinsp* inspector);
 
 #ifdef HAS_CHISELS

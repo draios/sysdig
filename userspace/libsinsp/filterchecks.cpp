@@ -33,6 +33,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 extern sinsp_evttables g_infotables;
 int32_t g_csysdig_screen_w = -1;
+bool g_filterchecks_force_raw_times = false;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Helper functions
@@ -1342,7 +1343,8 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_INT64, EPF_NONE, PF_ID, "proc.sid", "the session id of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.sname", "the name of the current process's session leader. This is either the process with pid=proc.sid or the eldest ancestor that has the same sid as the current process."},
 	{PT_INT32, EPF_NONE, PF_ID, "proc.tty", "The controlling terminal of the process. 0 for processes without a terminal."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exepath", "The full executable path of the process."}
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exepath", "The full executable path of the process."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "thread.nametid", "this field chains the process name and tid of a thread and can be used as a specific identifier of a thread for a specific execve."},
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -2157,6 +2159,10 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		{
 			return extract_thread_cpu(evt, tinfo, false, true);
 		}
+	case TYPE_NAMETID:
+		m_tstr = tinfo->get_comm() + to_string(evt->get_tid());
+		*len = m_tstr.size();
+		return (uint8_t*)m_tstr.c_str();
 	default:
 		ASSERT(false);
 		return NULL;
@@ -2906,7 +2912,14 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	switch(m_field_id)
 	{
 	case TYPE_TIME:
-		ts_to_string(evt->get_ts(), &m_strstorage, false, true);
+		if(g_filterchecks_force_raw_times)
+		{
+			m_strstorage = to_string(evt->get_ts());
+		}
+		else
+		{
+			ts_to_string(evt->get_ts(), &m_strstorage, false, true);
+		}
 		*len = m_strstorage.size();
 		return (uint8_t*)m_strstorage.c_str();
 	case TYPE_TIME_S:
@@ -3861,7 +3874,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			scap_fd_type etype = evt->m_fdinfo->m_type;
 
-			if((etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK) || etype == SCAP_FD_UNIX_SOCK)
+			if(etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK)
 			{
 				return extract_buflen(evt);
 			}
@@ -3873,7 +3886,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			scap_fd_type etype = evt->m_fdinfo->m_type;
 
-			if((etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK) || etype == SCAP_FD_UNIX_SOCK)
+			if(etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK)
 			{
 				return extract_buflen(evt);
 			}
@@ -3885,7 +3898,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			scap_fd_type etype = evt->m_fdinfo->m_type;
 
-			if((etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK) || etype == SCAP_FD_UNIX_SOCK)
+			if(etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK)
 			{
 				return extract_buflen(evt);
 			}
@@ -6181,8 +6194,8 @@ char* sinsp_filter_check_reference::print_int(uint8_t* rawval, uint32_t str_len)
 }
 
 char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
-												  uint32_t str_len,
-												  uint64_t time_delta)
+	uint32_t str_len,
+	uint64_t time_delta)
 {
 	uint32_t len;
 	uint8_t* rawval = extract(evt, &len);
@@ -6236,6 +6249,51 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
 	else
 	{
 		return rawval_to_string(rawval, m_field, len);
+	}
+}
+
+Json::Value sinsp_filter_check_reference::tojson(sinsp_evt* evt,
+	uint32_t str_len,
+	uint64_t time_delta)
+{
+	uint32_t len;
+	uint8_t* rawval = extract(evt, &len);
+
+	if(rawval == NULL)
+	{
+		return "";
+	}
+
+	if(time_delta != 0)
+	{
+		m_cnt = (double)time_delta / ONE_SECOND_IN_NS;
+	}
+
+	if(m_field->m_type == PT_RELTIME)
+	{
+		double val = (double)*(uint64_t*)rawval;
+
+		if(m_cnt > 1)
+		{
+			val /= m_cnt;
+		}
+
+		return format_time((int64_t)val, str_len);
+	}
+	else if(m_field->m_type == PT_DOUBLE)
+	{
+		double dval = (double)*(double*)rawval;
+
+		if(m_cnt > 1)
+		{
+			dval /= m_cnt;
+		}
+
+		return dval;
+	}
+	else
+	{
+		return rawval_to_json(rawval, m_field, len);
 	}
 }
 

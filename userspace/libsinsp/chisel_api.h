@@ -37,6 +37,8 @@ public:
 	static int set_output_format(lua_State *ls);
 	static int set_fatfile_dump_mode(lua_State *ls);
 	static int make_ts(lua_State *ls);
+	static int add_ts(lua_State *ls);
+	static int subtract_ts(lua_State *ls);
 	static int run_sysdig(lua_State *ls);
 	static int end_capture(lua_State *ls);
 	static int is_live(lua_State *ls);
@@ -45,20 +47,27 @@ public:
 	static int get_filter(lua_State *ls);
 	static int get_machine_info(lua_State *ls);
 	static int get_thread_table(lua_State *ls);
+	static int get_thread_table_nofds(lua_State *ls);
 	static int get_container_table(lua_State *ls);
 	static int is_print_container_data(lua_State *ls);
 	static int get_output_format(lua_State *ls);
 	static int get_evtsource_name(lua_State *ls);
+	static int get_firstevent_ts(lua_State *ls);
+	static int get_lastevent_ts(lua_State *ls);
 	static int set_event_formatter(lua_State *ls);
 	static int set_interval_ns(lua_State *ls);
 	static int set_interval_s(lua_State *ls);
+	static int set_precise_interval_ns(lua_State *ls);
 	static int exec(lua_State *ls);
 	static int log(lua_State *ls);
 	static int udp_setpeername(lua_State *ls);
 	static int udp_send(lua_State *ls);
+	static int get_read_progress(lua_State *ls);
 #ifdef HAS_ANALYZER
 	static int push_metric(lua_State *ls);
 #endif
+private:
+	static int get_thread_table_int(lua_State *ls, bool include_fds);
 };
 
 #endif // HAS_CHISELS

@@ -24,9 +24,9 @@ view_info =
 		"If you click 'enter' on a selection in this chart, you will be able to see the specific errors that the container is generating.",
 		"Digging into a container by clicking on F6 will let you explore the system calls for that specific container and see the full details about what's causing the errors."
 	},
-	tags = {"Default"},
+	tags = {"Default", "wsysdig"},
 	view_type = "table",
-	applies_to = {"", "container.id", "fd.name", "fd.sport", "fd.sproto", "evt.type", "fd.directory", "k8s.pod.id", "k8s.rc.id", "k8s.rs.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
+	applies_to = {"", "container.id", "fd.name", "fd.containername", "fd.sport", "fd.sproto", "evt.type", "fd.directory", "fd.containerdirectory", "fd.containerdirectory", "k8s.pod.id", "k8s.rc.id", "k8s.rs.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
 	drilldown_target = "errors",
 	filter = "container.name != host",
 	use_defaults = true,

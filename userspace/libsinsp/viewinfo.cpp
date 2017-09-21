@@ -15,6 +15,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
+#include <algorithm>
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "sinsp_errno.h"
@@ -23,7 +24,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filterchecks.h"
 #include "chisel.h"
 #include "protodecoder.h"
-#include <algorithm>
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_view_column_info implementation
@@ -373,6 +373,15 @@ uint32_t sinsp_view_manager::get_selected_view()
 			{
 				return j;
 			}
+		}
+
+		if(m_selected_view_id == "echo")
+		{
+			return VIEW_ID_SPY;
+		}
+		else if(m_selected_view_id == "dig")
+		{
+			return VIEW_ID_DIG;
 		}
 	}
 	else
