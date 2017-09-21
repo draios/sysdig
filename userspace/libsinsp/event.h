@@ -420,6 +420,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp_cursesui;
 	friend class sinsp_baseliner;
 	friend class capture_job_handler;
+	friend class capture_job;
 	friend class sinsp_memory_dumper;
 	friend class sinsp_memory_dumper_job;
 };
