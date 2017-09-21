@@ -136,6 +136,7 @@ function reset_summary(s)
 	s.procCount = create_category_table(false, false, 'avg')
 	s.containerCount = create_category_table(false, false, 'avg')
 	s.executedCommands = create_category_basic(false, true)
+	s.executedInteractiveCommands = create_category_basic(true, true)
 	s.syscallCount = create_category_basic(false, false)
 	s.fileCount = create_category_table(true, false)
 	s.fileBytes = create_category_basic(false, false)
@@ -397,6 +398,7 @@ function on_init()
 	fsyslogsev = chisel.request_field("syslog.severity")
 	finfrasource = chisel.request_field("evt.arg.source")
 	finfraname = chisel.request_field("evt.arg.name")
+	fpname = chisel.request_field("proc.pname")
 
 	print('{"slices": [')
 	return true
@@ -558,6 +560,12 @@ function on_event()
 					end
 				elseif etype == 'execve' then
 					ssummary.executedCommands.tot = ssummary.executedCommands.tot + 1
+					local pname = evt.field(fpname)
+					if pname ~= nil then
+						if string.find(pname, 'bash') then
+							ssummary.executedInteractiveCommands.tot = ssummary.executedInteractiveCommands.tot + 1
+						end
+					end
 
 					local exe = evt.field(fexe)
 					if exe == 'sudo' then
@@ -928,7 +936,7 @@ function build_output(captureDuration)
 			targetView = 'dig',
 			targetViewTitle = 'Connect events',
 			targetViewFilter = 'evt.type=accept and evt.dir=< and fd.sport exists',
-			drillDownKey = 'NONE',
+			drillDownKey = '',
 			data = gsummary.newConnectionsI
 		}
 	end
@@ -939,8 +947,20 @@ function build_output(captureDuration)
 			desc = 'Number of new programs that have been executed during the observed interval',
 			category = 'security',
 			targetView = 'spy_users_wsysdig',
-			drillDownKey = 'NONE',
+			drillDownKey = '',
 			data = gsummary.executedCommands
+		}
+	end
+
+	if should_include(gsummary.executedInteractiveCommands) then
+		res[#res+1] = {
+			name = 'Executed Interactive Commands',
+			desc = 'Number of new programs that have been executed from a shell during the observed interval',
+			category = 'security',
+			targetView = 'spy_users_wsysdig',
+			targetViewFilter = 'proc.pname=bash',
+			drillDownKey = 'NONE',
+			data = gsummary.executedInteractiveCommands
 		}
 	end
 
