@@ -490,12 +490,12 @@ function on_event()
 
 										local ls = string.lower(msg)
 
-										if string.find(ls, "warn") or string.find(ls, "Warn") ~= nil then
+										if string.find(ls, "warn") ~= nil then
 											ssummary.appLogCountW.tot = ssummary.appLogCountW.tot + 1
-										elseif string.find(msg, "err") or string.find(msg, "Err") or 
-											string.find(msg, "crit") or string.find(msg, "Crit") or 
-											string.find(msg, "emergency") or string.find(msg, "Emergency") or 
-											string.find(msg, "alert") or string.find(msg, "Alert") then
+										elseif string.find(msg, "err") or 
+											string.find(msg, "crit") or 
+											string.find(msg, "emergency") or 
+											string.find(msg, "alert") then
 											ssummary.appLogCountE.tot = ssummary.appLogCountE.tot + 1
 										end
 									end
@@ -1176,7 +1176,7 @@ function build_output(captureDuration)
 			category = 'logs',
 			targetView = 'echo',
 			targetViewTitle = 'Warning Application Log Messages',
-			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and (evt.buffer contains warn or evt.buffer contains Warn)',
+			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name icontains .tgz)) and evt.is_io_write=true and evt.arg.data icontains warn',
 			drillDownKey = 'NONE',
 			data = gsummary.appLogCountW
 		}
@@ -1189,7 +1189,7 @@ function build_output(captureDuration)
 			category = 'logs',
 			targetView = 'echo',
 			targetViewTitle = 'Error Application Log Messages',
-			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and (evt.buffer contains error or evt.buffer contains Error or evt.buffer contains critic or evt.buffer contains Critic or evt.buffer contains emergency or evt.buffer contains Emergency or evt.buffer contains alert or evt.buffer contains Alert)',
+			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and (evt.arg.data icontains error or evt.arg.data icontains critic or evt.arg.data icontains emergency or evt.arg.data icontains alert)',
 			drillDownKey = 'NONE',
 			data = gsummary.appLogCountE
 		}
