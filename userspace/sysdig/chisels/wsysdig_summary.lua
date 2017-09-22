@@ -490,13 +490,13 @@ function on_event()
 
 										local ls = string.lower(msg)
 
-										if string.find(ls, "warn") ~= nil then
+										if string.find(ls, "warn") then
 											ssummary.appLogCountW.tot = ssummary.appLogCountW.tot + 1
-										elseif string.find(msg, "err") or 
-											string.find(msg, "crit") or 
-											string.find(msg, "emergency") or 
-											string.find(msg, "alert") then
-											ssummary.appLogCountE.tot = ssummary.appLogCountE.tot + 1
+										elseif string.find(ls, "err") or 
+											string.find(ls, "crit") or 
+											string.find(ls, "emergency") or 
+											string.find(ls, "alert") then
+												ssummary.appLogCountE.tot = ssummary.appLogCountE.tot + 1
 										end
 									end
 								end
