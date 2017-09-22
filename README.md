@@ -90,7 +90,7 @@ Use a real name of a natural person who is an authorized representative of the c
 
 Sysdig Cloud
 ---
-Interested in a fully supported, fully distributed version of sysdig? Check out [Sysdig Cloud](https://sysdig.com/)!
+Interested in a fully supported, fully distributed version of sysdig? Check out [Sysdig Monitor](https://sysdig.com/product)!
 
 Open source sysdig is proudly supported by [Sysdig Inc](https://sysdig.com/company/).  
 
