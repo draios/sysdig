@@ -24,7 +24,7 @@ view_info =
 		"If you click 'enter' on a selection in this chart, you will be able to see the specific errors that the process is generating.",
 		"Digging into a process by clicking on F6 will let you explore the system calls for that specific process and see the full details about what's causing the errors."
 	},
-	tags = {"Default"},
+	tags = {"Default", "wsysdig"},
 	filter = "evt.type!=switch",
 	view_type = "table",
 	applies_to = {"", "container.id", "fd.name", "fd.containername", "fd.sport", "fd.sproto", "evt.type", "fd.directory", "fd.containerdirectory", "k8s.pod.id", "k8s.rc.id", "k8s.rs.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
