@@ -20,7 +20,7 @@ view_info =
 	id = "notifications",
 	name = "Notifications",
 	description = "Lists the notification events that indicate the specific point in time when sysdig secure policies have been violated.",
-	tags = {"wsysdig", "nocsysdig"},
+	tags = {"nocsysdig"},
 	view_type = "list",
 	applies_to = {""},
 	filter = "evt.type=notification",
