@@ -1090,6 +1090,30 @@ const char* param_type_to_string(ppm_param_type pt)
 	}
 }
 
+const char* print_format_to_string(ppm_print_format fmt)
+{
+	switch(fmt)
+	{
+	case PF_DEC:
+		return "DEC";
+	case PF_HEX:
+		return "HEX";
+	case PF_10_PADDED_DEC:
+		return "10_PADDED_DEC";
+	case PF_ID:
+		return "ID";
+	case PF_DIR:
+		return "DIR";
+	case PF_OCT:
+		return "OCT";
+	case PF_NA:
+		return "NA";
+	default:
+		ASSERT(false);
+		return "<NA>";
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // String helpers
 ///////////////////////////////////////////////////////////////////////////////

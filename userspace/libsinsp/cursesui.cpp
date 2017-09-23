@@ -1424,6 +1424,9 @@ Json::Value sinsp_cursesui::generate_json_info_section()
 			off = 0;
 		}
 
+		vector<filtercheck_field_info>* tlegend = m_datatable->get_legend();
+		ASSERT(tlegend->size() == colnames.size());
+
 		for(uint32_t j = 1; j < colnames.size(); j++)
 		{
 			Json::Value jcinfo;
@@ -1431,6 +1434,7 @@ Json::Value sinsp_cursesui::generate_json_info_section()
 			jcinfo["name"] = colnames[j];
 			jcinfo["size"] = colsizes[j];
 			jcinfo["type"] = param_type_to_string(m_datatable->m_types->at(j + off));
+			jcinfo["format"] = print_format_to_string(tlegend->at(j).m_print_format);
 			
 			jlegend.append(jcinfo);
 		}
