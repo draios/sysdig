@@ -380,7 +380,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					return sysdig_init_res(EXIT_SUCCESS);
 				}
 
-				event_buffer_format = sinsp_evt::PF_EOLS;
+				event_buffer_format = sinsp_evt::PF_EOLS_COMPACT;
 				break;
 			case 'd':
 				try
