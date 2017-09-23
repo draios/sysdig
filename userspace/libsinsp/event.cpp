@@ -292,7 +292,10 @@ uint32_t binary_buffer_to_asciionly_string(char *dst, char *src, uint32_t dstlen
 	uint32_t j;
 	uint32_t k = 0;
 
-	dst[k++] = '\n';
+	if(fmt != sinsp_evt::PF_EOLS_COMPACT)
+	{
+		dst[k++] = '\n';
+	}
 
 	for(j = 0; j < srclen; j++)
 	{
@@ -482,7 +485,7 @@ uint32_t binary_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t
 	{
 		k = binary_buffer_to_json_string(dst, src, dstlen, srclen, fmt);
 	}
-	else if(fmt & sinsp_evt::PF_EOLS)
+	else if(fmt & (sinsp_evt::PF_EOLS | sinsp_evt::PF_EOLS_COMPACT))
 	{
 		k = binary_buffer_to_asciionly_string(dst, src, dstlen, srclen, fmt);
 	}

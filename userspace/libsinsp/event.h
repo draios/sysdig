@@ -105,11 +105,12 @@ public:
 		PF_HEX =            (1 << 3),	///< Hexadecimal output
 		PF_HEXASCII =       (1 << 4),	///< Hexadecimal + ASCII output
 		PF_EOLS =           (1 << 5),	///< Normal + end of lines
-		PF_BASE64 =         (1 << 6),	///< Base64 output
-		PF_JSONEOLS =       (1 << 7),	///< Json formatting with data in hexadecimal format
-		PF_JSONHEX =        (1 << 8),	///< Json formatting with data in hexadecimal format
-		PF_JSONHEXASCII =   (1 << 9),	///< Json formatting with data in hexadecimal + ASCII format
-		PF_JSONBASE64 =     (1 << 10),	///< Json formatting with data in base64 format
+		PF_EOLS_COMPACT =   (1 << 6),	///< Normal + end of lines but with no force EOL at the beginning
+		PF_BASE64 =         (1 << 7),	///< Base64 output
+		PF_JSONEOLS =       (1 << 8),	///< Json formatting with data in hexadecimal format
+		PF_JSONHEX =        (1 << 9),	///< Json formatting with data in hexadecimal format
+		PF_JSONHEXASCII =   (1 << 10),	///< Json formatting with data in hexadecimal + ASCII format
+		PF_JSONBASE64 =     (1 << 11),	///< Json formatting with data in base64 format
 	};
 
 	/*!
