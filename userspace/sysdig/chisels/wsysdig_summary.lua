@@ -158,7 +158,7 @@ function reset_summary(s)
 	s.fileDeletionsCount = create_category_basic(true, true)
 	s.newSymLinksCount = create_category_basic(true, true)
 	s.forkCount = create_category_basic(true, false)
-	s.openErrorCount = create_category_basic(false, false)
+	s.openErrorCount = create_category_basic(true, false)
 	s.connectErrorCount = create_category_basic(true, true)
 	s.sudoInvocations = create_category_basic(true, true)
 	s.setnsInvocations = create_category_basic(true, true)
@@ -179,7 +179,7 @@ function reset_summary(s)
 		s[ccat] = create_category_basic(true, true)
 	end
 	s.sysReqCountHttp = create_category_basic(false, true)
-	s.sysErrCountHttp = create_category_basic(false, true)
+	s.sysErrCountHttp = create_category_basic(true, true)
 end
 
 function add_summaries(ts_s, ts_ns, dst, src)
@@ -1049,7 +1049,7 @@ function build_output(captureDuration)
 			category = 'performance',
 			targetView = 'echo',
 			targetViewTitle = 'HTTP responses',
-			targetViewFilter = 'fd.type=ipv4 and evt.buffer contains "HTTP/"',
+			targetViewFilter = 'fd.type=ipv4 and evt.arg.data startswith "HTTP/" and not evt.arg.data contains "200"',
 			drillDownKey = 'fd.directory',
 			data = gsummary.sysErrCountHttp
 		}
