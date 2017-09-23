@@ -492,8 +492,8 @@ function on_event()
 
 										if string.find(ls, "warn") then
 											ssummary.appLogCountW.tot = ssummary.appLogCountW.tot + 1
-										elseif string.find(ls, "err") or 
-											string.find(ls, "crit") or 
+										elseif string.find(ls, "error") or 
+											string.find(ls, "critic") or 
 											string.find(ls, "emergency") or 
 											string.find(ls, "alert") then
 												ssummary.appLogCountE.tot = ssummary.appLogCountE.tot + 1
