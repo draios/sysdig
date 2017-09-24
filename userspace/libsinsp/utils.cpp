@@ -1110,7 +1110,7 @@ const char* print_format_to_string(ppm_print_format fmt)
 		return "NA";
 	default:
 		ASSERT(false);
-		return "<NA>";
+		return "NA";
 	}
 }
 
