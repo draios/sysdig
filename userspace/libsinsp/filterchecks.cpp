@@ -2912,7 +2912,8 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	switch(m_field_id)
 	{
 	case TYPE_TIME:
-		if(g_filterchecks_force_raw_times)
+//		if(g_filterchecks_force_raw_times)
+		if(false)
 		{
 			m_strstorage = to_string(evt->get_ts());
 		}

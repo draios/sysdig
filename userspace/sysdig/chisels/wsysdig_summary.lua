@@ -178,7 +178,7 @@ function reset_summary(s)
 		local ccat = 'dockerEvtsCount' .. v[1] .. " " .. v[2]
 		s[ccat] = create_category_basic(true, true)
 	end
-	s.sysReqCountHttp = create_category_basic(false, true)
+	s.sysReqCountHttp = create_category_basic(true, true)
 	s.sysErrCountHttp = create_category_basic(true, true)
 end
 
