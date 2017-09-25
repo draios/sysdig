@@ -31,31 +31,31 @@ view_info =
 			name = "TIME",
 			field = "evt.time",
 			description = "Time when the event happened.",
-			colsize = 12,
+			colsize = 18,
 		},
 		{
 			name = "EVENT TYPE",
 			field = "evt.arg.name",
 			description = "Type of docker event.",
-			colsize = 12,
+			colsize = 20,
 		},
 		{
 			name = "CONTAINER ID",
 			field = "evt.infra.docker.container.id",
 			description = "ID of the container that generated this event.",
-			colsize = 8,
-		},
-		{
-			name = "CONTAINER NAME",
-			field = "evt.infra.docker.container.name",
-			description = "Name of the container that generated this event.",
-			colsize = 8,
+			colsize = 20,
 		},
 		{
 			name = "CONTAINER IMAGE",
 			field = "evt.infra.docker.container.image",
 			description = "Image name of the container that generated this event.",
-			colsize = 8,
+			colsize = 20,
+		},
+		{
+			name = "CONTAINER NAME",
+			field = "evt.infra.docker.container.name",
+			description = "Name of the container that generated this event.",
+			colsize = 0,
 		},
 	}
 }
