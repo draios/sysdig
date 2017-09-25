@@ -109,7 +109,7 @@ view_info =
 		},
 		{
 			tags = {"containers"},
-			name = "Container",
+			name = "CONTAINER",
 			field = "container.name",
 			colsize = 20
 		},

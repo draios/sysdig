@@ -90,7 +90,8 @@ view_info =
 		},
 		{
 			tags = {"containers"},
-			name = "The container this process belongs to.",
+			name = "CONTAINER",
+			description = "The container this process belongs to.",
 			field = "container.name",
 			colsize = 20
 		},
