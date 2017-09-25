@@ -72,12 +72,6 @@ view_info =
 			colsize = 8,
 		},
 		{
-			name = "PROTO",
-			description = "Connection protocol, obtained by resolving the server port name.",
-			field = "fd.sproto",
-			colsize = 8,
-		},
-		{
 			is_sorting = true,
 			name = "BPS IN",
 			field = "evt.buflen.net.in",

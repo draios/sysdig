@@ -42,12 +42,6 @@ view_info =
 			colsize = 8,
 		},
 		{
-			name = "PROTO",
-			description = "protocol name, obtained by resolving the port number.",
-			field = "fd.sproto",
-			colsize = 8,
-		},
-		{
 			name = "BPS IN",
 			field = "evt.buflen.net.in",
 			description = "This port's input bandwidth in bytes per second.",
