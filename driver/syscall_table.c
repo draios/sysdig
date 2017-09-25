@@ -817,7 +817,4 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_setns
 	[__NR_setns - SYSCALL_TABLE_ID0] = PPM_SC_SETNS,
 #endif
-#ifdef __NR_access
-	[__NR_access - SYSCALL_TABLE_ID0] = PPM_SC_ACCESS,
-#endif
 };
