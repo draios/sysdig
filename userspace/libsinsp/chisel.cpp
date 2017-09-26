@@ -1103,7 +1103,10 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 
 		tinydir_dir dir;
 
-		tinydir_open(&dir, it->m_dir);
+		if(tinydir_open(&dir, it->m_dir) != 0)
+		{
+			continue;
+		}
 
 		while(dir.has_next)
 		{
@@ -1691,7 +1694,6 @@ void sinsp_chisel::do_timeout(sinsp_evt* evt)
 		if(ts - m_lua_last_interval_sample_time >= interval)
 		{
 			uint64_t t;
-			int64_t delta = 0;
 
 			for(t = m_lua_last_interval_sample_time; t <= ts - interval; t += interval)
 			{
