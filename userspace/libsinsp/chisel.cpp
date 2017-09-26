@@ -1691,7 +1691,6 @@ void sinsp_chisel::do_timeout(sinsp_evt* evt)
 		if(ts - m_lua_last_interval_sample_time >= interval)
 		{
 			uint64_t t;
-			int64_t delta = 0;
 
 			for(t = m_lua_last_interval_sample_time; t <= ts - interval; t += interval)
 			{
