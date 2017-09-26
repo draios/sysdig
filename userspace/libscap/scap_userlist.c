@@ -27,7 +27,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <grp.h>
 
 //
-// Allocate and return the list of interfaces on this system
+// Allocate and return the list of users on this system
 //
 int32_t scap_create_userlist(scap_t* handle)
 {
@@ -37,8 +37,8 @@ int32_t scap_create_userlist(scap_t* handle)
 	struct group *g;
 
 	//
-	// If the list of interfaces was already allocated for this handle (for example because this is
-	// not the first interface list block), free it
+	// If the list of users was already allocated for this handle (for example because this is
+	// not the first user list block), free it
 	//
 	if(handle->m_userlist != NULL)
 	{
