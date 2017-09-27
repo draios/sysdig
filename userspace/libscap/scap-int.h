@@ -193,7 +193,7 @@ void scap_proc_print_proc_by_tid(scap_t* handle, uint64_t tid);
 int32_t scap_create_iflist(scap_t* handle);
 // Free a previously allocated list of interfaces
 void scap_free_iflist(scap_addrlist* ifhandle);
-// Allocate and return the list of interfaces on this system
+// Allocate and return the list of users on this system
 int32_t scap_create_userlist(scap_t* handle);
 // Free a previously allocated list of users
 void scap_free_userlist(scap_userlist* uhandle);
