@@ -12,3 +12,9 @@ build/
 driver/Makefile
 driver/driver_config.h
 *.pyc
+*.config
+*.creator
+*.creator.user*
+*.files
+*.includes
+*.pro.user
