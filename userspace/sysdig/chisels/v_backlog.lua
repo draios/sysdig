@@ -23,7 +23,7 @@ view_info =
   tags = {"Default"},
   view_type = "table",
   applies_to = {"", "proc.pid", "proc.name", "fd.sport", "fd.sproto"},
-  filter = "evt.type=accept",
+  filter = "evt.type=accept or evt.type=accept4",
   is_root = false,
   use_defaults = true,
   drilldown_target = "connections",

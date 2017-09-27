@@ -434,3 +434,9 @@ const struct ppm_name_value pf_flags[] = {
 	{"INSTRUCTION_FETCH", PPM_PF_INSTRUCTION_FETCH},
 	{ },
 };
+
+const struct ppm_name_value accept4_flags[] = {
+	{"SOCK_NONBLOCK", PPM_SOCK_NONBLOCK},
+	{"SOCK_CLOEXEC", PPM_SOCK_CLOEXEC},
+	{ },
+};

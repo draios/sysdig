@@ -1800,16 +1800,33 @@ static int f_sys_socketpair_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+static inline u32 accept4_flags_to_scap(unsigned long flags)
+{
+	u32 res = 0;
+
+	if (flags & SOCK_NONBLOCK)
+		res |= PPM_SOCK_NONBLOCK;
+
+	if (flags & SOCK_CLOEXEC)
+		res |= PPM_SOCK_CLOEXEC;
+
+	return res;
+}
+
 static int f_sys_accept4_e(struct event_filler_arguments *args)
 {
 	int res;
+	unsigned long val;
 
 	/*
 	 * push the flags into the ring.
-	 * XXX we don't support flags yet and so we just return zero
 	 */
-	/* res = val_to_ring(args, args->socketcall_args[3]); */
-	res = val_to_ring(args, 0, 0, false, 0);
+	if (!args->is_socketcall)
+		syscall_get_arguments(current, args->regs, 3, 1, &val);
+	else
+		val = args->socketcall_args[3];
+
+	res = val_to_ring(args, accept4_flags_to_scap(val), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

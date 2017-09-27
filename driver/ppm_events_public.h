@@ -258,6 +258,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_AT_FDCWD -100
 
 /*
+ * accept4() flags
+ */
+#define PPM_SOCK_NONBLOCK	(1 << 0)
+#define PPM_SOCK_CLOEXEC	(1 << 1)
+
+/*
  * rlimit resources
  */
 #define PPM_RLIMIT_CPU 0 /* CPU time in sec */
@@ -1352,6 +1358,7 @@ extern const struct ppm_name_value semget_flags[];
 extern const struct ppm_name_value semctl_commands[];
 extern const struct ppm_name_value access_flags[];
 extern const struct ppm_name_value pf_flags[];
+extern const struct ppm_name_value accept4_flags[];
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
 
