@@ -720,6 +720,34 @@ public:
 	}
 
 	/*!
+	  \brief If this is an online capture, set event_id.
+	  \param event type to set
+	  \return SCAP_SUCCESS if the call is succesful
+	   On Failure, SCAP_FAILURE is returned and getlasterr() can be used to
+	   obtain the cause of the error.
+
+	  \note For a list of event types, refer to \ref etypes.
+	*/
+	int32_t set_eventmask(uint32_t event_types)
+	{
+		return scap_set_eventmask(m_h, event_types);
+	}
+
+	/*!
+	  \brief If this is an online capture, unset event_id.
+	  \param event type to unset
+	  \return SCAP_SUCCESS if the call is succesful
+	   On Failure, SCAP_FAILURE is returned and getlasterr() can be used to
+	   obtain the cause of the error.
+
+	  \note For a list of event types, refer to \ref etypes.
+	*/
+	int32_t unset_eventmask(uint32_t event_id)
+	{
+		return scap_unset_eventmask(m_h, event_id);
+	}
+
+	/*!
 	  \brief When reading events from a trace file, this function returns the
 	   read progress as a number between 0 and 100.
 	*/
