@@ -219,7 +219,7 @@ public:
 	*/
 	bool is_file()
 	{
-		return m_type == SCAP_FD_FILE;
+		return m_type == SCAP_FD_FILE || m_type == SCAP_FD_FILE_V2;
 	}
 
 	/*!
@@ -425,7 +425,7 @@ private:
 	friend class sinsp_filter_check_event;
 	friend class lua_cbacks;
 	friend class sinsp_proto_detector;
-	friend class sisnp_baseliner;
+	friend class sinsp_baseliner;
 };
 
 /*@}*/

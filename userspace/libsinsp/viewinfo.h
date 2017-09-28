@@ -18,6 +18,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once	
 
+#define VIEW_ID_SPY -1
+#define VIEW_ID_DIG -2
+#define VIEW_ID_INFO -3
+
 //
 // Aggregation type for table fields
 //
@@ -180,6 +184,7 @@ public:
 	bool m_drilldown_increase_depth;
 	bool m_propagate_filter;
 	string m_spectro_type;
+	string m_filter;
 
 private:
 	void set_sorting_col();
@@ -187,7 +192,6 @@ private:
 	void set_col_sorting_hotkeys();
 
 	uint32_t m_n_sorting_cols;
-	string m_filter;
 };
 
 

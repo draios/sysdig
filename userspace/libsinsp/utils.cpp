@@ -1004,6 +1004,116 @@ string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve)
 	return string(buf);
 }
 
+const char* param_type_to_string(ppm_param_type pt)
+{
+	switch(pt)
+	{
+	case PT_NONE:
+		return "NONE";
+	case PT_INT8:
+		return "INT8";
+	case PT_INT16:
+		return "INT16";
+	case PT_INT32:
+		return "INT32";
+	case PT_INT64:
+		return "INT64";
+	case PT_UINT8:
+		return "UINT8";
+	case PT_UINT16:
+		return "UINT16";
+	case PT_UINT32:
+		return "UINT32";
+	case PT_UINT64:
+		return "UINT64";
+	case PT_CHARBUF:
+		return "CHARBUF";
+	case PT_BYTEBUF:
+		return "BYTEBUF";
+	case PT_ERRNO:
+		return "ERRNO";
+	case PT_SOCKADDR:
+		return "SOCKADDR";
+	case PT_SOCKTUPLE:
+		return "SOCKTUPLE";
+	case PT_FD:
+		return "FD";
+	case PT_PID:
+		return "PID";
+	case PT_FDLIST:
+		return "FDLIST";
+	case PT_FSPATH:
+		return "FSPATH";
+	case PT_SYSCALLID:
+		return "SYSCALLID";
+	case PT_SIGTYPE:
+		return "SIGTYPE";
+	case PT_RELTIME:
+		return "RELTIME";
+	case PT_ABSTIME:
+		return "ABSTIME";
+	case PT_PORT:
+		return "PORT";
+	case PT_L4PROTO:
+		return "L4PROTO";
+	case PT_SOCKFAMILY:
+		return "SOCKFAMILY";
+	case PT_BOOL:
+		return "BOOL";
+	case PT_IPV4ADDR:
+		return "IPV4ADDR";
+	case PT_DYN:
+		return "DYNAMIC";
+	case PT_FLAGS8:
+		return "FLAGS8";
+	case PT_FLAGS16:
+		return "FLAGS16";
+	case PT_FLAGS32:
+		return "FLAGS32";
+	case PT_UID:
+		return "UID";
+	case PT_GID:
+		return "GID";
+	case PT_SIGSET:
+		return "SIGSET";
+	case PT_IPV4NET:
+		return "IPV4NET";
+	case PT_DOUBLE:
+		return "DOUBLE";
+	case PT_CHARBUFARRAY:
+		return "CHARBUFARRAY";
+	case PT_CHARBUF_PAIR_ARRAY:
+		return "CHARBUF_PAIR_ARRAY";
+	default:
+		ASSERT(false);
+		return "<NA>";
+	}
+}
+
+const char* print_format_to_string(ppm_print_format fmt)
+{
+	switch(fmt)
+	{
+	case PF_DEC:
+		return "DEC";
+	case PF_HEX:
+		return "HEX";
+	case PF_10_PADDED_DEC:
+		return "10_PADDED_DEC";
+	case PF_ID:
+		return "ID";
+	case PF_DIR:
+		return "DIR";
+	case PF_OCT:
+		return "OCT";
+	case PF_NA:
+		return "NA";
+	default:
+		ASSERT(false);
+		return "NA";
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // String helpers
 ///////////////////////////////////////////////////////////////////////////////

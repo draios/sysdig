@@ -108,16 +108,22 @@ const static struct luaL_reg ll_sysdig [] =
 	{"get_filter", &lua_cbacks::get_filter},
 	{"get_machine_info", &lua_cbacks::get_machine_info},
 	{"get_thread_table", &lua_cbacks::get_thread_table},
+	{"get_thread_table_nofds", &lua_cbacks::get_thread_table_nofds},
 	{"get_container_table", &lua_cbacks::get_container_table},
 	{"is_print_container_data", &lua_cbacks::is_print_container_data},
 	{"get_output_format", &lua_cbacks::get_output_format},
 	{"get_evtsource_name", &lua_cbacks::get_evtsource_name},
+	{"get_firstevent_ts", &lua_cbacks::get_firstevent_ts},
+	{"get_lastevent_ts", &lua_cbacks::get_lastevent_ts},
 	{"make_ts", &lua_cbacks::make_ts},
+	{"add_ts", &lua_cbacks::add_ts},
+	{"subtract_ts", &lua_cbacks::subtract_ts},
 	{"run_sysdig", &lua_cbacks::run_sysdig},
 	{"end_capture", &lua_cbacks::end_capture},
 	{"log", &lua_cbacks::log},
 	{"udp_setpeername", &lua_cbacks::udp_setpeername},
 	{"udp_send", &lua_cbacks::udp_send},
+	{"get_read_progress", &lua_cbacks::get_read_progress},
 #ifdef HAS_ANALYZER
 	{"push_metric", &lua_cbacks::push_metric},
 #endif
@@ -131,6 +137,7 @@ const static struct luaL_reg ll_chisel [] =
 	{"set_event_formatter", &lua_cbacks::set_event_formatter},
 	{"set_interval_ns", &lua_cbacks::set_interval_ns},
 	{"set_interval_s", &lua_cbacks::set_interval_s},
+	{"set_precise_interval_ns", &lua_cbacks::set_precise_interval_ns},
 	{"exec", &lua_cbacks::exec},
 	{NULL,NULL}
 };
@@ -160,6 +167,7 @@ chiselinfo::chiselinfo(sinsp* inspector)
 
 #ifdef HAS_LUA_CHISELS
 	m_callback_interval = 0;
+	m_callback_precise_interval = 0;
 #endif
 }
 
@@ -225,6 +233,11 @@ void chiselinfo::set_formatter(string formatterstr)
 void chiselinfo::set_callback_interval(uint64_t interval)
 {
 	m_callback_interval = interval;
+}
+
+void chiselinfo::set_callback_precise_interval(uint64_t interval)
+{
+	m_callback_precise_interval = interval;
 }
 #endif
 
@@ -1535,6 +1548,10 @@ void sinsp_chisel::first_event_inits(sinsp_evt* evt)
 	{
 		m_lua_last_interval_sample_time = ts - ts % m_lua_cinfo->m_callback_interval;
 	}
+	else if(m_lua_cinfo->m_callback_precise_interval != 0)
+	{
+		m_lua_last_interval_sample_time = ts;
+	}
 
 	m_lua_is_first_evt = false;
 }
@@ -1551,15 +1568,6 @@ bool sinsp_chisel::run(sinsp_evt* evt)
 	//
 	lua_pushlightuserdata(m_ls, evt);
 	lua_setglobal(m_ls, "sievt");
-
-	//
-	// If this is the first event, put the event pointer on the stack.
-	// We assume that the event pointer will never change.
-	//
-	if(m_lua_is_first_evt)
-	{
-		first_event_inits(evt);
-	}
 
 	//
 	// If there is a timeout callback, see if it's time to call it
@@ -1622,6 +1630,15 @@ void sinsp_chisel::do_timeout(sinsp_evt* evt)
 {
 	if(m_lua_is_first_evt)
 	{
+		//
+		// If this is the first event, put the event pointer on the stack.
+		// We assume that the event pointer will never change.
+		//
+		if(m_lua_is_first_evt)
+		{
+			first_event_inits(evt);
+		}
+
 		return;
 	}
 
@@ -1664,6 +1681,40 @@ void sinsp_chisel::do_timeout(sinsp_evt* evt)
 
 			m_lua_last_interval_sample_time = sample_time;
 			m_lua_last_interval_ts = ts;
+		}
+	}
+	else if(m_lua_cinfo->m_callback_precise_interval != 0)
+	{
+		uint64_t ts = evt->get_ts();
+		uint64_t interval = m_lua_cinfo->m_callback_precise_interval;
+
+		if(ts - m_lua_last_interval_sample_time >= interval)
+		{
+			uint64_t t;
+
+			for(t = m_lua_last_interval_sample_time; t <= ts - interval; t += interval)
+			{
+				lua_getglobal(m_ls, "on_interval");
+
+				lua_pushnumber(m_ls, (double)(t / 1000000000));
+				lua_pushnumber(m_ls, (double)(t % 1000000000));
+				lua_pushnumber(m_ls, (double)interval);
+
+				if(lua_pcall(m_ls, 3, 1, 0) != 0)
+				{
+					throw sinsp_exception(m_filename + " chisel error: calling on_interval() failed:" + lua_tostring(m_ls, -1));
+				}
+
+				int oeres = lua_toboolean(m_ls, -1);
+				lua_pop(m_ls, 1);
+
+				if(oeres == false)
+				{
+					throw sinsp_exception("execution terminated by the " + m_filename + " chisel");
+				}
+			}
+
+			m_lua_last_interval_sample_time = t;
 		}
 	}
 }

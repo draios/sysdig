@@ -176,6 +176,9 @@ std::string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve);
 //           matched
 std::string port_to_string(uint16_t port, uint8_t l4proto, bool resolve);
 
+const char* param_type_to_string(ppm_param_type pt);
+const char* print_format_to_string(ppm_print_format fmt);
+
 ///////////////////////////////////////////////////////////////////////////////
 // String helpers
 ///////////////////////////////////////////////////////////////////////////////

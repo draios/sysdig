@@ -85,11 +85,13 @@ public:
 	void set_filter(string filterstr);
 	void set_formatter(string formatterstr);
 	void set_callback_interval(uint64_t interval);
+	void set_callback_precise_interval(uint64_t interval);
 	~chiselinfo();
 	sinsp_filter* m_filter;
 	sinsp_evt_formatter* m_formatter;
 	sinsp_dumper* m_dumper;
 	uint64_t m_callback_interval;
+	uint64_t m_callback_precise_interval;
 	bool m_has_nextrun_args;
 	string m_nextrun_args;
 	bool m_end_capture;

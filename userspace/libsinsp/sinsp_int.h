@@ -98,7 +98,7 @@ using namespace std;
 // The logger
 //
 extern sinsp_logger g_logger;
-#define lo g_logger.format
+#define glogf g_logger.format
 
 //
 // Prototype of the callback invoked by the thread table when a thread is 
@@ -137,4 +137,5 @@ public:
 	virtual void on_clone(sinsp_evt* evt, sinsp_threadinfo* newtinfo) = 0;
 	virtual void on_bind(sinsp_evt* evt) = 0;
 	virtual void on_new_container(const sinsp_container_info& container_info) = 0;
+	virtual void on_remove_container(const sinsp_container_info& container_info) = 0;
 };
