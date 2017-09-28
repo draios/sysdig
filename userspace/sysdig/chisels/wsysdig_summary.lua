@@ -302,7 +302,7 @@ function parse_thread_table_startup()
 	local data = {}
 	local cnt = 0
 
-	local ttable = sysdig.get_thread_table(sysdig.get_filter())
+	local ttable = sysdig.get_thread_table_barebone(sysdig.get_filter())
 
 	for k, v in pairs(ttable) do
 		for kf, vf in pairs(v.fdtable) do
@@ -323,7 +323,7 @@ end
 function parse_thread_table_interval()
 	local data = {}
 	local cnt = 0
-	local ttable = sysdig.get_thread_table_nofds(sysdig.get_filter())
+	local ttable = sysdig.get_thread_table_barebone_nofds(sysdig.get_filter())
 
 	for k, v in pairs(ttable) do
 		if v.tid == v.pid then
@@ -666,7 +666,11 @@ function on_interval(ts_s, ts_ns, delta)
 	reset_summary(ssummary)
 
 	if nintervals % percent_update_sample_period == 0 then
-		print('{"progress": ' .. sysdig.get_read_progress() .. ' },')
+		local progress = sysdig.get_read_progress()
+		if progress == 100 then
+			progress = 99
+		end
+		print('{"progress": ' .. progress .. ' },')
 		io.flush(stdout)
 	end
 
