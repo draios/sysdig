@@ -1795,6 +1795,19 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	return res;
 }
 
+static inline void g_n_tracepoint_hit_inc(void)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
+	this_cpu_inc(g_n_tracepoint_hit);
+#else
+	/* 
+	 * per_cpu_var removed with:
+	 * https://github.com/torvalds/linux/commit/dd17c8f72993f9461e9c19250e3f155d6d99df22
+	 */
+	this_cpu_inc(per_cpu_var(g_n_tracepoint_hit));
+#endif
+}
+
 TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 {
 	long table_index;
@@ -1823,8 +1836,6 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		compat = true;
 	}
 #endif
-
-	this_cpu_inc(g_n_tracepoint_hit);
 
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
@@ -1901,7 +1912,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	}
 #endif
 
-	this_cpu_inc(g_n_tracepoint_hit);
+	g_n_tracepoint_hit_inc();
 
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
@@ -1953,7 +1964,7 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 {
 	struct event_data_t event_data;
 
-	this_cpu_inc(g_n_tracepoint_hit);
+	g_n_tracepoint_hit_inc();
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	if (unlikely(current->flags & PF_KTHREAD)) {
@@ -1988,7 +1999,7 @@ TRACEPOINT_PROBE(sched_switch_probe, bool preempt, struct task_struct *prev, str
 {
 	struct event_data_t event_data;
 
-	this_cpu_inc(g_n_tracepoint_hit);
+	g_n_tracepoint_hit_inc();
 
 	event_data.category = PPMC_CONTEXT_SWITCH;
 	event_data.event_info.context_data.sched_prev = prev;
@@ -2003,7 +2014,7 @@ TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_s
 {
 	struct event_data_t event_data;
 
-	this_cpu_inc(g_n_tracepoint_hit);
+	g_n_tracepoint_hit_inc();
 
 	event_data.category = PPMC_SIGNAL;
 	event_data.event_info.signal_data.sig = sig;
@@ -2023,7 +2034,7 @@ TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, 
 	 * in the output by looking for the USER_FAULT/SUPERVISOR_FAULT
 	 * flags
 	 */
-	this_cpu_inc(g_n_tracepoint_hit);
+	g_n_tracepoint_hit_inc();
 
 	/* I still haven't decided if I'm interested in kernel threads or not.
 	 * For the moment, I assume yes since I can see some value for it.
