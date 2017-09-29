@@ -1427,8 +1427,7 @@ unsigned int read_num_possible_cpus(void)
 
 	fp = fopen(fcpu, "r");
 	if (!fp) {
-		printf("Failed to open %s: '%s'!\n", fcpu, strerror(errno));
-		exit(1);
+		return possible_cpus;
 	}
 
 	while (fgets(buff, sizeof(buff), fp)) {
