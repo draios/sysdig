@@ -211,6 +211,7 @@ function reset_summary(s)
 	end
 	s.newConnectionsO = create_category_basic(true, false)
 	s.newConnectionsI = create_category_basic(true, false)
+	s.newConnectionsSsh = create_category_basic(true, true)
 	s.newListeningPorts = create_category_basic(true, true)
 	s.fileDeletionsCount = create_category_basic(true, true)
 	s.newSymLinksCount = create_category_basic(true, true)
@@ -657,11 +658,17 @@ function on_event()
 					local sport = evt.field(fsport)
 					if sport ~= nil then
 						ssummary.newConnectionsO.tot = ssummary.newConnectionsO.tot + 1
+						if sport == 22 then
+							ssummary.newConnectionsSsh.tot = ssummary.newConnectionsSsh.tot + 1
+						end
 					end
 				elseif etype == 'accept' then
 					local sport = evt.field(fsport)
 					if sport ~= nil then
 						ssummary.newConnectionsI.tot = ssummary.newConnectionsI.tot + 1
+						if sport == 22 then
+							ssummary.newConnectionsSsh.tot = ssummary.newConnectionsSsh.tot + 1
+						end
 					end
 				elseif etype == 'unlink' or etype == 'unlinkat' then
 					ssummary.fileDeletionsCount.tot = ssummary.fileDeletionsCount.tot + 1
@@ -678,6 +685,9 @@ function on_event()
 				local sport = evt.field(fsport)
 				if sport ~= nil then
 					ssummary.newConnectionsO.tot = ssummary.newConnectionsO.tot + 1
+					if sport == 22 then
+						ssummary.newConnectionsSsh.tot = ssummary.newConnectionsSsh.tot + 1
+					end
 				end
 
 				if rawres ~= -115 then
@@ -690,6 +700,9 @@ function on_event()
 				local sport = evt.field(fsport)
 				if sport ~= nil then
 					ssummary.newConnectionsI.tot = ssummary.newConnectionsI.tot + 1
+					if sport == 22 then
+						ssummary.newConnectionsSsh.tot = ssummary.newConnectionsSsh.tot + 1
+					end
 				end
 			elseif etype == 'open' then
 				ssummary.openErrorCount.tot = ssummary.openErrorCount.tot + 1
@@ -1126,6 +1139,19 @@ function build_output(captureDuration)
 			targetViewFilter = 'evt.type=setns',
 			drillDownKey = 'NONE',
 			data = gsummary.setnsInvocations
+		}
+	end
+
+	if should_include(gsummary.newConnectionsSsh) then
+		res[#res+1] = {
+			name = 'New SSH Connections',
+			desc = 'Client or server connections',
+			category = 'security',
+			targetView = 'dig',
+			targetViewTitle = 'Connect events',
+			targetViewFilter = '(evt.type=accept or evt.type=connect) and evt.dir=< and fd.sport=22',
+			drillDownKey = '',
+			data = gsummary.newConnectionsSsh
 		}
 	end
 
