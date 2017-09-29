@@ -167,7 +167,7 @@ static unsigned int g_ppm_numdevs;
 static int g_ppm_major;
 bool g_tracers_enabled = false;
 bool g_simple_mode_enabled = false;
-static DEFINE_PER_CPU(long, g_n_tracepoint_hit) = 0;
+static DEFINE_PER_CPU(long, g_n_tracepoint_hit);
 static const struct file_operations g_ppm_fops = {
 	.open = ppm_open,
 	.release = ppm_release,
@@ -607,7 +607,9 @@ static int ppm_release(struct inode *inode, struct file *filp)
 			 */
 			g_simple_mode_enabled = false;
 
-			// Reset tracepoint counter
+			/*
+			 * Reset tracepoint counter
+			 */
 			for_each_possible_cpu(cpu) {
 				per_cpu(g_n_tracepoint_hit, cpu) = 0;
 			}
@@ -731,14 +733,15 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		ret = 0;
 cleanup_ioctl_procinfo:
-		vfree((void*)proclist_info);
+		vfree((void *)proclist_info);
 		goto cleanup_ioctl_nolock;
 	}
 
 	if (cmd == PPM_IOCTL_GET_N_TRACEPOINT_HIT) {
-		long __user* counters = (long __user*) arg;
+		long __user *counters = (long __user *) arg;
+
 		for_each_possible_cpu(cpu) {
-			if ( put_user(per_cpu(g_n_tracepoint_hit, cpu), &counters[cpu]) ) {
+			if (put_user(per_cpu(g_n_tracepoint_hit, cpu), &counters[cpu])) {
 				ret = -EINVAL;
 				goto cleanup_ioctl_nolock;
 			}
@@ -1810,7 +1813,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	 * kernel flag), we switch to the ia32 syscall table.
 	 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
-	if(in_ia32_syscall()) {
+	if (in_ia32_syscall()) {
 #else
 	if (unlikely(task_thread_info(current)->status & TS_COMPAT)) {
 #endif
@@ -1834,7 +1837,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		 * Simple mode event filtering
 		 */
 		if (g_simple_mode_enabled) {
-			if((drop_flags & UF_SIMPLEDRIVER_KEEP) == 0) {
+			if ((drop_flags & UF_SIMPLEDRIVER_KEEP) == 0) {
 				return;
 			}
 		}
@@ -1887,7 +1890,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	 * which is a very old syscall, not used anymore by most applications
 	 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
-	if(in_ia32_syscall() && id != __NR_execve) {
+	if (in_ia32_syscall() && id != __NR_execve) {
 #else
 	if (unlikely((task_thread_info(current)->status & TS_COMPAT) && id != __NR_execve)) {
 #endif
@@ -1911,7 +1914,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		 * Simple mode event filtering
 		 */
 		if (g_simple_mode_enabled) {
-			if((drop_flags & UF_SIMPLEDRIVER_KEEP) == 0) {
+			if ((drop_flags & UF_SIMPLEDRIVER_KEEP) == 0) {
 				return;
 			}
 		}
@@ -2020,6 +2023,7 @@ TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, 
 	 * in the output by looking for the USER_FAULT/SUPERVISOR_FAULT
 	 * flags
 	 */
+	this_cpu_inc(g_n_tracepoint_hit);
 
 	/* I still haven't decided if I'm interested in kernel threads or not.
 	 * For the moment, I assume yes since I can see some value for it.
@@ -2355,7 +2359,7 @@ int sysdig_init(void)
 	g_ppm_numdevs = num_cpus;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0)
 	g_ppm_devs = kmalloc(g_ppm_numdevs * sizeof(struct ppm_device), GFP_KERNEL);
-#else	
+#else
 	g_ppm_devs = kmalloc_array(g_ppm_numdevs, sizeof(struct ppm_device), GFP_KERNEL);
 #endif
 	if (!g_ppm_devs) {
