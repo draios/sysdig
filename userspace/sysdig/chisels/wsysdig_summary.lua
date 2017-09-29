@@ -105,6 +105,63 @@ local container_evt_types =
 	{'Network', 'Disconnected' }
 }
 
+local services =
+{
+	[80] = 'HTTP',
+	[8080] = 'HTTP',
+	[443] = 'HTTPs',
+	[22] = 'SSH',
+	[53] = 'DNS',
+	[6666] = 'Sysdig Agent',
+	[6667] = 'Sysdig Agent',
+	[6443] = 'Sysdig Agent',
+	[2379] = 'etcd',
+	[22379] = 'etcd',
+	[3306] = 'mysql',
+	[5432] = 'postgres',
+	[6379] = 'redis',
+	[5984] = 'couchdb',
+	[9880] = 'fluentd',
+	[8125] = 'statsd',
+	[4730] = 'gearman',
+	[50070] = 'hadoop',
+	[8020] = 'hadoop',
+	[9000] = 'hadoop',
+	[60000] = 'hbase',
+	[60010] = 'hbase',
+	[60020] = 'hbase',
+	[60030] = 'hbase',
+	[2181] = 'kafka',
+	[1978] = 'Kyoto Tycoon',
+	[11211] = 'memcached',
+	[27017] = 'mongodb',
+	[27018] = 'mongodb',
+	[27019] = 'mongodb',
+	[28017] = 'mongodb',
+	[5672] = 'rabbitmq',
+	[8087] = 'riak',
+	[8098] = 'riak',
+	[8983] = 'solr',
+	[5555] = 'voltdb'
+}
+
+--
+-- Populate the protocol table for a crappy application that use a ton of ports
+--
+for j=9200,9400,1 do services[j] = 'elasticsearch' end
+
+--
+-- Create the protocols table by inverting the services table
+--
+local protocols = {}
+for i, v in pairs(services) do
+	if protocols[v] == nil then
+		protocols[v] = {i}
+	else
+		protocols[v][#protocols[v] + 1] = i
+	end
+end
+
 function create_category_basic(excludable, noteworthy, aggregation)
 	aggregation = aggregation or 'sum'
 
@@ -167,19 +224,25 @@ function reset_summary(s)
 	s.over1msFileIoCount = create_category_basic(true, false)
 	s.over10msFileIoCount = create_category_basic(true, false)
 	s.over100msFileIoCount = create_category_basic(true, true)
-	s.appLogCount = create_category_basic(false, false)
+	s.appLogCount = create_category_basic(true, false)
 	s.appLogCountW = create_category_basic(true, false)
 	s.appLogCountE = create_category_basic(true, true)
-	s.sysLogCount = create_category_basic(false, false)
+	s.sysLogCount = create_category_basic(true, false)
 	s.sysLogCountW = create_category_basic(true, false)
 	s.sysLogCountE = create_category_basic(true, true)
-	s.dockerEvtsCount = create_category_basic(false, true)
+	s.dockerEvtsCount = create_category_basic(true, true)
 	for i, v in ipairs(container_evt_types) do
 		local ccat = 'dockerEvtsCount' .. v[1] .. " " .. v[2]
 		s[ccat] = create_category_basic(true, true)
 	end
 	s.sysReqCountHttp = create_category_basic(true, true)
 	s.sysErrCountHttp = create_category_basic(true, true)
+
+	-- creating the protocol categories involves two passes of the services table
+	for i, v in pairs(protocols) do
+		local ccat = 'protoBytes_' .. i
+		s[ccat] = create_category_basic(true, false)
+	end
 end
 
 function add_summaries(ts_s, ts_ns, dst, src)
@@ -295,6 +358,14 @@ function generate_io_stats(fdname, cnt_cat)
 	if cnt_cat.table[fdname] == nil then
 		cnt_cat.table[fdname] = 1
 		cnt_cat.tot = cnt_cat.tot + 1
+	end
+end
+
+function generate_proto_stats(sport, buflen)
+	local proto = services[sport]
+	if proto ~= nil then
+		local catname = 'protoBytes_' .. proto
+		ssummary[catname].tot = ssummary[catname].tot + buflen
 	end
 end
 
@@ -534,6 +605,11 @@ function on_event()
 							ssummary.netBytesR.tot = ssummary.netBytesR.tot + buflen
 						end
 
+						local sport = evt.field(fsport)
+						if sport ~= nil then
+							generate_proto_stats(sport, buflen)
+						end
+
 						local buf = evt.field(fbuffer)
 						if string.starts(buf, 'HTTP/') then
 							ssummary.sysReqCountHttp.tot = ssummary.sysReqCountHttp.tot + 1
@@ -712,26 +788,46 @@ function should_include(category)
 	end
 end
 
-function get_category_table()
-	return {
+function get_category_table(include_network_apps, include_security, include_performance, include_logs, include_infrastructure)
+	local res = {
 		{id='general', name='General'},
 		{id='file', name='File'},
 		{id='network', name='Network'},
-		{id='security', name='Security'},
-		{id='performance', name='Performance'},
-		{id='logs', name='Logs'},
-		{id='infrastructure', name='Infrastructure'}
 	}
+
+	if include_network_apps then
+		res[#res+1] = {id='napps', name='Network Apps'}
+	end
+	
+	if include_security then
+		res[#res+1] = {id='security', name='Security'}
+	end
+	
+	if include_performance then
+		res[#res+1] = {id='performance', name='Performance'}
+	end
+
+	if include_logs then
+		res[#res+1] = {id='logs', name='Logs'}
+	end
+
+	if include_infrastructure then
+		res[#res+1] = {id='infrastructure', name='Infrastructure'}
+	end
+
+	return res
 end
 
 function build_output(captureDuration)
 	local ctable = copytable(gsummary.containerCount.table)
-	local cat_table = get_category_table()
 	local res = {}
+	local has_cat_logs = false;
+	local has_cat_infrastructure = false;
+	local has_cat_netapps = false;
+	
 	local jtable = {
 		info={
 			IndexFormatVersion=index_format_version, 
-			categories=cat_table, 
 			containers=ctable,
 			durationNs=captureDuration,
 			startTs = sysdig.get_firstevent_ts(),
@@ -1171,6 +1267,7 @@ function build_output(captureDuration)
 			drillDownKey = 'NONE',
 			data = gsummary.appLogCount
 		}
+		has_cat_logs = true
 	end
 
 	if should_include(gsummary.appLogCountW) then
@@ -1184,6 +1281,7 @@ function build_output(captureDuration)
 			drillDownKey = 'NONE',
 			data = gsummary.appLogCountW
 		}
+		has_cat_logs = true
 	end
 
 	if should_include(gsummary.appLogCountE) then
@@ -1197,6 +1295,7 @@ function build_output(captureDuration)
 			drillDownKey = 'NONE',
 			data = gsummary.appLogCountE
 		}
+		has_cat_logs = true
 	end
 
 	if should_include(gsummary.sysLogCount) then
@@ -1209,6 +1308,7 @@ function build_output(captureDuration)
 			drillDownKey = 'NONE',
 			data = gsummary.sysLogCount
 		}
+		has_cat_logs = true
 	end
 
 	if should_include(gsummary.sysLogCountW) then
@@ -1222,6 +1322,7 @@ function build_output(captureDuration)
 			drillDownKey = 'NONE',
 			data = gsummary.sysLogCountW
 		}
+		has_cat_logs = true
 	end
 
 	if should_include(gsummary.sysLogCountE) then
@@ -1235,6 +1336,7 @@ function build_output(captureDuration)
 			drillDownKey = 'NONE',
 			data = gsummary.sysLogCountE
 		}
+		has_cat_logs = true
 	end
 
 	if should_include(gsummary.dockerEvtsCount) then
@@ -1246,6 +1348,7 @@ function build_output(captureDuration)
 			drillDownKey = 'NONE',
 			data = gsummary.dockerEvtsCount
 		}
+		has_cat_infrastructure = true
 	end
 
 	for i, v in ipairs(container_evt_types) do
@@ -1253,15 +1356,41 @@ function build_output(captureDuration)
 		if should_include(gsummary[ccat]) then
 			res[#res+1] = {
 				name = v[1] .. ' ' .. v[2] .. ' Events',
-				desc = 'Total number of events generated by docker activity',
+				desc = 'Total number of docker events of type ' .. v[1] .. ' ' .. v[2],
 				category = 'infrastructure',
 				targetView = 'docker_events',
 				targetViewFilter = 'evt.arg.name="' .. v[1] .. ' ' .. v[2] .. '"' ,
 				drillDownKey = 'NONE',
 				data = gsummary[ccat]
 			}
+			has_cat_infrastructure = true
 		end
 	end
+
+	for i, v in pairs(protocols) do
+		local ccat = 'protoBytes_' .. i
+		if should_include(gsummary[ccat]) then
+			local flt = ''
+			for ii, vv in pairs(v) do
+				flt = flt .. ('fd.sport=' .. vv .. ' or ')
+			end
+			flt = string.sub(flt, 0, #flt - 4)
+
+			res[#res+1] = {
+				name = i .. ' Bytes',
+				desc = 'Total number of network bytes generated by the ' .. i .. ' protocol',
+				category = 'napps',
+				targetView = 'connections',
+				targetViewFilter = flt,
+				drillDownKey = 'NONE',
+				data = gsummary[ccat]
+			}
+
+			has_cat_netapps = true
+		end
+	end
+
+	jtable.info.categories = get_category_table(has_cat_netapps, true, true, has_cat_logs, has_cat_infrastructure)
 
 	return jtable
 end
