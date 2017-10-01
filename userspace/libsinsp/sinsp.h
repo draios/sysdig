@@ -728,10 +728,7 @@ public:
 
 	  \note For a list of event types, refer to \ref etypes.
 	*/
-	int32_t set_eventmask(uint32_t event_types)
-	{
-		return scap_set_eventmask(m_h, event_types);
-	}
+	void set_eventmask(uint32_t event_types);
 
 	/*!
 	  \brief If this is an online capture, unset event_id.
@@ -742,10 +739,7 @@ public:
 
 	  \note For a list of event types, refer to \ref etypes.
 	*/
-	int32_t unset_eventmask(uint32_t event_id)
-	{
-		return scap_unset_eventmask(m_h, event_id);
-	}
+	void unset_eventmask(uint32_t event_id);
 
 	/*!
 	  \brief When reading events from a trace file, this function returns the
