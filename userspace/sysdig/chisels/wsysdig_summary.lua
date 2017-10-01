@@ -1103,19 +1103,6 @@ function build_output(captureDuration)
 		}
 	end
 
-	if should_include(gsummary.fileDeletionsCount) then
-		res[#res+1] = {
-			name = 'Deleted Files',
-			desc = 'Number of files that were deleted',
-			category = 'security',
-			targetView = 'dig',
-			targetViewTitle = 'File deletions',
-			targetViewFilter = 'evt.type=unlink or evt.type=unlinkat',
-			drillDownKey = 'NONE',
-			data = gsummary.fileDeletionsCount
-		}
-	end
-
 	if should_include(gsummary.sudoInvocations) then
 		res[#res+1] = {
 			name = 'Sudo Invocations',
@@ -1155,6 +1142,19 @@ function build_output(captureDuration)
 		}
 	end
 
+	if should_include(gsummary.fileDeletionsCount) then
+		res[#res+1] = {
+			name = 'Deleted Files',
+			desc = 'Number of files that were deleted',
+			category = 'security',
+			targetView = 'dig',
+			targetViewTitle = 'File deletions',
+			targetViewFilter = 'evt.type=unlink or evt.type=unlinkat',
+			drillDownKey = 'NONE',
+			data = gsummary.fileDeletionsCount
+		}
+	end
+	
 	if should_include(gsummary.sysReqCountHttp) then
 		res[#res+1] = {
 			name = 'HTTP Requests',
