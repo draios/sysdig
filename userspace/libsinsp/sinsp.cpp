@@ -1747,6 +1747,22 @@ sinsp_protodecoder* sinsp::require_protodecoder(string decoder_name)
 	return m_parser->add_protodecoder(decoder_name);
 }
 
+void sinsp::set_eventmask(uint32_t event_types)
+{
+	if (scap_set_eventmask(m_h, event_types) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+}
+
+void sinsp::unset_eventmask(uint32_t event_id)
+{
+	if (scap_unset_eventmask(m_h, event_id) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+}
+
 void sinsp::protodecoder_register_reset(sinsp_protodecoder* dec)
 {
 	m_decoders_reset_list.push_back(dec);
