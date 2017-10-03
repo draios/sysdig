@@ -519,8 +519,34 @@ void sinsp::set_simpledriver_mode()
 {
 	if(scap_enable_simpledriver_mode(m_h) != SCAP_SUCCESS)
 	{
-		throw sinsp_exception(scap_getlasterr(m_h));		
+		throw sinsp_exception(scap_getlasterr(m_h));
 	}
+}
+
+unsigned sinsp::m_num_possible_cpus = 0;
+
+unsigned sinsp::num_possible_cpus()
+{
+	if(m_num_possible_cpus == 0)
+	{
+		m_num_possible_cpus = read_num_possible_cpus();
+		if(m_num_possible_cpus == 0)
+		{
+			g_logger.log("Unable to read num_possible_cpus, falling back to 128", sinsp_logger::SEV_WARNING);
+			m_num_possible_cpus = 128;
+		}
+	}
+	return m_num_possible_cpus;
+}
+
+vector<long> sinsp::get_n_tracepoint_hit()
+{
+	vector<long> ret(num_possible_cpus(), 0);
+	if(scap_get_n_tracepoint_hit(m_h, ret.data()) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+	return ret;
 }
 
 std::string sinsp::get_error_desc(const std::string& msg)
