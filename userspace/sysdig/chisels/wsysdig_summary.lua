@@ -937,7 +937,7 @@ function build_output(captureDuration)
 			desc = 'Number of files that have been accessed during the capture',
 			category = 'file',
 			targetView = 'files',
-			targetViewFilter = 'evt.is_io_write=true',
+			targetViewFilter = 'evt.is_io_read=true',
 			drillDownKey = 'fd.directory',
 			targetViewSortingCol = 2,
 			data = gsummary.fileCount
