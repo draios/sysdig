@@ -162,6 +162,7 @@ static unsigned int g_ppm_numdevs;
 static int g_ppm_major;
 bool g_tracers_enabled = false;
 bool g_simple_mode_enabled = false;
+static DEFINE_PER_CPU(long, g_n_tracepoint_hit);
 static const struct file_operations g_ppm_fops = {
 	.open = ppm_open,
 	.release = ppm_release,
@@ -514,6 +515,7 @@ cleanup_open:
 
 static int ppm_release(struct inode *inode, struct file *filp)
 {
+	int cpu;
 	int ret;
 	struct ppm_ring_buffer_context *ring;
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
@@ -600,6 +602,13 @@ static int ppm_release(struct inode *inode, struct file *filp)
 			 * While we're here, disable simple mode if it's active
 			 */
 			g_simple_mode_enabled = false;
+
+			/*
+			 * Reset tracepoint counter
+			 */
+			for_each_possible_cpu(cpu) {
+				per_cpu(g_n_tracepoint_hit, cpu) = 0;
+			}
 		} else {
 			ASSERT(false);
 		}
@@ -615,9 +624,23 @@ cleanup_release:
 
 static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
+	int cpu;
 	int ret;
 	struct task_struct *consumer_id = filp->private_data;
 	struct ppm_consumer_t *consumer = NULL;
+
+	if (cmd == PPM_IOCTL_GET_N_TRACEPOINT_HIT) {
+		long __user *counters = (long __user *) arg;
+
+		for_each_possible_cpu(cpu) {
+			if (put_user(per_cpu(g_n_tracepoint_hit, cpu), &counters[cpu])) {
+				ret = -EINVAL;
+				goto cleanup_ioctl_nolock;
+			}
+		}
+		ret = 0;
+		goto cleanup_ioctl_nolock;
+	}
 
 	mutex_lock(&g_consumer_mutex);
 
@@ -1027,7 +1050,7 @@ err_page_fault_kernel:
 #endif
 cleanup_ioctl:
 	mutex_unlock(&g_consumer_mutex);
-
+cleanup_ioctl_nolock:
 	return ret;
 }
 
@@ -1722,6 +1745,19 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	return res;
 }
 
+static inline void g_n_tracepoint_hit_inc(void)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
+	this_cpu_inc(g_n_tracepoint_hit);
+#else
+	/* 
+	 * per_cpu_var removed with:
+	 * https://github.com/torvalds/linux/commit/dd17c8f72993f9461e9c19250e3f155d6d99df22
+	 */
+	this_cpu_inc(per_cpu_var(g_n_tracepoint_hit));
+#endif
+}
+
 TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 {
 	long table_index;
@@ -1733,7 +1769,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	 * XXX Decide what to do about this.
 	 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
-	if(in_ia32_syscall())
+	if (in_ia32_syscall())
 #else
 	if (unlikely(test_tsk_thread_flag(current, TIF_IA32)))
 #endif
@@ -1751,7 +1787,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		 * Simple mode event filtering
 		 */
 		if (g_simple_mode_enabled) {
-			if((drop_flags & UF_SIMPLEDRIVER_KEEP) == 0) {
+			if ((drop_flags & UF_SIMPLEDRIVER_KEEP) == 0) {
 				return;
 			}
 		}
@@ -1790,7 +1826,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	 * XXX Decide what to do about this.
 	 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
-	if(in_ia32_syscall())
+	if (in_ia32_syscall())
 #else
 	if (unlikely(test_tsk_thread_flag(current, TIF_IA32)))
 #endif
@@ -1798,6 +1834,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 #endif
 
 	id = syscall_get_nr(current, regs);
+	g_n_tracepoint_hit_inc();
 
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
@@ -1810,7 +1847,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		 * Simple mode event filtering
 		 */
 		if (g_simple_mode_enabled) {
-			if((drop_flags & UF_SIMPLEDRIVER_KEEP) == 0) {
+			if ((drop_flags & UF_SIMPLEDRIVER_KEEP) == 0) {
 				return;
 			}
 		}
@@ -1846,6 +1883,8 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 {
 	struct event_data_t event_data;
 
+	g_n_tracepoint_hit_inc();
+
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	if (unlikely(current->flags & PF_KTHREAD)) {
 #else
@@ -1879,6 +1918,8 @@ TRACEPOINT_PROBE(sched_switch_probe, bool preempt, struct task_struct *prev, str
 {
 	struct event_data_t event_data;
 
+	g_n_tracepoint_hit_inc();
+
 	event_data.category = PPMC_CONTEXT_SWITCH;
 	event_data.event_info.context_data.sched_prev = prev;
 	event_data.event_info.context_data.sched_next = next;
@@ -1891,6 +1932,9 @@ TRACEPOINT_PROBE(sched_switch_probe, bool preempt, struct task_struct *prev, str
 TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_sigaction *ka)
 {
 	struct event_data_t event_data;
+
+	g_n_tracepoint_hit_inc();
+
 	event_data.category = PPMC_SIGNAL;
 	event_data.event_info.signal_data.sig = sig;
 	event_data.event_info.signal_data.info = info;
@@ -1909,6 +1953,7 @@ TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, 
 	 * in the output by looking for the USER_FAULT/SUPERVISOR_FAULT
 	 * flags
 	 */
+	g_n_tracepoint_hit_inc();
 
 	/* I still haven't decided if I'm interested in kernel threads or not.
 	 * For the moment, I assume yes since I can see some value for it.
