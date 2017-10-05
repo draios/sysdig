@@ -36,7 +36,7 @@ function on_init()
 					"Process,Host_pid,Container_pid,container.name",
 					"evt.rawarg.res",
 					"Bytes",
-					"(fd.type=ipv4 or fd.type=ipv6) and evt.is_io=true",
+					"(fd.type=ipv4 or fd.type=ipv6) and (evt.is_io=true or evt.type=sendfile)",
 					"100",
 					"bytes")
 	else
@@ -45,7 +45,7 @@ function on_init()
 					"Process,PID",
 					"evt.rawarg.res",
 					"Bytes",
-					"(fd.type=ipv4 or fd.type=ipv6) and evt.is_io=true",
+					"(fd.type=ipv4 or fd.type=ipv6) and (evt.is_io=true or evt.type=sendfile)",
 					"100",
 					"bytes")
 	end
