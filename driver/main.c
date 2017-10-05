@@ -1799,8 +1799,11 @@ static inline void g_n_tracepoint_hit_inc(void)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
 	this_cpu_inc(g_n_tracepoint_hit);
-#else
-	/* 
+#elif defined(this_cpu_inc)
+	/* this_cpu_inc has been added with 2.6.33 but backported by RHEL/CentOS to 2.6.32
+	 * so just checking the existence of the symbol rather than matching the kernel version
+	 * https://github.com/torvalds/linux/commit/7340a0b15280c9d902c7dd0608b8e751b5a7c403
+	 * 
 	 * per_cpu_var removed with:
 	 * https://github.com/torvalds/linux/commit/dd17c8f72993f9461e9c19250e3f155d6d99df22
 	 */
