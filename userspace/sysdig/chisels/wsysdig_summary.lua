@@ -757,7 +757,7 @@ function on_interval(ts_s, ts_ns, delta)
 	if nintervals % percent_update_sample_period == 0 then
 		local progress = sysdig.get_read_progress()
 		if progress == 100 then
-			progress = 99
+			progress = 99.99
 		end
 		print('{"progress": ' .. progress .. ' },')
 		io.flush(stdout)
