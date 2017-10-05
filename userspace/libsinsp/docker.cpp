@@ -247,7 +247,15 @@ void docker::emit_event(Json::Value& root, std::string type, std::string status,
 	{
 		id.clear(); // ignore that (will be displayed in event description)
 	}
-	severity = it->second;
+	if(it == m_severity_map.end())
+	{
+		g_logger.log("No configured severity for docker event \"" + status + "\". Assuming SEV_EVT_INFORMATION", sinsp_logger::SEV_WARNING);
+		severity = sinsp_logger::SEV_EVT_INFORMATION;
+	}
+	else
+	{
+		severity = it->second;
+	}
 	g_logger.log("Docker EVENT: severity for " + status + '=' + std::to_string(severity - sinsp_logger::SEV_EVT_MIN), sinsp_logger::SEV_DEBUG);
 	uint64_t epoch_time_s = static_cast<uint64_t>(~0);
 	Json::Value t = root["time"];
