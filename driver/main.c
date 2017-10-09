@@ -1950,6 +1950,8 @@ TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_s
 #ifdef CAPTURE_PAGE_FAULTS
 TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code)
 {
+	struct event_data_t event_data;
+
 	/* We register both tracepoints under the same probe and
 	 * sysdig event since there's little reason to expose this
 	 * complexity to the sysdig user. The distinction can still be made
@@ -1961,7 +1963,6 @@ TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, 
 	/* I still haven't decided if I'm interested in kernel threads or not.
 	 * For the moment, I assume yes since I can see some value for it.
 	 */
-	struct event_data_t event_data;
 
 	event_data.category = PPMC_PAGE_FAULT;
 	event_data.event_info.fault_data.address = address;
