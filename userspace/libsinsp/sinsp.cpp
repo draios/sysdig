@@ -63,7 +63,6 @@ sinsp::sinsp() :
 	m_dumper = NULL;
 	m_is_dumping = false;
 	m_metaevt = NULL;
-	m_skipped_evt = NULL;
 	m_meinfo.m_piscapevt = NULL;
 	m_network_interfaces = NULL;
 	m_parser = new sinsp_parser(this);
@@ -98,6 +97,7 @@ sinsp::sinsp() :
 	m_input_fd = 0;
 	m_isdebug_enabled = false;
 	m_isfatfile_enabled = false;
+	m_isinternal_events_enabled = false;
 	m_hostname_and_port_resolution_enabled = false;
 	m_output_time_flag = 'h';
 	m_max_evt_output_len = 0;
@@ -107,6 +107,8 @@ sinsp::sinsp() :
 	m_meta_evt_buf = new char[SP_EVT_BUF_SIZE];
 	m_meta_evt.m_pevt = (scap_evt*) m_meta_evt_buf;
 	m_meta_evt_pending = false;
+	m_meta_skipped_evt_res = 0;
+	m_meta_skipped_evt = NULL;
 	m_next_flush_time_ns = 0;
 	m_last_procrequest_tod = 0;
 	m_get_procs_cpu_from_driver = false;
@@ -227,6 +229,19 @@ void sinsp::enable_tracers_capture()
 		}
 
 		m_is_tracers_capture_enabled = true;
+	}
+#endif
+}
+
+void sinsp::enable_page_faults()
+{
+#if defined(HAS_CAPTURE)
+	if(is_live() && m_h != NULL)
+	{
+		if(scap_enable_page_faults(m_h) != SCAP_SUCCESS)
+		{
+			throw sinsp_exception("error enabling page_faults");
+		}
 	}
 #endif
 }
@@ -435,7 +450,7 @@ void sinsp::open_nodriver()
 {
 	char error[SCAP_LASTERR_SIZE];
 
-	g_logger.log("starting nodriver sinsp");
+	g_logger.log("starting optimized sinsp");
 
 	//
 	// Reset the thread manager
@@ -498,6 +513,40 @@ int64_t sinsp::get_file_size(const std::string& fname, char *error)
 	if(errdesc.empty()) errdesc = get_error_desc(err_str);
 	strncpy(error, errdesc.c_str(), errdesc.size() > SCAP_LASTERR_SIZE ? SCAP_LASTERR_SIZE : errdesc.size());
 	return -1;
+}
+
+void sinsp::set_simpledriver_mode()
+{
+	if(scap_enable_simpledriver_mode(m_h) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+}
+
+unsigned sinsp::m_num_possible_cpus = 0;
+
+unsigned sinsp::num_possible_cpus()
+{
+	if(m_num_possible_cpus == 0)
+	{
+		m_num_possible_cpus = read_num_possible_cpus();
+		if(m_num_possible_cpus == 0)
+		{
+			g_logger.log("Unable to read num_possible_cpus, falling back to 128", sinsp_logger::SEV_WARNING);
+			m_num_possible_cpus = 128;
+		}
+	}
+	return m_num_possible_cpus;
+}
+
+vector<long> sinsp::get_n_tracepoint_hit()
+{
+	vector<long> ret(num_possible_cpus(), 0);
+	if(scap_get_n_tracepoint_hit(m_h, ret.data()) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+	return ret;
 }
 
 std::string sinsp::get_error_desc(const std::string& msg)
@@ -846,12 +895,6 @@ void sinsp::add_meta_event(sinsp_evt *metaevt)
 	m_metaevt = metaevt;
 }
 
-void sinsp::add_meta_event_and_repeat(sinsp_evt *metaevt)
-{
-	m_metaevt = metaevt;
-	m_skipped_evt = &m_evt;
-}
-
 void sinsp::add_meta_event_callback(meta_event_callback cback, void* data)
 {
 	m_meta_event_callback = cback;
@@ -938,21 +981,18 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	{
 		res = SCAP_SUCCESS;
 		evt = m_metaevt;
-
-		if(m_skipped_evt)
-		{
-			m_metaevt = m_skipped_evt;
-			m_skipped_evt = NULL;
-		}
-		else
-		{
-			m_metaevt = NULL;
-		}
+		m_metaevt = NULL;
 
 		if(m_meta_event_callback != NULL)
 		{
 			m_meta_event_callback(this, m_meta_event_callback_data);
 		}
+	}
+	else if (m_meta_evt_pending && m_meta_skipped_evt != NULL)
+	{
+		res = m_meta_skipped_evt_res;
+		evt = m_meta_skipped_evt;
+		m_meta_evt_pending = false;
 	}
 	else
 	{
@@ -1017,7 +1057,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 	uint64_t ts = evt->get_ts();
 
-	if(m_firstevent_ts == 0)
+	if(m_firstevent_ts == 0 && evt->m_pevt->type != PPME_CONTAINER_JSON_E)
 	{
 		m_firstevent_ts = ts;
 	}
@@ -1140,6 +1180,10 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	sd = should_drop(evt, &m_isdropping, &sw);
 #endif
 
+	// No meta event is pending unless it's set in process_event
+	// below.
+	m_meta_evt_pending = false;
+
 	//
 	// Run the state engine
 	//
@@ -1158,20 +1202,29 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	m_parser->process_event(evt);
 #endif
 
+	// A side-effect of parsing this event may have generated a
+	// meta event. For example, parsing an execve or clone into a
+	// new cgroup may have created a container event.
+	//
+	// We want that meta event to be returned/written to files
+	// *before* the original system event. So save the system
+	// event so it can be returned/written in the next call to
+	// sinsp::next() and make the meta event the current event.
+
+	if(m_meta_evt_pending)
+	{
+		m_meta_evt.m_evtnum = evt->m_evtnum;
+		m_meta_skipped_evt = evt;
+		m_meta_skipped_evt_res = res;
+		res = SCAP_SUCCESS;
+		evt = &m_meta_evt;
+	}
+
 	//
 	// If needed, dump the event to file
 	//
 	if(NULL != m_dumper)
 	{
-		if(m_meta_evt_pending)
-		{
-			m_meta_evt_pending = false;
-			res = scap_dump(m_h, m_dumper, m_meta_evt.m_pevt, m_meta_evt.m_cpuid, 0);
-			if(SCAP_SUCCESS != res)
-			{
-				throw sinsp_exception(scap_getlasterr(m_h));
-			}
-		}
 
 #if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
 		scap_dump_flags dflags;
@@ -1217,8 +1270,15 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 #if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
 	if(evt->m_filtered_out)
 	{
-		*puevt = evt;
-		return SCAP_TIMEOUT;
+		ppm_event_category cat = evt->get_info_category();
+
+		// Skip the event, unless we're in internal events
+		// mode and the category of this event is internal.
+		if(!(m_isinternal_events_enabled && (cat & EC_INTERNAL)))
+		{
+			*puevt = evt;
+			return SCAP_TIMEOUT;
+		}
 	}
 #endif
 
@@ -1273,8 +1333,14 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 uint64_t sinsp::get_num_events()
 {
-	ASSERT(m_h);
-	return scap_event_get_num(m_h);
+	if(m_h)
+	{
+		return scap_event_get_num(m_h);
+	}
+	else
+	{
+		return 0;
+	}
 }
 
 sinsp_threadinfo* sinsp::find_thread_test(int64_t tid, bool lookup_only)
@@ -1687,6 +1753,11 @@ void sinsp::set_fatfile_dump_mode(bool enable_fatfile)
 	m_isfatfile_enabled = enable_fatfile;
 }
 
+void sinsp::set_internal_events_mode(bool enable_internal_events)
+{
+	m_isinternal_events_enabled = enable_internal_events;
+}
+
 void sinsp::set_hostname_and_port_resolution_mode(bool enable)
 {
 	m_hostname_and_port_resolution_enabled = enable;
@@ -1700,6 +1771,22 @@ void sinsp::set_max_evt_output_len(uint32_t len)
 sinsp_protodecoder* sinsp::require_protodecoder(string decoder_name)
 {
 	return m_parser->add_protodecoder(decoder_name);
+}
+
+void sinsp::set_eventmask(uint32_t event_types)
+{
+	if (scap_set_eventmask(m_h, event_types) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+}
+
+void sinsp::unset_eventmask(uint32_t event_id)
+{
+	if (scap_unset_eventmask(m_h, event_id) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
 }
 
 void sinsp::protodecoder_register_reset(sinsp_protodecoder* dec)
@@ -1918,7 +2005,7 @@ void sinsp::collect_k8s()
 					g_logger.log("K8s updating state ...", sinsp_logger::SEV_DEBUG);
 					uint64_t delta = sinsp_utils::get_current_time_ns();
 					m_k8s_client->watch();
-					m_parser->schedule_k8s_events(&m_meta_evt);
+					m_parser->schedule_k8s_events();
 					delta = sinsp_utils::get_current_time_ns() - delta;
 					g_logger.format(sinsp_logger::SEV_DEBUG, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
 				}
@@ -2111,7 +2198,7 @@ void sinsp::update_mesos_state()
 			uint64_t delta = sinsp_utils::get_current_time_ns();
 			if(m_parser && get_mesos_data())
 			{
-				m_parser->schedule_mesos_events(&m_meta_evt);
+				m_parser->schedule_mesos_events();
 				delta = sinsp_utils::get_current_time_ns() - delta;
 				g_logger.format(sinsp_logger::SEV_DEBUG, "Updating Mesos state took %" PRIu64 " ms", delta / 1000000LL);
 			}

@@ -240,12 +240,13 @@ int8_t ctext::str_search_single(ctext_search *to_search_in, ctext_search *new_po
 	size_t found;
 	string haystack;
 	ctext_search res, *out;
-	string query = to_search_in->_query; 
 
 	if(!to_search_in)
 	{
 		return -1;
 	}
+
+	string query = to_search_in->_query;
 
 	if(!new_pos_out) 
 	{

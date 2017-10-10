@@ -44,7 +44,7 @@ class sinsp_protodecoder;
 #define CHAR_FD_TIMERFD			't'
 #define CHAR_FD_NETLINK			'n'
 
-/** @defgroup state State management 
+/** @defgroup state State management
  * A collection of classes to query process and FD state.
  *  @{
  */
@@ -71,14 +71,14 @@ public:
   manipulate FDs and retrieve FD information.
 
   \note As a library user, you won't need to construct thread objects. Rather,
-   you get them by calling \ref sinsp_evt::get_fd_info or 
+   you get them by calling \ref sinsp_evt::get_fd_info or
    \ref sinsp_threadinfo::get_fd.
 */template<class T>
 class SINSP_PUBLIC sinsp_fdinfo
 {
 public:
 	sinsp_fdinfo();
-	sinsp_fdinfo (const sinsp_fdinfo &other) 
+	sinsp_fdinfo (const sinsp_fdinfo &other)
 	{
 		copy(other, false);
 	}
@@ -108,12 +108,12 @@ public:
 	inline void copy(const sinsp_fdinfo &other, bool free_state)
 	{
 		m_type = other.m_type;
-		m_openflags = other.m_openflags;	
+		m_openflags = other.m_openflags;
 		m_sockinfo = other.m_sockinfo;
 		m_name = other.m_name;
 		m_flags = other.m_flags;
 		m_ino = other.m_ino;
-		
+
 		if(free_state)
 		{
 			if(m_callbaks != NULL)
@@ -219,7 +219,7 @@ public:
 	*/
 	bool is_file()
 	{
-		return m_type == SCAP_FD_FILE;
+		return m_type == SCAP_FD_FILE || m_type == SCAP_FD_FILE_V2;
 	}
 
 	/*!
@@ -287,7 +287,7 @@ public:
 
 	scap_fd_type m_type; ///< The fd type, e.g. file, directory, IPv4 socket...
 	uint32_t m_openflags; ///< If this FD is a file, the flags that were used when opening it. See the PPM_O_* definitions in driver/ppm_events_public.h.
-	
+
 	/*!
 	  \brief Socket-specific state.
 	  This is uninitialized for non-socket FDs.
@@ -333,7 +333,7 @@ private:
 
 	inline bool is_transaction()
 	{
-		return (m_usrstate != NULL); 
+		return (m_usrstate != NULL);
 	}
 
 	inline void set_role_server()
@@ -346,8 +346,8 @@ private:
 		m_flags |= FLAGS_ROLE_CLIENT;
 	}
 
-	bool set_net_role_by_guessing(sinsp* inspector, 
-		sinsp_threadinfo* ptinfo, 
+	bool set_net_role_by_guessing(sinsp* inspector,
+		sinsp_threadinfo* ptinfo,
 		sinsp_fdinfo_t* pfdinfo,
 		bool incoming);
 
@@ -363,7 +363,7 @@ private:
 
 	inline bool is_socketpipe()
 	{
-		return (m_flags & FLAGS_IS_SOCKET_PIPE) == FLAGS_IS_SOCKET_PIPE; 
+		return (m_flags & FLAGS_IS_SOCKET_PIPE) == FLAGS_IS_SOCKET_PIPE;
 	}
 
 	inline bool has_no_role()
@@ -395,17 +395,17 @@ private:
 
 	inline bool is_inpipeline_r()
 	{
-		return (m_flags & FLAGS_IN_BASELINE_R) == FLAGS_IN_BASELINE_R; 
+		return (m_flags & FLAGS_IN_BASELINE_R) == FLAGS_IN_BASELINE_R;
 	}
 
 	inline bool is_inpipeline_rw()
 	{
-		return (m_flags & FLAGS_IN_BASELINE_RW) == FLAGS_IN_BASELINE_RW; 
+		return (m_flags & FLAGS_IN_BASELINE_RW) == FLAGS_IN_BASELINE_RW;
 	}
 
 	inline bool is_inpipeline_other()
 	{
-		return (m_flags & FLAGS_IN_BASELINE_OTHER) == FLAGS_IN_BASELINE_OTHER; 
+		return (m_flags & FLAGS_IN_BASELINE_OTHER) == FLAGS_IN_BASELINE_OTHER;
 	}
 
 	T* m_usrstate;
@@ -425,7 +425,7 @@ private:
 	friend class sinsp_filter_check_event;
 	friend class lua_cbacks;
 	friend class sinsp_proto_detector;
-	friend class sisnp_baseliner;
+	friend class sinsp_baseliner;
 };
 
 /*@}*/
@@ -475,7 +475,7 @@ public:
 			return &(fdit->second);
 		}
 	}
-	
+
 	// If the key is already present, overwrite the existing value and return false.
 	sinsp_fdinfo_t* add(int64_t fd, sinsp_fdinfo_t* fdinfo);
 	// If the key is present, returns true, otherwise returns false.

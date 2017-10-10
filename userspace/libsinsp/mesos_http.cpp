@@ -7,7 +7,6 @@
 #include "mesos_http.h"
 #include "curl/curl.h"
 #include "curl/easy.h"
-#include "curl/curlbuild.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "sinsp_curl.h"

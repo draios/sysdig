@@ -799,7 +799,6 @@ void k8s_event_t::post_process(k8s_state_t& state)
 bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 {
 #ifndef _WIN32
-
 	time_t      epoch_time_evt_s = 0;
 	time_t      epoch_time_now_s = get_epoch_utc_seconds_now();
 	std::string event_name;
@@ -905,26 +904,17 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 				}
 			}*/
 		}
-		else if(epoch_time_now_s < (epoch_time_evt_s + 120))
-		{
-			if(m_postponed_events.find(component_uid) == m_postponed_events.end())
-			{
-				m_postponed_events[component_uid] = item;
-			}
-			m_force_delete = false;
-			return false; // return early, postponed events will be processed later
-		}
-		else // postponed events are handled directly after 120 seconds
+		else
 		{
 			g_logger.log("K8s event: cannot obtain component (component with UID [" + component_uid +
-						 "] not found), trying to build scope directly from event ...", sinsp_logger::SEV_WARNING);
+						 "] not found), trying to build scope directly from event ...", sinsp_logger::SEV_TRACE);
 			make_scope(obj, scope);
 		}
 	}
 	else
 	{
 		g_logger.log("K8s event: cannot obtain component UID, trying to build scope directly from event ...",
-					 sinsp_logger::SEV_WARNING);
+					 sinsp_logger::SEV_TRACE);
 		make_scope(obj, scope);
 	}
 

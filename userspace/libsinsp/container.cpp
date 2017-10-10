@@ -119,6 +119,10 @@ bool sinsp_container_manager::remove_inactive_containers()
 		{
 			if(containers_in_use.find(it->first) == containers_in_use.end())
 			{
+				if(m_inspector->m_parser->m_fd_listener)
+				{
+					m_inspector->m_parser->m_fd_listener->on_remove_container(m_containers[it->first]);
+				}
 				m_containers.erase(it++);
 			}
 			else
@@ -356,50 +360,64 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		//
 		// systemd rkt
 		//
+		// rkt cgroups
+		// 1. /system.slice/k8s_d1efb75a-ad42-458e-af65-2b378f42173f.service/system.slice/redis.service
+		// 2. /machine.slice/machine-rkt\x2dc508ad4c\x2d7fa4\x2d4513\x2d9d53\x2d007628003805.scope/system.slice/redis.service
+		static const string COREOS_PODID_VAR = "container_uuid=";
+		static const string SYSTEMD_UUID_ARG = "--uuid=";
+		static const string SERVICE_SUFFIX = ".service";
+		if(cgroup.rfind(SERVICE_SUFFIX) == cgroup.size() - SERVICE_SUFFIX.size())
 		{
-			vector<string> tokens = sinsp_split(cgroup, '/');
-
-			if (tokens.size() == 5)
+			// check if there is a parent with pod uuid var
+			sinsp_threadinfo::visitor_func_t visitor = [&rkt_podid](sinsp_threadinfo* ptinfo)
 			{
-				if (tokens[2].substr(0, 11) == "machine-rkt")
+				for(const auto& env_var : ptinfo->get_env())
 				{
-					string::size_type dot_pos = tokens[2].find('.');
-					if (dot_pos == string::npos)
-						continue;
-					string rkt_podid = tokens[2].substr(sizeof("machine-rkt") + 2, dot_pos - sizeof("machine-rkt") - 2);
-					replace_in_place(rkt_podid, "\\x2d", "-");
-					dot_pos = tokens[4].find('.');
-					if (dot_pos == string::npos)
-						continue;
-					string rkt_appname = tokens[4].substr(0, dot_pos);
-					if (rkt_appname.substr(0, 7) == "systemd" || rkt_appname.substr(0, 8) == "/machine")
-						continue;
+					auto container_uuid_pos = env_var.find(COREOS_PODID_VAR);
+					if(container_uuid_pos == 0)
+					{
+						rkt_podid = env_var.substr(COREOS_PODID_VAR.size());
+						return false;
+					}
+				}
+				for(const auto& arg : ptinfo->m_args)
+				{
+					if(arg.find(SYSTEMD_UUID_ARG) != string::npos)
+					{
+						rkt_podid = arg.substr(SYSTEMD_UUID_ARG.size());
+						return false;
+					}
+				}
+				return true;
+			};
+			tinfo->traverse_parent_state(visitor);
 
+			if(!rkt_podid.empty())
+			{
+				auto last_slash = cgroup.find_last_of("/");
+				rkt_appname = cgroup.substr(last_slash + 1, cgroup.size() - last_slash - SERVICE_SUFFIX.size() - 1);
+				
+				char image_manifest_path[SCAP_MAX_PATH_SIZE];
+				snprintf(image_manifest_path, sizeof(image_manifest_path), "%s/var/lib/rkt/pods/run/%s/appsinfo/%s/manifest", scap_get_host_root(), rkt_podid.c_str(), rkt_appname.c_str());
+
+				// First lookup if the container exists in our table, otherwise only if we are live check if it has
+				// an entry in /var/lib/rkt. In capture mode only the former will be used.
+				// In live mode former will be used only if we already hit that container
+				bool is_rkt_pod_id_valid = m_containers.find(rkt_podid + ":" + rkt_appname) != m_containers.end(); // if it's already on our table
+#ifdef HAS_CAPTURE
+				if(!is_rkt_pod_id_valid && query_os_for_missing_info)
+				{
+					is_rkt_pod_id_valid = (access(image_manifest_path, F_OK) == 0);
+				}
+#endif			
+				if(is_rkt_pod_id_valid)
+				{
 					container_info.m_type = CT_RKT;
 					container_info.m_id = rkt_podid + ":" + rkt_appname;
 					container_info.m_name = rkt_appname;
 					valid_id = true;
 					break;
 				}
-				else if (tokens[2].substr(0, 4) == "k8s_")
-				{
-					string::size_type dot_pos = tokens[2].find('.');
-					if (dot_pos == string::npos)
-						continue;
-					string rkt_podid = tokens[2].substr(sizeof("k8s_") - 1, dot_pos - sizeof("k8s_") + 1);
-					dot_pos = tokens[4].find('.');
-					if (dot_pos == string::npos)
-						continue;
-					string rkt_appname = tokens[4].substr(0, dot_pos);
-					if (rkt_appname.substr(0, 7) == "systemd" || rkt_appname.substr(0, 8) == "/machine")
-						continue;
-
-					container_info.m_type = CT_RKT;
-					container_info.m_id = rkt_podid + ":" + rkt_appname;
-					container_info.m_name = rkt_appname;
-					valid_id = true;
-					break;
-                                }
 			}
 		}
 	}
@@ -410,6 +428,8 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	{
 		// Try parsing from process root,
 		// Strings used to detect rkt stage1-cores pods
+		// TODO: detecting stage1-coreos rkt pods in this way is deprecated
+		// we can remove it in the future
 		static const string COREOS_PREFIX = "/opt/stage2/";
 		static const string COREOS_APP_SUFFIX = "/rootfs";
 		static const string COREOS_PODID_VAR = "container_uuid=";
@@ -425,7 +445,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 
 				sinsp_threadinfo::visitor_func_t visitor = [&rkt_podid, &container_info, &rkt_appname, &valid_id] (sinsp_threadinfo *ptinfo)
 				{
-					for(const auto& env_var : ptinfo->m_env)
+					for(const auto& env_var : ptinfo->get_env())
 					{
 						auto container_uuid_pos = env_var.find(COREOS_PODID_VAR);
 						if(container_uuid_pos == 0)
@@ -519,7 +539,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 					ASSERT(false);
 			}
 
-			m_containers.insert(std::make_pair(container_info.m_id, container_info));
+			add_container(container_info);
 			if(container_to_sinsp_event(container_to_json(container_info), &m_inspector->m_meta_evt))
 			{
 				m_inspector->m_meta_evt_pending = true;
@@ -559,7 +579,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["Mounts"] = mounts;
 
 	char addrbuff[100];
-	uint32_t iph = ntohl(container_info.m_container_ip);
+	uint32_t iph = htonl(container_info.m_container_ip);
 	inet_ntop(AF_INET, &iph, addrbuff, sizeof(addrbuff));
 	container["ip"] = addrbuff;
 
@@ -584,6 +604,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 
 	evt->m_cpuid = 0;
 	evt->m_evtnum = 0;
+	evt->m_inspector = m_inspector;
 
 	scap_evt* scapevt = evt->m_pevt;
 
@@ -637,7 +658,7 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	char buf[256];
 	string json;
 	ssize_t res;
-	while((res = read(sock, buf, sizeof(buf))) != 0)
+	while((res = read(sock, buf, sizeof(buf) - 1)) != 0)
 	{
 		if(res == -1 || json.size() > MAX_JSON_SIZE_B)
 		{
@@ -689,11 +710,29 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	const Json::Value& net_obj = root["NetworkSettings"];
 
 	string ip = net_obj["IPAddress"].asString();
-	if(inet_pton(AF_INET, ip.c_str(), &container->m_container_ip) == -1)
+	if(ip.empty())
 	{
-		ASSERT(false);
+		const Json::Value& hconfig_obj = root["HostConfig"];
+		string net_mode = hconfig_obj["NetworkMode"].asString();
+		if(strncmp(net_mode.c_str(), "container:", strlen("container:")) == 0)
+		{
+			sinsp_container_info pcnt;
+			pcnt.m_id = net_mode.substr(net_mode.find(":") + 1);
+			if(!get_container(pcnt.m_id, &pcnt))
+			{
+				parse_docker(&pcnt);
+			}
+			container->m_container_ip = pcnt.m_container_ip;
+		}
 	}
-	container->m_container_ip = ntohl(container->m_container_ip);
+	else
+	{
+		if(inet_pton(AF_INET, ip.c_str(), &container->m_container_ip) == -1)
+		{
+			ASSERT(false);
+		}
+		container->m_container_ip = ntohl(container->m_container_ip);
+	}
 
 	vector<string> ports = net_obj["Ports"].getMemberNames();
 	for(vector<string>::const_iterator it = ports.begin(); it != ports.end(); ++it)

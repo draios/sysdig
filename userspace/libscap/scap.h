@@ -83,6 +83,7 @@ typedef struct scap_stats
 {
 	uint64_t n_evts; ///< Total number of events that were received by the driver.
 	uint64_t n_drops; ///< Number of dropped events.
+	uint64_t n_drops_buffer; ///< Number of dropped events caused by full buffer.
 	uint64_t n_preemptions; ///< Number of preemptions.
 }scap_stats;
 
@@ -123,7 +124,8 @@ typedef enum scap_fd_type
 	SCAP_FD_EVENTPOLL = 12,
 	SCAP_FD_INOTIFY = 13,
 	SCAP_FD_TIMERFD = 14,
-	SCAP_FD_NETLINK = 15
+	SCAP_FD_NETLINK = 15,
+	SCAP_FD_FILE_V2 = 16
 }scap_fd_type;
 
 /*!
@@ -183,6 +185,11 @@ typedef struct scap_fdinfo
 		  	uint64_t destination; ///< Destination socket endpoint
 			char fname[SCAP_MAX_PATH_SIZE]; ///< Name associated to this unix socket
 		} unix_socket_info; ///< Information specific to unix sockets
+		struct
+		{
+			uint32_t open_flags; ///< Flags associated with the file
+			char fname[SCAP_MAX_PATH_SIZE]; ///< Name associated to this file
+		} regularinfo; ///< Information specific to regular files
 		char fname[SCAP_MAX_PATH_SIZE];  ///< The name for file system FDs
 	}info;
 	UT_hash_handle hh; ///< makes this structure hashable
@@ -197,13 +204,14 @@ typedef struct scap_threadinfo
 	uint64_t pid; ///< The id of the process containing this thread. In single thread processes, this is equal to tid.
 	uint64_t ptid; ///< The id of the thread that created this thread.
 	uint64_t sid; ///< The session id of the process containing this thread.
-	char comm[SCAP_MAX_PATH_SIZE]; ///< Command name (e.g. "top")
-	char exe[SCAP_MAX_PATH_SIZE]; ///< argv[0] (e.g. "sshd: user@pts/4")
-	char args[SCAP_MAX_ARGS_SIZE]; ///< Command line arguments (e.g. "-d1")
+	char comm[SCAP_MAX_PATH_SIZE+1]; ///< Command name (e.g. "top")
+	char exe[SCAP_MAX_PATH_SIZE+1]; ///< argv[0] (e.g. "sshd: user@pts/4")
+	char exepath[SCAP_MAX_PATH_SIZE+1]; ///< full executable path
+	char args[SCAP_MAX_ARGS_SIZE+1]; ///< Command line arguments (e.g. "-d1")
 	uint16_t args_len; ///< Command line arguments length
-	char env[SCAP_MAX_ENV_SIZE]; ///< Environment
+	char env[SCAP_MAX_ENV_SIZE+1]; ///< Environment
 	uint16_t env_len; ///< Environment length
-	char cwd[SCAP_MAX_PATH_SIZE]; ///< The current working directory
+	char cwd[SCAP_MAX_PATH_SIZE+1]; ///< The current working directory
 	int64_t fdlimit; ///< The maximum number of files this thread is allowed to open
 	uint32_t flags; ///< the process flags.
 	uint32_t uid; ///< user id
@@ -217,7 +225,7 @@ typedef struct scap_threadinfo
 	int64_t vpid;
 	char cgroups[SCAP_MAX_CGROUPS_SIZE];
 	uint16_t cgroups_len;
-	char root[SCAP_MAX_PATH_SIZE];
+	char root[SCAP_MAX_PATH_SIZE+1];
 	int filtered_out; ///< nonzero if this entry should not be saved to file
 	scap_fdinfo* fdlist; ///< The fd table for this process
 	uint64_t clone_ts;
@@ -911,6 +919,7 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 // like getpid() but returns the global PID even inside a container
 int32_t scap_getpid_global(scap_t* handle, int64_t* pid);
 
+struct scap_threadinfo *scap_proc_alloc(scap_t* handle);
 void scap_proc_free(scap_t* handle, struct scap_threadinfo* procinfo);
 int32_t scap_stop_dropping_mode(scap_t* handle);
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);
@@ -923,6 +932,7 @@ void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh);
 uint64_t scap_ftell(scap_t *handle);
 void scap_fseek(scap_t *handle, uint64_t off);
 int32_t scap_enable_tracers_capture(scap_t* handle);
+int32_t scap_enable_page_faults(scap_t *handle);
 uint64_t scap_get_unexpected_block_readsize(scap_t* handle);
 int32_t scap_proc_add(scap_t* handle, uint64_t tid, scap_threadinfo* tinfo);
 int32_t scap_fd_add(scap_threadinfo* tinfo, uint64_t fd, scap_fdinfo* fdinfo);
@@ -933,6 +943,8 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 int32_t scap_write_proclist_header(scap_t *handle, scap_dumper_t *d, uint32_t totlen);
 int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t totlen);
 int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo);
+int32_t scap_enable_simpledriver_mode(scap_t* handle);
+int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret);
 
 #ifdef __cplusplus
 }
