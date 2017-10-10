@@ -1406,7 +1406,6 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		{
 			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 		}
-	}
 
 		sinsp_threadinfo& tinfo = it->second;
 
@@ -1542,7 +1541,4 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 
 		scap_proc_free(m_inspector->m_h, sctinfo);
 	}
-
-	free_dump_fdinfos(fdinfos_to_free);
-	delete fdinfos_to_free;
 }
