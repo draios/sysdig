@@ -166,6 +166,25 @@ bool sinsp_network_interfaces::is_ipv4addr_in_subnet(uint32_t addr)
 	return false;
 }
 
+bool sinsp_network_interfaces::is_sip_in_local_machine(sinsp_evt* evt)
+{
+	switch(PPME_MAKE_ENTER(evt->get_type()))
+	{
+		case PPME_SOCKET_CONNECT_E:
+		case PPME_SOCKET_SENDTO_E:
+			return true;
+		case PPME_SOCKET_ACCEPT_E:
+		case PPME_SOCKET_ACCEPT4_E:
+		case PPME_SOCKET_ACCEPT_5_E:
+		case PPME_SOCKET_ACCEPT4_5_E:
+		case PPME_SOCKET_LISTEN_E:
+		case PPME_SOCKET_RECVFROM_E:
+			return false;
+		default:
+			return false;
+	}
+}
+
 bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr, sinsp_threadinfo* tinfo)
 {
 	if(!tinfo->m_container_id.empty())

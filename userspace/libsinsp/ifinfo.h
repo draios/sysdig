@@ -72,6 +72,7 @@ public:
 	void update_fd(sinsp_fdinfo_t *fd);
 	bool is_ipv4addr_in_subnet(uint32_t addr);
 	bool is_ipv4addr_in_local_machine(uint32_t addr, sinsp_threadinfo* tinfo);
+	bool is_sip_in_local_machine(sinsp_evt *evt);
 	vector<sinsp_ipv4_ifinfo>* get_ipv4_list();
 	vector<sinsp_ipv6_ifinfo>* get_ipv6_list();
 	inline void clear();
