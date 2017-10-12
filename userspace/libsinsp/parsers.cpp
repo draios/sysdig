@@ -2371,6 +2371,11 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 	evt->m_fdinfo->set_role_client();
 
 	//
+	// Mark this fd as a connected socket
+	//
+	evt->m_fdinfo->set_socket_connected();
+
+	//
 	// Call the protocol decoder callbacks associated to this event
 	//
 	vector<sinsp_protodecoder*>::iterator it;
@@ -2497,6 +2502,11 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 	// Mark this fd as a server
 	//
 	fdi.set_role_server();
+
+	//
+	// Mark this fd as a connected socket
+	//
+	fdi.set_socket_connected();
 
 	//
 	// Add the entry to the table

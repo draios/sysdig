@@ -222,6 +222,10 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 		newfdi->m_sockinfo.m_ipv4info.m_fields.m_sport = fdi->info.ipv4info.sport;
 		newfdi->m_sockinfo.m_ipv4info.m_fields.m_dport = fdi->info.ipv4info.dport;
 		newfdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto = fdi->info.ipv4info.l4proto;
+		if(fdi->info.ipv4info.l4proto == SCAP_L4_TCP)
+		{
+			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_SOCKET_CONNECTED;
+		}
 		if(m_inspector->m_network_interfaces)
 		{
 			m_inspector->m_network_interfaces->update_fd(newfdi);
@@ -255,6 +259,10 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 			newfdi->m_sockinfo.m_ipv4info.m_fields.m_sport = fdi->info.ipv6info.sport;
 			newfdi->m_sockinfo.m_ipv4info.m_fields.m_dport = fdi->info.ipv6info.dport;
 			newfdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto = fdi->info.ipv6info.l4proto;
+			if(fdi->info.ipv6info.l4proto == SCAP_L4_TCP)
+			{
+				newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_SOCKET_CONNECTED;
+			}
 			if(m_inspector->m_network_interfaces)
 			{
 				m_inspector->m_network_interfaces->update_fd(newfdi);
@@ -268,6 +276,10 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 			newfdi->m_sockinfo.m_ipv6info.m_fields.m_sport = fdi->info.ipv6info.sport;
 			newfdi->m_sockinfo.m_ipv6info.m_fields.m_dport = fdi->info.ipv6info.dport;
 			newfdi->m_sockinfo.m_ipv6info.m_fields.m_l4proto = fdi->info.ipv6info.l4proto;
+			if(fdi->info.ipv6info.l4proto == SCAP_L4_TCP)
+			{
+				newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_SOCKET_CONNECTED;
+			}
 			newfdi->m_name = ipv6tuple_to_string(&newfdi->m_sockinfo.m_ipv6info, m_inspector->m_hostname_and_port_resolution_enabled);
 		}
 		break;
