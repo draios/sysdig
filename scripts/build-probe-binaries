@@ -191,7 +191,7 @@ function coreos_build_new {
 	sudo mkdir /tmp/loop || true
 	sudo mount /dev/mapper/$LOOPDEV /tmp/loop
 
-	rm config*
+	rm config* || true
 	cp /tmp/loop/usr/boot/config-* .
 	cp config-* config_orig
 	cp config_orig config
