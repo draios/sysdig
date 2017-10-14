@@ -576,7 +576,9 @@ if [ -z "$KERNEL_TYPE" ]; then
 	#
 	# Upload modules
 	#
-	# aws s3 sync ./output/ s3://download.draios.com/$REPOSITORY_NAME/sysdig-probe-binaries/ --acl public-read
+	if [ $PROBE_NAME = "falco-probe" ]; then
+		aws s3 sync ./output/ s3://download.draios.com/$REPOSITORY_NAME/sysdig-probe-binaries/ --acl public-read
+	fi
 
 	echo "Success."
 
