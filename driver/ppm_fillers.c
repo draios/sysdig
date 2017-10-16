@@ -30,6 +30,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/file.h>
 #include <linux/futex.h>
 #include <linux/fs_struct.h>
+#include <linux/pid.h>
 #include <linux/ptrace.h>
 #include <linux/version.h>
 #include <linux/module.h>
@@ -300,8 +301,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
 	[PPME_SYSCALL_EXECVE_18_E] = {f_sys_execve_e},
 	[PPME_SYSCALL_EXECVE_18_X] = {f_proc_startupdate},
-	[PPME_SYSCALL_CLONE_20_E] = {f_sys_empty},
-	[PPME_SYSCALL_CLONE_20_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_CLONE_21_E] = {f_sys_empty},
+	[PPME_SYSCALL_CLONE_21_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
 	[PPME_SYSCALL_BRK_4_X] = {f_sys_brk_munmap_mmap_x},
 	[PPME_SYSCALL_MMAP_E] = {f_sys_mmap_e},
@@ -322,10 +323,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SYMLINK_X] = {PPM_AUTOFILL, 3, APT_REG, {{AF_ID_RETVAL}, {0}, {1} } },
 	[PPME_SYSCALL_SYMLINKAT_E] = {f_sys_empty},
 	[PPME_SYSCALL_SYMLINKAT_X] = {f_sys_symlinkat_x},
-	[PPME_SYSCALL_FORK_20_E] = {f_sys_empty},
-	[PPME_SYSCALL_FORK_20_X] = {f_proc_startupdate},
-	[PPME_SYSCALL_VFORK_20_E] = {f_sys_empty},
-	[PPME_SYSCALL_VFORK_20_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_FORK_21_E] = {f_sys_empty},
+	[PPME_SYSCALL_FORK_21_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_VFORK_21_E] = {f_sys_empty},
+	[PPME_SYSCALL_VFORK_21_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_SENDFILE_E] = {f_sys_sendfile_e},
 	[PPME_SYSCALL_SENDFILE_X] = {f_sys_sendfile_x},
 	[PPME_SYSCALL_QUOTACTL_E] = {f_sys_quotactl_e},
@@ -1421,9 +1422,9 @@ cgroups_error:
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	if (args->event_type == PPME_SYSCALL_CLONE_20_X ||
-		args->event_type == PPME_SYSCALL_FORK_20_X ||
-		args->event_type == PPME_SYSCALL_VFORK_20_X) {
+	if (args->event_type == PPME_SYSCALL_CLONE_21_X ||
+		args->event_type == PPME_SYSCALL_FORK_21_X ||
+		args->event_type == PPME_SYSCALL_VFORK_21_X) {
 		/*
 		 * clone-only parameters
 		 */
@@ -1441,7 +1442,7 @@ cgroups_error:
 		/*
 		 * flags
 		 */
-		if (args->event_type == PPME_SYSCALL_CLONE_20_X)
+		if (args->event_type == PPME_SYSCALL_CLONE_21_X)
 			syscall_get_arguments(current, args->regs, 0, 1, &val);
 		else
 			val = 0;
@@ -1485,6 +1486,26 @@ cgroups_error:
 		/* Not relevant in old kernels */
 		res = val_to_ring(args, 0, 0, false, 0);
 #endif
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+
+#
+		/*
+		 *  find the global id of the new task
+		 */
+		if (retval > 0) {
+			struct pid *global_pid;
+			pid_t global_pid_nr;
+
+			rcu_read_lock();
+			global_pid = find_get_pid(retval);
+			rcu_read_unlock();
+
+			global_pid_nr = pid_nr(global_pid);
+			res = val_to_ring(args, global_pid_nr, 0, false, 0);
+		} else {
+			res = val_to_ring(args, 0, 0, false, 0);
+		}
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 

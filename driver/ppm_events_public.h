@@ -30,7 +30,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 /*
  * Limits
  */
-#define PPM_MAX_EVENT_PARAMS 20	/* Max number of parameters an event can have */
+#define PPM_MAX_EVENT_PARAMS 25	/* Max number of parameters an event can have */
 #define PPM_MAX_PATH_SIZE 256	/* Max size that an event parameter can have in the circular buffer, in bytes */
 #define PPM_MAX_NAME_LEN 32
 
@@ -824,7 +824,13 @@ enum ppm_event_type {
 	PPME_SYSCALL_EXECVE_18_X = 289,
 	PPME_PAGE_FAULT_E = 290,
 	PPME_PAGE_FAULT_X = 291,
-	PPM_EVENT_MAX = 292
+	PPME_SYSCALL_CLONE_21_E = 292,
+	PPME_SYSCALL_CLONE_21_X = 293,
+	PPME_SYSCALL_FORK_21_E = 294,
+	PPME_SYSCALL_FORK_21_X = 295,
+	PPME_SYSCALL_VFORK_21_E = 296,
+	PPME_SYSCALL_VFORK_21_X = 297,
+	PPM_EVENT_MAX = 298
 };
 /*@}*/
 
