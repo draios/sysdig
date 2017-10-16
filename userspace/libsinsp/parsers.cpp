@@ -916,7 +916,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	childtid = *(int64_t *)parinfo->m_val;
 
-	switch(evt->get_type())
+	switch(etype)
 	{
 	case PPME_SYSCALL_CLONE_11_X:
 		parinfo = evt->get_param(8);
@@ -1021,7 +1021,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			// This happens if
 			//  - clone() returns in the child before than in the parent.
 			//  - we dropped the clone exit event in the parent.
-			//  - clone was executed in a container
+			//  - clone was executed in a container (old kernel driver)
 			// In both cases, we create the thread entry here
 			//
 			// XXX: inverted_clone flag should be useless for containers
@@ -1093,14 +1093,29 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	{
 		has_called_clone = true;
 
-		//
-		// We are in the father. If the father is running in a container,
-		// don't create the child process but wait until we see child, because
-		// the father just sees the internal tid of the child
-		//
 		if(in_container)
 		{
-			return;
+			switch(etype)
+			{
+			case PPME_SYSCALL_CLONE_21_X:
+			case PPME_SYSCALL_FORK_21_X:
+			case PPME_SYSCALL_VFORK_21_X:
+				//
+				// Keep going, because we can extract the tid of the child seen
+				// from the init namespace, directly from the event.
+				//
+				parinfo = evt->get_param(20);
+				ASSERT(parinfo->m_len == sizeof(int64_t));
+				childtid = *(int64_t *)parinfo->m_val;
+				break;
+			default:
+				//
+				// If the father is running in a container, don't create the child
+				// process but wait until we see child, because the father just
+				// sees the internal tid of the child
+				//
+				return;
+			}
 		}
 	}
 
