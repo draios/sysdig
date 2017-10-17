@@ -330,10 +330,13 @@ void docker::emit_event(Json::Value& root, std::string type, std::string status,
 			{
 				status.append("; ID: ").append(id);
 			}
-			const Json::Value& name = attrib["name"];
-			if(!name.isNull() && name.isConvertibleTo(Json::stringValue))
+			for(const auto attribute_name : {"name", "exitCode", "signal"})
 			{
-				status.append("; Name: ").append(name.asString());
+				const Json::Value& name = attrib[attribute_name];
+				if(!name.isNull() && name.isConvertibleTo(Json::stringValue))
+				{
+					status.append("; ").append(attribute_name).append(": ").append(name.asString());
+				}
 			}
 		}
 	}
