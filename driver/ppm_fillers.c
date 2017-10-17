@@ -1489,10 +1489,10 @@ cgroups_error:
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
-#
 		/*
 		 *  find the global id of the new task
 		 */
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		if (retval > 0) {
 			struct pid *global_pid;
 			pid_t global_pid_nr;
@@ -1506,6 +1506,10 @@ cgroups_error:
 		} else {
 			res = val_to_ring(args, 0, 0, false, 0);
 		}
+#else
+		/* Not relevant in old kernels */
+		res = val_to_ring(args, 0, 0, false, 0);
+#endif
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
