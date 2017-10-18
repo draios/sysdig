@@ -24,6 +24,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp.h"
 #include "sinsp_int.h"
 
+#ifdef HAS_ANALYZER
+#include "analyzer.h"
+#endif
+
 #ifdef HAS_FILTERING
 #include "filter.h"
 #include "filterchecks.h"
@@ -144,6 +148,8 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.lnet", "local IP network."},
 	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.rnet", "remote IP network."},
 	{PT_BOOL, EPF_NONE, PF_NA, "fd.is_connected", "'true' if the socket of this event is a connected socket."},
+	{PT_CHARBUF, EPF_TABLE_ONLY | EPF_REQUIRES_ARGUMENT, PF_NA, "fd.lattr", "matches the specified kubernetes/container/host/agent/cloudProvider attribute of the local peer. E.g. 'fd.lattr.kubernetes.pod.name'."},
+	{PT_CHARBUF, EPF_TABLE_ONLY | EPF_REQUIRES_ARGUMENT, PF_NA, "fd.rattr", "matches the specified kubernetes/container/host/agent/cloudProvider attribute of the remote peer. E.g. 'fd.rattr.agent.tag.foo'."},
 
 };
 
@@ -161,6 +167,60 @@ sinsp_filter_check_fd::sinsp_filter_check_fd()
 sinsp_filter_check* sinsp_filter_check_fd::allocate_new()
 {
 	return (sinsp_filter_check*) new sinsp_filter_check_fd();
+}
+
+int32_t sinsp_filter_check_fd::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
+{
+	string val(str);
+
+	if(string(val, 0, sizeof("fd.lattr") - 1) == "fd.lattr")
+	{
+		m_field_id = TYPE_FDLATTR;
+		m_field = &m_info.m_fields[m_field_id];
+
+		return extract_arg("fd.lattr", val);
+	}
+	else if(string(val, 0, sizeof("fd.rattr") - 1) == "fd.rattr")
+	{
+		m_field_id = TYPE_FDRATTR;
+		m_field = &m_info.m_fields[m_field_id];
+
+		return extract_arg("fd.rattr", val);
+	}
+	else
+	{
+		return sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
+	}
+}
+
+int32_t sinsp_filter_check_fd::extract_arg(const string &fldname, const string& val)
+{
+	int32_t parsed_len = 0;
+
+	if(val[fldname.size()] == '.')
+	{
+		size_t endpos;
+		for(endpos = fldname.size() + 1; endpos < val.length(); ++endpos)
+		{
+			if(!isalnum(val[endpos])
+				&& val[endpos] != '/'
+				&& val[endpos] != '_'
+				&& val[endpos] != '-'
+				&& val[endpos] != '.')
+			{
+				break;
+			}
+		}
+
+		parsed_len = (uint32_t)endpos;
+		m_argname = val.substr(fldname.size() + 1, endpos - fldname.size() - 1);
+	}
+	else
+	{
+		throw sinsp_exception("filter syntax error: " + val);
+	}
+
+	return parsed_len;
 }
 
 bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
@@ -1236,6 +1296,100 @@ bool sinsp_filter_check_fd::compare_port(sinsp_evt *evt)
 	return false;
 }
 
+bool sinsp_filter_check_fd::compare_attr(sinsp_evt *evt)
+{
+#ifdef HAS_ANALYZER
+
+	if(m_cmpop != CO_EQ && m_cmpop != CO_IN) {
+		throw sinsp_exception("filter error: unsupported lattr/rattr comparison operator");
+	}
+
+	if(!extract_fd(evt) || m_fdinfo == NULL)
+	{
+		return false;
+	}
+
+	uint32_t lo_addr;
+	inet_pton(AF_INET, "127.0.0.1", &lo_addr);
+
+	if(m_argname == "container.is_local")
+	{
+		if (evt->get_thread_info()->m_container_id.empty())
+		{
+			return false;
+		}
+		else
+		{
+			return m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip == m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip ||
+				m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip == lo_addr ||
+				m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip == lo_addr;
+		}
+	}
+
+	uint32_t naddr;
+	if(m_inspector->get_ifaddr_list()->is_sip_in_local_machine(evt))
+	{
+		if(m_field_id == TYPE_FDLATTR)
+		{
+			naddr = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip;
+		}
+		else
+		{
+			naddr = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip;
+		}
+	}
+	else
+	{
+		if(m_field_id == TYPE_FDLATTR)
+		{
+			naddr = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip;
+		}
+		else
+		{
+			naddr = m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip;
+		}
+	}
+
+	char buf[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, &naddr, buf, INET_ADDRSTRLEN);
+	string addr(buf);
+
+	if(m_argname == "host.is_local")
+	{
+		if(naddr == lo_addr)
+		{
+			return true;
+		}
+		else
+		{
+			vector<sinsp_ipv4_ifinfo>* v4_interfaces = m_inspector->get_ifaddr_list()->get_ipv4_list();
+			vector<sinsp_ipv4_ifinfo>::iterator it;
+			for(it = v4_interfaces->begin(); it != v4_interfaces->end(); it++)
+			{
+				char buf[INET_ADDRSTRLEN];
+				inet_ntop(AF_INET, &it->m_addr, buf, sizeof(buf));
+				if(it->m_addr == naddr)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+	}
+
+	set<string> possible_values;
+	for(auto i : m_val_storages_members)
+	{
+		possible_values.insert(string((const char *)i.first));
+	}
+
+	return m_inspector->m_analyzer->infra_state() && m_inspector->m_analyzer->infra_state()->match_from_addr(addr, m_argname, possible_values);
+#else
+	return false;
+#endif
+}
+
 bool sinsp_filter_check_fd::extract_fd(sinsp_evt *evt)
 {
 	ppm_event_flags eflags = evt->get_info_flags();
@@ -1287,6 +1441,10 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 	else if(m_field_id == TYPE_NET)
 	{
 		return compare_net(evt);
+	}
+	else if(m_field_id == TYPE_FDLATTR || m_field_id == TYPE_FDRATTR)
+	{
+		return compare_attr(evt);
 	}
 
 	//

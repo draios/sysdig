@@ -282,6 +282,8 @@ public:
 		TYPE_LNET = 30,
 		TYPE_RNET = 31,
 		TYPE_IS_CONNECTED = 32,
+		TYPE_FDLATTR = 33,
+		TYPE_FDRATTR = 34
 	};
 
 	enum fd_type
@@ -302,16 +304,20 @@ public:
 
 	sinsp_filter_check_fd();
 	sinsp_filter_check* allocate_new();
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
+	int32_t extract_arg(const string& fldname, const string& val);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 	bool compare_ip(sinsp_evt *evt);
 	bool compare_net(sinsp_evt *evt);
 	bool compare_port(sinsp_evt *evt);
+	bool compare_attr(sinsp_evt *evt);
 	bool compare(sinsp_evt *evt);
 
 	sinsp_threadinfo* m_tinfo;
 	sinsp_fdinfo_t* m_fdinfo;
 	fd_type m_fd_type;
 	string m_tstr;
+	string m_argname;
 	uint8_t m_tcstr[2];
 	uint32_t m_tbool;
 

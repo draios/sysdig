@@ -44,7 +44,7 @@ typedef enum filtercheck_field_flags
 typedef struct filtercheck_field_info
 {
 	ppm_param_type m_type; ///< Field type.
-	filtercheck_field_flags m_flags;  ///< Field flags.
+	uint32_t m_flags;  ///< Field flags.
 	ppm_print_format m_print_format;  ///< If this is a numeric field, this flag specifies if it should be rendered as octal, decimal or hex.
 	char m_name[64];  ///< Field name.
 	char m_description[1024];  ///< Field description.
