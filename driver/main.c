@@ -253,6 +253,18 @@ static int register_sysenter(void)
 }
 #endif
 
+#ifdef CAPTURE_CONTEXT_SWITCHES
+static int register_sched_switch(void)
+{
+	return compat_register_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
+}
+#else
+static int register_sched_switch(void)
+{
+	return 0;
+}
+#endif
+
 static void compat_unregister_trace(void *func, const char *probename, struct tracepoint *tp)
 {
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0))
@@ -283,6 +295,17 @@ static void unregister_sysenter(void)
 static void unregister_sysenter(void)
 {
 	unregister_trace_syscall_enter(syscall_enter_probe);
+}
+#endif
+
+#ifdef CAPTURE_CONTEXT_SWITCHES
+static void unregister_sched_switch(void)
+{
+	compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
+}
+#else
+static void unregister_sched_switch(void)
+{
 }
 #endif
 
@@ -515,13 +538,11 @@ static int ppm_open(struct inode *inode, struct file *filp)
 			goto err_sched_procexit;
 		}
 
-#ifdef CAPTURE_CONTEXT_SWITCHES
-		ret = compat_register_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
+		ret = register_sched_switch();
 		if (ret) {
 			pr_err("can't create the sched_switch tracepoint\n");
 			goto err_sched_switch;
 		}
-#endif
 
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 		ret = compat_register_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
@@ -537,10 +558,8 @@ static int ppm_open(struct inode *inode, struct file *filp)
 
 	goto cleanup_open;
 
-#ifdef CAPTURE_SIGNAL_DELIVERIES
 err_signal_deliver:
-	compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
-#endif
+	unregister_sched_switch();
 err_sched_switch:
 	compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
 err_sched_procexit:
@@ -613,10 +632,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 			unregister_sysexit();
 			unregister_sysenter();
 			compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
-
-#ifdef CAPTURE_CONTEXT_SWITCHES
-			compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
-#endif
+			unregister_sched_switch();
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 			compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
 #endif
