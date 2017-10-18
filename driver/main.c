@@ -229,6 +229,18 @@ static int compat_register_trace(void *func, const char *probename, struct trace
 #endif
 }
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+static int register_sysexit(void)
+{
+	return compat_register_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
+}
+#else
+static int register_sysexit(void)
+{
+	return register_trace_syscall_exit(syscall_exit_probe);
+}
+#endif
+
 static void compat_unregister_trace(void *func, const char *probename, struct tracepoint *tp)
 {
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0))
@@ -237,6 +249,18 @@ static void compat_unregister_trace(void *func, const char *probename, struct tr
 	tracepoint_probe_unregister(tp, func, NULL);
 #endif
 }
+
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+static void unregister_sysexit(void)
+{
+	compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
+}
+#else
+static void unregister_sysexit(void)
+{
+	unregister_trace_syscall_exit(syscall_exit_probe);
+}
+#endif
 
 static struct ppm_consumer_t *ppm_find_consumer(struct task_struct *consumer_id)
 {
@@ -449,11 +473,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		 * Enable the tracepoints
 		 */
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-		ret = compat_register_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
-#else
-		ret = register_trace_syscall_exit(syscall_exit_probe);
-#endif
+		ret = register_sysexit();
 		if (ret) {
 			pr_err("can't create the sys_exit tracepoint\n");
 			goto err_sys_exit;
@@ -510,11 +530,7 @@ err_sched_procexit:
 	unregister_trace_syscall_enter(syscall_enter_probe);
 #endif
 err_sys_enter:
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-	compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
-#else
-	unregister_trace_syscall_exit(syscall_exit_probe);
-#endif
+	unregister_sysexit();
 err_sys_exit:
 	ring->open = false;
 err_init_ring_buffer:
@@ -578,11 +594,10 @@ static int ppm_release(struct inode *inode, struct file *filp)
 		if (g_tracepoint_registered) {
 			pr_info("no more consumers, stopping capture\n");
 
+			unregister_sysexit();
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-			compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
 			compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
 #else
-			unregister_trace_syscall_exit(syscall_exit_probe);
 			unregister_trace_syscall_enter(syscall_enter_probe);
 #endif
 			compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
