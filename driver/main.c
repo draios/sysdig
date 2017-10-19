@@ -113,6 +113,12 @@ struct event_data_t {
 	} event_info;
 };
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0))
+typedef cputime_t sysdig_time_t;
+#else
+typedef u64 sysdig_time_t;
+#endif
+
 /*
  * FORWARD DECLARATIONS
  */
@@ -449,6 +455,30 @@ static inline int get_ring_no(struct file *filp)
 static inline int get_ring_no(struct file *filp)
 {
 	return iminor(filp->f_dentry->d_inode);
+}
+#endif
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
+static inline void adjust_cputime(struct task_struct *p, sysdig_time_t *ut, sysdig_time_t *st)
+{
+	task_cputime_adjusted(p, ut, st);
+}
+#else
+static inline void adjust_cputime(struct task_struct *p, sysdig_time_t *ut, sysdig_time_t *st)
+{
+	ppm_task_cputime_adjusted(p, ut, st);
+}
+#endif
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0))
+static inline u64 time_to_clock_t(sysdig_time_t t)
+{
+	return cputime_to_clock_t(t);
+}
+#else
+static inline u64 time_to_clock_t(sysdig_time_t t)
+{
+	return nsec_to_clock_t(t);
 }
 #endif
 
@@ -792,25 +822,13 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 				task_lock(p);
 #endif
 				if (nentries < pli.max_entries) {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0))
-					cputime_t utime, stime;
-#else
-					u64 utime, stime;
-#endif
+					sysdig_time_t utime, stime;
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
-					task_cputime_adjusted(t, &utime, &stime);
-#else
-					ppm_task_cputime_adjusted(t, &utime, &stime);
-#endif
+					adjust_cputime(t, &utime, &stime);
+
 					proclist_info->entries[nentries].pid = t->pid;
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0))
-					proclist_info->entries[nentries].utime = cputime_to_clock_t(utime);
-					proclist_info->entries[nentries].stime = cputime_to_clock_t(stime);
-#else
-					proclist_info->entries[nentries].utime = nsec_to_clock_t(utime);
-					proclist_info->entries[nentries].stime = nsec_to_clock_t(stime);
-#endif
+					proclist_info->entries[nentries].utime = time_to_clock_t(utime);
+					proclist_info->entries[nentries].stime = time_to_clock_t(stime);
 				}
 
 				nentries++;
