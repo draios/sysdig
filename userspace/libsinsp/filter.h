@@ -19,6 +19,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include <set>
+#include <vector>
 
 #ifdef HAS_FILTERING
 
@@ -198,6 +199,12 @@ public:
 	// Match all filters against the provided event.
 	bool run(sinsp_evt *evt, uint16_t ruleset = 0);
 
+	// Populate the provided vector, indexed by event type, of the
+	// event types associated with the given ruleset id. For
+	// example, evttypes[10] = true would mean that this ruleset
+	// relates to event type 10.
+	void evttypes_for_ruleset(std::vector<bool> &evttypes, uint16_t ruleset);
+
 private:
 
 	class filter_wrapper {
@@ -206,7 +213,9 @@ private:
 		virtual ~filter_wrapper();
 
 		sinsp_filter *filter;
-		std::set<uint32_t> evttypes;
+
+		// Indexes from event type to enabled/disabled.
+		std::vector<bool> evttypes;
 
 		// Indexes from ruleset to enabled/disabled. Unlike
 		// m_filter_by_evttype, this is managed as a vector as we're
