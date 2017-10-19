@@ -1339,6 +1339,20 @@ static const unsigned char compat_nas[21] = {
 
 
 #ifdef _HAS_SOCKETCALL
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0)
+#define MAX_NET_SYS SYS_SENDMMSG
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
+#define MAX_NET_SYS SYS_RECVMMSG
+#else
+#define MAX_NET_SYS SYS_ACCEPT4
+#endif
+
+static bool is_generic_sys(int id)
+{
+	return id < SYS_SOCKET || id > MAX_NET_SYS;
+}
+
 static enum ppm_event_type parse_socketcall(struct event_filler_arguments *filler_args, struct pt_regs *regs)
 {
 	unsigned long __user args[2];
@@ -1349,14 +1363,7 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 	socketcall_id = args[0];
 	scargs = (unsigned long __user *)args[1];
 
-	if (unlikely(socketcall_id < SYS_SOCKET ||
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0)
-		socketcall_id > SYS_SENDMMSG))
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
-		socketcall_id > SYS_RECVMMSG))
-#else
-		socketcall_id > SYS_ACCEPT4))
-#endif
+	if (unlikely(is_generic_sys(socketcall_id)))
 		return PPME_GENERIC_E;
 
 #ifdef CONFIG_COMPAT
