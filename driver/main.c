@@ -1903,6 +1903,18 @@ static inline void g_n_tracepoint_hit_inc(void)
 #endif
 }
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+static inline bool is_kernel_task(const struct task_struct *task)
+{
+	return current->flags & PF_KTHREAD;
+}
+#else
+static inline bool is_kernel_task(const struct task_struct *task)
+{
+	return current->flags & PF_BORROWED_MM;
+}
+#endif
+
 TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 {
 	long table_index;
@@ -2063,16 +2075,11 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 
 	g_n_tracepoint_hit_inc();
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-	if (unlikely(current->flags & PF_KTHREAD)) {
-#else
-	if (unlikely(current->flags & PF_BORROWED_MM)) {
-#endif
-		/*
-		 * We are not interested in kernel threads
-		 */
+	/*
+	 * We are not interested in kernel threads
+	 */
+	if (unlikely(is_kernel_task(current)))
 		return;
-	}
 
 	event_data.category = PPMC_CONTEXT_SWITCH;
 	event_data.event_info.context_data.sched_prev = p;
