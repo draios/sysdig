@@ -225,6 +225,35 @@ do {								\
 		pr_info(fmt, ##__VA_ARGS__);			\
 } while (0)
 
+
+#ifdef for_each_process_thread
+#define iterate_threads_begin(p,t) for_each_process_thread(p, t)
+#define iterate_threads_end(p, t)
+#else
+#ifdef for_each_process_all
+#define iterate_threads_begin(p,t) for_each_process_all { \
+	        t = p; \
+	        do { \
+	                task_lock(p);
+#else
+#define iterate_threads_begin(p,t) for_each_process(p) { \
+	        t = p; \
+	        do { \
+	                task_lock(p);
+#endif
+
+#ifdef while_each_thread_all
+#define iterate_threads_end(p, t) task_unlock(p); \
+	        } while_each_thread_all(p, t); \
+	}
+#else
+#define iterate_threads_end(p, t) task_unlock(p); \
+	        } while_each_thread(p, t); \
+	}
+#endif
+#endif
+
+
 /* compat tracepoint functions */
 static int compat_register_trace(void *func, const char *probename, struct tracepoint *tp)
 {
@@ -809,18 +838,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		rcu_read_lock();
 
-#ifdef for_each_process_thread
-		for_each_process_thread(p, t) {
-#else
-#ifdef for_each_process_all
-		for_each_process_all(p) {
-#else
-		for_each_process(p) {
-#endif
-			t = p;
-			do {
-				task_lock(p);
-#endif
+		iterate_threads_begin(p, t) {
 				if (nentries < pli.max_entries) {
 					sysdig_time_t utime, stime;
 
@@ -832,18 +850,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 				}
 
 				nentries++;
-#ifdef for_each_process_thread
-		}
-#else
-				task_unlock(p);
-#ifdef while_each_thread_all
-			} while_each_thread_all(p, t);
-		}
-#else
-			} while_each_thread(p, t);
-		}
-#endif
-#endif
+		} iterate_threads_end(p, t);
 
 		rcu_read_unlock();
 
