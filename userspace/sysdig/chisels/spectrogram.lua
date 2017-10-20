@@ -103,17 +103,18 @@ function on_event()
 end
 
 function mkcol(n)
-	local col = math.floor(math.log10(n * refresh_per_sec + 1) / math.log10(1.6))
+	local col = math.log10(n * refresh_per_sec + 1) / math.log10(1.6)
 
 	if col < 1 then
 		col = 1
-	end
-
-	if col > #colpalette then
+	elseif col > #colpalette then
 		col = #colpalette
 	end
 
-	return colpalette[col]
+	local low_col = math.floor(col)
+	local high_col = math.ceil(col)
+
+	return colpalette[low_col], colpalette[high_col] 
 end
 
 -- Periodic timeout callback
@@ -122,13 +123,18 @@ function on_interval(ts_s, ts_ns, delta)
 
 	for x = 1, w do
 		local fr = frequencies[x]
+		local fg, bg
+
 		if fr == nil or fr == 0 then
+			terminal.setfgcol(0)
 			terminal.setbgcol(0)
 		else
-			terminal.setbgcol(mkcol(fr))
+			fg, bg = mkcol(fr)
+			terminal.setfgcol(fg)
+			terminal.setbgcol(bg)
 		end
 
-		io.write(" ")
+		io.write("▒")
 	end
 
 	io.write(terminal.reset .. "\n")
