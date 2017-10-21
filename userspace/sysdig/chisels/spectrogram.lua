@@ -116,7 +116,7 @@ function mkcol(n)
 	local low_col = math.floor(col)
 	local high_col = math.ceil(col)
 	local delta = col - low_col
-	local ch = charpalette[math.floor(1 + delta * 3)]
+	local ch = charpalette[math.floor(1 + delta * #charpalette)]
 
 	return colpalette[low_col], colpalette[high_col], ch
 end
