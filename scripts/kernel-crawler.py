@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # Author: Samuele Pilleri
 # Date: August 17th, 2015
