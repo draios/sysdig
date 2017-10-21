@@ -195,6 +195,13 @@ repos = {
     ]
 }
 
+def exclude_patterns(repo, packages, base_url, urls):
+    for rpm in packages:
+        if "exclude_patterns" in repo and any(x in rpm for x in repo["exclude_patterns"]):
+            continue
+        else:
+            urls.add(base_url + str(urllib2.unquote(rpm)))
+
 #
 # In our design you are not supposed to modify the code. The whole script is
 # created so that you just have to add entry to the `repos` array and new
@@ -208,26 +215,37 @@ if len(sys.argv) < 2 or not sys.argv[1] in repos:
     sys.stderr.write("Usage: " + sys.argv[0] + " <distro>\n")
     sys.exit(1)
 
+distro = sys.argv[1]
+
 #
 # Navigate the `repos` tree and look for packages we need that match the
 # patterns given. Save the result in `packages`.
 #
-for repo in repos[sys.argv[1]]:
-    if sys.argv[1] == 'AmazonLinux':
-        base_mirror_url = urllib2.urlopen(repo["root"]).readline().replace('$basearch','x86_64').replace('\n','')
-        response = urllib2.urlopen(base_mirror_url + '/repodata/primary.sqlite.bz2')
+for repo in repos[distro]:
+    if distro == 'AmazonLinux':
+        try:
+            # Look for the first mirror that works
+            for line in urllib2.urlopen(repo["root"]).readlines():
+                print line
+                base_mirror_url = line.replace('$basearch','x86_64').replace('\n','') + '/'
+                try:
+                    response = urllib2.urlopen(base_mirror_url + 'repodata/primary.sqlite.bz2')
+                    print base_mirror_url
+                except:
+                    continue
+
+                break
+        except:
+            continue
+
         decompressed_data = bz2.decompress(response.read())
         db_file = tempfile.NamedTemporaryFile()
         db_file.write(decompressed_data)
         conn = sqlite3.connect(db_file.name)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-        for row in c.execute(repo["discovery_pattern"]):
-            if "exclude_patterns" in repo and any(x in row["location_href"] for x in repo["exclude_patterns"]):
-                continue
-            else:
-                urls.add(urllib2.unquote(base_mirror_url+ '/' + row["location_href"]))
-
+        rpms = [r["location_href"] for r in c.execute(repo["discovery_pattern"])]
+        exclude_patterns(repo, rpms, base_mirror_url, urls)
         conn.close()
         db_file.close()
     else:
@@ -235,6 +253,7 @@ for repo in repos[sys.argv[1]]:
             root = urllib2.urlopen(repo["root"],timeout=URL_TIMEOUT).read()
         except:
             continue
+
         versions = html.fromstring(root).xpath(repo["discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
         for version in versions:
             for subdir in repo["subdirs"]:
@@ -245,12 +264,7 @@ for repo in repos[sys.argv[1]]:
                     source = repo["root"] + version + subdir
                     page = urllib2.urlopen(source,timeout=URL_TIMEOUT).read()
                     rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
-
-                    for rpm in rpms:
-                        if "exclude_patterns" in repo and any(x in rpm for x in repo["exclude_patterns"]):
-                            continue
-                        else:
-                            urls.add(source + str(urllib2.unquote(rpm)))
+                    exclude_patterns(repo, rpms, source, urls)
                 except:
                     continue
 
