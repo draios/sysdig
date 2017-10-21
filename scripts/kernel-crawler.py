@@ -182,6 +182,13 @@ repos = {
             "subdirs": [""],
             "page_pattern": "",
             "exclude_patterns": ["doc","tools","headers"]
+        },
+        {
+            "root": "http://repo.us-east-1.amazonaws.com/latest/main/mirror.list",
+            "discovery_pattern": "//location[regex:test(@href,'^Packages/kernel.*.rpm')]",
+            "subdirs": [""],
+            "page_pattern": "",
+            "exclude_patterns": ["doc","tools","headers"]
         }
     ]
 }
