@@ -214,13 +214,6 @@ if len(sys.argv) < 2 or not sys.argv[1] in repos:
 #
 for repo in repos[sys.argv[1]]:
     if sys.argv[1] == 'AmazonLinux':
-        #the aws repo fecth works only on AWS servers, so fail if we are not running on AWS
-        try:
-            istance_id = urllib2.urlopen('http://169.254.169.254/latest/meta-data/instance-id',timeout=4).read()
-        except Exception as e:
-            print("run on AWS check failed: %s" % (e.reason))
-            sys.exit(-1)
-
         base_mirror_url = urllib2.urlopen(repo["root"]).readline().replace('$basearch','x86_64').replace('\n','')
         response = urllib2.urlopen(base_mirror_url + '/repodata/primary.sqlite.bz2')
         decompressed_data = bz2.decompress(response.read())
