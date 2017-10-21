@@ -31,7 +31,6 @@ extern sinsp_filter_check_list g_filterlist;
 sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector, const string& fmt)
 {
 	m_inspector = inspector;
-	m_first = true;
 	set_format(fmt);
 }
 
@@ -128,8 +127,8 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 				}
 			}
 
-			sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(string(cfmt + j + 1), 
-				m_inspector, 
+			sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(string(cfmt + j + 1),
+				m_inspector,
 				false);
 
 			if(chk == NULL)
@@ -139,7 +138,7 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 
 			m_chks_to_free.push_back(chk);
 
-			j += chk->parse_field_name(cfmt + j + 1, true);
+			j += chk->parse_field_name(cfmt + j + 1, true, false);
 			ASSERT(j <= lfmt.length());
 
 			m_tokens.push_back(chk);
@@ -151,7 +150,9 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 
 	if(last_nontoken_str_start != j)
 	{
-		m_tokens.push_back(new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start)));
+		sinsp_filter_check * chk = new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
+		m_tokens.push_back(chk);
+		m_chks_to_free.push_back(chk);
 		m_tokenlens.push_back(0);
 	}
 }
@@ -159,16 +160,6 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 bool sinsp_evt_formatter::on_capture_end(OUT string* res)
 {
 	res->clear();
-	if(!m_first &&
-		(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON
-		|| m_inspector->get_buffer_format() == sinsp_evt::PF_JSONEOLS
-		|| m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEX
-		|| m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEXASCII
-		|| m_inspector->get_buffer_format() == sinsp_evt::PF_JSONBASE64))
-	{
-		(*res) = ']';
-	}
-
 	return res->size() > 0;
 }
 
@@ -198,7 +189,7 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 				continue;
 			}
 
-			if(json_value == Json::Value::nullRef && m_require_all_values)
+			if(json_value == Json::nullValue && m_require_all_values)
 			{
 				retval = false;
 				continue;
@@ -206,12 +197,12 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 
 			fi = m_tokens[j]->get_field_info();
 
-			if(fi) 
+			if(fi)
 			{
 				m_root[fi->m_name] = m_tokens[j]->tojson(evt);
-			} 
-		} 
-		else 
+			}
+		}
+		else
 		{
 			char* str = m_tokens[j]->tostring(evt);
 
@@ -220,14 +211,14 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 				continue;
 			}
 
-			if(str == NULL) 
+			if(str == NULL)
 			{
 				if(m_require_all_values)
 				{
 					retval = false;
 					continue;
 				}
-				else 
+				else
 				{
 					str = (char*)"<NA>";
 				}
@@ -254,20 +245,8 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEXASCII
 	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONBASE64)
 	{
-		if(m_first) 
-		{
-			// Give it the opening stanza of a JSON array
-			(*res) = '[';
-			m_first = false;
-		} 
-		else 
-		{
-			// Otherwise say this is another object in an
-			// existing JSON array
-			(*res) = ",\n";
-		}
-
-		(*res) += m_writer.write( m_root );
+		(*res) = "\n";
+		(*res) += m_writer.write(m_root);
 		(*res) = res->substr(0, res->size() - 1);
 	}
 
@@ -291,3 +270,26 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 	return false;
 }
 #endif // HAS_FILTERING
+
+sinsp_evt_formatter_cache::sinsp_evt_formatter_cache(sinsp *inspector)
+	: m_inspector(inspector)
+{
+}
+
+sinsp_evt_formatter_cache::~sinsp_evt_formatter_cache()
+{
+}
+
+bool sinsp_evt_formatter_cache::tostring(sinsp_evt *evt, string &format, OUT string *res)
+{
+	auto it = m_formatter_cache.lower_bound(format);
+
+	if(it == m_formatter_cache.end() ||
+	   it->first != format)
+	{
+		it = m_formatter_cache.emplace_hint(it,
+						    std::make_pair(format, make_shared<sinsp_evt_formatter>(m_inspector, format)));
+	}
+
+	return it->second->tostring(evt, res);
+}

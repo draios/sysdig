@@ -129,7 +129,7 @@ function on_event()
 		pname = evt.field(fpname)
 	end
 	
-	msgs = split(buf, "\n")
+	local msgs = split(buf, "\n")
 
 	-- Render the message to screen
 	for i, msg in ipairs(msgs) do

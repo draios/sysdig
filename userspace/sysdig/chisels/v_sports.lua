@@ -22,8 +22,9 @@ view_info =
 	description = "This view lists all of the server ports in terms of network bandwidth usage.",
 	tips = {"Want to restrict this visualization to a single process or container? Just drill down into them before applying it.", 
 		"Select a port and drill down with the 'Top Processes' view to see which processes are generating traffic on a port."},
+	tags = {"wsysdig"},
 	view_type = "table",
-	applies_to = {"", "container.id", "proc.pid", "thread.tid", "proc.name", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
+	applies_to = {"", "container.id", "proc.pid", "thread.nametid", "thread.tid", "proc.name", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.rs.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
 	filter = "fd.type=ipv4 and fd.name!=''",
 	use_defaults = true,
 	drilldown_target = "connections",
@@ -38,12 +39,6 @@ view_info =
 			name = "SPORT",
 			description = "Server Port.",
 			field = "fd.sport",
-			colsize = 8,
-		},
-		{
-			name = "PROTO",
-			description = "protocol name, obtained by resolving the port number.",
-			field = "fd.sproto",
 			colsize = 8,
 		},
 		{

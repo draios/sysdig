@@ -38,12 +38,22 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/kdev_t.h>
 #include <linux/delay.h>
 #include <linux/proc_fs.h>
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0))
 #include <linux/sched.h>
+#else
+#include <linux/sched/signal.h>
+#include <linux/sched/cputime.h>
+#endif
 #include <linux/vmalloc.h>
 #include <linux/wait.h>
 #include <linux/tracepoint.h>
 #include <linux/cpu.h>
 #include <linux/jiffies.h>
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 26))
+#include <linux/file.h>
+#else
+#include <linux/fdtable.h>
+#endif
 #include <net/sock.h>
 #include <asm/asm-offsets.h>	/* For NR_syscalls */
 #include <asm/unistd.h>
@@ -98,6 +108,8 @@ struct event_data_t {
 			struct siginfo *info;
 			struct k_sigaction *ka;
 		} signal_data;
+
+		struct fault_data_t fault_data;
 	} event_info;
 };
 
@@ -118,7 +130,10 @@ static void record_event_all_consumers(enum ppm_event_type event_type,
 	struct event_data_t *event_datap);
 static int init_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring);
+static void reset_ring_buffer(struct ppm_ring_buffer_context *ring);
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0))
 void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st);
+#endif
 
 #ifndef CONFIG_HAVE_SYSCALL_TRACEPOINTS
  #error The kernel must have HAVE_SYSCALL_TRACEPOINTS in order for sysdig to be useful
@@ -141,12 +156,18 @@ TRACEPOINT_PROBE(sched_switch_probe, bool preempt, struct task_struct *prev, str
 TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_sigaction *ka);
 #endif
 
+#ifdef CAPTURE_PAGE_FAULTS
+TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code);
+#endif
+
 DECLARE_BITMAP(g_events_mask, PPM_EVENT_MAX);
 static struct ppm_device *g_ppm_devs;
 static struct class *g_ppm_class;
 static unsigned int g_ppm_numdevs;
 static int g_ppm_major;
 bool g_tracers_enabled = false;
+bool g_simple_mode_enabled = false;
+static DEFINE_PER_CPU(long, g_n_tracepoint_hit);
 static const struct file_operations g_ppm_fops = {
 	.open = ppm_open,
 	.release = ppm_release,
@@ -174,6 +195,11 @@ static struct tracepoint *tp_sched_switch;
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 static struct tracepoint *tp_signal_deliver;
 #endif
+#ifdef CAPTURE_PAGE_FAULTS
+static struct tracepoint *tp_page_fault_user;
+static struct tracepoint *tp_page_fault_kernel;
+static bool g_fault_tracepoint_registered;
+#endif
 
 #ifdef _DEBUG
 static bool verbose = 1;
@@ -182,6 +208,10 @@ static bool verbose = 0;
 #endif
 
 static unsigned int max_consumers = 5;
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
+static enum cpuhp_state hp_state = 0;
+#endif
 
 #define vpr_info(fmt, ...)					\
 do {								\
@@ -246,9 +276,7 @@ static void check_remove_consumer(struct ppm_consumer_t *consumer, int remove_fr
 
 		for_each_possible_cpu(cpu) {
 			struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, cpu);
-
-			if (ring->cpu_online)
-				free_ring_buffer(ring);
+			free_ring_buffer(ring);
 		}
 
 		free_percpu(consumer->ring_buffers);
@@ -339,6 +367,14 @@ static int ppm_open(struct inode *inode, struct file *filp)
 			ring->info = NULL;
 		}
 
+		/*
+		 * If a cpu is offline when the consumer is first created, we
+		 * will never get events for that cpu even if it later comes
+		 * online via hotplug. We could allocate these rings on-demand
+		 * later in this function if needed for hotplug, but that
+		 * requires the consumer to know to call open again, and sysdig
+		 * doesn't support that.
+		 */
 		for_each_online_cpu(cpu) {
 			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
 
@@ -363,9 +399,11 @@ static int ppm_open(struct inode *inode, struct file *filp)
 
 	/*
 	 * Check if the CPU pointed by this device is online. If it isn't stop here and
-	 * return ENODEV.
+	 * return ENODEV. The cpu could be online while buffer is NULL if there's a cpu
+	 * online hotplug callback between the first open on this consumer and the open
+	 * for this particular device.
 	 */
-	if (ring->cpu_online == false) {
+	if (ring->cpu_online == false || ring->buffer == NULL) {
 		ret = -ENODEV;
 		goto cleanup_open;
 	}
@@ -394,16 +432,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	consumer->need_to_insert_drop_e = 0;
 	consumer->need_to_insert_drop_x = 0;
 	bitmap_fill(g_events_mask, PPM_EVENT_MAX); /* Enable all syscall to be passed to userspace */
-	ring->info->head = 0;
-	ring->info->tail = 0;
-	ring->nevents = 0;
-	ring->info->n_evts = 0;
-	ring->info->n_drops_buffer = 0;
-	ring->info->n_drops_pf = 0;
-	ring->info->n_preemptions = 0;
-	ring->info->n_context_switches = 0;
-	ring->capture_enabled = false;
-	getnstimeofday(&ring->last_print_time);
+	reset_ring_buffer(ring);
 	ring->open = true;
 
 	if (!g_tracepoint_registered) {
@@ -415,7 +444,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		ret = compat_register_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
 #else
-		ret = register_trace_syscall_enter(syscall_enter_probe);
+		ret = register_trace_syscall_exit(syscall_exit_probe);
 #endif
 		if (ret) {
 			pr_err("can't create the sys_exit tracepoint\n");
@@ -425,7 +454,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		ret = compat_register_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
 #else
-		ret = register_trace_syscall_exit(syscall_exit_probe);
+		ret = register_trace_syscall_enter(syscall_enter_probe);
 #endif
 		if (ret) {
 			pr_err("can't create the sys_enter tracepoint\n");
@@ -462,7 +491,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 err_signal_deliver:
-	compat_unregister_trace(sched_switch_probe, "signal_switch", tp_signal_deliver);
+	compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
 #endif
 err_sched_switch:
 	compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
@@ -490,6 +519,7 @@ cleanup_open:
 
 static int ppm_release(struct inode *inode, struct file *filp)
 {
+	int cpu;
 	int ret;
 	struct ppm_ring_buffer_context *ring;
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
@@ -559,10 +589,30 @@ static int ppm_release(struct inode *inode, struct file *filp)
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 			compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
 #endif
+#ifdef CAPTURE_PAGE_FAULTS
+			if (g_fault_tracepoint_registered) {
+				compat_unregister_trace(page_fault_probe, "page_fault_user", tp_page_fault_user);
+				compat_unregister_trace(page_fault_probe, "page_fault_kernel", tp_page_fault_kernel);
+
+				g_fault_tracepoint_registered = false;
+			}
+#endif
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 			tracepoint_synchronize_unregister();
 #endif
 			g_tracepoint_registered = false;
+
+			/*
+			 * While we're here, disable simple mode if it's active
+			 */
+			g_simple_mode_enabled = false;
+
+			/*
+			 * Reset tracepoint counter
+			 */
+			for_each_possible_cpu(cpu) {
+				per_cpu(g_n_tracepoint_hit, cpu) = 0;
+			}
 		} else {
 			ASSERT(false);
 		}
@@ -578,6 +628,7 @@ cleanup_release:
 
 static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
+	int cpu;
 	int ret;
 	struct task_struct *consumer_id = filp->private_data;
 	struct ppm_consumer_t *consumer = NULL;
@@ -597,7 +648,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		vpr_info("PPM_IOCTL_GET_PROCLIST, size=%d\n", (int)pli.max_entries);
 
 		memsize = sizeof(struct ppm_proclist_info) + sizeof(struct ppm_proc_info) * pli.max_entries;
-		proclist_info = kmalloc(memsize, GFP_KERNEL);
+		proclist_info = vmalloc(memsize);
 		if (!proclist_info) {
 			ret = -EINVAL;
 			goto cleanup_ioctl_nolock;
@@ -620,7 +671,11 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 				task_lock(p);
 #endif
 				if (nentries < pli.max_entries) {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0))
 					cputime_t utime, stime;
+#else
+					u64 utime, stime;
+#endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
 					task_cputime_adjusted(t, &utime, &stime);
@@ -628,8 +683,13 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 					ppm_task_cputime_adjusted(t, &utime, &stime);
 #endif
 					proclist_info->entries[nentries].pid = t->pid;
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0))
 					proclist_info->entries[nentries].utime = cputime_to_clock_t(utime);
 					proclist_info->entries[nentries].stime = cputime_to_clock_t(stime);
+#else
+					proclist_info->entries[nentries].utime = nsec_to_clock_t(utime);
+					proclist_info->entries[nentries].stime = nsec_to_clock_t(stime);
+#endif
 				}
 
 				nentries++;
@@ -673,7 +733,20 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		ret = 0;
 cleanup_ioctl_procinfo:
-		kfree(proclist_info);
+		vfree((void *)proclist_info);
+		goto cleanup_ioctl_nolock;
+	}
+
+	if (cmd == PPM_IOCTL_GET_N_TRACEPOINT_HIT) {
+		long __user *counters = (long __user *) arg;
+
+		for_each_possible_cpu(cpu) {
+			if (put_user(per_cpu(g_n_tracepoint_hit, cpu), &counters[cpu])) {
+				ret = -EINVAL;
+				goto cleanup_ioctl_nolock;
+			}
+		}
+		ret = 0;
 		goto cleanup_ioctl_nolock;
 	}
 
@@ -698,7 +771,8 @@ cleanup_ioctl_procinfo:
 
 		if (!ring) {
 			ASSERT(false);
-			return -ENODEV;
+			ret = -ENODEV;
+			goto cleanup_ioctl;
 		}
 
 		ring->capture_enabled = false;
@@ -719,7 +793,8 @@ cleanup_ioctl_procinfo:
 
 		if (!ring) {
 			ASSERT(false);
-			return -ENODEV;
+			ret = -ENODEV;
+			goto cleanup_ioctl;
 		}
 
 		ring->capture_enabled = true;
@@ -772,7 +847,8 @@ cleanup_ioctl_procinfo:
 			new_sampling_ratio != 64 &&
 			new_sampling_ratio != 128) {
 			pr_err("invalid sampling ratio %u\n", new_sampling_ratio);
-			return -EINVAL;
+			ret = -EINVAL;
+			goto cleanup_ioctl;
 		}
 
 		consumer->sampling_interval = 1000000000 / new_sampling_ratio;
@@ -792,7 +868,8 @@ cleanup_ioctl_procinfo:
 
 		if (new_snaplen > RW_MAX_SNAPLEN) {
 			pr_err("invalid snaplen %u\n", new_snaplen);
-			return -EINVAL;
+			ret = -EINVAL;
+			goto cleanup_ioctl;
 		}
 
 		consumer->snaplen = new_snaplen;
@@ -823,7 +900,8 @@ cleanup_ioctl_procinfo:
 
 		if (syscall_to_set > PPM_EVENT_MAX) {
 			pr_err("invalid syscall %u\n", syscall_to_set);
-			return -EINVAL;
+			ret = -EINVAL;
+			goto cleanup_ioctl;
 		}
 
 		set_bit(syscall_to_set, g_events_mask);
@@ -839,7 +917,8 @@ cleanup_ioctl_procinfo:
 
 		if (syscall_to_unset > NR_syscalls) {
 			pr_err("invalid syscall %u\n", syscall_to_unset);
-			return -EINVAL;
+			ret = -EINVAL;
+			goto cleanup_ioctl;
 		}
 
 		clear_bit(syscall_to_unset, g_events_mask);
@@ -935,11 +1014,54 @@ cleanup_ioctl_procinfo:
 		ret = 0;
 		goto cleanup_ioctl;
 	}
+	case PPM_IOCTL_SET_SIMPLE_MODE:
+	{
+		vpr_info("PPM_IOCTL_SET_SIMPLE_MODE, consumer %p\n", consumer_id);
+		g_simple_mode_enabled = true;
+		ret = 0;
+		goto cleanup_ioctl;
+	}
+	case PPM_IOCTL_ENABLE_PAGE_FAULTS:
+	{
+		vpr_info("PPM_IOCTL_ENABLE_PAGE_FAULTS\n");
+#ifdef CAPTURE_PAGE_FAULTS
+		ASSERT(g_tracepoint_registered);
+
+		if (!g_fault_tracepoint_registered) {
+			ret = compat_register_trace(page_fault_probe, "page_fault_user", tp_page_fault_user);
+			if (ret) {
+				pr_err("can't create the page_fault_user tracepoint\n");
+				ret = -EINVAL;
+				goto cleanup_ioctl;
+			}
+
+			ret = compat_register_trace(page_fault_probe, "page_fault_kernel", tp_page_fault_kernel);
+			if (ret) {
+				pr_err("can't create the page_fault_kernel tracepoint\n");
+				ret = -EINVAL;
+				goto err_page_fault_kernel;
+			}
+
+			g_fault_tracepoint_registered = true;
+		}
+
+		ret = 0;
+		goto cleanup_ioctl;
+#else
+		pr_err("kernel doesn't support page fault tracepoints\n");
+		ret = -EINVAL;
+		goto cleanup_ioctl;
+#endif
+	}
 	default:
 		ret = -ENOTTY;
 		goto cleanup_ioctl;
 	}
 
+#ifdef CAPTURE_PAGE_FAULTS
+err_page_fault_kernel:
+	compat_unregister_trace(page_fault_probe, "page_fault_user", tp_page_fault_user);
+#endif
 cleanup_ioctl:
 	mutex_unlock(&g_consumer_mutex);
 cleanup_ioctl_nolock:
@@ -1004,7 +1126,8 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
 		if (!ring) {
 			ASSERT(false);
-			return -ENODEV;
+			ret = -ENODEV;
+			goto cleanup_mmap;
 		}
 
 		if (length <= PAGE_SIZE) {
@@ -1248,8 +1371,53 @@ static inline void record_drop_x(struct ppm_consumer_t *consumer, struct timespe
 	}
 }
 
-static inline int drop_event(struct ppm_consumer_t *consumer, enum ppm_event_type event_type, enum syscall_flags drop_flags, struct timespec *ts)
+static inline int drop_event(struct ppm_consumer_t *consumer,
+			     enum ppm_event_type event_type,
+			     enum syscall_flags drop_flags,
+			     struct timespec *ts,
+			     struct pt_regs *regs)
 {
+	unsigned long close_arg = 0;
+	int close_fd = -1;
+	struct files_struct *files;
+	struct fdtable *fdt;
+	bool close_return = false;
+
+	/*
+	 * It's annoying but valid for a program to make a large number of
+	 * close() calls on nonexistent fds. That can cause driver cpu usage
+	 * to spike dramatically, so drop close events if the fd is not valid.
+	 *
+	 * The invalid fd events don't matter to userspace in dropping mode,
+	 * so we do this before the UF_NEVER_DROP check
+	 */
+	if (consumer->dropping_mode) {
+		if (event_type == PPME_SYSCALL_CLOSE_X) {
+			if (syscall_get_return_value(current, regs) < 0)
+				close_return = true;
+		} else if (event_type == PPME_SYSCALL_CLOSE_E) {
+			syscall_get_arguments(current, regs, 0, 1, &close_arg);
+			close_fd = (int)close_arg;
+
+			files = current->files;
+			spin_lock(&files->file_lock);
+			fdt = files_fdtable(files);
+			if (close_fd < 0 || close_fd >= fdt->max_fds ||
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0))
+			    !FD_ISSET(close_fd, fdt->open_fds)
+#else
+			    !fd_is_open(close_fd, fdt)
+#endif
+				) {
+				close_return = true;
+			}
+			spin_unlock(&files->file_lock);
+		}
+
+		if (close_return)
+			return 1;
+	}
+
 	if (drop_flags & UF_NEVER_DROP) {
 		ASSERT((drop_flags & UF_ALWAYS_DROP) == 0);
 		return 0;
@@ -1328,7 +1496,8 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		else if (consumer->need_to_insert_drop_x == 1)
 			record_drop_x(consumer, ts);
 
-		if (drop_event(consumer, event_type, drop_flags, ts))
+		if (drop_event(consumer, event_type, drop_flags, ts,
+			       event_datap->event_info.syscall_data.regs))
 			return res;
 	}
 
@@ -1362,10 +1531,23 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	 * Preemption gate
 	 */
 	if (unlikely(atomic_inc_return(&ring->preempt_count) != 1)) {
+		/* When this driver executing a filler calls ppm_copy_from_user(),
+		 * even if the page fault is disabled, the page fault tracepoint gets
+		 * called very early in the page fault handler, way before the kernel
+		 * terminates it, so this is legit. Still not sure how to solve this,
+		 * so for the moment handle this case by not complaining and ignoring
+		 * the false alarm if the preemption exception is generated by
+		 * page_fault_kernel. The alternative would be to disable the kernel
+		 * tracepoint completely, but there is value in seeing page faults
+		 * generated on this side, so let's see if someone complains.
+		 * This means that effectively those events would be lost.
+		 */
+		if (event_type != PPME_PAGE_FAULT_E) {
+			ring_info->n_preemptions++;
+			ASSERT(false);
+		}
 		atomic_dec(&ring->preempt_count);
-		ring_info->n_preemptions++;
 		put_cpu();
-		ASSERT(false);
 		return res;
 	}
 
@@ -1501,6 +1683,9 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		}
 		args.dpid = current->pid;
 
+		if (event_datap->category == PPMC_PAGE_FAULT)
+			args.fault_data = event_datap->event_info.fault_data;
+
 		args.curarg = 0;
 		args.arg_data_size = args.buffer_size - args.arg_data_offset;
 		args.nevents = ring->nevents;
@@ -1610,6 +1795,22 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	return res;
 }
 
+static inline void g_n_tracepoint_hit_inc(void)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
+	this_cpu_inc(g_n_tracepoint_hit);
+#elif defined(this_cpu_inc)
+	/* this_cpu_inc has been added with 2.6.33 but backported by RHEL/CentOS to 2.6.32
+	 * so just checking the existence of the symbol rather than matching the kernel version
+	 * https://github.com/torvalds/linux/commit/7340a0b15280c9d902c7dd0608b8e751b5a7c403
+	 * 
+	 * per_cpu_var removed with:
+	 * https://github.com/torvalds/linux/commit/dd17c8f72993f9461e9c19250e3f155d6d99df22
+	 */
+	this_cpu_inc(per_cpu_var(g_n_tracepoint_hit));
+#endif
+}
+
 TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 {
 	long table_index;
@@ -1627,7 +1828,11 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	 * If this is a 32bit process running on a 64bit kernel (see the CONFIG_IA32_EMULATION
 	 * kernel flag), we switch to the ia32 syscall table.
 	 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+	if (in_ia32_syscall()) {
+#else
 	if (unlikely(task_thread_info(current)->status & TS_COMPAT)) {
+#endif
 		cur_g_syscall_table = g_syscall_ia32_table;
 		cur_g_syscall_code_routing_table = g_syscall_ia32_code_routing_table;
 		socketcall_syscall = __NR_ia32_socketcall;
@@ -1635,12 +1840,23 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	}
 #endif
 
+	g_n_tracepoint_hit_inc();
+	
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
 		struct event_data_t event_data;
 		int used = cur_g_syscall_table[table_index].flags & UF_USED;
 		enum syscall_flags drop_flags = cur_g_syscall_table[table_index].flags;
 		enum ppm_event_type type;
+
+		/*
+		 * Simple mode event filtering
+		 */
+		if (g_simple_mode_enabled) {
+			if ((drop_flags & UF_SIMPLEDRIVER_KEEP) == 0) {
+				return;
+			}
+		}
 
 #ifdef _HAS_SOCKETCALL
 		if (id == socketcall_syscall) {
@@ -1689,7 +1905,11 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	 * use 64bit syscall table. On 32bit __NR_execve is equal to __NR_ia32_oldolduname
 	 * which is a very old syscall, not used anymore by most applications
 	 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+	if (in_ia32_syscall() && id != __NR_execve) {
+#else
 	if (unlikely((task_thread_info(current)->status & TS_COMPAT) && id != __NR_execve)) {
+#endif
 		cur_g_syscall_table = g_syscall_ia32_table;
 		cur_g_syscall_code_routing_table = g_syscall_ia32_code_routing_table;
 		socketcall_syscall = __NR_ia32_socketcall;
@@ -1697,12 +1917,23 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	}
 #endif
 
+	g_n_tracepoint_hit_inc();
+
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
 		struct event_data_t event_data;
 		int used = cur_g_syscall_table[table_index].flags & UF_USED;
 		enum syscall_flags drop_flags = cur_g_syscall_table[table_index].flags;
 		enum ppm_event_type type;
+
+		/*
+		 * Simple mode event filtering
+		 */
+		if (g_simple_mode_enabled) {
+			if ((drop_flags & UF_SIMPLEDRIVER_KEEP) == 0) {
+				return;
+			}
+		}
 
 #ifdef _HAS_SOCKETCALL
 		if (id == socketcall_syscall) {
@@ -1729,12 +1960,16 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	}
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 1)
 int __access_remote_vm(struct task_struct *t, struct mm_struct *mm, unsigned long addr,
 		       void *buf, int len, int write);
+#endif
 
 TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 {
 	struct event_data_t event_data;
+
+	g_n_tracepoint_hit_inc();
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	if (unlikely(current->flags & PF_KTHREAD)) {
@@ -1769,6 +2004,8 @@ TRACEPOINT_PROBE(sched_switch_probe, bool preempt, struct task_struct *prev, str
 {
 	struct event_data_t event_data;
 
+	g_n_tracepoint_hit_inc();
+
 	event_data.category = PPMC_CONTEXT_SWITCH;
 	event_data.event_info.context_data.sched_prev = prev;
 	event_data.event_info.context_data.sched_next = next;
@@ -1782,12 +2019,40 @@ TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_s
 {
 	struct event_data_t event_data;
 
+	g_n_tracepoint_hit_inc();
+
 	event_data.category = PPMC_SIGNAL;
 	event_data.event_info.signal_data.sig = sig;
 	event_data.event_info.signal_data.info = info;
 	event_data.event_info.signal_data.ka = ka;
 
 	record_event_all_consumers(PPME_SIGNALDELIVER_E, UF_USED | UF_ALWAYS_DROP, &event_data);
+}
+#endif
+
+#ifdef CAPTURE_PAGE_FAULTS
+TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code)
+{
+	struct event_data_t event_data;
+
+	/* We register both tracepoints under the same probe and
+	 * sysdig event since there's little reason to expose this
+	 * complexity to the sysdig user. The distinction can still be made
+	 * in the output by looking for the USER_FAULT/SUPERVISOR_FAULT
+	 * flags
+	 */
+	g_n_tracepoint_hit_inc();
+
+	/* I still haven't decided if I'm interested in kernel threads or not.
+	 * For the moment, I assume yes since I can see some value for it.
+	 */
+
+	event_data.category = PPMC_PAGE_FAULT;
+	event_data.event_info.fault_data.address = address;
+	event_data.event_info.fault_data.regs = regs;
+	event_data.event_info.fault_data.error_code = error_code;
+
+	record_event_all_consumers(PPME_PAGE_FAULT_E, UF_ALWAYS_DROP, &event_data);
 }
 #endif
 
@@ -1801,7 +2066,7 @@ static int init_ring_buffer(struct ppm_ring_buffer_context *ring)
 	ring->str_storage = (char *)__get_free_page(GFP_USER);
 	if (!ring->str_storage) {
 		pr_err("Error allocating the string storage\n");
-		goto err_str_storage;
+		goto init_ring_err;
 	}
 
 	/*
@@ -1812,7 +2077,7 @@ static int init_ring_buffer(struct ppm_ring_buffer_context *ring)
 	ring->buffer = vmalloc(RING_BUF_SIZE + 2 * PAGE_SIZE);
 	if (ring->buffer == NULL) {
 		pr_err("Error allocating ring memory\n");
-		goto err_buffer;
+		goto init_ring_err;
 	}
 
 	for (j = 0; j < RING_BUF_SIZE + 2 * PAGE_SIZE; j++)
@@ -1824,11 +2089,47 @@ static int init_ring_buffer(struct ppm_ring_buffer_context *ring)
 	ring->info = vmalloc(sizeof(struct ppm_ring_buffer_info));
 	if (ring->info == NULL) {
 		pr_err("Error allocating ring memory\n");
-		goto err_ring_info;
+		goto init_ring_err;
 	}
 
 	/*
 	 * Initialize the buffer info structure
+	 */
+	reset_ring_buffer(ring);
+	atomic_set(&ring->preempt_count, 0);
+
+	pr_info("CPU buffer initialized, size=%d\n", RING_BUF_SIZE);
+
+	return 1;
+
+init_ring_err:
+	free_ring_buffer(ring);
+	return 0;
+}
+
+static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
+{
+	if (ring->info) {
+		vfree(ring->info);
+		ring->info = NULL;
+	}
+
+	if (ring->buffer) {
+		vfree((void *)ring->buffer);
+		ring->buffer = NULL;
+	}
+
+	if (ring->str_storage) {
+		free_page((unsigned long)ring->str_storage);
+		ring->str_storage = NULL;
+	}
+}
+
+static void reset_ring_buffer(struct ppm_ring_buffer_context *ring)
+{
+	/*
+	 * ring->preempt_count is not reset to 0 on purpose, to prevent a race condition
+	 * see ppm_open
 	 */
 	ring->open = false;
 	ring->capture_enabled = false;
@@ -1840,33 +2141,7 @@ static int init_ring_buffer(struct ppm_ring_buffer_context *ring)
 	ring->info->n_drops_pf = 0;
 	ring->info->n_preemptions = 0;
 	ring->info->n_context_switches = 0;
-	atomic_set(&ring->preempt_count, 0);
 	getnstimeofday(&ring->last_print_time);
-
-	pr_info("CPU buffer initialized, size=%d\n", RING_BUF_SIZE);
-
-	return 1;
-
-err_ring_info:
-	vfree((void *)ring->buffer);
-	ring->buffer = NULL;
-err_buffer:
-	free_page((unsigned long)ring->str_storage);
-	ring->str_storage = NULL;
-err_str_storage:
-	return 0;
-}
-
-static void free_ring_buffer(struct ppm_ring_buffer_context *ring)
-{
-	if (ring->info)
-		vfree(ring->info);
-
-	if (ring->buffer)
-		vfree((void *)ring->buffer);
-
-	if (ring->str_storage)
-		free_page((unsigned long)ring->str_storage);
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
@@ -1885,6 +2160,12 @@ static void visit_tracepoint(struct tracepoint *tp, void *priv)
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 	else if (!strcmp(tp->name, "signal_deliver"))
 		tp_signal_deliver = tp;
+#endif
+#ifdef CAPTURE_PAGE_FAULTS
+	else if (!strcmp(tp->name, "page_fault_user"))
+		tp_page_fault_user = tp;
+	else if (!strcmp(tp->name, "page_fault_kernel"))
+		tp_page_fault_kernel = tp;
 #endif
 }
 
@@ -1913,6 +2194,16 @@ static int get_tracepoint_handles(void)
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 	if (!tp_signal_deliver) {
 		pr_err("failed to find signal_deliver tracepoint\n");
+		return -ENOENT;
+	}
+#endif
+#ifdef CAPTURE_PAGE_FAULTS
+	if (!tp_page_fault_user) {
+		pr_err("failed to find page_fault_user tracepoint\n");
+		return -ENOENT;
+	}
+	if (!tp_page_fault_kernel) {
+		pr_err("failed to find page_fault_kernel tracepoint\n");
 		return -ENOENT;
 	}
 #endif
@@ -1945,18 +2236,61 @@ static char *ppm_devnode(struct device *dev, mode_t *mode)
 }
 #endif /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
 
+static int do_cpu_callback(unsigned long cpu, long sd_action)
+{
+	struct ppm_ring_buffer_context *ring;
+	struct ppm_consumer_t *consumer;
+	struct event_data_t event_data;
+
+	if (sd_action != 0) {
+		rcu_read_lock();
+
+		list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
+			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
+			if (sd_action == 1) {
+				/*
+				 * If the cpu was offline when the consumer was created,
+				 * this won't do anything because we never created a ring
+				 * buffer. We can't safely create one here because we're
+				 * in atomic context, and the consumer needs to call open
+				 * on this device anyways, so do it in ppm_open.
+				 */
+				ring->cpu_online = true;
+			} else if (sd_action == 2) {
+				ring->cpu_online = false;
+			}
+		}
+
+		rcu_read_unlock();
+
+		event_data.category = PPMC_CONTEXT_SWITCH;
+		event_data.event_info.context_data.sched_prev = (void *)cpu;
+		event_data.event_info.context_data.sched_next = (void *)sd_action;
+		record_event_all_consumers(PPME_CPU_HOTPLUG_E, UF_NEVER_DROP, &event_data);
+	}
+	return 0;
+}
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
+static int sysdig_cpu_online(unsigned int cpu)
+{
+	vpr_info("sysdig_cpu_online on cpu %d\n", cpu);
+	return do_cpu_callback(cpu, 1);
+}
+
+static int sysdig_cpu_offline(unsigned int cpu)
+{
+	vpr_info("sysdig_cpu_offline on cpu %d\n", cpu);
+	return do_cpu_callback(cpu, 2);
+}
+#else /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0)) */
 /*
  * This gets called every time a CPU is added or removed
  */
 static int cpu_callback(struct notifier_block *self, unsigned long action,
 			void *hcpu)
 {
-	long cpu = (long)hcpu;
-	struct ppm_ring_buffer_context *ring;
-	struct ppm_consumer_t *consumer;
-	bool event_recorded = false;
-	struct timespec ts;
-	struct event_data_t event_data;
+	unsigned long cpu = (unsigned long)hcpu;
 	long sd_action = 0;
 
 	switch (action) {
@@ -1976,38 +2310,17 @@ static int cpu_callback(struct notifier_block *self, unsigned long action,
 		break;
 	}
 
-	/*
-	 * Based on the action, spit an event in the first available ring
-	 */
-	if (sd_action != 0) {
-		rcu_read_lock();
-
-		list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
-			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
-			ring->capture_enabled = false;
-
-			getnstimeofday(&ts);
-
-			event_data.category = PPMC_CONTEXT_SWITCH;
-			event_data.event_info.context_data.sched_prev = (void *)cpu;
-			event_data.event_info.context_data.sched_next = (void *)sd_action;
-
-			if (!event_recorded) {
-				record_event_consumer(consumer, PPME_CPU_HOTPLUG_E, UF_NEVER_DROP, &ts, &event_data);
-				event_recorded = true;
-			}
-		}
-
-		rcu_read_unlock();
-	}
-
-	return NOTIFY_DONE;
+	if (do_cpu_callback(cpu, sd_action) < 0)
+		return NOTIFY_BAD;
+	else
+		return NOTIFY_OK;
 }
 
 static struct notifier_block cpu_notifier = {
 	.notifier_call = &cpu_callback,
 	.next = NULL,
 };
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0) */
 
 int sysdig_init(void)
 {
@@ -2016,6 +2329,9 @@ int sysdig_init(void)
 	unsigned int num_cpus;
 	int ret;
 	int acrret = 0;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
+	int hp_ret;
+#endif
 	int j;
 	int n_created_devices = 0;
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
@@ -2060,7 +2376,7 @@ int sysdig_init(void)
 	g_ppm_numdevs = num_cpus;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0)
 	g_ppm_devs = kmalloc(g_ppm_numdevs * sizeof(struct ppm_device), GFP_KERNEL);
-#else	
+#else
 	g_ppm_devs = kmalloc_array(g_ppm_numdevs, sizeof(struct ppm_device), GFP_KERNEL);
 #endif
 	if (!g_ppm_devs) {
@@ -2119,7 +2435,20 @@ int sysdig_init(void)
 	 * Set up our callback in case we get a hotplug even while we are
 	 * initializing the cpu structures
 	 */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
+	hp_ret = cpuhp_setup_state_nocalls(CPUHP_AP_ONLINE_DYN,
+					   "sysdig/probe:online",
+					   sysdig_cpu_online,
+					   sysdig_cpu_offline);
+	if (hp_ret <= 0) {
+		pr_err("error registering cpu hotplug callback\n");
+		ret = hp_ret;
+		goto init_module_err;
+	}
+	hp_state = hp_ret;
+#else
 	register_cpu_notifier(&cpu_notifier);
+#endif
 
 	/*
 	 * All ok. Final initalizations.
@@ -2168,7 +2497,12 @@ void sysdig_exit(void)
 	tracepoint_synchronize_unregister();
 #endif
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
+	if (hp_state > 0)
+		cpuhp_remove_state_nocalls(hp_state);
+#else
 	unregister_cpu_notifier(&cpu_notifier);
+#endif
 }
 
 module_init(sysdig_init);

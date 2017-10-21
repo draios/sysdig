@@ -223,12 +223,13 @@ _arguments                                                                      
     '(-L --list-events)'{-L,--list-events}'[List the events that the engine supports]'                          \
     '(-l -lv --list)'{-l,--list}'[List the fields that can be used for filtering]'                              \
     '(-l -lv --list)-lv[Verbosely list the fields that can be used for filtering]'                              \
-    '-N[Do not convert port numbers to names]'                                                                  \
     '(-n --numevents)'{-n,--numevents=-}'[Stop capturing after <num> events]:Max <num> events:'                 \
+    '--page-faults[Capture user/kernel major/minor page faults]'                                                \
     '(-P --progress)'{-P,--progress}'[Print progress on stderr while processing trace files]'                   \
     '(-p --print)'{-p,--print=-}'[Specify the event format (default reported with "sysdig -pp")]:Event output format:->format' \
     '(-q --quiet)'{-q,--quiet}'[Do not print events on the screen]'                                             \
     '(-r --read)'{-r,--read=-}'[Read events from <readfile.scap>]:Input file:_files -g "*.scap"'                \
+    '(-R --resolve-ports)'{-R,--resolve-ports}'[Resolve port numbers to names.]'                \
     '(-S --summary)'{-S,--summary}'[Print the event summary when the capture ends]'                             \
     '(-s --snaplen)'{-s,--snaplen=-}'[Capture the first <len> bytes of each I/O buffer]:Buffer length (bytes):' \
     '(-t --timetype)'{-t,--timetype=-}'[Change the way event time is displayed]:Time-reporting type:((          \

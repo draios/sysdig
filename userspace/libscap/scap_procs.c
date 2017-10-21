@@ -25,6 +25,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/resource.h>
 #include <sys/syscall.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #endif
 
 #include "scap.h"
@@ -56,12 +57,15 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	int64_t tmp;
 	uint32_t uid;
 	uint64_t ppid;
+	uint64_t vpid;
+	uint64_t vtid;
 	int64_t sid;
 	uint32_t vmsize_kb;
 	uint32_t vmrss_kb;
 	uint32_t vmswap_kb;
 	uint64_t pfmajor;
 	uint64_t pfminor;
+	int32_t tty;
 	char line[512];
 	char tmpc;
 	char* s;
@@ -75,6 +79,7 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	tinfo->pfmajor = 0;
 	tinfo->pfminor = 0;
 	tinfo->filtered_out = 0;
+	tinfo->tty = 0;
 
 	snprintf(filename, sizeof(filename), "%sstatus", procdirname);
 
@@ -165,14 +170,38 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 				ASSERT(false);
 			}
 		}
+		else if(strstr(line, "NSpid:") == line)
+		{
+			nfound++;
+			if(sscanf(line, "NSpid: %*u %" PRIu64, &vtid) == 1)
+			{
+				tinfo->vtid = vtid;
+			}
+			else
+			{
+				tinfo->vtid = tinfo->tid;
+			}
+		}
+		else if(strstr(line, "NStgid:") == line)
+		{
+			nfound++;
+			if(sscanf(line, "NStgid: %*u %" PRIu64, &vpid) == 1)
+			{
+				tinfo->vpid = vpid;
+			}
+			else
+			{
+				tinfo->vpid = tinfo->pid;
+			}
+		}
 
-		if(nfound == 6)
+		if(nfound == 8)
 		{
 			break;
 		}
 	}
 
-	ASSERT(nfound == 6 || nfound == 5);
+	ASSERT(nfound == 8 || nfound == 6 || nfound == 5);
 
 	fclose(f);
 
@@ -203,12 +232,12 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	//
 	// Extract the line content
 	//
-	if(sscanf(s + 2, "%c %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64,
+	if(sscanf(s + 2, "%c %" PRId64 " %" PRId64 " %" PRId64 " %" PRId32 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64,
 		&tmpc,
 		&tmp,
+		&tmp,
 		&sid,
-		&tmp,
-		&tmp,
+		&tty,
 		&tmp,
 		&tmp,
 		&pfminor,
@@ -223,6 +252,7 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	tinfo->pfmajor = pfmajor;
 	tinfo->pfminor = pfminor;
 	tinfo->sid = (uint64_t) sid;
+	tinfo->tty = tty;
 
 	fclose(f);
 	return SCAP_SUCCESS;
@@ -280,9 +310,10 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 		char* token;
 		char* subsys_list;
 		char* cgroup;
+		char* scratch;
 
 		// id
-		token = strtok(line, ":");
+		token = strtok_r(line, ":", &scratch);
 		if(token == NULL)
 		{
 			ASSERT(false);
@@ -291,12 +322,22 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 		}
 
 		// subsys
-		subsys_list = strtok(NULL, ":");
+		subsys_list = strtok_r(NULL, ":", &scratch);
 		if(subsys_list == NULL)
 		{
 			ASSERT(false);
 			fclose(f);
 			return SCAP_FAILURE;
+		}
+
+		// Hack to detect empty fields, because strtok does not support it
+		// strsep() should be used to fix this but it's not available
+		// on CentOS 6 (has been added from Glibc 2.19)
+		if(subsys_list-token-strlen(token) > 1)
+		{
+			// skip cgroups like this:
+			// 0::/init.scope
+			continue;
 		}
 
 		// transient cgroup
@@ -306,7 +347,7 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 		}
 
 		// cgroup
-		cgroup = strtok(NULL, ":");
+		cgroup = strtok_r(NULL, ":", &scratch);
 		if(cgroup == NULL)
 		{
 			ASSERT(false);
@@ -317,7 +358,7 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 		// remove the \n
 		cgroup[strlen(cgroup) - 1] = 0;
 
-		while((token = strtok(subsys_list, ",")) != NULL)
+		while((token = strtok_r(subsys_list, ",", &scratch)) != NULL)
 		{
 			subsys_list = NULL;
 			if(strlen(cgroup) + 1 + strlen(token) + 1 > SCAP_MAX_CGROUPS_SIZE - tinfo->cgroups_len)
@@ -338,9 +379,8 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 
 static int32_t scap_get_vtid(scap_t* handle, int64_t tid, int64_t *vtid)
 {
-	if(handle->m_file)
+	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 
@@ -363,9 +403,8 @@ static int32_t scap_get_vtid(scap_t* handle, int64_t tid, int64_t *vtid)
 
 static int32_t scap_get_vpid(scap_t* handle, int64_t tid, int64_t *vpid)
 {
-	if(handle->m_file)
+	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 
@@ -388,7 +427,7 @@ static int32_t scap_get_vpid(scap_t* handle, int64_t tid, int64_t *vpid)
 
 int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 {
-	if(handle->m_file)
+	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
 		ASSERT(false);
 		return SCAP_FAILURE;
@@ -430,7 +469,7 @@ int32_t scap_proc_fill_root(struct scap_threadinfo* tinfo, const char* procdirna
 static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int tid_to_scan, char* procdirname, struct scap_ns_socket_list** sockets_by_ns, scap_threadinfo** procinfo, char *error)
 {
 	char dir_name[256];
-	char target_name[256];
+	char target_name[SCAP_MAX_PATH_SIZE];
 	int target_res;
 	char filename[252];
 	char line[SCAP_MAX_ENV_SIZE];
@@ -441,6 +480,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 	size_t exe_len;
 	bool free_tinfo = false;
 	int32_t res = SCAP_SUCCESS;
+	struct stat dirstat;
 
 	snprintf(dir_name, sizeof(dir_name), "%s/%u/", procdirname, tid);
 	snprintf(filename, sizeof(filename), "%sexe", dir_name);
@@ -476,19 +516,23 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 		{
 			fclose(f);
 		}
+
+		target_name[0] = 0;
+	}
+	else
+	{
+		// null-terminate target_name (readlink() does not append a null byte)
+		target_name[target_res] = 0;
 	}
 
 	//
 	// This is a real user level process. Allocate the procinfo structure.
 	//
-	tinfo = (scap_threadinfo*)malloc(sizeof(scap_threadinfo));
-	if(tinfo == NULL)
+	if((tinfo = scap_proc_alloc(handle)) == NULL)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (1)");
+		// Error message saved in handle->m_lasterr
 		return SCAP_FAILURE;
 	}
-
-	memset(tinfo, 0, sizeof(scap_threadinfo));
 
 	tinfo->tid = tid;
 	if(parenttid != -1)
@@ -516,6 +560,11 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 	{
 		tinfo->flags = PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES;
 	}
+
+	//
+	// Gathers the exepath
+	//
+	snprintf(tinfo->exepath, sizeof(tinfo->exepath), "%s", target_name);
 
 	//
 	// Gather the command name
@@ -661,12 +710,14 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 		return SCAP_FAILURE;
 	}
 
-	if(scap_get_vtid(handle, tinfo->tid, &tinfo->vtid) == SCAP_FAILURE)
+	// These values should be read already from /status file, leave these
+	// fallback functions for older kernels < 4.1
+	if(tinfo->vtid == 0 && scap_get_vtid(handle, tinfo->tid, &tinfo->vtid) == SCAP_FAILURE)
 	{
 		tinfo->vtid = tinfo->tid;
 	}
 
-	if(scap_get_vpid(handle, tinfo->tid, &tinfo->vpid) == SCAP_FAILURE)
+	if(tinfo->vpid == 0 && scap_get_vpid(handle, tinfo->tid, &tinfo->vpid) == SCAP_FAILURE)
 	{
 		tinfo->vpid = tinfo->pid;
 	}
@@ -679,6 +730,11 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 		snprintf(error, SCAP_LASTERR_SIZE, "can't fill root for %s", dir_name);
 		free(tinfo);
 		return SCAP_FAILURE;
+	}
+
+	if(stat(dir_name, &dirstat) == 0)
+	{
+		tinfo->clone_ts = dirstat.st_ctim.tv_sec*1000000000 + dirstat.st_ctim.tv_nsec;
 	}
 
 	//
@@ -825,11 +881,14 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 		//
 		// See if this process includes tasks that need to be added
 		//
-		snprintf(childdir, sizeof(childdir), "%s/%u/task", procdirname, (int)tid);
-		if(scap_proc_scan_proc_dir(handle, childdir, tid, tid_to_scan, procinfo, error, scan_sockets) == SCAP_FAILURE)
+		if(parenttid == -1 && handle->m_mode != SCAP_MODE_NODRIVER)
 		{
-			res = SCAP_FAILURE;
-			break;
+			snprintf(childdir, sizeof(childdir), "%s/%u/task", procdirname, (int)tid);
+			if(scap_proc_scan_proc_dir(handle, childdir, tid, tid_to_scan, procinfo, error, scan_sockets) == SCAP_FAILURE)
+			{
+				res = SCAP_FAILURE;
+				break;
+			}
 		}
 
 		if(tid_to_scan != -1 && *procinfo)
@@ -895,7 +954,7 @@ struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_soc
 	//
 	// No /proc parsing for offline captures
 	//
-	if(handle->m_file)
+	if(handle->m_mode == SCAP_MODE_CAPTURE)
 	{
 		return NULL;
 	}
@@ -924,7 +983,7 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 	//
 	// No /proc parsing for offline captures
 	//
-	if(handle->m_file)
+	if(handle->m_mode == SCAP_MODE_CAPTURE)
 	{
 		return false;
 	}
@@ -967,10 +1026,80 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 #endif // HAS_CAPTURE
 }
 
+#if defined(HAS_CAPTURE)
+int scap_proc_scan_proc_table(scap_t *handle)
+{
+	char filename[SCAP_MAX_PATH_SIZE];
+	//
+	// Create the process list
+	//
+	handle->m_lasterr[0] = '\0';
+
+	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
+	return scap_proc_scan_proc_dir(handle, filename, -1, -1, NULL, handle->m_lasterr, true);
+}
+
+void scap_refresh_proc_table(scap_t* handle)
+{
+	if(handle->m_proclist)
+	{
+		scap_proc_free_table(handle);
+		handle->m_proclist = NULL;
+	}
+	scap_proc_scan_proc_table(handle);
+}
+#else
+void scap_refresh_proc_table(scap_t* handle)
+{
+}
+#endif // HAS_CAPTURE
+
+struct scap_threadinfo *scap_proc_alloc(scap_t *handle)
+{
+	struct scap_threadinfo *tinfo = (struct scap_threadinfo*) calloc(1, sizeof(scap_threadinfo));
+	if(tinfo == NULL)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "process table allocation error (1)");
+		return NULL;
+	}
+
+	return tinfo;
+}
+
 void scap_proc_free(scap_t* handle, struct scap_threadinfo* proc)
 {
 	scap_fd_free_proc_fd_table(handle, proc);
 	free(proc);
+}
+
+int32_t scap_proc_add(scap_t* handle, uint64_t tid, scap_threadinfo* tinfo)
+{
+	int32_t uth_status = SCAP_SUCCESS;
+
+	HASH_ADD_INT64(handle->m_proclist, tid, tinfo);
+	if(uth_status == SCAP_SUCCESS)
+	{
+		return SCAP_SUCCESS;
+	}
+	else
+	{
+		return SCAP_FAILURE;
+	}
+}
+
+int32_t scap_fd_add(scap_threadinfo* tinfo, uint64_t fd, scap_fdinfo* fdinfo)
+{
+	int32_t uth_status = SCAP_SUCCESS;
+
+	HASH_ADD_INT64(tinfo->fdlist, fd, fdinfo);
+	if(uth_status == SCAP_SUCCESS)
+	{
+		return SCAP_SUCCESS;
+	}
+	else
+	{
+		return SCAP_FAILURE;
+	}
 }
 
 //

@@ -175,13 +175,37 @@ bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr, sinsp
 
 		//
 		// Note: if we don't have container info, any pick we make is arbitrary.
-		// To al least achieve consistency across client and server, we just match the host interface addresses. 
+		// To at least achieve consistency across client and server, we just match the host interface addresses. 
 		//
-		if(found && container_info.m_container_ip != 0)
+		if(found)
 		{
-			if(addr == container_info.m_container_ip)
+			if(container_info.m_container_ip != 0)
 			{
-				return true;
+				//
+				// We have a container info with a valid container IP. Let's use it.
+				//
+				if(addr == htonl(container_info.m_container_ip))
+				{
+					return true;
+				}
+			}
+			else
+			{
+				//
+				// Container info is valid, but the IP address is zero.
+				// Scan the list of the containers looking for matches.
+				// If no match is found, we just jump to checking the
+				// host interfaces.
+				//
+				const unordered_map<string, sinsp_container_info>* clist = m_inspector->m_container_manager.get_containers();
+
+				for(auto it = clist->begin(); it != clist->end(); ++it)
+				{
+					if(htonl(it->second.m_container_ip) == addr)
+					{
+						return true;
+					}
+				}
 			}
 		}
 	}

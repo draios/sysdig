@@ -22,10 +22,13 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define VISIBILITY_PRIVATE private:
 #endif
 
+#include <functional>
+
 class sinsp_delays_info;
 class sinsp_threadtable_listener;
 class thread_analyzer_info;
 class sinsp_tracerparser;
+class blprogram;
 
 typedef struct erase_fd_params
 {
@@ -65,9 +68,14 @@ public:
 	string get_comm();
 
 	/*!
-	  \brief Return the full name of the process containing this thread, e.g. "/bin/top".
+	  \brief Return the name of the process containing this thread from argv[0], e.g. "/bin/top".
 	*/
 	string get_exe();
+
+	/*!
+	  \brief Return the full executable path of the process containing this thread, e.g. "/bin/top".
+	*/
+	string get_exepath();
 
 	/*!
 	  \brief Return the working directory of the process containing this thread.
@@ -78,21 +86,18 @@ public:
 	  \brief Return the values of all environment variables for the process
 	  containing this thread.
 	*/
-	const vector<string>& get_env() const
-	{
-		return m_env;
-	}
+	const vector<string>& get_env();
 
 	/*!
 	  \brief Return the value of the specified environment variable for the process
 	  containing this thread. Returns empty string if variable is not found.
 	*/
-	string get_env(const string& name) const;
+	string get_env(const string& name);
 
 	/*!
 	  \brief Return true if this is a process' main thread.
 	*/
-	inline bool is_main_thread()
+	inline bool is_main_thread() const
 	{
 		return m_tid == m_pid;
 	}
@@ -199,6 +204,14 @@ public:
 	uint64_t get_fd_limit();
 
 	//
+	// Walk up the parent process heirarchy, calling the provided
+	// function for each node. If the function returns false, the
+	// traversal stops.
+	//
+	typedef std::function<bool (sinsp_threadinfo *)> visitor_func_t;
+	void traverse_parent_state(visitor_func_t &visitor);
+
+	//
 	// Core state
 	//
 	int64_t m_tid;  ///< The id of this thread
@@ -207,6 +220,7 @@ public:
 	int64_t m_sid; ///< The session id of the process containing this thread.
 	string m_comm; ///< Command name (e.g. "top")
 	string m_exe; ///< argv[0] (e.g. "sshd: user@pts/4")
+	string m_exepath; ///< full executable path
 	vector<string> m_args; ///< Command line arguments (e.g. "-d1")
 	vector<string> m_env; ///< Environment variables
 	vector<pair<string, string>> m_cgroups; ///< subsystem-cgroup pairs
@@ -224,6 +238,9 @@ public:
 	int64_t m_vtid;  ///< The virtual id of this thread.
 	int64_t m_vpid; ///< The virtual id of the process containing this thread. In single thread threads, this is equal to vtid.
 	string m_root;
+	size_t m_program_hash;
+	size_t m_program_hash_falco;
+	int32_t m_tty;
 
 	//
 	// State for multi-event processing
@@ -301,6 +318,10 @@ VISIBILITY_PRIVATE
 	void allocate_private_state();
 	void compute_program_hash();
 	sinsp_threadinfo* lookup_thread();
+	inline void args_to_scap(scap_threadinfo* sctinfo);
+	inline void env_to_scap(scap_threadinfo* sctinfo);
+	inline void cgroups_to_scap(scap_threadinfo* sctinfo);
+	void fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src);
 
 	//  void push_fdop(sinsp_fdop* op);
 	// the queue of recent fd operations
@@ -319,7 +340,8 @@ VISIBILITY_PRIVATE
 	uint16_t m_lastevent_type;
 	uint16_t m_lastevent_cpuid;
 	sinsp_evt::category m_lastevent_category;
-	size_t m_program_hash;
+	bool m_parent_loop_detected;
+	blprogram* m_blprogram;
 
 	friend class sinsp;
 	friend class sinsp_parser;
@@ -331,6 +353,7 @@ VISIBILITY_PRIVATE
 	friend class thread_analyzer_info;
 	friend class sinsp_tracerparser;
 	friend class lua_cbacks;
+	friend class sinsp_baseliner;
 };
 
 /*@}*/
@@ -385,6 +408,8 @@ public:
 	void create_child_dependencies();
 	void recreate_child_dependencies();
 
+	void dump_threads_to_file(scap_dumper_t* dumper);
+
 	uint32_t get_thread_count()
 	{
 		return (uint32_t)m_threadtable.size();
@@ -403,6 +428,8 @@ private:
 	void remove_thread(threadinfo_map_iterator_t it, bool force);
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
 	inline void clear_thread_pointers(threadinfo_map_iterator_t it);
+	void free_dump_fdinfos(vector<scap_fdinfo*>* fdinfos_to_free);
+	void thread_to_scap(sinsp_threadinfo& tinfo, scap_threadinfo* sctinfo);
 
 	sinsp* m_inspector;
 	threadinfo_map_t m_threadtable;
@@ -424,4 +451,5 @@ private:
 	friend class sinsp_analyzer;
 	friend class sinsp;
 	friend class sinsp_threadinfo;
+	friend class sinsp_baseliner;
 };

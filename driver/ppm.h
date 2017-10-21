@@ -36,6 +36,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 32))
 #define CAPTURE_SIGNAL_DELIVERIES
 #endif
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 12, 0)) && defined(CONFIG_X86)
+#define CAPTURE_PAGE_FAULTS
+#endif
 #define RW_SNAPLEN 80
 #define RW_SNAPLEN_EVENT 4096
 #define RW_MAX_SNAPLEN (256 * 1024 * 1024)
@@ -53,6 +56,7 @@ enum syscall_flags {
 	UF_USED = (1 << 0),
 	UF_NEVER_DROP = (1 << 1),
 	UF_ALWAYS_DROP = (1 << 2),
+	UF_SIMPLEDRIVER_KEEP = (1 << 3),
 };
 
 /*
@@ -119,6 +123,10 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n);
 #elif defined CONFIG_ARM
   #define SYSCALL_TABLE_ID0 __NR_SYSCALL_BASE
 #elif defined CONFIG_X86 || defined CONFIG_SUPERH
+  #define SYSCALL_TABLE_ID0 0
+#elif defined CONFIG_PPC64
+  #define SYSCALL_TABLE_ID0 0
+#elif defined CONFIG_S390
   #define SYSCALL_TABLE_ID0 0
 #endif
 

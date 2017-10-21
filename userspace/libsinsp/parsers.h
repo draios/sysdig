@@ -63,8 +63,8 @@ public:
 	sinsp_protodecoder* add_protodecoder(string decoder_name);
 	void register_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec);
 
-	void schedule_k8s_events(sinsp_evt *evt);
-	void schedule_mesos_events(sinsp_evt *evt);
+	void schedule_k8s_events();
+	void schedule_mesos_events();
 
 	//
 	// Protocol decoders callback lists
@@ -134,6 +134,7 @@ private:
 	void parse_container_json_evt(sinsp_evt *evt);
 	inline uint32_t parse_tracer(sinsp_evt *evt, int64_t retval);
 	void parse_cpu_hotplug_enter(sinsp_evt* evt);
+	int get_k8s_version(const std::string& json);
 	void parse_k8s_evt(sinsp_evt *evt);
 	void parse_chroot_exit(sinsp_evt *evt);
 	void parse_mesos_evt(sinsp_evt *evt);
@@ -175,10 +176,13 @@ private:
 	vector<sinsp_protodecoder*> m_protodecoders;
 
 	metaevents_state m_k8s_metaevents_state;
+	int              m_k8s_capture_version = -1;
 	metaevents_state m_mesos_metaevents_state;
 
 	stack<uint8_t*> m_tmp_events_buffer;
 	friend class sinsp_analyzer;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_protodecoder;
+	friend class sinsp_baseliner;
+	friend class sinsp_container_manager;
 };

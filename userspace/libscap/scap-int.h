@@ -76,6 +76,7 @@ typedef struct scap_device
 //
 struct scap
 {
+	scap_mode_t m_mode;
 	scap_device* m_devs;
 	uint32_t m_ndevs;
 #ifdef USE_ZLIB
@@ -97,6 +98,23 @@ struct scap
 	void* m_proc_callback_context;
 	struct ppm_proclist_info* m_driver_procinfo;
 	bool refresh_proc_table_when_saving;
+	uint32_t m_fd_lookup_limit;
+	uint64_t m_unexpected_block_readsize;
+};
+
+typedef enum ppm_dumper_type
+{
+	DT_FILE = 0,
+	DT_MEM = 1,
+}ppm_dumper_type;
+
+struct scap_dumper
+{
+	gzFile m_f;
+	ppm_dumper_type m_type;
+	uint8_t* m_targetbuf;
+	uint8_t* m_targetbufcurpos;
+	uint8_t* m_targetbufend;
 };
 
 struct scap_ns_socket_list
@@ -151,7 +169,7 @@ int32_t scap_fd_info_to_string(scap_fdinfo* fdi, OUT char* str, uint32_t strlen)
 // Calculate the length on disk of an fd entry's info
 uint32_t scap_fd_info_len(scap_fdinfo* fdi);
 // Write the given fd info to disk
-int32_t scap_fd_write_to_disk(scap_t* handle, scap_fdinfo* fdi, gzFile f);
+int32_t scap_fd_write_to_disk(scap_t* handle, scap_fdinfo* fdi, scap_dumper_t* dumper);
 // Populate the given fd by reading the info from disk
 uint32_t scap_fd_read_from_disk(scap_t* handle, OUT scap_fdinfo* fdi, OUT size_t* nbytes, gzFile f);
 // Parse the headers of a trace file and load the tables
@@ -175,7 +193,7 @@ void scap_proc_print_proc_by_tid(scap_t* handle, uint64_t tid);
 int32_t scap_create_iflist(scap_t* handle);
 // Free a previously allocated list of interfaces
 void scap_free_iflist(scap_addrlist* ifhandle);
-// Allocate and return the list of interfaces on this system
+// Allocate and return the list of users on this system
 int32_t scap_create_userlist(scap_t* handle);
 // Free a previously allocated list of users
 void scap_free_userlist(scap_userlist* uhandle);
@@ -204,6 +222,17 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 			(int)read_size,\
 			__FILE__,\
 			__LINE__);\
+		return SCAP_FAILURE;\
+	}
+
+#define CHECK_READ_SIZE_WITH_FREE(alloc_buffer, read_size, expected_size) if(read_size != expected_size) \
+    	{\
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "expecting %d bytes, read %d at %s, line %d. Is the file truncated?",\
+			(int)expected_size,\
+			(int)read_size,\
+			__FILE__,\
+			__LINE__);\
+		free(alloc_buffer);\
 		return SCAP_FAILURE;\
 	}
 

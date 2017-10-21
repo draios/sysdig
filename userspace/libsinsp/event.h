@@ -31,11 +31,11 @@ typedef class sinsp_threadinfo sinsp_threadinfo;
 ///////////////////////////////////////////////////////////////////////////////
 typedef enum filtercheck_field_flags
 {
-	EPF_NONE = 0,
-	EPF_FILTER_ONLY, ///< this field can only be used as a filter.
-	EPF_PRINT_ONLY, ///< this field can only be printed.
-	EPF_REQUIRES_ARGUMENT, ///< this field includes an argument, under the form 'property.argument'.
-	EPF_TABLE_ONLY, ///< this field is desgned to be used in a table and won't appear in the list created by sysdig's '-l'.
+	EPF_NONE              = 0,
+	EPF_FILTER_ONLY       = 1 << 0, ///< this field can only be used as a filter.
+	EPF_PRINT_ONLY        = 1 << 1, ///< this field can only be printed.
+	EPF_REQUIRES_ARGUMENT = 1 << 2, ///< this field includes an argument, under the form 'property.argument'.
+	EPF_TABLE_ONLY        = 1 << 3, ///< this field is desgned to be used in a table and won't appear in the list created by sysdig's '-l'.
 }filtercheck_field_flags;
 
 /*!
@@ -45,7 +45,7 @@ typedef struct filtercheck_field_info
 {
 	ppm_param_type m_type; ///< Field type.
 	filtercheck_field_flags m_flags;  ///< Field flags.
-	ppm_print_format m_print_format;  ///< If this is a numeric field, this flag specifies if it should be rendered as decimal or hex. 
+	ppm_print_format m_print_format;  ///< If this is a numeric field, this flag specifies if it should be rendered as octal, decimal or hex.
 	char m_name[64];  ///< Field name.
 	char m_description[1024];  ///< Field description.
 }filtercheck_field_info;
@@ -78,7 +78,7 @@ private:
 	inline void init(char* valptr, uint16_t len)
 	{
 		m_val = valptr;
-		m_len = len;		
+		m_len = len;
 	}
 
 	friend class sinsp_evt;
@@ -86,9 +86,9 @@ private:
 
 /*!
   \brief Event class.
-  This class is returned by \ref sinsp::next() and encapsulates the state 
-  related to a captured event, and includes a bunch of members to manipulate 
-  events and their parameters, including parsing, formatting and extracting 
+  This class is returned by \ref sinsp::next() and encapsulates the state
+  related to a captured event, and includes a bunch of members to manipulate
+  events and their parameters, including parsing, formatting and extracting
   state like the event process or FD.
 */
 class SINSP_PUBLIC sinsp_evt
@@ -105,11 +105,12 @@ public:
 		PF_HEX =            (1 << 3),	///< Hexadecimal output
 		PF_HEXASCII =       (1 << 4),	///< Hexadecimal + ASCII output
 		PF_EOLS =           (1 << 5),	///< Normal + end of lines
-		PF_BASE64 =         (1 << 6),	///< Base64 output
-		PF_JSONEOLS =       (1 << 7),	///< Json formatting with data in hexadecimal format
-		PF_JSONHEX =        (1 << 8),	///< Json formatting with data in hexadecimal format
-		PF_JSONHEXASCII =   (1 << 9),	///< Json formatting with data in hexadecimal + ASCII format
-		PF_JSONBASE64 =     (1 << 10),	///< Json formatting with data in base64 format
+		PF_EOLS_COMPACT =   (1 << 6),	///< Normal + end of lines but with no force EOL at the beginning
+		PF_BASE64 =         (1 << 7),	///< Base64 output
+		PF_JSONEOLS =       (1 << 8),	///< Json formatting with data in hexadecimal format
+		PF_JSONHEX =        (1 << 9),	///< Json formatting with data in hexadecimal format
+		PF_JSONHEXASCII =   (1 << 10),	///< Json formatting with data in hexadecimal + ASCII format
+		PF_JSONBASE64 =     (1 << 11),	///< Json formatting with data in base64 format
 	};
 
 	/*!
@@ -160,8 +161,8 @@ public:
 	}
 
 	/*!
-	  \brief Get the event type. 
-	  
+	  \brief Get the event type.
+
 	  \note For a list of event types, refer to \ref etypes.
 	*/
 	inline uint16_t get_type()
@@ -195,7 +196,10 @@ public:
 
 	  \return The event timestamp, in nanoseconds from epoch
 	*/
-	uint64_t get_ts();
+	inline uint64_t get_ts()
+	{
+		return m_pevt->ts;
+	}
 
 	/*!
 	  \brief Return the event name string, e.g. 'open' or 'socket'.
@@ -227,14 +231,17 @@ public:
 	/*!
 	  \brief Return the information about the FD on which this event operated.
 
-	  \note For events that are not I/O related, get_fd_info() returns NULL. 
+	  \note For events that are not I/O related, get_fd_info() returns NULL.
 	*/
-	sinsp_fdinfo_t* get_fd_info();
+	inline sinsp_fdinfo_t* get_fd_info()
+	{
+		return m_fdinfo;
+	}
 
 	/*!
 	  \brief Return the number of the FD associated with this event.
 
-	  \note For events that are not I/O related, get_fd_num() returns sinsp_evt::INVALID_FD_NUM. 
+	  \note For events that are not I/O related, get_fd_num() returns sinsp_evt::INVALID_FD_NUM.
 	*/
 	int64_t get_fd_num();
 
@@ -255,7 +262,7 @@ public:
 
 	  \param id The parameter number.
 
-	  \note Refer to the g_event_info structure in driver/event_table.c for 
+	  \note Refer to the g_event_info structure in driver/event_table.c for
 	   a list of event descriptions.
 	*/
 	const struct ppm_param_info* get_param_info(uint32_t id);
@@ -278,7 +285,7 @@ public:
 	  \brief Get a parameter as a C++ string.
 
 	  \param name The parameter name.
-	  \param resolved If true, the library will try to resolve the parameter 
+	  \param resolved If true, the library will try to resolve the parameter
 	   before returning it. For example, and FD number will be converted into
 	   the correspondent file, TCP tuple, etc.
 	*/
@@ -403,6 +410,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp_analyzer;
 	friend class sinsp_filter_check_event;
 	friend class sinsp_filter_check_thread;
+	friend class sinsp_evttype_filter;
 	friend class sinsp_dumper;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_analyzer_parsers;
@@ -411,6 +419,11 @@ VISIBILITY_PRIVATE
 	friend class sinsp_container_manager;
 	friend class sinsp_table;
 	friend class sinsp_cursesui;
+	friend class sinsp_baseliner;
+	friend class capture_job_handler;
+	friend class capture_job;
+	friend class sinsp_memory_dumper;
+	friend class sinsp_memory_dumper_job;
 };
 
 /*@}*/

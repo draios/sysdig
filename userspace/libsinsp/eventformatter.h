@@ -36,11 +36,11 @@ public:
 	/*!
 	  \brief Constructs a formatter.
 
-	  \param inspector Pointer to the inspector instance that will generate the 
+	  \param inspector Pointer to the inspector instance that will generate the
 	   events to be formatter.
 	  \param fmt The printf-like format to use. The accepted format is the same
-	   as the one of the sysdig '-p' command line flag, so refer to the sysdig 
-	   manual for details. 
+	   as the one of the sysdig '-p' command line flag, so refer to the sysdig
+	   manual for details.
 	*/
 	sinsp_evt_formatter(sinsp* inspector, const string& fmt);
 
@@ -50,16 +50,16 @@ public:
 	  \brief Fills res with the string rendering of the event.
 
 	  \param evt Pointer to the event to be converted into string.
-	  \param res Pointer to the string that will be filled with the result. 
+	  \param res Pointer to the string that will be filled with the result.
 
-	  \return true if the string should be shown (based on the initial *), 
+	  \return true if the string should be shown (based on the initial *),
 	   false otherwise.
 	*/
 	bool tostring(sinsp_evt* evt, OUT string* res);
 
 	/*!
 	  \brief Fills res with end of capture string rendering of the event.
-	  \param res Pointer to the string that will be filled with the result. 
+	  \param res Pointer to the string that will be filled with the result.
 
 	  \return true if there is a string to show (based on the format),
 	   false otherwise.
@@ -74,10 +74,29 @@ private:
 	bool m_require_all_values;
 	vector<sinsp_filter_check*> m_chks_to_free;
 
-	// Is this the first to_string call?
-	bool m_first;
 	Json::Value m_root;
 	Json::FastWriter m_writer;
 };
 
+/*!
+  \brief Caching version of sinsp_evt_formatter
+  This class is a wrapper around sinsp_evt_formatter, maintaining a
+  cache of previously seen formatters. It avoids the overhead of
+  recreating sinsp_evt_formatter objects for each event.
+*/
+class SINSP_PUBLIC sinsp_evt_formatter_cache
+{
+public:
+	sinsp_evt_formatter_cache(sinsp *inspector);
+	virtual ~sinsp_evt_formatter_cache();
+
+	// Fills in res with the event formatted according to
+	// format. Creates a new sinsp_evt_formatter object if
+	// necessary.
+	bool tostring(sinsp_evt *evt, std::string &format, OUT std::string *res);
+
+private:
+	std::map<std::string,std::shared_ptr<sinsp_evt_formatter>> m_formatter_cache;
+	sinsp *m_inspector;
+};
 /*@}*/

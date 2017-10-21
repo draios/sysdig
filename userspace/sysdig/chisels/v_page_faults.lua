@@ -24,10 +24,10 @@ view_info =
 		"Major page faults are typically the ones you really want to keep an eye on. They are the ones causing pages swapping to disk, thus dramatically slowing down process execution.",
 		"When applying this view on a live system, if the system is well tuned for performance you should see no changes in the first column."
 	},
-	tags = {"Default"},
+	tags = {"Default", "wsysdig"},
 	view_type = "table",
 	filter = "evt.type!=switch",
-	applies_to = {"", "container.id", "fd.name", "fd.sport", "fd.sproto", "evt.type", "fd.directory", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
+	applies_to = {"", "container.id", "fd.name", "fd.containername", "fd.sport", "fd.sproto", "evt.type", "fd.directory", "fd.containerdirectory", "k8s.pod.id", "k8s.rc.id", "k8s.rs.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
 	drilldown_target = "errors",
 	use_defaults = true,
 	columns = 

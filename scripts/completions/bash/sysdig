@@ -32,10 +32,13 @@ _sysdig_complete()
   -l                                            \
   --list                                        \
   -lv                                           \
+  --page-faults                                 \
   -P                                            \
   --progress                                    \
   -q                                            \
   --quiet                                       \
+  -R                                            \
+  --resolve-ports                               \
   -S                                            \
   --summary                                     \
   -v                                            \

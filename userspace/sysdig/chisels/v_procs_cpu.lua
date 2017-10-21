@@ -23,9 +23,10 @@ view_info =
 	tips = {
 		"A high value for both SYS and SYSCALLS likely means that the process is I/O bound. A high value for SYS and a moderate value for SYSCALLS might on the other side indicate a kernel bottleneck. In both cases, drilling down with the 'System Calls' view can help understand what's happening."
 	},
+	tags = {"Default", "wsysdig"},
 	view_type = "table",
 	filter = "evt.type!=switch",
-	applies_to = {"", "container.id", "fd.name", "fd.sport", "fd.sproto", "evt.type", "fd.directory", "fd.type", "k8s.pod.id", "k8s.rc.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
+	applies_to = {"", "container.id", "fd.name", "fd.containername", "fd.sport", "fd.sproto", "evt.type", "fd.directory", "fd.containerdirectory", "fd.type", "k8s.pod.id", "k8s.rc.id", "k8s.rs.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
 	is_root = true,
 	drilldown_target = "threads",
 	use_defaults = true,
@@ -89,7 +90,8 @@ view_info =
 		},
 		{
 			tags = {"containers"},
-			name = "The container this process belongs to.",
+			name = "CONTAINER",
+			description = "The container this process belongs to.",
 			field = "container.name",
 			colsize = 20
 		},

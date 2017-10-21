@@ -35,6 +35,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 /*
  * Various crap that a callback might need
  */
+struct fault_data_t {
+	unsigned long address;
+	struct pt_regs *regs;
+	unsigned long error_code;
+};
+
 struct event_filler_arguments {
 	struct ppm_consumer_t *consumer;
 	char *buffer; /* the buffer that will be filled with the data */
@@ -50,6 +56,10 @@ struct event_filler_arguments {
 	u32 arg_data_offset;
 	u32 arg_data_size;
 	enum ppm_event_type event_type;	/* the event type */
+	/* Eventually convert this to an event_info union and move all the
+	 * below per-event params in this union, it's not good to waste kernel
+	 * stack since all this stuff is always exclusive
+	 */
 	struct pt_regs *regs; /* the registers containing the call arguments */
 	struct task_struct *sched_prev; /* for context switch events, the task that is being schduled out */
 	struct task_struct *sched_next; /* for context switch events, the task that is being schduled in */
@@ -63,6 +73,7 @@ struct event_filler_arguments {
 	int signo; /* Signal number */
 	__kernel_pid_t spid; /* PID of source process */
 	__kernel_pid_t dpid; /* PID of destination process */
+	struct fault_data_t fault_data; /* For page faults */
 };
 
 /*
@@ -129,7 +140,6 @@ extern const struct ppm_event_entry g_ppm_events[];
 int32_t dpi_lookahead_init(void);
 int32_t f_sys_autofill(struct event_filler_arguments *args, const struct ppm_event_entry *evinfo);
 int32_t val_to_ring(struct event_filler_arguments *args, u64 val, u16 val_len, bool fromuser, u8 dyn_idx);
-char *npm_getcwd(char *buf, unsigned long bufsize);
 u16 pack_addr(struct sockaddr *usrsockaddr, int ulen, char *targetbuf, u16 targetbufsize);
 u16 fd_to_socktuple(int fd, struct sockaddr *usrsockaddr, int ulen, bool use_userdata, bool is_inbound, char *targetbuf, u16 targetbufsize);
 int addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr);

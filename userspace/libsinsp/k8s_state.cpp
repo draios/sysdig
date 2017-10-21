@@ -3,6 +3,7 @@
 //
 
 #include "k8s_state.h"
+#include "k8s_pod_handler.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include <sstream>
@@ -16,7 +17,9 @@ const std::string k8s_state_t::m_docker_prefix = "docker://";
 const std::string k8s_state_t::m_rkt_prefix = "rkt://";
 const unsigned    k8s_state_t::m_id_length = 12u;
 
-k8s_state_t::k8s_state_t(bool is_captured) : m_is_captured(is_captured)
+k8s_state_t::k8s_state_t(bool is_captured, int capture_version):
+	m_is_captured(is_captured),
+	m_capture_version(capture_version)
 {
 }
 
@@ -24,12 +27,32 @@ k8s_state_t::k8s_state_t(bool is_captured) : m_is_captured(is_captured)
 
 void k8s_state_t::update_pod(k8s_pod_t& pod, const Json::Value& item)
 {
-	k8s_pod_t::container_id_list container_ids = k8s_component::extract_pod_container_ids(item);
-	k8s_container::list containers = k8s_component::extract_pod_containers(item);
-	k8s_component::extract_pod_data(item, pod);
-	pod.set_restart_count(k8s_component::extract_pod_restart_count(item));
+	k8s_pod_t::container_id_list container_ids = k8s_pod_handler::extract_pod_container_ids(item);
+	k8s_container::list containers = k8s_pod_handler::extract_pod_containers(item);
+	k8s_pod_handler::extract_pod_data(item, pod);
+	pod.set_restart_count(k8s_pod_handler::extract_pod_restart_count(item));
 	pod.set_container_ids(std::move(container_ids));
 	pod.set_containers(std::move(containers));
+}
+
+void k8s_state_t::cache_pod(container_pod_map& map, const std::string& id, const k8s_pod_t* pod)
+{
+	ASSERT(pod);
+	ASSERT(!pod->get_name().empty());
+	std::string::size_type pos = id.find(m_docker_prefix);
+	if (pos == 0)
+	{
+		map[id.substr(m_docker_prefix.size(), m_id_length)] = pod;
+		return;
+	}
+	pos = id.find(m_rkt_prefix);
+	if( pos == 0)
+	{
+		map[id.substr(m_rkt_prefix.size())] = pod;
+		return;
+	}
+	throw sinsp_exception("Invalid container ID (expected '" + m_docker_prefix +
+						  "{ID}' or '" + m_rkt_prefix + "{ID}'): " + id);
 }
 
 bool k8s_state_t::has_pod(k8s_pod_t& pod)
@@ -85,10 +108,6 @@ void k8s_state_t::replace_items(k8s_component::type t, const std::string& name, 
 		}
 		break;
 
-	case k8s_component::K8S_EVENTS:
-		break;
-
-	// only controllers and services can have selectors
 	case k8s_component::K8S_REPLICATIONCONTROLLERS:
 		if(name == "labels")
 		{
@@ -98,6 +117,19 @@ void k8s_state_t::replace_items(k8s_component::type t, const std::string& name, 
 		else if(name == "selector")
 		{
 			m_controllers.back().m_selectors = std::move(items);
+			return;
+		}
+		break;
+
+	case k8s_component::K8S_REPLICASETS:
+		if(name == "labels")
+		{
+			m_replicasets.back().m_labels = std::move(items);
+			return;
+		}
+		else if(name == "selector")
+		{
+			m_replicasets.back().m_selectors = std::move(items);
 			return;
 		}
 		break;
@@ -114,6 +146,36 @@ void k8s_state_t::replace_items(k8s_component::type t, const std::string& name, 
 			return;
 		}
 		break;
+
+	case k8s_component::K8S_DEPLOYMENTS:
+		if(name == "labels")
+		{
+			m_deployments.back().m_labels = std::move(items);
+			return;
+		}
+		else if(name == "selector")
+		{
+			m_deployments.back().m_selectors = std::move(items);
+			return;
+		}
+		break;
+
+	case k8s_component::K8S_DAEMONSETS:
+		if(name == "labels")
+		{
+			m_daemonsets.back().m_labels = std::move(items);
+			return;
+		}
+		else if(name == "selector")
+		{
+			m_daemonsets.back().m_selectors = std::move(items);
+			return;
+		}
+		break;
+
+	case k8s_component::K8S_EVENTS:
+		return;
+
 	case k8s_component::K8S_COMPONENT_COUNT:
 	default:
 		break;
@@ -141,8 +203,17 @@ k8s_component& k8s_state_t::add_common_single_value(k8s_component::type componen
 		case k8s_component::K8S_REPLICATIONCONTROLLERS:
 			return get_component<k8s_controllers, k8s_rc_t>(m_controllers, name, uid, ns);
 
+		case k8s_component::K8S_REPLICASETS:
+			return get_component<k8s_replicasets, k8s_rs_t>(m_replicasets, name, uid, ns);
+
 		case k8s_component::K8S_SERVICES:
 			return get_component<k8s_services, k8s_service_t>(m_services, name, uid, ns);
+
+		case k8s_component::K8S_DAEMONSETS:
+			return get_component<k8s_daemonsets, k8s_daemonset_t>(m_daemonsets, name, uid, ns);
+
+		case k8s_component::K8S_DEPLOYMENTS:
+			return get_component<k8s_deployments, k8s_deployment_t>(m_deployments, name, uid, ns);
 
 		case k8s_component::K8S_EVENTS:
 			return get_component<k8s_events, k8s_event_t>(m_events, name, uid, ns);
@@ -196,8 +267,17 @@ void k8s_state_t::clear(k8s_component::type type)
 		case k8s_component::K8S_REPLICATIONCONTROLLERS:
 			m_controllers.clear();
 			break;
+		case k8s_component::K8S_REPLICASETS:
+			m_replicasets.clear();
+			break;
 		case k8s_component::K8S_SERVICES:
 			m_services.clear();
+			break;
+		case k8s_component::K8S_DAEMONSETS:
+			m_daemonsets.clear();
+			break;
+		case k8s_component::K8S_DEPLOYMENTS:
+			m_deployments.clear();
 			break;
 		case k8s_component::K8S_EVENTS:
 			m_events.clear();
@@ -213,6 +293,7 @@ void k8s_state_t::clear(k8s_component::type type)
 
 void k8s_state_t::update_cache(const k8s_component::type_map::key_type& component)
 {
+#ifndef HAS_ANALYZER
 	switch (component)
 	{
 		case k8s_component::K8S_NAMESPACES:
@@ -283,6 +364,31 @@ void k8s_state_t::update_cache(const k8s_component::type_map::key_type& componen
 		}
 		break;
 
+		case k8s_component::K8S_REPLICASETS:
+		{
+			const k8s_replicasets& rss = get_rss();
+			const k8s_pods& pods = get_pods();
+			k8s_state_t::pod_rs_map& pod_rset_map = get_pod_rs_map();
+			pod_rset_map.clear();
+			for(const auto& rs : rss)
+			{
+				std::vector<const k8s_pod_t*> pod_subset = rs.get_selected_pods(pods);
+				for(auto& pod : pod_subset)
+				{
+					const std::string& pod_uid = pod->get_uid();
+					if(!is_component_cached(pod_rset_map, pod_uid, &rs))
+					{
+						cache_component(pod_rset_map, pod_uid, &rs);
+					}
+					else
+					{
+						g_logger.log("Attempt to cache already cached REPLICA SET: " + pod_uid, sinsp_logger::SEV_ERROR);
+					}
+				}
+			}
+		}
+		break;
+
 		case k8s_component::K8S_SERVICES:
 		{
 			const k8s_services& services = get_services();
@@ -308,8 +414,60 @@ void k8s_state_t::update_cache(const k8s_component::type_map::key_type& componen
 		}
 		break;
 
+		case k8s_component::K8S_DAEMONSETS:
+		{
+			// TODO
+			/*const k8s_daemonsets& daemonsets = get_daemonsets();
+			const k8s_pods& pods = get_pods();
+			k8s_state_t::pod_daemonset_map& pod_svc_map = get_pod_daemonset_map();
+			pod_svc_map.clear();
+			for(const auto& daemonset : daemonsets)
+			{
+				std::vector<const k8s_pod_t*> pod_subset = daemonset.get_selected_pods(pods);
+				for(auto& pod : pod_subset)
+				{
+					const std::string& pod_uid = pod->get_uid();
+					if(!is_component_cached(pod_svc_map, pod_uid, &daemonset))
+					{
+						cache_component(pod_svc_map, pod_uid, &daemonset);
+					}
+					else
+					{
+						g_logger.log("Attempt to cache already cached SERVICE: " + pod_uid, sinsp_logger::SEV_ERROR);
+					}
+				}
+			}*/
+		}
+		break;
+
+		case k8s_component::K8S_DEPLOYMENTS:
+		{
+			const k8s_deployments& deployments = get_deployments();
+			const k8s_pods& pods = get_pods();
+			k8s_state_t::pod_deployment_map& pod_deployment_map = get_pod_deployment_map();
+			pod_deployment_map.clear();
+			for(const auto& deployment : deployments)
+			{
+				std::vector<const k8s_pod_t*> pod_subset = deployment.get_selected_pods(pods);
+				for(auto& pod : pod_subset)
+				{
+					const std::string& pod_uid = pod->get_uid();
+					if(!is_component_cached(pod_deployment_map, pod_uid, &deployment))
+					{
+						cache_component(pod_deployment_map, pod_uid, &deployment);
+					}
+					else
+					{
+						g_logger.log("Attempt to cache already cached Deployment: " + pod_uid, sinsp_logger::SEV_ERROR);
+					}
+				}
+			}
+		}
+		break;
+
 		default: return;
 	}
+#endif // HAS_ANALYZER
 }
 
 k8s_component::type k8s_state_t::component_from_json(const Json::Value& item)
@@ -335,6 +493,22 @@ k8s_component::type k8s_state_t::component_from_json(const Json::Value& item)
 	else if(comp == "ReplicationController")
 	{
 		return k8s_component::K8S_REPLICATIONCONTROLLERS;
+	}
+	else if(comp == "ReplicaSet")
+	{
+		return k8s_component::K8S_REPLICASETS;
+	}
+	else if(comp == "Service")
+	{
+		return k8s_component::K8S_SERVICES;
+	}
+	else if(comp == "DaemonSet")
+	{
+		return k8s_component::K8S_DAEMONSETS;
+	}
+	else if(comp == "Deployment")
+	{
+		return k8s_component::K8S_DEPLOYMENTS;
 	}
 	else if(comp == "Event")
 	{
@@ -367,9 +541,21 @@ const k8s_component* k8s_state_t::get_component(const std::string& uid, std::str
 			if(t) { *t = "replicationController"; }
 			return get_component<k8s_controllers, k8s_rc_t>(m_controllers, uid);
 			break;
+		case k8s_component::K8S_REPLICASETS:
+			if(t) { *t = "replicaSet"; }
+			return get_component<k8s_replicasets, k8s_rs_t>(m_replicasets, uid);
+			break;
 		case k8s_component::K8S_SERVICES:
 			if(t) { *t = "service"; }
 			return get_component<k8s_services, k8s_service_t>(m_services, uid);
+			break;
+		case k8s_component::K8S_DAEMONSETS:
+			if(t) { *t = "daemonSet"; }
+			return get_component<k8s_daemonsets, k8s_daemonset_t>(m_daemonsets, uid);
+			break;
+		case k8s_component::K8S_DEPLOYMENTS:
+			if(t) { *t = "deployment"; }
+			return get_component<k8s_deployments, k8s_deployment_t>(m_deployments, uid);
 			break;
 		case k8s_component::K8S_EVENTS:
 			if(t) { *t = "event"; }
@@ -388,7 +574,21 @@ void k8s_state_t::enqueue_capture_event(const Json::Value& item)
 {
 	if(m_is_captured)
 	{
-		m_capture_events.emplace_back(Json::FastWriter().write(extract_capture_data(item)));
+		std::string json;
+		if(m_capture_version == k8s_state_t::CAPTURE_VERSION_1)
+		{
+			json = Json::FastWriter().write(extract_capture_data(item));
+		}
+		else if(m_capture_version == k8s_state_t::CAPTURE_VERSION_2)
+		{
+			json = Json::FastWriter().write(item);
+		}
+		else
+		{
+			throw sinsp_exception(std::string("K8s : invalid capture version (") +
+								  std::to_string(m_capture_version) + ')');
+		}
+		m_capture_events.emplace_back(json);
 	}
 }
 
@@ -398,7 +598,7 @@ std::string k8s_state_t::dequeue_capture_event()
 	{
 		throw sinsp_exception("Invalid event dequeue request.");
 	}
-	std::string ev = std::move(m_capture_events.front());
+	std::string ev = m_capture_events.front();
 	m_capture_events.pop_front();
 	return ev;
 }
@@ -555,6 +755,15 @@ Json::Value k8s_state_t::extract_capture_data(const Json::Value& item)
 		break;
 
 	case k8s_component::K8S_REPLICATIONCONTROLLERS:
+		break;
+
+	case k8s_component::K8S_REPLICASETS:
+		break;
+
+	case k8s_component::K8S_DAEMONSETS:
+		break;
+
+	case k8s_component::K8S_DEPLOYMENTS:
 		break;
 
 	case k8s_component::K8S_EVENTS:

@@ -39,16 +39,172 @@ using namespace std;
 #include "filterchecks.h"
 
 #ifdef CSYSDIG
-#ifndef NOCURSESUI
-
-#include <curses.h>
 #include "table.h"
-#include "ctext.h"
 #include "cursescomponents.h"
 #include "cursestable.h"
 #include "viewinfo.h"
 #include "cursesui.h"
 #include "utils.h"
+
+extern bool g_filterchecks_force_raw_times;
+
+///////////////////////////////////////////////////////////////////////////////
+// spy_text_renderer implementation
+///////////////////////////////////////////////////////////////////////////////
+spy_text_renderer::spy_text_renderer(sinsp* inspector, 
+	sinsp_cursesui* parent,
+	int32_t viz_type, 
+	sysdig_output_type sotype, 
+	bool print_containers,
+	sinsp_evt::param_fmt text_fmt)
+{
+	m_formatter = NULL;
+	m_inspector = inspector;
+	m_viz_type = viz_type;
+	m_linecnt = 0;
+	g_filterchecks_force_raw_times = false;
+
+	//
+	// visualization-type inits
+	//
+	if(m_viz_type == VIEW_ID_DIG)
+	{
+		if(sotype == spy_text_renderer::OT_LATENCY)
+		{
+			if(print_containers)
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector,
+					"*(latency=%evt.latency.human) (fd=%fd.name) %evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
+			}
+			else
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector,
+					"*(latency=%evt.latency.human) (fd=%fd.name) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info");
+			}
+		}
+		else if(sotype == spy_text_renderer::OT_LATENCY_APP)
+		{
+			if(print_containers)
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector,
+					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
+			}
+			else
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector,
+					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info");
+			}
+		}
+		else
+		{
+			if(print_containers)
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector,
+					"*%evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
+			}
+			else
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector, DEFAULT_OUTPUT_STR);
+			}
+		}
+	}
+	else
+	{
+		m_formatter = NULL;
+	}
+
+	m_inspector->set_buffer_format(text_fmt);
+}
+
+spy_text_renderer::~spy_text_renderer()
+{ 
+	if(m_formatter)
+	{
+		delete m_formatter;
+	}
+}
+
+const char* spy_text_renderer::process_event_spy(sinsp_evt* evt, int64_t* len)
+{
+	//
+	// Drop any non I/O event
+	//
+	ppm_event_flags eflags = evt->get_info_flags();
+
+	if(!(eflags & EF_READS_FROM_FD || eflags & EF_WRITES_TO_FD))
+	{
+		return NULL;
+	}
+
+	//
+	// Get and validate the length
+	//
+	sinsp_evt_param* parinfo = evt->get_param(0);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	*len = *(int64_t*)parinfo->m_val;
+	if(*len <= 0)
+	{
+		return NULL;
+	}
+
+	//
+	// Get thread and fd
+	//
+	sinsp_threadinfo* m_tinfo =	evt->get_thread_info();
+	if(m_tinfo == NULL)
+	{
+		return NULL;
+	}
+
+	sinsp_fdinfo_t* m_fdinfo = evt->get_fd_info();
+	if(m_fdinfo == NULL)
+	{
+		return NULL;
+	}
+	string fdname = m_fdinfo->m_name;
+	if(fdname == "")
+	{
+		fdname = "unnamed FD";
+	}
+
+	//
+	// Get the buffer
+	//
+	const char* resolved_argstr;
+	char* argstr;
+	argstr = (char*)evt->get_param_value_str("data", &resolved_argstr, m_inspector->get_buffer_format());
+
+	//
+	// Trim initial or final \n
+	//
+	if(argstr)
+	{
+		uint32_t argstrlen = strlen(argstr);
+
+		if(argstrlen >= 1)
+		{
+			if(*argstr == '\n')
+			{
+				argstr++;
+				argstrlen--;
+			}
+
+			if(argstrlen >= 1)
+			{
+				if(argstr[argstrlen -1] == '\n')
+				{
+					argstr[argstrlen - 1] = 0;
+				}
+			}
+		}
+	}
+
+	return argstr;
+}
+
+#ifndef NOCURSESUI
+#include <curses.h>
+#include "ctext.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // curses_scrollable_list implementation
@@ -66,21 +222,21 @@ void curses_scrollable_list::sanitize_selection(int32_t datasize)
 	{
 		m_firstrow = datasize - (int32_t)m_h + 1;
 	}
-	
+
 	if(m_firstrow < 0)
 	{
 		m_firstrow = 0;
-	}	
+	}
 
 	if(m_selct > datasize - 1)
 	{
 		m_selct = datasize - 1;
 	}
-	
+
 	if(m_selct < 0)
 	{
 		m_selct = 0;
-	}	
+	}
 
 	if(m_firstrow > m_selct)
 	{
@@ -119,7 +275,7 @@ void curses_scrollable_list::selection_down(int32_t datasize)
 
 	if(m_selct == datasize - 1)
 	{
-		m_lastrow_selected = true;		
+		m_lastrow_selected = true;
 	}
 }
 
@@ -142,7 +298,7 @@ void curses_scrollable_list::selection_pagedown(int32_t datasize)
 
 	if(m_selct == datasize - 1)
 	{
-		m_lastrow_selected = true;		
+		m_lastrow_selected = true;
 	}
 }
 
@@ -196,9 +352,9 @@ curses_table_sidemenu::curses_table_sidemenu(sidemenu_type type, sinsp_cursesui*
 	m_selct_ori = m_selct;
 	m_type = type;
 
-	if(m_selct > (int32_t)(m_h - 1))
+	if(m_selct > (int32_t)(m_h - 2))
 	{
-		m_firstrow = m_selct;
+		m_firstrow = m_selct - (int32_t)(m_h - 2);
 	}
 }
 
@@ -256,7 +412,7 @@ void curses_table_sidemenu::render()
 		// add the new line
 		mvwaddnstr(m_win, j - m_firstrow + 1, 0, m_entries.at(j).m_name.c_str(), m_w);
 		// put sorting order indicator at the right end of this row
-		if(m_parent->m_sidemenu_sorting_col == j) 
+		if(m_parent->m_sidemenu_sorting_col == j)
 		{
 			wmove(m_win, j - m_firstrow + 1, m_w - 4);
 			char sort_order = m_parent->m_datatable->is_sorting_ascending() ? '^' : 'V';
@@ -325,7 +481,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 				m_parent->m_selected_view_sidemenu_entry = m_selct;
 			} else if(m_type == ST_COLUMNS) {
 				m_parent->m_selected_view_sort_sidemenu_entry = m_selct;
-			}  
+			}
 			else
 			{
 				m_parent->m_selected_action_sidemenu_entry = m_selct;
@@ -346,10 +502,10 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 				}
 
 				m_parent->m_selected_view_sidemenu_entry = m_selct_ori;
-	
+
 				return STA_SWITCH_VIEW;
 			}
-			else if(m_type == ST_COLUMNS) 
+			else if(m_type == ST_COLUMNS)
 			{
 				m_parent->m_selected_view_sort_sidemenu_entry = m_selct_ori;
 				return STA_DESTROY_CHILD;
@@ -535,7 +691,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 							(uint32_t)m_last_mevent.y < TABLE_Y_START + m_h - 1)
 						{
 							//
-							// This is a double click one of the menu entries. 
+							// This is a double click one of the menu entries.
 							// Update the selection.
 							//
 							m_selct = m_firstrow + (m_last_mevent.y - TABLE_Y_START - 1);
@@ -544,7 +700,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 
 							//
 							// This delay is here just as a lazy way to give the user the
-							// feeling that the row has been clicked 
+							// feeling that the row has been clicked
 							//
 							usleep(200000);
 
@@ -560,8 +716,8 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 							if(m_type == ST_VIEWS)
 							{
 								m_parent->m_selected_view_sidemenu_entry = m_selct;
-							} 
-							else if(m_type == ST_COLUMNS) 
+							}
+							else if(m_type == ST_COLUMNS)
 							{
 								m_parent->m_selected_view_sort_sidemenu_entry = m_selct;
 							}
@@ -587,7 +743,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 ///////////////////////////////////////////////////////////////////////////////
 // curses_textbox implementation
 ///////////////////////////////////////////////////////////////////////////////
-curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type, sysdig_output_type sotype)
+curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type, spy_text_renderer::sysdig_output_type sotype)
 {
 	ASSERT(inspector != NULL);
 	ASSERT(parent != NULL);
@@ -596,11 +752,11 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 	m_win = NULL;
 	m_ctext = NULL;
 	m_filter = NULL;
+	m_text_renderer = NULL;
 	m_inspector = inspector;
 	n_prints = 0;
 	m_paused = false;
 	m_sidemenu = NULL;
-	m_viz_type = viz_type;
 	m_searcher = NULL;
 	m_has_searched = false;
 	m_last_progress_update_ts = 0;
@@ -616,55 +772,20 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 	config.m_scroll_on_append = true;
 	config.m_bounding_box = true;
 
-	//
-	// visualization-type inits
-	//
-	if(m_viz_type == VIEW_ID_DIG)
-	{
-		if(sotype == OT_LATENCY)
-		{
-			if(m_parent->m_print_containers)
-			{
-				m_formatter = new sinsp_evt_formatter(m_inspector, 
-					"*(latency=%evt.latency.human) (fd=%fd.name) %evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
-			}
-			else
-			{
-				m_formatter = new sinsp_evt_formatter(m_inspector, 
-					"*(latency=%evt.latency.human) (fd=%fd.name) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info");
-			}
-		}
-		else if(sotype == OT_LATENCY_APP)
-		{
-			if(m_parent->m_print_containers)
-			{
-				m_formatter = new sinsp_evt_formatter(m_inspector, 
-					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
-			}
-			else
-			{
-				m_formatter = new sinsp_evt_formatter(m_inspector, 
-					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info");
-			}
-		}
-		else
-		{
-			if(m_parent->m_print_containers)
-			{
-				m_formatter = new sinsp_evt_formatter(m_inspector, 
-					"*%evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
-			}
-			else
-			{
-				m_formatter = new sinsp_evt_formatter(m_inspector, DEFAULT_OUTPUT_STR);
-			}
-		}
+	m_text_renderer = new spy_text_renderer(inspector, 
+		parent, 
+		viz_type, 
+		sotype, 
+		m_parent->m_print_containers,
+		sinsp_evt::PF_NORMAL);
 
+
+	if(viz_type == VIEW_ID_DIG)
+	{
 		config.m_do_wrap = false;
 	}
 	else
 	{
-		m_formatter = NULL;
 		config.m_do_wrap = true;
 	}
 
@@ -687,7 +808,7 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 	}
 
 	//
-	// Initialize the inspector to capture longer buffers and format them in a 
+	// Initialize the inspector to capture longer buffers and format them in a
 	// readable way
 	//
 	m_inspector->set_buffer_format(sinsp_evt::PF_NORMAL);
@@ -712,7 +833,7 @@ curses_textbox::~curses_textbox()
 	}
 
 	delwin(m_win);
-	
+
 	delete m_ctext;
 
 	if(m_searcher)
@@ -725,9 +846,9 @@ curses_textbox::~curses_textbox()
 		delete m_filter;
 	}
 
-	if(m_formatter)
+	if(m_text_renderer)
 	{
-		delete m_formatter;
+		delete m_text_renderer;
 	}
 
 	//
@@ -754,120 +875,82 @@ void curses_textbox::print_no_data()
 
 	string wstr = "No Data For This Selection";
 	mvprintw(m_parent->m_screenh / 2,
-		m_parent->m_screenw / 2 - wstr.size() / 2, 
-		wstr.c_str());	
+		m_parent->m_screenw / 2 - wstr.size() / 2,
+		wstr.c_str());
 
 	refresh();
 }
 
 void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 {
-	//
-	// Drop any non I/O event
-	//
-	ppm_event_flags eflags = evt->get_info_flags();
+	int64_t len;
+	const char* argstr = m_text_renderer->process_event_spy(evt, &len);
 
-	if(!(eflags & EF_READS_FROM_FD || eflags & EF_WRITES_TO_FD))
+	if(argstr == NULL)
 	{
 		return;
 	}
 
-	//
-	// Get and validate the length
-	//
-	sinsp_evt_param* parinfo = evt->get_param(0);
-	ASSERT(parinfo->m_len == sizeof(int64_t));
-	int64_t len = *(int64_t*)parinfo->m_val;
-	if(len <= 0)
-	{
-		return;
-	}
-
-	//
-	// Get thread and fd
-	//
+	// Note: this can't be NULL because it's been validated by 
+	//       m_text_renderer->process_event_spy
 	sinsp_threadinfo* m_tinfo =	evt->get_thread_info();
-	if(m_tinfo == NULL)
-	{
-		return;
-	}
-
-	sinsp_fdinfo_t* m_fdinfo = evt->get_fd_info();
-	if(m_fdinfo == NULL)
-	{
-		return;
-	}
-	string fdname = m_fdinfo->m_name;
-	if(fdname == "")
-	{
-		fdname = "unnamed FD";
-	}
 
 	//
-	// Get the buffer
+	// Create the info string
 	//
-	const char* resolved_argstr;
-	const char* argstr;
-	argstr = evt->get_param_value_str("data", &resolved_argstr, m_inspector->get_buffer_format());
+	string info_str = "------ ";
+	string dirstr;
+	string cnstr;
 
-	if(argstr != NULL)
+	ppm_event_flags eflags = evt->get_info_flags();
+	if(eflags & EF_READS_FROM_FD)
 	{
-		//
-		// Create the info string
-		//
-		string info_str = "------ ";
-		string dirstr;
-		string cnstr;
+		dirstr = "Read ";
+		cnstr = "from ";
+		wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_READ]);
+	}
+	else if(eflags & EF_WRITES_TO_FD)
+	{
+		wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_WRITE]);
+		dirstr = "Write ";
+		cnstr = "to ";
+	}
+
+	info_str += dirstr + to_string(len) +
+		"B " +
+		cnstr +
+		evt->get_fd_info()->m_name +
+		" (" + m_tinfo->m_comm.c_str() + ")";
+
+	//
+	// Sanitize the info string
+	//
+	sanitize_string(info_str);
+
+	//
+	// Print the whole thing
+	//
+	m_ctext->printf("%s", info_str.c_str());
+
+	if(m_parent->m_print_containers)
+	{
+		wattrset(m_win, m_parent->m_colors[sinsp_cursesui::LED_COLOR]);
+
+		m_ctext->printf(" [%s]", m_inspector->m_container_manager.get_container_name(m_tinfo).c_str());
 
 		if(eflags & EF_READS_FROM_FD)
 		{
-			dirstr = "Read ";
-			cnstr = "from ";
 			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_READ]);
 		}
 		else if(eflags & EF_WRITES_TO_FD)
 		{
 			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_WRITE]);
-			dirstr = "Write ";
-			cnstr = "to ";
 		}
-
-		info_str += dirstr + to_string(len) + 
-			"B " + 
-			cnstr + 
-			fdname + 
-			" (" + m_tinfo->m_comm.c_str() + ")";
-
-		//
-		// Sanitize the info string
-		//
-		info_str.erase(remove_if(info_str.begin(), info_str.end(), g_invalidchar()), info_str.end());
-
-		//
-		// Print the whole thing
-		//
-		m_ctext->printf("%s", info_str.c_str());
-		
-		if(m_parent->m_print_containers)
-		{
-			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::LED_COLOR]);
-			
-			m_ctext->printf(" [%s]", m_inspector->m_container_manager.get_container_name(m_tinfo).c_str());
-
-			if(eflags & EF_READS_FROM_FD)
-			{
-				wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_READ]);
-			}
-			else if(eflags & EF_WRITES_TO_FD)
-			{
-				wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_WRITE]);
-			}
-		}
-
-		m_ctext->printf("\n");
-		m_ctext->printf("\n");
-		m_ctext->printf("%s", argstr);
 	}
+
+	m_ctext->printf("\n");
+	m_ctext->printf("\n");
+	m_ctext->printf("%s", argstr);
 
 	m_ctext->printf("\n");
 	m_ctext->printf("\n");
@@ -889,7 +972,7 @@ void curses_textbox::process_event_dig(sinsp_evt* evt, int32_t next_res)
 
 	string line;
 
-	m_formatter->tostring(evt, &line);
+	m_text_renderer->m_formatter->tostring(evt, &line);
 
 	m_ctext->printf("%s\n", line.c_str());
 
@@ -912,7 +995,7 @@ void curses_textbox::process_event_dig(sinsp_evt* evt, int32_t next_res)
 void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
 {
 	//
-	// Check if this the end of the capture file, and if yes take note of that 
+	// Check if this the end of the capture file, and if yes take note of that
 	//
 	if(next_res == SCAP_EOF)
 	{
@@ -948,13 +1031,13 @@ void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
 		}
 	}
 
-	if(m_viz_type == VIEW_ID_SPY)
+	if(m_text_renderer->m_viz_type == VIEW_ID_SPY)
 	{
 		process_event_spy(evt, next_res);
 	}
 	else
 	{
-		process_event_dig(evt, next_res);		
+		process_event_dig(evt, next_res);
 	}
 }
 
@@ -1015,8 +1098,8 @@ void curses_textbox::render()
 		string wstr = "   PAUSED   ";
 		attrset(m_parent->m_colors[sinsp_cursesui::LARGE_NUMBER]);
 		mvprintw(0,
-			m_parent->m_screenw / 2 - wstr.size() / 2, 
-			wstr.c_str());	
+			m_parent->m_screenw / 2 - wstr.size() / 2,
+			wstr.c_str());
 	}
 
 	//
@@ -1124,11 +1207,11 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 			m_ctext->jump_to_last_line();
 			m_parent->render();
 			render();
-			return STA_NONE;	
+			return STA_NONE;
 		case KEY_F(2):
 			if(m_parent->m_screenw < 20)
 			{
-				return STA_NONE;				
+				return STA_NONE;
 			}
 
 			if(m_sidemenu == NULL)
@@ -1147,7 +1230,7 @@ sysdig_table_action curses_textbox::handle_input(int ch)
 			else
 			{
 				delete m_sidemenu;
-				m_sidemenu = NULL;				
+				m_sidemenu = NULL;
 
 				wresize(m_win, m_parent->m_screenh - 4, m_parent->m_screenw);
 				mvwin(m_win, TABLE_Y_START + 1, 0);
@@ -1192,7 +1275,7 @@ void curses_textbox::reset()
 	if(m_sidemenu != NULL)
 	{
 		delete m_sidemenu;
-		m_sidemenu = NULL;				
+		m_sidemenu = NULL;
 
 		wresize(m_win, m_parent->m_screenh - 4, m_parent->m_screenw);
 		mvwin(m_win, TABLE_Y_START + 1, 0);
@@ -1213,7 +1296,7 @@ void curses_textbox::reset()
 	// Disable pause
 	//
 	m_paused = false;
-	
+
 	//
 	// Clear the screen
 	//
@@ -1228,9 +1311,9 @@ void curses_textbox::reset()
 	n_prints = 0;
 }
 
-bool curses_textbox::get_position(OUT int32_t* pos, 
-	OUT int32_t* totlines, 
-	OUT float* percent, 
+bool curses_textbox::get_position(OUT int32_t* pos,
+	OUT int32_t* totlines,
+	OUT float* percent,
 	OUT bool* truncated)
 {
 	int32_t ox;
@@ -1277,7 +1360,7 @@ bool curses_textbox::on_search_key_pressed(string search_str)
 		}
 		catch(...)
 		{
-			return false;			
+			return false;
 		}
 
 		int32_t totlines;
@@ -1293,7 +1376,7 @@ bool curses_textbox::on_search_key_pressed(string search_str)
 	}
 	else
 	{
-		m_ctext->new_search(m_searcher, 
+		m_ctext->new_search(m_searcher,
 			search_str,
 			true);
 
@@ -1331,9 +1414,9 @@ bool curses_textbox::on_search_next()
 ///////////////////////////////////////////////////////////////////////////////
 curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 	uint32_t viewnum,
-	uint32_t starty, 
-	uint32_t startx, 
-	uint32_t h, 
+	uint32_t starty,
+	uint32_t startx,
+	uint32_t h,
 	uint32_t w)
 {
 	m_parent = parent;
@@ -1407,7 +1490,7 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 	}
 	else
 	{
-		j = 0;		
+		j = 0;
 	}
 
 	for(; j < vinfo->m_columns.size(); j++)
@@ -1448,9 +1531,9 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 	{
 		handle_input(input);
 	}
-	
+
 	//
-	// If there's a filter, print it 
+	// If there's a filter, print it
 	//
 	if(vinfo->get_filter(m_parent->m_view_depth) != "")
 	{
@@ -1474,7 +1557,7 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 			wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS_MEGABYTES]);
 			m_ctext->printf("%c", vinfo->m_actions[j].m_hotkey);
 			wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-			m_ctext->printf(": %s (%s)\n", 
+			m_ctext->printf(": %s (%s)\n",
 				vinfo->m_actions[j].m_description.c_str(),
 				vinfo->m_actions[j].m_command.c_str());
 		}
@@ -1512,7 +1595,7 @@ sysdig_table_action curses_viewinfo_page::handle_input(int ch)
 
 	if(totlines < (int32_t)m_parent->m_screenh)
 	{
-		return STA_DESTROY_CHILD;			
+		return STA_DESTROY_CHILD;
 	}
 
 	switch(ch)
@@ -1558,7 +1641,7 @@ sysdig_table_action curses_viewinfo_page::handle_input(int ch)
 		break;
 	}
 
-	return STA_DESTROY_CHILD;	
+	return STA_DESTROY_CHILD;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1799,7 +1882,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 		g_version_string.c_str());
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-	m_ctext->printf("Clicking on column headers lets you sort the table.\n" 
+	m_ctext->printf("Clicking on column headers lets you sort the table.\n"
 		"Double clicking on row entries performs a drill down.\n"
 		"Clicking on the filter string at the top of the screen lets you change the sysdig filter.\n"
 		"You can use the mouse on the entries in the menu at the bottom of the screen to perform their respective actions.\n");
@@ -1812,7 +1895,7 @@ curses_mainhelp_page::curses_mainhelp_page(sinsp_cursesui* parent)
 		g_version_string.c_str());
 
 	wattrset(m_win, parent->m_colors[sinsp_cursesui::PROCESS]);
-	m_ctext->printf("csysdig is completely customizable. This means that you can modify any of the csysdig views, " 
+	m_ctext->printf("csysdig is completely customizable. This means that you can modify any of the csysdig views, "
 		"and even create your own views. Like sysdig chisels, csysdig views are Lua scripts. Full information can "
 		"be found at the following github wiki page: https://github.com/draios/sysdig/wiki/csysdig-View-Format-Reference.\n");
 
@@ -1861,13 +1944,13 @@ sysdig_table_action curses_mainhelp_page::handle_input(int ch)
 
 	if(totlines < (int32_t)m_parent->m_screenh)
 	{
-		return STA_DESTROY_CHILD;			
+		return STA_DESTROY_CHILD;
 	}
 
 	switch(ch)
 	{
 		case KEY_RESIZE:
-			return STA_DESTROY_CHILD;	
+			return STA_DESTROY_CHILD;
 		case KEY_F(1):
 			return STA_NONE;
 		case 'q':
@@ -1906,7 +1989,7 @@ sysdig_table_action curses_mainhelp_page::handle_input(int ch)
 		break;
 	}
 
-	return STA_DESTROY_CHILD;	
+	return STA_DESTROY_CHILD;
 }
 
 #endif // NOCURSESUI

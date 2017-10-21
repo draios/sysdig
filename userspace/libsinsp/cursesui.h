@@ -25,10 +25,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define UI_USER_INPUT_CHECK_PERIOD_NS 10000000
 #define VIEW_SIDEMENU_WIDTH 20
 #define ACTION_SIDEMENU_WIDTH 30
-#define VIEW_ID_SPY -1
-#define VIEW_ID_DIG -2
-#define VIEW_ID_INFO -3
-
+#define FILTER_TEMPLATE_MAGIC "@#$f1CA^&;"
 string combine_filters(string flt1, string flt2);
 class ctext;
 class sinsp_chart;
@@ -75,7 +72,8 @@ public:
 		uint32_t prev_sorting_col,
 		string prev_manual_filter,
 		bool prev_is_filter_sysdig,
-		bool prev_is_sorting_ascending)
+		bool prev_is_sorting_ascending,
+		bool is_drilldown)
 	{
 		m_field = field;
 		m_column_info = column_info;
@@ -87,6 +85,7 @@ public:
 		m_prev_manual_filter = prev_manual_filter;
 		m_prev_is_filter_sysdig = prev_is_filter_sysdig;
 		m_prev_is_sorting_ascending = prev_is_sorting_ascending;
+		m_is_drilldown = is_drilldown;
 
 		if(rowkey != NULL)
 		{
@@ -110,6 +109,7 @@ public:
 	bool m_prev_is_filter_sysdig;
 	sinsp_table_field m_rowkey;
 	bool m_prev_is_sorting_ascending;
+	bool m_is_drilldown;
 };
 
 class sinsp_ui_selection_hierarchy
@@ -125,7 +125,8 @@ public:
 		uint32_t prev_sorting_col,
 		string prev_manual_filter,
 		bool prev_is_filter_sysdig,
-		bool prev_is_sorting_ascending)
+		bool prev_is_sorting_ascending,
+		bool is_drilldown)
 	{
 		m_hierarchy.push_back(sinsp_ui_selection_info(field, 
 			val,
@@ -137,7 +138,8 @@ public:
 			prev_sorting_col,
 			prev_manual_filter,
 			prev_is_filter_sysdig,
-			prev_is_sorting_ascending));
+			prev_is_sorting_ascending,
+			is_drilldown));
 	}
 
 	~sinsp_ui_selection_hierarchy()
@@ -151,7 +153,7 @@ public:
 		}
 	}
 
-	string tofilter()
+	string tofilter(bool templated)
 	{
 		string res;
 		uint32_t j;
@@ -160,53 +162,76 @@ public:
 		for(j = 0; j < hs; j++)
 		{
 			bool has_filter = false;
+			uint32_t lastsize = res.size();
 
 			if(m_hierarchy[j].m_view_filter != "")
 			{
 				has_filter = true;
 			}
 
+			if(hs > 1)
+			{
+				res += "(";
+			}
+
 			if(has_filter)
 			{
-				if(hs > 1)
-				{
-					res += "(";
-				}
 				res += "(";
 				res += m_hierarchy[j].m_view_filter;
 				res += ")";
+			}
 
-				if(m_hierarchy[j].m_field != "")
+			if(m_hierarchy[j].m_field != "")
+			{
+				bool skip = false;
+
+				if(m_hierarchy[j].m_column_info != NULL &&
+				(m_hierarchy[j].m_column_info->m_flags & TEF_FILTER_IN_CHILD_ONLY))
 				{
-					bool skip = false;
-
-					if(m_hierarchy[j].m_column_info != NULL &&
-					(m_hierarchy[j].m_column_info->m_flags & TEF_FILTER_IN_CHILD_ONLY))
+					if(j < hs - 1)
 					{
-						if(j < hs - 1)
-						{
-							skip = true;
-						}
-					}	
+						skip = true;
+					}
+				}	
 
-					if(!skip)
+				if(!skip)
+				{
+					if(has_filter)
 					{
-						res += " and " + m_hierarchy[j].m_field;
-						res += "=";
+						res += " and ";
+					}
+					res += m_hierarchy[j].m_field;
+					res += "=";
+
+					if(templated && (j == hs - 1)) 
+					{
+						res += string("\"") + FILTER_TEMPLATE_MAGIC + "\"";
+					}
+					else
+					{
 						res += m_hierarchy[j].m_val;
 					}
 				}
+			}
 
+			if(res.size() != lastsize)
+			{
 				if(hs > 1)
 				{
 					res += ")";
 				}
 
 				res += " and ";
+
+				if(res.size() >= 7 && res.substr(res.size() - 7) == "() and ")
+				{
+					res = res.substr(0, res.size() - 7);
+				}
+
 			}
 		}
 
-		if(res.size() > 5)
+		if(res.size() >= 5)
 		{
 			string trailer = res.substr(res.size() - 5).c_str();
 			if(trailer == " and ")
@@ -301,6 +326,33 @@ public:
 	vector<sinsp_mouse_to_key_list_entry> m_list;
 };
 
+class json_spy_renderer
+{
+public:
+	json_spy_renderer(sinsp* inspector, 
+		sinsp_cursesui* parent,
+		int32_t viz_type, 
+		spy_text_renderer::sysdig_output_type sotype, 
+		bool print_containers,
+		sinsp_evt::param_fmt text_fmt);
+
+	~json_spy_renderer();
+	void set_filter(string filter);
+	void process_event(sinsp_evt* evt, int32_t next_res);
+	string get_data();
+	uint64_t get_count();
+
+private:
+	void process_event_spy(sinsp_evt* evt, int32_t next_res);
+	void process_event_dig(sinsp_evt* evt, int32_t next_res);
+
+	spy_text_renderer* m_json_spy_renderer;
+	sinsp* m_inspector;
+	Json::Value m_root;
+	sinsp_filter* m_filter;
+	uint64_t m_linecnt;
+};
+
 class sinsp_cursesui
 {
 public:
@@ -380,7 +432,9 @@ public:
 
 	sinsp_cursesui(sinsp* inspector, string event_source_name, 
 		string cmdline_capture_filter, uint64_t refresh_interval_ns, 
-		bool print_containers, bool raw_output, bool is_mousedrag_available);
+		bool print_containers, sinsp_table::output_type output_type, bool is_mousedrag_available,
+		int32_t json_first_row, int32_t json_last_row, int32_t sorting_col,
+		sinsp_evt::param_fmt json_spy_text_fmt);
 	~sinsp_cursesui();
 	void configure(sinsp_view_manager* views);
 	void start(bool is_drilldown, bool is_spy_switch);
@@ -399,6 +453,10 @@ public:
 	{
 		m_truncated_input = truncated;
 	}
+	void set_interactive(bool interactive)
+	{
+		m_interactive = interactive;
+	}
 #ifndef NOCURSESUI
 	void render();
 #endif
@@ -407,6 +465,7 @@ public:
 	void run_action(sinsp_view_action_info* action);
 	void spy_selection(string field, string val, sinsp_view_column_info* column_info, bool is_dig);
 	sysdig_table_action handle_input(int ch);
+	bool handle_stdin_input(bool* res);
 
 	//
 	// Return true if the application is supposed to exit
@@ -427,44 +486,50 @@ public:
 		//
 		// Process the user input
 		//
-#ifndef NOCURSESUI
-		if((ts - m_last_input_check_ts > m_input_check_period_ns) || m_eof)
+		if(m_output_type != sinsp_table::OT_JSON)
 		{
-			uint32_t ninputs = 0;
-
-			uint64_t evtnum = evt->get_num();
-
-			//
-			// If this is a file, print the progress once in a while
-			//
-			if(!m_inspector->is_live() && !m_offline_replay)
+#ifndef NOCURSESUI
+			if((ts - m_last_input_check_ts > m_input_check_period_ns) || m_eof)
 			{
-				if(evtnum - m_last_progress_evt > 30000)
-				{
-					print_progress(m_inspector->get_read_progress());
-					m_last_progress_evt = evtnum;
-				}
-			}
+				uint32_t ninputs = 0;
+				uint64_t evtnum = evt->get_num();
 
-			//
-			// If we have more than one event in the queue, consume all of them
-			//
-			while(true)
-			{
-				int input = getch();
-				bool sppaused = is_spectro_paused(input);
-
-				if(input == -1)
+				//
+				// If this is a file, print the progress once in a while
+				//
+				if(!m_inspector->is_live() && !m_offline_replay)
 				{
-					//
-					// All events consumed
-					//
-					if(m_spectro)
+					if(evtnum - m_last_progress_evt > 30000)
 					{
-						if(sppaused)
+						print_progress(m_inspector->get_read_progress());
+						m_last_progress_evt = evtnum;
+					}
+				}
+
+				//
+				// If we have more than one event in the queue, consume all of them
+				//
+				while(true)
+				{
+					int input = getch();
+					bool sppaused = is_spectro_paused(input);
+
+					if(input == -1)
+					{
+						//
+						// All events consumed
+						//
+						if(m_spectro)
 						{
-							usleep(100000);
-							continue;
+							if(sppaused)
+							{
+								usleep(100000);
+								continue;
+							}
+							else
+							{
+								break;
+							}
 						}
 						else
 						{
@@ -473,114 +538,45 @@ public:
 					}
 					else
 					{
-						break;
+						ninputs++;
+					}
+
+					//
+					// Handle the event
+					//
+					sysdig_table_action ta = handle_input(input);
+
+					bool res;
+					if(execute_table_action(ta, 0, &res) == true)
+					{
+						return res;
 					}
 				}
-				else
-				{
-					ninputs++;
-				}
 
-				//
-				// Handle the event
-				//
-				sysdig_table_action ta = handle_input(input);
-
-				//
-				// Some events require that we perform additional actions
-				//
-				switch(ta)
+				if(ninputs == 0)
 				{
-				case STA_QUIT:
-					return true;
-				case STA_SWITCH_VIEW:
-					switch_view(false);
-					return false;
-				case STA_SWITCH_SPY:
-					switch_view(true);
-					return false;
-				case STA_DRILLDOWN:
-					{
-						if(m_viz != NULL)
-						{
-							auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-							if(res.first != NULL)
-							{
-								drilldown(get_selected_view()->get_key()->get_filter_field(m_view_depth),
-									res.second.c_str(), 
-									get_selected_view()->get_key(),
-									res.first);
-							}
-						}
-						else
-						{
-							ASSERT(m_spectro != NULL);
-							drilldown("", "", NULL, NULL);							
-						}
-					}
-					return false;
-				case STA_DRILLUP:
-					drillup();
-					return false;
-				case STA_SPECTRO:
-				case STA_SPECTRO_FILE:
-					{
-						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-						if(res.first != NULL)
-						{
-							spectro_selection(get_selected_view()->get_key()->get_filter_field(m_view_depth), 
-								res.second.c_str(),
-								get_selected_view()->get_key(),
-								res.first, ta);
-						}
-					}
-					return false;
-				case STA_SPY:
-					{
-						auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-						if(res.first != NULL)
-						{
-							spy_selection(get_selected_view()->get_key()->get_filter_field(m_view_depth), 
-								res.second.c_str(),
-								get_selected_view()->get_key(),
-								false);
-						}
-					}
-					return false;
-				case STA_DIG:
-					{
-						if(m_viz)
-						{
-							auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct);
-							if(res.first != NULL)
-							{
-								spy_selection(get_selected_view()->get_key()->get_filter_field(m_view_depth), 
-									res.second.c_str(),
-									get_selected_view()->get_key(),
-									true);
-							}
-						}
-						else
-						{
-							ASSERT(m_spectro);
-							spy_selection("", "", NULL, true);
-						}
-					}
-					return false;
-				case STA_NONE:
-					break;
-				default:
-					ASSERT(false);
-					break;
+					m_last_input_check_ts = ts;
 				}
 			}
-
-			if(ninputs == 0)
+#endif
+		}
+		else
+		{
+			//
+			// JSON output.
+			// If this is a file, print the progress once in a while
+			//
+			if(!m_inspector->is_live() && !m_offline_replay)
 			{
-				m_last_input_check_ts = ts;
+				uint64_t evtnum = evt->get_num();
+				if(evtnum - m_last_progress_evt > 300000)
+				{
+				 	printf("{\"progress\": %.2lf},\n", m_inspector->get_read_progress());
+					fflush(stdout);
+					m_last_progress_evt = evtnum;
+				}
 			}
 		}
-#endif
 
 		//
 		// We were reading from a file and we reached its end. 
@@ -593,9 +589,17 @@ public:
 #ifndef NOCURSESUI
 			usleep(10000);
 #endif
-			if(m_raw_output)
+			if(m_output_type == sinsp_table::OT_RAW || m_output_type == sinsp_table::OT_JSON)
 			{
-				return true;
+				if(m_interactive)
+				{
+					bool sres;
+					return handle_stdin_input(&sres);
+				}
+				else
+				{
+					return true;
+				}
 			}
 			else
 			{
@@ -613,6 +617,44 @@ public:
 		}
 		else
 #endif
+		if(m_json_spy_renderer)
+		{
+			m_json_spy_renderer->process_event(evt, next_res);
+			
+			uint64_t evtnum = evt->get_num();
+			if((evtnum - m_last_progress_evt > 2000) || (next_res == SCAP_EOF))
+			{
+				string jdata = m_json_spy_renderer->get_data();
+				double rprogress = m_inspector->get_read_progress();
+				printf("{\"progress\": %.2lf,", rprogress);
+				if(next_res == SCAP_EOF)
+				{
+					printf(" \"count\": %" PRIu64 ", ", m_json_spy_renderer->get_count());
+				}
+				printf("\"data\": %s", jdata.c_str());
+				printf("}");
+
+				if(next_res != SCAP_EOF)
+				{
+					printf(",");
+				}
+
+				fflush(stdout);
+
+				m_last_progress_evt = evtnum;
+			}
+
+			//
+			// Check if this the end of the capture file, and if yes take note of that 
+			//
+			if(next_res == SCAP_EOF)
+			{
+				ASSERT(!m_inspector->is_live());
+				m_eof++;
+				return true;
+			}
+		}
+		else
 		{
 			bool end_of_sample;
 
@@ -641,7 +683,7 @@ public:
 				}
 				else
 				{
-					end_of_sample = false;				
+					end_of_sample = false;
 				}
 			}
 
@@ -700,16 +742,19 @@ public:
 	bool m_is_mousedrag_available;
 
 private:
+	Json::Value generate_json_info_section();
 	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);
 	void restart_capture(bool is_spy_switch);
 	void switch_view(bool is_spy_switch);
 	bool spectro_selection(string field, string val, sinsp_view_column_info* column_info, filtercheck_field_info* info, sysdig_table_action ta);
-	bool do_drilldown(string field, string val, sinsp_view_column_info* column_info, uint32_t new_view_num, filtercheck_field_info* info);
+	bool do_drilldown(string field, string val, sinsp_view_column_info* column_info, uint32_t new_view_num, filtercheck_field_info* info, bool dont_restart);
 	// returns false if there is no suitable drill down view for this field
-	bool drilldown(string field, string val, sinsp_view_column_info* column_info, filtercheck_field_info* info);
+	bool drilldown(string field, string val, sinsp_view_column_info* column_info, filtercheck_field_info* info, bool dont_restart);
 	// returns false if we are already at the top of the hierarchy
 	bool drillup();
-	void create_complete_filter();
+	void create_complete_filter(bool templated);
+	bool execute_table_action(sysdig_table_action ta, uint32_t rownumber, bool* res);
+	int32_t get_viewnum_by_name(string name);
 
 #ifndef NOCURSESUI
 	void render_header();
@@ -733,6 +778,7 @@ private:
 	string m_event_source_name;
 	string m_cmdline_capture_filter;
 	string m_complete_filter;
+	string m_complete_filter_noview;
 	string m_manual_filter;
 	string m_manual_search_text;
 	bool m_paused;
@@ -755,8 +801,14 @@ private:
 	uint32_t m_filterstring_start_x;
 	uint32_t m_filterstring_end_x;
 	string m_search_header_text;
-	bool m_raw_output;
+	sinsp_table::output_type m_output_type;
 	bool m_truncated_input;
+	bool m_interactive;
+	int32_t m_json_first_row;
+	int32_t m_json_last_row;
+	int32_t m_sorting_col;
+	json_spy_renderer* m_json_spy_renderer;
+	sinsp_evt::param_fmt m_json_spy_text_fmt;
 };
 
 #endif // CSYSDIG

@@ -34,6 +34,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/quota.h>
+#include <linux/tty.h>
+#include <linux/uaccess.h>
 #ifdef CONFIG_CGROUPS
 #include <linux/cgroup.h>
 #endif
@@ -67,6 +69,7 @@ static int f_sys_single_x(struct event_filler_arguments *args);		/* generic exit
 static int f_sys_open_x(struct event_filler_arguments *args);
 static int f_sys_read_x(struct event_filler_arguments *args);
 static int f_sys_write_x(struct event_filler_arguments *args);
+static int f_sys_execve_e(struct event_filler_arguments *args);
 static int f_proc_startupdate(struct event_filler_arguments *args);
 static int f_sys_socketpair_x(struct event_filler_arguments *args);
 static int f_sys_connect_x(struct event_filler_arguments *args);
@@ -130,8 +133,11 @@ static int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args);
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 static int f_sys_signaldeliver_e(struct event_filler_arguments *args);
 #endif
-
+#ifdef CAPTURE_PAGE_FAULTS
+static int f_sys_pagefault_e(struct event_filler_arguments *args);
+#endif
 static int f_sys_setns_e(struct event_filler_arguments *args);
+static int f_sys_unshare_e(struct event_filler_arguments *args);
 static int f_sys_flock_e(struct event_filler_arguments *args);
 static int f_cpu_hotplug_e(struct event_filler_arguments *args);
 static int f_sys_semop_e(struct event_filler_arguments *args);
@@ -292,8 +298,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_DROP_X] = {f_sched_drop},
 	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
-	[PPME_SYSCALL_EXECVE_16_E] = {f_sys_empty},
-	[PPME_SYSCALL_EXECVE_16_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_EXECVE_18_E] = {f_sys_execve_e},
+	[PPME_SYSCALL_EXECVE_18_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_CLONE_20_E] = {f_sys_empty},
 	[PPME_SYSCALL_CLONE_20_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
@@ -375,7 +381,17 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_CHROOT_E] = {f_sys_empty},
 	[PPME_SYSCALL_CHROOT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_SYSCALL_SETSID_E] = {f_sys_empty},
-	[PPME_SYSCALL_SETSID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL}} }
+	[PPME_SYSCALL_SETSID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
+	[PPME_SYSCALL_MKDIR_2_E] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_USEDEFAULT, 0} } },
+	[PPME_SYSCALL_MKDIR_2_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
+	[PPME_SYSCALL_RMDIR_2_E] = {f_sys_empty},
+	[PPME_SYSCALL_RMDIR_2_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
+	[PPME_SYSCALL_UNSHARE_E] = {f_sys_unshare_e},
+	[PPME_SYSCALL_UNSHARE_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
+#ifdef CAPTURE_PAGE_FAULTS
+	[PPME_PAGE_FAULT_E] = {f_sys_pagefault_e},
+	[PPME_PAGE_FAULT_X] = {f_sys_empty},
+#endif
 };
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
@@ -515,9 +531,92 @@ static inline u32 open_flags_to_scap(unsigned long flags)
 	return res;
 }
 
+
+static inline u32 open_modes_to_scap(unsigned long modes)
+{
+	u32 res = 0;
+
+	if (modes & S_IRUSR)
+		res |= PPM_S_IRUSR;
+
+	if (modes & S_IWUSR)
+		res |= PPM_S_IWUSR;
+
+	if (modes & S_IXUSR)
+		res |= PPM_S_IXUSR;
+
+	/*
+	* PPM_S_IRWXU == S_IRUSR | S_IWUSR | S_IXUSR 
+	*/
+
+	if (modes & S_IRGRP)
+		res |= PPM_S_IRGRP;
+
+	if (modes & S_IWGRP)
+		res |= PPM_S_IWGRP;
+
+	if (modes & S_IXGRP)
+		res |= PPM_S_IXGRP;
+
+	/*
+	* PPM_S_IRWXG == S_IRGRP | S_IWGRP | S_IXGRP 
+	*/
+
+	if (modes & S_IROTH)
+		res |= PPM_S_IROTH;
+
+	if (modes & S_IWOTH)
+		res |= PPM_S_IWOTH;
+
+	if (modes & S_IXOTH)
+		res |= PPM_S_IXOTH;
+	
+	/*
+	* PPM_S_IRWXO == S_IROTH | S_IWOTH | S_IXOTH
+	*/
+	
+	if (modes & S_ISUID)
+		res |= PPM_S_ISUID;
+
+	if (modes & S_ISGID)
+		res |= PPM_S_ISGID;
+
+	if (modes & S_ISVTX)
+		res |= PPM_S_ISVTX;
+
+	return res;
+}
+
+static inline int open_mode_to_ring(struct event_filler_arguments *args,
+				    unsigned long flags,
+				    unsigned int i)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0)
+	unsigned long flags_mask = O_CREAT | O_TMPFILE;
+#else
+	unsigned long flags_mask = O_CREAT;
+#endif
+	int res;
+
+	if (flags & flags_mask) {
+		unsigned long val;
+
+		/*
+		 * Mode
+		 * Note that we convert them into the ppm portable
+		 * representation before pushing them to the ring
+		 */
+		syscall_get_arguments(current, args->regs, i, 1, &val);
+		res = val_to_ring(args, open_modes_to_scap(val), 0, false, 0);
+	} else {
+		res = val_to_ring(args, 0, 0, false, 0);
+	}
+	return res;
+}
+
 static int f_sys_open_x(struct event_filler_arguments *args)
 {
-	unsigned long val;
+	unsigned long val, flags;
 	int res;
 	int64_t retval;
 
@@ -541,19 +640,15 @@ static int f_sys_open_x(struct event_filler_arguments *args)
 	 * Flags
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
-	syscall_get_arguments(current, args->regs, 1, 1, &val);
-	res = val_to_ring(args, open_flags_to_scap(val), 0, false, 0);
+	syscall_get_arguments(current, args->regs, 1, 1, &flags);
+	res = val_to_ring(args, open_flags_to_scap(flags), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
 	/*
-	 * Mode
-	 * XXX: at this time, mode decoding is not supported. We nonetheless return a value (zero)
-	 * so the format of the event is ready for when we'll export the mode in the future.
-	 *
-	 * syscall_get_arguments(current, args->regs, 2, 1, &val);
+	 *  mode
 	 */
-	res = val_to_ring(args, 0, 0, false, 0);
+	res = open_mode_to_ring(args, flags, 2);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -720,6 +815,28 @@ static inline u32 clone_flags_to_scap(unsigned long flags)
 		res |= PPM_CL_CLONE_NEWUSER;
 #endif
 
+	if (flags & CLONE_CHILD_CLEARTID)
+		res |= PPM_CL_CLONE_CHILD_CLEARTID;
+
+	if (flags & CLONE_CHILD_SETTID)
+		res |= PPM_CL_CLONE_CHILD_SETTID;
+
+	if (flags & CLONE_SETTLS)
+		res |= PPM_CL_CLONE_SETTLS;
+
+#ifdef CLONE_STOPPED
+	if (flags & CLONE_STOPPED)
+		res |= PPM_CL_CLONE_STOPPED;
+#endif
+
+	if (flags & CLONE_VFORK)
+		res |= PPM_CL_CLONE_VFORK;
+
+#ifdef CLONE_NEWCGROUP
+	if (flags & CLONE_NEWCGROUP)
+		res |= 	PPM_CL_CLONE_NEWCGROUP;
+#endif
+
 	return res;
 }
 
@@ -812,7 +929,7 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 	int subsys_len;
 	char *path;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0) || LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
 	int res;
 #endif
 
@@ -821,6 +938,7 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 #else
 	struct cgroup_subsys_state *css = task_subsys_state(current, subsys_id);
 #endif
+
 	if (!css) {
 		ASSERT(false);
 		return 1;
@@ -831,7 +949,17 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 		return 1;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+	// According to https://github.com/torvalds/linux/commit/4c737b41de7f4eef2a593803bad1b918dd718b10
+	// cgroup_path now returns an int again
+	res = cgroup_path(css->cgroup, buf, *available);
+	if (res < 0) {
+		ASSERT(false);
+		path = "NA";
+	} else {
+		path = buf;
+	}
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
 	path = cgroup_path(css->cgroup, buf, *available);
 	if (!path) {
 		ASSERT(false);
@@ -996,6 +1124,69 @@ static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 
 #endif
 
+// probe_kernel_read() only added in kernel 2.6.26
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 26)
+long probe_kernel_read(void *dst, const void *src, size_t size)
+{
+	long ret;
+	mm_segment_t old_fs = get_fs();
+
+	set_fs(KERNEL_DS);
+	pagefault_disable();
+	ret = __copy_from_user_inatomic(dst, (__force const void __user *)src, size);
+	pagefault_enable();
+	set_fs(old_fs);
+
+	return ret ? -EFAULT : 0;
+}
+#endif
+
+static int ppm_get_tty(void)
+{
+	/* Locking of the signal structures seems too complicated across
+	 * multiple kernel versions to get it right, so simply do protected
+	 * memory accesses, and in the worst case we get some garbage,
+	 * which is not the end of the world. In the vast majority of accesses,
+	 * we'll be just fine.
+	 */
+	struct signal_struct *sig;
+	struct tty_struct *tty;
+	struct tty_driver *driver;
+	int major;
+	int minor_start;
+	int index;
+	int tty_nr = 0;
+
+	sig = current->signal;
+	if (!sig)
+		return 0;
+
+	if (unlikely(probe_kernel_read(&tty, &sig->tty, sizeof(tty))))
+		return 0;
+
+	if (!tty)
+		return 0;
+
+	if (unlikely(probe_kernel_read(&index, &tty->index, sizeof(index))))
+		return 0;
+
+	if (unlikely(probe_kernel_read(&driver, &tty->driver, sizeof(driver))))
+		return 0;
+
+	if (!driver)
+		return 0;
+
+	if (unlikely(probe_kernel_read(&major, &driver->major, sizeof(major))))
+		return 0;
+
+	if (unlikely(probe_kernel_read(&minor_start, &driver->minor_start, sizeof(minor_start))))
+		return 0;
+
+	tty_nr = new_encode_dev(MKDEV(major, minor_start) + index);
+
+	return tty_nr;
+}
+
 static int f_proc_startupdate(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -1005,7 +1196,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 	struct mm_struct *mm = current->mm;
 	int64_t retval;
 	int ptid;
-	char *spwd;
+	char *spwd = "";
 	long total_vm = 0;
 	long total_rss = 0;
 	long swap = 0;
@@ -1020,7 +1211,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		return res;
 
 	if (unlikely(retval < 0 &&
-		     args->event_type != PPME_SYSCALL_EXECVE_16_X)) {
+		     args->event_type != PPME_SYSCALL_EXECVE_18_X)) {
 
 		/* The call failed, but this syscall has no exe, args
 		 * anyway, so I report empty ones */
@@ -1067,13 +1258,10 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 					args_len = PAGE_SIZE;
 
 				if (unlikely(ppm_copy_from_user(args->str_storage, (const void __user *)mm->arg_start, args_len)))
-					return PPM_FAILURE_INVALID_USER_MEMORY;
-
-				args->str_storage[args_len - 1] = 0;
-			} else {
-				*args->str_storage = 0;
+					args_len = 0;
+				else
+					args->str_storage[args_len - 1] = 0;
 			}
-
 		} else {
 
 			/*
@@ -1092,9 +1280,13 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 #endif
 				args_len = accumulate_argv_or_env((const char __user * __user *)val,
 							   args->str_storage, available);
+
 			if (unlikely(args_len < 0))
-				return args_len;
+				args_len = 0;
 		}
+
+		if (args_len == 0)
+			*args->str_storage = 0;
 
 		exe_len = strnlen(args->str_storage, args_len);
 		if (exe_len < args_len)
@@ -1148,14 +1340,9 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		return res;
 
 	/*
-	 * cwd
+	 * cwd, pushed empty to avoid breaking compatibility
+	 * with the older event format
 	 */
-	spwd = npm_getcwd(args->str_storage, STR_STORAGE_SIZE - 1);
-	if (spwd == NULL)
-		spwd = "";
-
-	args->str_storage[STR_STORAGE_SIZE - 1] = '\0';
-
 	res = val_to_ring(args, (uint64_t)(long)spwd, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -1301,11 +1488,12 @@ cgroups_error:
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
-	} else if (args->event_type == PPME_SYSCALL_EXECVE_16_X) {
+	} else if (args->event_type == PPME_SYSCALL_EXECVE_18_X) {
 		/*
 		 * execve-only parameters
 		 */
 		long env_len = 0;
+		int tty_nr = 0;
 
 		if (likely(retval >= 0)) {
 			/*
@@ -1318,11 +1506,9 @@ cgroups_error:
 					env_len = PAGE_SIZE;
 
 				if (unlikely(ppm_copy_from_user(args->str_storage, (const void __user *)mm->env_start, env_len)))
-					return PPM_FAILURE_INVALID_USER_MEMORY;
-
-				args->str_storage[env_len - 1] = 0;
-			} else {
-				*args->str_storage = 0;
+					env_len = 0;
+				else
+					args->str_storage[env_len - 1] = 0;
 			}
 		} else {
 			/*
@@ -1337,9 +1523,13 @@ cgroups_error:
 #endif
 				env_len = accumulate_argv_or_env((const char __user * __user *)val,
 							  args->str_storage, available);
+
 			if (unlikely(env_len < 0))
-				return env_len;
+				env_len = 0;
 		}
+
+		if (env_len == 0)
+			*args->str_storage = 0;
 
 		/*
 		 * environ
@@ -1347,7 +1537,34 @@ cgroups_error:
 		res = val_to_ring(args, (int64_t)(long)args->str_storage, env_len, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
+
+		/*
+		 * tty
+		 */
+		tty_nr = ppm_get_tty();
+		res = val_to_ring(args, tty_nr, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
 	}
+
+	return add_sentinel(args);
+}
+
+static int f_sys_execve_e(struct event_filler_arguments *args)
+{
+	int res;
+	unsigned long val;
+
+	/*
+	 * filename
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (res == PPM_FAILURE_INVALID_USER_MEMORY)
+		res = val_to_ring(args, (unsigned long)"<NA>", 0, false, 0);
+
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
 
 	return add_sentinel(args);
 }
@@ -2942,7 +3159,7 @@ static int f_sys_mount_e(struct event_filler_arguments *args)
 
 static int f_sys_openat_e(struct event_filler_arguments *args)
 {
-	unsigned long val;
+	unsigned long val, flags;
 	int res;
 
 	/*
@@ -2969,19 +3186,15 @@ static int f_sys_openat_e(struct event_filler_arguments *args)
 	 * Flags
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
-	syscall_get_arguments(current, args->regs, 2, 1, &val);
-	res = val_to_ring(args, open_flags_to_scap(val), 0, false, 0);
+	syscall_get_arguments(current, args->regs, 2, 1, &flags);
+	res = val_to_ring(args, open_flags_to_scap(flags), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
 	/*
-	 * Mode
-	 * XXX: at this time, mode decoding is not supported. We nonetheless return a value (zero)
-	 * so the format of the event is ready for when we'll export the mode in the future.
-	 *
-	 * syscall_get_arguments(current, args->regs, 3, 1, &val);
+	 *  mode
 	 */
-	res = val_to_ring(args, 0, 0, false, 0);
+	res = open_mode_to_ring(args, flags, 3);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -3819,6 +4032,18 @@ static inline u8 fcntl_cmd_to_scap(unsigned long cmd)
 	case F_GETPIPE_SZ:
 		return PPM_FCNTL_F_GETPIPE_SZ;
 #endif
+#ifdef F_OFD_GETLK
+	case F_OFD_GETLK:
+		return PPM_FCNTL_F_OFD_GETLK;
+#endif
+#ifdef F_OFD_SETLK
+	case F_OFD_SETLK:
+		return PPM_FCNTL_F_OFD_SETLK;
+#endif
+#ifdef F_OFD_SETLKW
+	case F_OFD_SETLKW:
+		return PPM_FCNTL_F_OFD_SETLKW;
+#endif
 	default:
 		ASSERT(false);
 		return PPM_FCNTL_UNKNOWN;
@@ -3873,10 +4098,14 @@ static inline u16 ptrace_requests_to_scap(unsigned long req)
 	case PTRACE_SET_THREAD_AREA:
 		return PPM_PTRACE_SET_THREAD_AREA;
 #endif
+#ifdef PTRACE_GET_THREAD_AREA
 	case PTRACE_GET_THREAD_AREA:
 		return PPM_PTRACE_GET_THREAD_AREA;
+#endif
+#ifdef PTRACE_OLDSETOPTIONS
 	case PTRACE_OLDSETOPTIONS:
 		return PPM_PTRACE_OLDSETOPTIONS;
+#endif
 #ifdef PTRACE_SETFPXREGS
 	case PTRACE_SETFPXREGS:
 		return PPM_PTRACE_SETFPXREGS;
@@ -3885,14 +4114,22 @@ static inline u16 ptrace_requests_to_scap(unsigned long req)
 	case PTRACE_GETFPXREGS:
 		return PPM_PTRACE_GETFPXREGS;
 #endif
+#ifdef PTRACE_SETFPREGS
 	case PTRACE_SETFPREGS:
 		return PPM_PTRACE_SETFPREGS;
+#endif
+#ifdef PTRACE_GETFPREGS
 	case PTRACE_GETFPREGS:
 		return PPM_PTRACE_GETFPREGS;
+#endif
+#ifdef PTRACE_SETREGS
 	case PTRACE_SETREGS:
 		return PPM_PTRACE_SETREGS;
+#endif
+#ifdef PTRACE_GETREGS
 	case PTRACE_GETREGS:
 		return PPM_PTRACE_GETREGS;
+#endif
 #ifdef PTRACE_SETSIGMASK
 	case PTRACE_SETSIGMASK:
 		return PPM_PTRACE_SETSIGMASK;
@@ -4965,6 +5202,24 @@ static int f_sys_setns_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+static int f_sys_unshare_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	u32 flags;
+
+	/*
+	 * get type, parse as clone flags as it's a subset of it
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	flags = clone_flags_to_scap(val);
+	res = val_to_ring(args, flags, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 static int f_sys_signaldeliver_e(struct event_filler_arguments *args)
 {
@@ -4988,6 +5243,61 @@ static int f_sys_signaldeliver_e(struct event_filler_arguments *args)
 	 * signal number
 	 */
 	res = val_to_ring(args, args->signo, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+#endif
+
+#ifdef CAPTURE_PAGE_FAULTS
+static inline u32 pf_flags_to_scap(unsigned long flags)
+{
+	u32 res = 0;
+
+	/* Page fault error codes don't seem to be clearly defined in header
+	 * files througout the kernel except in some emulation modes (e.g. kvm)
+	 * which we can't assume to exist, so I just took the definitions from
+	 * the x86 manual. If we end up supporting another arch for page faults,
+	 * refactor this.
+	 */
+	if (flags & 0x1)
+		res |= PPM_PF_PROTECTION_VIOLATION;
+	else
+		res |= PPM_PF_PAGE_NOT_PRESENT;
+
+	if (flags & 0x2)
+		res |= PPM_PF_WRITE_ACCESS;
+	else
+		res |= PPM_PF_READ_ACCESS;
+
+	if (flags & 0x4)
+		res |= PPM_PF_USER_FAULT;
+	else
+		res |= PPM_PF_SUPERVISOR_FAULT;
+
+	if (flags & 0x8)
+		res |= PPM_PF_RESERVED_PAGE;
+
+	if (flags & 0x10)
+		res |= PPM_PF_INSTRUCTION_FETCH;
+
+	return res;
+}
+
+static int f_sys_pagefault_e(struct event_filler_arguments *args)
+{
+	int res;
+
+	res = val_to_ring(args, args->fault_data.address, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	res = val_to_ring(args, args->fault_data.regs->ip, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	res = val_to_ring(args, pf_flags_to_scap(args->fault_data.error_code), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

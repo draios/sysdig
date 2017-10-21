@@ -7,7 +7,6 @@
 #include "marathon_http.h"
 #include "curl/curl.h"
 #include "curl/easy.h"
-#include "curl/curlbuild.h"
 #define BUFFERSIZE 512 // b64 needs this macro
 #include "b64/encode.h"
 #include "sinsp.h"
@@ -18,13 +17,13 @@
 #include <stdexcept>
 #include <unistd.h>
 
-marathon_http::marathon_http(mesos& m, const uri& url, bool discover_marathon, int timeout_ms):
-	mesos_http(m, url, false, discover_marathon, timeout_ms)
+marathon_http::marathon_http(mesos& m, const uri& url, bool discover_marathon, int timeout_ms, const string& token):
+	mesos_http(m, url, false, discover_marathon, timeout_ms, token)
 {
 	g_logger.log("Creating Marathon HTTP object for [" + url.to_string(false) + "] ...", sinsp_logger::SEV_DEBUG);
 	if(refresh_data())
 	{
-		g_logger.log("Created Marathon HTTP connection (" + url.to_string() + ") for framework [" +
+		g_logger.log("Created Marathon HTTP connection (" + url.to_string(false) + ") for framework [" +
 					 get_framework_name() + "] (" + get_framework_id() + "), version: " + get_framework_version(),
 					 sinsp_logger::SEV_INFO);
 	}

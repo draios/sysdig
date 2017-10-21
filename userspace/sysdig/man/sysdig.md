@@ -111,7 +111,7 @@ OPTIONS
   Make the given filter a display one. Setting this option causes the events to be filtered after being parsed by the state system. Events are normally filtered before being analyzed, which is more efficient, but can cause state (e.g. FD names) to be lost.
   
 **-D**, **--debug**
-  Capture events about sysdig itself and print additional logging on standard error.
+  Capture events about sysdig itself, display internal events in addition to system events, and print additional logging on standard error.
 
 **-E**, **--exclude-users**
   Don't create the user/group tables by querying the OS when sysdig starts. This also means that no user or group info will be written to the tracefile by the **-w** flag. The user/group tables are necessary to use filter fields like user.name or group.name. However, creating them can increase sysdig's startup time. Moreover, they contain information that could be privacy sensitive.
@@ -153,17 +153,20 @@ OPTIONS
 **-l**, **--list**
   List the fields that can be used for filtering and output formatting. Use -lv to get additional information for each field.
 
-**-m** _url[,marathon-url]_, **--mesos-api=**_url[,marathon-url]_
-  Enable Mesos support by connecting to the API server specified as argument (e.g. http://admin:password@127.0.0.1:5050). Marathon url is optional and defaults to Mesos address, port 8080. The API servers can also be specified via the environment variable SYSDIG_MESOS_API.
+**--list-markdown**
+  Like -l, but produces markdown output
 
-**-N**
-  Don't convert port numbers to names.
+**-m** _url[,marathon-url]_, **--mesos-api=**_url[,marathon-url]_
+  Enable Mesos support by connecting to the API server specified as argument (e.g. http://admin:password@127.0.0.1:5050). Mesos url is required. Marathon url is optional, defaulting to auto-follow - if Marathon API server is not provided, sysdig will attempt to retrieve (and subsequently follow, if it migrates) the location of Marathon API server from the Mesos master. Note that, with auto-follow, sysdig will likely receive a cluster internal IP address for Marathon API server, so running sysdig with Marathon auto-follow from a node that is not part of Mesos cluster may not work. Additionally, running sysdig with Mesos support on a node that has no containers managed by Mesos is of limited use because, although cluster metadata will be collected, there will be no Mesos/Marathon filtering capability. The API servers can also be specified via the environment variable SYSDIG_MESOS_API.
 
 **-M** _num_seconds_
   Stop collecting after reaching <num_seconds>
 
 **-n** _num_, **--numevents**=_num_  
   Stop capturing after _num_ events
+
+**--page-faults**
+  Capture user/kernel major/minor page faults
 
 **-P**, **--progress**  
   Print progress on stderr while processing trace files.
@@ -176,7 +179,10 @@ OPTIONS
   
 **-r** _readfile_, **--read**=_readfile_  
   Read the events from _readfile_.
-  
+
+**-R**, **--resolve-ports**
+  Resolve port numbers to names.
+
 **-S**, **--summary**  
   print the event summary (i.e. the list of the top events) when the capture ends.
   
@@ -202,7 +208,7 @@ OPTIONS
   Write the captured events to _writefile_.
 
 **-W** _num_  
-  Turn on file rotation for continuous capture, and limit the number of files created to the specified number. Once the cap is reached, older files will be overwriten (ring buffer). Use in conjunction with the **-C** / **-G** / **-e** options to limit the size of each file based on number of megabytes, seconds, and/or events (respectively).
+  Turn on file rotation for continuous capture, and limit the number of files created to the specified number. Once the cap is reached, older files will be overwritten (ring buffer). Use in conjunction with the **-C** / **-G** / **-e** options to limit the size of each file based on number of megabytes, seconds, and/or events (respectively).
 
 **-x**, **--print-hex**  
   Print data buffers in hex.
