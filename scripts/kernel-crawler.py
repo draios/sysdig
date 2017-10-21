@@ -3,9 +3,11 @@
 # Author: Samuele Pilleri
 # Date: August 17th, 2015
 
+import bz2
+import sqlite3
 import sys
 import urllib2
-import zlib
+import tempfile
 from lxml import html
 
 #
@@ -178,14 +180,14 @@ repos = {
     "AmazonLinux": [
         {
             "root": "http://repo.us-east-1.amazonaws.com/latest/updates/mirror.list",
-            "discovery_pattern": "//location[regex:test(@href,'^Packages/kernel.*.rpm')]",
+            "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
             "subdirs": [""],
             "page_pattern": "",
             "exclude_patterns": ["doc","tools","headers"]
         },
         {
             "root": "http://repo.us-east-1.amazonaws.com/latest/main/mirror.list",
-            "discovery_pattern": "//location[regex:test(@href,'^Packages/kernel.*.rpm')]",
+            "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
             "subdirs": [""],
             "page_pattern": "",
             "exclude_patterns": ["doc","tools","headers"]
@@ -219,16 +221,22 @@ for repo in repos[sys.argv[1]]:
             print("run on AWS check failed: %s" % (e.reason))
             sys.exit(-1)
 
-        base_mirror_url = urllib2.urlopen('http://repo.us-east-1.amazonaws.com/latest/updates/mirror.list').readline().replace('$basearch','x86_64').replace('\n','')
-        response = urllib2.urlopen(base_mirror_url + '/repodata/primary.xml.gz')
-        decompressed_data = zlib.decompress(response.read(), 16+zlib.MAX_WBITS)
-
-        package_relative_url = [ x.attrib.get('href') for x in html.fromstring(decompressed_data).xpath(repo["discovery_pattern"],namespaces = {"regex": "http://exslt.org/regular-expressions"})]
-        for rpm in package_relative_url:
-            if "exclude_patterns" in repo and any(x in rpm for x in repo["exclude_patterns"]):
+        base_mirror_url = urllib2.urlopen(repo["root"]).readline().replace('$basearch','x86_64').replace('\n','')
+        response = urllib2.urlopen(base_mirror_url + '/repodata/primary.sqlite.bz2')
+        decompressed_data = bz2.decompress(response.read())
+        db_file = tempfile.NamedTemporaryFile()
+        db_file.write(decompressed_data)
+        conn = sqlite3.connect(db_file.name)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        for row in c.execute(repo["discovery_pattern"]):
+            if "exclude_patterns" in repo and any(x in row["location_href"] for x in repo["exclude_patterns"]):
                 continue
             else:
-                urls.add(urllib2.unquote(base_mirror_url+ '/' + rpm))
+                urls.add(urllib2.unquote(base_mirror_url+ '/' + row["location_href"]))
+
+        conn.close()
+        db_file.close()
     else:
         try:
             root = urllib2.urlopen(repo["root"],timeout=URL_TIMEOUT).read()

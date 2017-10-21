@@ -543,29 +543,10 @@ if [ -z "$KERNEL_TYPE" ]; then
 	DIR=$(dirname $(readlink -f $0))
 	URLS="$($DIR/oracle-kernel-crawler.py Oracle-RHCK)"
 
-<<<<<<< HEAD
-#
-# AmazonLinux build
-#
-echo Building AmazonLinux
-DIR=$(dirname $(readlink -f $0))
-URLS="$($DIR/kernel-crawler.py AmazonLinux)"
-
-for URL in $URLS
-do
-	rhel_build $URL
-done
-
-#
-# Upload modules
-#
-aws s3 sync ./output/ s3://download.draios.com/$REPOSITORY_NAME/sysdig-probe-binaries/ --acl public-read
-=======
 	for URL in $URLS
 	do
 		rhel_build $URL
 	done
->>>>>>> origin/dev
 
 	#
 	# The UEK builds needs to happen in a UEK environment, so we launch
@@ -591,6 +572,18 @@ aws s3 sync ./output/ s3://download.draios.com/$REPOSITORY_NAME/sysdig-probe-bin
 	docker build -t ol7-builder:latest -f ../sysdig/scripts/Dockerfile.ol7 ../sysdig/scripts
 	docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi
 	docker run -i --rm --name ol7-build -v $BASEDIR:/build/probe ol7-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL7-UEK
+
+	#
+	# AmazonLinux build
+	#
+	echo Building AmazonLinux
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py AmazonLinux)"
+
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
 
 	#
 	# Upload modules
