@@ -226,11 +226,9 @@ for repo in repos[distro]:
         try:
             # Look for the first mirror that works
             for line in urllib2.urlopen(repo["root"]).readlines():
-                print line
                 base_mirror_url = line.replace('$basearch','x86_64').replace('\n','') + '/'
                 try:
                     response = urllib2.urlopen(base_mirror_url + 'repodata/primary.sqlite.bz2')
-                    print base_mirror_url
                 except:
                     continue
 
