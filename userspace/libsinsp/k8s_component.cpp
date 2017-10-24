@@ -885,7 +885,7 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 				scope.add("kubernetes.namespace.name", ns);
 			}
 			const std::string& comp_name = comp->get_name();
-			if(comp_name.empty())
+			if(!comp_name.empty())
 			{
 				scope.add(std::string("kubernetes.").append(t).append(".name"), comp_name);
 			}
