@@ -255,7 +255,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	switch(etype)
 	{
 	case PPME_SYSCALL_OPEN_E:
-	case PPME_SOCKET_SOCKET_E:
 	case PPME_SYSCALL_EVENTFD_E:
 	case PPME_SYSCALL_CHDIR_E:
 	case PPME_SYSCALL_FCHDIR_E:
@@ -347,7 +346,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_PIPE_X:
 		parse_pipe_exit(evt);
 		break;
-	case PPME_SOCKET_SOCKET_X:
+	case PPME_SOCKET_SOCKET_2_X:
 		parse_socket_exit(evt);
 		break;
 	case PPME_SOCKET_BIND_X:
@@ -2114,11 +2113,10 @@ void sinsp_parser::parse_socket_exit(sinsp_evt *evt)
 	uint32_t domain;
 	uint32_t type;
 	uint32_t protocol;
-	sinsp_evt *enter_evt = &m_tmp_evt;
 
 	//
 	// NOTE: we don't check the return value of get_param() because we know the arguments we need are there.
-	// XXX this extraction would be much faster if we parsed the event mnaually to extract the
+	// XXX this extraction would be much faster if we parsed the event manually to extract the
 	// parameters in one scan. We don't care too much because we assume that we get here
 	// seldom enough that saving few tens of CPU cycles is not important.
 	//
@@ -2140,25 +2138,17 @@ void sinsp_parser::parse_socket_exit(sinsp_evt *evt)
 	}
 
 	//
-	// Load the enter event so we can access its arguments
-	//
-	if(!retrieve_enter_event(enter_evt, evt))
-	{
-		return;
-	}
-
-	//
 	// Extract the arguments
 	//
-	parinfo = enter_evt->get_param(0);
+	parinfo = evt->get_param(1);
 	ASSERT(parinfo->m_len == sizeof(uint32_t));
 	domain = *(uint32_t *)parinfo->m_val;
 
-	parinfo = enter_evt->get_param(1);
+	parinfo = evt->get_param(2);
 	ASSERT(parinfo->m_len == sizeof(uint32_t));
 	type = *(uint32_t *)parinfo->m_val;
 
-	parinfo = enter_evt->get_param(2);
+	parinfo = evt->get_param(3);
 	ASSERT(parinfo->m_len == sizeof(uint32_t));
 	protocol = *(uint32_t *)parinfo->m_val;
 

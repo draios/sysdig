@@ -1293,7 +1293,7 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 
 	switch (socketcall_id) {
 	case SYS_SOCKET:
-		return PPME_SOCKET_SOCKET_E;
+		return PPME_SOCKET_SOCKET_2_E;
 	case SYS_BIND:
 		return PPME_SOCKET_BIND_E;
 	case SYS_CONNECT:
