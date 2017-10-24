@@ -39,7 +39,7 @@ refresh_per_sec = 1 * 1000 * 1000 * 1000 / refresh_time
 max_label_len = 0
 frequencies = {}
 colpalette = {22, 28, 64, 34, 2, 76, 46, 118, 154, 191, 227, 226, 11, 220, 209, 208, 202, 197, 9, 1}
-charpalette = {" ", "░", "▒"}
+charpalette = {" ", "░", "▒", "░"}
 
 -- Argument initialization
 function on_set_arg(name, val)
@@ -115,7 +115,12 @@ function mkcol(n)
 	local delta = col - low_col
 	local ch = charpalette[math.floor(1 + delta * #charpalette)]
 
-	return colpalette[low_col], colpalette[high_col], ch
+	-- If delta is > 75% we use 25% fill and flip fg and bg to fake a 75% filled block
+	if delta > .75 then
+		return colpalette[high_col], colpalette[low_col], ch
+	else
+		return colpalette[low_col], colpalette[high_col], ch
+	end	
 end
 
 -- Periodic timeout callback
