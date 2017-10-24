@@ -574,6 +574,18 @@ if [ -z "$KERNEL_TYPE" ]; then
 	docker run -i --rm --name ol7-build -v $BASEDIR:/build/probe ol7-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL7-UEK
 
 	#
+	# AmazonLinux build
+	#
+	echo Building AmazonLinux
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py AmazonLinux)"
+
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
+
+	#
 	# Upload modules
 	#
 	#if [ $PROBE_NAME = "falco-probe" ]; then
