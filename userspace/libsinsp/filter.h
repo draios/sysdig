@@ -224,6 +224,12 @@ private:
 		std::vector<bool> enabled;
 	};
 
+        // Solely used for code sharing in evttypes_for_rulset
+	void check_filter_wrappers(std::vector<bool> &evttypes,
+				   uint32_t etype,
+				   std::list<filter_wrapper *> &filters,
+				   uint16_t ruleset);
+
 	// Maps from event type to filter. There can be multiple
 	// filters per event type.
 	std::list<filter_wrapper *> *m_filter_by_evttype[PPM_EVENT_MAX];
