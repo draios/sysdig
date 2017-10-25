@@ -150,6 +150,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		if(evt->get_tid() == m_inspector->m_sysdig_pid &&
 			etype != PPME_SCHEDSWITCH_1_E &&
 			etype != PPME_SCHEDSWITCH_6_E &&
+			etype != PPME_SCHEDSWITCH_7_E &&
 			etype != PPME_DROP_E &&
 			etype != PPME_DROP_X &&
 			etype != PPME_SYSDIGEVENT_E &&
@@ -234,7 +235,8 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 			{
 				if(evt->m_tinfo != NULL)
 				{
-					if(!(eflags & EF_SKIPPARSERESET || etype == PPME_SCHEDSWITCH_6_E))
+					if(!(eflags & EF_SKIPPARSERESET || etype == PPME_SCHEDSWITCH_1_E ||
+						etype == PPME_SCHEDSWITCH_6_E || etype == PPME_SCHEDSWITCH_7_E))
 					{
 						evt->m_tinfo->m_lastevent_type = PPM_EVENT_MAX;
 					}
@@ -413,6 +415,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		break;
 	case PPME_SCHEDSWITCH_1_E:
 	case PPME_SCHEDSWITCH_6_E:
+	case PPME_SCHEDSWITCH_7_E:
 		parse_context_switch(evt);
 		break;
 	case PPME_SYSCALL_BRK_4_X:
@@ -561,7 +564,8 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		etype == PPME_SYSCALL_VFORK_X ||
 		etype == PPME_SYSCALL_VFORK_17_X ||
 		etype == PPME_SYSCALL_VFORK_20_X ||
-		etype == PPME_SCHEDSWITCH_6_E)
+		etype == PPME_SCHEDSWITCH_6_E ||
+		etype == PPME_SCHEDSWITCH_7_E)
 	{
 		query_os = false;
 	}
@@ -572,7 +576,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 
 	evt->m_tinfo = m_inspector->get_thread(evt->m_pevt->tid, query_os, false);
 
-	if(etype == PPME_SCHEDSWITCH_6_E)
+	if(etype == PPME_SCHEDSWITCH_6_E || etype == PPME_SCHEDSWITCH_7_E)
 	{
 		return false;
 	}
@@ -3978,6 +3982,9 @@ void sinsp_parser::parse_context_switch(sinsp_evt* evt)
 	if(evt->m_tinfo)
 	{
 		sinsp_evt_param *parinfo;
+		uint64_t next_pid;
+		sinsp_threadinfo *next_thread;
+
 		parinfo = evt->get_param(1);
 		evt->m_tinfo->m_pfmajor = *(uint64_t *)parinfo->m_val;
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -4000,6 +4007,35 @@ void sinsp_parser::parse_context_switch(sinsp_evt* evt)
 			parinfo = evt->get_param(5);
 			main_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
 			ASSERT(parinfo->m_len == sizeof(uint32_t));
+		}
+
+		switch(evt->get_type())
+		{
+		case PPME_SCHEDSWITCH_7_E:
+			//
+			// Get next pid
+			//
+			parinfo = evt->get_param(0);
+			next_pid = *(uint64_t *)parinfo->m_val;
+			ASSERT(parinfo->m_len == sizeof(uint64_t));
+
+			next_thread = m_inspector->get_thread(next_pid, false, true);
+			if(next_thread)
+			{
+				//
+				// Extract the real parent pid of the next process
+				// and use it to update sinsp state, in case ppid
+				// has changed. This could happen if a process dies
+				// before its children and they are re-parented or
+				// if special flags during CLONE syscall are used.
+				//
+				parinfo = evt->get_param(6);
+				next_thread->m_ptid = *(uint64_t *)parinfo->m_val;
+				ASSERT(parinfo->m_len == sizeof(uint64_t));
+			}
+			break;
+		default:
+			break;
 		}
 	}
 }

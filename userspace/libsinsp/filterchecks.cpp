@@ -1771,7 +1771,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			m_u64val = 0;
 			uint16_t etype = evt->get_type();
 
-			if(etype == PPME_SCHEDSWITCH_1_E || etype == PPME_SCHEDSWITCH_6_E)
+			if(etype == PPME_SCHEDSWITCH_1_E || etype == PPME_SCHEDSWITCH_6_E || etype == PPME_SCHEDSWITCH_7_E)
 			{
 				m_u64val = extract_exectime(evt);
 			}
@@ -1783,7 +1783,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			m_u64val = 0;
 			uint16_t etype = evt->get_type();
 
-			if(etype == PPME_SCHEDSWITCH_1_E || etype == PPME_SCHEDSWITCH_6_E)
+			if(etype == PPME_SCHEDSWITCH_1_E || etype == PPME_SCHEDSWITCH_6_E || etype == PPME_SCHEDSWITCH_7_E)
 			{
 				m_u64val = extract_exectime(evt);
 			}
@@ -3196,7 +3196,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			uint16_t etype = evt->m_pevt->type;
 			enum ppm_event_flags flags = g_infotables.m_event_info[etype].flags;
 
-			if(etype == PPME_SCHEDSWITCH_6_E ||
+			if(etype == PPME_SCHEDSWITCH_6_E || etype == PPME_SCHEDSWITCH_7_E ||
 				(flags & EC_INTERNAL) || (flags & EF_SKIPPARSERESET))
 			{
 				return NULL;

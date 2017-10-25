@@ -1318,7 +1318,8 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	if(evt->m_tinfo &&
 		evt->get_type() != PPME_SCHEDSWITCH_1_E &&
-		evt->get_type() != PPME_SCHEDSWITCH_6_E)
+		evt->get_type() != PPME_SCHEDSWITCH_6_E &&
+		evt->get_type() != PPME_SCHEDSWITCH_7_E)
 	{
 		evt->m_tinfo->m_prevevent_ts = evt->m_tinfo->m_lastevent_ts;
 		evt->m_tinfo->m_lastevent_ts = m_lastevent_ts;

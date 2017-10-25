@@ -292,7 +292,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_PRLIMIT_E] = {f_sys_prlimit_e},
 	[PPME_SYSCALL_PRLIMIT_X] = {f_sys_prlimit_x},
 #ifdef CAPTURE_CONTEXT_SWITCHES
-	[PPME_SCHEDSWITCH_6_E] = {f_sched_switch_e},
+	[PPME_SCHEDSWITCH_7_E] = {f_sched_switch_e},
 #endif
 	[PPME_DROP_E] = {f_sched_drop},
 	[PPME_DROP_X] = {f_sched_drop},
@@ -3941,15 +3941,12 @@ static int f_sched_switch_e(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-#if 0
 	/*
-	 * steal
+	 * next_ppid
 	 */
-	steal = cputime64_to_clock_t(kcpustat_this_cpu->cpustat[CPUTIME_STEAL]);
-	res = val_to_ring(args, steal, 0, false);
+	res = val_to_ring(args, args->sched_next->real_parent->pid, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
-#endif
 
 	return add_sentinel(args);
 }

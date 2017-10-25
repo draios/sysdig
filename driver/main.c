@@ -2010,7 +2010,7 @@ TRACEPOINT_PROBE(sched_switch_probe, bool preempt, struct task_struct *prev, str
 	event_data.event_info.context_data.sched_prev = prev;
 	event_data.event_info.context_data.sched_next = next;
 
-	record_event_all_consumers(PPME_SCHEDSWITCH_6_E, UF_USED, &event_data);
+	record_event_all_consumers(PPME_SCHEDSWITCH_7_E, UF_USED, &event_data);
 }
 #endif
 
