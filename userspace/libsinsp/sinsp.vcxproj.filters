@@ -1,132 +1,220 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="event.cpp">
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\chisel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="fdinfo.cpp">
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\chisel_api.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ifinfo.cpp">
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\container.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="internal_metrics.cpp">
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\ctext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="parsers.cpp">
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\cyclewriter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="sinsp.cpp">
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\cursescomponents.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="utils.cpp">
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\cursestable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="stats.cpp">
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\cursesspectro.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="logger.cpp">
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\cursesui.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="threadinfo.cpp">
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\event.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="filter.cpp">
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\eventformatter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="filterchecks.cpp">
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\docker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="eventformatter.cpp">
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\dumper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="dumper.cpp">
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\fdinfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="chisel.cpp">
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\filter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="third-party\jsoncpp\jsoncpp.cpp">
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\filterchecks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="memmem.cpp">
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\http_parser.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\http_reason.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\ifinfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\json_query.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_api_error.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_api_handler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_component.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_daemonset_handler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_deployment_handler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_dispatcher.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_event_data.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_event_handler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_handler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_namespace_handler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_net.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_node_handler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_pod_handler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_replicationcontroller_handler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_replicaset_handler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_service_handler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_state.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\lua_parser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\lua_parser_api.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\marathon_component.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\marathon_http.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\memmem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\tracers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\mesos_auth.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\mesos.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\mesos_collector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\mesos_component.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\mesos_http.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\mesos_state.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\internal_metrics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\third-party\jsoncpp\jsoncpp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\logger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\parsers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\prefix_search.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\protodecoder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\threadinfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\sinsp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\stats.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\table.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\sinsp_auth.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\sinsp_curl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\stopwatch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\uri_parser.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\uri.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\user_event.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\value_parser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\viewinfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="event.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="fdinfo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ifinfo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="internal_metrics.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="parsers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\driver\ppm_events_public.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\driver\ppm_ringbuffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\driver\ppm_types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="settings.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="sinsp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="sinsp_errno.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="sinsp_int.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="sinsp_signal.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="stats.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="utils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="logger.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="threadinfo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="filter.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="filterchecks.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="eventformatter.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="dumper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="chisel.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+    <CustomBuild Include="D:\Git\sysdig\userspace\libsinsp\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source Files">
-      <UniqueIdentifier>{0c4ca121-756a-4ac8-84db-8e9eb7d79d8a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{7a30d38b-3fdd-4205-82aa-01206446965d}</UniqueIdentifier>
+      <UniqueIdentifier>{B65E308C-01A2-3FB7-8317-610DB05CED03}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

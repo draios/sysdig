@@ -1,135 +1,349 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
+    <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
+      <Platform>x64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
+    <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{A45C552E-F4BA-480A-A7D3-EB1E9DDFBE6C}</ProjectGuid>
+    <ProjectGuid>{0F87D5C2-A45F-3DAD-BFB0-05ECE8B3D125}</ProjectGuid>
+    <WindowsTargetPlatformVersion>10.0.10586.0</WindowsTargetPlatformVersion>
     <Keyword>Win32Proj</Keyword>
+    <Platform>x64</Platform>
+    <ProjectName>sinsp</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v110</PlatformToolset>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v110</PlatformToolset>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+  <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);.;../../driver</IncludePath>
-    <OutDir>$(ProjectDir)\..\Debug\</OutDir>
-    <IntDir>$(ProjectDir)\..\Debug\</IntDir>
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\Git\sysdig\userspace\libsinsp\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">sinsp.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">sinsp</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\Git\sysdig\userspace\libsinsp\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">sinsp.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">sinsp</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\Git\sysdig\userspace\libsinsp\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">sinsp.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">sinsp</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\Git\sysdig\userspace\libsinsp\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">sinsp.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">sinsp</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.lib</TargetExt>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);.;../../driver</IncludePath>
-    <OutDir>$(ProjectDir)\..\Release\</OutDir>
-    <IntDir>$(ProjectDir)\..\Release\</IntDir>
-  </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;PLATFORM_NAME="Windows";_DEBUG;_WINDOWS;_USRDLL;SINSP_EXPORTS;_NO_DEBUG_HEAP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <WarningLevel>Level3</WarningLevel>
+      <AdditionalIncludeDirectories>D:\Git\sysdig\userspace\libsinsp\.;D:\Git\sysdig\userspace\libsinsp\..\..\common;D:\Git\sysdig\userspace\libsinsp\..\libscap;D:\Git\sysdig\userspace\libsinsp\third-party\jsoncpp;D:\Git\sysdig\luajit-prefix\src\luajit\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>Debug/</AssemblerListingLocation>
+      <CompileAs>CompileAsCpp</CompileAs>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>third-party/jsoncpp;../../common;../libscap;../../../draios_win32_deps/LuaJIT/src</AdditionalIncludeDirectories>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;PLATFORM_NAME="Windows";K8S_DISABLE_THREAD;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
     </ClCompile>
-    <Link>
-      <TargetMachine>MachineX86</TargetMachine>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Console</SubSystem>
-      <ImportLibrary>$(ProjectDir)\..\Debug\$(TargetName).lib</ImportLibrary>
-      <ModuleDefinitionFile>
-      </ModuleDefinitionFile>
-      <AdditionalDependencies>../../../draios_win32_deps/LuaJIT/src/lua51.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Ws2_32.lib;%(AdditionalDependencies);../Debug/scap.lib</AdditionalDependencies>
-      <OutputFile>$(ProjectDir)\..\Debug\$(TargetName)$(TargetExt)</OutputFile>
-    </Link>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CRT_SECURE_NO_WARNINGS;PLATFORM_NAME=\"Windows\";K8S_DISABLE_THREAD;CMAKE_INTDIR=\"Debug\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\Git\sysdig\userspace\libsinsp\.;D:\Git\sysdig\userspace\libsinsp\..\..\common;D:\Git\sysdig\userspace\libsinsp\..\libscap;D:\Git\sysdig\userspace\libsinsp\third-party\jsoncpp;D:\Git\sysdig\luajit-prefix\src\luajit\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Git\sysdig\userspace\libsinsp\.;D:\Git\sysdig\userspace\libsinsp\..\..\common;D:\Git\sysdig\userspace\libsinsp\..\libscap;D:\Git\sysdig\userspace\libsinsp\third-party\jsoncpp;D:\Git\sysdig\luajit-prefix\src\luajit\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;PLATFORM_NAME="Windows";NDEBUG;_WINDOWS;_USRDLL;SINSP_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\Git\sysdig\userspace\libsinsp\.;D:\Git\sysdig\userspace\libsinsp\..\..\common;D:\Git\sysdig\userspace\libsinsp\..\libscap;D:\Git\sysdig\userspace\libsinsp\third-party\jsoncpp;D:\Git\sysdig\luajit-prefix\src\luajit\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>Release/</AssemblerListingLocation>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;PLATFORM_NAME="Windows";K8S_DISABLE_THREAD;CMAKE_INTDIR="Release";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;PLATFORM_NAME=\"Windows\";K8S_DISABLE_THREAD;CMAKE_INTDIR=\"Release\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\Git\sysdig\userspace\libsinsp\.;D:\Git\sysdig\userspace\libsinsp\..\..\common;D:\Git\sysdig\userspace\libsinsp\..\libscap;D:\Git\sysdig\userspace\libsinsp\third-party\jsoncpp;D:\Git\sysdig\luajit-prefix\src\luajit\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Git\sysdig\userspace\libsinsp\.;D:\Git\sysdig\userspace\libsinsp\..\..\common;D:\Git\sysdig\userspace\libsinsp\..\libscap;D:\Git\sysdig\userspace\libsinsp\third-party\jsoncpp;D:\Git\sysdig\luajit-prefix\src\luajit\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\Git\sysdig\userspace\libsinsp\.;D:\Git\sysdig\userspace\libsinsp\..\..\common;D:\Git\sysdig\userspace\libsinsp\..\libscap;D:\Git\sysdig\userspace\libsinsp\third-party\jsoncpp;D:\Git\sysdig\luajit-prefix\src\luajit\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>MinSizeRel/</AssemblerListingLocation>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>third-party/jsoncpp;../../common;../libscap;../../../draios_win32_deps/LuaJIT/src</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;PLATFORM_NAME="Windows";K8S_DISABLE_THREAD;CMAKE_INTDIR="MinSizeRel";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
     </ClCompile>
-    <Link>
-      <TargetMachine>MachineX86</TargetMachine>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <ImportLibrary>$(ProjectDir)\..\Release\$(TargetName).lib</ImportLibrary>
-      <ModuleDefinitionFile>
-      </ModuleDefinitionFile>
-      <AdditionalDependencies>../../../draios_win32_deps/LuaJIT/src/lua51.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Ws2_32.lib;../Release/scap.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(ProjectDir)\..\Release\$(TargetName)$(TargetExt)</OutputFile>
-    </Link>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;NDEBUG;PLATFORM_NAME=\"Windows\";K8S_DISABLE_THREAD;CMAKE_INTDIR=\"MinSizeRel\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\Git\sysdig\userspace\libsinsp\.;D:\Git\sysdig\userspace\libsinsp\..\..\common;D:\Git\sysdig\userspace\libsinsp\..\libscap;D:\Git\sysdig\userspace\libsinsp\third-party\jsoncpp;D:\Git\sysdig\luajit-prefix\src\luajit\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Git\sysdig\userspace\libsinsp\.;D:\Git\sysdig\userspace\libsinsp\..\..\common;D:\Git\sysdig\userspace\libsinsp\..\libscap;D:\Git\sysdig\userspace\libsinsp\third-party\jsoncpp;D:\Git\sysdig\luajit-prefix\src\luajit\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\Git\sysdig\userspace\libsinsp\.;D:\Git\sysdig\userspace\libsinsp\..\..\common;D:\Git\sysdig\userspace\libsinsp\..\libscap;D:\Git\sysdig\userspace\libsinsp\third-party\jsoncpp;D:\Git\sysdig\luajit-prefix\src\luajit\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>RelWithDebInfo/</AssemblerListingLocation>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;PLATFORM_NAME="Windows";K8S_DISABLE_THREAD;CMAKE_INTDIR="RelWithDebInfo";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;NDEBUG;PLATFORM_NAME=\"Windows\";K8S_DISABLE_THREAD;CMAKE_INTDIR=\"RelWithDebInfo\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\Git\sysdig\userspace\libsinsp\.;D:\Git\sysdig\userspace\libsinsp\..\..\common;D:\Git\sysdig\userspace\libsinsp\..\libscap;D:\Git\sysdig\userspace\libsinsp\third-party\jsoncpp;D:\Git\sysdig\luajit-prefix\src\luajit\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\Git\sysdig\userspace\libsinsp\.;D:\Git\sysdig\userspace\libsinsp\..\..\common;D:\Git\sysdig\userspace\libsinsp\..\libscap;D:\Git\sysdig\userspace\libsinsp\third-party\jsoncpp;D:\Git\sysdig\luajit-prefix\src\luajit\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="chisel.cpp" />
-    <ClCompile Include="dumper.cpp" />
-    <ClCompile Include="event.cpp" />
-    <ClCompile Include="eventformatter.cpp" />
-    <ClCompile Include="fdinfo.cpp" />
-    <ClCompile Include="filter.cpp" />
-    <ClCompile Include="filterchecks.cpp" />
-    <ClCompile Include="ifinfo.cpp" />
-    <ClCompile Include="internal_metrics.cpp" />
-    <ClCompile Include="logger.cpp" />
-    <ClCompile Include="memmem.cpp" />
-    <ClCompile Include="sinsp.cpp" />
-    <ClCompile Include="parsers.cpp" />
-    <ClCompile Include="stats.cpp" />
-    <ClCompile Include="third-party\jsoncpp\jsoncpp.cpp" />
-    <ClCompile Include="threadinfo.cpp" />
-    <ClCompile Include="utils.cpp" />
+    <CustomBuild Include="D:\Git\sysdig\userspace\libsinsp\CMakeLists.txt">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule D:/Git/sysdig/userspace/libsinsp/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -HD:/Git/sysdig -BD:/Git/sysdig --check-stamp-file D:/Git/sysdig/userspace/libsinsp/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:/Git/sysdig/userspace/libsinsp/CMakeLists.txt;D:\Git\sysdig\userspace\libsinsp\CMakeLists.txt;D:\Git\sysdig\userspace\libsinsp\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\Git\sysdig\userspace\libsinsp\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule D:/Git/sysdig/userspace/libsinsp/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -HD:/Git/sysdig -BD:/Git/sysdig --check-stamp-file D:/Git/sysdig/userspace/libsinsp/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:/Git/sysdig/userspace/libsinsp/CMakeLists.txt;D:\Git\sysdig\userspace\libsinsp\CMakeLists.txt;D:\Git\sysdig\userspace\libsinsp\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\Git\sysdig\userspace\libsinsp\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule D:/Git/sysdig/userspace/libsinsp/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -HD:/Git/sysdig -BD:/Git/sysdig --check-stamp-file D:/Git/sysdig/userspace/libsinsp/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:/Git/sysdig/userspace/libsinsp/CMakeLists.txt;D:\Git\sysdig\userspace\libsinsp\CMakeLists.txt;D:\Git\sysdig\userspace\libsinsp\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\Git\sysdig\userspace\libsinsp\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule D:/Git/sysdig/userspace/libsinsp/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"D:\Program Files\CMake\bin\cmake.exe" -HD:/Git/sysdig -BD:/Git/sysdig --check-stamp-file D:/Git/sysdig/userspace/libsinsp/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:/Git/sysdig/userspace/libsinsp/CMakeLists.txt;D:\Git\sysdig\userspace\libsinsp\CMakeLists.txt;D:\Git\sysdig\userspace\libsinsp\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\Git\sysdig\userspace\libsinsp\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\driver\ppm_events_public.h" />
-    <ClInclude Include="..\..\driver\ppm_ringbuffer.h" />
-    <ClInclude Include="..\..\driver\ppm_types.h" />
-    <ClInclude Include="chisel.h" />
-    <ClInclude Include="dumper.h" />
-    <ClInclude Include="event.h" />
-    <ClInclude Include="eventformatter.h" />
-    <ClInclude Include="fdinfo.h" />
-    <ClInclude Include="filter.h" />
-    <ClInclude Include="filterchecks.h" />
-    <ClInclude Include="ifinfo.h" />
-    <ClInclude Include="internal_metrics.h" />
-    <ClInclude Include="logger.h" />
-    <ClInclude Include="sinsp_signal.h" />
-    <ClInclude Include="stats.h" />
-    <ClInclude Include="threadinfo.h" />
-    <ClInclude Include="sinsp_errno.h" />
-    <ClInclude Include="utils.h" />
-    <ClInclude Include="settings.h" />
-    <ClInclude Include="sinsp.h" />
-    <ClInclude Include="sinsp_int.h" />
-    <ClInclude Include="parsers.h" />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\chisel.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\chisel_api.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\container.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\ctext.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\cyclewriter.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\cursescomponents.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\cursestable.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\cursesspectro.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\cursesui.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\event.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\eventformatter.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\docker.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\dumper.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\fdinfo.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\filter.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\filterchecks.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\http_parser.c" >
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\http_reason.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\ifinfo.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\json_query.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_api_error.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_api_handler.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_component.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_daemonset_handler.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_deployment_handler.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_dispatcher.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_event_data.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_event_handler.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_handler.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_namespace_handler.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_net.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_node_handler.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_pod_handler.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_replicationcontroller_handler.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_replicaset_handler.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_service_handler.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\k8s_state.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\lua_parser.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\lua_parser_api.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\marathon_component.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\marathon_http.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\memmem.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\tracers.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\mesos_auth.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\mesos.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\mesos_collector.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\mesos_component.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\mesos_http.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\mesos_state.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\internal_metrics.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\third-party\jsoncpp\jsoncpp.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\logger.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\parsers.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\prefix_search.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\protodecoder.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\threadinfo.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\sinsp.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\stats.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\table.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\sinsp_auth.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\sinsp_curl.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\stopwatch.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\uri_parser.c" >
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\uri.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\utils.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\user_event.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\value_parser.cpp"  />
+    <ClCompile Include="D:\Git\sysdig\userspace\libsinsp\viewinfo.cpp"  />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="D:\Git\sysdig\ZERO_CHECK.vcxproj">
+      <Project>{1CB35481-DC21-3DE3-B75E-B7BC16F1E648}</Project>
+      <Name>ZERO_CHECK</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\Git\sysdig\luajit.vcxproj">
+      <Project>{B851DB22-5C48-369B-8445-D27F9BC1B04F}</Project>
+      <Name>luajit</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\Git\sysdig\userspace\libscap\scap.vcxproj">
+      <Project>{F647D184-0F78-3A74-B2D6-AA26D50C0E4E}</Project>
+      <Name>scap</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
