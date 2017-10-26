@@ -39,7 +39,7 @@ public:
 		}
 		else
 		{
-			g_logger.log("Socket collector: atempt to add null handler.",
+			g_logger.log("Socket collector: attempt to add null handler.",
 						 sinsp_logger::SEV_ERROR);
 		}
 	}

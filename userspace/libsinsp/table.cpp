@@ -153,7 +153,7 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////
-	// If a filter has been spefied, compile it
+	// If a filter has been specified, compile it
 	//////////////////////////////////////////////////////////////////////////////////////
 	if(filter != "")
 	{
@@ -402,7 +402,7 @@ void sinsp_table::add_row(bool merging)
 	else
 	{
 		//
-		// We are in list mode. Just appen the row to the end of the sample
+		// We are in list mode. Just append the row to the end of the sample
 		//
 		if(m_paused)
 		{
