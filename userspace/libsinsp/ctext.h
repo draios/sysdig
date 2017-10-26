@@ -294,7 +294,7 @@ class ctext
 		// before its full and starts dropping 
 		// content.
 		//
-		// Returns number of aviailable rows
+		// Returns number of available rows
 		//
 		int32_t available_rows();
 
@@ -409,7 +409,7 @@ class ctext
 
 		//
 		// This highlights a search context given a mask.
-		// A few big mask optiosn are A_REVERSE, A_UNDERLINE, 
+		// A few big mask options are A_REVERSE, A_UNDERLINE,
 		// A_BLINK, and A_BOLD. They can be binary ORed.
 		//
 		int8_t highlight(ctext_search *context = 0, int32_t mask = A_REVERSE);

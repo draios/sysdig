@@ -190,7 +190,7 @@ public:
 	// Find those rules that have a tag in the set of tags and set
 	// their enabled status to enabled. Note that the enabled
 	// status is on the rules, and not the tags--if a rule R has
-	// tags (a, b), and you call eanble_tags([a], true) and then
+	// tags (a, b), and you call enable_tags([a], true) and then
 	// enable_tags([b], false), R will be disabled despite the
 	// fact it has tag a and was enabled by the first call to
 	// enable_tags.

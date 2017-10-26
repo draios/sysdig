@@ -35,7 +35,7 @@ typedef enum filtercheck_field_flags
 	EPF_FILTER_ONLY       = 1 << 0, ///< this field can only be used as a filter.
 	EPF_PRINT_ONLY        = 1 << 1, ///< this field can only be printed.
 	EPF_REQUIRES_ARGUMENT = 1 << 2, ///< this field includes an argument, under the form 'property.argument'.
-	EPF_TABLE_ONLY        = 1 << 3, ///< this field is desgned to be used in a table and won't appear in the list created by sysdig's '-l'.
+	EPF_TABLE_ONLY        = 1 << 3, ///< this field is designed to be used in a table and won't appear in the list created by sysdig's '-l'.
 }filtercheck_field_flags;
 
 /*!
@@ -73,7 +73,7 @@ class SINSP_PUBLIC sinsp_evt_param
 {
 public:
 	char* m_val;	///< Pointer to the event parameter data.
-	uint16_t m_len; ///< Lenght os the parameter pointed by m_val.
+	uint16_t m_len; ///< Length os the parameter pointed by m_val.
 private:
 	inline void init(char* valptr, uint16_t len)
 	{

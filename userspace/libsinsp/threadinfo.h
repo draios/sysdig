@@ -151,7 +151,7 @@ public:
 	sinsp_threadinfo* get_parent_thread();
 
 	/*!
-	  \brief Retrive information about one of this thread/process FDs.
+	  \brief Retrieve information about one of this thread/process FDs.
 
 	  \param fd The file descriptor number, e.g. 0 for stdin.
 
@@ -204,7 +204,7 @@ public:
 	uint64_t get_fd_limit();
 
 	//
-	// Walk up the parent process heirarchy, calling the provided
+	// Walk up the parent process hierarchy, calling the provided
 	// function for each node. If the function returns false, the
 	// traversal stops.
 	//
