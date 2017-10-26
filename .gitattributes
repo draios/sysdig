@@ -1,0 +1,7 @@
+*.cpp text eol=lf
+*.c text eol=lf
+*.h text eol=lf
+*.lua text eol=lf
+*.txt text eol=lf
+*.md text eol=lf
+*.vcxproj text eol=crlf
