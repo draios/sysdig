@@ -77,7 +77,7 @@ typedef struct ppm_evt_hdr scap_evt;
 #define SCAP_LASTERR_SIZE 256
 
 /*!
-  \brief Statisitcs about an in progress capture
+  \brief Statistics about an in progress capture
 */
 typedef struct scap_stats
 {
@@ -282,10 +282,10 @@ typedef struct _scap_machine_info
 	uint64_t memory_size_bytes; ///< Physical memory size
 	uint64_t max_pid; ///< Highest PID number on this machine
 	char hostname[128]; ///< The machine hostname
-	uint64_t reserved1; ///< reserved for fututre use
-	uint64_t reserved2; ///< reserved for fututre use
-	uint64_t reserved3; ///< reserved for fututre use
-	uint64_t reserved4; ///< reserved for fututre use
+	uint64_t reserved1; ///< reserved for future use
+	uint64_t reserved2; ///< reserved for future use
+	uint64_t reserved3; ///< reserved for future use
+	uint64_t reserved4; ///< reserved for future use
 }scap_machine_info;
 
 
@@ -318,7 +318,7 @@ typedef struct scap_ifinfo_ipv4
 }scap_ifinfo_ipv4;
 
 /*!
-  \brief For backword compatibility only
+  \brief For backward compatibility only
 */
 typedef struct scap_ifinfo_ipv4_nolinkspeed
 {
@@ -561,7 +561,7 @@ char* scap_getlasterr(scap_t* handle);
   \param pcpuid User-provided event pointer that will be initialized with the ID if the CPU
     where the event was captured.
 
-  \return SCAP_SUCCESS if the call is succesful and pevent and pcpuid contain valid data.
+  \return SCAP_SUCCESS if the call is successful and pevent and pcpuid contain valid data.
    SCAP_TIMEOUT in case the read timeout expired and no event is available.
    SCAP_EOF when the end of an offline capture is reached.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain the cause of the error.
@@ -630,17 +630,17 @@ uint32_t scap_event_get_dump_flags(scap_t* handle);
 int64_t scap_get_readfile_offset(scap_t* handle);
 
 /*!
-  \brief Open a tracefile for writing
+  \brief Open a trace file for writing
 
   \param handle Handle to the capture instance.
-  \param fname The name of the tracefile.
+  \param fname The name of the trace file.
 
   \return Dump handle that can be used to identify this specific dump instance.
 */
 scap_dumper_t* scap_dump_open(scap_t *handle, const char *fname, compression_mode compress);
 
 /*!
-  \brief Open a tracefile for writing, using the provided fd.
+  \brief Open a trace file for writing, using the provided fd.
 
   \param handle Handle to the capture instance.
   \param fd A file descriptor to which the dumper will write
@@ -650,14 +650,14 @@ scap_dumper_t* scap_dump_open(scap_t *handle, const char *fname, compression_mod
 scap_dumper_t* scap_dump_open_fd(scap_t *handle, int fd, compression_mode compress, bool skip_proc_scan);
 
 /*!
-  \brief Close a tracefile.
+  \brief Close a trace file.
 
   \param d The dump handle, returned by \ref scap_dump_open
 */
 void scap_dump_close(scap_dumper_t *d);
 
 /*!
-  \brief Return the current size of a tracefile.
+  \brief Return the current size of a trace file.
 
   \param d The dump handle, returned by \ref scap_dump_open
   \return The current size of the dump file pointed by d.
@@ -665,7 +665,7 @@ void scap_dump_close(scap_dumper_t *d);
 int64_t scap_dump_get_offset(scap_dumper_t *d);
 
 /*!
-  \brief Return the position for the next write to a tracefile.
+  \brief Return the position for the next write to a trace file.
          This uses gztell, while scap_dump_get_offset uses gzoffset.
 
   \param d The dump handle, returned by \ref scap_dump_open
@@ -687,7 +687,7 @@ void scap_dump_flush(scap_dumper_t *d);
   \param cpuid The cpu from which the event was captured. Returned by \ref scap_next.
   \param bytes The number of bytes to write
 
-  \return SCAP_SUCCESS if the call is succesful.
+  \return SCAP_SUCCESS if the call is successful.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
    the cause of the error.
 */
@@ -702,7 +702,7 @@ int32_t scap_number_of_bytes_to_write(scap_evt *e, uint16_t cpuid, int32_t* byte
   \param cpuid The cpu from which the event was captured. Returned by \ref scap_next.
   \param flags The event flags. 0 means no flags.
 
-  \return SCAP_SUCCESS if the call is succesful.
+  \return SCAP_SUCCESS if the call is successful.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
    the cause of the error.
 */
@@ -743,7 +743,7 @@ scap_threadinfo* scap_get_proc_table(scap_t* handle);
   \param stats Pointer to a \ref scap_stats structure that will be filled with the
   statistics.
 
-  \return SCAP_SECCESS if the call is succesful.
+  \return SCAP_SECCESS if the call is successful.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
    the cause of the error.
 */
@@ -754,7 +754,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats);
 
   \param handle Handle to the capture that will be stopped.
 
-  \return SCAP_SUCCESS if the call is succesful.
+  \return SCAP_SUCCESS if the call is successful.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
    the cause of the error.
 */
@@ -765,7 +765,7 @@ int32_t scap_stop_capture(scap_t* handle);
 
   \param handle Handle to the capture that will be started.
 
-  \return SCAP_SUCCESS if the call is succesful.
+  \return SCAP_SUCCESS if the call is successful.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
    the cause of the error.
 */

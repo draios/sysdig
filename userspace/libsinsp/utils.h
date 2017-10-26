@@ -126,7 +126,7 @@ struct g_invalidchar
 inline void sanitize_string(std::string &str)
 {
 	// It turns out with -O3 (release flags) using erase and
-	// remove_if is slighly faster than the inline version that
+	// remove_if is slightly faster than the inline version that
 	// was here. It's not faster for -O2, and is actually much
 	// slower without optimization.
 	//

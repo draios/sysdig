@@ -1264,7 +1264,7 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 
 		//
 		// If the thread has a nonzero refcount, it means that we are forcing the removal
-		// of a main process or program that some childs refer to.
+		// of a main process or program that some child refer to.
 		// We need to recalculate the child relationships, or the table will become
 		// corrupted.
 		//

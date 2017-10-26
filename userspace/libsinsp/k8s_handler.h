@@ -181,7 +181,7 @@ private:
 	// error indicating something went wrong with the K8s component handled by this handler
 	// this error is later examined by k8s::check_components() and if it is
 	// HTTP status > 400, one of the following actions is taken:
-	//  - if component is critical for consistent k8s state (eg. namepace, node, pod),
+	//  - if component is critical for consistent k8s state (eg. namespace, node, pod),
 	//    exception is thrown and, consequently, the whole k8s framework will be destroyed
 	//  - if component is not critical (eg. extensions like daemonset or deployment),
 	//    error is logged and handler is destroyed, but the k8s framework continues to

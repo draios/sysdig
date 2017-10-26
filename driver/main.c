@@ -1713,7 +1713,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 			 */
 			if (likely(args.curarg == args.nargs)) {
 				/*
-				 * The event was successfully insterted in the buffer
+				 * The event was successfully inserted in the buffer
 				 */
 				event_size = sizeof(struct ppm_evt_hdr) + args.arg_data_offset;
 				hdr->len = event_size;
@@ -2451,7 +2451,7 @@ int sysdig_init(void)
 #endif
 
 	/*
-	 * All ok. Final initalizations.
+	 * All ok. Final initializations.
 	 */
 	g_tracepoint_registered = false;
 

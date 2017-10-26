@@ -17,7 +17,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 //
-// Variuos helper functions to render stuff on the screen
+// Various helper functions to render stuff on the screen
 //
 #define __STDC_FORMAT_MACROS
 #include <stdio.h>
@@ -244,7 +244,7 @@ void print_chisel_info(chisel_desc* cd)
 		printf("%c", astr[l]);
 	}
 
-	// just for good meaure
+	// just for good measure
 	printf("\n");
 }
 

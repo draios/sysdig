@@ -280,7 +280,7 @@ inline void sinsp_tracerparser::parse_json(char* evtstr)
 	char* tstr;
 
 	//
-	// Skip the initial braket
+	// Skip the initial bracket
 	//
 	m_res = skip_spaces(p, &delta);
 	if(m_res != sinsp_tracerparser::RES_OK)
