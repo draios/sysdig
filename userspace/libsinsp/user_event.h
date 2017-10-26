@@ -232,7 +232,7 @@ inline bool user_event_filter_t::ci_compare_str(const std::string& a, const std:
 #ifndef _WIN32
 	return strcasecmp(a.c_str(), b.c_str()) == 0;
 #else
-	return lstrcmpiA(a.c_str(), b.c_str()) == 0;
+	return lstrcmpiA(a.c_str(), a.c_str()) < 0;
 #endif // _WIN32
 }
 
