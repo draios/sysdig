@@ -2373,6 +2373,7 @@ void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 					case SCAP_FD_IPV4_SOCK:
 					case SCAP_FD_IPV6_SOCK:
 						cat->m_subcategory = SC_NET;
+						break;
 					case SCAP_FD_IPV4_SERVSOCK:
 					case SCAP_FD_IPV6_SERVSOCK:
 						cat->m_subcategory = SC_NET;
