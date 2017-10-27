@@ -166,7 +166,7 @@ bool sinsp_network_interfaces::is_ipv4addr_in_subnet(uint32_t addr)
 	return false;
 }
 
-bool sinsp_network_interfaces::is_sip_in_local_machine(sinsp_evt* evt)
+bool sinsp_network_interfaces::is_sip_in_local_machine(sinsp_evt* evt, uint32_t addr, sinsp_threadinfo* tinfo)
 {
 	switch(PPME_MAKE_ENTER(evt->get_type()))
 	{
@@ -181,7 +181,7 @@ bool sinsp_network_interfaces::is_sip_in_local_machine(sinsp_evt* evt)
 		case PPME_SOCKET_RECVFROM_E:
 			return false;
 		default:
-			return false;
+			return is_ipv4addr_in_local_machine(addr, tinfo);
 	}
 }
 

@@ -727,7 +727,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				return NULL;
 			}
 
-			if(m_inspector->get_ifaddr_list()->is_sip_in_local_machine(evt))
+			if(m_inspector->get_ifaddr_list()->is_sip_in_local_machine(evt, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo))
 			{
 				if(m_field_id == TYPE_LIP)
 				{
@@ -914,7 +914,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				return NULL;
 			}
 
-			if(m_inspector->get_ifaddr_list()->is_sip_in_local_machine(evt))
+			if(m_inspector->get_ifaddr_list()->is_sip_in_local_machine(evt, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo))
 			{
 				if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO)
 				{
@@ -960,7 +960,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 
 			int16_t nport = 0;
 
-			if(m_inspector->get_ifaddr_list()->is_sip_in_local_machine(evt))
+			if(m_inspector->get_ifaddr_list()->is_sip_in_local_machine(evt, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo))
 			{
 				if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO)
 				{
@@ -1045,7 +1045,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			}
 			else if(m_fdinfo->m_type == SCAP_FD_IPV4_SOCK)
 			{
-				m_tbool = !m_inspector->get_ifaddr_list()->is_sip_in_local_machine(evt);
+				m_tbool = !m_inspector->get_ifaddr_list()->is_sip_in_local_machine(evt, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo);
 			}
 			else
 			{
@@ -1334,7 +1334,7 @@ bool sinsp_filter_check_fd::compare_attr(sinsp_evt *evt)
 	}
 
 	uint32_t naddr;
-	if(m_inspector->get_ifaddr_list()->is_sip_in_local_machine(evt))
+	if(m_inspector->get_ifaddr_list()->is_sip_in_local_machine(evt, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo))
 	{
 		if(m_field_id == TYPE_FDLATTR)
 		{
