@@ -1309,9 +1309,7 @@ bool sinsp_filter_check_fd::compare_attr(sinsp_evt *evt)
 		return false;
 	}
 
-	uint32_t lo_addr;
-	inet_pton(AF_INET, "127.0.0.1", &lo_addr);
-
+	uint32_t lo_addr = 0x100007f;
 	if(m_argname == "container.is_local")
 	{
 		if (evt->get_thread_info()->m_container_id.empty())
@@ -1320,9 +1318,18 @@ bool sinsp_filter_check_fd::compare_attr(sinsp_evt *evt)
 		}
 		else
 		{
-			return m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip == m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip ||
-				m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip == lo_addr ||
-				m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip == lo_addr;
+			if(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip == m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip ||
+			   m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip == lo_addr ||
+			   m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip == lo_addr ){
+				return true;
+			}
+			sinsp_container_info container_info;
+			if(!m_inspector->m_container_manager.get_container(evt->get_thread_info()->m_container_id, &container_info)) {
+				return false;
+			}
+			uint32_t caddr = htonl(container_info.m_container_ip);
+			return m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip == caddr ||
+				m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip == caddr;
 		}
 	}
 
