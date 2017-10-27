@@ -387,6 +387,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_vpid = pi->vpid;
 	m_clone_ts = pi->clone_ts;
 	m_tty = pi->tty;
+	m_pgrp = pi->pgrp;
 
 	set_cgroups(pi->cgroups, pi->cgroups_len);
 	m_root = pi->root;
