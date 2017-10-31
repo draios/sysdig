@@ -298,8 +298,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_DROP_X] = {f_sched_drop},
 	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
-	[PPME_SYSCALL_EXECVE_18_E] = {f_sys_execve_e},
-	[PPME_SYSCALL_EXECVE_18_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_EXECVE_19_E] = {f_sys_execve_e},
+	[PPME_SYSCALL_EXECVE_19_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_CLONE_20_E] = {f_sys_empty},
 	[PPME_SYSCALL_CLONE_20_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
@@ -1141,13 +1141,15 @@ long probe_kernel_read(void *dst, const void *src, size_t size)
 }
 #endif
 
-static int ppm_get_tty(void)
+static int ppm_get_tty(char *buf, int buflen)
 {
 	/* Locking of the signal structures seems too complicated across
 	 * multiple kernel versions to get it right, so simply do protected
 	 * memory accesses, and in the worst case we get some garbage,
 	 * which is not the end of the world. In the vast majority of accesses,
 	 * we'll be just fine.
+	 *
+	 * if the tty_nr found the tty name will be placed in buf
 	 */
 	struct signal_struct *sig;
 	struct tty_struct *tty;
@@ -1182,6 +1184,9 @@ static int ppm_get_tty(void)
 	if (unlikely(probe_kernel_read(&minor_start, &driver->minor_start, sizeof(minor_start))))
 		return 0;
 
+	if (snprintf(buf, buflen, "/dev/%s/%d", driver->name, index) < 0)
+		strncpy(buf, "<NA>", buflen);
+	
 	tty_nr = new_encode_dev(MKDEV(major, minor_start) + index);
 
 	return tty_nr;
@@ -1488,7 +1493,7 @@ cgroups_error:
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
-	} else if (args->event_type == PPME_SYSCALL_EXECVE_18_X) {
+	} else if (args->event_type == PPME_SYSCALL_EXECVE_19_X) {
 		/*
 		 * execve-only parameters
 		 */
@@ -1541,8 +1546,16 @@ cgroups_error:
 		/*
 		 * tty
 		 */
-		tty_nr = ppm_get_tty();
+		tty_nr = ppm_get_tty(args->str_storage, available);
 		res = val_to_ring(args, tty_nr, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+
+		if (tty_nr > 0)
+			res = val_to_ring(args, (int64_t)(long)args->str_storage, 0, false, 0);
+		else // if the tty_nr is not found put `?` like in ps
+			res = val_to_ring(args, (unsigned long)"?", 0, false, 0);
+
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 	}
