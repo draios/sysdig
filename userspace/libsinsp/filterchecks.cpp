@@ -1304,33 +1304,14 @@ bool sinsp_filter_check_fd::compare_attr(sinsp_evt *evt)
 		throw sinsp_exception("filter error: unsupported lattr/rattr comparison operator");
 	}
 
-	if(!extract_fd(evt) || m_fdinfo == NULL)
+	if (m_argname == "container.is_local" && evt->get_thread_info()->m_container_id.empty())
 	{
 		return false;
 	}
 
-	uint32_t lo_addr = 0x100007f;
-	if(m_argname == "container.is_local")
+	if(!extract_fd(evt) || m_fdinfo == NULL)
 	{
-		if (evt->get_thread_info()->m_container_id.empty())
-		{
-			return false;
-		}
-		else
-		{
-			if(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip == m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip ||
-			   m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip == lo_addr ||
-			   m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip == lo_addr ){
-				return true;
-			}
-			sinsp_container_info container_info;
-			if(!m_inspector->m_container_manager.get_container(evt->get_thread_info()->m_container_id, &container_info)) {
-				return false;
-			}
-			uint32_t caddr = htonl(container_info.m_container_ip);
-			return m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip == caddr ||
-				m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip == caddr;
-		}
+		return false;
 	}
 
 	uint32_t naddr;
@@ -1357,15 +1338,21 @@ bool sinsp_filter_check_fd::compare_attr(sinsp_evt *evt)
 		}
 	}
 
-	char buf[INET_ADDRSTRLEN];
-	inet_ntop(AF_INET, &naddr, buf, INET_ADDRSTRLEN);
-	string addr(buf);
-
-	if(m_argname == "host.is_local")
+	uint32_t lo_addr = 0x100007f;
+	if(m_argname == "container.is_local" || m_argname == "host.is_local")
 	{
-		if(naddr == lo_addr)
-		{
+		if(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip == m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip || naddr == lo_addr) {
 			return true;
+		}
+
+		if(m_argname == "container.is_local")
+		{
+			sinsp_container_info container_info;
+			if(!m_inspector->m_container_manager.get_container(evt->get_thread_info()->m_container_id, &container_info)) {
+				return false;
+			}
+			uint32_t caddr = htonl(container_info.m_container_ip);
+			return naddr == caddr;
 		}
 		else
 		{
@@ -1373,8 +1360,6 @@ bool sinsp_filter_check_fd::compare_attr(sinsp_evt *evt)
 			vector<sinsp_ipv4_ifinfo>::iterator it;
 			for(it = v4_interfaces->begin(); it != v4_interfaces->end(); it++)
 			{
-				char buf[INET_ADDRSTRLEN];
-				inet_ntop(AF_INET, &it->m_addr, buf, sizeof(buf));
 				if(it->m_addr == naddr)
 				{
 					return true;
@@ -1390,6 +1375,10 @@ bool sinsp_filter_check_fd::compare_attr(sinsp_evt *evt)
 	{
 		possible_values.insert(string((const char *)i.first));
 	}
+
+	char buf[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, &naddr, buf, INET_ADDRSTRLEN);
+	string addr(buf);
 
 	return m_inspector->m_analyzer->infra_state() && m_inspector->m_analyzer->infra_state()->match_from_addr(addr, m_argname, possible_values);
 #else
