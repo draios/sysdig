@@ -240,12 +240,13 @@ int8_t ctext::str_search_single(ctext_search *to_search_in, ctext_search *new_po
 	size_t found;
 	string haystack;
 	ctext_search res, *out;
-	string query = to_search_in->_query; 
 
 	if(!to_search_in)
 	{
 		return -1;
 	}
+
+	string query = to_search_in->_query;
 
 	if(!new_pos_out) 
 	{
@@ -760,7 +761,7 @@ ctext_row* ctext::add_row()
 {
 	ctext_row row;
 
-	// If there is an exsting line, then
+	// If there is an existing line, then
 	// we carry over the format from the
 	// last line..
 	if(!this->m_buffer.empty())

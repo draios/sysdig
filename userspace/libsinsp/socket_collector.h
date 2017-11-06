@@ -39,7 +39,7 @@ public:
 		}
 		else
 		{
-			g_logger.log("Socket collector: atempt to add null handler.",
+			g_logger.log("Socket collector: attempt to add null handler.",
 						 sinsp_logger::SEV_ERROR);
 		}
 	}
@@ -60,7 +60,8 @@ public:
 			handler->enable();
 			return;
 		}
-		g_logger.log("Socket collector: attempt to enable non-existing handler: " + handler->get_id());
+		g_logger.log("Socket collector: attempt to enable non-existing handler.",
+			     sinsp_logger::SEV_ERROR);
 	}
 
 	int get_socket(std::shared_ptr<T> handler) const

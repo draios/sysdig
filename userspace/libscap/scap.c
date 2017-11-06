@@ -566,24 +566,24 @@ void scap_close(scap_t* handle)
 
 		ASSERT(handle->m_file == NULL);
 
-		//
-		// Destroy all the device descriptors
-		//
-		for(j = 0; j < handle->m_ndevs; j++)
-		{
-			if(handle->m_devs[j].m_buffer != MAP_FAILED)
-			{
-				munmap(handle->m_devs[j].m_bufinfo, sizeof(struct ppm_ring_buffer_info));
-				munmap(handle->m_devs[j].m_buffer, RING_BUF_SIZE * 2);
-				close(handle->m_devs[j].m_fd);
-			}
-		}
-
-		//
-		// Free the memory
-		//
 		if(handle->m_devs != NULL)
 		{
+			//
+			// Destroy all the device descriptors
+			//
+			for(j = 0; j < handle->m_ndevs; j++)
+			{
+				if(handle->m_devs[j].m_buffer != MAP_FAILED)
+				{
+				    munmap(handle->m_devs[j].m_bufinfo, sizeof(struct ppm_ring_buffer_info));
+				    munmap(handle->m_devs[j].m_buffer, RING_BUF_SIZE * 2);
+				    close(handle->m_devs[j].m_fd);
+				}
+			}
+
+			//
+			// Free the memory
+			//
 			free(handle->m_devs);
 		}
 #endif // HAS_CAPTURE
@@ -950,11 +950,13 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 
 	stats->n_evts = 0;
 	stats->n_drops = 0;
+	stats->n_drops_buffer = 0;
 	stats->n_preemptions = 0;
 
 	for(j = 0; j < handle->m_ndevs; j++)
 	{
 		stats->n_evts += handle->m_devs[j].m_bufinfo->n_evts;
+		stats->n_drops_buffer += handle->m_devs[j].m_bufinfo->n_drops_buffer;
 		stats->n_drops += handle->m_devs[j].m_bufinfo->n_drops_buffer +
 			handle->m_devs[j].m_bufinfo->n_drops_pf;
 		stats->n_preemptions += handle->m_devs[j].m_bufinfo->n_preemptions;
@@ -1085,7 +1087,7 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 	//
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_set_inode_of_dev_null not supported on this scap mode");
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_tracers_capture not supported on this scap mode");
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
@@ -1094,7 +1096,31 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 	{
 		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_TRACERS_CAPTURE))
 		{
-			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
+	}
+
+	return SCAP_SUCCESS;
+}
+#endif
+
+#if defined(HAS_CAPTURE)
+int32_t scap_enable_page_faults(scap_t *handle)
+{
+	if(handle->m_mode != SCAP_MODE_LIVE)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_page_faults not supported on this scap mode");
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	if(handle->m_ndevs)
+	{
+		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_ENABLE_PAGE_FAULTS))
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
 			ASSERT(false);
 			return SCAP_FAILURE;
 		}
@@ -1467,4 +1493,61 @@ void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh)
 uint64_t scap_get_unexpected_block_readsize(scap_t* handle)
 {
 	return handle->m_unexpected_block_readsize;
+}
+
+int32_t scap_enable_simpledriver_mode(scap_t* handle)
+{
+	//
+	// Not supported on files
+	//
+	if(handle->m_mode != SCAP_MODE_LIVE)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "setting simpledriver mode not supported on this scap mode");
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	return SCAP_FAILURE;
+#else
+
+	//
+	// Tell the driver to change the snaplen
+	//
+	if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_SIMPLE_MODE))
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_enable_simpledriver_mode failed");
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+#endif
+}
+
+int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
+{
+	//
+	// Not supported on files
+	//
+	if(handle->m_mode != SCAP_MODE_LIVE)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "getting n_tracepoint_hit not supported on this scap mode");
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	return SCAP_FAILURE;
+#else
+
+	if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_N_TRACEPOINT_HIT, ret))
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_get_n_tracepoint_hit failed");
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+#endif
 }

@@ -37,6 +37,7 @@ refresh_time = 500000000
 refresh_per_sec = 1000000000 / refresh_time
 frequencies = {}
 colpalette = {22, 28, 64, 34, 2, 76, 46, 118, 154, 191, 227, 226, 11, 220, 209, 208, 202, 197, 9, 1}
+charpalette = {" ", "░", "▒", "░"}
 
 -- Argument initialization Callback
 function on_set_arg(name, val)
@@ -102,18 +103,27 @@ function on_event()
 	return true
 end
 
+-- Calculate colors and character to be used
 function mkcol(n)
-	local col = math.floor(math.log10(n * refresh_per_sec + 1) / math.log10(1.6))
+	local col = math.log10(n * refresh_per_sec + 1) / math.log10(1.6)
 
 	if col < 1 then
 		col = 1
-	end
-
-	if col > #colpalette then
+	elseif col > #colpalette then
 		col = #colpalette
 	end
 
-	return colpalette[col]
+	local low_col = math.floor(col)
+	local high_col = math.ceil(col)
+	local delta = col - low_col
+	local ch = charpalette[math.floor(1 + delta * #charpalette)]
+
+	-- If delta is > 75% we use 25% fill and flip fg and bg to fake a 75% filled block
+	if delta > .75 then
+		return colpalette[high_col], colpalette[low_col], ch
+	else
+		return colpalette[low_col], colpalette[high_col], ch
+	end	
 end
 
 -- Periodic timeout callback
@@ -122,13 +132,19 @@ function on_interval(ts_s, ts_ns, delta)
 
 	for x = 1, w do
 		local fr = frequencies[x]
+		local fg, bg, ch
+
 		if fr == nil or fr == 0 then
+			terminal.setfgcol(0)
 			terminal.setbgcol(0)
+			ch = " "
 		else
-			terminal.setbgcol(mkcol(fr))
+			fg, bg, ch = mkcol(fr)
+			terminal.setfgcol(fg)
+			terminal.setbgcol(bg)
 		end
 
-		io.write(" ")
+		io.write(ch)
 	end
 
 	io.write(terminal.reset .. "\n")

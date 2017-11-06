@@ -17,21 +17,29 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 view_info = 
 {
-	id = "spy_users",
+	id = "spy_users_wsysdig",
 	name = "Spy Users",
 	description = "Lists all the commands that are run interactively, i.e. that have a shell as the parent process. The result is the display of all the user activity, sorted by time.",
-	tags = {"Default"},
-	view_type = "list",
+	tags = {"Default", "wsysdig", "nocsysdig"},
+	view_type = "table",
 	applies_to = {"", "container.id", "proc.pid", "thread.nametid", "thread.tid", "proc.name", "k8s.pod.id", "k8s.rc.id", "k8s.rs.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
 	filter = "((evt.type=execve and evt.dir=<) or (evt.type=chdir and evt.dir=< and proc.name contains sh and not proc.name contains sshd)) and evt.failed=false",
+	drilldown_target = "threads",
 	use_defaults = true,
+	propagate_filter = false,
 	columns = 
 	{
+		{
+			name = "NA",
+			field = "thread.nametid",
+			is_key = true
+		},
 		{
 			name = "TIME",
 			field = "evt.time",
 			description = "Time when the command was executed.",
 			colsize = 12,
+			is_sorting = true
 		},
 		{
 			name = "USER",

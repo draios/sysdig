@@ -9,7 +9,7 @@
 #pragma once
 //
 // Avoid some annoying "function not used" from jq headers;
-// this pragma affects this header file only and has no efect
+// this pragma affects this header file only and has no effect
 // on source file including it;
 // see https://gcc.gnu.org/onlinedocs/cpp/System-Headers.html
 //

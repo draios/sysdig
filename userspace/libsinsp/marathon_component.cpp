@@ -351,12 +351,16 @@ marathon_group::ptr_t marathon_group::get_group(mesos_task::ptr_t task)
 	return 0;
 }
 
-void marathon_group::print() const
+void marathon_group::print(int indent) const
 {
+	for(int j = 0; j < indent; ++j)
+	{
+		std::cout << " ";
+	}
 	std::cout << get_id() << std::endl;
 	for(auto& group : m_groups)
 	{
-		group.second->print();
+		group.second->print(indent+2);
 	}
 }
 
