@@ -1651,55 +1651,55 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 
 	switch(etype)
 	{
-		case PPME_SYSCALL_EXECVE_8_X:
-		case PPME_SYSCALL_EXECVE_13_X:
-		case PPME_SYSCALL_EXECVE_14_X:
-		case PPME_SYSCALL_EXECVE_15_X:
-		case PPME_SYSCALL_EXECVE_16_X:
-		case PPME_SYSCALL_EXECVE_17_X:
-			break;
-		case PPME_SYSCALL_EXECVE_18_X:
-		case PPME_SYSCALL_EXECVE_19_X:
-			// Get exepath
-			if (retrieve_enter_event(enter_evt, evt))
+	case PPME_SYSCALL_EXECVE_8_X:
+	case PPME_SYSCALL_EXECVE_13_X:
+	case PPME_SYSCALL_EXECVE_14_X:
+	case PPME_SYSCALL_EXECVE_15_X:
+	case PPME_SYSCALL_EXECVE_16_X:
+	case PPME_SYSCALL_EXECVE_17_X:
+		break;
+	case PPME_SYSCALL_EXECVE_18_X:
+	case PPME_SYSCALL_EXECVE_19_X:
+		// Get exepath
+		if (retrieve_enter_event(enter_evt, evt))
+		{
+			char fullpath[SCAP_MAX_PATH_SIZE];
+			parinfo = enter_evt->get_param(0);
+			if (strncmp(parinfo->m_val, "<NA>", 4) == 0)
 			{
-				char fullpath[SCAP_MAX_PATH_SIZE];
-				parinfo = enter_evt->get_param(0);
-				if (strncmp(parinfo->m_val, "<NA>", 4) == 0)
-				{
-					evt->m_tinfo->m_exepath = "<NA>";
-				}
-				else
-				{
-					sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
-												   evt->m_tinfo->m_cwd.c_str(), (uint32_t)evt->m_tinfo->m_cwd.size(),
-												   parinfo->m_val, (uint32_t)parinfo->m_len);
-					evt->m_tinfo->m_exepath = fullpath;
-				}
+				evt->m_tinfo->m_exepath = "<NA>";
 			}
-			break;
-		default:
-			ASSERT(false);
+			else
+			{
+				sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
+											   evt->m_tinfo->m_cwd.c_str(), (uint32_t)evt->m_tinfo->m_cwd.size(),
+											   parinfo->m_val, (uint32_t)parinfo->m_len);
+				evt->m_tinfo->m_exepath = fullpath;
+			}
+		}
+		break;
+	default:
+		ASSERT(false);
 	}
 
 	switch(etype)
 	{
-		case PPME_SYSCALL_EXECVE_8_X:
-		case PPME_SYSCALL_EXECVE_13_X:
-		case PPME_SYSCALL_EXECVE_14_X:
-		case PPME_SYSCALL_EXECVE_15_X:
-		case PPME_SYSCALL_EXECVE_16_X:
-		case PPME_SYSCALL_EXECVE_17_X:
-		case PPME_SYSCALL_EXECVE_18_X:
-			break;
-		case PPME_SYSCALL_EXECVE_19_X:
-			// Get the pgrp
-			parinfo = evt->get_param(17);
-			ASSERT(parinfo->m_len == sizeof(int64_t));
-			evt->m_tinfo->m_pgrp = *(int64_t *) parinfo->m_val;
-			break;
-		default:
-			ASSERT(false);
+	case PPME_SYSCALL_EXECVE_8_X:
+	case PPME_SYSCALL_EXECVE_13_X:
+	case PPME_SYSCALL_EXECVE_14_X:
+	case PPME_SYSCALL_EXECVE_15_X:
+	case PPME_SYSCALL_EXECVE_16_X:
+	case PPME_SYSCALL_EXECVE_17_X:
+	case PPME_SYSCALL_EXECVE_18_X:
+		break;
+	case PPME_SYSCALL_EXECVE_19_X:
+		// Get the pgrp
+		parinfo = evt->get_param(17);
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		evt->m_tinfo->m_pgrp = *(int64_t *) parinfo->m_val;
+		break;
+	default:
+		ASSERT(false);
 	}
 	
 	//

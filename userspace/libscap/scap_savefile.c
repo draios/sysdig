@@ -1135,27 +1135,27 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		//
 		switch(block_type)
 		{
-			case PL_BLOCK_TYPE_V1:
-			case PL_BLOCK_TYPE_V1_INT:
-			case PL_BLOCK_TYPE_V2:
-			case PL_BLOCK_TYPE_V2_INT:
-			case PL_BLOCK_TYPE_V3:
-			case PL_BLOCK_TYPE_V3_INT:
-			case PL_BLOCK_TYPE_V4:
-			case PL_BLOCK_TYPE_V5:
-			case PL_BLOCK_TYPE_V6:
-			case PL_BLOCK_TYPE_V7:
-				break;
-			case PL_BLOCK_TYPE_V8:
-				readsize = gzread(f, &(tinfo.pgrp), sizeof(uint64_t));
-				CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+		case PL_BLOCK_TYPE_V1:
+		case PL_BLOCK_TYPE_V1_INT:
+		case PL_BLOCK_TYPE_V2:
+		case PL_BLOCK_TYPE_V2_INT:
+		case PL_BLOCK_TYPE_V3:
+		case PL_BLOCK_TYPE_V3_INT:
+		case PL_BLOCK_TYPE_V4:
+		case PL_BLOCK_TYPE_V5:
+		case PL_BLOCK_TYPE_V6:
+		case PL_BLOCK_TYPE_V7:
+			break;
+		case PL_BLOCK_TYPE_V8:
+			readsize = gzread(f, &(tinfo.pgrp), sizeof(uint64_t));
+			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
 
-				totreadsize += readsize;
-				break;
-			default:
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted process block type (fd1)");
-				ASSERT(false);
-				return SCAP_FAILURE;
+			totreadsize += readsize;
+			break;
+		default:
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted process block type (fd1)");
+			ASSERT(false);
+			return SCAP_FAILURE;
 		}
 
 		//
