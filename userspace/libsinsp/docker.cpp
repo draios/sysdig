@@ -231,7 +231,10 @@ void docker::set_event_json(json_ptr_t json, const std::string&)
 #ifdef HAS_CAPTURE
 void docker::emit_event(Json::Value& root, std::string type, std::string status, bool send_to_backend)
 {
-	++m_event_counter;
+	if(send_to_backend)
+	{
+		++m_event_counter;
+	}
 	std::string::size_type delim_pos = status.find(':');
 	if(delim_pos != std::string::npos)
 	{
