@@ -332,7 +332,7 @@ inline const sinsp_user_event::tag_map_t& sinsp_user_event::tags() const
 
 inline size_t sinsp_user_event::max_events_per_cycle()
 {
-	return 300u; // TODO: move this value to config?
+	return 100u; // TODO: move this value to config?
 }
 
 //
