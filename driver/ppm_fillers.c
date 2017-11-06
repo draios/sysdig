@@ -244,8 +244,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_LINKAT_X] = {f_sys_single_x},
 	[PPME_SYSCALL_UNLINK_E] = {f_sys_single},
 	[PPME_SYSCALL_UNLINK_X] = {f_sys_single_x},
-	[PPME_SYSCALL_UNLINKAT_3_E] = {f_sys_unlinkat_e},
-	[PPME_SYSCALL_UNLINKAT_3_X] = {f_sys_single_x},
+	[PPME_SYSCALL_UNLINKAT_2_E] = {f_sys_unlinkat_e},
+	[PPME_SYSCALL_UNLINKAT_2_X] = {f_sys_single_x},
 #ifdef _64BIT_ARGS_SINGLE_REGISTER
 	[PPME_SYSCALL_PREAD_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {2}, {3} } },
 #else
