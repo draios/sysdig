@@ -22,7 +22,7 @@ class sinsp;
 class sinsp_evt;
 
 /** @defgroup dump Dumping events to disk
- * Classes to perform miscellneous functionality
+ * Classes to perform miscellaneous functionality
  *  @{
  */
 
@@ -56,7 +56,7 @@ public:
 
 	  \param filename The name of the target file.
 
-	  \param compress true to save the tracefile in a compressed format.
+	  \param compress true to save the trace file in a compressed format.
 
 	  \param threads_from_sinsp If, true the thread and FD tables in the file
 	   will be created from the current sinsp's tables instead of reusing the scap
@@ -90,7 +90,7 @@ public:
 	bool written_events();
 
 	/*!
-	  \brief Return the current size of a tracefile.
+	  \brief Return the current size of a trace file.
 
 	  \return The current size of the dump file.
 	*/
@@ -120,6 +120,11 @@ public:
 	inline uint8_t* get_memory_dump_cur_buf()
 	{
 		return scap_get_memorydumper_curpos(m_dumper);
+	}
+
+	inline void set_inspector(sinsp *inspector)
+	{
+		m_inspector = inspector;
 	}
 
 private:

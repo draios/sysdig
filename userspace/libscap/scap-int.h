@@ -138,7 +138,7 @@ struct scap_ns_socket_list
 int32_t scap_readbuf(scap_t* handle, uint32_t proc, bool blocking, OUT char** buf, OUT uint32_t* len);
 // Scan a directory containing process information
 int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid, int tid_to_scan, struct scap_threadinfo** pi, char *error, bool scan_sockets);
-// Remove an entry from the process list by parsin a PPME_PROC_EXIT event
+// Remove an entry from the process list by parsing a PPME_PROC_EXIT event
 // void scap_proc_schedule_removal(scap_t* handle, scap_evt* e);
 // Remove the process that was scheduled for deletion for this handle
 // void scap_proc_remove_scheduled(scap_t* handle);
@@ -158,7 +158,7 @@ void scap_fd_print_fd_table(scap_fdinfo* fds);
 // Given an event, get the info entry for the process that generated it.
 // NOTE: this is different from scap_event_getprocinfo() because it returns the full event information
 // struct scap_threadinfo* scap_proc_get_from_event(scap_t* handle, scap_evt* e);
-// Return the process info entry geiven a tid
+// Return the process info entry given a tid
 // Free an fd table and set it to NULL when done
 void scap_fd_free_table(scap_t* handle, scap_fdinfo** fds);
 void scap_fd_free_ns_sockets_list(scap_t* handle, struct scap_ns_socket_list** sockets);
@@ -181,7 +181,7 @@ int32_t scap_add_fd_to_proc_table(scap_t* handle, scap_threadinfo* pi, scap_fdin
 void scap_fd_remove(scap_t* handle, scap_threadinfo* pi, int64_t fd);
 // Read an event from disk
 int32_t scap_next_offline(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
-// read the filedescriptors for a given process directory
+// read the file descriptors for a given process directory
 int32_t scap_fd_scan_fd_dir(scap_t* handle, char * procdir, scap_threadinfo* pi, struct scap_ns_socket_list** sockets_by_ns, char *error);
 // read tcp or udp sockets from the proc filesystem
 int32_t scap_fd_read_ipv4_sockets_from_proc_fs(scap_t* handle, const char * dir, int l4proto, scap_fdinfo ** sockets);
@@ -193,7 +193,7 @@ void scap_proc_print_proc_by_tid(scap_t* handle, uint64_t tid);
 int32_t scap_create_iflist(scap_t* handle);
 // Free a previously allocated list of interfaces
 void scap_free_iflist(scap_addrlist* ifhandle);
-// Allocate and return the list of interfaces on this system
+// Allocate and return the list of users on this system
 int32_t scap_create_userlist(scap_t* handle);
 // Free a previously allocated list of users
 void scap_free_userlist(scap_userlist* uhandle);
@@ -222,6 +222,17 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 			(int)read_size,\
 			__FILE__,\
 			__LINE__);\
+		return SCAP_FAILURE;\
+	}
+
+#define CHECK_READ_SIZE_WITH_FREE(alloc_buffer, read_size, expected_size) if(read_size != expected_size) \
+    	{\
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "expecting %d bytes, read %d at %s, line %d. Is the file truncated?",\
+			(int)expected_size,\
+			(int)read_size,\
+			__FILE__,\
+			__LINE__);\
+		free(alloc_buffer);\
 		return SCAP_FAILURE;\
 	}
 

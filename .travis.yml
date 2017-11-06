@@ -13,7 +13,7 @@ before_install:
 install:
     - .travis-scripts/${TRAVIS_OS_NAME}/install.sh
 before_script:
-    - export KERNELDIR=/lib/modules/$(ls /lib/modules | sort | head -1)/build
+    - export KERNELDIR=/lib/modules/$(uname -r)/build
 script:
     - .travis-scripts/${TRAVIS_OS_NAME}/build.sh
 notifications:

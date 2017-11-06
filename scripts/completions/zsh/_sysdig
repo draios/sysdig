@@ -224,6 +224,7 @@ _arguments                                                                      
     '(-l -lv --list)'{-l,--list}'[List the fields that can be used for filtering]'                              \
     '(-l -lv --list)-lv[Verbosely list the fields that can be used for filtering]'                              \
     '(-n --numevents)'{-n,--numevents=-}'[Stop capturing after <num> events]:Max <num> events:'                 \
+    '--page-faults[Capture user/kernel major/minor page faults]'                                                \
     '(-P --progress)'{-P,--progress}'[Print progress on stderr while processing trace files]'                   \
     '(-p --print)'{-p,--print=-}'[Specify the event format (default reported with "sysdig -pp")]:Event output format:->format' \
     '(-q --quiet)'{-q,--quiet}'[Do not print events on the screen]'                                             \

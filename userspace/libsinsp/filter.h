@@ -19,6 +19,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include <set>
+#include <vector>
 
 #ifdef HAS_FILTERING
 
@@ -189,7 +190,7 @@ public:
 	// Find those rules that have a tag in the set of tags and set
 	// their enabled status to enabled. Note that the enabled
 	// status is on the rules, and not the tags--if a rule R has
-	// tags (a, b), and you call eanble_tags([a], true) and then
+	// tags (a, b), and you call enable_tags([a], true) and then
 	// enable_tags([b], false), R will be disabled despite the
 	// fact it has tag a and was enabled by the first call to
 	// enable_tags.
@@ -197,6 +198,12 @@ public:
 
 	// Match all filters against the provided event.
 	bool run(sinsp_evt *evt, uint16_t ruleset = 0);
+
+	// Populate the provided vector, indexed by event type, of the
+	// event types associated with the given ruleset id. For
+	// example, evttypes[10] = true would mean that this ruleset
+	// relates to event type 10.
+	void evttypes_for_ruleset(std::vector<bool> &evttypes, uint16_t ruleset);
 
 private:
 
@@ -206,7 +213,9 @@ private:
 		virtual ~filter_wrapper();
 
 		sinsp_filter *filter;
-		std::set<uint32_t> evttypes;
+
+		// Indexes from event type to enabled/disabled.
+		std::vector<bool> evttypes;
 
 		// Indexes from ruleset to enabled/disabled. Unlike
 		// m_filter_by_evttype, this is managed as a vector as we're
@@ -214,6 +223,12 @@ private:
 		// 0..k, as compared to all possible event types.
 		std::vector<bool> enabled;
 	};
+
+        // Solely used for code sharing in evttypes_for_rulset
+	void check_filter_wrappers(std::vector<bool> &evttypes,
+				   uint32_t etype,
+				   std::list<filter_wrapper *> &filters,
+				   uint16_t ruleset);
 
 	// Maps from event type to filter. There can be multiple
 	// filters per event type.

@@ -126,7 +126,7 @@ struct g_invalidchar
 inline void sanitize_string(std::string &str)
 {
 	// It turns out with -O3 (release flags) using erase and
-	// remove_if is slighly faster than the inline version that
+	// remove_if is slightly faster than the inline version that
 	// was here. It's not faster for -O2, and is actually much
 	// slower without optimization.
 	//
@@ -175,6 +175,9 @@ std::string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve);
 // `l4proto` could be neither TCP nor UDP, in this case any protocol will be
 //           matched
 std::string port_to_string(uint16_t port, uint8_t l4proto, bool resolve);
+
+const char* param_type_to_string(ppm_param_type pt);
+const char* print_format_to_string(ppm_print_format fmt);
 
 ///////////////////////////////////////////////////////////////////////////////
 // String helpers
@@ -347,3 +350,5 @@ struct ci_compare
 ///////////////////////////////////////////////////////////////////////////////
 
 bool set_socket_blocking(int sock, bool block);
+
+unsigned int read_num_possible_cpus(void);

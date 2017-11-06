@@ -33,6 +33,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 extern sinsp_evttables g_infotables;
 int32_t g_csysdig_screen_w = -1;
+bool g_filterchecks_force_raw_times = false;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Helper functions
@@ -1341,7 +1342,9 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmrss.b", "For the process main thread, this is the resident non-swapped memory for the process (in bytes). For the other threads, this field is zero."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.sid", "the session id of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.sname", "the name of the current process's session leader. This is either the process with pid=proc.sid or the eldest ancestor that has the same sid as the current process."},
-	{PT_INT32, EPF_NONE, PF_ID, "proc.tty", "The controlling terminal of the process. 0 for processes without a terminal."}
+	{PT_INT32, EPF_NONE, PF_ID, "proc.tty", "The controlling terminal of the process. 0 for processes without a terminal."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exepath", "The full executable path of the process."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "thread.nametid", "this field chains the process name and tid of a thread and can be used as a specific identifier of a thread for a specific execve."},
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -1670,6 +1673,10 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_EXE:
 		m_tstr = tinfo->get_exe();
+		*len = m_tstr.size();
+		return (uint8_t*)m_tstr.c_str();
+	case TYPE_EXEPATH:
+		m_tstr = tinfo->get_exepath();
 		*len = m_tstr.size();
 		return (uint8_t*)m_tstr.c_str();
 	case TYPE_ARGS:
@@ -2152,6 +2159,10 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		{
 			return extract_thread_cpu(evt, tinfo, false, true);
 		}
+	case TYPE_NAMETID:
+		m_tstr = tinfo->get_comm() + to_string(evt->get_tid());
+		*len = m_tstr.size();
+		return (uint8_t*)m_tstr.c_str();
 	default:
 		ASSERT(false);
 		return NULL;
@@ -2351,6 +2362,10 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the length of the binary data buffer, but only for output network I/O events."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_read", "'true' for open/openat events where the path was opened for reading"},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_write", "'true' for open/openat events where the path was opened for writing"},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.name", "for docker infrastructure events, the name of the event."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.id", "for docker infrastructure events, the id of the impacted container."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.name", "for docker infrastructure events, the name of the impacted container."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.image", "for docker infrastructure events, the image name of the impacted container."},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -2897,7 +2912,15 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	switch(m_field_id)
 	{
 	case TYPE_TIME:
-		ts_to_string(evt->get_ts(), &m_strstorage, false, true);
+//		if(g_filterchecks_force_raw_times)
+		if(false)
+		{
+			m_strstorage = to_string(evt->get_ts());
+		}
+		else
+		{
+			ts_to_string(evt->get_ts(), &m_strstorage, false, true);
+		}
 		*len = m_strstorage.size();
 		return (uint8_t*)m_strstorage.c_str();
 	case TYPE_TIME_S:
@@ -3662,6 +3685,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			if(fdinfo != NULL)
 			{
 				if(fdinfo->m_type == SCAP_FD_FILE ||
+					fdinfo->m_type == SCAP_FD_FILE_V2 ||
 					fdinfo->m_type == SCAP_FD_DIRECTORY)
 				{
 					return extract_error_count(evt, len);
@@ -3730,6 +3754,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			if(fdinfo != NULL)
 			{
 				if(!(fdinfo->m_type == SCAP_FD_FILE ||
+					fdinfo->m_type == SCAP_FD_FILE_V2 ||
 					fdinfo->m_type == SCAP_FD_DIRECTORY ||
 					fdinfo->m_type == SCAP_FD_IPV4_SOCK ||
 					fdinfo->m_type == SCAP_FD_IPV6_SOCK ||
@@ -3818,7 +3843,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_BUFLEN_FILE:
 		if(evt->m_fdinfo && evt->get_category() & EC_IO_BASE)
 		{
-			if(evt->m_fdinfo->m_type == SCAP_FD_FILE)
+			if(evt->m_fdinfo->m_type == SCAP_FD_FILE || evt->m_fdinfo->m_type == SCAP_FD_FILE_V2)
 			{
 				return extract_buflen(evt);
 			}
@@ -3828,7 +3853,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_BUFLEN_FILE_IN:
 		if(evt->m_fdinfo && evt->get_category() == EC_IO_READ)
 		{
-			if(evt->m_fdinfo->m_type == SCAP_FD_FILE)
+			if(evt->m_fdinfo->m_type == SCAP_FD_FILE || evt->m_fdinfo->m_type == SCAP_FD_FILE_V2)
 			{
 				return extract_buflen(evt);
 			}
@@ -3838,7 +3863,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_BUFLEN_FILE_OUT:
 		if(evt->m_fdinfo && evt->get_category() == EC_IO_WRITE)
 		{
-			if(evt->m_fdinfo->m_type == SCAP_FD_FILE)
+			if(evt->m_fdinfo->m_type == SCAP_FD_FILE || evt->m_fdinfo->m_type == SCAP_FD_FILE_V2)
 			{
 				return extract_buflen(evt);
 			}
@@ -3850,7 +3875,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			scap_fd_type etype = evt->m_fdinfo->m_type;
 
-			if((etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK) || etype == SCAP_FD_UNIX_SOCK)
+			if(etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK)
 			{
 				return extract_buflen(evt);
 			}
@@ -3862,7 +3887,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			scap_fd_type etype = evt->m_fdinfo->m_type;
 
-			if((etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK) || etype == SCAP_FD_UNIX_SOCK)
+			if(etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK)
 			{
 				return extract_buflen(evt);
 			}
@@ -3874,7 +3899,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			scap_fd_type etype = evt->m_fdinfo->m_type;
 
-			if((etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK) || etype == SCAP_FD_UNIX_SOCK)
+			if(etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK)
 			{
 				return extract_buflen(evt);
 			}
@@ -3917,6 +3942,70 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			}
 
 			return (uint8_t*)&m_u32val;
+		}
+		break;
+	case TYPE_INFRA_DOCKER_NAME:
+	case TYPE_INFRA_DOCKER_CONTAINER_ID:
+	case TYPE_INFRA_DOCKER_CONTAINER_NAME:
+	case TYPE_INFRA_DOCKER_CONTAINER_IMAGE:
+		{
+			uint16_t etype = evt->m_pevt->type;
+
+			if(etype == PPME_INFRASTRUCTURE_EVENT_E)
+			{
+				sinsp_evt_param* parinfo = evt->get_param(2);
+				char* descstr = (char*)parinfo->m_val;
+				vector<string> elements = sinsp_split(descstr, ';');
+				for(string ute : elements)
+				{
+					string e = trim(ute);
+
+					if(m_field_id == TYPE_INFRA_DOCKER_NAME)
+					{
+						if(e.substr(0, sizeof("Event") - 1) == "Event")
+						{
+							vector<string> subelements = sinsp_split(e, ':');
+							ASSERT(subelements.size() == 2);
+							m_strstorage = trim(subelements[1]);
+							*len = m_strstorage.size();
+							return (uint8_t*)m_strstorage.c_str();
+						}
+					}
+					else if(m_field_id == TYPE_INFRA_DOCKER_CONTAINER_ID)
+					{
+						if(e.substr(0, sizeof("ID") - 1) == "ID")
+						{
+							vector<string> subelements = sinsp_split(e, ':');
+							ASSERT(subelements.size() == 2);
+							m_strstorage = trim(subelements[1]);
+							*len = m_strstorage.size();
+							return (uint8_t*)m_strstorage.c_str();
+						}
+					}
+					else if(m_field_id == TYPE_INFRA_DOCKER_CONTAINER_NAME)
+					{
+						if(e.substr(0, sizeof("Name") - 1) == "Name")
+						{
+							vector<string> subelements = sinsp_split(e, ':');
+							ASSERT(subelements.size() == 2);
+							m_strstorage = trim(subelements[1]);
+							*len = m_strstorage.size();
+							return (uint8_t*)m_strstorage.c_str();
+						}
+					}
+					else if(m_field_id == TYPE_INFRA_DOCKER_CONTAINER_IMAGE)
+					{
+						if(e.substr(0, sizeof("Image") - 1) == "Image")
+						{
+							vector<string> subelements = sinsp_split(e, ':');
+							ASSERT(subelements.size() == 2);
+							m_strstorage = trim(subelements[1]);
+							*len = m_strstorage.size();
+							return (uint8_t*)m_strstorage.c_str();
+						}
+					}
+				}
+			}
 		}
 		break;
 	default:
@@ -5418,8 +5507,8 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_BOOL, EPF_NONE, PF_NA, "container.privileged", "true for containers running as privileged, false otherwise"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mounts", "A space-separated list of mount information. Each item in the list has the format <source>:<dest>:<mode>:<rdrw>:<propagation>"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount", "Information about a single mount, specified by number (e.g. container.mount[0]) or mount source (container.mount[/usr/local]). The pathname can be a glob (container.mount[/usr/local/*]), in which case the first matching mount will be returned. The information has the format <source>:<dest>:<mode>:<rdrw>:<propagation>. If there is no mount with the specified index or matching the provided source, returns the string \"none\" instead of a NULL value."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount.source", "the mount source, specified by number (e.g. container.mount.dest[0]) or mount destination (container.mount.source[/usr/local]). The pathname can be a glob."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount.dest", "the mount destination, specified by number (e.g. container.mount.dest[0]) or mount source (container.mount.dest[/usr/local]). The pathname can be a glob."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount.source", "the mount source, specified by number (e.g. container.mount.source[0]) or mount destination (container.mount.source[/host/lib/modules]). The pathname can be a glob."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount.dest", "the mount destination, specified by number (e.g. container.mount.dest[0]) or mount source (container.mount.dest[/lib/modules]). The pathname can be a glob."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount.mode", "the mount mode, specified by number (e.g. container.mount.mode[0]) or mount source (container.mount.mode[/usr/local]). The pathname can be a glob."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount.rdwr", "the mount rdwr value, specified by number (e.g. container.mount.rdwr[0]) or mount source (container.mount.rdwr[/usr/local]). The pathname can be a glob."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mount.propagation", "the mount propagation value, specified by number (e.g. container.mount.propagation[0]) or mount source (container.mount.propagation[/usr/local]). The pathname can be a glob."}
@@ -5456,7 +5545,7 @@ int32_t sinsp_filter_check_container::extract_arg(const string &val, size_t base
 	try
 	{
 		m_argid = sinsp_numparser::parsed32(numstr);
-	} catch (sinsp_exception e)
+	} catch (sinsp_exception &e)
 	{
 		if(strstr(e.what(), "is not a valid number") == NULL)
 		{
@@ -6106,8 +6195,8 @@ char* sinsp_filter_check_reference::print_int(uint8_t* rawval, uint32_t str_len)
 }
 
 char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
-												  uint32_t str_len,
-												  uint64_t time_delta)
+	uint32_t str_len,
+	uint64_t time_delta)
 {
 	uint32_t len;
 	uint8_t* rawval = extract(evt, &len);
@@ -6161,6 +6250,51 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
 	else
 	{
 		return rawval_to_string(rawval, m_field, len);
+	}
+}
+
+Json::Value sinsp_filter_check_reference::tojson(sinsp_evt* evt,
+	uint32_t str_len,
+	uint64_t time_delta)
+{
+	uint32_t len;
+	uint8_t* rawval = extract(evt, &len);
+
+	if(rawval == NULL)
+	{
+		return "";
+	}
+
+	if(time_delta != 0)
+	{
+		m_cnt = (double)time_delta / ONE_SECOND_IN_NS;
+	}
+
+	if(m_field->m_type == PT_RELTIME)
+	{
+		double val = (double)*(uint64_t*)rawval;
+
+		if(m_cnt > 1)
+		{
+			val /= m_cnt;
+		}
+
+		return format_time((int64_t)val, str_len);
+	}
+	else if(m_field->m_type == PT_DOUBLE)
+	{
+		double dval = (double)*(double*)rawval;
+
+		if(m_cnt > 1)
+		{
+			dval /= m_cnt;
+		}
+
+		return dval;
+	}
+	else
+	{
+		return rawval_to_json(rawval, m_field, len);
 	}
 }
 

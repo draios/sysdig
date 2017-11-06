@@ -32,6 +32,7 @@ _sysdig_complete()
   -l                                            \
   --list                                        \
   -lv                                           \
+  --page-faults                                 \
   -P                                            \
   --progress                                    \
   -q                                            \

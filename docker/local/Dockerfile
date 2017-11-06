@@ -19,6 +19,7 @@ RUN echo "deb http://httpredir.debian.org/debian jessie main" > /etc/apt/sources
  && apt-get install -y --no-install-recommends \
 	bash-completion \
 	curl \
+	dkms \
 	gnupg2 \
 	ca-certificates \
 	gcc \
@@ -26,7 +27,8 @@ RUN echo "deb http://httpredir.debian.org/debian jessie main" > /etc/apt/sources
 	gcc-4.9 \
 	libelf1 \
 	less \
-	dkms && rm -rf /var/lib/apt/lists/*
+	procps \
+ && rm -rf /var/lib/apt/lists/*
 
 # Since our base Debian image ships with GCC 5.0 which breaks older kernels, revert the
 # default to gcc-4.9. Also, since some customers use some very old distributions whose kernel

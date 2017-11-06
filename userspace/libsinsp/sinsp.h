@@ -22,7 +22,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 	\section Introduction
 
 	libsinsp is a system inspection library written in C++ and implementing high level
-	functionlity like:
+	functionality like:
 	- live capture control (start/stop/pause...)
 	- event capture from file or the live OS
 	- OS state reconstruction. By parsing /proc and inspecting the live event stream,
@@ -191,7 +191,7 @@ struct sinsp_capture_interrupt_exception : sinsp_exception
 };
 
 /*!
-  \brief The deafult way an event is converted to string by the library
+  \brief The default way an event is converted to string by the library
 */
 #define DEFAULT_OUTPUT_STR "*%evt.num %evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args"
 
@@ -276,7 +276,7 @@ public:
 	  \param evt a \ref sinsp_evt pointer that will be initialized to point to
 	  the next available event.
 
-	  \return SCAP_SUCCESS if the call is succesful and pevent and pcpuid contain
+	  \return SCAP_SUCCESS if the call is successful and pevent and pcpuid contain
 	   valid data. SCAP_TIMEOUT in case the read timeout expired and no event is
 	   available. SCAP_EOF when the end of an offline capture is reached.
 	   On Failure, SCAP_FAILURE is returned and getlasterr() can be used to
@@ -320,7 +320,7 @@ public:
 
 	  \param import_users if true, no user tables will be created for
 	  this capture. This also means that no user or group info will be
-	  written to the tracefile by the -w flag. The user/group tables are
+	  written to the trace file by the -w flag. The user/group tables are
 	  necessary to use filter fields like user.name or group.name. However,
 	  creating them can increase sysdig's startup time. Moreover, they contain
 	  information that could be privacy sensitive.
@@ -412,7 +412,7 @@ public:
 
 	  \param dump_filename the destination trace file.
 
-	  \param compress true to save the tracefile in a compressed format.
+	  \param compress true to save the trace file in a compressed format.
 
 	  \note only the events that pass the capture filter set with \ref set_filter()
 	   will be saved to disk.
@@ -627,6 +627,19 @@ public:
 	void set_fatfile_dump_mode(bool enable_fatfile);
 
 	/*!
+	  \brief Set internal events mode.
+
+	  \note By default, internal events, such as events that note
+                when new containers or orchestration entities have
+                been created, are not returned in sinsp::next(). (They
+                are always written to capture files, to ensure that
+                the full state can be reconstructed when capture files
+                are read). Enabling internal events mode will result
+                in these events being returned.
+	*/
+	void set_internal_events_mode(bool enable_internal_events);
+
+	/*!
 	  \brief Set whether Sysdig should resolve hostnames and port protocols or not.
 
 	  \note Sysdig can use the system library functions getservbyport and so to
@@ -707,6 +720,28 @@ public:
 	}
 
 	/*!
+	  \brief If this is an online capture, set event_id.
+	  \param event type to set
+	  \return SCAP_SUCCESS if the call is succesful
+	   On Failure, SCAP_FAILURE is returned and getlasterr() can be used to
+	   obtain the cause of the error.
+
+	  \note For a list of event types, refer to \ref etypes.
+	*/
+	void set_eventmask(uint32_t event_types);
+
+	/*!
+	  \brief If this is an online capture, unset event_id.
+	  \param event type to unset
+	  \return SCAP_SUCCESS if the call is succesful
+	   On Failure, SCAP_FAILURE is returned and getlasterr() can be used to
+	   obtain the cause of the error.
+
+	  \note For a list of event types, refer to \ref etypes.
+	*/
+	void unset_eventmask(uint32_t event_id);
+
+	/*!
 	  \brief When reading events from a trace file, this function returns the
 	   read progress as a number between 0 and 100.
 	*/
@@ -753,11 +788,11 @@ public:
 	bool setup_cycle_writer(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
 	void add_meta_event(sinsp_evt *metaevt);
-	void add_meta_event_and_repeat(sinsp_evt *metaevt);
 	void add_meta_event_callback(meta_event_callback cback, void* data);
 	void remove_meta_event_callback();
 	void filter_proc_table_when_saving(bool filter);
 	void enable_tracers_capture();
+	void enable_page_faults();
 	uint64_t get_bytes_read()
 	{
 		return scap_ftell(m_h);
@@ -766,6 +801,10 @@ public:
 	void refresh_proc_list() {
 		scap_refresh_proc_table(m_h);
 	}
+	void set_simpledriver_mode();
+	vector<long> get_n_tracepoint_hit();
+
+	static unsigned num_possible_cpus();
 VISIBILITY_PRIVATE
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE
@@ -862,6 +901,7 @@ private:
 	string m_input_filename;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;
+	bool m_isinternal_events_enabled;
 	bool m_hostname_and_port_resolution_enabled;
 	char m_output_time_flag;
 	uint32_t m_max_evt_output_len;
@@ -1014,8 +1054,14 @@ public:
 	sinsp_evt m_meta_evt; // XXX this should go away
 	char* m_meta_evt_buf; // XXX this should go away
 	bool m_meta_evt_pending; // XXX this should go away
+
+	int32_t m_meta_skipped_evt_res;
+	sinsp_evt* m_meta_skipped_evt;
+
+	//
+	// meta event management for other sources like k8s, mesos.
+	//
 	sinsp_evt* m_metaevt;
-	sinsp_evt* m_skipped_evt;
 	meta_event_callback m_meta_event_callback;
 	void* m_meta_event_callback_data;
 
@@ -1027,6 +1073,7 @@ public:
 	uint64_t m_last_procrequest_tod;
 	sinsp_proc_metainfo m_meinfo;
 
+	static unsigned int m_num_possible_cpus;
 #if defined(HAS_CAPTURE)
 	int64_t m_sysdig_pid;
 #endif

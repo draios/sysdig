@@ -88,10 +88,11 @@ target_link_libraries(sinsp
 	scap
 	"${JSONCPP_LIB}")
 
+if(USE_BUNDLED_LUAJIT)
+	add_dependencies(sinsp luajit)
+endif()
+
 if(NOT WIN32)
-	if(USE_BUNDLED_LUAJIT)
-		add_dependencies(sinsp luajit)
-	endif()
 	if(USE_BUNDLED_OPENSSL)
 		add_dependencies(sinsp openssl)
 	endif()
