@@ -229,8 +229,8 @@ typedef struct scap_threadinfo
 	int filtered_out; ///< nonzero if this entry should not be saved to file
 	scap_fdinfo* fdlist; ///< The fd table for this process
 	uint64_t clone_ts;
-	int32_t tty_nr; ///< tty number
-	char tty[SCAP_MAX_ENV_SIZE+1]; ///< tty
+	int32_t tty; ///< tty_nr
+	char ttyname[SCAP_MAX_PATH_SIZE+1]; ///< tty (e.g. "/dev/pts/1")
 
 	UT_hash_handle hh; ///< makes this structure hashable
 }scap_threadinfo;

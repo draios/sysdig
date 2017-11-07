@@ -1124,10 +1124,11 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		// Copy the session id from the parent
 		tinfo.m_sid = ptinfo->m_sid;
 
-		tinfo.m_tty_nr = ptinfo->m_tty_nr;
-
-		// Copy the session id from the parent
+		// Copy the tty number from the parent
 		tinfo.m_tty = ptinfo->m_tty;
+
+		// Copy the tty name from the parent
+		tinfo.m_ttyname = ptinfo->m_ttyname;
 	}
 	else
 	{
@@ -1161,8 +1162,8 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			tinfo.m_args = ptinfo->m_args;
 			tinfo.m_root = ptinfo->m_root;
 			tinfo.m_sid = ptinfo->m_sid;
-			tinfo.m_tty_nr = ptinfo->m_tty_nr;
 			tinfo.m_tty = ptinfo->m_tty;
+			tinfo.m_ttyname = ptinfo->m_ttyname;
 		}
 		else
 		{
@@ -1639,10 +1640,10 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
-		// Get the tty_nr
+		// Get the tty
 		parinfo = evt->get_param(16);
 		ASSERT(parinfo->m_len == sizeof(int32_t));
-		evt->m_tinfo->m_tty_nr = *(int32_t *) parinfo->m_val;
+		evt->m_tinfo->m_tty = *(int32_t *) parinfo->m_val;
 		break;
 	default:
 		ASSERT(false);
@@ -1694,7 +1695,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		case PPME_SYSCALL_EXECVE_19_X:
 			// Get the tty
 			parinfo = evt->get_param(17);
-			evt->m_tinfo->m_tty = parinfo->m_val;
+			evt->m_tinfo->m_ttyname = parinfo->m_val;
 			break;
 		default:
 			ASSERT(false);

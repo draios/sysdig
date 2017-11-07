@@ -285,7 +285,7 @@ int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_
 	argslen = tinfo->args_len;
 	cwdlen = (uint16_t)strnlen(tinfo->cwd, SCAP_MAX_PATH_SIZE);
 	rootlen = (uint16_t)strnlen(tinfo->root, SCAP_MAX_PATH_SIZE);
-	ttylen = (uint16_t)strnlen(tinfo->tty, SCAP_MAX_PATH_SIZE);
+	ttylen = (uint16_t)strnlen(tinfo->ttyname, SCAP_MAX_PATH_SIZE);
 
 	if(scap_dump_write(d, &(tinfo->tid), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		    scap_dump_write(d, &(tinfo->pid), sizeof(uint64_t)) != sizeof(uint64_t) ||
@@ -318,9 +318,9 @@ int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_
 		    scap_dump_write(d, tinfo->cgroups, tinfo->cgroups_len) != tinfo->cgroups_len ||
 		    scap_dump_write(d, &rootlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
 		    scap_dump_write(d, tinfo->root, rootlen) != rootlen ||
-			scap_dump_write(d, &(tinfo->tty_nr), sizeof(int32_t)) != sizeof(int32_t) ||
+			scap_dump_write(d, &(tinfo->tty), sizeof(int32_t)) != sizeof(int32_t) ||
 			scap_dump_write(d, &ttylen, sizeof(uint16_t)) != sizeof(uint16_t) ||
-		    scap_dump_write(d, tinfo->tty, ttylen) != ttylen)
+		    scap_dump_write(d, tinfo->ttyname, ttylen) != ttylen)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (2)");
 		return SCAP_FAILURE;
@@ -369,8 +369,8 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 				2 + tinfo->cgroups_len +
 				sizeof(uint32_t) +
 				2 + strnlen(tinfo->root, SCAP_MAX_PATH_SIZE) +
-				sizeof(uint32_t) + // tty_nr
-				2 + strnlen(tinfo->tty, SCAP_MAX_PATH_SIZE));
+				sizeof(uint32_t) + // tty
+				2 + strnlen(tinfo->ttyname, SCAP_MAX_PATH_SIZE));
 
 			totlen += il;
 		}
@@ -1079,9 +1079,9 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 	tinfo.root[0] = 0;
 	tinfo.sid = -1;
 	tinfo.clone_ts = 0;
-	tinfo.tty_nr = 0;
+	tinfo.tty = 0;
 	tinfo.exepath[0] = 0;
-	tinfo.tty[0] = 0;
+	tinfo.ttyname[0] = 0;
 
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
 	{
@@ -1477,10 +1477,10 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 				break;
 			case PL_BLOCK_TYPE_V8:
 				//
-				// tty_nr
+				// tty
 				//
 				//
-				readsize = gzread(f, &(tinfo.tty_nr), sizeof(int32_t));
+				readsize = gzread(f, &(tinfo.tty), sizeof(int32_t));
 				CHECK_READ_SIZE(readsize, sizeof(int32_t));
 
 				totreadsize += readsize;
@@ -1499,11 +1499,11 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 				totreadsize += readsize;
 
-				readsize = gzread(f, tinfo.tty, stlen);
+				readsize = gzread(f, tinfo.ttyname, stlen);
 				CHECK_READ_SIZE(readsize, stlen);
 
 				// the string is not null-terminated on file
-				tinfo.tty[stlen] = 0;
+				tinfo.ttyname[stlen] = 0;
 
 				totreadsize += readsize;
 

@@ -58,9 +58,9 @@ int32_t scap_proc_fill_tty(char* procdirname, struct scap_threadinfo* tinfo)
 	// read the tty from stdin fd
 	snprintf(filename, sizeof(filename), "%sfd/0", procdirname);
 
-	target_res = readlink(filename, tinfo->tty, sizeof(tinfo->tty) - 1);
+	target_res = readlink(filename, tinfo->ttyname, sizeof(tinfo->tty) - 1);
 
-	tinfo->tty[target_res] = '\0';
+	tinfo->ttyname[target_res] = '\0';
 	return SCAP_SUCCESS;
 }
 
@@ -93,7 +93,7 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	tinfo->pfmajor = 0;
 	tinfo->pfminor = 0;
 	tinfo->filtered_out = 0;
-	tinfo->tty_nr = 0;
+	tinfo->tty = 0;
 
 	snprintf(filename, sizeof(filename), "%sstatus", procdirname);
 
@@ -266,7 +266,7 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	tinfo->pfmajor = pfmajor;
 	tinfo->pfminor = pfminor;
 	tinfo->sid = (uint64_t) sid;
-	tinfo->tty_nr = tty;
+	tinfo->tty = tty;
 
 	fclose(f);
 	return SCAP_SUCCESS;

@@ -1184,10 +1184,10 @@ static int ppm_get_tty(char *buf, int buflen)
 	if (unlikely(probe_kernel_read(&minor_start, &driver->minor_start, sizeof(minor_start))))
 		return 0;
 
+	tty_nr = new_encode_dev(MKDEV(major, minor_start) + index);
+
 	if (snprintf(buf, buflen, "/dev/%s/%d", driver->name, index) < 0)
 		strncpy(buf, "<NA>", buflen);
-	
-	tty_nr = new_encode_dev(MKDEV(major, minor_start) + index);
 
 	return tty_nr;
 }
