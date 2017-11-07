@@ -61,7 +61,7 @@ int32_t scap_proc_fill_tty(char* procdirname, struct scap_threadinfo* tinfo)
 	target_res = readlink(filename, tinfo->ttyname, sizeof(tinfo->ttyname) - 1);
 	if(target_res <= 0)
 	{
-		return SCAP_FAILURE;
+		strcpy(tinfo->ttyname, "?");
 	}
 	
 	tinfo->ttyname[target_res] = '\0';
