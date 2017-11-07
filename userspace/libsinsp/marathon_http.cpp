@@ -11,6 +11,7 @@
 #include "b64/encode.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "json_error_log.h"
 #include "mesos.h"
 #include <iostream>
 #include <sstream>
@@ -66,6 +67,7 @@ bool marathon_http::refresh_data()
 			std::string errstr;
 			errstr = reader.getFormattedErrorMessages();
 			g_logger.log("Error parsing framework info (" + errstr + ").\nJSON:\n---\n" + os.str() + "\n---", sinsp_logger::SEV_ERROR);
+			g_json_error_log.log(os.str(), errstr);
 			return false;
 		}
 	}
