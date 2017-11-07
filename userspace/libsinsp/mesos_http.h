@@ -168,6 +168,10 @@ inline mesos_http::json_ptr_t mesos_http::try_parse(const std::string& json)
 			return root;
 		}
 	}
+	catch(const Json::Exception &e)
+	{
+		g_logger.log("Could not parse JSON document: " + string(e.what()), sinsp_logger::SEV_WARNING);
+	}
 	catch(...) { }
 	return nullptr;
 }
@@ -218,6 +222,7 @@ public:
 	typedef std::shared_ptr<Json::Value> json_ptr_t;
 	static json_ptr_t try_parse(const std::string& json)
 	{
+		errstr = "";
 		json_ptr_t root(new Json::Value());
 		try
 		{
@@ -225,6 +230,10 @@ public:
 			{
 				return root;
 			}
+		}
+		catch(const Json::Exception &e)
+		{
+			g_logger.log("Could not parse JSON document: " + string(e.what()), sinsp_logger::SEV_WARNING);
 		}
 		catch(...) { }
 		return nullptr;

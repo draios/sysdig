@@ -111,8 +111,10 @@ Json::Value mesos_http::get_state_frameworks()
 		}
 		else
 		{
+			std::string errstr;
+			errstr = reader.getFormattedErrorMessages();
 			g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
-			throw sinsp_exception("mesos_http: Mesos master leader detection failed in get_state_frameworks(): Invalid JSON.");
+			throw sinsp_exception("mesos_http: Mesos master leader detection failed in get_state_frameworks(): Invalid JSON (" + errstr + ")");
 		}
 	}
 	else
@@ -204,8 +206,10 @@ void mesos_http::discover_mesos_leader()
 			}
 			else
 			{
+				std::string errstr;
+				errstr = reader.getFormattedErrorMessages();
 				g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
-				throw sinsp_exception("mesos_http: Mesos master leader [" + m_url.to_string(false) + "] detection failed: Invalid JSON.");
+				throw sinsp_exception("mesos_http: Mesos master leader [" + m_url.to_string(false) + "] detection failed: Invalid JSON (" + errstr + ")");
 			}
 		}
 		else
@@ -441,7 +445,9 @@ bool mesos_http::get_all_data(callback_func_t parse)
 		}
 		else
 		{
-			g_logger.log("mesos_http: Mesos or Marathon Invalid JSON received from [" + m_url.to_string(false) + ']', sinsp_logger::SEV_WARNING);
+			std::string errstr;
+			errstr = reader.getFormattedErrorMessages();
+			g_logger.log("mesos_http: Mesos or Marathon Invalid JSON received from [" + m_url.to_string(false) + "]: " + errstr, sinsp_logger::SEV_WARNING);
 			g_logger.log("JSON: <" + os.str() + '>', sinsp_logger::SEV_DEBUG);
 		}
 		m_connected = true;
@@ -803,7 +809,9 @@ Json::Value mesos_http::get_task_labels(const std::string& task_id)
 		}
 		else
 		{
-			g_logger.log("mesos_http: Error parsing tasks.\nJSON:\n---\n" + os.str() + "\n---", sinsp_logger::SEV_ERROR);
+			std::string errstr;
+			errstr = reader.getFormattedErrorMessages();
+			g_logger.log("mesos_http: Error parsing tasks (" + errstr + ").\nJSON:\n---\n" + os.str() + "\n---", sinsp_logger::SEV_ERROR);
 		}
 	}
 	catch(std::exception& ex)

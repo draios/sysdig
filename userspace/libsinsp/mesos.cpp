@@ -1039,4 +1039,10 @@ void mesos::simulate_event(const std::string& json)
 			}
 		}
 	}
+	else
+	{
+		std::string errstr;
+		errstr = reader.getFormattedErrorMessages();
+		g_logger.log("Could not parse json (" + errstr + ")", sinsp_logger::SEV_ERROR);
+	}
 }

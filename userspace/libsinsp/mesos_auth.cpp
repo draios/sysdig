@@ -78,6 +78,12 @@ void mesos_auth::authenticate()
 				m_token = response_obj["token"].asString();
 				g_logger.format(sinsp_logger::SEV_DEBUG, "Mesos authenticated with token=%s", m_token.c_str());
 			}
+			else if (!parse_ok)
+			{
+				std::string errstr;
+				errstr = json_reader.getFormattedErrorMessages();
+				throw sinsp_exception(string("Cannot parse json (" + errstr + ")"));
+			}
 			else
 			{
 				throw sinsp_exception(string("Cannot authenticate on Mesos master, response=") + response);
