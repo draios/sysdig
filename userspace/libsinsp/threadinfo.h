@@ -240,7 +240,8 @@ public:
 	string m_root;
 	size_t m_program_hash;
 	size_t m_program_hash_falco;
-	int32_t m_tty;
+	int32_t m_tty; ///< tty_nr
+	string m_ttyname; ///< tty (e.g. "/dev/pts/1")
 
 	//
 	// State for multi-event processing

@@ -371,8 +371,9 @@ public:
 		TYPE_SID = 40,
 		TYPE_SNAME = 41,
 		TYPE_TTY = 42,
-		TYPE_EXEPATH = 43,
-		TYPE_NAMETID = 44,
+		TYPE_TTYNAME = 43,
+		TYPE_EXEPATH = 44,
+		TYPE_NAMETID = 45,
 	};
 
 	sinsp_filter_check_thread();

@@ -50,6 +50,24 @@ int32_t scap_proc_fill_cwd(char* procdirname, struct scap_threadinfo* tinfo)
 	return SCAP_SUCCESS;
 }
 
+int32_t scap_proc_fill_tty(char* procdirname, struct scap_threadinfo* tinfo)
+{
+	ssize_t target_res;
+	char filename[SCAP_MAX_PATH_SIZE];
+
+	// read the tty from stdin fd
+	snprintf(filename, sizeof(filename), "%sfd/%d", procdirname, STDIN_FILENO);
+
+	target_res = readlink(filename, tinfo->ttyname, sizeof(tinfo->ttyname) - 1);
+	if(target_res <= 0)
+	{
+		return SCAP_FAILURE;
+	}
+	
+	tinfo->ttyname[target_res] = '\0';
+	return SCAP_SUCCESS;
+}
+
 int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo* tinfo)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
@@ -679,6 +697,16 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 	if(SCAP_FAILURE == scap_proc_fill_cwd(dir_name, tinfo))
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "can't fill cwd for %s", dir_name);
+		free(tinfo);
+		return SCAP_FAILURE;
+	}
+
+	//
+	// set the tty of the process
+	//
+	if(SCAP_FAILURE == scap_proc_fill_tty(dir_name, tinfo))
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "can't fill tty for %s", dir_name);
 		free(tinfo);
 		return SCAP_FAILURE;
 	}

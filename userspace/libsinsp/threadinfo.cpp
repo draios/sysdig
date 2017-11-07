@@ -387,6 +387,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_vpid = pi->vpid;
 	m_clone_ts = pi->clone_ts;
 	m_tty = pi->tty;
+	m_ttyname = pi->ttyname;
 
 	set_cgroups(pi->cgroups, pi->cgroups_len);
 	m_root = pi->root;
@@ -1391,6 +1392,8 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, 	scap_threadi
 	tinfo.cgroups_to_scap(sctinfo);
 	strncpy(sctinfo->root, tinfo.m_root.c_str(), SCAP_MAX_PATH_SIZE);
 	sctinfo->filtered_out = false;
+	sctinfo->tty = tinfo.m_tty;
+	strncpy(sctinfo->ttyname, tinfo.m_ttyname.c_str(), SCAP_MAX_PATH_SIZE);
 }
 
 void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
@@ -1439,7 +1442,8 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			sizeof(int64_t) +  // vtid
 			sizeof(int64_t) +  // vpid
 			2 + sctinfo->cgroups_len +
-			sizeof(uint32_t) +
+			sizeof(uint32_t) + // tty
+		    2 + MIN(tinfo.m_ttyname.size(), SCAP_MAX_PATH_SIZE) +
 			2 + MIN(tinfo.m_root.size(), SCAP_MAX_PATH_SIZE));
 
 		totlen += il;

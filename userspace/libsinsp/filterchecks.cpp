@@ -1342,7 +1342,8 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmrss.b", "For the process main thread, this is the resident non-swapped memory for the process (in bytes). For the other threads, this field is zero."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.sid", "the session id of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.sname", "the name of the current process's session leader. This is either the process with pid=proc.sid or the eldest ancestor that has the same sid as the current process."},
-	{PT_INT32, EPF_NONE, PF_ID, "proc.tty", "The controlling terminal of the process. 0 for processes without a terminal."},
+	{PT_INT32, EPF_NONE, PF_ID, "proc.tty", "The tty_nr of the process. 0 for processes without a terminal."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.ttyname", "The controlling terminal of the process. ? for processes without a terminal."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exepath", "The full executable path of the process."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "thread.nametid", "this field chains the process name and tid of a thread and can be used as a specific identifier of a thread for a specific execve."},
 };
@@ -1667,6 +1668,10 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_TTY:
 		return (uint8_t*)&tinfo->m_tty;
+	case TYPE_TTYNAME:
+		m_tstr = tinfo->m_ttyname;
+		*len = m_tstr.size();
+		return (uint8_t*)m_tstr.c_str();
 	case TYPE_NAME:
 		m_tstr = tinfo->get_comm();
 		*len = m_tstr.size();
