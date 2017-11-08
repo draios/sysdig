@@ -33,6 +33,7 @@ add_library(sinsp STATIC
 	http_reason.cpp
 	ifinfo.cpp
 	json_query.cpp
+	json_error_log.cpp
 	k8s.cpp
 	k8s_api_error.cpp
 	k8s_api_handler.cpp
