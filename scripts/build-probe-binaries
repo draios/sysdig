@@ -174,45 +174,43 @@ function coreos_build_new {
 
 	cd $COREOS_DIR
 
-	# If past runs fail, /tmp/loop and relative device
-	# may be hanging around
-	if mount | grep /tmp/loop; then
-		echo "Found stale /tmp/loop, unmounting"
-		LOOPDEV=$(mount |grep /tmp/loop|cut -d" " -f1|egrep -o "loop[0-9]+")
-		sudo umount /tmp/loop
-		sudo kpartx -dv /dev/$LOOPDEV
-	fi
-
 	if [ ! -f coreos_developer_container.bin ]; then
 		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} ${VERSION_URL}coreos_developer_container.bin.bz2
 		bunzip2 coreos_developer_container.bin.bz2
 	fi
-	sudo kpartx -asv coreos_developer_container.bin
-	LOOPDEV=$(sudo kpartx -asv coreos_developer_container.bin | cut -d\  -f 3)
-	sudo mkdir /tmp/loop || true
-	sudo mount /dev/mapper/$LOOPDEV /tmp/loop
 
-	rm config* || true
-	cp /tmp/loop/usr/boot/config-* .
-	cp config-* config_orig
-	cp config_orig config
+	if [ ! -f config_orig ]; then
+		# mount developer container is a very stateful part of this script
+		# the section between mount/unmounting should be kept very small
+		# otherwise if something fails there are many inconsistencies that can happen
+		sudo kpartx -asv coreos_developer_container.bin
+		LOOPDEV=$(sudo kpartx -asv coreos_developer_container.bin | cut -d\  -f 3)
+		sudo mkdir /tmp/loop || true
+		sudo mount /dev/mapper/$LOOPDEV /tmp/loop
+		
+		# Copy kernel headers
+		cp -r /tmp/loop/lib/modules .
+
+		# Copy kernel config
+		rm config* || true
+		cp /tmp/loop/usr/boot/config-* .
+		cp config-* config_orig
+		cp config_orig config
+
+		# umount and remove the developer container
+		sudo umount /tmp/loop
+		sudo kpartx -dv coreos_developer_container.bin
+	fi
+
 	# https://groups.google.com/forum/#!topic/coreos-dev/Z8Q7sIy6YwE
 	sed -i 's/CONFIG_INITRAMFS_SOURCE=""/CONFIG_INITRAMFS_SOURCE="bootengine.cpio"\nCONFIG_INITRAMFS_ROOT_UID=0\nCONFIG_INITRAMFS_ROOT_GID=0/' config
 	KERNEL_RELEASE=$(ls config-* | sed s/config-//)
 	HASH_ORIG=$(md5sum config_orig | cut -d' ' -f1)
 	HASH=$(md5sum config | cut -d' ' -f1)
 
+	export KERNELDIR=$PWD/modules/$KERNEL_RELEASE/build
 	cd $BASEDIR
-	export KERNELDIR=$(readlink -f /tmp/loop/lib/modules/$KERNEL_RELEASE/build)
-
 	build_probe
-
-	cd $COREOS_DIR
-	# cleanup
-	sudo umount /tmp/loop
-	sudo kpartx -dv coreos_developer_container.bin
-
-	cd $BASEDIR
 
 	return
 }
