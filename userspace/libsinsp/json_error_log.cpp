@@ -11,13 +11,16 @@ void json_error_log::set_json_parse_errors_file(const std::string& filename)
 
 void json_error_log::log(const std::string &json, const std::string &errstr)
 {
-	std::ofstream errs(m_json_parse_errors_file, std::ofstream::out | std::ofstream::app);
+	if(m_json_parse_errors_file != "")
+	{
+		std::ofstream errs(m_json_parse_errors_file, std::ofstream::out | std::ofstream::app);
 
-	errs << "*******************************";
-	errs << errstr;
-	errs << json;
-	errs << "*******************************";
+		errs << "*******************************" << std::endl;
+		errs << errstr << std::endl;
+		errs << json << std::endl;
+		errs << "*******************************" << std::endl;
 
-	errs.close();
+		errs.close();
+	}
 }
 
