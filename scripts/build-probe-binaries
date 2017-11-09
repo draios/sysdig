@@ -177,6 +177,7 @@ function coreos_build_new {
 	# If past runs fail, /tmp/loop and relative device
 	# may be hanging around
 	if mount | grep /tmp/loop; then
+		echo "Found stale /tmp/loop, unmounting"
 		LOOPDEV=$(mount |grep /tmp/loop|cut -d" " -f1|egrep -o "loop[0-9]+")
 		sudo umount /tmp/loop
 		sudo kpartx -dv /dev/$LOOPDEV
