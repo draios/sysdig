@@ -1883,19 +1883,10 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	uint32_t namelen;
 	uint32_t flags;
 	sinsp_fdinfo_t fdi;
-	sinsp_evt *enter_evt = &m_tmp_evt;
 	string sdir;
 
 	ASSERT(evt->m_tinfo);
 	if(evt->m_tinfo == nullptr)
-	{
-		return;
-	}
-
-	//
-	// Load the enter event so we can access its arguments
-	//
-	if(!retrieve_enter_event(enter_evt, evt))
 	{
 		return;
 	}
@@ -1934,17 +1925,17 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	}
 	else if(evt->get_type() == PPME_SYSCALL_OPENAT_X)
 	{
-		parinfo = enter_evt->get_param(1);
+		parinfo = evt->get_param(1);
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		int64_t dirfd = *(int64_t *)parinfo->m_val;
+
+		parinfo = evt->get_param(2);
 		name = parinfo->m_val;
 		namelen = parinfo->m_len;
 
-		parinfo = enter_evt->get_param(2);
+		parinfo = evt->get_param(3);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		flags = *(uint32_t *)parinfo->m_val;
-
-		parinfo = enter_evt->get_param(0);
-		ASSERT(parinfo->m_len == sizeof(int64_t));
-		int64_t dirfd = *(int64_t *)parinfo->m_val;
 
 		parse_openat_dir(evt, name, dirfd, &sdir);
 	}

@@ -213,29 +213,18 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 		}
 	case PPME_SYSCALL_OPENAT_X:
 		{
-			//
-			// XXX This is highly inefficient, as it re-requests the enter event and then
-			// does unnecessary allocations and copies. We assume that failed openat() happen
-			// rarely enough that we don't care.
-			//
-			sinsp_evt enter_evt;
-			if(!m_inspector->get_parser()->retrieve_enter_event(&enter_evt, evt))
-			{
-				return false;
-			}
-
 			sinsp_evt_param *parinfo;
 			char *name;
 			uint32_t namelen;
 			string sdir;
 
-			parinfo = enter_evt.get_param(1);
-			name = parinfo->m_val;
-			namelen = parinfo->m_len;
-
-			parinfo = enter_evt.get_param(0);
+			parinfo = evt->get_param(1);
 			ASSERT(parinfo->m_len == sizeof(int64_t));
 			int64_t dirfd = *(int64_t *)parinfo->m_val;
+
+			parinfo = evt->get_param(2);
+			name = parinfo->m_val;
+			namelen = parinfo->m_len;
 
 			sinsp_parser::parse_openat_dir(evt, name, dirfd, &sdir);
 
@@ -2706,7 +2695,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 		dirfdarg = "linkdirfd";
 		patharg = "linkpath";
 	}
-	else if(etype == PPME_SYSCALL_OPENAT_E)
+	else if(etype == PPME_SYSCALL_OPENAT_X)
 	{
 		dirfdarg = "dirfd";
 		patharg = "name";
@@ -3914,14 +3903,11 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			m_u32val = 0;
 
 			if(etype == PPME_SYSCALL_OPEN_X ||
-			   etype == PPME_SYSCALL_OPENAT_E)
+			   etype == PPME_SYSCALL_OPENAT_X)
 			{
 				sinsp_evt_param *parinfo;
 
-				// Just happens to be the case that
-				// flags is the 3rd argument for
-				// both events.
-				parinfo = evt->get_param(2);
+				parinfo = evt->get_param(etype == PPME_SYSCALL_OPEN_X ? 2 : 3);
 				ASSERT(parinfo->m_len == sizeof(uint32_t));
 				uint32_t flags = *(uint32_t *)parinfo->m_val;
 
