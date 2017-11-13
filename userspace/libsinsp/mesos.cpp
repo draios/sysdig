@@ -6,6 +6,7 @@
 #include "mesos_component.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "json_error_log.h"
 
 const mesos_component::component_map mesos::m_components =
 {
@@ -1038,5 +1039,12 @@ void mesos::simulate_event(const std::string& json)
 				}
 			}
 		}
+	}
+	else
+	{
+		std::string errstr;
+		errstr = reader.getFormattedErrorMessages();
+		g_logger.log("Could not parse json (" + errstr + ")", sinsp_logger::SEV_ERROR);
+		g_json_error_log.log(json, errstr);
 	}
 }
