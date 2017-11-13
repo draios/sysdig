@@ -23,6 +23,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <time.h>
 
 #include "mesos_auth.h"
+#include "json_error_log.h"
 
 using namespace std;
 
@@ -77,6 +78,13 @@ void mesos_auth::authenticate()
 			{
 				m_token = response_obj["token"].asString();
 				g_logger.format(sinsp_logger::SEV_DEBUG, "Mesos authenticated with token=%s", m_token.c_str());
+			}
+			else if (!parse_ok)
+			{
+				std::string errstr;
+				errstr = json_reader.getFormattedErrorMessages();
+				g_json_error_log.log(response, errstr);
+				throw sinsp_exception(string("Cannot parse json (" + errstr + ")"));
 			}
 			else
 			{

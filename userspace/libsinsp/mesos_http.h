@@ -14,6 +14,7 @@
 #include <memory>
 #include <algorithm>
 #include "sinsp_curl.h"
+#include "json_error_log.h"
 
 class mesos;
 
@@ -167,6 +168,11 @@ inline mesos_http::json_ptr_t mesos_http::try_parse(const std::string& json)
 		{
 			return root;
 		}
+	}
+	catch(const Json::Exception &e)
+	{
+		g_logger.log("Could not parse JSON document: " + string(e.what()), sinsp_logger::SEV_WARNING);
+		g_json_error_log.log(json, e.what());
 	}
 	catch(...) { }
 	return nullptr;

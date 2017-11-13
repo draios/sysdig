@@ -4194,7 +4194,9 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 	}
 	else
 	{
-		throw sinsp_exception("Invalid JSON encountered while parsing container info: " + json);
+		std::string errstr;
+		errstr = Json::Reader().getFormattedErrorMessages();
+		throw sinsp_exception("Invalid JSON encountered while parsing container info: " + json + "error=" + errstr);
 	}
 }
 
@@ -4272,7 +4274,9 @@ int sinsp_parser::get_k8s_version(const std::string& json)
 		}
 		else
 		{
-			throw sinsp_exception("Invalid K8s capture JSON encountered.");
+			std::string errstr;
+			errstr = Json::Reader().getFormattedErrorMessages();
+			throw sinsp_exception("Invalid K8s capture JSON encountered (" + errstr + ")");
 		}
 	}
 
