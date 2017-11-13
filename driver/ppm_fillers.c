@@ -1371,9 +1371,13 @@ cgroups_error:
 		/*
 		 * flags
 		 */
-		if (args->event_type == PPME_SYSCALL_CLONE_20_X)
+		if (args->event_type == PPME_SYSCALL_CLONE_20_X) {
+#ifdef CONFIG_S390
+			syscall_get_arguments(current, args->regs, 1, 1, &val);
+#else
 			syscall_get_arguments(current, args->regs, 0, 1, &val);
-		else
+#endif
+		} else
 			val = 0;
 
 		res = val_to_ring(args, (uint64_t)clone_flags_to_scap(val), 0, false, 0);
@@ -3785,8 +3789,10 @@ static inline u16 ptrace_requests_to_scap(unsigned long req)
 	case PTRACE_SET_THREAD_AREA:
 		return PPM_PTRACE_SET_THREAD_AREA;
 #endif
+#ifdef PTRACE_SET_THREAD_AREA
 	case PTRACE_GET_THREAD_AREA:
 		return PPM_PTRACE_GET_THREAD_AREA;
+#endif
 	case PTRACE_OLDSETOPTIONS:
 		return PPM_PTRACE_OLDSETOPTIONS;
 #ifdef PTRACE_SETFPXREGS
@@ -3797,14 +3803,22 @@ static inline u16 ptrace_requests_to_scap(unsigned long req)
 	case PTRACE_GETFPXREGS:
 		return PPM_PTRACE_GETFPXREGS;
 #endif
+#ifdef PTRACE_SETFPREGS
 	case PTRACE_SETFPREGS:
 		return PPM_PTRACE_SETFPREGS;
+#endif
+#ifdef PTRACE_GETFPREGS
 	case PTRACE_GETFPREGS:
 		return PPM_PTRACE_GETFPREGS;
+#endif
+#ifdef PTRACE_SETREGS
 	case PTRACE_SETREGS:
 		return PPM_PTRACE_SETREGS;
+#endif
+#ifdef PTRACE_GETREGS
 	case PTRACE_GETREGS:
 		return PPM_PTRACE_GETREGS;
+#endif
 #ifdef PTRACE_SETSIGMASK
 	case PTRACE_SETSIGMASK:
 		return PPM_PTRACE_SETSIGMASK;
