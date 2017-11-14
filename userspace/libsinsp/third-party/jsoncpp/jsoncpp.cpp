@@ -230,11 +230,7 @@ static int       stackDepth_g = 0;  // see readValue()
 
 namespace Json {
 
-#if __GNUC__ >= 6
-typedef std::scoped_ptr<CharReader> const  CharReaderPtr;
-#else
-typedef std::auto_ptr<CharReader>          CharReaderPtr;
-#endif
+typedef std::unique_ptr<CharReader> const  CharReaderPtr;
 
 // Implementation of class Features
 // ////////////////////////////////
@@ -3799,11 +3795,7 @@ Value& Path::make(Value& root) const {
 
 namespace Json {
 
-#if __GNUC__ >= 6
-typedef std::scoped_ptr<StreamWriter> const  StreamWriterPtr;
-#else
-typedef std::auto_ptr<StreamWriter>          StreamWriterPtr;
-#endif
+typedef std::unique_ptr<StreamWriter> const  StreamWriterPtr;
 
 static bool containsControlCharacter(const char* str) {
   while (*str) {

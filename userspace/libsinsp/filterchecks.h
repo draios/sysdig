@@ -21,11 +21,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <json/json.h>
 #include "filter_value.h"
 #include "prefix_search.h"
+#ifndef CYGWING_AGENT
 #include "k8s.h"
 #include "mesos.h"
+#endif
 
 #ifdef HAS_FILTERING
-
 class sinsp_filter_check_reference;
 
 bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
@@ -909,6 +910,7 @@ private:
 
 #endif // HAS_ANALYZER
 
+#ifndef CYGWING_AGENT
 class sinsp_filter_check_mesos : public sinsp_filter_check
 {
 public:
@@ -946,5 +948,6 @@ private:
 	string m_argname;
 	string m_tstr;
 };
+#endif // CYGWING_AGENT
 
 #endif // HAS_FILTERING

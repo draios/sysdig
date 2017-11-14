@@ -1,7 +1,7 @@
 //
 // mesos_collector.cpp
 //
-
+#ifndef CYGWING_AGENT
 #ifdef HAS_CAPTURE
 
 #include "sinsp.h"
@@ -215,3 +215,4 @@ void mesos_collector::get_data()
 
 
 #endif // HAS_CAPTURE
+#endif // CYGWING_AGENT

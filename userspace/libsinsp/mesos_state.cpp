@@ -1,6 +1,7 @@
 //
 // k8s_state.cpp
 //
+#ifndef CYGWING_AGENT
 
 #include "mesos_state.h"
 #include "sinsp.h"
@@ -548,4 +549,5 @@ marathon_app::ptr_t mesos_state_t::add_app(const Json::Value& app, const std::st
 	}
 	return p_app;
 }
+#endif // CYGWING_AGENT
 

@@ -18,7 +18,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <stdio.h>
 #include <stdlib.h>
-#ifndef _WIN32
+#ifdef HAS_CAPTURE
+#ifndef CYGWING_AGENT
 #include <unistd.h>
 #include <sys/param.h>
 #include <dirent.h>
@@ -27,12 +28,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #endif
+#endif
 
 #include "scap.h"
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap-int.h"
 
 #if defined(HAS_CAPTURE)
+#ifndef CYGWING_AGENT
 int32_t scap_proc_fill_cwd(char* procdirname, struct scap_threadinfo* tinfo)
 {
 	int target_res;
@@ -416,30 +419,6 @@ static int32_t scap_get_vpid(scap_t* handle, int64_t tid, int64_t *vpid)
 	*vpid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_VPID, tid);
 
 	if(*vpid == -1)
-	{
-		ASSERT(false);
-		return SCAP_FAILURE;
-	}
-
-	return SCAP_SUCCESS;
-#endif
-}
-
-int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
-{
-	if(handle->m_mode != SCAP_MODE_LIVE)
-	{
-		ASSERT(false);
-		return SCAP_FAILURE;
-	}
-
-#if !defined(HAS_CAPTURE)
-	ASSERT(false)
-	return SCAP_FAILURE;
-#else
-
-	*pid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_CURRENT_PID);
-	if(*pid == -1)
 	{
 		ASSERT(false);
 		return SCAP_FAILURE;
@@ -908,7 +887,45 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 	return res;
 }
 
+#endif // CYGWING_AGENT
+
+int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
+{
+#ifndef CYGWING_AGENT
+	if(handle->m_mode != SCAP_MODE_LIVE)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE)
+	ASSERT(false)
+	return SCAP_FAILURE;
+#else
+
+	*pid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_CURRENT_PID);
+	if(*pid == -1)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+#endif
+#else // CYGWING_AGENT
+	return getpid();
+#endif // CYGWING_AGENT
+}
+
 #endif // HAS_CAPTURE
+
+#ifdef CYGWING_AGENT
+int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid, int tid_to_scan, struct scap_threadinfo** procinfo, char *error, bool scan_sockets)
+{
+	fprintf(stderr, "scap_proc_scan_proc_dir needs to be implemented on Windows\n");
+	return SCAP_FAILURE;
+}
+#endif
 
 //
 // Delete a process entry

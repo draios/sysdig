@@ -21,6 +21,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "scap.h"
 #include "scap-int.h"
 
+#ifndef CYGWING_AGENT
 #if defined(HAS_CAPTURE)
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -254,3 +255,21 @@ void scap_free_iflist(scap_addrlist* ifhandle)
 		free(ifhandle);
 	}
 }
+#else
+int32_t scap_create_iflist(scap_t* handle)
+{
+	ASSERT(false);
+	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "must implement scap_create_iflist");
+	return SCAP_FAILURE;
+}
+
+void scap_refresh_iflist(scap_t* handle)
+{
+	ASSERT(false);
+}
+
+void scap_free_iflist(scap_addrlist* ifhandle)
+{
+	ASSERT(false);
+}
+#endif // CYGWING_AGENT

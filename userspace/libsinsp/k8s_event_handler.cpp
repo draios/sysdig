@@ -1,6 +1,7 @@
 //
 // k8s_event_handler.cpp
 //
+#ifndef CYGWING_AGENT
 
 #include "k8s_event_handler.h"
 #include "sinsp.h"
@@ -281,3 +282,4 @@ void k8s_event_handler::handle_json(Json::Value&& root)
 		g_logger.log(std::string("K8S event type is null."), sinsp_logger::SEV_ERROR);
 	}
 }
+#endif // CYGWING_AGENT

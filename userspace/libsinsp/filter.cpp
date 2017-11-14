@@ -81,7 +81,9 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 #ifndef HAS_ANALYZER
 	add_filter_check(new sinsp_filter_check_k8s());
 #endif // HAS_ANALYZER
+#ifndef CYGWING_AGENT
 	add_filter_check(new sinsp_filter_check_mesos());
+#endif
 	add_filter_check(new sinsp_filter_check_tracer());
 	add_filter_check(new sinsp_filter_check_evtin());
 }

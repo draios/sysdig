@@ -36,7 +36,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "cyclewriter.h"
 #include "protodecoder.h"
 
+#ifndef CYGWING_AGENT
 #include "k8s_api_handler.h"
+#endif
 
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
@@ -142,6 +144,7 @@ sinsp::sinsp() :
 	m_meinfo.m_n_procinfo_evts = 0;
 	m_meta_event_callback = NULL;
 	m_meta_event_callback_data = NULL;
+#ifndef CYGWING_AGENT
 	m_k8s_client = NULL;
 	m_k8s_last_watch_time_ns = 0;
 
@@ -151,6 +154,7 @@ sinsp::sinsp() :
 
 	m_mesos_client = NULL;
 	m_mesos_last_watch_time_ns = 0;
+#endif
 
 	m_filter_proc_table_when_saving = false;
 }
@@ -193,11 +197,13 @@ sinsp::~sinsp()
 		delete[] m_meinfo.m_piscapevt;
 	}
 
+#ifndef CYGWING_AGENT
 	delete m_k8s_client;
 	delete m_k8s_api_server;
 	delete m_k8s_api_cert;
 
 	delete m_mesos_client;
+#endif
 }
 
 void sinsp::add_protodecoders()
@@ -217,7 +223,7 @@ void sinsp::filter_proc_table_when_saving(bool filter)
 
 void sinsp::enable_tracers_capture()
 {
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT)
 	if(!m_is_tracers_capture_enabled)
 	{
 		if(is_live() && m_h != NULL)
@@ -235,7 +241,7 @@ void sinsp::enable_tracers_capture()
 
 void sinsp::enable_page_faults()
 {
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT)
 	if(is_live() && m_h != NULL)
 	{
 		if(scap_enable_page_faults(m_h) != SCAP_SUCCESS)
@@ -1842,6 +1848,7 @@ bool sinsp::remove_inactive_threads()
 	return m_thread_manager->remove_inactive_threads();
 }
 
+#ifndef CYGWING_AGENT
 void sinsp::init_mesos_client(string* api_server, bool verbose)
 {
 	m_verbose_json = verbose;
@@ -2212,6 +2219,7 @@ void sinsp::update_mesos_state()
 		}
 	}
 }
+#endif // CYGWING_AGENT
 
 ///////////////////////////////////////////////////////////////////////////////
 // Note: this is defined here so we can inline it in sinso::next

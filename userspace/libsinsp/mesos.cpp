@@ -1,6 +1,7 @@
 //
 // mesos.cpp
 //
+#ifndef CYGWING_AGENT
 
 #include "mesos.h"
 #include "mesos_component.h"
@@ -1048,3 +1049,4 @@ void mesos::simulate_event(const std::string& json)
 		g_json_error_log.log(json, errstr);
 	}
 }
+#endif // CYGWING_AGENT

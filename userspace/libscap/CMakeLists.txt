@@ -21,10 +21,11 @@ endif()
 if (CMAKE_SYSTEM_NAME MATCHES "SunOS")
 	target_link_libraries(scap
 		socket nsl)
-
 elseif (WIN32)
-	target_link_libraries(scap
-		Ws2_32.lib)
+	if(NOT CYGWIN)
+		target_link_libraries(scap
+			Ws2_32.lib)
+	endif()
 endif()
 
 target_link_libraries(scap
