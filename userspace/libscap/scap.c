@@ -545,17 +545,21 @@ scap_t* scap_open(scap_open_args args, char *error)
 									 args.proc_callback, args.proc_callback_context,
 									 args.import_users, args.start_offset);
 	}
-#ifndef CYGWING_AGENT
 	case SCAP_MODE_LIVE:
+#ifndef CYGWING_AGENT
 		return scap_open_live_int(error, args.proc_callback,
 								  args.proc_callback_context,
 								  args.import_users);
+#else
+		snprintf(error,	SCAP_LASTERR_SIZE, "scap_open: live mode currently not supproted on windows. Use nodriver mode instead.");
+		return NULL;
 #endif								  
 	case SCAP_MODE_NODRIVER:
 		return scap_open_nodriver_int(error, args.proc_callback,
 									  args.proc_callback_context,
 									  args.import_users);
 	default:
+		snprintf(error,	SCAP_LASTERR_SIZE, "scap_open: unsupported args.mode argument");
 		return NULL;
 	}
 }
@@ -1048,7 +1052,7 @@ int32_t scap_start_capture(scap_t* handle)
 #endif // HAS_CAPTURE
 }
 
-#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
+#if !defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t sampling_ratio)
 {
 	//
