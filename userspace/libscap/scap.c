@@ -417,7 +417,6 @@ scap_t* scap_open_nodriver_int(char *error,
 						   void* proc_callback_context,
 						   bool import_users)
 {
-#ifndef CYGWING_AGENT
 #if !defined(HAS_CAPTURE)
 	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return NULL;
@@ -505,10 +504,6 @@ scap_t* scap_open_nodriver_int(char *error,
 
 	return handle;
 #endif // HAS_CAPTURE
-#else // CYGWING_AGENT
-	snprintf(error, SCAP_LASTERR_SIZE, "please implement scap_open_nodriver_int");
-	return NULL;
-#endif // CYGWING_AGENT
 }
 
 scap_t* scap_open(scap_open_args args, char *error)
