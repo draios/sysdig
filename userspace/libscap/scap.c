@@ -1398,12 +1398,15 @@ int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 const char* scap_get_host_root()
 {
 	char* p = getenv("SYSDIG_HOST_ROOT");
-	if(!p)
-	{
-		p = "";
+	static char env_str[SCAP_MAX_PATH_SIZE + 1];
+	static bool inited = false;
+	if (! inited) {
+		strncpy(env_str, p ? p : "", SCAP_MAX_PATH_SIZE);
+		env_str[SCAP_MAX_PATH_SIZE] = '\0';
+		inited = true;
 	}
 
-	return p;
+	return env_str;
 }
 
 bool alloc_proclist_info(scap_t* handle, uint32_t n_entries)
