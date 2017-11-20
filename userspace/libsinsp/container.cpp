@@ -95,7 +95,7 @@ bool sinsp_container_manager::remove_inactive_containers()
 	}
 
 	if(m_inspector->m_lastevent_ts >
-		m_last_flush_time_ns + m_inspector->m_inactive_thread_scan_time_ns)
+		m_last_flush_time_ns + m_inspector->m_inactive_container_scan_time_ns)
 	{
 		res = true;
 
