@@ -30,6 +30,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/time.h>
 #endif // _WIN32
 
+#ifdef CYGWING_AGENT
+#include <dragent_win_hal_public.h>
+#endif
+
 #include "scap.h"
 #ifdef HAS_CAPTURE
 #include "../../driver/driver_config.h"
@@ -146,6 +150,10 @@ scap_t* scap_open_live_int(char *error,
 	handle->m_machine_info.reserved4 = 0;
 	handle->m_driver_procinfo = NULL;
 	handle->m_fd_lookup_limit = 0;
+#ifdef CYGWING_AGENT
+	handle->m_whh = NULL;
+#endif
+
 	//
 	// Create the interface list
 	//
@@ -332,6 +340,9 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 	handle->m_driver_procinfo = NULL;
 	handle->refresh_proc_table_when_saving = true;
 	handle->m_fd_lookup_limit = 0;
+#ifdef CYGWING_AGENT
+	handle->m_whh = NULL;
+#endif
 
 	handle->m_file_evt_buf = (char*)malloc(FILE_READ_BUF_SIZE);
 	if(!handle->m_file_evt_buf)
@@ -454,6 +465,18 @@ scap_t* scap_open_nodriver_int(char *error,
 	handle->m_machine_info.reserved4 = 0;
 	handle->m_driver_procinfo = NULL;
 	handle->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP; // fd lookup is limited here because is very expensive
+
+	//
+	// If this is part of the windows agent, open the windows HAL
+	//
+#ifdef CYGWING_AGENT
+	handle->m_whh = wh_open(error);
+	if(handle->m_whh == NULL)
+	{
+		scap_close(handle);
+		return NULL;
+	}
+#endif
 
 	//
 	// Create the interface list
@@ -594,6 +617,13 @@ void scap_close(scap_t* handle)
 		}
 #endif // HAS_CAPTURE
 	}
+
+#ifdef CYGWING_AGENT
+	if(handle->m_whh != NULL)
+	{
+		wh_close(handle->m_whh);
+	}
+#endif
 
 	if(handle->m_file_evt_buf)
 	{

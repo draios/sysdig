@@ -8,33 +8,10 @@
 #include "scap-int.h"
 #include "windows_hal.h"
 
-int32_t addprocess_windows(PROCESSENTRY32* pe, scap_t* handle, struct scap_threadinfo** procinfo, char *error)
+int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, struct scap_threadinfo** procinfo, char *error)
 {
 	struct scap_threadinfo* tinfo;
-	HMODULE hmod = NULL;
-/*
-	//
-	// Try to get a handle to the process.
-	// NOTE: with regukar privileges, this will only succeed for the user's 
-	//       processes. Other processes will require admin or system privileges.
-	//
-	HANDLE hprocess = OpenProcess(PROCESS_QUERY_INFORMATION |
-								   PROCESS_VM_READ,
-								   FALSE, pe->th32ProcessID);
 
-	if(NULL != hprocess )
-	{
-		//
-		// Get the process module handle
-		//
-		DWORD cbneeded;
-		BOOL epmres = EnumProcessModules(hprocess, &hmod, sizeof(hmod), &cbneeded);
-		if(epmres == 0)
-		{
-			hmod = NULL;
-		}
-	}
-*/
 	//
 	//  Allocate the procinfo object.
 	//
@@ -47,41 +24,23 @@ int32_t addprocess_windows(PROCESSENTRY32* pe, scap_t* handle, struct scap_threa
 	//
 	// Fill the procinfo object
 	//
-/*
-	tinfo.fdlist = NULL;
-	tinfo.flags = 0;
-	tinfo.vmsize_kb = 0;
-	tinfo.vmrss_kb = 0;
-	tinfo.vmswap_kb = 0;
-	tinfo.pfmajor = 0;
-	tinfo.pfminor = 0;
-	tinfo.env_len = 0;
-	tinfo.vtid = -1;
-	tinfo.vpid = -1;
-	tinfo.cgroups_len = 0;
-	tinfo.filtered_out = 0;
-	tinfo.root[0] = 0;
-	tinfo.sid = -1;
-	tinfo.clone_ts = 0;
-	tinfo.tty = 0;
-	tinfo.exepath[0] = 0;
-*/
+	memset(tinfo, 0, sizeof(struct scap_threadinfo));
 
-	tinfo->pid = pe->th32ProcessID;
-	tinfo->tid = pe->th32ProcessID;
-	tinfo->ptid = pe->th32ParentProcessID;
-	snprintf(tinfo->comm, SCAP_MAX_PATH_SIZE, "%s", pe->szExeFile);
-	snprintf(tinfo->exe, SCAP_MAX_PATH_SIZE, "%s", pe->szExeFile);
-	if(hmod != NULL)
-	{
-		DWORD gmres = GetModuleFileName(hmod, tinfo->exepath, SCAP_MAX_PATH_SIZE);
-		if(gmres == 0)
-		{
-			tinfo->exepath[0] = 0;
-		}
-	}
-
-//	printf("*********** %s  (PID:%lu PPID:%d %p)\n", tinfo->exepath, tinfo->pid, hmod);
+	tinfo->pid = wpi->pid;
+	tinfo->tid = wpi->tid;
+	tinfo->ptid = wpi->ptid;
+	snprintf(tinfo->comm, SCAP_MAX_PATH_SIZE, "%s", wpi->comm);
+	snprintf(tinfo->exe, SCAP_MAX_PATH_SIZE, "%s", wpi->exe);
+	snprintf(tinfo->exepath, SCAP_MAX_PATH_SIZE, "%s", wpi->exepath);
+	snprintf(tinfo->args, SCAP_MAX_PATH_SIZE, "%s", wpi->args);
+	tinfo->args_len = wpi->args_len;
+	tinfo->vmsize_kb = wpi->vmsize_kb;
+	tinfo->vmrss_kb = wpi->vmrss_kb;
+	tinfo->vmswap_kb = wpi->vmswap_kb;
+	tinfo->pfmajor = wpi->pfmajor;
+	tinfo->pfminor = wpi->pfminor;
+	tinfo->clone_ts = wpi->clone_ts;
+	tinfo->tty = wpi->tty;
 
 	//
 	// Done. Add the entry to the process table, or fire the notification callback
@@ -103,12 +62,6 @@ int32_t addprocess_windows(PROCESSENTRY32* pe, scap_t* handle, struct scap_threa
 		free(tinfo);
 	}
 
-/*
-	//
-	// Release the handle to the process.
-	//
-	CloseHandle(hprocess);
-*/
 	return SCAP_SUCCESS;
 }
 
@@ -116,29 +69,24 @@ typedef int (CALLBACK* LPFNDLLFUNC1)();
 
 int32_t scap_proc_scan_proc_dir_windows(scap_t* handle, struct scap_threadinfo** procinfo, char *error)
 {
-	char res[1024];
-	int uu = aaa(res);
-	printf("!!!!!!!! %p %s\n", uu, res);
-	return SCAP_FAILURE;
+	wh_proclist wgpres;
 
-	HANDLE h = NULL;
-	PROCESSENTRY32 pe = { 0 };
-	DWORD ppid = 0;
-	pe.dwSize = sizeof(PROCESSENTRY32);
-	h = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-	if(Process32First(h, &pe)) 
+	wgpres = wh_wmi_get_procs(handle->m_whh);
+	if(wgpres.m_result == 0)
 	{
-		do 
-		{
-			int32_t apres = addprocess_windows(&pe, handle, procinfo, error);
-			if(apres != SCAP_SUCCESS)
-			{
-				return apres;
-			}
-		} while( Process32Next(h, &pe));
+		snprintf(error, SCAP_LASTERR_SIZE, "%s", wh_getlasterror(handle->m_whh));
+		return SCAP_FAILURE;
 	}
-	CloseHandle(h);
-	return (ppid);
+
+	for(uint32_t j = 0; j < wgpres.m_count; j++)
+	{
+		wh_procinfo* wpi = &(wgpres.m_procs[j]);
+
+		if(addprocess_windows(wpi, handle, procinfo, error) != SCAP_SUCCESS)
+		{
+			return SCAP_FAILURE;
+		}
+	}
 
 	return SCAP_SUCCESS;
 }
