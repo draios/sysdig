@@ -1248,6 +1248,7 @@ int64_t scap_get_readfile_offset(scap_t* handle)
 	return gzoffset(handle->m_file);
 }
 
+#ifndef CYGWING_AGENT
 static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event_id)
 {
 	//
@@ -1259,7 +1260,7 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 		return SCAP_FAILURE;
 	}
 
-#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
+#if !defined(HAS_CAPTURE)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1306,8 +1307,9 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 	}
 
 	return SCAP_SUCCESS;
-#endif
+#endif // HAS_CAPTURE
 }
+#endif // CYGWING_AGENT
 
 int32_t scap_clear_eventmask(scap_t* handle) {
 #if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)

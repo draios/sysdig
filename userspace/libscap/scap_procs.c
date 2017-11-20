@@ -27,12 +27,15 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/syscall.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
-#endif
-#endif
+#endif // CYGWING_AGENT
+#endif // HAS_CAPTURE
 
 #include "scap.h"
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap-int.h"
+#ifdef CYGWING_AGENT
+#include "windows_hal.h"
+#endif
 
 #if defined(HAS_CAPTURE)
 #ifndef CYGWING_AGENT
@@ -922,7 +925,7 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 #ifdef CYGWING_AGENT
 int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid, int tid_to_scan, struct scap_threadinfo** procinfo, char *error, bool scan_sockets)
 {
-	fprintf(stderr, "scap_proc_scan_proc_dir needs to be implemented on Windows\n");
+	return scap_proc_scan_proc_dir_windows(handle, procinfo, error);
 	return SCAP_FAILURE;
 }
 #endif
