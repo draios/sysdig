@@ -375,7 +375,7 @@ function debian_build {
 			mkdir -p ${BASEDIR}/common-dependencies/debian/kbuild
 		fi
 		if [ ! -f ${BASEDIR}/common-dependencies/debian/kbuild/${DEB} ]; then
-			echo Downloading ${DEB} [Ubuntu]
+			echo Downloading ${DEB} [Debian]
 			wget --timeout=${URL_TIMEOUT} --tries=${RETRY} -P ${BASEDIR}/common-dependencies/debian/kbuild ${URL}
 		fi
 		return
@@ -397,7 +397,7 @@ function debian_build {
 		cd ${PACKAGE}
 
 		if [ ! -f ${DEB} ]; then
-			echo Downloading ${DEB} [Ubuntu]
+			echo Downloading ${DEB} [Debian]
 			wget --timeout=${URL_TIMEOUT} --tries=${RETRY} ${URL}
 			dpkg -x ${DEB} ./
 		fi

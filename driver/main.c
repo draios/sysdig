@@ -2459,7 +2459,13 @@ int sysdig_init(void)
 
 init_module_err:
 	for (j = 0; j < n_created_devices; ++j) {
-		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		device_destroy(
+#else
+		class_device_destroy(
+#endif
+				g_ppm_class, g_ppm_devs[j].dev);
+
 		cdev_del(&g_ppm_devs[j].cdev);
 	}
 
@@ -2481,7 +2487,12 @@ void sysdig_exit(void)
 	pr_info("driver unloading\n");
 
 	for (j = 0; j < g_ppm_numdevs; ++j) {
-		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		device_destroy(
+#else
+		class_device_destroy(
+#endif
+				g_ppm_class, g_ppm_devs[j].dev);
 		cdev_del(&g_ppm_devs[j].cdev);
 	}
 
