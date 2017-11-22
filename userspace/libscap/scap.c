@@ -1589,3 +1589,10 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 	return SCAP_SUCCESS;
 #endif
 }
+
+#ifdef CYGWING_AGENT
+wh_t* scap_get_wmi_handle(scap_t* handle)
+{
+	return handle->m_whh;
+}
+#endif

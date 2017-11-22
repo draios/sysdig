@@ -945,6 +945,10 @@ int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t t
 int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo);
 int32_t scap_enable_simpledriver_mode(scap_t* handle);
 int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret);
+#ifdef CYGWING_AGENT
+typedef struct wh_t wh_t;
+wh_t* scap_get_wmi_handle(scap_t* handle);
+#endif
 
 #ifdef __cplusplus
 }
