@@ -39,7 +39,7 @@ elseif (WIN32)
 	else()
 		target_link_libraries(scap
 			/lib/w32api/libpsapi.a
-			${DRAIOS_DEPENDENCIES_DIR}/dragent_win_hal/target/lib/dragent_win_hal.lib
+			${WIN_HAL_LIB}/dragent_win_hal.lib
 			)
 	endif()
 endif()

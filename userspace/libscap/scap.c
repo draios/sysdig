@@ -31,6 +31,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif // _WIN32
 
 #ifdef CYGWING_AGENT
+#define DRAGENT_WIN_HAL_C_ONLY
 #include <dragent_win_hal_public.h>
 #endif
 

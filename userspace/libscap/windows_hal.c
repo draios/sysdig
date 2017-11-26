@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <tlhelp32.h>
 #include <psapi.h>
+#define DRAGENT_WIN_HAL_C_ONLY
 #include <dragent_win_hal_public.h>
 
 #include "scap.h"
