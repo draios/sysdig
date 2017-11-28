@@ -1872,7 +1872,7 @@ void sinsp::init_mesos_client(string* api_server, bool verbose)
 	}
 }
 
-void sinsp::init_k8s_ssl(const string &api_server, const string &ssl_cert)
+void sinsp::init_k8s_ssl(const string &ssl_cert)
 {
 #ifdef HAS_CAPTURE
 	if(!ssl_cert.empty() && (!m_k8s_ssl || ! m_k8s_bt))
@@ -1967,7 +1967,7 @@ void sinsp::init_k8s_client(string* api_server, string* ssl_cert, bool verbose)
 			delete m_k8s_client;
 			m_k8s_client = nullptr;
 		}
-		init_k8s_ssl(*api_server, *ssl_cert);
+		init_k8s_ssl(*ssl_cert);
 		make_k8s_client();
 	}
 }
@@ -2021,7 +2021,7 @@ void sinsp::k8s_discover_ext()
 				{
 					m_k8s_collector = std::make_shared<k8s_handler::collector_t>();
 				}
-				if(uri(*m_k8s_api_server).is_secure()) { init_k8s_ssl(*m_k8s_api_server, *m_k8s_api_cert); }
+				if(uri(*m_k8s_api_server).is_secure()) { init_k8s_ssl(*m_k8s_api_cert); }
 				m_k8s_ext_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
 									    "/apis/extensions/v1beta1", "[.resources[].name]",
 									    "1.1", m_k8s_ssl, m_k8s_bt, true));
@@ -2094,7 +2094,7 @@ void sinsp::update_k8s_state()
 					}
 					if(uri(*m_k8s_api_server).is_secure() && (!m_k8s_ssl || ! m_k8s_bt))
 					{
-						init_k8s_ssl(*m_k8s_api_server, *m_k8s_api_cert);
+						init_k8s_ssl(*m_k8s_api_cert);
 					}
 					m_k8s_api_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
 										    "/api", ".versions", "1.1",
