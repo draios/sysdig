@@ -168,6 +168,13 @@ inline mesos_http::json_ptr_t mesos_http::try_parse(const std::string& json)
 		{
 			return root;
 		}
+		else
+		{
+			std::string errstr;
+			errstr = Json::Reader().getFormattedErrorMessages();
+			g_logger.log("mesos_http::try_parse could not parse json (" + errstr + ")", sinsp_logger::SEV_WARNING);
+			g_json_error_log.log(json, errstr);
+		}
 	}
 	catch(const Json::Exception &e)
 	{
