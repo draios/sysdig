@@ -86,6 +86,8 @@ template<> char sinsp_fdinfo_t::get_typechar()
 		return CHAR_FD_TIMERFD;
 	case SCAP_FD_NETLINK:
 		return CHAR_FD_NETLINK;
+	case SCAP_FD_RAW_SOCK:
+		return CHAR_FD_RAW_SOCK;
 	default:
 //		ASSERT(false);
 		return '?';
@@ -123,6 +125,8 @@ template<> char* sinsp_fdinfo_t::get_typestring()
 		return (char*)"timerfd";
 	case SCAP_FD_NETLINK:
 		return (char*)"netlink";
+	case SCAP_FD_RAW_SOCK:
+		return (char*)"raw";
 	default:
 		return (char*)"<NA>";
 	}

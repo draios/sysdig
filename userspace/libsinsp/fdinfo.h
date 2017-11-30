@@ -30,6 +30,7 @@ class sinsp_protodecoder;
 #define CHAR_FD_FILE			'f'
 #define CHAR_FD_IPV4_SOCK		'4'
 #define CHAR_FD_IPV6_SOCK		'6'
+#define CHAR_FD_RAW_SOCK		'r'
 #define CHAR_FD_DIRECTORY		'd'
 #define CHAR_FD_IPV4_SERVSOCK	'2'
 #define CHAR_FD_IPV6_SERVSOCK	'3'
