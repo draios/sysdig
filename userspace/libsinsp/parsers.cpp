@@ -2217,6 +2217,8 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 		{
 			evt->m_fdinfo->m_type = SCAP_FD_IPV4_SERVSOCK;
 			evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port = port;
+			evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_l4proto =
+					evt->m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_l4proto;
 		}
 	}
 	else if (family == PPM_AF_INET6)
@@ -2226,6 +2228,8 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 		{
 			evt->m_fdinfo->m_type = SCAP_FD_IPV6_SERVSOCK;
 			evt->m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port = port;
+			evt->m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_l4proto =
+					evt->m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_l4proto;
 		}
 	}
 	//
