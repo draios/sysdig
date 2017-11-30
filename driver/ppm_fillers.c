@@ -1550,7 +1550,7 @@ cgroups_error:
 		 * pgrp
 		 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
-		res = val_to_ring(args, (int64_t)task_pgrp_nr(current), 0, false, 0);
+		res = val_to_ring(args, (int64_t)task_pgrp_nr_ns(current, task_active_pid_ns(current)), 0, false, 0);
 #else
 		res = val_to_ring(args, (int64_t)process_group(current), 0, false, 0);
 #endif
