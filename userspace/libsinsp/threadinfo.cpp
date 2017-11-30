@@ -1443,7 +1443,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			sizeof(int64_t) +  // vpid
 			2 + sctinfo->cgroups_len +
 			sizeof(uint32_t) + // tty
-		    2 + MIN(tinfo.m_ttyname.size(), SCAP_MAX_PATH_SIZE) +
+			2 + MIN(tinfo.m_ttyname.size(), SCAP_MAX_PATH_SIZE) +
 			2 + MIN(tinfo.m_root.size(), SCAP_MAX_PATH_SIZE));
 
 		totlen += il;

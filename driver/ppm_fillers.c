@@ -1553,7 +1553,7 @@ cgroups_error:
 
 		if (tty_nr > 0)
 			res = val_to_ring(args, (int64_t)(long)args->str_storage, 0, false, 0);
-		else // if the tty_nr is not found put `?` like in ps
+		else /* if the tty_nr is not found put `?` like in ps */
 			res = val_to_ring(args, (unsigned long)"?", 0, false, 0);
 
 		if (unlikely(res != PPM_SUCCESS))
