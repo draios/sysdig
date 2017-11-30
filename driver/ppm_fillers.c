@@ -1547,7 +1547,7 @@ cgroups_error:
 			return res;
 
 		/*
-		 * pgrp
+		 * pgid
 		 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 		res = val_to_ring(args, (int64_t)task_pgrp_nr_ns(current, task_active_pid_ns(current)), 0, false, 0);
