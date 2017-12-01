@@ -24,7 +24,8 @@ enum sinsp_container_type
 	CT_LXC = 1,
 	CT_LIBVIRT_LXC = 2,
 	CT_MESOS = 3,
-	CT_RKT = 4
+	CT_RKT = 4,
+	CT_GARDEN = 5
 };
 
 class sinsp_container_info
@@ -156,6 +157,8 @@ private:
 	bool parse_docker(sinsp_container_info* container);
 	string get_docker_env(const Json::Value &env_vars, const string &mti);
 	bool parse_rkt(sinsp_container_info* container, const string& podid, const string& appname);
+    bool parse_garden(sinsp_container_info* container, sinsp_threadinfo *tinfo);
+    bool lookup_garden_runtime(const string& container_id);
 	sinsp_container_info* get_container(const string& id);
 
 	sinsp* m_inspector;
