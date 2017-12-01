@@ -1902,7 +1902,7 @@ void sinsp::init_k8s_ssl(const string &ssl_cert)
 			pos = ssl_cert.find(':', head);
 			if (pos == std::string::npos)
 			{
-				key = ssl_cert.substr(head, std::string::npos);
+				key = ssl_cert.substr(head);
 			}
 			else
 			{
