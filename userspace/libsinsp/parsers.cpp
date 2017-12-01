@@ -274,6 +274,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETGID_E:
 	case PPME_SYSCALL_EXECVE_18_E:
 	case PPME_SYSCALL_EXECVE_19_E:
+	case PPME_SYSCALL_SETPGID_E:
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_WRITE_E:
@@ -461,6 +462,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_SETSID_X:
 		parse_setsid_exit(evt);
+		break;
+	case PPME_SYSCALL_SETPGID_X:
+		parse_setpgid_exit(evt);
 		break;
 	default:
 		break;
@@ -4385,6 +4389,70 @@ void sinsp_parser::parse_setsid_exit(sinsp_evt *evt)
 	if(retval >= 0)
 	{
 		evt->get_thread_info()->m_sid = retval;
+	}
+}
+
+void sinsp_parser::parse_setpgid_exit(sinsp_evt *evt)
+{
+	sinsp_evt *enter_evt = &m_tmp_evt;
+	sinsp_evt_param *parinfo;
+	int64_t retval, pid, pgid;
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(retval >= 0 && retrieve_enter_event(enter_evt, evt))
+	{
+		//
+		// Extract the pid
+		//
+		parinfo = enter_evt->get_param(0);
+		pid = *(int64_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+
+		//
+		// Extract the pgid
+		//
+		parinfo = enter_evt->get_param(1);
+		pgid = *(int64_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+
+		//
+		// If pid is zero, then the process ID of the calling process is used.
+		//
+		sinsp_threadinfo* ptinfo = NULL;
+		if (pid == 0)
+		{
+			ptinfo = evt->get_thread_info();
+		}
+		else
+		{
+			ptinfo = m_inspector->get_thread(pid, false, true);
+		}
+
+		if(ptinfo == NULL)
+		{
+			ASSERT(false);
+			return;
+		}
+
+		//
+		// If pgid is zero, then the PGID of the process specified
+		// by pid is made the same as its process ID.
+		//
+		if (pgid == 0)
+		{
+			ptinfo->m_pgid = ptinfo->m_pid;
+		}
+		else
+		{
+			ptinfo->m_pgid = pgid;
+		}
+
 	}
 }
 
