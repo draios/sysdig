@@ -544,7 +544,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 					ASSERT(false);
 			}
 
-			add_container(container_info);
+			add_container(container_info, tinfo);
 			if(container_to_sinsp_event(container_to_json(container_info), &m_inspector->m_meta_evt))
 			{
 				m_inspector->m_meta_evt_pending = true;
@@ -918,13 +918,13 @@ const unordered_map<string, sinsp_container_info>* sinsp_container_manager::get_
 	return &m_containers;
 }
 
-void sinsp_container_manager::add_container(const sinsp_container_info& container_info)
+void sinsp_container_manager::add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread_info)
 {
 	m_containers[container_info.m_id] = container_info;
 
 	if(m_inspector->m_parser->m_fd_listener)
 	{
-		m_inspector->m_parser->m_fd_listener->on_new_container(container_info);
+		m_inspector->m_parser->m_fd_listener->on_new_container(container_info, thread_info);
 	}
 }
 
