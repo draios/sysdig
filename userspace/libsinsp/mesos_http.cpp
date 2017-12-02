@@ -565,7 +565,7 @@ void mesos_http::send_request()
 
 bool purge_chunked_markers(std::string& data)
 {
-	std::string::size_type pos = data.find("}\r\n\0");
+	std::string::size_type pos = data.find("}\r\n0");
 	if(pos != std::string::npos)
 	{
 		data = data.substr(0, pos);
