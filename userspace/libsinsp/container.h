@@ -141,7 +141,7 @@ public:
 
 	const unordered_map<string, sinsp_container_info>* get_containers();
 	bool remove_inactive_containers();
-	void add_container(const sinsp_container_info& container_info);
+	void add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread);
 	bool get_container(const string& id, sinsp_container_info* container_info) const;
 	bool resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	void dump_containers(scap_dumper_t* dumper);

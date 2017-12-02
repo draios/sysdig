@@ -4191,7 +4191,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		{
 			container_info.m_mesos_task_id = mesos_task_id.asString();
 		}
-		m_inspector->m_container_manager.add_container(container_info);
+		m_inspector->m_container_manager.add_container(container_info, evt->get_thread_info(true));
 		/*
 		g_logger.log("Container\n-------\nID:" + container_info.m_id +
 					 "\nType: " + std::to_string(container_info.m_type) +
@@ -4226,7 +4226,7 @@ void sinsp_parser::parse_container_evt(sinsp_evt *evt)
 	parinfo = evt->get_param(3);
 	container_info.m_image = parinfo->m_val;
 
-	m_inspector->m_container_manager.add_container(container_info);
+	m_inspector->m_container_manager.add_container(container_info, evt->get_thread_info(true));
 }
 
 void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt *evt)
