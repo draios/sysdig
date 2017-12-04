@@ -1441,9 +1441,13 @@ cgroups_error:
 		/*
 		 * flags
 		 */
-		if (args->event_type == PPME_SYSCALL_CLONE_20_X)
+		if (args->event_type == PPME_SYSCALL_CLONE_20_X) {
+#ifdef CONFIG_S390
+			syscall_get_arguments(current, args->regs, 1, 1, &val);
+#else
 			syscall_get_arguments(current, args->regs, 0, 1, &val);
-		else
+#endif
+		} else
 			val = 0;
 
 		res = val_to_ring(args, (uint64_t)clone_flags_to_scap(val), 0, false, 0);
