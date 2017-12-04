@@ -549,6 +549,7 @@ scap_t* scap_open(scap_open_args args, char *error)
 									  args.proc_callback_context,
 									  args.import_users);
 	default:
+		snprintf(error, SCAP_LASTERR_SIZE, "incorrect mode %d", args.mode);
 		return NULL;
 	}
 }
