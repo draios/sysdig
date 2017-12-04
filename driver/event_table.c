@@ -38,8 +38,8 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_CLONE_11_X */{"clone", EC_PROCESS, EF_MODIFIES_STATE | EF_OLD_VERSION, 11, {{"res", PT_PID, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_INT64, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, clone_flags}, {"uid", PT_UINT32, PF_DEC}, {"gid", PT_UINT32, PF_DEC} } },
 	/* PPME_PROCEXIT_E */{"procexit", EC_PROCESS, EF_MODIFIES_STATE | EF_OLD_VERSION, 0},
 	/* PPME_NA1 */{"NA1", EC_PROCESS, EF_UNUSED, 0},
-	/* PPME_SOCKET_SOCKET_E */{"socket", EC_NET, EF_CREATES_FD | EF_MODIFIES_STATE, 3, {{"domain", PT_FLAGS32, PF_DEC, socket_families}, {"type", PT_UINT32, PF_DEC}, {"proto", PT_UINT32, PF_DEC} } },
-	/* PPME_SOCKET_SOCKET_X */{"socket", EC_NET, EF_CREATES_FD | EF_MODIFIES_STATE, 1, {{"fd", PT_FD, PF_DEC} } },
+	/* PPME_SOCKET_SOCKET_E */{"socket", EC_NET, EF_CREATES_FD | EF_MODIFIES_STATE | EF_OLD_VERSION, 3, {{"domain", PT_FLAGS32, PF_DEC, socket_families}, {"type", PT_UINT32, PF_DEC}, {"proto", PT_UINT32, PF_DEC} } },
+	/* PPME_SOCKET_SOCKET_X */{"socket", EC_NET, EF_CREATES_FD | EF_MODIFIES_STATE | EF_OLD_VERSION, 1, {{"fd", PT_FD, PF_DEC} } },
 	/* PPME_SOCKET_BIND_E */{"bind", EC_NET, EF_USES_FD | EF_MODIFIES_STATE, 1, {{"fd", PT_FD, PF_DEC} } },
 	/* PPME_SOCKET_BIND_X */{"bind", EC_NET, EF_USES_FD | EF_MODIFIES_STATE, 2, {{"res", PT_ERRNO, PF_DEC}, {"addr", PT_SOCKADDR, PF_NA} } },
 	/* PPME_SOCKET_CONNECT_E */{"connect", EC_NET, EF_USES_FD | EF_MODIFIES_STATE, 1, {{"fd", PT_FD, PF_DEC} } },
@@ -63,7 +63,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SOCKET_GETPEERNAME_E */{"getpeername", EC_NET, EF_NONE, 0},
 	/* PPME_SOCKET_GETPEERNAME_X */{"getpeername", EC_NET, EF_NONE, 0},
 	/* PPME_SOCKET_SOCKETPAIR_E */{"socketpair", EC_IPC, EF_CREATES_FD | EF_MODIFIES_STATE, 3, {{"domain", PT_FLAGS32, PF_DEC, socket_families}, {"type", PT_UINT32, PF_DEC}, {"proto", PT_UINT32, PF_DEC} } },
-	/* PPME_SOCKET_SOECKETPAIR_X */{"socketpair", EC_IPC, EF_CREATES_FD | EF_MODIFIES_STATE, 5, {{"res", PT_ERRNO, PF_DEC}, {"fd1", PT_FD, PF_DEC}, {"fd2", PT_FD, PF_DEC}, {"source", PT_UINT64, PF_HEX}, {"peer", PT_UINT64, PF_HEX} } },
+	/* PPME_SOCKET_SOCKETPAIR_X */{"socketpair", EC_IPC, EF_CREATES_FD | EF_MODIFIES_STATE, 5, {{"res", PT_ERRNO, PF_DEC}, {"fd1", PT_FD, PF_DEC}, {"fd2", PT_FD, PF_DEC}, {"source", PT_UINT64, PF_HEX}, {"peer", PT_UINT64, PF_HEX} } },
 	/* PPME_SOCKET_SETSOCKOPT_E */{"setsockopt", EC_NET, EF_NONE, 0},
 	/* PPME_SOCKET_SETSOCKOPT_X */{"setsockopt", EC_NET, EF_NONE, 0},
 	/* PPME_SOCKET_GETSOCKOPT_E */{"getsockopt", EC_NET, EF_NONE, 0},
@@ -313,5 +313,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_EXECVE_18_E */{"execve", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"filename", PT_FSPATH, PF_NA}} },
 	/* PPME_SYSCALL_EXECVE_18_X */{"execve", EC_PROCESS, EF_MODIFIES_STATE, 17, {{"res", PT_ERRNO, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_UINT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"comm", PT_CHARBUF, PF_NA}, {"cgroups", PT_BYTEBUF, PF_NA}, {"env", PT_BYTEBUF, PF_NA}, {"tty", PT_INT32, PF_DEC} } },
 	/* PPME_PAGE_FAULT_E */ {"page_fault", EC_OTHER, EF_SKIPPARSERESET | EF_DROP_FALCO, 3, {{"addr", PT_UINT64, PF_HEX}, {"ip", PT_UINT64, PF_HEX}, {"error", PT_FLAGS32, PF_HEX, pf_flags} } },
-	/* PPME_PAGE_FAULT_X */ {"NA5", EC_OTHER, EF_UNUSED, 0}
+	/* PPME_PAGE_FAULT_X */ {"NA5", EC_OTHER, EF_UNUSED, 0},
+	/* PPME_SOCKET_SOCKET_2_E */{"socket", EC_NET, EF_CREATES_FD | EF_MODIFIES_STATE, 0, { } },
+	/* PPME_SOCKET_SOCKET_2_X */{"socket", EC_NET, EF_CREATES_FD | EF_MODIFIES_STATE, 4, {{"fd", PT_FD, PF_DEC}, {"domain", PT_FLAGS32, PF_DEC, socket_families}, {"type", PT_UINT32, PF_DEC}, {"proto", PT_UINT32, PF_DEC} } }
 };
