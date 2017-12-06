@@ -644,6 +644,7 @@ sinsp_docker_response sinsp_container_manager::get_docker(const string& api_vers
 
 	if(connect(sock, (struct sockaddr *) &address, sizeof(struct sockaddr_un)) != 0)
 	{
+		close(sock);
 		return sinsp_docker_response::RESP_ERROR;
 	}
 
