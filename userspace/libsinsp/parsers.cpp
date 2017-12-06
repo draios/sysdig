@@ -2032,28 +2032,28 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 	}
 	else if(domain == PPM_AF_INET || domain == PPM_AF_INET6)
 	{
-		fdi.m_type = (domain == PPM_AF_INET) ? SCAP_FD_IPV4_SOCK : SCAP_FD_IPV6_SOCK;
+		fdi.m_type = (domain == PPM_AF_INET)? SCAP_FD_IPV4_SOCK : SCAP_FD_IPV6_SOCK;
 
-		if (protocol == IPPROTO_TCP)
+		if(protocol == IPPROTO_TCP)
 		{
-			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = (type == SOCK_RAW) ? SCAP_L4_RAW : SCAP_L4_TCP;
+			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = (type == SOCK_RAW)? SCAP_L4_RAW : SCAP_L4_TCP;
 		}
-		else if (protocol == IPPROTO_UDP)
+		else if(protocol == IPPROTO_UDP)
 		{
-			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = (type == SOCK_RAW) ? SCAP_L4_RAW : SCAP_L4_UDP;
+			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = (type == SOCK_RAW)? SCAP_L4_RAW : SCAP_L4_UDP;
 		}
-		else if (protocol == IPPROTO_IP)
+		else if(protocol == IPPROTO_IP)
 		{
 			//
 			// XXX: we mask type because, starting from linux 2.6.27, type can be ORed with
 			//      SOCK_NONBLOCK and SOCK_CLOEXEC. We need to validate that byte masking is
 			//      acceptable
 			//
-			if ((type & 0xff) == SOCK_STREAM)
+			if((type & 0xff) == SOCK_STREAM)
 			{
 				fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_TCP;
 			}
-			else if ((type & 0xff) == SOCK_DGRAM)
+			else if((type & 0xff) == SOCK_DGRAM)
 			{
 				fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_UDP;
 			}
@@ -2062,16 +2062,16 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 				ASSERT(false);
 			}
 		}
-		else if (protocol == IPPROTO_ICMP)
+		else if(protocol == IPPROTO_ICMP)
 		{
-			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = (type == SOCK_RAW) ? SCAP_L4_RAW : SCAP_L4_ICMP;
+			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = (type == SOCK_RAW)? SCAP_L4_RAW : SCAP_L4_ICMP;
 		}
-		else if (protocol == IPPROTO_RAW)
+		else if(protocol == IPPROTO_RAW)
 		{
 			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_RAW;
 		}
 	}
-	else if (domain == PPM_AF_NETLINK)
+	else if(domain == PPM_AF_NETLINK)
 	{
 		fdi.m_type = SCAP_FD_NETLINK;
 	}
