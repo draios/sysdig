@@ -489,6 +489,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_PF_INSTRUCTION_FETCH	(1 << 7)
 
 /*
+ * chown/chmod flags
+ */
+#define PPM_AT_EMPTY_PATH			(1 << 0)
+#define PPM_AT_SYMLINK_NOFOLLOW 	(1 << 1)
+
+/*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
  *
@@ -824,7 +830,21 @@ enum ppm_event_type {
 	PPME_SYSCALL_EXECVE_18_X = 289,
 	PPME_PAGE_FAULT_E = 290,
 	PPME_PAGE_FAULT_X = 291,
-	PPM_EVENT_MAX = 292
+	PPME_SYSCALL_CHOWN_E = 292,
+	PPME_SYSCALL_CHOWN_X = 293,
+	PPME_SYSCALL_LCHOWN_E = 294,
+	PPME_SYSCALL_LCHOWN_X = 295,
+	PPME_SYSCALL_FCHOWN_E = 296,
+	PPME_SYSCALL_FCHOWN_X = 297,
+	PPME_SYSCALL_FCHOWNAT_E = 298,
+	PPME_SYSCALL_FCHOWNAT_X = 299,
+	PPME_SYSCALL_CHMOD_E = 300,
+	PPME_SYSCALL_CHMOD_X = 301,
+	PPME_SYSCALL_FCHMOD_E = 302,
+	PPME_SYSCALL_FCHMOD_X = 303,
+	PPME_SYSCALL_FCHMODAT_E = 304,
+	PPME_SYSCALL_FCHMODAT_X = 305,
+	PPM_EVENT_MAX = 306
 };
 /*@}*/
 
@@ -1353,6 +1373,7 @@ extern const struct ppm_name_value semget_flags[];
 extern const struct ppm_name_value semctl_commands[];
 extern const struct ppm_name_value access_flags[];
 extern const struct ppm_name_value pf_flags[];
+extern const struct ppm_name_value chown_chmod_flags[];
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
 

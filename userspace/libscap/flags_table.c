@@ -435,3 +435,9 @@ const struct ppm_name_value pf_flags[] = {
 	{"INSTRUCTION_FETCH", PPM_PF_INSTRUCTION_FETCH},
 	{0, 0},
 };
+
+const struct ppm_name_value chown_chmod_flags[] = {
+	{"AT_EMPTY_PATH", PPM_AT_EMPTY_PATH},
+	{"AT_SYMLINK_NOFOLLOW", PPM_AT_SYMLINK_NOFOLLOW},
+	{0, 0},
+};
