@@ -322,8 +322,6 @@ public:
 	void add_containers(container_list&& containers);
 	void push_container(const k8s_container& container);
 	void emplace_container(k8s_container&& container);
-	std::string* get_container_id(const std::string& container_id);
-	k8s_container* get_container(const std::string& container_name);
 
 	// node name, host IP and internal IP
 	virtual std::string get_node_name() const;
@@ -336,7 +334,6 @@ public:
 	// comparison
 	bool operator==(const k8s_pod_t& other) const;
 	bool operator!=(const k8s_pod_t& other) const;
-	bool has_container_id(const std::string& container_id);
 
 private:
 	container_id_list m_container_ids;
