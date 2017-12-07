@@ -28,6 +28,7 @@ std::string k8s_pod_handler::EVENT_FILTER =
 	"   phase: .status.phase,"
 	"   containers: .spec.containers,"
 	"   containerStatuses: .status.containerStatuses,"
+	"   initContainerStatuses: .status.initContainerStatuses,"
 	"   labels: .metadata.labels"
 	"  }"
 	" ]"
@@ -52,6 +53,7 @@ std::string k8s_pod_handler::STATE_FILTER =
 	"   phase: .status.phase,"
 	"   containers: .spec.containers,"
 	"   containerStatuses: .status.containerStatuses,"
+	"   initContainerStatuses: .status.initContainerStatuses,"
 	"   labels: .metadata.labels,"
 	"   }"
 	" ]"
@@ -71,7 +73,7 @@ k8s_pod_handler::k8s_pod_handler(k8s_state_t& state
 	):
 		k8s_handler("k8s_pod_handler", true,
 #ifdef HAS_CAPTURE
-					url, "/api/v1/pods?fieldSelector=status.phase%3DRunning",
+					url, "/api/v1/pods?fieldSelector=status.phase!=Failed,status.phase!=Unknown,status.phase!=Succeeded",
 					STATE_FILTER, EVENT_FILTER, "", collector,
 					http_version, 1000L, ssl, bt, true,
 					connect, dependency_handler, blocking_socket,
@@ -87,6 +89,7 @@ k8s_pod_handler::~k8s_pod_handler()
 std::vector<std::string> k8s_pod_handler::extract_pod_container_ids(const Json::Value& item)
 {
 	std::vector<std::string> container_list;
+
 	const Json::Value& containers = item["containerStatuses"];
 	if(!containers.isNull())
 	{
@@ -99,12 +102,29 @@ std::vector<std::string> k8s_pod_handler::extract_pod_container_ids(const Json::
 			}
 		}
 	}
+
+	const Json::Value& initContainers = item["initContainerStatuses"];
+	if(!initContainers.isNull())
+	{
+		for (auto& container : initContainers)
+		{
+			const Json::Value& container_id = container["containerID"];
+			if(!container_id.isNull())
+			{
+				container_list.emplace_back(container_id.asString());
+			}
+		}
+	}
+
 	return container_list;
 }
 
 k8s_container::list k8s_pod_handler::extract_pod_containers(const Json::Value& item)
 {
 	k8s_container::list ext_containers;
+	// Not looking for init containers here because this appears
+	// to only be used by the k8s_service_handler for named port
+	// resolution. Init containers can't have service ports.
 	const Json::Value& containers = item["containers"];
 	if(!containers.isNull())
 	{
