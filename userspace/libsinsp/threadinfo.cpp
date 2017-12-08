@@ -529,20 +529,22 @@ const vector<string>& sinsp_threadinfo::get_env()
 	}
 }
 
+// Return value string for the exact environment variable name given
 string sinsp_threadinfo::get_env(const string& name)
 {
+	size_t nlen = name.length();
 	for(const auto& env_var : get_env())
 	{
-		if((env_var.length() > name.length()) && (env_var.substr(0, name.length()) == name))
+		if((env_var.length() > (nlen + 1)) && (env_var[nlen] == '=') &&
+			!env_var.compare(0, nlen, name))
 		{
-			std::string::size_type pos = env_var.find('=');
-			if(pos != std::string::npos && env_var.size() > pos + 1)
-			{
-				string val = env_var.substr(pos + 1);
-				std::string::size_type first = val.find_first_not_of(' ');
-				std::string::size_type last = val.find_last_not_of(' ');
-				return val.substr(first, last - first + 1);
-			}
+			// Stripping spaces, not sure if we really should or need to
+			size_t first = env_var.find_first_not_of(' ', nlen + 1);
+			if (first == string::npos)
+				return "";
+			size_t last = env_var.find_last_not_of(' ');
+
+			return env_var.substr(first, last - first + 1);
 		}
 	}
 
