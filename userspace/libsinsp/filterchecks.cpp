@@ -4076,6 +4076,7 @@ const filtercheck_field_info sinsp_filter_check_user_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.name", "user name."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.homedir", "home directory of the user."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.shell", "user's shell."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "user.loginuid", "audit user id (auid)."},
 };
 
 sinsp_filter_check_user::sinsp_filter_check_user()
@@ -4136,6 +4137,8 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, boo
 	case TYPE_SHELL:
 		*len = strlen(uinfo->shell);
 		return (uint8_t*) uinfo->shell;
+	case TYPE_LOGINUID:
+		return (uint8_t*)&tinfo->m_loginuid;
 	default:
 		ASSERT(false);
 		break;

@@ -529,6 +529,7 @@ public:
 		TYPE_NAME = 1,
 		TYPE_HOMEDIR = 2,
 		TYPE_SHELL = 3,
+		TYPE_LOGINUID = 4,
 	};
 
 	sinsp_filter_check_user();

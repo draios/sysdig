@@ -1414,6 +1414,7 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 			newti.m_uid = 0xffffffff;
 			newti.m_gid = 0xffffffff;
 			newti.m_nchilds = 0;
+			newti.m_loginuid = 0xffffffff;
 		}
 
 		//

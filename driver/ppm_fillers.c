@@ -46,6 +46,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <asm/syscall.h>
 #endif
 
+#include <linux/audit.h>
+
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
 #include "ppm_events.h"
@@ -298,8 +300,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_DROP_X] = {f_sched_drop},
 	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
-	[PPME_SYSCALL_EXECVE_18_E] = {f_sys_execve_e},
-	[PPME_SYSCALL_EXECVE_18_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_EXECVE_19_E] = {f_sys_execve_e},
+	[PPME_SYSCALL_EXECVE_19_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_CLONE_20_E] = {f_sys_empty},
 	[PPME_SYSCALL_CLONE_20_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
@@ -1211,7 +1213,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		return res;
 
 	if (unlikely(retval < 0 &&
-		     args->event_type != PPME_SYSCALL_EXECVE_18_X)) {
+		     args->event_type != PPME_SYSCALL_EXECVE_19_X)) {
 
 		/* The call failed, but this syscall has no exe, args
 		 * anyway, so I report empty ones */
@@ -1488,7 +1490,7 @@ cgroups_error:
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
-	} else if (args->event_type == PPME_SYSCALL_EXECVE_18_X) {
+	} else if (args->event_type == PPME_SYSCALL_EXECVE_19_X) {
 		/*
 		 * execve-only parameters
 		 */
@@ -1543,6 +1545,20 @@ cgroups_error:
 		 */
 		tty_nr = ppm_get_tty();
 		res = val_to_ring(args, tty_nr, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+
+        /*
+         * loginuid
+         */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
+        val = from_kuid(current_user_ns(), audit_get_loginuid(current));
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+        val = audit_get_loginuid(current);
+#else
+        val = audit_get_loginuid(current->audit_context);
+#endif
+		res = val_to_ring(args, val, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 	}
