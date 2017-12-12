@@ -305,6 +305,8 @@ const char* sinsp_utils::errno_to_str(int32_t code)
 		return "ENOMEDIUM";
 	case SE_ECANCELED:
 		return "ECANCELED";
+	case SE_EPROTONOSUPPORT:
+		return "EPROTONOSUPPORT";
 	default:
 		ASSERT(false);
 		return "";
