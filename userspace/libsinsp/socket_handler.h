@@ -38,6 +38,23 @@
 #define SOCK_NONBLOCK 0
 #endif
 
+struct gaicb_free
+{
+	void operator() (struct gaicb **reqs) const
+		{
+			if(reqs[0]->ar_result)
+			{
+				freeaddrinfo(reqs[0]->ar_result);
+			}
+			if(reqs[0]->ar_name)
+			{
+				free((void*)reqs[0]->ar_name);
+			}
+			free(reqs[0]);
+			free(reqs);
+		}
+};
+
 template <typename T>
 class socket_data_handler
 {
@@ -1305,10 +1322,8 @@ private:
 				{
 					g_logger.log("Socket handler (" + m_id + ") resolving " + m_url.get_host(),
 								 sinsp_logger::SEV_TRACE);
-					m_dns_reqs = (struct gaicb**)calloc(1, sizeof(struct gaicb*));
-					m_dns_reqs[0] = (struct gaicb*)calloc(1, sizeof(struct gaicb));
-					m_dns_reqs[0]->ar_name = strdup(m_url.get_host().c_str());
-					ret = getaddrinfo_a(GAI_NOWAIT, &m_dns_reqs[0], 1, NULL);
+					m_dns_reqs = make_gaicb(m_url.get_host());
+					ret = getaddrinfo_a(GAI_NOWAIT, m_dns_reqs.get(), 1, NULL);
 					if(ret)
 					{
 						throw sinsp_exception("Socket handler (" + m_id + "): " + m_url.get_host() +
@@ -1453,7 +1468,7 @@ private:
 		m_connect_called = true;
 	}
 
-	bool dns_cleanup(struct gaicb** dns_reqs)
+	bool dns_req_done(struct gaicb** dns_reqs)
 	{
 		if(dns_reqs && dns_reqs[0])
 		{
@@ -1461,17 +1476,6 @@ private:
 			int err = gai_error(dns_reqs[0]);
 			if(ret == EAI_ALLDONE || err == EAI_CANCELED)
 			{
-				if(dns_reqs[0]->ar_result)
-				{
-					freeaddrinfo(dns_reqs[0]->ar_result);
-				}
-				if(dns_reqs[0]->ar_name)
-				{
-					free((void*)dns_reqs[0]->ar_name);
-				}
-				free(dns_reqs[0]);
-				dns_reqs[0] = 0;
-				free(dns_reqs);
 				return true;
 			}
 			else if(err == EAI_INPROGRESS || err == EAI_AGAIN)
@@ -1502,7 +1506,7 @@ private:
 	{
 		for(dns_list_t::iterator it = m_pending_dns_reqs.begin(); it != m_pending_dns_reqs.end();)
 		{
-			if(dns_cleanup(*it))
+			if(dns_req_done(it->get()))
 			{
 				it = m_pending_dns_reqs.erase(it);
 				g_logger.log("Socket handler: postponed canceling of DNS request succeeded, number of pending "
@@ -1519,14 +1523,11 @@ private:
 						 (pending_reqs > 10) ? sinsp_logger::SEV_WARNING : sinsp_logger::SEV_TRACE);
 		}
 
-		if(dns_cleanup(m_dns_reqs))
+		if(!dns_req_done(m_dns_reqs.get()))
 		{
-			m_dns_reqs = 0;
+			m_pending_dns_reqs.push_back(std::move(m_dns_reqs));
 		}
-		else // store for postponed canceling
-		{
-			m_pending_dns_reqs.push_back(m_dns_reqs);
-		}
+		m_dns_reqs = nullptr;
 	}
 
 	void ssl_cleanup()
@@ -1671,7 +1672,16 @@ private:
 		return http_reason::get(status);
 	}
 
-	typedef std::deque<struct gaicb**> dns_list_t;
+	using gaicb_t = std::unique_ptr<struct gaicb* [], gaicb_free>;
+	using dns_list_t = std::deque<gaicb_t>;
+
+	gaicb_t make_gaicb(const std::string &host)
+	{
+		gaicb_t dns_reqs((struct gaicb**)calloc(1, sizeof(struct gaicb*)));
+		dns_reqs[0] = (struct gaicb*)calloc(1, sizeof(struct gaicb));
+		dns_reqs[0]->ar_name = strdup(m_url.get_host().c_str());
+		return dns_reqs;
+	}
 
 	T&                       m_obj;
 	std::string              m_id;
@@ -1688,7 +1698,7 @@ private:
 	bool                     m_blocking = false;
 	std::vector<char>        m_buf;
 	int                      m_sock_err = 0;
-	struct gaicb**           m_dns_reqs = nullptr;
+	gaicb_t m_dns_reqs = nullptr;
 	static dns_list_t        m_pending_dns_reqs;
 	ssl_ptr_t                m_ssl;
 	bt_ptr_t                 m_bt;
