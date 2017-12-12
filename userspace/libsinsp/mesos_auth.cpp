@@ -83,7 +83,7 @@ void mesos_auth::authenticate()
 			{
 				std::string errstr;
 				errstr = json_reader.getFormattedErrorMessages();
-				g_json_error_log.log(response, errstr);
+				g_json_error_log.log(response, errstr, sinsp_utils::get_current_time_ns(), m_auth_uri.to_string());
 				throw sinsp_exception(string("Cannot parse json (" + errstr + ")"));
 			}
 			else

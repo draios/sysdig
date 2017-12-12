@@ -115,7 +115,7 @@ Json::Value mesos_http::get_state_frameworks()
 			std::string errstr;
 			errstr = reader.getFormattedErrorMessages();
 			g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
-			g_json_error_log.log(os.str(), errstr);
+			g_json_error_log.log(os.str(), errstr, sinsp_utils::get_current_time_ns(), m_url.to_string());
 			throw sinsp_exception("mesos_http: Mesos master leader detection failed in get_state_frameworks(): Invalid JSON (" + errstr + ")");
 		}
 	}
@@ -211,7 +211,7 @@ void mesos_http::discover_mesos_leader()
 				std::string errstr;
 				errstr = reader.getFormattedErrorMessages();
 				g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
-				g_json_error_log.log(os.str(), errstr);
+				g_json_error_log.log(os.str(), errstr, sinsp_utils::get_current_time_ns(), m_url.to_string());
 				throw sinsp_exception("mesos_http: Mesos master leader [" + m_url.to_string(false) + "] detection failed: Invalid JSON (" + errstr + ")");
 			}
 		}
@@ -452,7 +452,7 @@ bool mesos_http::get_all_data(callback_func_t parse)
 			errstr = reader.getFormattedErrorMessages();
 			g_logger.log("mesos_http: Mesos or Marathon Invalid JSON received from [" + m_url.to_string(false) + "]: " + errstr, sinsp_logger::SEV_WARNING);
 			g_logger.log("JSON: <" + os.str() + '>', sinsp_logger::SEV_DEBUG);
-			g_json_error_log.log(os.str(), errstr);
+			g_json_error_log.log(os.str(), errstr, sinsp_utils::get_current_time_ns(), m_url.to_string());
 		}
 		m_connected = true;
 	}
@@ -602,7 +602,7 @@ void mesos_http::handle_json(std::string::size_type end_pos, bool chunked)
 			}
 			else
 			{
-				(m_mesos.*m_callback_func)(try_parse(m_data_buf), m_framework_id);
+				(m_mesos.*m_callback_func)(try_parse(m_data_buf, m_url.to_string()), m_framework_id);
 			}
 			m_data_buf.clear();
 			m_content_length = std::string::npos;
@@ -753,7 +753,8 @@ std::string mesos_http::make_uri(const std::string& path)
 Json::Value mesos_http::get_task_labels(const std::string& task_id)
 {
 	std::ostringstream os;
-	CURLcode res = get_data(make_uri("/master/tasks"), os);
+	std::string uri = make_uri("/master/tasks");
+	CURLcode res = get_data(uri, os);
 
 	Json::Value labels;
 	if(res != CURLE_OK)
@@ -816,7 +817,7 @@ Json::Value mesos_http::get_task_labels(const std::string& task_id)
 			std::string errstr;
 			errstr = reader.getFormattedErrorMessages();
 			g_logger.log("mesos_http: Error parsing tasks (" + errstr + ").\nJSON:\n---\n" + os.str() + "\n---", sinsp_logger::SEV_ERROR);
-			g_json_error_log.log(os.str(), errstr);
+			g_json_error_log.log(os.str(), errstr, sinsp_utils::get_current_time_ns(), uri);
 		}
 	}
 	catch(std::exception& ex)

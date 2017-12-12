@@ -37,7 +37,7 @@ mesos::mesos(const std::string& mesos_state_json,
 	{
 		throw sinsp_exception("Mesos state AND (both OR none [marathon apps and groups]) are needed");
 	}
-	mesos_http::json_ptr_t state_json = mesos_http::try_parse(mesos_state_json);
+	mesos_http::json_ptr_t state_json = mesos_http::try_parse(mesos_state_json, "fixed-mesos-state");
 	if(state_json)
 	{
 		set_state_json(state_json);
@@ -63,8 +63,8 @@ mesos::mesos(const std::string& mesos_state_json,
 				}
 			}
 			mesos_http::json_ptr_t dummy_group;
-			set_marathon_groups_json(mesos_http::try_parse(marathon_groups_json), framework_id);
-			set_marathon_apps_json(dummy_group/*mesos_http::try_parse(marathon_apps_json)*/, framework_id);
+			set_marathon_groups_json(mesos_http::try_parse(marathon_groups_json, "fixed-marathon-state"), framework_id);
+			set_marathon_apps_json(dummy_group/*mesos_http::try_parse(marathon_apps_json, "fixed-groups-state")*/, framework_id);
 		}
 		collect_data();
 	}
@@ -1045,6 +1045,6 @@ void mesos::simulate_event(const std::string& json)
 		std::string errstr;
 		errstr = reader.getFormattedErrorMessages();
 		g_logger.log("Could not parse json (" + errstr + ")", sinsp_logger::SEV_ERROR);
-		g_json_error_log.log(json, errstr);
+		g_json_error_log.log(json, errstr, sinsp_utils::get_current_time_ns(), "parse-mesos-evt");
 	}
 }

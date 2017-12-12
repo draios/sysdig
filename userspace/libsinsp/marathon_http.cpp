@@ -43,7 +43,8 @@ marathon_http::~marathon_http()
 bool marathon_http::refresh_data()
 {
 	std::ostringstream os;
-	CURLcode res = get_data(make_uri("/v2/info"), os);
+	std::string uri = make_uri("/v2/info");
+	CURLcode res = get_data(uri, os);
 
 	if(res != CURLE_OK)
 	{
@@ -67,7 +68,7 @@ bool marathon_http::refresh_data()
 			std::string errstr;
 			errstr = reader.getFormattedErrorMessages();
 			g_logger.log("Error parsing framework info (" + errstr + ").\nJSON:\n---\n" + os.str() + "\n---", sinsp_logger::SEV_ERROR);
-			g_json_error_log.log(os.str(), errstr);
+			g_json_error_log.log(os.str(), errstr, sinsp_utils::get_current_time_ns(), uri);
 			return false;
 		}
 	}
