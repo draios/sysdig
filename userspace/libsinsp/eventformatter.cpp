@@ -163,6 +163,42 @@ bool sinsp_evt_formatter::on_capture_end(OUT string* res)
 	return res->size() > 0;
 }
 
+bool sinsp_evt_formatter::resolve_tokens(sinsp_evt *evt, map<string,string>& values)
+{
+	bool retval = true;
+	const filtercheck_field_info* fi;
+	uint32_t j = 0;
+
+	ASSERT(m_tokenlens.size() == m_tokens.size());
+
+	for(j = 0; j < m_tokens.size(); j++)
+	{
+		char* str = m_tokens[j]->tostring(evt);
+
+		if(str == NULL)
+		{
+			if(m_require_all_values)
+			{
+				retval = false;
+				break;
+			}
+			else
+			{
+				str = (char*)"<NA>";
+			}
+		}
+
+		fi = m_tokens[j]->get_field_info();
+		if(fi)
+		{
+			values[fi->m_name] = string(str);
+		}
+	}
+
+	return retval;
+}
+
+
 bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 {
 	bool retval = true;
@@ -264,10 +300,14 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 	throw sinsp_exception("sinsp_evt_formatter unvavailable because it was not compiled in the library");
 }
 
+bool sinsp_evt_formatter::resolve_tokens(sinsp_evt *evt, map<string,string>& values)
+{
+	throw sinsp_exception("sinsp_evt_formatter unvavailable because it was not compiled in the library");
+}
+
 bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 {
 	throw sinsp_exception("sinsp_evt_formatter unvavailable because it was not compiled in the library");
-	return false;
 }
 #endif // HAS_FILTERING
 

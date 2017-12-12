@@ -47,6 +47,18 @@ public:
 	~sinsp_evt_formatter();
 
 	/*!
+	  \brief Resolve all the formatted tokens and return them in a key/value
+	  map.
+
+	  \param evt Pointer to the event to be converted into string.
+	  \param res Reference to the map that will be filled with the result.
+
+	  \return true if all the tokens can be retrieved successfully, false
+	  otherwise.
+	*/
+	bool resolve_tokens(sinsp_evt *evt, map<string,string>& values);
+
+	/*!
 	  \brief Fills res with the string rendering of the event.
 
 	  \param evt Pointer to the event to be converted into string.
