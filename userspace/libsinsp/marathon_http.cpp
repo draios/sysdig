@@ -48,7 +48,9 @@ bool marathon_http::refresh_data()
 
 	if(res != CURLE_OK)
 	{
-		g_logger.log(curl_easy_strerror(res), sinsp_logger::SEV_ERROR);
+		std::string errstr = std::string("Problem accessing /v2/info: ") + curl_easy_strerror(res);
+		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+		g_json_error_log.log(os.str(), errstr, sinsp_utils::get_current_time_ns(), uri);
 		return false;
 	}
 
@@ -74,7 +76,9 @@ bool marathon_http::refresh_data()
 	}
 	catch(std::exception& ex)
 	{
-		g_logger.log(std::string("Error parsing framework info:") + ex.what(), sinsp_logger::SEV_ERROR);
+		std::string errstr = std::string("Error parsing framework info:") + ex.what();
+		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+		g_json_error_log.log(os.str(), errstr, sinsp_utils::get_current_time_ns(), uri);
 		return false;
 	}
 	
@@ -84,11 +88,14 @@ bool marathon_http::refresh_data()
 std::string marathon_http::get_groups(const std::string& group_id)
 {
 	std::ostringstream os;
-	CURLcode res = get_data(make_uri("/v2/groups" + group_id), os);
+	std::string uri = make_uri("/v2/groups" + group_id);
+	CURLcode res = get_data(uri, os);
 
 	if(res != CURLE_OK)
 	{
-		g_logger.log(curl_easy_strerror(res), sinsp_logger::SEV_ERROR);
+		std::string errstr = std::string("Problem accessing /v2/groups: ") + curl_easy_strerror(res);
+		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+		g_json_error_log.log(os.str(), errstr, sinsp_utils::get_current_time_ns(), uri);
 		return "";
 	}
 

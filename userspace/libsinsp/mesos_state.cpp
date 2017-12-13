@@ -538,7 +538,9 @@ marathon_app::ptr_t mesos_state_t::add_app(const Json::Value& app, const std::st
 							}
 							else
 							{
-								g_logger.log("Marathon task not found in mesos state: " + tid, sinsp_logger::SEV_WARNING);
+								std::string errstr = "Marathon task not found in mesos state: " + tid;
+								g_logger.log(errstr, sinsp_logger::SEV_WARNING);
+								g_json_error_log.log(tid, errstr, sinsp_utils::get_current_time_ns(), "add-app");
 							}
 						}
 					}

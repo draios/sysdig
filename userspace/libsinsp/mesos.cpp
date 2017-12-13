@@ -643,7 +643,9 @@ bool mesos::collect_data()
 							}
 							else if((difftime(now, m_last_marathon_refresh) > tout_s) || m_json_error)
 							{
-								g_logger.log("Detected null Marathon app (" + app_it->first + "), resetting current state.", sinsp_logger::SEV_WARNING);
+								std::string errstr = "Detected null Marathon app (" + app_it->first + "), resetting current state.";
+								g_logger.log(errstr, sinsp_logger::SEV_WARNING);
+								g_json_error_log.log(app_it->first, errstr, sinsp_utils::get_current_time_ns(), "marathon-apps-state");
 								m_mesos_state_json.reset();
 								group.second.reset();
 								app_it->second.reset();
@@ -998,7 +1000,9 @@ void mesos::set_marathon_apps_json(json_ptr_t json, const std::string& framework
 	}
 	else
 	{
-		g_logger.log("Received invalid Marathon apps JSON", sinsp_logger::SEV_WARNING);
+		std::string errstr = "Received invalid Marathon apps JSON";
+		g_logger.log(errstr, sinsp_logger::SEV_WARNING);
+		g_json_error_log.log("(null)", errstr, sinsp_utils::get_current_time_ns(), "set-marathon-apps-json");
 	}
 	m_json_error = m_json_error || json_error;
 }
