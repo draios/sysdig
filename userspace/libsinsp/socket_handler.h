@@ -1468,7 +1468,7 @@ private:
 		m_connect_called = true;
 	}
 
-	bool dns_req_done(struct gaicb** dns_reqs)
+	bool dns_req_done(struct gaicb** dns_reqs) const
 	{
 		if(dns_reqs && dns_reqs[0])
 		{
@@ -1525,7 +1525,7 @@ private:
 
 		if(!dns_req_done(m_dns_reqs.get()))
 		{
-			m_pending_dns_reqs.push_back(std::move(m_dns_reqs));
+			m_pending_dns_reqs.emplace_back(std::move(m_dns_reqs));
 		}
 		m_dns_reqs = nullptr;
 	}
