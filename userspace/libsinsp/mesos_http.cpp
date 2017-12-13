@@ -330,7 +330,10 @@ void mesos_http::discover_framework_uris(const Json::Value& frameworks)
 					{
 						if(m_discover_marathon && mesos_framework::is_root_marathon(name))
 						{
-							g_logger.log("mesos_http: Can not obtain URL for Marathon framework.", sinsp_logger::SEV_ERROR);
+							std::string errstr = "mesos_http: Can not obtain URL for Marathon framework.";
+							g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+							g_json_error_log.log("", errstr, sinsp_utils::get_current_time_ns(), m_url.to_string());
+
 						}
 					}
 				}
@@ -417,7 +420,9 @@ bool mesos_http::get_all_data(callback_func_t parse)
 	CURLcode res = get_data(m_url.to_string(), os);
 	if(res != CURLE_OK)
 	{
-		g_logger.log(curl_easy_strerror(res), sinsp_logger::SEV_ERROR);
+		std::string errstr = std::string("Could not fetch url:") + curl_easy_strerror(res);
+		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+		g_json_error_log.log("", errstr, sinsp_utils::get_current_time_ns(), m_url.to_string());
 		m_connected = false;
 	}
 	else
@@ -597,7 +602,9 @@ void mesos_http::handle_json(std::string::size_type end_pos, bool chunked)
 			m_data_buf = m_data_buf.substr(0, end_pos + 1);
 			if(chunked && !purge_chunked_markers(m_data_buf))
 			{
-				g_logger.log("mesos_http: Invalid Mesos or Marathon JSON data detected (chunked transfer).", sinsp_logger::SEV_ERROR);
+				std::string errstr = "mesos_http: Invalid Mesos or Marathon JSON data detected (chunked transfer).";
+				g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+				g_json_error_log.log(m_data_buf, errstr, sinsp_utils::get_current_time_ns(), m_url.to_string());
 				(m_mesos.*m_callback_func)(nullptr, m_framework_id);
 			}
 			else
@@ -625,10 +632,12 @@ bool mesos_http::detect_chunked_transfer(const std::string& data)
 				long len = strtol(cl.c_str(), NULL, 10);
 				if(len == 0L || len == LONG_MAX || len == LONG_MIN || errno == ERANGE)
 				{
+					std::string errstr = "Invalid HTTP content length from [: " + m_url.to_string(false) + ']' +
+						std::to_string(len);
 					(m_mesos.*m_callback_func)(nullptr, m_framework_id);
 					m_data_buf.clear();
-					g_logger.log("Invalid HTTP content length from [: " + m_url.to_string(false) + ']' +
-							 std::to_string(len), sinsp_logger::SEV_ERROR);
+					g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+					g_json_error_log.log(data, errstr, sinsp_utils::get_current_time_ns(), m_url.to_string());
 					return false;
 				}
 				else
@@ -645,7 +654,9 @@ void mesos_http::extract_data(std::string& data)
 {
 	if(!detect_chunked_transfer(data))
 	{
-		g_logger.log("mesos_http: An error occurred while detecting chunked transfer.", sinsp_logger::SEV_ERROR);
+		string errstr = "mesos_http: An error occurred while detecting chunked transfer.";
+		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+		g_json_error_log.log(data, errstr, sinsp_utils::get_current_time_ns(), m_url.to_string());
 		return;
 	}
 
@@ -683,8 +694,10 @@ bool mesos_http::on_data()
 
 	size_t iolen = 0;
 	char buf[1024];
+	buf[0] = '\0';
 	std::string data;
 	CURLcode ret;
+	std::string errstr;
 	try
 	{
 		do
@@ -703,13 +716,17 @@ bool mesos_http::on_data()
 	}
 	catch(sinsp_exception& ex)
 	{
-		g_logger.log(std::string("mesos_http: Data receive error [" + m_url.to_string() + "]: ").append(ex.what()), sinsp_logger::SEV_ERROR);
+		errstr = std::string("mesos_http: Data receive error [" + m_url.to_string() + "]: ").append(ex.what());
+		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+		g_json_error_log.log(buf, errstr, sinsp_utils::get_current_time_ns(), m_url.to_string());
 		return false;
 	}
 	return true;
 
 connection_closed:
-	g_logger.log("mesos_http: Mesos or Marathon API connection [" + m_url.to_string() + "] closed.", sinsp_logger::SEV_ERROR);
+	errstr = "mesos_http: Mesos or Marathon API connection [" + m_url.to_string() + "] closed.";
+	g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+	g_json_error_log.log(buf, errstr, sinsp_utils::get_current_time_ns(), m_url.to_string());
 	m_connected = false;
 	return false;
 }
@@ -759,7 +776,9 @@ Json::Value mesos_http::get_task_labels(const std::string& task_id)
 	Json::Value labels;
 	if(res != CURLE_OK)
 	{
-		g_logger.log(curl_easy_strerror(res), sinsp_logger::SEV_ERROR);
+		std::string errstr = curl_easy_strerror(res);
+		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+		g_json_error_log.log(task_id, errstr, sinsp_utils::get_current_time_ns(), uri);
 		return labels;
 	}
 
@@ -815,14 +834,16 @@ Json::Value mesos_http::get_task_labels(const std::string& task_id)
 		else
 		{
 			std::string errstr;
-			errstr = reader.getFormattedErrorMessages();
-			g_logger.log("mesos_http: Error parsing tasks (" + errstr + ").\nJSON:\n---\n" + os.str() + "\n---", sinsp_logger::SEV_ERROR);
+			errstr = "mesos_http: Error parsing tasks (" + reader.getFormattedErrorMessages() + ").";
+			g_logger.log(errstr + "\nJSON:\n---\n" + os.str() + "\n---", sinsp_logger::SEV_ERROR);
 			g_json_error_log.log(os.str(), errstr, sinsp_utils::get_current_time_ns(), uri);
 		}
 	}
 	catch(std::exception& ex)
 	{
-		g_logger.log(std::string("mesos_http: Error parsing tasks:") + ex.what(), sinsp_logger::SEV_ERROR);
+		std::string errstr = std::string("mesos_http: Error parsing tasks:") + ex.what();
+		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+		g_json_error_log.log(os.str(), errstr, sinsp_utils::get_current_time_ns(), uri);
 	}
 
 	return labels;

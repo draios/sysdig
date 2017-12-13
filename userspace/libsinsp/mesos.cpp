@@ -876,13 +876,16 @@ void mesos::add_tasks_impl(mesos_framework& framework, const Json::Value& tasks)
 					if(!fsid.isNull()) { sid = fsid.asString(); }
 					os << "Failed to add Mesos task: [" << framework.get_name() << ':' << name << ',' << uid << "], running on slave " << sid;
 					g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
+					g_json_error_log.log(framework.get_name(), os.str(), sinsp_utils::get_current_time_ns(), "add_tasks_impl");
 				}
 			}
 		}
 	}
 	else
 	{
-		g_logger.log("Tasks is null", sinsp_logger::SEV_ERROR);
+		std::string errstr = "Tasks is null";
+		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+		g_json_error_log.log(framework.get_name(), errstr, sinsp_utils::get_current_time_ns(), "add_tasks_impl for framework");
 	}
 }
 
@@ -1042,9 +1045,8 @@ void mesos::simulate_event(const std::string& json)
 	}
 	else
 	{
-		std::string errstr;
-		errstr = reader.getFormattedErrorMessages();
-		g_logger.log("Could not parse json (" + errstr + ")", sinsp_logger::SEV_ERROR);
+		std::string errstr = "Could not parse json (" + reader.getFormattedErrorMessages() + ")";
+		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
 		g_json_error_log.log(json, errstr, sinsp_utils::get_current_time_ns(), "parse-mesos-evt");
 	}
 }
