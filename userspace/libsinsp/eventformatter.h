@@ -102,12 +102,21 @@ public:
 	sinsp_evt_formatter_cache(sinsp *inspector);
 	virtual ~sinsp_evt_formatter_cache();
 
+	// Resolve the tokens inside format and return them as a key/value map.
+	// Creates a new sinsp_evt_formatter object if necessary.
+	bool resolve_tokens(sinsp_evt *evt, std::string &format, map<string,string>& values);
+
 	// Fills in res with the event formatted according to
 	// format. Creates a new sinsp_evt_formatter object if
 	// necessary.
 	bool tostring(sinsp_evt *evt, std::string &format, OUT std::string *res);
 
 private:
+
+	// Get the formatter for this format string. Creates a new
+	// sinsp_evt_formatter object if necessary.
+	std::shared_ptr<sinsp_evt_formatter>& get_cached_formatter(string &format);
+
 	std::map<std::string,std::shared_ptr<sinsp_evt_formatter>> m_formatter_cache;
 	sinsp *m_inspector;
 };

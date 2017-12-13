@@ -320,7 +320,7 @@ sinsp_evt_formatter_cache::~sinsp_evt_formatter_cache()
 {
 }
 
-bool sinsp_evt_formatter_cache::tostring(sinsp_evt *evt, string &format, OUT string *res)
+std::shared_ptr<sinsp_evt_formatter>& sinsp_evt_formatter_cache::get_cached_formatter(string &format)
 {
 	auto it = m_formatter_cache.lower_bound(format);
 
@@ -331,5 +331,15 @@ bool sinsp_evt_formatter_cache::tostring(sinsp_evt *evt, string &format, OUT str
 						    std::make_pair(format, make_shared<sinsp_evt_formatter>(m_inspector, format)));
 	}
 
-	return it->second->tostring(evt, res);
+	return it->second;
+}
+
+bool sinsp_evt_formatter_cache::resolve_tokens(sinsp_evt *evt, string &format, map<string,string>& values)
+{
+	return get_cached_formatter(format)->resolve_tokens(evt, values);
+}
+
+bool sinsp_evt_formatter_cache::tostring(sinsp_evt *evt, string &format, OUT string *res)
+{
+	return get_cached_formatter(format)->tostring(evt, res);
 }
