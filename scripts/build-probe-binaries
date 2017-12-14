@@ -559,7 +559,7 @@ if [ -z "$KERNEL_TYPE" ]; then
 	#
 	echo "Creating Oracle Linux 6 UEK builder"
 	docker ps -q -f 'name=ol6-build' | xargs --no-run-if-empty docker rm
-	docker build -t ol6-builder:latest -f ../sysdig/scripts/Dockerfile.ol6 ../sysdig/scripts
+	docker build -t ol6-builder:latest -f ../sysdig/scripts/Dockerfile.ol6 --pull ../sysdig/scripts
 	docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi
 	docker run -i --rm --name ol6-build -v $BASEDIR:/build/probe ol6-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL6-UEK
 
@@ -568,7 +568,7 @@ if [ -z "$KERNEL_TYPE" ]; then
 	#
 	echo "Creating Oracle Linux 7 UEK builder"
 	docker ps -q -f 'name=ol7-build' | xargs --no-run-if-empty docker rm
-	docker build -t ol7-builder:latest -f ../sysdig/scripts/Dockerfile.ol7 ../sysdig/scripts
+	docker build -t ol7-builder:latest -f ../sysdig/scripts/Dockerfile.ol7 --pull ../sysdig/scripts
 	docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi
 	docker run -i --rm --name ol7-build -v $BASEDIR:/build/probe ol7-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL7-UEK
 
