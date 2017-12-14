@@ -22,6 +22,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <string>
 #include <sstream>
+#include <list>
 #include <unordered_map>
 
 #include "filter_value.h"
@@ -53,18 +54,32 @@ public:
 	void add_search_path(const char *path, Value &v);
 	void add_search_path(const filter_value_t &path, Value &v);
 
+	// Similar to add_search_path, but takes a path already split
+	// into a list of components. This allows for custom splitting
+	// of paths other than on '/' boundaries.
+	typedef std::list<filter_value_t> filter_components_t;
+
+	void add_search_path_components(const filter_components_t &components, Value &v);
+
 	// If non-NULL, Value is not allocated. It points to memory
 	// held within this path_prefix_map() and is only valid as
 	// long as the map exists.
 	Value * match(const char *path);
 	Value * match(const filter_value_t &path);
 
+	Value *match_components(const filter_components_t &components);
+
 	std::string as_string(bool include_vals);
 
 private:
+
 	std::string as_string(const std::string &prefix, bool include_vals);
 
-	static void split_path(const filter_value_t &path, filter_value_t &dirent, filter_value_t &remainder);
+	void add_search_path_components(const filter_components_t &components, filter_components_t::const_iterator comp, Value &v);
+
+	Value *match_components(const filter_components_t &components, filter_components_t::const_iterator comp);
+
+	static void split_path(const filter_value_t &path, filter_components_t &components);
 
 	// Maps from the path component at the current level to a
 	// prefix search for the sub-path below the current level.
@@ -99,60 +114,31 @@ path_prefix_map<Value>::~path_prefix_map()
 	}
 }
 
-// Split path /var/log/messages into dirent (var) and remainder (/log/messages)
+// Split path /var/log/messages into a list of components (var, log, messages). Empty components are skipped.
 template<class Value>
-void path_prefix_map<Value>::split_path(const filter_value_t &path, filter_value_t &dirent, filter_value_t &remainder)
+void path_prefix_map<Value>::split_path(const filter_value_t &path, filter_components_t &components)
 {
-	uint32_t length = path.second;
+	components.clear();
 
-	if(path.second == 0)
+	uint8_t *pos = path.first;
+
+	while (pos < path.first + path.second)
 	{
-		// The result of splitting an empty string is 2 empty strings
-		return;
-	}
+		uint8_t *sep = (uint8_t *) memchr((char *) pos, '/', path.second - (pos - path.first));
 
-	// Skip any trailing /, not needed
-	if (path.first[path.second-1] == '/')
-	{
-		length--;
-	}
-
-	uint32_t start = 0;
-
-	// Also skip any leading '/', not needed.
-	if(path.first[0] == '/')
-	{
-		start++;
-	}
-
-	uint8_t* pos = path.first + start;
-	uint32_t counter = 0;
-	while(counter < path.second)
-	{
-		if (*pos == 0x2F) // '/'
+		if (sep)
 		{
-			break;
+			if (sep-pos > 0)
+			{
+				components.emplace_back(pos, sep-pos);
+			}
+			pos = sep + 1;
 		}
-		++pos;
-		if(++counter >= path.second)
+		else
 		{
-			pos = NULL;
-			break;
+			components.emplace_back(pos, path.second - (pos - path.first));
+			pos = path.first + path.second + 1;
 		}
-	}
-
-	if(pos == NULL || pos >= (path.first + length))
-	{
-		dirent.first = path.first + start;
-		dirent.second = length-start;
-	}
-	else
-	{
-		dirent.first = path.first + start;
-		dirent.second = (uint8_t *) pos-dirent.first;
-
-		remainder.first = (uint8_t *) pos;
-		remainder.second = length-dirent.second-start;
 	}
 }
 
@@ -167,38 +153,56 @@ void path_prefix_map<Value>::add_search_path(const char *path, Value &v)
 template<class Value>
 void path_prefix_map<Value>::add_search_path(const filter_value_t &path, Value &v)
 {
-	filter_value_t dirent, remainder;
+	filter_components_t components;
+
+	split_path(path, components);
+
+	return add_search_path_components(components, v);
+}
+
+template<class Value>
+void path_prefix_map<Value>::add_search_path_components(const filter_components_t &components, Value &v)
+{
+	add_search_path_components(components, components.begin(), v);
+}
+
+template<class Value>
+void path_prefix_map<Value>::add_search_path_components(const filter_components_t &components,
+							filter_components_t::const_iterator comp,
+							Value &v)
+{
 	path_prefix_map *subtree = NULL;
-	path_prefix_map<Value>::split_path(path, dirent, remainder);
-	auto it = m_dirs.find(dirent);
+	auto it = m_dirs.find(*comp);
+	auto cur = comp;
+	comp++;
 
 	if(it == m_dirs.end())
 	{
 		// This path component doesn't match any existing
 		// dirent. We need to add one and its subtree.
-		if(remainder.second > 0)
+		if(comp != components.end())
 		{
 			subtree = new path_prefix_map();
-			subtree->add_search_path(remainder, v);
+			subtree->add_search_path_components(components, comp, v);
 		}
 
 		// If the path doesn't have anything remaining, we
 		// also add the value here.
-		m_dirs[dirent] = std::pair<path_prefix_map*,Value *>(subtree, (remainder.second == 0 ? new Value(v) : NULL));
+		m_dirs[*cur] = std::pair<path_prefix_map*,Value *>(subtree, (comp == components.end() ? new Value(v) : NULL));
 	}
 	else
 	{
 		// An entry for this dirent already exists. We will
 		// either add a new entry to the subtree, do nothing,
 		// or get rid of the existing subtree.
-		if(remainder.second == 0)
+		if(comp == components.end())
 		{
 			// This path is a prefix of the current path and we
 			// can drop the existing subtree. For example, we can
 			// drop /usr/lib when adding /usr.
 			delete(it->second.first);
-			m_dirs.erase(dirent);
-			m_dirs[dirent] = std::pair<path_prefix_map*,Value*>(NULL, new Value(v));
+			m_dirs.erase(*cur);
+			m_dirs[*cur] = std::pair<path_prefix_map*,Value*>(NULL, new Value(v));
 		}
 		else if(it->second.first == NULL)
 		{
@@ -211,7 +215,7 @@ void path_prefix_map<Value>::add_search_path(const filter_value_t &path, Value &
 		{
 			// We need to add the remainder to the
 			// sub-tree's search path.
-			it->second.first->add_search_path(remainder, v);
+			it->second.first->add_search_path_components(components, comp, v);
 		}
 	}
 }
@@ -227,9 +231,24 @@ Value *path_prefix_map<Value>::match(const char *path)
 template<class Value>
 Value *path_prefix_map<Value>::match(const filter_value_t &path)
 {
-	filter_value_t dirent, remainder;
-	path_prefix_map<Value>::split_path(path, dirent, remainder);
-	auto it = m_dirs.find(dirent);
+	filter_components_t components;
+
+	split_path(path, components);
+
+	return match_components(components);
+}
+
+template<class Value>
+Value *path_prefix_map<Value>::match_components(const filter_components_t &components)
+{
+	return match_components(components, components.begin());
+}
+
+template<class Value>
+Value *path_prefix_map<Value>::match_components(const filter_components_t &components, filter_components_t::const_iterator comp)
+{
+	auto it = m_dirs.find(*comp);
+	comp++;
 
 	if(it == m_dirs.end())
 	{
@@ -240,7 +259,7 @@ Value *path_prefix_map<Value>::match(const filter_value_t &path)
 		// If there is nothing left in the match path, the
 		// subtree must be null. This ensures that /var
 		// matches only /var and not /var/lib
-		if(remainder.second == 0)
+		if(comp == components.end())
 		{
 			if(it->second.first == NULL)
 			{
@@ -259,7 +278,7 @@ Value *path_prefix_map<Value>::match(const filter_value_t &path)
 		}
 		else
 		{
-			return it->second.first->match(remainder);
+			return it->second.first->match_components(components, comp);
 		}
 	}
 }
