@@ -33,15 +33,13 @@ if (CMAKE_SYSTEM_NAME MATCHES "SunOS")
 	target_link_libraries(scap
 		socket nsl)
 elseif (WIN32)
-	if(NOT CYGWIN)
-		target_link_libraries(scap
-			Ws2_32.lib)
-	else()
-		target_link_libraries(scap
-			/lib/w32api/libpsapi.a
-			${WIN_HAL_LIB}/dragent_win_hal.lib
-			)
-	endif()
+	target_link_libraries(scap
+		Ws2_32.lib)
+elseif (CYGWIN)
+	target_link_libraries(scap
+		/lib/w32api/libpsapi.a
+		${WIN_HAL_LIB}/dragent_win_hal.lib
+		)
 endif()
 
 target_link_libraries(scap
