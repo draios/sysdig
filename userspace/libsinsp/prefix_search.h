@@ -157,6 +157,12 @@ void path_prefix_map<Value>::add_search_path(const filter_value_t &path, Value &
 
 	split_path(path, components);
 
+	// Add an initial "root" to the set of components. That
+	// ensures that a top-level path of '/' still results in a
+	// non-empty components list. For all other paths, there will
+	// be a dummy 'root' prefix at the top of every path.
+	components.emplace_front((uint8_t *) "root", 4);
+
 	return add_search_path_components(components, v);
 }
 
@@ -234,6 +240,12 @@ Value *path_prefix_map<Value>::match(const filter_value_t &path)
 	filter_components_t components;
 
 	split_path(path, components);
+
+	// Add an initial "root" to the set of components. That
+	// ensures that a top-level path of '/' still results in a
+	// non-empty components list. For all other paths, there will
+	// be a dummy 'root' prefix at the top of every path.
+	components.emplace_front((uint8_t *) "root", 4);
 
 	return match_components(components);
 }
