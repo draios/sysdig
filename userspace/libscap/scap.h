@@ -235,6 +235,7 @@ typedef struct scap_threadinfo
 }scap_threadinfo;
 
 typedef void (*proc_entry_callback)(void* context,
+									scap_t* handle,
 									int64_t tid,
 									scap_threadinfo* tinfo,
 									scap_fdinfo* fdinfo,

@@ -26,6 +26,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp_int.h"
 #include "container.h"
 #include "utils.h"
+#ifdef CYGWING_AGENT
+#include "dragent_win_hal_public.h"
+#endif
 
 void sinsp_container_info::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_container_info::container_mount_info> &mounts)
 {
@@ -235,11 +238,24 @@ string sinsp_container_manager::get_mesos_task_id(const string& container_id)
 
 bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
-
 	ASSERT(tinfo);
 	bool valid_id = false;
 	sinsp_container_info container_info;
 
+#ifdef CYGWING_AGENT
+	wh_docker_container_info wcinfo = wh_docker_resolve_pid(m_inspector->get_wmi_handle(), tinfo->m_pid);
+	if(wcinfo.m_res == false)
+	{
+		tinfo->m_container_id = "";
+	}
+	else
+	{
+		container_info.m_type = CT_DOCKER;
+		container_info.m_id = wcinfo.m_container_id;
+		container_info.m_name = wcinfo.m_container_name;	
+		valid_id = true;
+	}
+#else
 	string rkt_podid, rkt_appname;
 	// Start with cgroup based detection
 	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
@@ -497,6 +513,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			}
 		}
 	}
+#endif // CYGWING_AGENT
 
 	if(!valid_id) {
 		tinfo->m_container_id = "";
@@ -518,6 +535,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 					}
 #endif
 					break;
+#ifndef CYGWING_AGENT
 				case CT_LXC:
 					container_info.m_name = container_info.m_id;
 					break;
@@ -535,6 +553,8 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 					}
 #endif
 					break;
+#endif // CYGWING_AGENT
+
 				default:
 					ASSERT(false);
 			}
@@ -626,6 +646,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 #ifndef _WIN32
 bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 {
+#ifndef CYGWING_AGENT
 	string file = string(scap_get_host_root()) + "/var/run/docker.sock";
 
 	int sock = socket(PF_UNIX, SOCK_STREAM, 0);
@@ -672,6 +693,21 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	}
 
 	close(sock);
+#else // CYGWING_AGENT
+	const char* response;
+	string message = "GET /v1.30/containers/" + container->m_id + "/json HTTP/1.1\r\nHost: docker \r\n\r\n";
+	bool qdres = wh_query_docker(m_inspector->get_wmi_handle(), 
+		(char*)message.c_str(), 
+		&response);
+	if(qdres == false)
+	{
+		ASSERT(false);
+		return false;		
+	}
+
+	string json(response);
+
+#endif // CYGWING_AGENT
 
 	size_t pos = json.find("{");
 	if(pos == string::npos)
@@ -701,7 +737,7 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	}
 
 	container->m_name = root["Name"].asString();
-
+	
 	if(!container->m_name.empty() && container->m_name[0] == '/')
 	{
 		container->m_name = container->m_name.substr(1);

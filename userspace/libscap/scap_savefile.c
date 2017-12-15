@@ -1474,7 +1474,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		}
 		else
 		{
-			handle->m_proc_callback(handle->m_proc_callback_context, tinfo.tid, &tinfo, NULL, handle);
+			handle->m_proc_callback(handle->m_proc_callback_context, handle, tinfo.tid, &tinfo, NULL, handle);
 		}
 	}
 
@@ -2112,7 +2112,7 @@ static int32_t scap_read_fdlist(scap_t *handle, gzFile f, uint32_t block_length)
 		{
 			ASSERT(tinfo == NULL);
 
-			handle->m_proc_callback(handle->m_proc_callback_context, tid, NULL, &fdi, handle);
+			handle->m_proc_callback(handle->m_proc_callback_context, handle, tid, NULL, &fdi, handle);
 		}
 	}
 

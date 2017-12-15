@@ -50,7 +50,7 @@ extern sinsp_evttables g_infotables;
 extern vector<chiseldir_info>* g_chisel_dirs;
 #endif
 
-void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo,
+void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_threadinfo* tinfo,
 							scap_fdinfo* fdinfo, scap_t* newhandle);
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -751,12 +751,15 @@ void sinsp::autodump_stop()
 }
 
 void sinsp::on_new_entry_from_proc(void* context,
+								   scap_t* handle,
 								   int64_t tid,
 								   scap_threadinfo* tinfo,
 								   scap_fdinfo* fdinfo,
 								   scap_t* newhandle)
 {
 	ASSERT(tinfo != NULL);
+
+	m_h = handle;
 
 	//
 	// Retrieve machine information if we don't have it yet
@@ -819,13 +822,14 @@ void sinsp::on_new_entry_from_proc(void* context,
 }
 
 void on_new_entry_from_proc(void* context,
+							scap_t* handle,
 							int64_t tid,
 							scap_threadinfo* tinfo,
 							scap_fdinfo* fdinfo,
 							scap_t* newhandle)
 {
 	sinsp* _this = (sinsp*)context;
-	_this->on_new_entry_from_proc(context, tid, tinfo, fdinfo, newhandle);
+	_this->on_new_entry_from_proc(context, handle, tid, tinfo, fdinfo, newhandle);
 }
 
 void sinsp::import_thread_table()

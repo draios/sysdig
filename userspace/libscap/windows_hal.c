@@ -59,7 +59,7 @@ int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, struct scap_threadi
 	}
 	else
 	{
-		handle->m_proc_callback(handle->m_proc_callback_context, tinfo->tid, tinfo, NULL, handle);
+		handle->m_proc_callback(handle->m_proc_callback_context, handle, tinfo->tid, tinfo, NULL, handle);
 		free(tinfo);
 	}
 
@@ -72,6 +72,9 @@ int32_t scap_proc_scan_proc_dir_windows(scap_t* handle, struct scap_threadinfo**
 {
 	wh_proclist wgpres;
 
+	//
+	// Get the system processes through WMI and add them to the list
+	//
 	wgpres = wh_wmi_get_procs(handle->m_whh);
 	if(wgpres.m_result == 0)
 	{
@@ -86,6 +89,18 @@ int32_t scap_proc_scan_proc_dir_windows(scap_t* handle, struct scap_threadinfo**
 		if(addprocess_windows(wpi, handle, procinfo, error) != SCAP_SUCCESS)
 		{
 			return SCAP_FAILURE;
+		}
+	}
+
+	//
+	// While we're here, refresh the docker state
+	//
+	if(wh_is_docker_present(handle->m_whh))
+	{
+		if(wh_docker_refresh(handle->m_whh) == 0)
+		{
+			snprintf(error, SCAP_LASTERR_SIZE, "%s", wh_getlasterror(handle->m_whh));
+			return SCAP_FAILURE;				
 		}
 	}
 
