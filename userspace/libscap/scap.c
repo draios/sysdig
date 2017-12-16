@@ -1531,6 +1531,8 @@ int32_t scap_enable_simpledriver_mode(scap_t* handle)
 
 int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 {
+	int ioctl_ret = 0;
+
 	//
 	// Not supported on files
 	//
@@ -1545,9 +1547,17 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 	return SCAP_FAILURE;
 #else
 
-	if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_N_TRACEPOINT_HIT, ret))
+	ioctl_ret = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_N_TRACEPOINT_HIT, ret);
+	if(ioctl_ret != 0)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_get_n_tracepoint_hit failed");
+		if (errno == ENOTTY)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_get_n_tracepoint_hit failed, ioctl not supported");
+		}
+		else
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_get_n_tracepoint_hit failed (%s)", strerror(errno));
+		}
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
