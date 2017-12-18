@@ -4,11 +4,13 @@
 # Date: August 17th, 2015
 
 import bz2
+import zlib
 import sqlite3
 import sys
 import urllib2
 import tempfile
 from lxml import html
+
 
 #
 # This is the main configuration tree for easily analyze Linux repositories
@@ -191,6 +193,30 @@ repos = {
             "subdirs": [""],
             "page_pattern": "",
             "exclude_patterns": ["doc","tools","headers"]
+        },
+        {
+            "root": "http://repo.us-east-1.amazonaws.com/2017.03/updates/mirror.list",
+            "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
+            "subdirs": [""],
+            "page_pattern": "",
+            "exclude_patterns": ["doc","tools","headers"]
+        },
+        {
+            "root": "http://repo.us-east-1.amazonaws.com/2017.03/main/mirror.list",
+            "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
+            "subdirs": [""],
+            "page_pattern": "",
+            "exclude_patterns": ["doc","tools","headers"]
+        }
+    ],
+
+    "AmazonLinux2": [
+        {
+            "root": "http://amazonlinux.us-east-1.amazonaws.com/2017.12/core/latest/x86_64/mirror.list",
+            "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
+            "subdirs": [""],
+            "page_pattern": "",
+            "exclude_patterns": ["doc","tools","headers"]
         }
     ]
 }
@@ -201,6 +227,40 @@ def exclude_patterns(repo, packages, base_url, urls):
             continue
         else:
             urls.add(base_url + str(urllib2.unquote(rpm)))
+
+def process_al_distro(al_distro_name, current_repo):
+    try:
+        # Look for the first mirror that works
+        for line in urllib2.urlopen(current_repo["root"]).readlines():
+            if al_distro_name == "AmazonLinux":
+                base_mirror_url = line.replace('$basearch','x86_64').replace('\n','') + '/'
+                db_path = "repodata/primary.sqlite.bz2"
+            elif al_distro_name == "AmazonLinux2":
+                base_mirror_url = line.replace('\n','') + '/'
+                db_path = "repodata/primary.sqlite.gz"
+            try:
+                response = urllib2.urlopen(base_mirror_url + db_path)
+            except:
+                continue
+
+            break
+    except:
+        pass
+
+    if al_distro_name == "AmazonLinux":
+        decompressed_data = bz2.decompress(response.read())
+    elif al_distro_name == "AmazonLinux2":
+        decompressed_data = zlib.decompress(response.read(), 16+zlib.MAX_WBITS)
+
+    db_file = tempfile.NamedTemporaryFile()
+    db_file.write(decompressed_data)
+    conn = sqlite3.connect(db_file.name)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    rpms = [r["location_href"] for r in c.execute(repo["discovery_pattern"])]
+    exclude_patterns(repo, rpms, base_mirror_url, urls)
+    conn.close()
+    db_file.close()
 
 #
 # In our design you are not supposed to modify the code. The whole script is
@@ -222,30 +282,11 @@ distro = sys.argv[1]
 # patterns given. Save the result in `packages`.
 #
 for repo in repos[distro]:
-    if distro == 'AmazonLinux':
+    if distro in ['AmazonLinux','AmazonLinux2']:
         try:
-            # Look for the first mirror that works
-            for line in urllib2.urlopen(repo["root"]).readlines():
-                base_mirror_url = line.replace('$basearch','x86_64').replace('\n','') + '/'
-                try:
-                    response = urllib2.urlopen(base_mirror_url + 'repodata/primary.sqlite.bz2')
-                except:
-                    continue
-
-                break
+            process_al_distro(distro, repo)
         except:
             continue
-
-        decompressed_data = bz2.decompress(response.read())
-        db_file = tempfile.NamedTemporaryFile()
-        db_file.write(decompressed_data)
-        conn = sqlite3.connect(db_file.name)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        rpms = [r["location_href"] for r in c.execute(repo["discovery_pattern"])]
-        exclude_patterns(repo, rpms, base_mirror_url, urls)
-        conn.close()
-        db_file.close()
     else:
         try:
             root = urllib2.urlopen(repo["root"],timeout=URL_TIMEOUT).read()

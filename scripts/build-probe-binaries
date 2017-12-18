@@ -585,6 +585,18 @@ if [ -z "$KERNEL_TYPE" ]; then
 	done
 
 	#
+	# AmazonLinux2 build
+	#
+	echo Building AmazonLinux2
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py AmazonLinux2)"
+
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
+
+	#
 	# Upload modules
 	#
 	#if [ $PROBE_NAME = "falco-probe" ]; then
