@@ -93,7 +93,7 @@ int32_t scap_proc_scan_proc_dir_windows(scap_t* handle, struct scap_threadinfo**
 	}
 
 	//
-	// While we're here, refresh the docker state
+	// While we're here, refresh the docker state and the process performance table
 	//
 	if(wh_is_docker_present(handle->m_whh))
 	{
@@ -102,6 +102,12 @@ int32_t scap_proc_scan_proc_dir_windows(scap_t* handle, struct scap_threadinfo**
 			snprintf(error, SCAP_LASTERR_SIZE, "%s", wh_getlasterror(handle->m_whh));
 			return SCAP_FAILURE;				
 		}
+	}
+
+	if(wh_wmi_update_procs_perf(handle->m_whh) == 0)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "%s", wh_getlasterror(handle->m_whh));
+		return SCAP_FAILURE;
 	}
 
 	return SCAP_SUCCESS;
