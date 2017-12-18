@@ -191,6 +191,20 @@ repos = {
             "subdirs": [""],
             "page_pattern": "",
             "exclude_patterns": ["doc","tools","headers"]
+        },
+        {
+            "root": "http://repo.us-east-1.amazonaws.com/_placeholder_/updates/mirror.list",
+            "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
+            "subdirs": [""],
+            "page_pattern": "",
+            "exclude_patterns": ["doc","tools","headers"]
+        },
+        {
+            "root": "http://repo.us-east-1.amazonaws.com/_placeholder_/main/mirror.list",
+            "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
+            "subdirs": [""],
+            "page_pattern": "",
+            "exclude_patterns": ["doc","tools","headers"]
         }
     ]
 }
@@ -221,12 +235,27 @@ distro = sys.argv[1]
 # Navigate the `repos` tree and look for packages we need that match the
 # patterns given. Save the result in `packages`.
 #
-for repo in repos[distro]:
+for index, repo in enumerate(repos[distro]):
     if distro == 'AmazonLinux':
         try:
+            if "_placeholder_" in repo["root"]:
+                repo["root"] = repo["root"].replace("_placeholder_", releasever)
             # Look for the first mirror that works
             for line in urllib2.urlopen(repo["root"]).readlines():
                 base_mirror_url = line.replace('$basearch','x86_64').replace('\n','') + '/'
+
+                # Building previous releasever on first loop only
+                if index == 0:
+                    # This is all to handle the non-latest release version consistently
+                    repo_date = line.split('/')[3].split('.')
+                    # Check month of release
+                    if repo_date[1] == "03":
+                        previous_year = str(int(repo_date[0]) - 1)
+                        prior_release = [previous_year, "09"]
+                        releasever = ".".join(prior_release)
+                    else:
+                        prior_release = [repo_date[0], "03"]
+                        releasever = ".".join(prior_release)
                 try:
                     response = urllib2.urlopen(base_mirror_url + 'repodata/primary.sqlite.bz2')
                 except:
