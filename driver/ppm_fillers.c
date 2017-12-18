@@ -392,6 +392,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_PAGE_FAULT_E] = {f_sys_pagefault_e},
 	[PPME_PAGE_FAULT_X] = {f_sys_empty},
 #endif
+	[PPME_SYSCALL_MKDIRAT_E] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_USEDEFAULT, 0} } },
+	[PPME_SYSCALL_MKDIRAT_X] = {PPM_AUTOFILL, 3, APT_REG, {{AF_ID_RETVAL}, {0}, {1} } },
 };
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
@@ -546,7 +548,7 @@ static inline u32 open_modes_to_scap(unsigned long modes)
 		res |= PPM_S_IXUSR;
 
 	/*
-	* PPM_S_IRWXU == S_IRUSR | S_IWUSR | S_IXUSR 
+	* PPM_S_IRWXU == S_IRUSR | S_IWUSR | S_IXUSR
 	*/
 
 	if (modes & S_IRGRP)
@@ -559,7 +561,7 @@ static inline u32 open_modes_to_scap(unsigned long modes)
 		res |= PPM_S_IXGRP;
 
 	/*
-	* PPM_S_IRWXG == S_IRGRP | S_IWGRP | S_IXGRP 
+	* PPM_S_IRWXG == S_IRGRP | S_IWGRP | S_IXGRP
 	*/
 
 	if (modes & S_IROTH)
@@ -570,11 +572,11 @@ static inline u32 open_modes_to_scap(unsigned long modes)
 
 	if (modes & S_IXOTH)
 		res |= PPM_S_IXOTH;
-	
+
 	/*
 	* PPM_S_IRWXO == S_IROTH | S_IWOTH | S_IXOTH
 	*/
-	
+
 	if (modes & S_ISUID)
 		res |= PPM_S_ISUID;
 
@@ -3964,7 +3966,7 @@ static int f_sched_drop(struct event_filler_arguments *args)
 	int res;
 
 	/*
-	 * next
+	 * ratio
 	 */
 	res = val_to_ring(args, args->consumer->sampling_ratio, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
