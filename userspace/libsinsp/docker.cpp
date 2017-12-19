@@ -33,6 +33,7 @@ docker::docker(std::string url,
 		{
 			// container
 			{ "attach",      sinsp_logger::SEV_EVT_INFORMATION },
+			{ "archive-path", sinsp_logger::SEV_EVT_INFORMATION },
 			{ "commit",      sinsp_logger::SEV_EVT_INFORMATION },
 			{ "copy",        sinsp_logger::SEV_EVT_INFORMATION },
 			{ "create",      sinsp_logger::SEV_EVT_INFORMATION },
