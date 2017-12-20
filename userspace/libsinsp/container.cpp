@@ -651,6 +651,7 @@ sinsp_docker_response sinsp_container_manager::get_docker(const string& api_vers
 	string message = "GET " + api_version + "/containers/" + container_id + "/json HTTP/1.0\r\n\n";
 	if(write(sock, message.c_str(), message.length()) != (ssize_t) message.length())
 	{
+		close(sock);
 		return sinsp_docker_response::RESP_ERROR;
 	}
 
