@@ -97,7 +97,7 @@ fi
 echo "* Detecting operating system"
 
 ARCH=$(uname -m)
-if [[ ! $ARCH = *86 ]] && [ ! $ARCH = "x86_64" ]; then
+if [[ ! $ARCH = *86 ]] && [ ! $ARCH = "x86_64" ] [[ ! $ARCH = "s390x" ]]; then
 	unsupported
 fi
 
