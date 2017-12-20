@@ -629,7 +629,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 }
 
 #ifndef _WIN32
-bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
+sinsp_docker_response sinsp_container_manager::get_docker(const string& api_version, const string& container_id, string& json)
 {
 	string file = string(scap_get_host_root()) + "/var/run/docker.sock";
 
@@ -637,7 +637,7 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	if(sock < 0)
 	{
 		ASSERT(false);
-		return false;
+		return sinsp_docker_response::RESP_ERROR;
 	}
 
 	struct sockaddr_un address;
@@ -649,27 +649,26 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 
 	if(connect(sock, (struct sockaddr *) &address, sizeof(struct sockaddr_un)) != 0)
 	{
-		return false;
+		close(sock);
+		return sinsp_docker_response::RESP_ERROR;
 	}
 
-	string message = "GET /containers/" + container->m_id + "/json HTTP/1.0\r\n\n";
+	string message = "GET " + api_version + "/containers/" + container_id + "/json HTTP/1.0\r\n\n";
 	if(write(sock, message.c_str(), message.length()) != (ssize_t) message.length())
 	{
-		ASSERT(false);
 		close(sock);
-		return false;
+		return sinsp_docker_response::RESP_ERROR;
 	}
 
 	char buf[256];
-	string json;
 	ssize_t res;
+	json.clear();
 	while((res = read(sock, buf, sizeof(buf) - 1)) != 0)
 	{
 		if(res == -1 || json.size() > MAX_JSON_SIZE_B)
 		{
-			ASSERT(false);
 			close(sock);
-			return false;
+			return sinsp_docker_response::RESP_ERROR;
 		}
 
 		buf[res] = 0;
@@ -677,6 +676,34 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	}
 
 	close(sock);
+	if(strncmp(json.c_str(), "HTTP/1.0 200 OK", sizeof("HTTP/1.0 200 OK") -1))
+	{
+		return sinsp_docker_response::RESP_BAD_REQUEST;
+	}
+
+	return sinsp_docker_response::RESP_OK;
+}
+
+bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
+{
+	string json;
+        sinsp_docker_response resp = get_docker("/v1.24", container->m_id, json);
+	switch(resp) {
+		case sinsp_docker_response::RESP_BAD_REQUEST:
+			resp = get_docker("", container->m_id, json);
+			if (resp == sinsp_docker_response::RESP_OK)
+			{
+				break;
+			}
+			/* FALLTHRU */
+
+		case sinsp_docker_response::RESP_ERROR:
+			ASSERT(false);
+			return false;
+
+		case sinsp_docker_response::RESP_OK:
+			break;
+	}
 
 	size_t pos = json.find("{");
 	if(pos == string::npos)

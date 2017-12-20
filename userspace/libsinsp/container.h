@@ -27,6 +27,13 @@ enum sinsp_container_type
 	CT_RKT = 4
 };
 
+enum sinsp_docker_response
+{
+	RESP_OK = 0,
+	RESP_BAD_REQUEST = 1,
+	RESP_ERROR = 2
+};
+
 class sinsp_container_info
 {
 public:
@@ -153,6 +160,7 @@ public:
 private:
 	string container_to_json(const sinsp_container_info& container_info);
 	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);
+	sinsp_docker_response get_docker(const string& api_version, const string& container_id, string& json);
 	bool parse_docker(sinsp_container_info* container);
 	string get_docker_env(const Json::Value &env_vars, const string &mti);
 	bool parse_rkt(sinsp_container_info* container, const string& podid, const string& appname);
