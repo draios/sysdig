@@ -27,6 +27,7 @@ RUN echo "deb http://httpredir.debian.org/debian jessie main" > /etc/apt/sources
 	libelf1 \
 	less \
 	procps \
+	liblua5.1-dev \
  && rm -rf /var/lib/apt/lists/*
 
 # Since our base Debian image ships with GCC 5.0 which breaks older kernels, revert the
