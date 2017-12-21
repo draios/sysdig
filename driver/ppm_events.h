@@ -61,8 +61,8 @@ struct event_filler_arguments {
 	 * stack since all this stuff is always exclusive
 	 */
 	struct pt_regs *regs; /* the registers containing the call arguments */
-	struct task_struct *sched_prev; /* for context switch events, the task that is being schduled out */
-	struct task_struct *sched_next; /* for context switch events, the task that is being schduled in */
+	struct task_struct *sched_prev; /* for context switch events, the task that is being scheduled out */
+	struct task_struct *sched_next; /* for context switch events, the task that is being scheduled in */
 	char *str_storage; /* String storage. Size is one page. */
 	unsigned long socketcall_args[6];
 	bool is_socketcall;

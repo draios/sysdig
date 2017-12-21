@@ -191,6 +191,7 @@ function coreos_build_new {
 	sudo mkdir /tmp/loop || true
 	sudo mount /dev/mapper/$LOOPDEV /tmp/loop
 
+	rm config* || true
 	cp /tmp/loop/usr/boot/config-* .
 	cp config-* config_orig
 	cp config_orig config
@@ -573,9 +574,23 @@ if [ -z "$KERNEL_TYPE" ]; then
 	docker run -i --rm --name ol7-build -v $BASEDIR:/build/probe ol7-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL7-UEK
 
 	#
+	# AmazonLinux build
+	#
+	echo Building AmazonLinux
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py AmazonLinux)"
+
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
+
+	#
 	# Upload modules
 	#
-	aws s3 sync ./output/ s3://download.draios.com/$REPOSITORY_NAME/sysdig-probe-binaries/ --acl public-read
+	#if [ $PROBE_NAME = "falco-probe" ]; then
+	#	aws s3 sync ./output/ s3://download.draios.com/$REPOSITORY_NAME/sysdig-probe-binaries/ --acl public-read
+	#fi
 
 	echo "Success."
 

@@ -703,7 +703,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 			if(evt->m_fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_CLOSE_CANCELED)
 			{
 				//
-				// A close gets canceled when the same fd is created succesfully between
+				// A close gets canceled when the same fd is created successfully between
 				// close enter and close exit.
 				// If that happens
 				//
@@ -735,7 +735,7 @@ void sinsp_parser::store_event(sinsp_evt *evt)
 	{
 		//
 		// No thread in the table. We won't store this event, which mean that
-		// we won't be able to parse the correspoding exit event and we'll have
+		// we won't be able to parse the corresponding exit event and we'll have
 		// to drop the information it carries.
 		//
 #ifdef GATHER_INTERNAL_STATS
@@ -1427,7 +1427,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	}
 
 	//
-	// Initilaize the thread clone time
+	// Initialize the thread clone time
 	//
 	tinfo.m_clone_ts = evt->get_ts();
 
@@ -1765,9 +1765,9 @@ void sinsp_parser::parse_openat_dir(sinsp_evt *evt, char* name, int64_t dirfd, O
 	if(is_absolute)
 	{
 		//
-		// The path is absoulte.
+		// The path is absolute.
 		// Some processes (e.g. irqbalance) actually do this: they pass an invalid fd and
-		// and bsolute path, and openat succeeds.
+		// and absolute path, and openat succeeds.
 		//
 		*sdir = ".";
 	}
@@ -2153,7 +2153,7 @@ void sinsp_parser::parse_socket_exit(sinsp_evt *evt)
 
 	//
 	// NOTE: we don't check the return value of get_param() because we know the arguments we need are there.
-	// XXX this extraction would be much faster if we parsed the event mnaually to extract the
+	// XXX this extraction would be much faster if we parsed the event manually to extract the
 	// parameters in one scan. We don't care too much because we assume that we get here
 	// seldom enough that saving few tens of CPU cycles is not important.
 	//
@@ -2556,9 +2556,9 @@ void sinsp_parser::parse_close_enter(sinsp_evt *evt)
 }
 
 //
-// This function takes care of cleanung up the FD and removing it from all the tables
+// This function takes care of cleaning up the FD and removing it from all the tables
 // (process FD table, connection table...).
-// It's invoked when a close() or a threadexit happens.
+// It's invoked when a close() or a thread exit happens.
 //
 void sinsp_parser::erase_fd(erase_fd_params* params)
 {
@@ -2615,7 +2615,7 @@ void sinsp_parser::parse_close_exit(sinsp_evt *evt)
 		}
 
 		//
-		// a close gets canceled when the same fd is created succesfully between
+		// a close gets canceled when the same fd is created successfully between
 		// close enter and close exit.
 		//
 		erase_fd_params eparams;
@@ -3543,7 +3543,7 @@ void sinsp_parser::parse_getcwd_exit(sinsp_evt *evt)
 		{
 			//
 			// No thread in the table. We won't store this event, which mean that
-			// we won't be able to parse the correspoding exit event and we'll have
+			// we won't be able to parse the corresponding exit event and we'll have
 			// to drop the information it carries.
 			//
 			ASSERT(false);

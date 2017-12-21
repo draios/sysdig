@@ -663,7 +663,7 @@ int lua_cbacks::get_machine_info(lua_State *ls)
 	return 1;
 }
 
-int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds)
+int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool barebone)
 {
 	threadinfo_map_iterator_t it;
 	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
@@ -772,109 +772,112 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds)
 		lua_pushliteral(ls, "pid");
 		lua_pushnumber(ls, (uint32_t)it->second.m_pid);
 		lua_settable(ls, -3);
-		lua_pushliteral(ls, "ptid");
-		lua_pushnumber(ls, (uint32_t)it->second.m_ptid);
-		lua_settable(ls, -3);
-		lua_pushliteral(ls, "comm");
-		lua_pushstring(ls, it->second.m_comm.c_str());
-		lua_settable(ls, -3);
-		lua_pushliteral(ls, "exe");
-		lua_pushstring(ls, it->second.m_exe.c_str());
-		lua_settable(ls, -3);
-		lua_pushliteral(ls, "flags");
-		lua_pushnumber(ls, (uint32_t)it->second.m_flags);
-		lua_settable(ls, -3);
-		lua_pushliteral(ls, "fdlimit");
-		lua_pushnumber(ls, (uint32_t)it->second.m_fdlimit);
-		lua_settable(ls, -3);
-		lua_pushliteral(ls, "uid");
-		lua_pushnumber(ls, (uint32_t)it->second.m_uid);
-		lua_settable(ls, -3);
-		lua_pushliteral(ls, "gid");
-		lua_pushnumber(ls, (uint32_t)it->second.m_gid);
-		lua_settable(ls, -3);
-		lua_pushliteral(ls, "nchilds");
-		lua_pushnumber(ls, (uint32_t)it->second.m_nchilds);
-		lua_settable(ls, -3);
-		lua_pushliteral(ls, "vmsize_kb");
-		lua_pushnumber(ls, (uint32_t)it->second.m_vmsize_kb);
-		lua_settable(ls, -3);
-		lua_pushliteral(ls, "vmrss_kb");
-		lua_pushnumber(ls, (uint32_t)it->second.m_vmrss_kb);
-		lua_settable(ls, -3);
-		lua_pushliteral(ls, "vmswap_kb");
-		lua_pushnumber(ls, (uint32_t)it->second.m_vmswap_kb);
-		lua_settable(ls, -3);
-		lua_pushliteral(ls, "pfmajor");
-		lua_pushnumber(ls, (uint32_t)it->second.m_pfmajor);
-		lua_settable(ls, -3);
-		lua_pushliteral(ls, "pfminor");
-		lua_pushnumber(ls, (uint32_t)it->second.m_pfminor);
-		lua_settable(ls, -3);
-		lua_pushliteral(ls, "clone_ts");
-		lua_pushstring(ls, to_string((long long int)it->second.m_clone_ts).c_str());
-		lua_settable(ls, -3);
-
-		//
-		// Extract the user name
-		//
-		string username;
-		unordered_map<uint32_t, scap_userinfo*>::const_iterator uit;
-
-		const unordered_map<uint32_t, scap_userinfo*>* userlist = ch->m_inspector->get_userlist();
-		ASSERT(userlist->size() != 0);
-
-		if(it->second.m_uid == 0xffffffff)
+		if(!barebone)
 		{
-			username = "<NA>";
-		}
-		else
-		{
-			uit = userlist->find(it->second.m_uid);
-			if(uit == userlist->end())
+			lua_pushliteral(ls, "ptid");
+			lua_pushnumber(ls, (uint32_t)it->second.m_ptid);
+			lua_settable(ls, -3);
+			lua_pushliteral(ls, "comm");
+			lua_pushstring(ls, it->second.m_comm.c_str());
+			lua_settable(ls, -3);
+			lua_pushliteral(ls, "exe");
+			lua_pushstring(ls, it->second.m_exe.c_str());
+			lua_settable(ls, -3);
+			lua_pushliteral(ls, "flags");
+			lua_pushnumber(ls, (uint32_t)it->second.m_flags);
+			lua_settable(ls, -3);
+			lua_pushliteral(ls, "fdlimit");
+			lua_pushnumber(ls, (uint32_t)it->second.m_fdlimit);
+			lua_settable(ls, -3);
+			lua_pushliteral(ls, "uid");
+			lua_pushnumber(ls, (uint32_t)it->second.m_uid);
+			lua_settable(ls, -3);
+			lua_pushliteral(ls, "gid");
+			lua_pushnumber(ls, (uint32_t)it->second.m_gid);
+			lua_settable(ls, -3);
+			lua_pushliteral(ls, "nchilds");
+			lua_pushnumber(ls, (uint32_t)it->second.m_nchilds);
+			lua_settable(ls, -3);
+			lua_pushliteral(ls, "vmsize_kb");
+			lua_pushnumber(ls, (uint32_t)it->second.m_vmsize_kb);
+			lua_settable(ls, -3);
+			lua_pushliteral(ls, "vmrss_kb");
+			lua_pushnumber(ls, (uint32_t)it->second.m_vmrss_kb);
+			lua_settable(ls, -3);
+			lua_pushliteral(ls, "vmswap_kb");
+			lua_pushnumber(ls, (uint32_t)it->second.m_vmswap_kb);
+			lua_settable(ls, -3);
+			lua_pushliteral(ls, "pfmajor");
+			lua_pushnumber(ls, (uint32_t)it->second.m_pfmajor);
+			lua_settable(ls, -3);
+			lua_pushliteral(ls, "pfminor");
+			lua_pushnumber(ls, (uint32_t)it->second.m_pfminor);
+			lua_settable(ls, -3);
+			lua_pushliteral(ls, "clone_ts");
+			lua_pushstring(ls, to_string((long long int)it->second.m_clone_ts).c_str());
+			lua_settable(ls, -3);
+
+			//
+			// Extract the user name
+			//
+			string username;
+			unordered_map<uint32_t, scap_userinfo*>::const_iterator uit;
+
+			const unordered_map<uint32_t, scap_userinfo*>* userlist = ch->m_inspector->get_userlist();
+			ASSERT(userlist->size() != 0);
+
+			if(it->second.m_uid == 0xffffffff)
 			{
 				username = "<NA>";
 			}
 			else
 			{
-				ASSERT(uit->second != NULL);
-				username = uit->second->name;
+				uit = userlist->find(it->second.m_uid);
+				if(uit == userlist->end())
+				{
+					username = "<NA>";
+				}
+				else
+				{
+					ASSERT(uit->second != NULL);
+					username = uit->second->name;
+				}
 			}
-		}
 
-		lua_pushliteral(ls, "username");
-		lua_pushstring(ls, username.c_str());
-		lua_settable(ls, -3);
-
-		//
-		// Create the arguments sub-table
-		//
-		lua_pushstring(ls, "args");
-
-		vector<string>* args = &(it->second.m_args);
-		lua_newtable(ls);
-		for(j = 0; j < args->size(); j++)
-		{
-			lua_pushinteger(ls, j + 1);
-			lua_pushstring(ls, args->at(j).c_str());
+			lua_pushliteral(ls, "username");
+			lua_pushstring(ls, username.c_str());
 			lua_settable(ls, -3);
-		}
-		lua_settable(ls,-3);
 
-		//
-		// Create the environment variables sub-table
-		//
-		lua_pushstring(ls, "env");
+			//
+			// Create the arguments sub-table
+			//
+			lua_pushstring(ls, "args");
 
-		const auto& env = it->second.get_env();
-		lua_newtable(ls);
-		for(j = 0; j < env.size(); j++)
-		{
-			lua_pushinteger(ls, j + 1);
-			lua_pushstring(ls, env.at(j).c_str());
-			lua_settable(ls, -3);
+			vector<string>* args = &(it->second.m_args);
+			lua_newtable(ls);
+			for(j = 0; j < args->size(); j++)
+			{
+				lua_pushinteger(ls, j + 1);
+				lua_pushstring(ls, args->at(j).c_str());
+				lua_settable(ls, -3);
+			}
+			lua_settable(ls,-3);
+
+			//
+			// Create the environment variables sub-table
+			//
+			lua_pushstring(ls, "env");
+
+			const auto& env = it->second.get_env();
+			lua_newtable(ls);
+			for(j = 0; j < env.size(); j++)
+			{
+				lua_pushinteger(ls, j + 1);
+				lua_pushstring(ls, env.at(j).c_str());
+				lua_settable(ls, -3);
+			}
+			lua_settable(ls,-3);
 		}
-		lua_settable(ls,-3);
 
 		//
 		// Create and populate the FD table
@@ -903,12 +906,15 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds)
 				tevt.m_tinfo->m_lastevent_fd = tlefd;
 
 				lua_newtable(ls);
-				lua_pushliteral(ls, "name");
-				lua_pushstring(ls, fdit->second.tostring_clean().c_str());
-				lua_settable(ls, -3);
-				lua_pushliteral(ls, "type");
-				lua_pushstring(ls, fdit->second.get_typestring());
-				lua_settable(ls, -3);
+				if(!barebone)
+				{
+					lua_pushliteral(ls, "name");
+					lua_pushstring(ls, fdit->second.tostring_clean().c_str());
+					lua_settable(ls, -3);
+					lua_pushliteral(ls, "type");
+					lua_pushstring(ls, fdit->second.get_typestring());
+					lua_settable(ls, -3);
+				}
 
 				scap_fd_type evt_type = fdit->second.m_type;
 				if(evt_type == SCAP_FD_IPV4_SOCK || evt_type == SCAP_FD_IPV4_SERVSOCK)
@@ -1042,12 +1048,22 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds)
 
 int lua_cbacks::get_thread_table(lua_State *ls)
 {
-	return get_thread_table_int(ls, true);
+	return get_thread_table_int(ls, true, false);
 }
 
 int lua_cbacks::get_thread_table_nofds(lua_State *ls)
 {
-	return get_thread_table_int(ls, false);
+	return get_thread_table_int(ls, false, false);
+}
+
+int lua_cbacks::get_thread_table_barebone(lua_State *ls)
+{
+	return get_thread_table_int(ls, true, true);
+}
+
+int lua_cbacks::get_thread_table_barebone_nofds(lua_State *ls)
+{
+	return get_thread_table_int(ls, false, true);
 }
 
 int lua_cbacks::get_container_table(lua_State *ls)

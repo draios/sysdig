@@ -498,7 +498,7 @@ http_parser_parse_uri(const char *buf, size_t buflen, int is_connect,
       case s_dead:
         return 1;
 
-      /* Skip delimeters */
+      /* Skip delimiters */
       case s_req_schema_slash:
       case s_req_schema_slash_slash:
       case s_req_server_start:

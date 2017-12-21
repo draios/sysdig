@@ -67,12 +67,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define DEFAULT_THREAD_TIMEOUT_S 1800
 
 //
-// How often the thread table is sacnned for inactive threads
+// How often the thread table is scanned for inactive threads
 //
 #define DEFAULT_INACTIVE_THREAD_SCAN_TIME_S 1200
 
 //
-// How often the thread table is sacnned for inactive threads
+// How often the thread table is scanned for inactive threads
 //
 #define DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S DEFAULT_INACTIVE_THREAD_SCAN_TIME_S
 

@@ -66,17 +66,17 @@ fi
 echo "* Running dkms autoinstall"
 dkms autoinstall --kernelver $KERNEL_RELEASE
 
-echo "* Trying to load a system $PROBE_NAME, if present"
-
-if modprobe $PROBE_NAME > /dev/null 2>&1; then
-	echo "$PROBE_NAME found and loaded with modprobe"
-	exit 0
-fi
-
 echo "* Trying to load a dkms $PROBE_NAME, if present"
 
 if insmod /var/lib/dkms/$PACKAGE_NAME/$SYSDIG_VERSION/$KERNEL_RELEASE/$ARCH/module/$PROBE_NAME.ko > /dev/null 2>&1; then
 	echo "$PROBE_NAME found and loaded in dkms"
+	exit 0
+fi
+
+echo "* Trying to load a system $PROBE_NAME, if present"
+
+if modprobe $PROBE_NAME > /dev/null 2>&1; then
+	echo "$PROBE_NAME found and loaded with modprobe"
 	exit 0
 fi
 

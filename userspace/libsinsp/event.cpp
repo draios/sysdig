@@ -523,7 +523,7 @@ uint32_t strcpy_sanitized(char *dest, char *src, uint32_t dstsize)
 	}
 
 	//
-	// In case there wasn't enough space, null-termninate the destination
+	// In case there wasn't enough space, null-terminate the destination
 	//
 	if(dstsize)
 	{
@@ -1584,7 +1584,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	break;
 	case PT_BYTEBUF:
 	{
-		/* This would include quotes around the outpur string
+		/* This would include quotes around the output string
 		            m_paramstr_storage[0] = '"';
 		            cres = binary_buffer_to_string(m_paramstr_storage + 1,
 		                param->m_val,
@@ -2373,6 +2373,7 @@ void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 					case SCAP_FD_IPV4_SOCK:
 					case SCAP_FD_IPV6_SOCK:
 						cat->m_subcategory = SC_NET;
+						break;
 					case SCAP_FD_IPV4_SERVSOCK:
 					case SCAP_FD_IPV6_SERVSOCK:
 						cat->m_subcategory = SC_NET;

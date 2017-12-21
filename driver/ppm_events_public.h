@@ -1330,6 +1330,7 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_SET_TRACERS_CAPTURE _IO(PPM_IOCTL_MAGIC, 17)
 #define PPM_IOCTL_SET_SIMPLE_MODE _IO(PPM_IOCTL_MAGIC, 18)
 #define PPM_IOCTL_ENABLE_PAGE_FAULTS _IO(PPM_IOCTL_MAGIC, 19)
+#define PPM_IOCTL_GET_N_TRACEPOINT_HIT _IO(PPM_IOCTL_MAGIC, 20)
 
 extern const struct ppm_name_value socket_families[];
 extern const struct ppm_name_value file_flags[];

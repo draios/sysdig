@@ -193,12 +193,12 @@ do {                                                                            
  * "the usual" patch-up process for the app-order doubly-linked-list.
  * The use of _hd_hh_del below deserves special explanation.
  * These used to be expressed using (delptr) but that led to a bug
- * if someone used the same symbol for the head and deletee, like
+ * if someone used the same symbol for the head and deleted, like
  *  HASH_DELETE(hh,users,users);
  * We want that to work, but by changing the head (users) below
- * we were forfeiting our ability to further refer to the deletee (users)
+ * we were forfeiting our ability to further refer to the deleted (users)
  * in the patch-up process. Solution: use scratch space to
- * copy the deletee pointer, then the latter references are via that
+ * copy the deleted pointer, then the latter references are via that
  * scratch pointer rather than through the repointed (users) symbol.
  */
 #define HASH_DELETE(hh,head,delptr)                                              \

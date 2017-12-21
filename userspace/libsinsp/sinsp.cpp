@@ -519,8 +519,34 @@ void sinsp::set_simpledriver_mode()
 {
 	if(scap_enable_simpledriver_mode(m_h) != SCAP_SUCCESS)
 	{
-		throw sinsp_exception(scap_getlasterr(m_h));		
+		throw sinsp_exception(scap_getlasterr(m_h));
 	}
+}
+
+unsigned sinsp::m_num_possible_cpus = 0;
+
+unsigned sinsp::num_possible_cpus()
+{
+	if(m_num_possible_cpus == 0)
+	{
+		m_num_possible_cpus = read_num_possible_cpus();
+		if(m_num_possible_cpus == 0)
+		{
+			g_logger.log("Unable to read num_possible_cpus, falling back to 128", sinsp_logger::SEV_WARNING);
+			m_num_possible_cpus = 128;
+		}
+	}
+	return m_num_possible_cpus;
+}
+
+vector<long> sinsp::get_n_tracepoint_hit()
+{
+	vector<long> ret(num_possible_cpus(), 0);
+	if(scap_get_n_tracepoint_hit(m_h, ret.data()) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+	return ret;
 }
 
 std::string sinsp::get_error_desc(const std::string& msg)
@@ -1745,6 +1771,22 @@ void sinsp::set_max_evt_output_len(uint32_t len)
 sinsp_protodecoder* sinsp::require_protodecoder(string decoder_name)
 {
 	return m_parser->add_protodecoder(decoder_name);
+}
+
+void sinsp::set_eventmask(uint32_t event_types)
+{
+	if (scap_set_eventmask(m_h, event_types) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+}
+
+void sinsp::unset_eventmask(uint32_t event_id)
+{
+	if (scap_unset_eventmask(m_h, event_id) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
 }
 
 void sinsp::protodecoder_register_reset(sinsp_protodecoder* dec)

@@ -1236,7 +1236,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 
 		if (likely(retval >= 0)) {
 			/*
-			 * The call suceeded. Get exe, args from the current
+			 * The call succeeded. Get exe, args from the current
 			 * process; put one \0-separated exe-args string into
 			 * str_storage
 			 */
@@ -1749,7 +1749,7 @@ static int f_sys_socketpair_x(struct event_filler_arguments *args)
 		return res;
 
 	/*
-	 * If the call was succesful, copy the FDs
+	 * If the call was successful, copy the FDs
 	 */
 	if (likely(retval >= 0)) {
 		/*

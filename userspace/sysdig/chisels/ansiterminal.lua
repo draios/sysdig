@@ -94,6 +94,10 @@ function ansiterminal.showcursor()
     io.write(schar(27) .. '[' .. "?25h")
 end
 
+function ansiterminal.setfgcol(color)
+    io.write(schar(27) .. '[' .. "38;5;" .. color .. "m")
+end
+
 function ansiterminal.setbgcol(color)
     io.write(schar(27) .. '[' .. "48;5;" .. color .. "m")
 end

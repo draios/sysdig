@@ -1524,3 +1524,30 @@ int32_t scap_enable_simpledriver_mode(scap_t* handle)
 	return SCAP_SUCCESS;
 #endif
 }
+
+int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
+{
+	//
+	// Not supported on files
+	//
+	if(handle->m_mode != SCAP_MODE_LIVE)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "getting n_tracepoint_hit not supported on this scap mode");
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	return SCAP_FAILURE;
+#else
+
+	if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_N_TRACEPOINT_HIT, ret))
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_get_n_tracepoint_hit failed");
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+#endif
+}

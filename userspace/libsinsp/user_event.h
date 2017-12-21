@@ -232,7 +232,7 @@ inline bool user_event_filter_t::ci_compare_str(const std::string& a, const std:
 #ifndef _WIN32
 	return strcasecmp(a.c_str(), b.c_str()) == 0;
 #else
-	return lstrcmpiA(a.c_str(), a.c_str()) < 0;
+	return lstrcmpiA(a.c_str(), b.c_str()) == 0;
 #endif // _WIN32
 }
 
@@ -332,7 +332,7 @@ inline const sinsp_user_event::tag_map_t& sinsp_user_event::tags() const
 
 inline size_t sinsp_user_event::max_events_per_cycle()
 {
-	return 300u; // TODO: move this value to config?
+	return 100u; // TODO: move this value to config?
 }
 
 //
