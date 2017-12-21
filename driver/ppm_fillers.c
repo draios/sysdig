@@ -1106,7 +1106,6 @@ static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 		n_bytes_copied--;
 
 		if (n_bytes_copied < 0) {
-			printk(pr_fmt("Error on copy here3"));
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 		}
 		if (n_bytes_copied >= available)
