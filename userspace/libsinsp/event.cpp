@@ -703,6 +703,15 @@ char* sinsp_evt::render_fd(int64_t fd, const char** resolved_str, sinsp_evt::par
 */
 		}
 	}
+	else if(fd == PPM_AT_FDCWD)
+	{
+		//
+		// `fd` can be AT_FDCWD on all *at syscalls
+		//
+		snprintf(&m_resolved_paramstr_storage[0],
+				 m_resolved_paramstr_storage.size(),
+				 "AT_FDCWD");
+	}
 	else
 	{
 		//
