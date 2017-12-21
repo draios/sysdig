@@ -2071,11 +2071,11 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 
 		if(protocol == IPPROTO_TCP)
 		{
-			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_TCP;
+			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = (type == SOCK_RAW)? SCAP_L4_RAW : SCAP_L4_TCP;
 		}
 		else if(protocol == IPPROTO_UDP)
 		{
-			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_UDP;
+			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = (type == SOCK_RAW)? SCAP_L4_RAW : SCAP_L4_UDP;
 		}
 		else if(protocol == IPPROTO_IP)
 		{
@@ -2099,10 +2099,14 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 		}
 		else if(protocol == IPPROTO_ICMP)
 		{
-			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_ICMP;
+			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = (type == SOCK_RAW)? SCAP_L4_RAW : SCAP_L4_ICMP;
+		}
+		else if(protocol == IPPROTO_RAW)
+		{
+			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_RAW;
 		}
 	}
-	else if (domain == PPM_AF_NETLINK)
+	else if(domain == PPM_AF_NETLINK)
 	{
 		fdi.m_type = SCAP_FD_NETLINK;
 	}
@@ -2252,6 +2256,8 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 		{
 			evt->m_fdinfo->m_type = SCAP_FD_IPV4_SERVSOCK;
 			evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port = port;
+			evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_l4proto =
+					evt->m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_l4proto;
 		}
 	}
 	else if (family == PPM_AF_INET6)
@@ -2261,6 +2267,8 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 		{
 			evt->m_fdinfo->m_type = SCAP_FD_IPV6_SERVSOCK;
 			evt->m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port = port;
+			evt->m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_l4proto =
+					evt->m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_l4proto;
 		}
 	}
 	//
@@ -4218,7 +4226,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		{
 			container_info.m_mesos_task_id = mesos_task_id.asString();
 		}
-		m_inspector->m_container_manager.add_container(container_info);
+		m_inspector->m_container_manager.add_container(container_info, evt->get_thread_info(true));
 		/*
 		g_logger.log("Container\n-------\nID:" + container_info.m_id +
 					 "\nType: " + std::to_string(container_info.m_type) +
@@ -4229,7 +4237,9 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 	}
 	else
 	{
-		throw sinsp_exception("Invalid JSON encountered while parsing container info: " + json);
+		std::string errstr;
+		errstr = Json::Reader().getFormattedErrorMessages();
+		throw sinsp_exception("Invalid JSON encountered while parsing container info: " + json + "error=" + errstr);
 	}
 }
 
@@ -4251,7 +4261,7 @@ void sinsp_parser::parse_container_evt(sinsp_evt *evt)
 	parinfo = evt->get_param(3);
 	container_info.m_image = parinfo->m_val;
 
-	m_inspector->m_container_manager.add_container(container_info);
+	m_inspector->m_container_manager.add_container(container_info, evt->get_thread_info(true));
 }
 
 void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt *evt)
@@ -4307,7 +4317,9 @@ int sinsp_parser::get_k8s_version(const std::string& json)
 		}
 		else
 		{
-			throw sinsp_exception("Invalid K8s capture JSON encountered.");
+			std::string errstr;
+			errstr = Json::Reader().getFormattedErrorMessages();
+			throw sinsp_exception("Invalid K8s capture JSON encountered (" + errstr + ")");
 		}
 	}
 

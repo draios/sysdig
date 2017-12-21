@@ -344,6 +344,7 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_SETRESGID32*/ { EC_IO_OTHER, (enum ppm_event_flags)(EF_NONE), "setresgid" },
 	/*PPM_SC_GETRESUID32*/ { EC_IO_OTHER, (enum ppm_event_flags)(EF_NONE), "getresuid" },
 	/*PPM_SC_GETRESGID32*/ { EC_IO_OTHER, (enum ppm_event_flags)(EF_NONE), "getresgid" },
+	/*PPM_SC_FINIT_MODULE*/ { EC_SYSTEM, (enum ppm_event_flags)(EF_NONE), "finit_module" }, /* load a kernel module */
 };
 
 bool validate_info_table_size()

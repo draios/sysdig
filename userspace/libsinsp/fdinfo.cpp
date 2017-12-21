@@ -190,6 +190,11 @@ template<> scap_l4_proto sinsp_fdinfo_t::get_l4proto()
 
 	if(evt_type == SCAP_FD_IPV4_SOCK)
 	{
+		if((scap_l4_proto)m_sockinfo.m_ipv4info.m_fields.m_l4proto == SCAP_L4_RAW)
+		{
+			return SCAP_L4_RAW;
+		}
+
 		if(is_role_none())
 		{
 			return SCAP_L4_NA;
@@ -203,6 +208,11 @@ template<> scap_l4_proto sinsp_fdinfo_t::get_l4proto()
 	}
 	else if(evt_type == SCAP_FD_IPV6_SOCK)
 	{
+		if((scap_l4_proto)m_sockinfo.m_ipv6info.m_fields.m_l4proto == SCAP_L4_RAW)
+		{
+			return SCAP_L4_RAW;
+		}
+
 		if(is_role_none())
 		{
 			return SCAP_L4_NA;

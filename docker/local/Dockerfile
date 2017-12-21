@@ -25,6 +25,8 @@ RUN echo "deb http://httpredir.debian.org/debian jessie main" > /etc/apt/sources
 	gcc \
 	gcc-5 \
 	gcc-4.9 \
+	libc6-dev \
+	libelf-dev \
 	libelf1 \
 	less \
 	procps \
