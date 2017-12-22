@@ -116,6 +116,8 @@ public:
 
 	static void parse_json_mounts(const Json::Value &mnt_obj, vector<container_mount_info> &mounts);
 
+	const vector<string>& get_env() const { return m_env; }
+
 	container_mount_info *mount_by_idx(uint32_t idx);
 	container_mount_info *mount_by_source(std::string &source);
 	container_mount_info *mount_by_dest(std::string &dest);
@@ -130,6 +132,7 @@ public:
 	vector<container_mount_info> m_mounts;
 	vector<container_port_mapping> m_port_mappings;
 	map<string, string> m_labels;
+	vector<string> m_env;
 	string m_mesos_task_id;
 	int64_t m_memory_limit;
 	int64_t m_swap_limit;

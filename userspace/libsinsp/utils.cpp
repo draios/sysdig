@@ -792,6 +792,28 @@ void sinsp_utils::bt(void)
 }
 #endif // _WIN32
 
+bool sinsp_utils::find_first_env(std::string &out, const vector<std::string> &env, const vector<std::string> &keys)
+{
+	for (const string key : keys)
+	{
+		for(const auto& env_var : env)
+		{
+			if((env_var.size() > key.size()) && !env_var.compare(0, key.size(), key) && (env_var[key.size()] == '='))
+			{
+				out = env_var.substr(key.size()+1);
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+bool sinsp_utils::find_env(std::string &out, const vector<std::string> &env, const std::string &key)
+{
+	const vector<std::string> keys = { key };
+	return find_first_env(out, env, keys);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Time utility functions.
 ///////////////////////////////////////////////////////////////////////////////
