@@ -36,26 +36,39 @@ int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, struct scap_threadi
 	snprintf(tinfo->args, SCAP_MAX_PATH_SIZE, "%s", wpi->args);
 	tinfo->args_len = wpi->args_len;
 	tinfo->vmsize_kb = wpi->vmsize_kb;
-	tinfo->vmrss_kb = wpi->vmrss_kb;
-	tinfo->vmswap_kb = wpi->vmswap_kb;
 	tinfo->pfmajor = wpi->pfmajor;
 	tinfo->pfminor = wpi->pfminor;
 	tinfo->clone_ts = wpi->clone_ts;
 	tinfo->tty = wpi->tty;
 
+	wh_proc_perf_info pinfo = wh_wmi_get_proc_perf_info(handle->m_whh, tinfo->pid);
+	if(pinfo.m_result != 0)
+	{
+		tinfo->vmrss_kb = pinfo.m_memory_bytes / 1024;
+		tinfo->vmswap_kb = pinfo.m_swap_bytes / 1024;
+	}
+	else
+	{
+		tinfo->vmrss_kb = 0;
+		tinfo->vmswap_kb = 0;			
+	}
+	
 	//
 	// Done. Add the entry to the process table, or fire the notification callback
 	//
 	if(handle->m_proc_callback == NULL)
 	{
-		int32_t uth_status = SCAP_SUCCESS;
+		snprintf(error, SCAP_LASTERR_SIZE, "process table construction in scap not supportted on windows");
+		return SCAP_FAILURE;
 
-		HASH_ADD_INT64(handle->m_proclist, pid, tinfo);
-		if(uth_status != SCAP_SUCCESS)
-		{
-			snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (2)");
-			return SCAP_FAILURE;
-		}
+		// int32_t uth_status = SCAP_SUCCESS;
+
+		// HASH_ADD_INT64(handle->m_proclist, pid, tinfo);
+		// if(uth_status != SCAP_SUCCESS)
+		// {
+		// 	snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (2)");
+		// 	return SCAP_FAILURE;
+		// }
 	}
 	else
 	{
@@ -73,23 +86,13 @@ int32_t scap_proc_scan_proc_dir_windows(scap_t* handle, struct scap_threadinfo**
 	wh_proclist wgpres;
 
 	//
-	// Get the system processes through WMI and add them to the list
+	// Get the system processes through WMI
 	//
 	wgpres = wh_wmi_get_procs(handle->m_whh);
 	if(wgpres.m_result == 0)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "%s", wh_getlasterror(handle->m_whh));
 		return SCAP_FAILURE;
-	}
-
-	for(uint32_t j = 0; j < wgpres.m_count; j++)
-	{
-		wh_procinfo* wpi = &(wgpres.m_procs[j]);
-
-		if(addprocess_windows(wpi, handle, procinfo, error) != SCAP_SUCCESS)
-		{
-			return SCAP_FAILURE;
-		}
 	}
 
 	//
@@ -108,6 +111,19 @@ int32_t scap_proc_scan_proc_dir_windows(scap_t* handle, struct scap_threadinfo**
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "%s", wh_getlasterror(handle->m_whh));
 		return SCAP_FAILURE;
+	}
+
+	//
+	// Add the received processes to the scap list 
+	//
+	for(uint32_t j = 0; j < wgpres.m_count; j++)
+	{
+		wh_procinfo* wpi = &(wgpres.m_procs[j]);
+
+		if(addprocess_windows(wpi, handle, procinfo, error) != SCAP_SUCCESS)
+		{
+			return SCAP_FAILURE;
+		}
 	}
 
 	return SCAP_SUCCESS;

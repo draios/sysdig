@@ -763,7 +763,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 
 	//
 	// Retrieve machine information if we don't have it yet
-	//proc
+	//
 	{
 		m_machine_info = scap_get_machine_info(newhandle);
 		if(m_machine_info != NULL)
