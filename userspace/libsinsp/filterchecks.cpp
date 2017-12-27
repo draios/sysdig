@@ -2761,9 +2761,9 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 	if(is_absolute)
 	{
 		//
-		// The path is absoulte.
+		// The path is absolute.
 		// Some processes (e.g. irqbalance) actually do this: they pass an invalid fd and
-		// and bsolute path, and openat succeeds.
+		// and absolute path, and openat succeeds.
 		//
 		sdir = ".";
 	}
