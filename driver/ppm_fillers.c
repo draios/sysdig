@@ -3170,7 +3170,7 @@ static int f_sys_openat_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 
-	if (val == AT_FDCWD)
+	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, val, 0, false, 0);
@@ -4539,7 +4539,7 @@ static int f_sys_renameat_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 
-	if (val == AT_FDCWD)
+	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, val, 0, false, 0);
@@ -4559,7 +4559,7 @@ static int f_sys_renameat_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 
-	if (val == AT_FDCWD)
+	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, val, 0, false, 0);
@@ -4601,7 +4601,7 @@ static int f_sys_symlinkat_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 
-	if (val == AT_FDCWD)
+	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, val, 0, false, 0);
