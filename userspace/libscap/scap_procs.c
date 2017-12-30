@@ -739,7 +739,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 		}
 		else
 		{
-			handle->m_proc_callback(handle->m_proc_callback_context, tinfo->tid, tinfo, NULL, handle);
+			handle->m_proc_callback(handle->m_proc_callback_context, handle, tinfo->tid, tinfo, NULL, handle);
 			free_tinfo = true;
 		}
 	}

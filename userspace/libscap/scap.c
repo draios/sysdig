@@ -1080,7 +1080,7 @@ int32_t scap_start_capture(scap_t* handle)
 #endif // HAS_CAPTURE
 }
 
-#if !defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t sampling_ratio)
 {
 	//

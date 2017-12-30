@@ -809,10 +809,12 @@ public:
 	vector<long> get_n_tracepoint_hit();
 
 	static unsigned num_possible_cpus();
+#ifdef CYGWING_AGENT
 	wh_t* get_wmi_handle()
 	{
 		return scap_get_wmi_handle(m_h);
 	}
+#endif
 VISIBILITY_PRIVATE
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE
