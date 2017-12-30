@@ -307,6 +307,8 @@ const char* sinsp_utils::errno_to_str(int32_t code)
 		return "ENOMEDIUM";
 	case SE_ECANCELED:
 		return "ECANCELED";
+	case SE_EPROTONOSUPPORT:
+		return "EPROTONOSUPPORT";
 	default:
 		ASSERT(false);
 		return "";
@@ -931,15 +933,12 @@ string port_to_string(uint16_t port, uint8_t l4proto, bool resolve)
 string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve)
 {
 	char buf[50];
+	uint8_t *ip = (uint8_t *)&addr->m_ip;
 
-	// IP address is saved with host byte order, that's why we do shifts
+	// IP address is in network byte order regardless of host endianness
 	snprintf(buf,
 		sizeof(buf),
-		"%d.%d.%d.%d:%s",
-		(addr->m_ip & 0xFF),
-		((addr->m_ip & 0xFF00) >> 8),
-		((addr->m_ip & 0xFF0000) >> 16),
-		((addr->m_ip & 0xFF000000) >> 24),
+		"%d.%d.%d.%d:%s", ip[0], ip[1], ip[2], ip[3],
 		port_to_string(addr->m_port, addr->m_l4proto, resolve).c_str());
 
 	return string(buf);

@@ -84,7 +84,7 @@ void mesos_auth::authenticate()
 			{
 				std::string errstr;
 				errstr = json_reader.getFormattedErrorMessages();
-				g_json_error_log.log(response, errstr);
+				g_json_error_log.log(response, errstr, sinsp_utils::get_current_time_ns(), m_auth_uri.to_string());
 				throw sinsp_exception(string("Cannot parse json (" + errstr + ")"));
 			}
 			else
@@ -99,10 +99,13 @@ void mesos_auth::authenticate()
 	}
 	catch(std::exception& e)
 	{
-		g_logger.format(sinsp_logger::SEV_ERROR,
-				"Could not fetch authentication token via %s: %s",
-				m_auth_uri.to_string().c_str(),
-				e.what());
+		std::string errstr = "Could not fetch authentication token via " +
+			m_auth_uri.to_string() + ": " +
+			e.what();
+
+		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+
+		g_json_error_log.log("", errstr, sinsp_utils::get_current_time_ns(), m_auth_uri.to_string());
 	}
 #endif // HAS_CAPTURE
 }

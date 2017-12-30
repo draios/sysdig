@@ -35,6 +35,29 @@ extern sinsp_evttables g_infotables;
 int32_t g_csysdig_screen_w = -1;
 bool g_filterchecks_force_raw_times = false;
 
+#define RETURN_EXTRACT_VAR(x) do {  \
+        *len = sizeof((x));         \
+        return (uint8_t*) &(x);     \
+} while(0)
+
+#define RETURN_EXTRACT_PTR(x) do {  \
+        *len = sizeof(*(x));        \
+        return (uint8_t*) (x);      \
+} while(0)
+
+#define RETURN_EXTRACT_STRING(x) do {  \
+        *len = (x).size();             \
+        return (uint8_t*) (x).c_str(); \
+} while(0)
+
+#define RETURN_EXTRACT_CSTR(x) do {             \
+        if((x))                                 \
+        {                                       \
+                *len = strlen((char *) ((x)));  \
+        }                                       \
+        return (uint8_t*) ((x));                \
+} while(0)
+
 ///////////////////////////////////////////////////////////////////////////////
 // Helper functions
 ///////////////////////////////////////////////////////////////////////////////
@@ -263,6 +286,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 
 uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
+	*len = 0;
 	//
 	// Even is there's no fd, we still try to extract a name from exit events that create
 	// one. With these events, the fact that there's no FD means that the call failed,
@@ -274,8 +298,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	{
 		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
 		{
-			*len = m_tstr.size();
-			return (uint8_t*)m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		else
 		{
@@ -287,8 +310,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
 		{
 			m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
-			*len = m_tstr.size();
-			return (uint8_t*)m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		else
 		{
@@ -317,8 +339,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 				m_tstr = "/";
 			}
 
-			*len = m_tstr.size();
-			return (uint8_t*)m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		else
 		{
@@ -348,8 +369,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			}
 
 			m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
-			*len = m_tstr.size();
-			return (uint8_t*)m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		else
 		{
@@ -380,8 +400,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 				}
 			}
 
-			*len = m_tstr.size();
-			return (uint8_t*)m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		else
 		{
@@ -444,6 +463,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 
 uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
+	*len = 0;
 	ASSERT(evt);
 
 	if(!extract_fd(evt))
@@ -456,7 +476,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 	//
 	if(m_field_id == TYPE_FDNUM)
 	{
-		return (uint8_t*)&m_tinfo->m_lastevent_fd;
+		RETURN_EXTRACT_VAR(m_tinfo->m_lastevent_fd);
 	}
 
 	switch(m_field_id)
@@ -496,8 +516,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 		{
 			sanitize_string(m_tstr);
 		}
-		*len = m_tstr.size();
-		return (uint8_t*)m_tstr.c_str();
+		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_FDTYPE:
 		if(m_fdinfo == NULL)
 		{
@@ -506,11 +525,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 		else
 		{
 			uint8_t *typestr = (uint8_t*)m_fdinfo->get_typestring();
-			if(typestr)
-			{
-				*len = strlen((char *) typestr);
-			}
-			return typestr;
+			RETURN_EXTRACT_CSTR(typestr);
 		}
 
 	case TYPE_DIRECTORY:
@@ -553,8 +568,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
 			}
 
-			*len = m_tstr.size();
-			return (uint8_t*)m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_FILENAME:
 		{
@@ -587,8 +601,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				m_tstr = "/";
 			}
 
-			*len = m_tstr.size();
-			return (uint8_t*)m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_FDTYPECHAR:
 		if(m_fdinfo == NULL)
@@ -596,6 +609,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			return extract_from_null_fd(evt, len, sanitize_strings);
 		}
 
+		*len = 1;
 		m_tcstr[0] = m_fdinfo->get_typechar();
 		m_tcstr[1] = 0;
 		return m_tcstr;
@@ -615,7 +629,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			scap_fd_type evt_type = m_fdinfo->m_type;
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
-				return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
+				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
 			}
 		}
 
@@ -636,11 +650,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			scap_fd_type evt_type = m_fdinfo->m_type;
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
-				return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
+				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
 			}
 			else if(evt_type == SCAP_FD_IPV4_SERVSOCK)
 			{
-				return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip);
+				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip);
 			}
 		}
 
@@ -670,22 +684,22 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			{
 				if(m_field_id == TYPE_LIP)
 				{
-					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
+					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
 				}
 				else
 				{
-					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
+					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
 				}
 			}
 			else
 			{
 				if(m_field_id == TYPE_LIP)
 				{
-					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
+					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
 				}
 				else
 				{
-					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
+					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
 				}
 			}
 		}
@@ -707,11 +721,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
-				return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
+				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
 			}
 			else if(evt_type == SCAP_FD_IPV6_SOCK)
 			{
-				return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport);
+				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport);
 			}
 		}
 	case TYPE_CLIENTPROTO:
@@ -738,8 +752,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				port = port_to_string(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
 			}
 
-			*len = port.size();
-			return (uint8_t*)port.c_str();
+			RETURN_EXTRACT_STRING(port);
 		}
 	case TYPE_SERVERPORT:
 		{
@@ -757,11 +770,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 					return NULL;
 				}
 
-				return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
+				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
 			}
 			else if(evt_type == SCAP_FD_IPV4_SERVSOCK)
 			{
-				return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port);
+				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port);
 			}
 			else if(evt_type == SCAP_FD_IPV6_SOCK)
 			{
@@ -770,11 +783,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 					return NULL;
 				}
 
-				return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport);
+				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport);
 			}
 			else if(evt_type == SCAP_FD_IPV6_SERVSOCK)
 			{
-				return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port);
+				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port);
 			}
 			else
 			{
@@ -831,8 +844,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				port = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
 			}
 
-			*len = port.size();
-			return (uint8_t*)port.c_str();
+			RETURN_EXTRACT_STRING(port);
 		}
 	case TYPE_LPORT:
 	case TYPE_RPORT:
@@ -857,22 +869,22 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			{
 				if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO)
 				{
-					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
+					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
 				}
 				else
 				{
-					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
+					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
 				}
 			}
 			else
 			{
 				if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO)
 				{
-					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
+					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport);
 				}
 				else
 				{
-					return (uint8_t*)&(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
+					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport);
 				}
 			}
 		}
@@ -936,8 +948,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				ASSERT(false);
 			}
 
-			*len = port.size();
-			return (uint8_t*)port.c_str();
+			RETURN_EXTRACT_STRING(port);
 		}
 
 	case TYPE_L4PROTO:
@@ -968,8 +979,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				break;
 			}
 
-			*len = m_tstr.size();
-			return (uint8_t*)m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_IS_SERVER:
 		{
@@ -992,7 +1002,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				m_tbool = false;
 			}
 
-			return (uint8_t*)&m_tbool;
+			RETURN_EXTRACT_VAR(m_tbool);
 		}
 		break;
 	case TYPE_SOCKFAMILY:
@@ -1006,14 +1016,12 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			   m_fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK || m_fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK)
 			{
 				m_tstr = "ip";
-				*len = m_tstr.size();
-				return (uint8_t*)m_tstr.c_str();
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
 			else if(m_fdinfo->m_type == SCAP_FD_UNIX_SOCK)
 			{
 				m_tstr = "unix";
-				*len = m_tstr.size();
-				return (uint8_t*)m_tstr.c_str();
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
 			else
 			{
@@ -1026,8 +1034,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			ASSERT(m_tinfo != NULL);
 
 			m_tstr = to_string(m_tinfo->m_tid) + to_string(m_tinfo->m_lastevent_fd);
-			*len = m_tstr.size();
-			return (uint8_t*)m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	default:
@@ -1534,7 +1541,7 @@ uint64_t sinsp_filter_check_thread::extract_exectime(sinsp_evt *evt)
 	return res;
 }
 
-uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, sinsp_threadinfo* tinfo, bool extract_user, bool extract_system)
+uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, OUT uint32_t* len, sinsp_threadinfo* tinfo, bool extract_user, bool extract_system)
 {
 	uint16_t etype = evt->get_type();
 
@@ -1575,7 +1582,7 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, sinsp_thr
 
 		*last_t_tot_cpu = tcpu;
 
-		return (uint8_t*)&m_dval;
+		RETURN_EXTRACT_VAR(m_dval);
 	}
 
 	return NULL;
@@ -1600,6 +1607,7 @@ static void populate_cmdline(string &cmdline, sinsp_threadinfo *tinfo)
 
 uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
+	*len = 0;
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 
 	if(tinfo == NULL &&
@@ -1614,11 +1622,11 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	{
 	case TYPE_TID:
 		m_u64val = evt->get_tid();
-		return (uint8_t*)&m_u64val;
+		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_PID:
-		return (uint8_t*)&tinfo->m_pid;
+		RETURN_EXTRACT_VAR(tinfo->m_pid);
 	case TYPE_SID:
-		return (uint8_t*)&tinfo->m_sid;
+		RETURN_EXTRACT_VAR(tinfo->m_sid);
 	case TYPE_SNAME:
 		{
 			//
@@ -1630,8 +1638,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			if(sinfo != NULL)
 			{
 				m_tstr = sinfo->get_comm();
-				*len = m_tstr.size();
-				return (uint8_t*)m_tstr.c_str();
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
 			else
 			{
@@ -1661,24 +1668,20 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				// mt has been updated to the highest process that has the same session id.
 				// mt's comm is considered the session leader.
 				m_tstr = mt->get_comm();
-				*len = m_tstr.size();
-				return (uint8_t*)m_tstr.c_str();
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
 		}
 	case TYPE_TTY:
-		return (uint8_t*)&tinfo->m_tty;
+		RETURN_EXTRACT_VAR(tinfo->m_tty);
 	case TYPE_NAME:
 		m_tstr = tinfo->get_comm();
-		*len = m_tstr.size();
-		return (uint8_t*)m_tstr.c_str();
+		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_EXE:
 		m_tstr = tinfo->get_exe();
-		*len = m_tstr.size();
-		return (uint8_t*)m_tstr.c_str();
+		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_EXEPATH:
 		m_tstr = tinfo->get_exepath();
-		*len = m_tstr.size();
-		return (uint8_t*)m_tstr.c_str();
+		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_ARGS:
 		{
 			m_tstr.clear();
@@ -1695,8 +1698,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				}
 			}
 
-			*len = m_tstr.size();
-			return (uint8_t*)m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_ENV:
 		{
@@ -1715,14 +1717,12 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				}
 			}
 
-			*len = m_tstr.size();
-			return (uint8_t*)m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_CMDLINE:
 		{
 			populate_cmdline(m_tstr, tinfo);
-			*len = m_tstr.size();
-			return (uint8_t*)m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_EXELINE:
 		{
@@ -1740,20 +1740,18 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				}
 			}
 
-			*len = m_tstr.size();
-			return (uint8_t*)m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_CWD:
 		m_tstr = tinfo->get_cwd();
-		*len = m_tstr.size();
-		return (uint8_t*)m_tstr.c_str();
+		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_NTHREADS:
 		{
 			sinsp_threadinfo* ptinfo = tinfo->get_main_thread();
 			if(ptinfo)
 			{
 				m_u64val = ptinfo->m_nchilds + 1;
-				return (uint8_t*)&m_u64val;
+				RETURN_EXTRACT_VAR(m_u64val);
 			}
 			else
 			{
@@ -1762,10 +1760,10 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			}
 		}
 	case TYPE_NCHILDS:
-		return (uint8_t*)&tinfo->m_nchilds;
+		RETURN_EXTRACT_VAR(tinfo->m_nchilds);
 	case TYPE_ISMAINTHREAD:
 		m_tbool = (uint32_t)tinfo->is_main_thread();
-		return (uint8_t*)&m_tbool;
+		RETURN_EXTRACT_VAR(m_tbool);
 	case TYPE_EXECTIME:
 		{
 			m_u64val = 0;
@@ -1776,7 +1774,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				m_u64val = extract_exectime(evt);
 			}
 
-			return (uint8_t*)&m_u64val;
+			RETURN_EXTRACT_VAR(m_u64val);
 		}
 	case TYPE_TOTEXECTIME:
 		{
@@ -1794,7 +1792,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			{
 				uint64_t* ptot = (uint64_t*)tinfo->get_private_state(m_th_state_id);
 				*ptot += m_u64val;
-				return (uint8_t*)ptot;
+				RETURN_EXTRACT_PTR(ptot);
 			}
 			else
 			{
@@ -1804,7 +1802,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_PPID:
 		if(tinfo->is_main_thread())
 		{
-			return (uint8_t*)&tinfo->m_ptid;
+			RETURN_EXTRACT_VAR(tinfo->m_ptid);
 		}
 		else
 		{
@@ -1812,7 +1810,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 
 			if(mt != NULL)
 			{
-				return (uint8_t*)&mt->m_ptid;
+				RETURN_EXTRACT_VAR(mt->m_ptid);
 			}
 			else
 			{
@@ -1827,8 +1825,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			if(ptinfo != NULL)
 			{
 				m_tstr = ptinfo->get_comm();
-				*len = m_tstr.size();
-				return (uint8_t*)m_tstr.c_str();
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
 			else
 			{
@@ -1843,8 +1840,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			if(ptinfo != NULL)
 			{
 				populate_cmdline(m_tstr, ptinfo);
-				*len = m_tstr.size();
-				return (uint8_t*)m_tstr.c_str();
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
 			else
 			{
@@ -1882,7 +1878,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				}
 			}
 
-			return (uint8_t*)&mt->m_pid;
+			RETURN_EXTRACT_VAR(mt->m_pid);
 		}
 	case TYPE_ANAME:
 		{
@@ -1913,8 +1909,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			}
 
 			m_tstr = mt->get_comm();
-			*len = m_tstr.size();
-			return (uint8_t*)m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_LOGINSHELLID:
 		{
@@ -1953,14 +1948,14 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			// Then check all its parents to see if they are shells
 			mt->traverse_parent_state(check_thread_for_shell);
 
-			return (uint8_t*)res;
+			RETURN_EXTRACT_PTR(res);
 		}
 	case TYPE_DURATION:
 		if(tinfo->m_clone_ts != 0)
 		{
 			m_s64val = evt->get_ts() - tinfo->m_clone_ts;
 			ASSERT(m_s64val > 0);
-			return (uint8_t*)&m_s64val;
+			RETURN_EXTRACT_VAR(m_s64val);
 		}
 		else
 		{
@@ -1968,22 +1963,22 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_FDOPENCOUNT:
 		m_u64val = tinfo->get_fd_opencount();
-		return (uint8_t*)&m_u64val;
+		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_FDLIMIT:
 		m_s64val = tinfo->get_fd_limit();
-		return (uint8_t*)&m_s64val;
+		RETURN_EXTRACT_VAR(m_s64val);
 	case TYPE_FDUSAGE:
 		m_dval = tinfo->get_fd_usage_pct_d();
-		return (uint8_t*)&m_dval;
+		RETURN_EXTRACT_VAR(m_dval);
 	case TYPE_VMSIZE:
 		m_u64val = tinfo->m_vmsize_kb;
-		return (uint8_t*)&m_u64val;
+		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_VMRSS:
 		m_u64val = tinfo->m_vmrss_kb;
-		return (uint8_t*)&m_u64val;
+		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_VMSWAP:
 		m_u64val = tinfo->m_vmswap_kb;
-		return (uint8_t*)&m_u64val;
+		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_THREAD_VMSIZE:
 		if(tinfo->is_main_thread())
 		{
@@ -1994,7 +1989,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			m_u64val = 0;
 		}
 
-		return (uint8_t*)&m_u64val;
+		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_THREAD_VMRSS:
 		if(tinfo->is_main_thread())
 		{
@@ -2005,7 +2000,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			m_u64val = 0;
 		}
 
-		return (uint8_t*)&m_u64val;
+		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_THREAD_VMSIZE_B:
 		if(tinfo->is_main_thread())
 		{
@@ -2016,7 +2011,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			m_u64val = 0;
 		}
 
-		return (uint8_t*)&m_u64val;
+		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_THREAD_VMRSS_B:
 		if(tinfo->is_main_thread())
 		{
@@ -2027,13 +2022,13 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			m_u64val = 0;
 		}
 
-		return (uint8_t*)&m_u64val;
+		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_PFMAJOR:
 		m_u64val = tinfo->m_pfmajor;
-		return (uint8_t*)&m_u64val;
+		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_PFMINOR:
 		m_u64val = tinfo->m_pfminor;
-		return (uint8_t*)&m_u64val;
+		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_CGROUPS:
 		{
 			m_tstr.clear();
@@ -2057,8 +2052,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				}
 			}
 
-			*len = m_tstr.size();
-			return (uint8_t*)m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_CGROUP:
 		{
@@ -2074,8 +2068,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				if(tinfo->m_cgroups[j].first == m_argname)
 				{
 					m_tstr = tinfo->m_cgroups[j].second;
-					*len = m_tstr.size();
-					return (uint8_t*)m_tstr.c_str();
+					RETURN_EXTRACT_STRING(m_tstr);
 				}
 			}
 
@@ -2088,7 +2081,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 
 		m_u64val = tinfo->m_vtid;
-		return (uint8_t*)&m_u64val;
+		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_VPID:
 		if(tinfo->m_vpid == -1)
 		{
@@ -2096,7 +2089,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 
 		m_u64val = tinfo->m_vpid;
-		return (uint8_t*)&m_u64val;
+		RETURN_EXTRACT_VAR(m_u64val);
 /*
 	case TYPE_PROC_CPU:
 		{
@@ -2141,7 +2134,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				mt->m_last_mt_tot_cpu += thval;
 				m_dval = mt->m_last_mt_tot_cpu;
 
-				return (uint8_t*)&m_dval;
+				RETURN_EXTRACT_VAR(m_dval);
 			}
 
 			return NULL;
@@ -2149,20 +2142,19 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 */
 	case TYPE_THREAD_CPU:
 		{
-			return extract_thread_cpu(evt, tinfo, true, true);
+			return extract_thread_cpu(evt, len, tinfo, true, true);
 		}
 	case TYPE_THREAD_CPU_USER:
 		{
-			return extract_thread_cpu(evt, tinfo, true, false);
+			return extract_thread_cpu(evt, len, tinfo, true, false);
 		}
 	case TYPE_THREAD_CPU_SYSTEM:
 		{
-			return extract_thread_cpu(evt, tinfo, false, true);
+			return extract_thread_cpu(evt, len, tinfo, false, true);
 		}
 	case TYPE_NAMETID:
 		m_tstr = tinfo->get_comm() + to_string(evt->get_tid());
-		*len = m_tstr.size();
-		return (uint8_t*)m_tstr.c_str();
+		RETURN_EXTRACT_STRING(m_tstr);
 	default:
 		ASSERT(false);
 		return NULL;
@@ -2806,11 +2798,10 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 
 	m_strstorage = fullname;
 
-	*len = m_strstorage.size();
-	return (uint8_t*)m_strstorage.c_str();
+	RETURN_EXTRACT_STRING(m_strstorage);
 }
 
-inline uint8_t* sinsp_filter_check_event::extract_buflen(sinsp_evt *evt)
+inline uint8_t* sinsp_filter_check_event::extract_buflen(sinsp_evt *evt, OUT uint32_t* len)
 {
 	if(evt->get_direction() == SCAP_ED_OUT)
 	{
@@ -2826,7 +2817,7 @@ inline uint8_t* sinsp_filter_check_event::extract_buflen(sinsp_evt *evt)
 
 		if(retval >= 0)
 		{
-			return (uint8_t*)parinfo->m_val;
+			RETURN_EXTRACT_PTR(parinfo->m_val);
 		}
 	}
 
@@ -2879,7 +2870,7 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 		if(res < 0)
 		{
 			m_u32val = 1;
-			return (uint8_t*)&m_u32val;
+			RETURN_EXTRACT_VAR(m_u32val);
 		}
 		else
 		{
@@ -2899,7 +2890,7 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 			if(res < 0)
 			{
 				m_u32val = 1;
-				return (uint8_t*)&m_u32val;
+				RETURN_EXTRACT_VAR(m_u32val);
 			}
 		}
 	}
@@ -2909,6 +2900,7 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 
 uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
+	*len = 0;
 	switch(m_field_id)
 	{
 	case TYPE_TIME:
@@ -2921,33 +2913,30 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			ts_to_string(evt->get_ts(), &m_strstorage, false, true);
 		}
-		*len = m_strstorage.size();
-		return (uint8_t*)m_strstorage.c_str();
+		RETURN_EXTRACT_STRING(m_strstorage);
 	case TYPE_TIME_S:
 		ts_to_string(evt->get_ts(), &m_strstorage, false, false);
-		*len = m_strstorage.size();
-		return (uint8_t*)m_strstorage.c_str();
+		RETURN_EXTRACT_STRING(m_strstorage);
 	case TYPE_DATETIME:
 		ts_to_string(evt->get_ts(), &m_strstorage, true, true);
-		*len = m_strstorage.size();
-		return (uint8_t*)m_strstorage.c_str();
+		RETURN_EXTRACT_STRING(m_strstorage);
 	case TYPE_RAWTS:
-		return (uint8_t*)&evt->m_pevt->ts;
+		RETURN_EXTRACT_VAR(evt->m_pevt->ts);
 	case TYPE_RAWTS_S:
 		m_u64val = evt->get_ts() / ONE_SECOND_IN_NS;
-		return (uint8_t*)&m_u64val;
+		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_RAWTS_NS:
 		m_u64val = evt->get_ts() % ONE_SECOND_IN_NS;
-		return (uint8_t*)&m_u64val;
+		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_RELTS:
 		m_u64val = evt->get_ts() - m_inspector->m_firstevent_ts;
-		return (uint8_t*)&m_u64val;
+		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_RELTS_S:
 		m_u64val = (evt->get_ts() - m_inspector->m_firstevent_ts) / ONE_SECOND_IN_NS;
-		return (uint8_t*)&m_u64val;
+		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_RELTS_NS:
 		m_u64val = (evt->get_ts() - m_inspector->m_firstevent_ts) % ONE_SECOND_IN_NS;
-		return (uint8_t*)&m_u64val;
+		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_LATENCY:
 		{
 			m_u64val = 0;
@@ -2963,7 +2952,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				m_u64val = evt->m_tinfo->m_latency;
 			}
 
-			return (uint8_t*)&m_u64val;
+			RETURN_EXTRACT_VAR(m_u64val);
 		}
 	case TYPE_LATENCY_HUMAN:
 		{
@@ -2986,8 +2975,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				m_strstorage = m_converter->tostring_nice(NULL, 0, 1000000000);
 			}
 
-			*len = m_strstorage.size();
-			return (uint8_t*)m_strstorage.c_str();
+			RETURN_EXTRACT_STRING(m_strstorage);
 		}
 	case TYPE_LATENCY_S:
 	case TYPE_LATENCY_NS:
@@ -3014,7 +3002,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				}
 			}
 
-			return (uint8_t*)&m_u64val;
+			RETURN_EXTRACT_VAR(m_u64val);
 		}
 	case TYPE_LATENCY_QUANTIZED:
 		{
@@ -3038,7 +3026,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 					m_u64val = (uint64_t)(llatency * g_csysdig_screen_w / 11) + 1;
 
-					return (uint8_t*)&m_u64val;
+					RETURN_EXTRACT_VAR(m_u64val);
 				}
 			}
 
@@ -3073,7 +3061,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				m_u64val = tts;
 			}
 
-			return (uint8_t*)&m_tsdelta;
+			RETURN_EXTRACT_VAR(m_tsdelta);
 		}
 	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
 		{
@@ -3083,23 +3071,20 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			{
 				case 'h':
 					ts_to_string(evt->get_ts(), &m_strstorage, false, true);
-					*len = m_strstorage.size();
-					return (uint8_t*)m_strstorage.c_str();
+					RETURN_EXTRACT_STRING(m_strstorage);
 
 				case 'a':
 					m_strstorage += to_string(evt->get_ts() / ONE_SECOND_IN_NS);
 					m_strstorage += ".";
 					m_strstorage += to_string(evt->get_ts() % ONE_SECOND_IN_NS);
-					*len = m_strstorage.size();
-					return (uint8_t*) m_strstorage.c_str();
+					RETURN_EXTRACT_STRING(m_strstorage);
 
 				case 'r':
 					m_strstorage += to_string((evt->get_ts() - m_inspector->m_firstevent_ts) / ONE_SECOND_IN_NS);
 					m_strstorage += ".";
 					snprintf(timebuffer, sizeof(timebuffer), "%09llu", (evt->get_ts() - m_inspector->m_firstevent_ts) % ONE_SECOND_IN_NS);
 					m_strstorage += string(timebuffer);
-					*len = m_strstorage.size();
-					return (uint8_t*) m_strstorage.c_str();
+					RETURN_EXTRACT_STRING(m_strstorage);
 
 				case 'd':
 				{
@@ -3117,8 +3102,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 						m_strstorage = "0.000000000";
 					}
 
-					*len = m_strstorage.size();
-					return (uint8_t*) m_strstorage.c_str();
+					RETURN_EXTRACT_STRING(m_strstorage);
 				}
 
 				case 'D':
@@ -3137,20 +3121,17 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					m_tsdelta = (tts - m_u64val) % ONE_SECOND_IN_NS;
 
 					m_u64val = tts;
-					*len = m_strstorage.size();
-					return (uint8_t*) m_strstorage.c_str();
+					RETURN_EXTRACT_STRING(m_strstorage);
 			}
 		}
 	case TYPE_DIR:
 		if(PPME_IS_ENTER(evt->get_type()))
 		{
-			*len = 1;
-			return (uint8_t*)">";
+			RETURN_EXTRACT_CSTR(">");
 		}
 		else
 		{
-			*len = 1;
-			return (uint8_t*)"<";
+			RETURN_EXTRACT_CSTR("<");
 		}
 	case TYPE_TYPE:
 		{
@@ -3170,8 +3151,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				evname = (uint8_t*)evt->get_name();
 			}
 
-			*len = strlen((char *) evname);
-			return evname;
+			RETURN_EXTRACT_CSTR(evname);
 		}
 		break;
 	case TYPE_TYPE_IS:
@@ -3187,7 +3167,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				m_u32val = 0;
 			}
 
-			return (uint8_t*)&m_u32val;
+			RETURN_EXTRACT_VAR(m_u32val);
 		}
 		break;
 	case TYPE_SYSCALL_TYPE:
@@ -3215,8 +3195,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				evname = (uint8_t*)evt->get_name();
 			}
 
-			*len = strlen((char *) evname);
-			return evname;
+			RETURN_EXTRACT_CSTR(evname);
 		}
 		break;
 	case TYPE_CATEGORY:
@@ -3302,12 +3281,11 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			break;
 		}
 
-		*len = m_strstorage.size();
-		return (uint8_t*)m_strstorage.c_str();
+		RETURN_EXTRACT_STRING(m_strstorage);
 	case TYPE_NUMBER:
-		return (uint8_t*)&evt->m_evtnum;
+		RETURN_EXTRACT_VAR(evt->m_evtnum);
 	case TYPE_CPU:
-		return (uint8_t*)&evt->m_cpuid;
+		RETURN_EXTRACT_VAR(evt->m_cpuid);
 	case TYPE_ARGRAW:
 		return extract_argraw(evt, len, m_arginfo->name);
 		break;
@@ -3334,15 +3312,11 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			if(resolved_argstr != NULL && resolved_argstr[0] != 0)
 			{
-				*len = strlen(resolved_argstr);
-				return (uint8_t*)resolved_argstr;
+				RETURN_EXTRACT_CSTR(resolved_argstr);
 			}
 			else
-			{	if(argstr != NULL)
-				{
-					*len = strlen(argstr);
-				}
-				return (uint8_t*)argstr;
+			{
+				RETURN_EXTRACT_CSTR(argstr);
 			}
 		}
 		break;
@@ -3359,8 +3333,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				{
 					if((*it)->get_info_line(&il))
 					{
-						*len = strlen(il);
-						return (uint8_t*)il;
+						RETURN_EXTRACT_CSTR(il);
 					}
 				}
 			}
@@ -3376,8 +3349,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				//
 				// Don't print the arguments for generic events: they have only internal use
 				//
-				*len = 1;
-				return (uint8_t*)"";
+				RETURN_EXTRACT_CSTR("");
 			}
 
 			const char* resolved_argstr = NULL;
@@ -3407,8 +3379,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				}
 			}
 
-			*len = m_strstorage.size();
-			return (uint8_t*)m_strstorage.c_str();
+			RETURN_EXTRACT_STRING(m_strstorage);
 		}
 		break;
 	case TYPE_BUFFER:
@@ -3428,7 +3399,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_BUFLEN:
 		if(evt->m_fdinfo && evt->get_category() & EC_IO_BASE)
 		{
-			return extract_buflen(evt);
+			return extract_buflen(evt, len);
 		}
 		break;
 	case TYPE_RESRAW:
@@ -3470,8 +3441,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 				if(res >= 0)
 				{
-					*len = sizeof("SUCCESS");
-					return (uint8_t*)"SUCCESS";
+					RETURN_EXTRACT_CSTR("SUCCESS");
 				}
 				else
 				{
@@ -3480,13 +3450,11 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 					if(resolved_argstr != NULL && resolved_argstr[0] != 0)
 					{
-						*len = strlen(resolved_argstr);
-						return (uint8_t*)resolved_argstr;
+						RETURN_EXTRACT_CSTR(resolved_argstr);
 					}
 					else if(argstr != NULL)
 					{
-						*len = strlen(argstr);
-						return (uint8_t*)argstr;
+						RETURN_EXTRACT_CSTR(argstr);
 					}
 				}
 			}
@@ -3500,8 +3468,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 					if(res >= 0)
 					{
-						*len = sizeof("SUCCESS");
-						return (uint8_t*)"SUCCESS";
+						RETURN_EXTRACT_CSTR("SUCCESS");
 					}
 					else
 					{
@@ -3510,13 +3477,11 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 						if(resolved_argstr != NULL && resolved_argstr[0] != 0)
 						{
-							*len = strlen(resolved_argstr);
-							return (uint8_t*)resolved_argstr;
+							RETURN_EXTRACT_CSTR(resolved_argstr);
 						}
 						else if(argstr != NULL)
 						{
-							*len = strlen(argstr);
-							return (uint8_t*)argstr;
+							RETURN_EXTRACT_CSTR(argstr);
 						}
 					}
 				}
@@ -3552,7 +3517,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				}
 			}
 
-			return (uint8_t*)&m_u32val;
+			RETURN_EXTRACT_VAR(m_u32val);
 		}
 		break;
 	case TYPE_ISIO:
@@ -3568,7 +3533,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			}
 		}
 
-		return (uint8_t*)&m_u32val;
+		RETURN_EXTRACT_VAR(m_u32val);
 	case TYPE_ISIO_READ:
 		{
 			ppm_event_flags eflags = evt->get_info_flags();
@@ -3581,7 +3546,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				m_u32val = 0;
 			}
 
-			return (uint8_t*)&m_u32val;
+			RETURN_EXTRACT_VAR(m_u32val);
 		}
 	case TYPE_ISIO_WRITE:
 		{
@@ -3595,7 +3560,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				m_u32val = 0;
 			}
 
-			return (uint8_t*)&m_u32val;
+			RETURN_EXTRACT_VAR(m_u32val);
 		}
 	case TYPE_IODIR:
 		{
@@ -3613,8 +3578,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				return NULL;
 			}
 
-			*len = m_strstorage.size();
-			return (uint8_t*)m_strstorage.c_str();
+			RETURN_EXTRACT_STRING(m_strstorage);
 		}
 	case TYPE_ISWAIT:
 		{
@@ -3629,7 +3593,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			}
 		}
 
-		return (uint8_t*)&m_u32val;
+		RETURN_EXTRACT_VAR(m_u32val);
 	case TYPE_WAIT_LATENCY:
 		{
 			ppm_event_flags eflags = evt->get_info_flags();
@@ -3646,7 +3610,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					m_u64val = 0;
 				}
 
-				return (uint8_t*)&m_u64val;
+				RETURN_EXTRACT_VAR(m_u64val);
 			}
 			else
 			{
@@ -3671,11 +3635,11 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				}
 			}
 
-			return (uint8_t*)&m_u32val;
+			RETURN_EXTRACT_VAR(m_u32val);
 		}
 	case TYPE_COUNT:
 		m_u32val = 1;
-		return (uint8_t*)&m_u32val;
+		RETURN_EXTRACT_VAR(m_u32val);
 	case TYPE_COUNT_ERROR:
 		return extract_error_count(evt, len);
 	case TYPE_COUNT_ERROR_FILE:
@@ -3789,7 +3753,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		if(PPME_IS_EXIT(evt->get_type()))
 		{
 			m_u32val = 1;
-			return (uint8_t*)&m_u32val;
+			RETURN_EXTRACT_VAR(m_u32val);
 		}
 		else
 		{
@@ -3806,7 +3770,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				if(tinfo != NULL && tinfo->is_main_thread())
 				{
 					m_u32val = 1;
-					return (uint8_t*)&m_u32val;
+					RETURN_EXTRACT_VAR(m_u32val);
 				}
 			}
 		}
@@ -3819,7 +3783,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			if(etype == PPME_PROCINFO_E)
 			{
 				m_u32val = 1;
-				return (uint8_t*)&m_u32val;
+				RETURN_EXTRACT_VAR(m_u32val);
 			}
 		}
 
@@ -3829,14 +3793,14 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_BUFLEN_IN:
 		if(evt->m_fdinfo && evt->get_category() == EC_IO_READ)
 		{
-			return extract_buflen(evt);
+			return extract_buflen(evt, len);
 		}
 
 		break;
 	case TYPE_BUFLEN_OUT:
 		if(evt->m_fdinfo && evt->get_category() == EC_IO_WRITE)
 		{
-			return extract_buflen(evt);
+			return extract_buflen(evt, len);
 		}
 
 		break;
@@ -3845,7 +3809,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			if(evt->m_fdinfo->m_type == SCAP_FD_FILE || evt->m_fdinfo->m_type == SCAP_FD_FILE_V2)
 			{
-				return extract_buflen(evt);
+				return extract_buflen(evt, len);
 			}
 		}
 
@@ -3855,7 +3819,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			if(evt->m_fdinfo->m_type == SCAP_FD_FILE || evt->m_fdinfo->m_type == SCAP_FD_FILE_V2)
 			{
-				return extract_buflen(evt);
+				return extract_buflen(evt, len);
 			}
 		}
 
@@ -3865,7 +3829,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			if(evt->m_fdinfo->m_type == SCAP_FD_FILE || evt->m_fdinfo->m_type == SCAP_FD_FILE_V2)
 			{
-				return extract_buflen(evt);
+				return extract_buflen(evt, len);
 			}
 		}
 
@@ -3877,7 +3841,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			if(etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK)
 			{
-				return extract_buflen(evt);
+				return extract_buflen(evt, len);
 			}
 		}
 
@@ -3889,7 +3853,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			if(etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK)
 			{
-				return extract_buflen(evt);
+				return extract_buflen(evt, len);
 			}
 		}
 
@@ -3901,7 +3865,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			if(etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK)
 			{
-				return extract_buflen(evt);
+				return extract_buflen(evt, len);
 			}
 		}
 
@@ -3941,7 +3905,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				}
 			}
 
-			return (uint8_t*)&m_u32val;
+			RETURN_EXTRACT_VAR(m_u32val);
 		}
 		break;
 	case TYPE_INFRA_DOCKER_NAME:
@@ -3967,8 +3931,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 							vector<string> subelements = sinsp_split(e, ':');
 							ASSERT(subelements.size() == 2);
 							m_strstorage = trim(subelements[1]);
-							*len = m_strstorage.size();
-							return (uint8_t*)m_strstorage.c_str();
+							RETURN_EXTRACT_STRING(m_strstorage);
 						}
 					}
 					else if(m_field_id == TYPE_INFRA_DOCKER_CONTAINER_ID)
@@ -3978,8 +3941,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 							vector<string> subelements = sinsp_split(e, ':');
 							ASSERT(subelements.size() == 2);
 							m_strstorage = trim(subelements[1]);
-							*len = m_strstorage.size();
-							return (uint8_t*)m_strstorage.c_str();
+							RETURN_EXTRACT_STRING(m_strstorage);
 						}
 					}
 					else if(m_field_id == TYPE_INFRA_DOCKER_CONTAINER_NAME)
@@ -3989,8 +3951,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 							vector<string> subelements = sinsp_split(e, ':');
 							ASSERT(subelements.size() == 2);
 							m_strstorage = trim(subelements[1]);
-							*len = m_strstorage.size();
-							return (uint8_t*)m_strstorage.c_str();
+							RETURN_EXTRACT_STRING(m_strstorage);
 						}
 					}
 					else if(m_field_id == TYPE_INFRA_DOCKER_CONTAINER_IMAGE)
@@ -4000,8 +3961,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 							vector<string> subelements = sinsp_split(e, ':');
 							ASSERT(subelements.size() == 2);
 							m_strstorage = trim(subelements[1]);
-							*len = m_strstorage.size();
-							return (uint8_t*)m_strstorage.c_str();
+							RETURN_EXTRACT_STRING(m_strstorage);
 						}
 					}
 				}
@@ -4093,6 +4053,7 @@ sinsp_filter_check* sinsp_filter_check_user::allocate_new()
 
 uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
+	*len = 0;
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 	scap_userinfo* uinfo;
 
@@ -4126,16 +4087,13 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, boo
 	switch(m_field_id)
 	{
 	case TYPE_UID:
-		return (uint8_t*)&tinfo->m_uid;
+		RETURN_EXTRACT_VAR(tinfo->m_uid);
 	case TYPE_NAME:
-		*len = strlen(uinfo->name);
-		return (uint8_t*)uinfo->name;
+		RETURN_EXTRACT_CSTR(uinfo->name);
 	case TYPE_HOMEDIR:
-		*len = strlen(uinfo->homedir);
-		return (uint8_t*)uinfo->homedir;
+		RETURN_EXTRACT_CSTR(uinfo->homedir);
 	case TYPE_SHELL:
-		*len = strlen(uinfo->shell);
-		return (uint8_t*) uinfo->shell;
+		RETURN_EXTRACT_CSTR(uinfo->shell);
 	default:
 		ASSERT(false);
 		break;
@@ -4168,6 +4126,7 @@ sinsp_filter_check* sinsp_filter_check_group::allocate_new()
 
 uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
+	*len = 0;
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 
 	if(tinfo == NULL)
@@ -4178,7 +4137,7 @@ uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	switch(m_field_id)
 	{
 	case TYPE_GID:
-		return (uint8_t*)&tinfo->m_gid;
+		RETURN_EXTRACT_VAR(tinfo->m_gid);
 	case TYPE_NAME:
 		{
 			unordered_map<uint32_t, scap_groupinfo*>::iterator it;
@@ -4203,8 +4162,7 @@ uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			scap_groupinfo* ginfo = it->second;
 			ASSERT(ginfo != NULL);
 
-			*len = strlen(ginfo->name);
-			return (uint8_t*)ginfo->name;
+			RETURN_EXTRACT_CSTR(ginfo->name);
 		}
 	default:
 		ASSERT(false);
@@ -4406,7 +4364,7 @@ int32_t sinsp_filter_check_tracer::parse_field_name(const char* str, bool alloc_
 	return res;
 }
 
-int64_t* sinsp_filter_check_tracer::extract_duration(uint16_t etype, sinsp_tracerparser* eparser)
+uint8_t* sinsp_filter_check_tracer::extract_duration(uint16_t etype, sinsp_tracerparser* eparser, OUT uint32_t* len)
 {
 	if(etype == PPME_TRACER_X)
 	{
@@ -4423,7 +4381,7 @@ int64_t* sinsp_filter_check_tracer::extract_duration(uint16_t etype, sinsp_trace
 			m_s64val = 0;
 		}
 
-		return &m_s64val;
+		RETURN_EXTRACT_VAR(m_s64val);
 	}
 	else
 	{
@@ -4478,8 +4436,7 @@ uint8_t* sinsp_filter_check_tracer::extract_args(sinsp_partial_tracer* pae, OUT 
 		*p = 0;
 	}
 
-	*len = strlen(m_storage);
-	return (uint8_t*)m_storage;
+	RETURN_EXTRACT_CSTR(m_storage);
 }
 
 uint8_t* sinsp_filter_check_tracer::extract_arg(sinsp_partial_tracer* pae, OUT uint32_t* len)
@@ -4541,6 +4498,7 @@ uint8_t* sinsp_filter_check_tracer::extract_arg(sinsp_partial_tracer* pae, OUT u
 
 uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
+	*len = 0;
 	sinsp_tracerparser* eparser;
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 	uint16_t etype = evt->get_type();
@@ -4571,16 +4529,15 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	switch(m_field_id)
 	{
 	case TYPE_ID:
-		return (uint8_t*)&eparser->m_id;
+		RETURN_EXTRACT_VAR(eparser->m_id);
 	case TYPE_TIME:
 		{
 			ts_to_string(evt->get_ts(), &m_strstorage, false, true);
-			*len = m_strstorage.size();
-			return (uint8_t*)m_strstorage.c_str();
+			RETURN_EXTRACT_STRING(m_strstorage);
 		}
 	case TYPE_NTAGS:
 		m_u32val = (uint32_t)eparser->m_tags.size();
-		return (uint8_t*)&m_u32val;
+		RETURN_EXTRACT_VAR(m_u32val);
 	case TYPE_NARGS:
 		{
 			sinsp_partial_tracer* pae = eparser->m_enter_pae;
@@ -4590,7 +4547,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			}
 
 			m_u32val = (uint32_t)pae->m_argvals.size();
-			return (uint8_t*)&m_u32val;
+			RETURN_EXTRACT_VAR(m_u32val);
 		}
 	case TYPE_TAGS:
 		{
@@ -4625,8 +4582,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				*p = 0;
 			}
 
-			*len = strlen(m_storage);
-			return (uint8_t*)m_storage;
+			RETURN_EXTRACT_CSTR(m_storage);
 		}
 	case TYPE_TAG:
 		{
@@ -4649,11 +4605,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				}
 			}
 
-			if(res)
-			{
-				*len = strlen(res);
-			}
-			return (uint8_t*)res;
+			RETURN_EXTRACT_CSTR(res);
 		}
 	case TYPE_IDTAG:
 		{
@@ -4676,8 +4628,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				}
 			}
 
-			*len = m_strstorage.size();
-			return (uint8_t*)m_strstorage.c_str();
+			RETURN_EXTRACT_STRING(m_strstorage);
 		}
 	case TYPE_ARGS:
 		if(PPME_IS_ENTER(etype))
@@ -4702,10 +4653,10 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_ENTERARG:
 		return extract_arg(eparser->m_enter_pae, len);
 	case TYPE_DURATION:
-		return (uint8_t*)extract_duration(etype, eparser);
+		return (uint8_t*)extract_duration(etype, eparser, len);
 	case TYPE_DURATION_HUMAN:
 		{
-			if(extract_duration(etype, eparser) == NULL)
+			if(extract_duration(etype, eparser, len) == NULL)
 			{
 				return NULL;
 			}
@@ -4720,12 +4671,11 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				m_strstorage = m_converter->tostring_nice(NULL, 0, 1000000000);
 			}
 
-			*len = m_strstorage.size();
-			return (uint8_t*)m_strstorage.c_str();
+			RETURN_EXTRACT_STRING(m_strstorage);
 		}
 	case TYPE_DURATION_QUANTIZED:
 		{
-			if(extract_duration(etype, eparser) == NULL)
+			if(extract_duration(etype, eparser, len) == NULL)
 			{
 				return NULL;
 			}
@@ -4743,7 +4693,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 
 					m_s64val = (uint64_t)(lduration * g_csysdig_screen_w / 11) + 1;
 
-					return (uint8_t*)&m_s64val;
+					RETURN_EXTRACT_VAR(m_s64val);
 				}
 			}
 
@@ -4752,7 +4702,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_TAGDURATION:
 		if((int32_t)eparser->m_tags.size() - 1 == m_argid)
 		{
-			return (uint8_t*)extract_duration(etype, eparser);
+			return (uint8_t*)extract_duration(etype, eparser, len);
 		}
 		else
 		{
@@ -4768,7 +4718,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			m_s64val = 0;
 		}
 
-		return (uint8_t*)&m_s64val;
+		RETURN_EXTRACT_VAR(m_s64val);
 	case TYPE_TAGCOUNT:
 		if(PPME_IS_EXIT(evt->get_type()) && (int32_t)eparser->m_tags.size() - 1 == m_argid)
 		{
@@ -4779,7 +4729,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			m_s64val = 0;
 		}
 
-		return (uint8_t*)&m_s64val;
+		RETURN_EXTRACT_VAR(m_s64val);
 	case TYPE_TAGCHILDSCOUNT:
 		if(PPME_IS_EXIT(evt->get_type()) && (int32_t)eparser->m_tags.size() > m_argid + 1)
 		{
@@ -4790,12 +4740,11 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			m_s64val = 0;
 		}
 
-		return (uint8_t*)&m_s64val;
+		RETURN_EXTRACT_VAR(m_s64val);
 	case TYPE_RAWTIME:
 		{
 			m_strstorage = to_string(eparser->m_enter_pae->m_time);
-			*len = m_strstorage.size();
-			return (uint8_t*)m_strstorage.c_str();
+			RETURN_EXTRACT_STRING(m_strstorage);
 		}
 	case TYPE_RAWPARENTTIME:
 		{
@@ -4807,8 +4756,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			}
 
 			m_strstorage = to_string(pepae->m_time);
-			*len = m_strstorage.size();
-			return (uint8_t*)m_strstorage.c_str();
+			RETURN_EXTRACT_STRING(m_strstorage);
 		}
 	default:
 		ASSERT(false);
@@ -5078,13 +5026,13 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 	switch(field_id)
 	{
 	case TYPE_ID:
-		return (uint8_t*)&pae->m_id;
+		RETURN_EXTRACT_VAR(pae->m_id);
 	case TYPE_NTAGS:
 		m_u32val = (uint32_t)pae->m_tags.size();
-		return (uint8_t*)&m_u32val;
+		RETURN_EXTRACT_VAR(m_u32val);
 	case TYPE_NARGS:
 		m_u32val = (uint32_t)pae->m_argvals.size();
-		return (uint8_t*)&m_u32val;
+		RETURN_EXTRACT_VAR(m_u32val);
 	case TYPE_TAGS:
 	{
 		vector<char*>::iterator it;
@@ -5117,8 +5065,7 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 			*p = 0;
 		}
 
-		*len = strlen(m_storage);
-		return (uint8_t*)m_storage;
+		RETURN_EXTRACT_CSTR(m_storage);
 	}
 	case TYPE_TAG:
 	{
@@ -5141,11 +5088,7 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 			}
 		}
 
-		if(val)
-		{
-			*len = strlen(val);
-		}
-		return (uint8_t*) val;
+		RETURN_EXTRACT_CSTR(val);
 	}
 	case TYPE_ARGS:
 	{
@@ -5189,8 +5132,7 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 			*p = 0;
 		}
 
-		*len = strlen(m_storage);
-		return (uint8_t*)m_storage;
+		RETURN_EXTRACT_CSTR(m_storage);
 	}
 	case TYPE_ARG:
 	{
@@ -5237,11 +5179,7 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 			}
 		}
 
-		if(val)
-		{
-			*len = strlen(val);
-		}
-		return (uint8_t*) val;
+		RETURN_EXTRACT_CSTR(val);
 	}
 	default:
 		ASSERT(false);
@@ -5253,6 +5191,7 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 
 uint8_t* sinsp_filter_check_evtin::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
+	*len = 0;
 	list<sinsp_partial_tracer*>* partial_tracers_list = &m_inspector->m_partial_tracers_list;
 	list<sinsp_partial_tracer*>::iterator it;
 	uint16_t etype = evt->get_type();
@@ -5458,6 +5397,7 @@ int32_t sinsp_filter_check_syslog::parse_field_name(const char* str, bool alloc_
 
 uint8_t* sinsp_filter_check_syslog::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
+	*len = 0;
 	const char *str;
 	ASSERT(m_decoder != NULL);
 	if(!m_decoder->is_data_valid())
@@ -5468,26 +5408,17 @@ uint8_t* sinsp_filter_check_syslog::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	switch(m_field_id)
 	{
 	case TYPE_FACILITY:
-		return (uint8_t*)&m_decoder->m_facility;
+		RETURN_EXTRACT_VAR(m_decoder->m_facility);
 	case TYPE_FACILITY_STR:
 		str = m_decoder->get_facility_str();
-		if(str)
-		{
-			*len = strlen(str);
-		}
-		return (uint8_t*)str;
+		RETURN_EXTRACT_CSTR(str);
 	case TYPE_SEVERITY:
-		return (uint8_t*)&m_decoder->m_severity;
+		RETURN_EXTRACT_VAR(m_decoder->m_severity);
 	case TYPE_SEVERITY_STR:
 		str = m_decoder->get_severity_str();
-		if(str)
-		{
-			*len = strlen(str);
-		}
-		return (uint8_t*)str;
+		RETURN_EXTRACT_CSTR(str);
 	case TYPE_MESSAGE:
-		*len = m_decoder->m_msg.size();
-		return (uint8_t*)m_decoder->m_msg.c_str();
+		RETURN_EXTRACT_STRING(m_decoder->m_msg);
 	default:
 		ASSERT(false);
 		return NULL;
@@ -5618,6 +5549,7 @@ int32_t sinsp_filter_check_container::parse_field_name(const char* str, bool all
 
 uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
+	*len = 0;
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
 	if(tinfo == NULL)
 	{
@@ -5636,8 +5568,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			m_tstr = tinfo->m_container_id;
 		}
 
-		*len = m_tstr.size();
-		return (uint8_t*)m_tstr.c_str();
+		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_CONTAINER_NAME:
 		if(tinfo->m_container_id.empty())
 		{
@@ -5660,8 +5591,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			m_tstr = container_info.m_name;
 		}
 
-		*len = m_tstr.size();
-		return (uint8_t*)m_tstr.c_str();
+		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_CONTAINER_IMAGE:
 		if(tinfo->m_container_id.empty())
 		{
@@ -5684,8 +5614,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			m_tstr = container_info.m_image;
 		}
 
-		*len = m_tstr.size();
-		return (uint8_t*)m_tstr.c_str();
+		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_CONTAINER_IMAGE_ID:
 		if(tinfo->m_container_id.empty())
 		{
@@ -5708,8 +5637,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			m_tstr = container_info.m_imageid;
 		}
 
-		*len = m_tstr.size();
-		return (uint8_t*)m_tstr.c_str();
+		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_CONTAINER_TYPE:
 		if(tinfo->m_container_id.empty())
 		{
@@ -5745,8 +5673,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 				break;
 			}
 		}
-		*len = m_tstr.size();
-		return (uint8_t*)m_tstr.c_str();
+		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_CONTAINER_PRIVILEGED:
 		if(tinfo->m_container_id.empty())
 		{
@@ -5772,7 +5699,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			m_u32val = (container_info.m_privileged ? 1 : 0);
 		}
 
-		return (uint8_t*)&m_u32val;
+		RETURN_EXTRACT_VAR(m_u32val);
 		break;
 	case TYPE_CONTAINER_MOUNTS:
 		if(tinfo->m_container_id.empty())
@@ -5804,8 +5731,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 				m_tstr += mntinfo.to_string();
 			}
 
-			*len = m_tstr.size();
-			return (uint8_t*)m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 
 		break;
@@ -5844,8 +5770,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 				m_tstr = mntinfo->to_string();
 			}
 
-			*len = m_tstr.size();
-			return (uint8_t*)m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 
 		break;
@@ -5910,8 +5835,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 				break;
 			}
 
-			*len = m_tstr.size();
-			return (uint8_t*)m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 
@@ -6322,11 +6246,12 @@ sinsp_filter_check* sinsp_filter_check_utils::allocate_new()
 
 uint8_t* sinsp_filter_check_utils::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
+	*len = 0;
 	switch(m_field_id)
 	{
 	case TYPE_CNT:
 		m_cnt++;
-		return (uint8_t*)&m_cnt;
+		RETURN_EXTRACT_VAR(m_cnt);
 	default:
 		ASSERT(false);
 		break;
@@ -6363,6 +6288,7 @@ sinsp_filter_check* sinsp_filter_check_fdlist::allocate_new()
 
 uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
+	*len = 0;
 	ASSERT(evt);
 	sinsp_evt_param *parinfo;
 
@@ -6532,8 +6458,7 @@ uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			m_strval = m_strval.substr(0, m_strval.size() - 1);
 		}
 
-		*len = m_strval.size();
-		return (uint8_t*)m_strval.c_str();
+		RETURN_EXTRACT_STRING(m_strval);
 	}
 	else
 	{
@@ -6790,6 +6715,7 @@ bool sinsp_filter_check_k8s::find_label(const k8s_pair_list& labels, const strin
 
 uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
+	*len = 0;
 	if(m_inspector->m_k8s_client == NULL)
 	{
 		return NULL;
@@ -6820,26 +6746,22 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 	{
 	case TYPE_K8S_POD_NAME:
 		m_tstr = pod->get_name();
-		*len = m_tstr.size();
-		return (uint8_t*) m_tstr.c_str();
+		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_K8S_POD_ID:
 		m_tstr = pod->get_uid();
-		*len = m_tstr.size();
-		return (uint8_t*) m_tstr.c_str();
+		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_K8S_POD_LABEL:
 	{
 		if(find_label(pod->get_labels(), m_argname, &m_tstr))
 		{
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
 	case TYPE_K8S_POD_LABELS:
 	{
 		concatenate_labels(pod->get_labels(), &m_tstr);
-		*len = m_tstr.size();
-		return (uint8_t*) m_tstr.c_str();
+		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_K8S_RC_NAME:
 	{
@@ -6847,8 +6769,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		if(rc != NULL)
 		{
 			m_tstr = rc->get_name();
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
@@ -6858,8 +6779,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		if(rc != NULL)
 		{
 			m_tstr = rc->get_uid();
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
@@ -6870,8 +6790,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		{
 			if(find_label(rc->get_labels(), m_argname, &m_tstr))
 			{
-				*len = m_tstr.size();
-				return (uint8_t*) m_tstr.c_str();
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
 		}
 		break;
@@ -6882,8 +6801,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		if(rc != NULL)
 		{
 			concatenate_labels(rc->get_labels(), &m_tstr);
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
@@ -6893,8 +6811,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		if(rs != NULL)
 		{
 			m_tstr = rs->get_name();
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
@@ -6904,8 +6821,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		if(rs != NULL)
 		{
 			m_tstr = rs->get_uid();
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
@@ -6916,8 +6832,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		{
 			if(find_label(rs->get_labels(), m_argname, &m_tstr))
 			{
-				*len = m_tstr.size();
-				return (uint8_t*) m_tstr.c_str();
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
 		}
 		break;
@@ -6928,8 +6843,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		if(rs != NULL)
 		{
 			concatenate_labels(rs->get_labels(), &m_tstr);
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
@@ -6948,8 +6862,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 				m_tstr.append(service->get_name());
 			}
 
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
@@ -6968,8 +6881,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 				m_tstr.append(service->get_uid());
 			}
 
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
@@ -6994,8 +6906,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 
 			if(!m_tstr.empty())
 			{
-				*len = m_tstr.size();
-				return (uint8_t*) m_tstr.c_str();
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
 		}
 		break;
@@ -7010,16 +6921,14 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 				concatenate_labels(service->get_labels(), &m_tstr);
 			}
 
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
 	case TYPE_K8S_NS_NAME:
 	{
 		m_tstr = pod->get_namespace();
-		*len = m_tstr.size();
-		return (uint8_t*) m_tstr.c_str();
+		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_K8S_NS_ID:
 	{
@@ -7027,8 +6936,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		if(ns != NULL)
 		{
 			m_tstr = ns->get_uid();
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
@@ -7039,8 +6947,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		{
 			if(find_label(ns->get_labels(), m_argname, &m_tstr))
 			{
-				*len = m_tstr.size();
-				return (uint8_t*) m_tstr.c_str();
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
 		}
 		break;
@@ -7051,8 +6958,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		if(ns != NULL)
 		{
 			concatenate_labels(ns->get_labels(), &m_tstr);
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
@@ -7062,8 +6968,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		if(deployment != NULL)
 		{
 			m_tstr = deployment->get_name();
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
@@ -7073,8 +6978,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		if(deployment != NULL)
 		{
 			m_tstr = deployment->get_uid();
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
@@ -7085,8 +6989,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		{
 			if(find_label(deployment->get_labels(), m_argname, &m_tstr))
 			{
-				*len = m_tstr.size();
-				return (uint8_t*) m_tstr.c_str();
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
 		}
 		break;
@@ -7097,8 +7000,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		if(deployment != NULL)
 		{
 			concatenate_labels(deployment->get_labels(), &m_tstr);
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
@@ -7288,6 +7190,7 @@ bool sinsp_filter_check_mesos::find_label(const mesos_pair_list& labels, const s
 
 uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
+	*len = 0;
 	if(!m_inspector || !m_inspector->m_mesos_client)
 	{
 		return NULL;
@@ -7317,31 +7220,26 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	{
 	case TYPE_MESOS_TASK_NAME:
 		m_tstr = task->get_name();
-		*len = m_tstr.size();
-		return (uint8_t*) m_tstr.c_str();
+		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_MESOS_TASK_ID:
 		m_tstr = task->get_uid();
-		*len = m_tstr.size();
-		return (uint8_t*) m_tstr.c_str();
+		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_MESOS_TASK_LABEL:
 		if(find_label(task->get_labels(), m_argname, &m_tstr))
 		{
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	case TYPE_MESOS_TASK_LABELS:
 		concatenate_labels(task->get_labels(), &m_tstr);
-		*len = m_tstr.size();
-		return (uint8_t*) m_tstr.c_str();
+		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_MESOS_FRAMEWORK_NAME:
 	{
 		const mesos_framework* fw = find_framework_by_task(task);
 		if(fw)
 		{
 			m_tstr = fw->get_name();
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
@@ -7351,8 +7249,7 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		if(fw)
 		{
 			m_tstr = fw->get_uid();
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
@@ -7362,8 +7259,7 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		if(app != NULL)
 		{
 			m_tstr = app->get_name();
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
@@ -7373,8 +7269,7 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		if(app != NULL)
 		{
 			m_tstr = app->get_id();
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 
 		break;
@@ -7384,8 +7279,7 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		marathon_app::ptr_t app = find_app_by_task(task);
 		if(app && find_label(app->get_labels(), m_argname, &m_tstr))
 		{
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 
 		break;
@@ -7396,8 +7290,7 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		if(app)
 		{
 			concatenate_labels(app->get_labels(), &m_tstr);
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
@@ -7407,8 +7300,7 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		if(app)
 		{
 			m_tstr = app->get_group_id();
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}
@@ -7418,8 +7310,7 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		if(app)
 		{
 			m_tstr = app->get_group_id();
-			*len = m_tstr.size();
-			return (uint8_t*) m_tstr.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	}

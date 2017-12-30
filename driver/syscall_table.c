@@ -831,6 +831,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_access
 	[__NR_access - SYSCALL_TABLE_ID0] = PPM_SC_ACCESS,
 #endif
+#ifdef __NR_finit_module
+	[__NR_finit_module - SYSCALL_TABLE_ID0] = PPM_SC_FINIT_MODULE,
+#endif
 };
 
 #ifdef CONFIG_IA32_EMULATION
@@ -1588,6 +1591,9 @@ const enum ppm_syscall_code g_syscall_ia32_code_routing_table[SYSCALL_TABLE_SIZE
 #endif
 #ifdef __NR_ia32_getresgid32
 	[__NR_ia32_getresgid32 - SYSCALL_TABLE_ID0] = PPM_SC_GETRESGID32,
+#endif
+#ifdef __NR_ia32_finit_module
+	[__NR_ia32_finit_module - SYSCALL_TABLE_ID0] = PPM_SC_FINIT_MODULE,
 #endif
 };
 

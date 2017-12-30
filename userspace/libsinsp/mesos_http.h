@@ -75,7 +75,7 @@ protected:
 
 	callback_func_t get_parse_func();
 	std::string make_request(uri url, curl_version_info_data* m_curl_version = 0);
-	static json_ptr_t try_parse(const std::string& json);
+	static json_ptr_t try_parse(const std::string& json, const std::string &uri);
 	static bool is_framework_active(const Json::Value& framework);
 	std::string get_framework_url(const Json::Value& framework);
 
@@ -159,7 +159,7 @@ inline mesos_http::callback_func_t mesos_http::get_parse_func()
 	return m_callback_func;
 }
 
-inline mesos_http::json_ptr_t mesos_http::try_parse(const std::string& json)
+inline mesos_http::json_ptr_t mesos_http::try_parse(const std::string& json, const std::string &uri)
 {
 	json_ptr_t root(new Json::Value());
 	try
@@ -168,11 +168,18 @@ inline mesos_http::json_ptr_t mesos_http::try_parse(const std::string& json)
 		{
 			return root;
 		}
+		else
+		{
+			std::string errstr;
+			errstr = Json::Reader().getFormattedErrorMessages();
+			g_logger.log("mesos_http::try_parse could not parse json (" + errstr + ")", sinsp_logger::SEV_WARNING);
+			g_json_error_log.log(json, errstr, sinsp_utils::get_current_time_ns(), uri);
+		}
 	}
 	catch(const Json::Exception &e)
 	{
 		g_logger.log("Could not parse JSON document: " + string(e.what()), sinsp_logger::SEV_WARNING);
-		g_json_error_log.log(json, e.what());
+		g_json_error_log.log(json, e.what(), sinsp_utils::get_current_time_ns(), uri);
 	}
 	catch(...) { }
 	return nullptr;
@@ -222,7 +229,7 @@ class mesos_http
 {
 public:
 	typedef std::shared_ptr<Json::Value> json_ptr_t;
-	static json_ptr_t try_parse(const std::string& json)
+	static json_ptr_t try_parse(const std::string& json, const std::string &uri)
 	{
 		json_ptr_t root(new Json::Value());
 		try

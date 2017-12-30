@@ -127,8 +127,9 @@ void mesos_collector::get_data()
 					res = select(m_nfds + 1, &m_infd, NULL, &m_errfd, &tv);
 					if(res < 0) // error
 					{
-						std::string err = strerror(errno);
-						g_logger.log("Mesos collector select error, removing all sockets (" + err + ')', sinsp_logger::SEV_ERROR);
+						std::string err = std::string("Mesos collector select error, removing all sockets (") + strerror(errno) + ")";
+						g_logger.log(err, sinsp_logger::SEV_ERROR);
+						g_json_error_log.log("", err, sinsp_utils::get_current_time_ns(), "mesos-collector-get-data");
 						remove_all();
 					}
 					else // data or idle
@@ -144,11 +145,15 @@ void mesos_collector::get_data()
 										std::string fid = it->second->get_framework_id();
 										if(!fid.empty())
 										{
-											g_logger.log("Mesos collector data handling error, removing Marathon socket for framework [" + fid + ']', sinsp_logger::SEV_ERROR);
+											std::string errstr = "Mesos collector data handling error, removing Marathon socket for framework [" + fid + ']';
+											g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+											g_json_error_log.log("", errstr, sinsp_utils::get_current_time_ns(), "mesos-collector-get-data");
 										}
 										else
 										{
-											g_logger.log("Mesos collector data handling error, removing Mesos state socket.", sinsp_logger::SEV_ERROR);
+											std::string errstr = "Mesos collector data handling error, removing Mesos state socket.";
+											g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+											g_json_error_log.log("", errstr, sinsp_utils::get_current_time_ns(), "mesos-collector-get-data");
 										}
 										remove(it);
 										continue;
@@ -164,21 +169,26 @@ void mesos_collector::get_data()
 							{
 								if(errno != EAGAIN)
 								{
-									std::string err = strerror(errno);
-									g_logger.log(err, sinsp_logger::SEV_ERROR);
+									std::string errstr = std::string("Mesos collector select errfd: ") + strerror(errno);
+									g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+									g_json_error_log.log("", errstr, sinsp_utils::get_current_time_ns(), "mesos-collector-get-data");
 									std::string fid;
 									if(it->second)
 									{
-										it->second->on_error(err, true);
+										it->second->on_error(errstr, true);
 										fid = it->second->get_framework_id();
 									}
 									if(!fid.empty())
 									{
-										g_logger.log("Mesos collector socket error, removing Marathon socket for framework [" + fid + ']', sinsp_logger::SEV_ERROR);
+										std::string errstr = "Mesos collector socket error, removing Marathon socket for framework [" + fid + ']';
+										g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+										g_json_error_log.log("", errstr, sinsp_utils::get_current_time_ns(), "mesos-collector-get-data");
 									}
 									else
 									{
-										g_logger.log("Mesos collector socket error, removing Mesos state socket.", sinsp_logger::SEV_ERROR);
+										std::string errstr = "Mesos collector socket error, removing Mesos state socket.";
+										g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+										g_json_error_log.log("", errstr, sinsp_utils::get_current_time_ns(), "mesos-collector-get-data");
 									}
 									remove(it);
 									continue;
@@ -194,7 +204,9 @@ void mesos_collector::get_data()
 				}
 				else
 				{
-					g_logger.log("Mesos collector is empty. Stopping.", sinsp_logger::SEV_ERROR);
+					std::string errstr = "Mesos collector is empty. Stopping.";
+					g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+					g_json_error_log.log("", errstr, sinsp_utils::get_current_time_ns(), "mesos-collector-get-data");
 					m_stopped = true;
 					return;
 				}
@@ -207,7 +219,9 @@ void mesos_collector::get_data()
 	}
 	catch(std::exception& ex)
 	{
-		g_logger.log(std::string("Mesos collector error: ") + ex.what(), sinsp_logger::SEV_ERROR);
+		std::string errstr = std::string("Mesos collector error: ") + ex.what();
+		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+		g_json_error_log.log("", errstr, sinsp_utils::get_current_time_ns(), "mesos-collector-get-data");
 		remove_all();
 		m_stopped = true;
 	}

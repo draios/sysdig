@@ -1586,7 +1586,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		enum ppm_event_type tet;
 
 		args.is_socketcall = true;
-		args.compat = true;
+		args.compat = event_datap->compat;
 		tet = parse_socketcall(&args, event_datap->event_info.syscall_data.regs);
 
 		if (event_type == PPME_GENERIC_E)
@@ -2459,7 +2459,13 @@ int sysdig_init(void)
 
 init_module_err:
 	for (j = 0; j < n_created_devices; ++j) {
-		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		device_destroy(
+#else
+		class_device_destroy(
+#endif
+				g_ppm_class, g_ppm_devs[j].dev);
+
 		cdev_del(&g_ppm_devs[j].cdev);
 	}
 
@@ -2481,7 +2487,12 @@ void sysdig_exit(void)
 	pr_info("driver unloading\n");
 
 	for (j = 0; j < g_ppm_numdevs; ++j) {
-		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		device_destroy(
+#else
+		class_device_destroy(
+#endif
+				g_ppm_class, g_ppm_devs[j].dev);
 		cdev_del(&g_ppm_devs[j].cdev);
 	}
 

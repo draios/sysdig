@@ -580,7 +580,7 @@ scap_t* scap_open(scap_open_args args, char *error)
 									  args.proc_callback_context,
 									  args.import_users);
 	default:
-		snprintf(error,	SCAP_LASTERR_SIZE, "scap_open: unsupported args.mode argument");
+		snprintf(error, SCAP_LASTERR_SIZE, "incorrect mode %d", args.mode);
 		return NULL;
 	}
 }
@@ -1439,12 +1439,15 @@ int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 const char* scap_get_host_root()
 {
 	char* p = getenv("SYSDIG_HOST_ROOT");
-	if(!p)
-	{
-		p = "";
+	static char env_str[SCAP_MAX_PATH_SIZE + 1];
+	static bool inited = false;
+	if (! inited) {
+		strncpy(env_str, p ? p : "", SCAP_MAX_PATH_SIZE);
+		env_str[SCAP_MAX_PATH_SIZE] = '\0';
+		inited = true;
 	}
 
-	return p;
+	return env_str;
 }
 
 bool alloc_proclist_info(scap_t* handle, uint32_t n_entries)
@@ -1568,6 +1571,8 @@ int32_t scap_enable_simpledriver_mode(scap_t* handle)
 
 int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 {
+	int ioctl_ret = 0;
+
 	//
 	// Not supported on files
 	//
@@ -1582,9 +1587,17 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 	return SCAP_FAILURE;
 #else
 
-	if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_N_TRACEPOINT_HIT, ret))
+	ioctl_ret = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_N_TRACEPOINT_HIT, ret);
+	if(ioctl_ret != 0)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_get_n_tracepoint_hit failed");
+		if (errno == ENOTTY)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_get_n_tracepoint_hit failed, ioctl not supported");
+		}
+		else
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_get_n_tracepoint_hit failed (%s)", strerror(errno));
+		}
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}

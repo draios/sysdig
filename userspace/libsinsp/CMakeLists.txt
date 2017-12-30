@@ -75,6 +75,7 @@ add_library(sinsp STATIC
 	sinsp.cpp
 	stats.cpp
 	table.cpp
+	token_bucket.cpp
 	sinsp_auth.cpp
 	sinsp_curl.cpp
 	stopwatch.cpp

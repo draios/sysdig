@@ -98,7 +98,7 @@ bool sinsp_container_manager::remove_inactive_containers()
 	}
 
 	if(m_inspector->m_lastevent_ts >
-		m_last_flush_time_ns + m_inspector->m_inactive_thread_scan_time_ns)
+		m_last_flush_time_ns + m_inspector->m_inactive_container_scan_time_ns)
 	{
 		res = true;
 
@@ -362,15 +362,20 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		pos = cgroup.find("/mesos/");
 		if(pos != string::npos)
 		{
-			container_info.m_type = CT_MESOS;
-			container_info.m_id = cgroup.substr(pos + sizeof("/mesos/") - 1);
-			// Consider a mesos container valid only if we find the mesos_task_id
-			// this will exclude from the container itself the mesos-executor
-			// but makes sure that we have task_id parsed properly. Otherwise what happens
-			// is that we'll create a mesos container struct without a mesos_task_id
-			// and for all other processes we'll use it
-			valid_id = set_mesos_task_id(&container_info, tinfo);
-			break;
+			// It should match `/mesos/a9f41620-b165-4d24-abe0-af0af92e7b20`
+			auto id = cgroup.substr(pos + sizeof("/mesos/") - 1);
+			if(id.size() == 36 && id.find_first_not_of("0123456789abcdefABCDEF-") == string::npos)
+			{
+				container_info.m_type = CT_MESOS;
+				container_info.m_id = move(id);
+				// Consider a mesos container valid only if we find the mesos_task_id
+				// this will exclude from the container itself the mesos-executor
+				// but makes sure that we have task_id parsed properly. Otherwise what happens
+				// is that we'll create a mesos container struct without a mesos_task_id
+				// and for all other processes we'll use it
+				valid_id = set_mesos_task_id(&container_info, tinfo);
+				break;
+			}
 		}
 
 		//
@@ -559,7 +564,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 					ASSERT(false);
 			}
 
-			add_container(container_info);
+			add_container(container_info, tinfo);
 			if(container_to_sinsp_event(container_to_json(container_info), &m_inspector->m_meta_evt))
 			{
 				m_inspector->m_meta_evt_pending = true;
@@ -644,7 +649,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 }
 
 #ifndef _WIN32
-bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
+sinsp_docker_response sinsp_container_manager::get_docker(const string& api_version, const string& container_id, string& json)
 {
 #ifndef CYGWING_AGENT
 	string file = string(scap_get_host_root()) + "/var/run/docker.sock";
@@ -653,7 +658,7 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	if(sock < 0)
 	{
 		ASSERT(false);
-		return false;
+		return sinsp_docker_response::RESP_ERROR;
 	}
 
 	struct sockaddr_un address;
@@ -665,27 +670,26 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 
 	if(connect(sock, (struct sockaddr *) &address, sizeof(struct sockaddr_un)) != 0)
 	{
-		return false;
+		close(sock);
+		return sinsp_docker_response::RESP_ERROR;
 	}
 
-	string message = "GET /containers/" + container->m_id + "/json HTTP/1.0\r\n\n";
+	string message = "GET " + api_version + "/containers/" + container_id + "/json HTTP/1.0\r\n\n";
 	if(write(sock, message.c_str(), message.length()) != (ssize_t) message.length())
 	{
-		ASSERT(false);
 		close(sock);
-		return false;
+		return sinsp_docker_response::RESP_ERROR;
 	}
 
 	char buf[256];
-	string json;
 	ssize_t res;
+	json.clear();
 	while((res = read(sock, buf, sizeof(buf) - 1)) != 0)
 	{
 		if(res == -1 || json.size() > MAX_JSON_SIZE_B)
 		{
-			ASSERT(false);
 			close(sock);
-			return false;
+			return sinsp_docker_response::RESP_ERROR;
 		}
 
 		buf[res] = 0;
@@ -708,6 +712,35 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	string json(response);
 
 #endif // CYGWING_AGENT
+
+	if(strncmp(json.c_str(), "HTTP/1.0 200 OK", sizeof("HTTP/1.0 200 OK") -1))
+	{
+		return sinsp_docker_response::RESP_BAD_REQUEST;
+	}
+
+	return sinsp_docker_response::RESP_OK;
+}
+
+bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
+{
+	string json;
+        sinsp_docker_response resp = get_docker("/v1.24", container->m_id, json);
+	switch(resp) {
+		case sinsp_docker_response::RESP_BAD_REQUEST:
+			resp = get_docker("", container->m_id, json);
+			if (resp == sinsp_docker_response::RESP_OK)
+			{
+				break;
+			}
+			/* FALLTHRU */
+
+		case sinsp_docker_response::RESP_ERROR:
+			ASSERT(false);
+			return false;
+
+		case sinsp_docker_response::RESP_OK:
+			break;
+	}
 
 	size_t pos = json.find("{");
 	if(pos == string::npos)
@@ -949,13 +982,13 @@ const unordered_map<string, sinsp_container_info>* sinsp_container_manager::get_
 	return &m_containers;
 }
 
-void sinsp_container_manager::add_container(const sinsp_container_info& container_info)
+void sinsp_container_manager::add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread_info)
 {
 	m_containers[container_info.m_id] = container_info;
 
 	if(m_inspector->m_parser->m_fd_listener)
 	{
-		m_inspector->m_parser->m_fd_listener->on_new_container(container_info);
+		m_inspector->m_parser->m_fd_listener->on_new_container(container_info, thread_info);
 	}
 }
 
