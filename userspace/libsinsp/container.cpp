@@ -699,17 +699,17 @@ sinsp_docker_response sinsp_container_manager::get_docker(const string& api_vers
 	close(sock);
 #else // CYGWING_AGENT
 	const char* response;
-	string message = "GET /v1.30/containers/" + container->m_id + "/json HTTP/1.1\r\nHost: docker \r\n\r\n";
+	string message = "GET /v1.30/containers/" + container_id + "/json HTTP/1.1\r\nHost: docker \r\n\r\n";
 	bool qdres = wh_query_docker(m_inspector->get_wmi_handle(), 
 		(char*)message.c_str(), 
 		&response);
 	if(qdres == false)
 	{
 		ASSERT(false);
-		return false;		
+		return sinsp_docker_response::RESP_ERROR;
 	}
 
-	string json(response);
+	json = response;
 
 #endif // CYGWING_AGENT
 
