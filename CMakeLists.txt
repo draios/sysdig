@@ -310,8 +310,8 @@ if(NOT WIN32 AND NOT APPLE)
 		message(STATUS "Using bundled openssl in '${OPENSSL_BUNDLE_DIR}'")
 
 		ExternalProject_Add(openssl
-			URL "http://download.draios.com/dependencies/openssl-1.0.2j.tar.gz"
-			URL_MD5 "96322138f0b69e61b7212bc53d5e912b"
+			URL "http://download.draios.com/dependencies/openssl-1.0.2n.tar.gz"
+			URL_MD5 "13bdc1b1d1ff39b6fd42a255e74676a4"
 			CONFIGURE_COMMAND ./config shared --prefix=${OPENSSL_INSTALL_DIR}
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
