@@ -185,8 +185,8 @@ else()
 	if(NOT WIN32)
 		set(ZLIB_LIB "${ZLIB_SRC}/libz.a")
 		ExternalProject_Add(zlib
-			URL "http://download.draios.com/dependencies/zlib-1.2.8.tar.gz"
-			URL_MD5 "44d667c142d7cda120332623eab69f40"
+			URL "http://download.draios.com/dependencies/zlib-1.2.11.tar.gz"
+			URL_MD5 "1c9f62f0778697a09d36121ead88e08e"
 			CONFIGURE_COMMAND "./configure"
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
@@ -195,8 +195,8 @@ else()
 	else()
 		set(ZLIB_LIB "${ZLIB_SRC}/zdll.lib")
 		ExternalProject_Add(zlib
-			URL "http://download.draios.com/dependencies/zlib-1.2.8.tar.gz"
-			URL_MD5 "44d667c142d7cda120332623eab69f40"
+			URL "http://download.draios.com/dependencies/zlib-1.2.11.tar.gz"
+			URL_MD5 "1c9f62f0778697a09d36121ead88e08e"
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND nmake -f win32/Makefile.msc
 			BUILD_IN_SOURCE 1
