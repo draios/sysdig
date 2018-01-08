@@ -16,6 +16,7 @@ ADD http://download.draios.com/apt-draios-priority /etc/apt/preferences.d/
 
 RUN echo "deb http://httpredir.debian.org/debian jessie main" > /etc/apt/sources.list.d/jessie.list \
  && apt-get update \
+ && apt-get upgrade -y \
  && apt-get install -y --no-install-recommends \
 	bash-completion \
 	curl \
