@@ -315,5 +315,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_PAGE_FAULT_E */ {"page_fault", EC_OTHER, EF_SKIPPARSERESET | EF_DROP_FALCO, 3, {{"addr", PT_UINT64, PF_HEX}, {"ip", PT_UINT64, PF_HEX}, {"error", PT_FLAGS32, PF_HEX, pf_flags} } },
 	/* PPME_PAGE_FAULT_X */ {"NA5", EC_OTHER, EF_UNUSED, 0},
 	/* PPME_SYSCALL_BPF_E */{"bpf", EC_OTHER, EF_CREATES_FD, 1, {{"cmd", PT_INT64, PF_DEC} } },
-	/* PPME_SYSCALL_BPF_X */{"bpf", EC_OTHER, EF_CREATES_FD, 1, {{"res", PT_DYN, PF_DEC, bpf_dynamic_param, PPM_BPF_IDX_MAX} }}
+	/* PPME_SYSCALL_BPF_X */{"bpf", EC_OTHER, EF_CREATES_FD, 1, {{"res", PT_DYN, PF_DEC, bpf_dynamic_param, PPM_BPF_IDX_MAX} }},
+	/* PPME_SYSCALL_SECCOMP_E */{"seccomp", EC_OTHER, EF_NONE, 1, {{"op", PT_UINT64, PF_DEC}, {"flags", PT_UINT64, PF_HEX} } },
+	/* PPME_SYSCALL_SECCOMP_X */{"seccomp", EC_OTHER, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } }
 };
