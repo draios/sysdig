@@ -313,5 +313,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_EXECVE_18_E */{"execve", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"filename", PT_FSPATH, PF_NA}} },
 	/* PPME_SYSCALL_EXECVE_18_X */{"execve", EC_PROCESS, EF_MODIFIES_STATE, 17, {{"res", PT_ERRNO, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_UINT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"comm", PT_CHARBUF, PF_NA}, {"cgroups", PT_BYTEBUF, PF_NA}, {"env", PT_BYTEBUF, PF_NA}, {"tty", PT_INT32, PF_DEC} } },
 	/* PPME_PAGE_FAULT_E */ {"page_fault", EC_OTHER, EF_SKIPPARSERESET | EF_DROP_FALCO, 3, {{"addr", PT_UINT64, PF_HEX}, {"ip", PT_UINT64, PF_HEX}, {"error", PT_FLAGS32, PF_HEX, pf_flags} } },
-	/* PPME_PAGE_FAULT_X */ {"NA5", EC_OTHER, EF_UNUSED, 0}
+	/* PPME_PAGE_FAULT_X */ {"NA5", EC_OTHER, EF_UNUSED, 0},
+	/* PPME_SYSCALL_BPF_E */{"bpf", EC_OTHER, EF_CREATES_FD, 1, {{"cmd", PT_INT64, PF_DEC} } },
+	/* PPME_SYSCALL_BPF_X */{"bpf", EC_OTHER, EF_CREATES_FD, 1, {{"res", PT_DYN, PF_DEC, bpf_dynamic_param, PPM_BPF_IDX_MAX} }}
 };

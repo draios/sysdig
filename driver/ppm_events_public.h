@@ -363,6 +363,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #define PPM_PTRACE_IDX_MAX 2
 
+#define PPM_BPF_IDX_FD 0
+#define PPM_BPF_IDX_RES 1
+
+#define PPM_BPF_IDX_MAX 2
+
 /*
  * memory protection flags
  */
@@ -824,7 +829,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_EXECVE_18_X = 289,
 	PPME_PAGE_FAULT_E = 290,
 	PPME_PAGE_FAULT_X = 291,
-	PPM_EVENT_MAX = 292
+	PPME_SYSCALL_BPF_E = 292,
+	PPME_SYSCALL_BPF_X = 293,
+	PPM_EVENT_MAX = 294
 };
 /*@}*/
 
@@ -1147,7 +1154,8 @@ enum ppm_syscall_code {
 	PPM_SC_GETRESUID32 = 312,
 	PPM_SC_GETRESGID32 = 313,
 	PPM_SC_FINIT_MODULE = 314,
-	PPM_SC_MAX = 315,
+	PPM_SC_BPF = 315,
+	PPM_SC_MAX = 316,
 };
 
 /*
@@ -1356,6 +1364,7 @@ extern const struct ppm_name_value access_flags[];
 extern const struct ppm_name_value pf_flags[];
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
+extern const struct ppm_param_info bpf_dynamic_param[];
 
 /*
  * Driver event notification ID

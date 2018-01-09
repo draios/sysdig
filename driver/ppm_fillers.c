@@ -50,6 +50,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "ppm_events_public.h"
 #include "ppm_events.h"
 #include "ppm.h"
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
+#include <linux/bpf.h>
+#endif
 
 /* This is described in syscall(2). Some syscalls take 64-bit arguments. On
  * arches that have 64-bit registers, these arguments are shipped in a register.
@@ -149,6 +152,7 @@ static int f_sys_ppoll_e(struct event_filler_arguments *args);
 static int f_sys_mount_e(struct event_filler_arguments *args);
 static int f_sys_access_e(struct event_filler_arguments *args);
 static int f_sys_access_x(struct event_filler_arguments *args);
+static int f_sys_bpf_x(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -392,6 +396,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_PAGE_FAULT_E] = {f_sys_pagefault_e},
 	[PPME_PAGE_FAULT_X] = {f_sys_empty},
 #endif
+	[PPME_SYSCALL_BPF_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
+	[PPME_SYSCALL_BPF_X] = {f_sys_bpf_x},
 };
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
@@ -5594,6 +5600,45 @@ static int f_sys_access_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_bpf_x(struct event_filler_arguments *args)
+{
+	int64_t retval;
+	unsigned long cmd;
+	int res;
+
+	/*
+	 * res, if failure or depending on cmd
+	 */
+	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+	if (retval < 0) {
+		res = val_to_ring(args, retval, 0, false, PPM_BPF_IDX_RES);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+
+		return add_sentinel(args);
+	}
+	/*
+	 * fd, depending on cmd
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &cmd);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
+	if(cmd == BPF_MAP_CREATE || cmd == BPF_PROG_LOAD)
+#else
+	if(0)
+#endif
+	{
+		res = val_to_ring(args, retval, 0, false, PPM_BPF_IDX_FD);
+	}
+	else
+	{
+		res = val_to_ring(args, retval, 0, false, PPM_BPF_IDX_RES);
+	}
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
