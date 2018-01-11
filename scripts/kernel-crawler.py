@@ -4,13 +4,14 @@
 # Date: August 17th, 2015
 
 import bz2
-import zlib
+import datetime
 import sqlite3
 import sys
-import urllib2
 import tempfile
-from lxml import html
+import urllib2
+import zlib
 
+from lxml import html
 
 #
 # This is the main configuration tree for easily analyze Linux repositories
@@ -177,49 +178,36 @@ repos = {
             "page_pattern": "/html/body//a[regex:test(@href, '^linux-kbuild-.*amd64.deb$')]/@href",
             "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp", "unsigned"]
         }
-    ],
-
-    "AmazonLinux": [
-        {
-            "root": "http://repo.us-east-1.amazonaws.com/latest/updates/mirror.list",
-            "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
-            "subdirs": [""],
-            "page_pattern": "",
-            "exclude_patterns": ["doc","tools","headers"]
-        },
-        {
-            "root": "http://repo.us-east-1.amazonaws.com/latest/main/mirror.list",
-            "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
-            "subdirs": [""],
-            "page_pattern": "",
-            "exclude_patterns": ["doc","tools","headers"]
-        },
-        {
-            "root": "http://repo.us-east-1.amazonaws.com/2017.03/updates/mirror.list",
-            "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
-            "subdirs": [""],
-            "page_pattern": "",
-            "exclude_patterns": ["doc","tools","headers"]
-        },
-        {
-            "root": "http://repo.us-east-1.amazonaws.com/2017.03/main/mirror.list",
-            "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
-            "subdirs": [""],
-            "page_pattern": "",
-            "exclude_patterns": ["doc","tools","headers"]
-        }
-    ],
-
-    "AmazonLinux2": [
-        {
-            "root": "http://amazonlinux.us-east-1.amazonaws.com/2017.12/core/latest/x86_64/mirror.list",
-            "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
-            "subdirs": [""],
-            "page_pattern": "",
-            "exclude_patterns": ["doc","tools","headers"]
-        }
     ]
 }
+
+# Build static list 2017.09 is last Amazon Linux AMI release https://aws.amazon.com/amazon-linux-2/faqs/
+amazon_linux_builder = [('latest', 'updates'), ('latest', 'main'), ('2017.03', 'updates'), ('2017.03', 'main')]
+amazon_repos = []
+for repo_release, release_type in amazon_linux_builder:
+    amazon_repos.append({
+        "root": "http://repo.us-east-1.amazonaws.com/" + repo_release + "/" + release_type + "/mirror.list",
+        "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
+        "subdirs": [""],
+        "page_pattern": "",
+        "exclude_patterns": ["doc", "tools", "headers"]
+    })
+repos['AmazonLinux'] = amazon_repos
+
+now = datetime.datetime.now()
+amazon_linux2 = []
+for i in range(1, 13):
+    for j in range(2):
+        year = str(now.year - j)
+        amazon_linux2.append({
+            "root": "http://amazonlinux.us-east-1.amazonaws.com/" + year + "." + str(i).zfill(2) + "/core/latest/x86_64/mirror.list",
+            "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
+            "subdirs": [""],
+            "page_pattern": "",
+            "exclude_patterns": ["doc", "tools", "headers"]
+            })
+
+repos['AmazonLinux2'] = amazon_linux2
 
 def exclude_patterns(repo, packages, base_url, urls):
     for rpm in packages:
