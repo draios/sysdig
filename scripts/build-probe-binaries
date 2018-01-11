@@ -204,7 +204,7 @@ function coreos_build_new {
 
 	# https://groups.google.com/forum/#!topic/coreos-dev/Z8Q7sIy6YwE
 	sed -i 's/CONFIG_INITRAMFS_SOURCE=""/CONFIG_INITRAMFS_SOURCE="bootengine.cpio"\nCONFIG_INITRAMFS_ROOT_UID=0\nCONFIG_INITRAMFS_ROOT_GID=0/' config
-	sed -i 's/\(CONFIG_RD_LZ4=y\)/\1\nCONFIG_INITRAMFS_COMPRESSION=".gz"/' config
+	sed -i 'N;s/\(CONFIG_RD_LZ4=.\)\n\(CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=\)/\1\nCONFIG_INITRAMFS_COMPRESSION=".gz"\n\2/' config
 	KERNEL_RELEASE=$(ls config-* | sed s/config-//)
 	HASH_ORIG=$(md5sum config_orig | cut -d' ' -f1)
 	HASH=$(md5sum config | cut -d' ' -f1)
