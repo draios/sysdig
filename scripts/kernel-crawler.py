@@ -8,6 +8,7 @@ import datetime
 import sqlite3
 import sys
 import tempfile
+import time
 import urllib2
 import zlib
 
@@ -194,18 +195,18 @@ for repo_release, release_type in amazon_linux_builder:
     })
 repos['AmazonLinux'] = amazon_repos
 
-now = datetime.datetime.now()
+prev_months = 24
+now = time.localtime()
+check_months = [time.localtime(time.mktime((now.tm_year, now.tm_mon - n, 1, 0, 0, 0, 0, 0, 0)))[:2] for n in range(prev_months)]
 amazon_linux2 = []
-for i in range(1, 13):
-    for j in range(2):
-        year = str(now.year - j)
-        amazon_linux2.append({
-            "root": "http://amazonlinux.us-east-1.amazonaws.com/" + year + "." + str(i).zfill(2) + "/core/latest/x86_64/mirror.list",
-            "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
-            "subdirs": [""],
-            "page_pattern": "",
-            "exclude_patterns": ["doc", "tools", "headers"]
-            })
+for year, month in check_months[:-1]:
+    amazon_linux2.append({
+        "root": "http://amazonlinux.us-east-1.amazonaws.com/" + str(year) + "." + str(month).zfill(2) + "/core/latest/x86_64/mirror.list",
+        "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
+        "subdirs": [""],
+        "page_pattern": "",
+        "exclude_patterns": ["doc", "tools", "headers"]
+        })
 
 repos['AmazonLinux2'] = amazon_linux2
 
