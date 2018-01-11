@@ -282,8 +282,13 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_chroot - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CHROOT_E, PPME_SYSCALL_CHROOT_X},
 #endif
 	[__NR_setsid - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_SETSID_E, PPME_SYSCALL_SETSID_X},
-	[__NR_setpgid - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_SETPGID_E, PPME_SYSCALL_SETPGID_X}
-
+	[__NR_setpgid - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_SETPGID_E, PPME_SYSCALL_SETPGID_X},
+#ifdef __NR_bpf
+	[__NR_bpf - SYSCALL_TABLE_ID0] =                        {UF_USED, PPME_SYSCALL_BPF_E, PPME_SYSCALL_BPF_X},
+#endif
+#ifdef __NR_seccomp
+	[__NR_seccomp - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_SECCOMP_E, PPME_SYSCALL_SECCOMP_X},
+#endif
 };
 
 /*
@@ -835,6 +840,12 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_finit_module
 	[__NR_finit_module - SYSCALL_TABLE_ID0] = PPM_SC_FINIT_MODULE,
 #endif
+#ifdef __NR_bpf
+	[__NR_bpf - SYSCALL_TABLE_ID0] = PPM_SC_BPF,
+#endif
+#ifdef __NR_seccomp
+	[__NR_seccomp - SYSCALL_TABLE_ID0] = PPM_SC_SECCOMP,
+#endif
 };
 
 #ifdef CONFIG_IA32_EMULATION
@@ -1058,7 +1069,13 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_ia32_chroot - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CHROOT_E, PPME_SYSCALL_CHROOT_X},
 #endif
 	[__NR_ia32_setsid - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_SETSID_E, PPME_SYSCALL_SETSID_X},
-	[__NR_ia32_setpgid - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_SETPGID_E, PPME_SYSCALL_SETPGID_X}
+	[__NR_ia32_setpgid - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_SETPGID_E, PPME_SYSCALL_SETPGID_X},
+#ifdef __NR_ia32_bpf
+	[__NR_ia32_bpf - SYSCALL_TABLE_ID0] =                        {UF_USED, PPME_SYSCALL_BPF_E, PPME_SYSCALL_BPF_X},
+#endif
+#ifdef __NR_ia32_seccomp
+	[__NR_ia32_seccomp - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_SECCOMP_E, PPME_SYSCALL_SECCOMP_X},
+#endif
 };
 
 /*
@@ -1596,6 +1613,12 @@ const enum ppm_syscall_code g_syscall_ia32_code_routing_table[SYSCALL_TABLE_SIZE
 #endif
 #ifdef __NR_ia32_finit_module
 	[__NR_ia32_finit_module - SYSCALL_TABLE_ID0] = PPM_SC_FINIT_MODULE,
+#endif
+#ifdef __NR_ia32_bpf
+	[__NR_ia32_bpf - SYSCALL_TABLE_ID0] = PPM_SC_BPF,
+#endif
+#ifdef __NR_ia32_seccomp
+	[__NR_ia32_seccomp - SYSCALL_TABLE_ID0] = PPM_SC_SECCOMP,
 #endif
 };
 
