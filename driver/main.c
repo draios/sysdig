@@ -196,9 +196,12 @@ static struct tracepoint *tp_sched_switch;
 static struct tracepoint *tp_signal_deliver;
 #endif
 #ifdef CAPTURE_PAGE_FAULTS
+// Even in kernels that can support page fault tracepoints, tracepoints may be
+// disabled so check if g_fault_tracepoint_disabled is set.
 static struct tracepoint *tp_page_fault_user;
 static struct tracepoint *tp_page_fault_kernel;
 static bool g_fault_tracepoint_registered;
+static bool g_fault_tracepoint_disabled = false;
 #endif
 
 #ifdef _DEBUG
@@ -1026,6 +1029,12 @@ cleanup_ioctl_procinfo:
 		vpr_info("PPM_IOCTL_ENABLE_PAGE_FAULTS\n");
 #ifdef CAPTURE_PAGE_FAULTS
 		ASSERT(g_tracepoint_registered);
+
+		if (g_fault_tracepoint_disabled) {
+			ret = 0;
+			pr_info("kernel page fault tracepoints are disabled\n");
+			goto cleanup_ioctl;
+		}
 
 		if (!g_fault_tracepoint_registered) {
 			ret = compat_register_trace(page_fault_probe, "page_fault_user", tp_page_fault_user);
@@ -2199,12 +2208,12 @@ static int get_tracepoint_handles(void)
 #endif
 #ifdef CAPTURE_PAGE_FAULTS
 	if (!tp_page_fault_user) {
-		pr_err("failed to find page_fault_user tracepoint\n");
-		return -ENOENT;
+		pr_notice("failed to find page_fault_user tracepoint, disabling page-faults\n");
+		g_fault_tracepoint_disabled = true;
 	}
 	if (!tp_page_fault_kernel) {
-		pr_err("failed to find page_fault_kernel tracepoint\n");
-		return -ENOENT;
+		pr_notice("failed to find page_fault_kernel tracepoint, disabling page-faults\n");
+		g_fault_tracepoint_disabled = true;
 	}
 #endif
 
