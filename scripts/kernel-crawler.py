@@ -4,7 +4,6 @@
 # Date: August 17th, 2015
 
 import bz2
-import datetime
 import sqlite3
 import sys
 import tempfile
@@ -218,38 +217,39 @@ def exclude_patterns(repo, packages, base_url, urls):
             urls.add(base_url + str(urllib2.unquote(rpm)))
 
 def process_al_distro(al_distro_name, current_repo):
-    try:
-        # Look for the first mirror that works
-        for line in urllib2.urlopen(current_repo["root"]).readlines():
-            if al_distro_name == "AmazonLinux":
-                base_mirror_url = line.replace('$basearch','x86_64').replace('\n','') + '/'
-                db_path = "repodata/primary.sqlite.bz2"
-            elif al_distro_name == "AmazonLinux2":
-                base_mirror_url = line.replace('\n','') + '/'
-                db_path = "repodata/primary.sqlite.gz"
-            try:
-                response = urllib2.urlopen(base_mirror_url + db_path)
-            except:
-                continue
+    get_url = urllib2.urlopen(current_repo["root"]).readline()
+    if get_url:
+        if al_distro_name == "AmazonLinux":
+            base_mirror_url = get_url.replace('$basearch','x86_64').replace('\n','') + '/'
+            db_path = "repodata/primary.sqlite.bz2"
+        elif al_distro_name == "AmazonLinux2":
+            base_mirror_url = get_url.replace('\n','') + '/'
+            db_path = "repodata/primary.sqlite.gz"
+        try:
+            response = urllib2.urlopen(base_mirror_url + db_path)
+        except:
+            raise
 
-            break
-    except:
-        pass
+        if al_distro_name == "AmazonLinux":
+            decompressed_data = bz2.decompress(response.read())
+        elif al_distro_name == "AmazonLinux2":
+            decompressed_data = zlib.decompress(response.read(), 16+zlib.MAX_WBITS)
 
-    if al_distro_name == "AmazonLinux":
-        decompressed_data = bz2.decompress(response.read())
-    elif al_distro_name == "AmazonLinux2":
-        decompressed_data = zlib.decompress(response.read(), 16+zlib.MAX_WBITS)
+        db_file = tempfile.NamedTemporaryFile()
+        db_file.write(decompressed_data)
+        conn = sqlite3.connect(db_file.name)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        rpms = [r["location_href"] for r in c.execute(repo["discovery_pattern"])]
+        exclude_patterns(repo, rpms, base_mirror_url, urls)
+        conn.close()
+        db_file.close()
 
-    db_file = tempfile.NamedTemporaryFile()
-    db_file.write(decompressed_data)
-    conn = sqlite3.connect(db_file.name)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    rpms = [r["location_href"] for r in c.execute(repo["discovery_pattern"])]
-    exclude_patterns(repo, rpms, base_mirror_url, urls)
-    conn.close()
-    db_file.close()
+        return True
+
+    else:
+        return False
+
 
 #
 # In our design you are not supposed to modify the code. The whole script is
@@ -270,10 +270,20 @@ distro = sys.argv[1]
 # Navigate the `repos` tree and look for packages we need that match the
 # patterns given. Save the result in `packages`.
 #
+al2_repo_count = 0
 for repo in repos[distro]:
-    if distro in ['AmazonLinux','AmazonLinux2']:
+    if distro == 'AmazonLinux':
         try:
             process_al_distro(distro, repo)
+        except:
+            continue
+    elif distro == 'AmazonLinux2':
+        try:
+            if al2_repo_count < 2:
+                if process_al_distro(distro, repo):
+                    al2_repo_count += 1
+            else:
+                break
         except:
             continue
     else:
