@@ -201,7 +201,7 @@ static struct tracepoint *tp_signal_deliver;
 static struct tracepoint *tp_page_fault_user;
 static struct tracepoint *tp_page_fault_kernel;
 static bool g_fault_tracepoint_registered;
-static bool g_fault_tracepoint_disabled = false;
+static bool g_fault_tracepoint_disabled;
 #endif
 
 #ifdef _DEBUG
@@ -1031,8 +1031,8 @@ cleanup_ioctl_procinfo:
 		ASSERT(g_tracepoint_registered);
 
 		if (g_fault_tracepoint_disabled) {
-			ret = 0;
-			pr_info("kernel page fault tracepoints are disabled\n");
+			pr_err("kernel page fault tracepoints are disabled\n");
+			ret = -EPERM;
 			goto cleanup_ioctl;
 		}
 
