@@ -30,6 +30,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/file.h>
 #include <linux/futex.h>
 #include <linux/fs_struct.h>
+#include <linux/pid_namespace.h>
 #include <linux/ptrace.h>
 #include <linux/version.h>
 #include <linux/module.h>
