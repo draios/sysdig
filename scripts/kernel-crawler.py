@@ -181,7 +181,7 @@ repos = {
     ]
 }
 
-# Build static list 2017.09 is last Amazon Linux AMI release https://aws.amazon.com/amazon-linux-2/faqs/
+# Build static list, 2017.09 is last Amazon Linux AMI release https://aws.amazon.com/amazon-linux-2/faqs/
 amazon_linux_builder = [('latest', 'updates'), ('latest', 'main'), ('2017.03', 'updates'), ('2017.03', 'main')]
 amazon_repos = []
 for repo_release, release_type in amazon_linux_builder:
@@ -225,10 +225,8 @@ def process_al_distro(al_distro_name, current_repo):
         elif al_distro_name == "AmazonLinux2":
             base_mirror_url = get_url.replace('\n','') + '/'
             db_path = "repodata/primary.sqlite.gz"
-        try:
-            response = urllib2.urlopen(base_mirror_url + db_path)
-        except:
-            raise
+        
+        response = urllib2.urlopen(base_mirror_url + db_path)
 
         if al_distro_name == "AmazonLinux":
             decompressed_data = bz2.decompress(response.read())
@@ -240,8 +238,8 @@ def process_al_distro(al_distro_name, current_repo):
         conn = sqlite3.connect(db_file.name)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-        rpms = [r["location_href"] for r in c.execute(repo["discovery_pattern"])]
-        exclude_patterns(repo, rpms, base_mirror_url, urls)
+        al_rpms = [r["location_href"] for r in c.execute(current_repo["discovery_pattern"])]
+        exclude_patterns(current_repo, al_rpms, base_mirror_url, urls)
         conn.close()
         db_file.close()
 
@@ -270,7 +268,9 @@ distro = sys.argv[1]
 # Navigate the `repos` tree and look for packages we need that match the
 # patterns given. Save the result in `packages`.
 #
+
 al2_repo_count = 0
+
 for repo in repos[distro]:
     if distro == 'AmazonLinux':
         try:
@@ -279,11 +279,10 @@ for repo in repos[distro]:
             continue
     elif distro == 'AmazonLinux2':
         try:
+            # Brute force finding the repositories and only grab the most recent two, then skip the rest.
             if al2_repo_count < 2:
                 if process_al_distro(distro, repo):
                     al2_repo_count += 1
-            else:
-                break
         except:
             continue
     else:
