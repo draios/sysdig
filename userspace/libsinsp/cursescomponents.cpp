@@ -39,16 +39,172 @@ using namespace std;
 #include "filterchecks.h"
 
 #ifdef CSYSDIG
-#ifndef NOCURSESUI
-
-#include <curses.h>
 #include "table.h"
-#include "ctext.h"
 #include "cursescomponents.h"
 #include "cursestable.h"
 #include "viewinfo.h"
 #include "cursesui.h"
 #include "utils.h"
+
+extern bool g_filterchecks_force_raw_times;
+
+///////////////////////////////////////////////////////////////////////////////
+// spy_text_renderer implementation
+///////////////////////////////////////////////////////////////////////////////
+spy_text_renderer::spy_text_renderer(sinsp* inspector, 
+	sinsp_cursesui* parent,
+	int32_t viz_type, 
+	sysdig_output_type sotype, 
+	bool print_containers,
+	sinsp_evt::param_fmt text_fmt)
+{
+	m_formatter = NULL;
+	m_inspector = inspector;
+	m_viz_type = viz_type;
+	m_linecnt = 0;
+	g_filterchecks_force_raw_times = false;
+
+	//
+	// visualization-type inits
+	//
+	if(m_viz_type == VIEW_ID_DIG)
+	{
+		if(sotype == spy_text_renderer::OT_LATENCY)
+		{
+			if(print_containers)
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector,
+					"*(latency=%evt.latency.human) (fd=%fd.name) %evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
+			}
+			else
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector,
+					"*(latency=%evt.latency.human) (fd=%fd.name) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info");
+			}
+		}
+		else if(sotype == spy_text_renderer::OT_LATENCY_APP)
+		{
+			if(print_containers)
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector,
+					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
+			}
+			else
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector,
+					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info");
+			}
+		}
+		else
+		{
+			if(print_containers)
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector,
+					"*%evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
+			}
+			else
+			{
+				m_formatter = new sinsp_evt_formatter(m_inspector, DEFAULT_OUTPUT_STR);
+			}
+		}
+	}
+	else
+	{
+		m_formatter = NULL;
+	}
+
+	m_inspector->set_buffer_format(text_fmt);
+}
+
+spy_text_renderer::~spy_text_renderer()
+{ 
+	if(m_formatter)
+	{
+		delete m_formatter;
+	}
+}
+
+const char* spy_text_renderer::process_event_spy(sinsp_evt* evt, int64_t* len)
+{
+	//
+	// Drop any non I/O event
+	//
+	ppm_event_flags eflags = evt->get_info_flags();
+
+	if(!(eflags & EF_READS_FROM_FD || eflags & EF_WRITES_TO_FD))
+	{
+		return NULL;
+	}
+
+	//
+	// Get and validate the length
+	//
+	sinsp_evt_param* parinfo = evt->get_param(0);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	*len = *(int64_t*)parinfo->m_val;
+	if(*len <= 0)
+	{
+		return NULL;
+	}
+
+	//
+	// Get thread and fd
+	//
+	sinsp_threadinfo* m_tinfo =	evt->get_thread_info();
+	if(m_tinfo == NULL)
+	{
+		return NULL;
+	}
+
+	sinsp_fdinfo_t* m_fdinfo = evt->get_fd_info();
+	if(m_fdinfo == NULL)
+	{
+		return NULL;
+	}
+	string fdname = m_fdinfo->m_name;
+	if(fdname == "")
+	{
+		fdname = "unnamed FD";
+	}
+
+	//
+	// Get the buffer
+	//
+	const char* resolved_argstr;
+	char* argstr;
+	argstr = (char*)evt->get_param_value_str("data", &resolved_argstr, m_inspector->get_buffer_format());
+
+	//
+	// Trim initial or final \n
+	//
+	if(argstr)
+	{
+		uint32_t argstrlen = strlen(argstr);
+
+		if(argstrlen >= 1)
+		{
+			if(*argstr == '\n')
+			{
+				argstr++;
+				argstrlen--;
+			}
+
+			if(argstrlen >= 1)
+			{
+				if(argstr[argstrlen -1] == '\n')
+				{
+					argstr[argstrlen - 1] = 0;
+				}
+			}
+		}
+	}
+
+	return argstr;
+}
+
+#ifndef NOCURSESUI
+#include <curses.h>
+#include "ctext.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // curses_scrollable_list implementation
@@ -587,7 +743,7 @@ sysdig_table_action curses_table_sidemenu::handle_input(int ch)
 ///////////////////////////////////////////////////////////////////////////////
 // curses_textbox implementation
 ///////////////////////////////////////////////////////////////////////////////
-curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type, sysdig_output_type sotype)
+curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type, spy_text_renderer::sysdig_output_type sotype)
 {
 	ASSERT(inspector != NULL);
 	ASSERT(parent != NULL);
@@ -596,11 +752,11 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 	m_win = NULL;
 	m_ctext = NULL;
 	m_filter = NULL;
+	m_text_renderer = NULL;
 	m_inspector = inspector;
 	n_prints = 0;
 	m_paused = false;
 	m_sidemenu = NULL;
-	m_viz_type = viz_type;
 	m_searcher = NULL;
 	m_has_searched = false;
 	m_last_progress_update_ts = 0;
@@ -616,55 +772,20 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 	config.m_scroll_on_append = true;
 	config.m_bounding_box = true;
 
-	//
-	// visualization-type inits
-	//
-	if(m_viz_type == VIEW_ID_DIG)
-	{
-		if(sotype == OT_LATENCY)
-		{
-			if(m_parent->m_print_containers)
-			{
-				m_formatter = new sinsp_evt_formatter(m_inspector,
-					"*(latency=%evt.latency.human) (fd=%fd.name) %evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
-			}
-			else
-			{
-				m_formatter = new sinsp_evt_formatter(m_inspector,
-					"*(latency=%evt.latency.human) (fd=%fd.name) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info");
-			}
-		}
-		else if(sotype == OT_LATENCY_APP)
-		{
-			if(m_parent->m_print_containers)
-			{
-				m_formatter = new sinsp_evt_formatter(m_inspector,
-					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
-			}
-			else
-			{
-				m_formatter = new sinsp_evt_formatter(m_inspector,
-					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info");
-			}
-		}
-		else
-		{
-			if(m_parent->m_print_containers)
-			{
-				m_formatter = new sinsp_evt_formatter(m_inspector,
-					"*%evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
-			}
-			else
-			{
-				m_formatter = new sinsp_evt_formatter(m_inspector, DEFAULT_OUTPUT_STR);
-			}
-		}
+	m_text_renderer = new spy_text_renderer(inspector, 
+		parent, 
+		viz_type, 
+		sotype, 
+		m_parent->m_print_containers,
+		sinsp_evt::PF_NORMAL);
 
+
+	if(viz_type == VIEW_ID_DIG)
+	{
 		config.m_do_wrap = false;
 	}
 	else
 	{
-		m_formatter = NULL;
 		config.m_do_wrap = true;
 	}
 
@@ -725,9 +846,9 @@ curses_textbox::~curses_textbox()
 		delete m_filter;
 	}
 
-	if(m_formatter)
+	if(m_text_renderer)
 	{
-		delete m_formatter;
+		delete m_text_renderer;
 	}
 
 	//
@@ -762,112 +883,74 @@ void curses_textbox::print_no_data()
 
 void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 {
-	//
-	// Drop any non I/O event
-	//
-	ppm_event_flags eflags = evt->get_info_flags();
+	int64_t len;
+	const char* argstr = m_text_renderer->process_event_spy(evt, &len);
 
-	if(!(eflags & EF_READS_FROM_FD || eflags & EF_WRITES_TO_FD))
+	if(argstr == NULL)
 	{
 		return;
 	}
 
-	//
-	// Get and validate the length
-	//
-	sinsp_evt_param* parinfo = evt->get_param(0);
-	ASSERT(parinfo->m_len == sizeof(int64_t));
-	int64_t len = *(int64_t*)parinfo->m_val;
-	if(len <= 0)
-	{
-		return;
-	}
-
-	//
-	// Get thread and fd
-	//
+	// Note: this can't be NULL because it's been validated by 
+	//       m_text_renderer->process_event_spy
 	sinsp_threadinfo* m_tinfo =	evt->get_thread_info();
-	if(m_tinfo == NULL)
-	{
-		return;
-	}
-
-	sinsp_fdinfo_t* m_fdinfo = evt->get_fd_info();
-	if(m_fdinfo == NULL)
-	{
-		return;
-	}
-	string fdname = m_fdinfo->m_name;
-	if(fdname == "")
-	{
-		fdname = "unnamed FD";
-	}
 
 	//
-	// Get the buffer
+	// Create the info string
 	//
-	const char* resolved_argstr;
-	const char* argstr;
-	argstr = evt->get_param_value_str("data", &resolved_argstr, m_inspector->get_buffer_format());
+	string info_str = "------ ";
+	string dirstr;
+	string cnstr;
 
-	if(argstr != NULL)
+	ppm_event_flags eflags = evt->get_info_flags();
+	if(eflags & EF_READS_FROM_FD)
 	{
-		//
-		// Create the info string
-		//
-		string info_str = "------ ";
-		string dirstr;
-		string cnstr;
+		dirstr = "Read ";
+		cnstr = "from ";
+		wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_READ]);
+	}
+	else if(eflags & EF_WRITES_TO_FD)
+	{
+		wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_WRITE]);
+		dirstr = "Write ";
+		cnstr = "to ";
+	}
+
+	info_str += dirstr + to_string(len) +
+		"B " +
+		cnstr +
+		evt->get_fd_info()->m_name +
+		" (" + m_tinfo->m_comm.c_str() + ")";
+
+	//
+	// Sanitize the info string
+	//
+	sanitize_string(info_str);
+
+	//
+	// Print the whole thing
+	//
+	m_ctext->printf("%s", info_str.c_str());
+
+	if(m_parent->m_print_containers)
+	{
+		wattrset(m_win, m_parent->m_colors[sinsp_cursesui::LED_COLOR]);
+
+		m_ctext->printf(" [%s]", m_inspector->m_container_manager.get_container_name(m_tinfo).c_str());
 
 		if(eflags & EF_READS_FROM_FD)
 		{
-			dirstr = "Read ";
-			cnstr = "from ";
 			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_READ]);
 		}
 		else if(eflags & EF_WRITES_TO_FD)
 		{
 			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_WRITE]);
-			dirstr = "Write ";
-			cnstr = "to ";
 		}
-
-		info_str += dirstr + to_string(len) +
-			"B " +
-			cnstr +
-			fdname +
-			" (" + m_tinfo->m_comm.c_str() + ")";
-
-		//
-		// Sanitize the info string
-		//
-		sanitize_string(info_str);
-
-		//
-		// Print the whole thing
-		//
-		m_ctext->printf("%s", info_str.c_str());
-
-		if(m_parent->m_print_containers)
-		{
-			wattrset(m_win, m_parent->m_colors[sinsp_cursesui::LED_COLOR]);
-
-			m_ctext->printf(" [%s]", m_inspector->m_container_manager.get_container_name(m_tinfo).c_str());
-
-			if(eflags & EF_READS_FROM_FD)
-			{
-				wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_READ]);
-			}
-			else if(eflags & EF_WRITES_TO_FD)
-			{
-				wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_WRITE]);
-			}
-		}
-
-		m_ctext->printf("\n");
-		m_ctext->printf("\n");
-		m_ctext->printf("%s", argstr);
 	}
+
+	m_ctext->printf("\n");
+	m_ctext->printf("\n");
+	m_ctext->printf("%s", argstr);
 
 	m_ctext->printf("\n");
 	m_ctext->printf("\n");
@@ -889,7 +972,7 @@ void curses_textbox::process_event_dig(sinsp_evt* evt, int32_t next_res)
 
 	string line;
 
-	m_formatter->tostring(evt, &line);
+	m_text_renderer->m_formatter->tostring(evt, &line);
 
 	m_ctext->printf("%s\n", line.c_str());
 
@@ -948,7 +1031,7 @@ void curses_textbox::process_event(sinsp_evt* evt, int32_t next_res)
 		}
 	}
 
-	if(m_viz_type == VIEW_ID_SPY)
+	if(m_text_renderer->m_viz_type == VIEW_ID_SPY)
 	{
 		process_event_spy(evt, next_res);
 	}

@@ -448,34 +448,6 @@ k8s_pod_t::k8s_pod_t(const std::string& name, const std::string& uid, const std:
 {
 }
 
-bool k8s_pod_t::has_container_id(const std::string& container_id)
-{
-	for(const auto& c : m_container_ids)
-	{
-		if(c == container_id) { return true; }
-	}
-	return false;
-}
-
-std::string* k8s_pod_t::get_container_id(const std::string& container_id)
-{
-	for(auto& c : m_container_ids)
-	{
-		if(c == container_id) { return &c; }
-	}
-	return 0;
-}
-
-k8s_container* k8s_pod_t::get_container(const std::string& container_name)
-{
-	for(auto& c : m_containers)
-	{
-		if(c.get_name() == container_name) { return &c; }
-	}
-	return 0;
-}
-
-
 //
 // replicas
 //
@@ -799,7 +771,6 @@ void k8s_event_t::post_process(k8s_state_t& state)
 bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 {
 #ifndef _WIN32
-
 	time_t      epoch_time_evt_s = 0;
 	time_t      epoch_time_now_s = get_epoch_utc_seconds_now();
 	std::string event_name;
@@ -886,7 +857,7 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 				scope.add("kubernetes.namespace.name", ns);
 			}
 			const std::string& comp_name = comp->get_name();
-			if(comp_name.empty())
+			if(!comp_name.empty())
 			{
 				scope.add(std::string("kubernetes.").append(t).append(".name"), comp_name);
 			}
@@ -905,26 +876,17 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 				}
 			}*/
 		}
-		else if(epoch_time_now_s < (epoch_time_evt_s + 120))
-		{
-			if(m_postponed_events.find(component_uid) == m_postponed_events.end())
-			{
-				m_postponed_events[component_uid] = item;
-			}
-			m_force_delete = false;
-			return false; // return early, postponed events will be processed later
-		}
-		else // postponed events are handled directly after 120 seconds
+		else
 		{
 			g_logger.log("K8s event: cannot obtain component (component with UID [" + component_uid +
-						 "] not found), trying to build scope directly from event ...", sinsp_logger::SEV_WARNING);
+						 "] not found), trying to build scope directly from event ...", sinsp_logger::SEV_TRACE);
 			make_scope(obj, scope);
 		}
 	}
 	else
 	{
 		g_logger.log("K8s event: cannot obtain component UID, trying to build scope directly from event ...",
-					 sinsp_logger::SEV_WARNING);
+					 sinsp_logger::SEV_TRACE);
 		make_scope(obj, scope);
 	}
 

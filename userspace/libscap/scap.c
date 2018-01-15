@@ -549,6 +549,7 @@ scap_t* scap_open(scap_open_args args, char *error)
 									  args.proc_callback_context,
 									  args.import_users);
 	default:
+		snprintf(error, SCAP_LASTERR_SIZE, "incorrect mode %d", args.mode);
 		return NULL;
 	}
 }
@@ -1087,7 +1088,7 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 	//
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_set_inode_of_dev_null not supported on this scap mode");
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_tracers_capture not supported on this scap mode");
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
@@ -1096,7 +1097,31 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 	{
 		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_TRACERS_CAPTURE))
 		{
-			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
+	}
+
+	return SCAP_SUCCESS;
+}
+#endif
+
+#if defined(HAS_CAPTURE)
+int32_t scap_enable_page_faults(scap_t *handle)
+{
+	if(handle->m_mode != SCAP_MODE_LIVE)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_page_faults not supported on this scap mode");
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	if(handle->m_ndevs)
+	{
+		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_ENABLE_PAGE_FAULTS))
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
 			ASSERT(false);
 			return SCAP_FAILURE;
 		}
@@ -1374,12 +1399,15 @@ int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 const char* scap_get_host_root()
 {
 	char* p = getenv("SYSDIG_HOST_ROOT");
-	if(!p)
-	{
-		p = "";
+	static char env_str[SCAP_MAX_PATH_SIZE + 1];
+	static bool inited = false;
+	if (! inited) {
+		strncpy(env_str, p ? p : "", SCAP_MAX_PATH_SIZE);
+		env_str[SCAP_MAX_PATH_SIZE] = '\0';
+		inited = true;
 	}
 
-	return p;
+	return env_str;
 }
 
 bool alloc_proclist_info(scap_t* handle, uint32_t n_entries)
@@ -1469,4 +1497,71 @@ void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh)
 uint64_t scap_get_unexpected_block_readsize(scap_t* handle)
 {
 	return handle->m_unexpected_block_readsize;
+}
+
+int32_t scap_enable_simpledriver_mode(scap_t* handle)
+{
+	//
+	// Not supported on files
+	//
+	if(handle->m_mode != SCAP_MODE_LIVE)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "setting simpledriver mode not supported on this scap mode");
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	return SCAP_FAILURE;
+#else
+
+	//
+	// Tell the driver to change the snaplen
+	//
+	if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_SIMPLE_MODE))
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_enable_simpledriver_mode failed");
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+#endif
+}
+
+int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
+{
+	int ioctl_ret = 0;
+
+	//
+	// Not supported on files
+	//
+	if(handle->m_mode != SCAP_MODE_LIVE)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "getting n_tracepoint_hit not supported on this scap mode");
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	return SCAP_FAILURE;
+#else
+
+	ioctl_ret = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_N_TRACEPOINT_HIT, ret);
+	if(ioctl_ret != 0)
+	{
+		if (errno == ENOTTY)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_get_n_tracepoint_hit failed, ioctl not supported");
+		}
+		else
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_get_n_tracepoint_hit failed (%s)", strerror(errno));
+		}
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+#endif
 }

@@ -56,6 +56,11 @@ public:
 		SEV_EVT_MAX = SEV_EVT_DEBUG
 	};
 
+	enum event_memdump_severity
+	{
+		SEV_EVT_MDUMP = SEV_EVT_MAX + 1
+	};
+
 	enum output_type
 	{
 		OT_NONE = 0,

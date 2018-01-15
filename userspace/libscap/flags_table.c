@@ -112,6 +112,12 @@ const struct ppm_name_value clone_flags[] = {
 	{"NAME_CHANGED", PPM_CL_NAME_CHANGED},
 	{"CLOSED", PPM_CL_CLOSED},
 	{"CLONE_NEWUSER", PPM_CL_CLONE_NEWUSER},
+	{"CLONE_CHILD_CLEARTID", PPM_CL_CLONE_CHILD_CLEARTID},
+	{"CLONE_CHILD_SETTID", PPM_CL_CLONE_CHILD_SETTID},
+	{"CLONE_SETTLS", PPM_CL_CLONE_SETTLS},
+	{"CLONE_STOPPED", PPM_CL_CLONE_STOPPED},
+	{"CLONE_VFORK", PPM_CL_CLONE_VFORK},
+	{"CLONE_NEWCGROUP", PPM_CL_CLONE_NEWCGROUP},
 	{0, 0},
 };
 
@@ -388,20 +394,20 @@ const struct ppm_name_value semop_flags[] = {
 };
 
 const struct ppm_name_value semctl_commands[] = {
-        {"IPC_STAT", PPM_IPC_STAT},
-        {"IPC_SET", PPM_IPC_SET},
-        {"IPC_RMID", PPM_IPC_RMID},
-        {"IPC_INFO", PPM_IPC_INFO},
-        {"SEM_INFO", PPM_SEM_INFO},
-        {"SEM_STAT", PPM_SEM_STAT},
-        {"GETALL", PPM_GETALL},
-        {"GETNCNT", PPM_GETNCNT},
-        {"GETPID", PPM_GETPID},
-        {"GETVAL", PPM_GETVAL},
-        {"GETZCNT", PPM_GETZCNT},
-        {"SETALL", PPM_SETALL},
-        {"SETVAL", PPM_SETVAL},
-		{0, 0},
+	{"IPC_STAT", PPM_IPC_STAT},
+	{"IPC_SET", PPM_IPC_SET},
+	{"IPC_RMID", PPM_IPC_RMID},
+	{"IPC_INFO", PPM_IPC_INFO},
+	{"SEM_INFO", PPM_SEM_INFO},
+	{"SEM_STAT", PPM_SEM_STAT},
+	{"GETALL", PPM_GETALL},
+	{"GETNCNT", PPM_GETNCNT},
+	{"GETPID", PPM_GETPID},
+	{"GETVAL", PPM_GETVAL},
+	{"GETZCNT", PPM_GETZCNT},
+	{"SETALL", PPM_SETALL},
+	{"SETVAL", PPM_SETVAL},
+	{0, 0},
 };
 
 const struct ppm_name_value semget_flags[] = {
@@ -418,7 +424,20 @@ const struct ppm_name_value access_flags[] = {
 	{0, 0},
 };
 
+
 const struct ppm_name_value unlinkat_flags[] = {
 	{"AT_REMOVEDIR", PPM_AT_REMOVEDIR},
+	{0, 0},
+};
+
+const struct ppm_name_value pf_flags[] = {
+	{"PROTECTION_VIOLATION", PPM_PF_PROTECTION_VIOLATION},
+	{"PAGE_NOT_PRESENT", PPM_PF_PAGE_NOT_PRESENT},
+	{"WRITE_ACCESS", PPM_PF_WRITE_ACCESS},
+	{"READ_ACCESS", PPM_PF_READ_ACCESS},
+	{"USER_FAULT", PPM_PF_USER_FAULT},
+	{"SUPERVISOR_FAULT", PPM_PF_SUPERVISOR_FAULT},
+	{"RESERVED_PAGE", PPM_PF_RESERVED_PAGE},
+	{"INSTRUCTION_FETCH", PPM_PF_INSTRUCTION_FETCH},
 	{0, 0},
 };

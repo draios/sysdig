@@ -29,6 +29,7 @@ typedef enum sysdig_table_action
 	STA_SWITCH_VIEW,
 	STA_SWITCH_SPY,
 	STA_DRILLDOWN,
+	STA_DRILLDOWN_TEMPLATE,
 	STA_DRILLUP,
 	STA_SPY,
 	STA_DIG,
@@ -227,7 +228,16 @@ public:
 		TT_LIST,
 	};
 
-	sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns, bool print_to_stdout);
+	enum output_type 
+	{
+		OT_CURSES,
+		OT_RAW,
+		OT_JSON,
+	};
+
+	sinsp_table(sinsp* inspector, tabletype type, 
+		uint64_t refresh_interval_ns, sinsp_table::output_type output_type,
+		uint32_t json_first_row, uint32_t json_last_row);
 	~sinsp_table();
 	void configure(vector<sinsp_view_column_info>* entries, const string& filter, bool use_defaults, uint32_t view_depth);
 	void process_event(sinsp_evt* evt);
@@ -252,7 +262,7 @@ public:
 	}
 	void set_sorting_col(uint32_t col);
 	uint32_t get_sorting_col();
-	pair<filtercheck_field_info*, string> get_row_key_name_and_val(uint32_t rownum);
+	pair<filtercheck_field_info*, string> get_row_key_name_and_val(uint32_t rownum, bool force);
 	sinsp_table_field* get_row_key(uint32_t rownum);
 	int32_t get_row_from_key(sinsp_table_field* key);
 	void set_paused(bool paused);
@@ -285,6 +295,8 @@ public:
 	uint64_t m_next_flush_time_ns;
 	uint64_t m_prev_flush_time_ns;
 	uint64_t m_refresh_interval_ns;
+	vector<ppm_param_type>* m_types;
+	uint64_t m_json_output_lines_count;
 
 private:
 	inline void add_row(bool merging);
@@ -298,7 +310,8 @@ private:
 	inline uint8_t* get_default_val(filtercheck_field_info* fld);
 	void create_sample();
 	void switch_buffers();
-	void stdout_print(vector<sinsp_sample_row>* sample_data, uint64_t time_delta);
+	void print_raw(vector<sinsp_sample_row>* sample_data, uint64_t time_delta);
+	void print_json(vector<sinsp_sample_row>* sample_data, uint64_t time_delta);
 
 	sinsp* m_inspector;
 	unordered_map<sinsp_table_field, sinsp_table_field*, sinsp_table_field_hasher>* m_table;
@@ -309,7 +322,6 @@ private:
 	vector<sinsp_filter_check*> m_postmerge_extractors;
 	vector<sinsp_filter_check*>* m_extractors;
 	vector<sinsp_filter_check*> m_chks_to_free;
-	vector<ppm_param_type>* m_types;
 	vector<ppm_param_type> m_premerge_types;
 	vector<ppm_param_type> m_postmerge_types;
 	bool m_is_key_present;
@@ -344,8 +356,10 @@ private:
 	bool m_paused;
 	string m_freetext_filter;
 	tabletype m_type;
-	bool m_print_to_stdout;
+	output_type m_output_type;
 	uint32_t m_view_depth;
+	uint32_t m_json_first_row;
+	uint32_t m_json_last_row;
 
 	friend class curses_table;	
 	friend class sinsp_cursesui;

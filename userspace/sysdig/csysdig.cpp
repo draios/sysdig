@@ -69,6 +69,9 @@ static void usage()
 "csysdig version " SYSDIG_VERSION "\n"
 "Usage: csysdig [options] [filter]\n\n"
 "Options:\n"
+" -A, --print-ascii  When emitting JSON, only print the text portion of data buffers, and echo\n"
+"                    end-of-lines. This is useful to only display human-readable\n"
+"                    data.\n"
 " -d <period>, --delay=<period>\n"
 "                    Set the delay between updates, in milliseconds. This works\n"
 "                    similarly to the -d option in top.\n"
@@ -105,10 +108,9 @@ static void usage()
 " -l, --list         List all the fields that can be used in views.\n"
 " --logfile=<file>\n"
 "                    Print program logs into the given file.\n"
-" -N\n"
-"                    Don't convert port numbers to names.\n"
 " -n <num>, --numevents=<num>\n"
 "                    Stop capturing after <num> events\n"
+" --page-faults      Capture user/kernel major/minor page faults\n"
 " -pc, -pcontainer\n"
 "                    Instruct csysdig to use a container-friendly format in its\n"
 "                    views.\n"
@@ -137,6 +139,8 @@ static void usage()
 "                    csysdig. Combine  this option with a command line filter for\n"
 "                    complete output customization.\n"
 " --version          Print version number.\n"
+" -X, --print-hex-ascii\n"
+"                    When emitting JSON, print data buffers in hex and ASCII.\n"
 "\n"
 "How to use csysdig:\n"
 "1. you can either see real time data, or analyze a trace file by using the -r\n"
@@ -173,6 +177,46 @@ static void add_chisel_dirs(sinsp* inspector)
 			inspector->add_chisel_dir(user_cdirs[j], true);
 		}
 	}
+}
+
+static void print_views(sinsp_view_manager* view_manager)
+{
+	Json::FastWriter writer;
+	Json::Value root;
+
+	vector<sinsp_view_info>* vlist = view_manager->get_views();
+
+	for(auto it = vlist->begin(); it != vlist->end(); ++it)
+	{
+		Json::Value jv;
+		sinsp_view_info& vinfo = *it;
+
+		jv["id"] = vinfo.m_id;
+		jv["name"] = vinfo.m_name;
+		jv["description"] = vinfo.m_description;
+		jv["isRoot"] = vinfo.m_is_root;
+		jv["drilldownTarget"] = vinfo.m_drilldown_target;
+		jv["filter"] = vinfo.m_filter;
+		jv["canDrillDown"] = (vinfo.m_type == sinsp_view_info::T_TABLE);
+
+		for(auto it = vinfo.m_applies_to.begin(); it != vinfo.m_applies_to.end(); ++it)
+		{
+			jv["appliesTo"].append(*it);
+		}
+		for(auto it = vinfo.m_tags.begin(); it != vinfo.m_tags.end(); ++it)
+		{
+			jv["tags"].append(*it);
+		}
+		for(auto it = vinfo.m_tips.begin(); it != vinfo.m_tips.end(); ++it)
+		{
+			jv["tips"].append(*it);
+		}
+
+		root.append(jv);
+	}
+
+	string ouput = writer.write(root);
+	printf("%s", ouput.substr(0, ouput.size() - 1).c_str());
 }
 #endif
 
@@ -218,7 +262,6 @@ captureinfo do_inspect(sinsp* inspector,
 			{
 				ui->set_truncated_input(true);
 				res = SCAP_EOF;
-				continue;
 			}
 		}
 
@@ -251,24 +294,42 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	bool print_containers = false;
 	uint64_t refresh_interval_ns = 2000000000;
 	bool list_flds = false;
-	bool m_raw_output = false;
+	bool is_interactive = false;
+	int32_t json_first_row = 0;
+	int32_t json_last_row = 0;
+	int32_t sorting_col = -1;
+	bool list_views = false;
+
+#ifndef _WIN32
+	sinsp_table::output_type output_type = sinsp_table::OT_CURSES;
+#else
+	sinsp_table::output_type output_type = sinsp_table::OT_JSON;
+#endif
 	string* k8s_api = 0;
 	string* k8s_api_cert = 0;
 	string* mesos_api = 0;
 	bool terminal_with_mouse = false;
 	bool force_tracers_capture = false;
 	bool force_term_compat = false;
-
+	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
+	bool page_faults = false;
+	
 	static struct option long_options[] =
 	{
+		{"print-ascii", no_argument, 0, 'A' },
 		{"delay", required_argument, 0, 'd' },
 		{"exclude-users", no_argument, 0, 'E' },
+		{"from", required_argument, 0, 0 },
 		{"help", no_argument, 0, 'h' },
 		{"k8s-api", required_argument, 0, 'k'},
 		{"k8s-api-cert", required_argument, 0, 'K' },
+		{"json", no_argument, 0, 'j' },
+		{"interactive", optional_argument, 0, 0 },
 		{"list", optional_argument, 0, 'l' },
+		{"list-views", no_argument, 0, 0},
 		{"mesos-api", required_argument, 0, 'm'},
 		{"numevents", required_argument, 0, 'n' },
+		{"page-faults", no_argument, 0, 0 },
 		{"print", required_argument, 0, 'p' },
 		{"resolve-ports", no_argument, 0, 'R'},
 		{"readfile", required_argument, 0, 'r' },
@@ -277,8 +338,11 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"logfile", required_argument, 0, 0 },
 		{"force-tracers-capture", required_argument, 0, 'T'},
 		{"force-term-compat", no_argument, 0, 0},
+		{"sortingcol", required_argument, 0, 0 },
+		{"to", required_argument, 0, 0 },
 		{"view", required_argument, 0, 'v' },
 		{"version", no_argument, 0, 0 },
+		{"print-hex-ascii", no_argument, 0, 'X'},
 		{0, 0, 0, 0}
 	};
 
@@ -297,7 +361,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-			"d:Ehk:K:lm:n:p:Rr:s:Tv:", long_options, &long_index)) != -1)
+			"Ad:Ehk:K:jlm:n:p:Rr:s:Tv:X", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -306,6 +370,16 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				// Command line error 
 				//
 				throw sinsp_exception("command line error");
+				break;
+			case 'A':
+				if(event_buffer_format != sinsp_evt::PF_NORMAL)
+				{
+					fprintf(stderr, "you cannot specify more than one output format\n");
+					delete inspector;
+					return sysdig_init_res(EXIT_SUCCESS);
+				}
+
+				event_buffer_format = sinsp_evt::PF_EOLS_COMPACT;
 				break;
 			case 'd':
 				try
@@ -335,6 +409,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 			case 'K':
 				k8s_api_cert = new string(optarg);
+				break;
+			case 'j':
+				output_type = sinsp_table::OT_JSON;
 				break;
 			case 'l':
 				list_flds = true;
@@ -384,6 +461,16 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			case 'v':
 				display_view = optarg;
 				break;
+			case 'X':
+				if(event_buffer_format != sinsp_evt::PF_NORMAL)
+				{
+					fprintf(stderr, "you cannot specify more than one output format\n");
+					delete inspector;
+					return sysdig_init_res(EXIT_FAILURE);
+				}
+
+				event_buffer_format = sinsp_evt::PF_HEXASCII;
+				break;
 			case 0:
 				{
 					if(long_options[long_index].flag != 0)
@@ -398,17 +485,42 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
+					else if(optname == "interactive")
+					{
+						is_interactive = true;
+						output_type = sinsp_table::OT_JSON;
+					}
 					else if(optname == "logfile")
 					{
 						inspector->set_log_file(optarg);
 					}
 					else if(optname == "raw")
 					{
-						m_raw_output = true;
+						output_type = sinsp_table::OT_RAW;
 					}
 					else if(optname == "force-term-compat")
 					{
 						force_term_compat = true;
+					}
+					else if(optname == "from")
+					{
+						json_first_row = sinsp_numparser::parsed32(optarg);
+					}
+					else if(optname == "to")
+					{
+						json_last_row = sinsp_numparser::parsed32(optarg);
+					}
+					else if(optname == "sortingcol")
+					{
+						sorting_col = sinsp_numparser::parsed32(optarg);
+					}
+					else if(optname == "list-views")
+					{
+						list_views = true;
+					}
+					else if(optname == "page-faults")
+					{
+						page_faults = true;
 					}
 				}
 				break;
@@ -465,11 +577,18 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			goto exit;
 		}
 
+		if(json_last_row < json_first_row)
+		{
+			fprintf(stderr, "'to' argument cannot be smaller than the 'from' one.\n");
+			res.m_res = EXIT_FAILURE;
+			goto exit;
+		}
+
 		//
 		// Initialize ncurses
 		//
 #ifndef NOCURSESUI
-		if(!m_raw_output)
+		if(output_type == sinsp_table::OT_CURSES)
 		{
 			//
 			// Check if terminal has mouse support
@@ -537,14 +656,30 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					}
 				}
 
+				if(output_type != sinsp_table::OT_JSON)
+				{
+					if(std::find(it.m_viewinfo.m_tags.begin(), 
+						it.m_viewinfo.m_tags.end(), 
+						"nocsysdig") != it.m_viewinfo.m_tags.end())
+					{
+						continue;
+					}
+				}
+
 				view_manager.add(&it.m_viewinfo);
 			}
 		}
 
 		//
-		// Set the initial disply view
+		// Set the initial display view
 		//
 		view_manager.set_selected_view(display_view);
+
+		if(list_views)
+		{
+			print_views(&view_manager);
+			goto exit;
+		}
 
 		//
 		// Go through the input sources and apply the processing to all of them
@@ -559,11 +694,39 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				(filter.size() != 0)? filter : "",
 				refresh_interval_ns,
 				print_containers,
-				m_raw_output,
-				terminal_with_mouse);
+				output_type,
+				terminal_with_mouse,
+				json_first_row, 
+				json_last_row,
+				sorting_col,
+				event_buffer_format);
 
 			ui.configure(&view_manager);
-			ui.start(false, false);
+
+			if(display_view == "dig" || display_view == "echo")
+			{
+				ui.start(false, true);
+			}
+			else
+			{
+				ui.start(false, false);
+			}
+
+			if(is_interactive)
+			{
+				printf("ready\n");
+
+				//
+				// In interactive mode, make sure stderr is flushed at every printf
+				//
+				setbuf(stderr, NULL);
+
+				//
+				// Set the UI in interactive mode and start listening to user
+				// input.
+				//
+				ui.set_interactive(true);
+			}
 
 			//
 			// Launch the capture
@@ -642,6 +805,11 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				inspector->enable_tracers_capture();
 			}
 
+			if(page_faults)
+			{
+				inspector->enable_page_faults();
+			}
+
 			//
 			// run k8s, if required
 			//
@@ -699,12 +867,27 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			delete mesos_api;
 			mesos_api = 0;
 
+			if(output_type == sinsp_table::OT_JSON)
+			{
+				printf("{\"slices\": [\n");
+				if(display_view != "dig" && display_view != "echo")
+				{
+					printf("{\"progress\": 0},\n");
+				}
+			}
+
 			//
 			// Start the capture loop
 			//
 			cinfo = do_inspect(inspector,
 				cnt,
 				&ui);
+
+			if(output_type == sinsp_table::OT_JSON)
+			{
+				printf("]}\n");
+				//printf("%c", EOF);
+			}
 
 			//
 			// Done. Close the capture.
@@ -736,7 +919,7 @@ exit:
 	// Restore the original screen
 	//
 #ifndef NOCURSESUI
-	if(!m_raw_output)
+	if(output_type == sinsp_table::OT_CURSES)
 	{
 		endwin();
 	}

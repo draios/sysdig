@@ -33,6 +33,7 @@ add_library(sinsp STATIC
 	http_reason.cpp
 	ifinfo.cpp
 	json_query.cpp
+	json_error_log.cpp
 	k8s.cpp
 	k8s_api_error.cpp
 	k8s_api_handler.cpp
@@ -74,6 +75,7 @@ add_library(sinsp STATIC
 	sinsp.cpp
 	stats.cpp
 	table.cpp
+	token_bucket.cpp
 	sinsp_auth.cpp
 	sinsp_curl.cpp
 	stopwatch.cpp
@@ -88,10 +90,11 @@ target_link_libraries(sinsp
 	scap
 	"${JSONCPP_LIB}")
 
+if(USE_BUNDLED_LUAJIT)
+	add_dependencies(sinsp luajit)
+endif()
+
 if(NOT WIN32)
-	if(USE_BUNDLED_LUAJIT)
-		add_dependencies(sinsp luajit)
-	endif()
 	if(USE_BUNDLED_OPENSSL)
 		add_dependencies(sinsp openssl)
 	endif()

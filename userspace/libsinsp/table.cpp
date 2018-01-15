@@ -75,7 +75,8 @@ typedef struct table_row_cmp
 	bool m_ascending;
 }table_row_cmp;
 
-sinsp_table::sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns, bool print_to_stdout)
+sinsp_table::sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns, 
+	sinsp_table::output_type output_type, uint32_t json_first_row, uint32_t json_last_row)
 {
 	m_inspector = inspector;
 	m_type = type;
@@ -88,7 +89,7 @@ sinsp_table::sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_inte
 	m_n_premerge_fields = 0;
 	m_n_postmerge_fields = 0;
 	m_refresh_interval_ns = refresh_interval_ns;
-	m_print_to_stdout = print_to_stdout;
+	m_output_type = output_type;
 	m_next_flush_time_ns = 0;
 	m_prev_flush_time_ns = 0;
 	m_printer = new sinsp_filter_check_reference();
@@ -106,6 +107,8 @@ sinsp_table::sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_inte
 	m_zero_double = 0;
 	m_paused = false;
 	m_sample_data = NULL;
+	m_json_first_row = json_first_row;
+	m_json_last_row = json_last_row;
 }
 
 sinsp_table::~sinsp_table()
@@ -150,7 +153,7 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////
-	// If a filter has been spefied, compile it
+	// If a filter has been specified, compile it
 	//////////////////////////////////////////////////////////////////////////////////////
 	if(filter != "")
 	{
@@ -399,7 +402,7 @@ void sinsp_table::add_row(bool merging)
 	else
 	{
 		//
-		// We are in list mode. Just appen the row to the end of the sample
+		// We are in list mode. Just append the row to the end of the sample
 		//
 		if(m_paused)
 		{
@@ -600,7 +603,7 @@ void sinsp_table::flush(sinsp_evt* evt)
 	return;
 }
 
-void sinsp_table::stdout_print(vector<sinsp_sample_row>* sample_data, uint64_t time_delta)
+void sinsp_table::print_raw(vector<sinsp_sample_row>* sample_data, uint64_t time_delta)
 {
 	vector<filtercheck_field_info>* legend = get_legend();
 
@@ -622,15 +625,95 @@ void sinsp_table::stdout_print(vector<sinsp_sample_row>* sample_data, uint64_t t
 				it->m_values[j].m_len,
 				it->m_values[j].m_cnt,
 				legend->at(j + 1).m_print_format);
-				char* prstr = m_printer->tostring_nice(NULL, 10, td);
-				printf("%s ", prstr);
-				//printf("%s ", m_printer->tostring(NULL));
+			char* prstr = m_printer->tostring_nice(NULL, 10, td);
+			printf("%s ", prstr);
+			//printf("%s ", m_printer->tostring(NULL));
 		}
 
 		printf("\n");
 	}
 
 	printf("----------------------\n");
+}
+
+void sinsp_table::print_json(vector<sinsp_sample_row>* sample_data, uint64_t time_delta)
+{
+	Json::FastWriter writer;
+	vector<filtercheck_field_info>* legend = get_legend();
+	string res;
+	uint32_t j = 0;
+	uint32_t k = 0;
+	m_json_output_lines_count = 0;
+
+	if(sample_data->size() == 0)
+	{
+		return;
+	}
+
+	if(m_json_first_row >= sample_data->size())
+	{
+		return;
+	}
+
+	if(m_json_last_row == 0 || m_json_last_row >= sample_data->size() - 1)
+	{
+		m_json_last_row = sample_data->size() - 1;
+	}
+
+	printf("\"data\": [\n");
+
+	for(k = m_json_first_row; k <= m_json_last_row; k++)
+	{
+		Json::Value root;
+		Json::Value jd;
+		auto row = sample_data->at(k);
+		
+		for(uint32_t j = 0; j < m_n_fields - 1; j++)
+		{
+			sinsp_filter_check* extractor = m_extractors->at(j + 1);
+			uint64_t td = 0;
+
+			if(extractor->m_aggregation == A_TIME_AVG || 
+				extractor->m_merge_aggregation == A_TIME_AVG)
+			{
+				td = time_delta;
+			}
+
+			m_printer->set_val(m_types->at(j + 1), 
+				row.m_values[j].m_val,
+				row.m_values[j].m_len,
+				row.m_values[j].m_cnt,
+				legend->at(j + 1).m_print_format);
+
+			jd.append(m_printer->tojson(NULL, 10, td));
+		}
+
+
+		auto key = get_row_key_name_and_val(k, false);
+
+		root["k"] = key.second;
+		root["d"] = jd;
+
+		res = writer.write(root);
+		printf("%s", res.substr(0, res.size() - 1).c_str());
+
+		m_json_output_lines_count++;
+
+		if(k >= m_json_last_row)
+		{
+			break;
+		}
+
+		if(j < sample_data->size() - 1)
+		{
+			printf(",");
+		}
+		printf("\n");
+
+		j++;
+	}
+
+	printf("],\n");
 }
 
 void sinsp_table::filter_sample()
@@ -784,10 +867,21 @@ vector<sinsp_sample_row>* sinsp_table::get_sample(uint64_t time_delta)
 	// If required, emit the sample to stdout
 	//
 #ifndef _WIN32
-	if(m_print_to_stdout)
+	if(m_output_type != sinsp_table::OT_CURSES)
 	{
 #endif
-		stdout_print(m_sample_data, time_delta);
+		if(m_output_type == sinsp_table::OT_RAW)
+		{
+			print_raw(m_sample_data, time_delta);
+		}
+		else if(m_output_type == sinsp_table::OT_JSON)
+		{
+			print_json(m_sample_data, time_delta);
+		}
+		else
+		{
+			ASSERT(false);
+		}
 #ifndef _WIN32
 	}
 #endif
@@ -1398,7 +1492,7 @@ void sinsp_table::switch_buffers()
 	}
 }
 
-pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint32_t rownum)
+pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint32_t rownum, bool force)
 {
 	pair<filtercheck_field_info*, string> res;
 	vector<sinsp_filter_check*>* extractors;
@@ -1415,10 +1509,18 @@ pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint
 		types = &m_premerge_types;
 	}
 
-	if(rownum >= m_sample_data->size())
+	if(m_sample_data == NULL || rownum >= m_sample_data->size())
 	{
-		ASSERT(m_sample_data->size() == 0);
-		res.first = NULL;
+		ASSERT(m_sample_data == NULL || m_sample_data->size() == 0);
+		if(force)
+		{
+			res.first = (filtercheck_field_info*)((*extractors)[0])->get_field_info();
+			ASSERT(res.first != NULL);
+		}
+		else
+		{
+			res.first = NULL;
+		}
 		res.second = "";
 	}
 	else

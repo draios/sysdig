@@ -305,6 +305,8 @@ const char* sinsp_utils::errno_to_str(int32_t code)
 		return "ENOMEDIUM";
 	case SE_ECANCELED:
 		return "ECANCELED";
+	case SE_EPROTONOSUPPORT:
+		return "EPROTONOSUPPORT";
 	default:
 		ASSERT(false);
 		return "";
@@ -927,15 +929,12 @@ string port_to_string(uint16_t port, uint8_t l4proto, bool resolve)
 string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve)
 {
 	char buf[50];
+	uint8_t *ip = (uint8_t *)&addr->m_ip;
 
-	// IP address is saved with host byte order, that's why we do shifts
+	// IP address is in network byte order regardless of host endianness
 	snprintf(buf,
 		sizeof(buf),
-		"%d.%d.%d.%d:%s",
-		(addr->m_ip & 0xFF),
-		((addr->m_ip & 0xFF00) >> 8),
-		((addr->m_ip & 0xFF0000) >> 16),
-		((addr->m_ip & 0xFF000000) >> 24),
+		"%d.%d.%d.%d:%s", ip[0], ip[1], ip[2], ip[3],
 		port_to_string(addr->m_port, addr->m_l4proto, resolve).c_str());
 
 	return string(buf);
@@ -1002,6 +1001,116 @@ string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve)
 		port_to_string(tuple->m_fields.m_dport, tuple->m_fields.m_l4proto, resolve).c_str());
 
 	return string(buf);
+}
+
+const char* param_type_to_string(ppm_param_type pt)
+{
+	switch(pt)
+	{
+	case PT_NONE:
+		return "NONE";
+	case PT_INT8:
+		return "INT8";
+	case PT_INT16:
+		return "INT16";
+	case PT_INT32:
+		return "INT32";
+	case PT_INT64:
+		return "INT64";
+	case PT_UINT8:
+		return "UINT8";
+	case PT_UINT16:
+		return "UINT16";
+	case PT_UINT32:
+		return "UINT32";
+	case PT_UINT64:
+		return "UINT64";
+	case PT_CHARBUF:
+		return "CHARBUF";
+	case PT_BYTEBUF:
+		return "BYTEBUF";
+	case PT_ERRNO:
+		return "ERRNO";
+	case PT_SOCKADDR:
+		return "SOCKADDR";
+	case PT_SOCKTUPLE:
+		return "SOCKTUPLE";
+	case PT_FD:
+		return "FD";
+	case PT_PID:
+		return "PID";
+	case PT_FDLIST:
+		return "FDLIST";
+	case PT_FSPATH:
+		return "FSPATH";
+	case PT_SYSCALLID:
+		return "SYSCALLID";
+	case PT_SIGTYPE:
+		return "SIGTYPE";
+	case PT_RELTIME:
+		return "RELTIME";
+	case PT_ABSTIME:
+		return "ABSTIME";
+	case PT_PORT:
+		return "PORT";
+	case PT_L4PROTO:
+		return "L4PROTO";
+	case PT_SOCKFAMILY:
+		return "SOCKFAMILY";
+	case PT_BOOL:
+		return "BOOL";
+	case PT_IPV4ADDR:
+		return "IPV4ADDR";
+	case PT_DYN:
+		return "DYNAMIC";
+	case PT_FLAGS8:
+		return "FLAGS8";
+	case PT_FLAGS16:
+		return "FLAGS16";
+	case PT_FLAGS32:
+		return "FLAGS32";
+	case PT_UID:
+		return "UID";
+	case PT_GID:
+		return "GID";
+	case PT_SIGSET:
+		return "SIGSET";
+	case PT_IPV4NET:
+		return "IPV4NET";
+	case PT_DOUBLE:
+		return "DOUBLE";
+	case PT_CHARBUFARRAY:
+		return "CHARBUFARRAY";
+	case PT_CHARBUF_PAIR_ARRAY:
+		return "CHARBUF_PAIR_ARRAY";
+	default:
+		ASSERT(false);
+		return "<NA>";
+	}
+}
+
+const char* print_format_to_string(ppm_print_format fmt)
+{
+	switch(fmt)
+	{
+	case PF_DEC:
+		return "DEC";
+	case PF_HEX:
+		return "HEX";
+	case PF_10_PADDED_DEC:
+		return "10_PADDED_DEC";
+	case PF_ID:
+		return "ID";
+	case PF_DIR:
+		return "DIR";
+	case PF_OCT:
+		return "OCT";
+	case PF_NA:
+		return "NA";
+	default:
+		ASSERT(false);
+		return "NA";
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1306,4 +1415,28 @@ bool set_socket_blocking(int sock, bool block)
 		return false;
 	}
 	return true;
+}
+
+unsigned int read_num_possible_cpus(void)
+{
+	static const char *fcpu = "/sys/devices/system/cpu/possible";
+	unsigned int start, end, possible_cpus = 0;
+	char buff[128];
+	FILE *fp;
+
+	fp = fopen(fcpu, "r");
+	if (!fp) {
+		return possible_cpus;
+	}
+
+	while (fgets(buff, sizeof(buff), fp)) {
+		if (sscanf(buff, "%u-%u", &start, &end) == 2) {
+			possible_cpus = start == 0 ? end + 1 : 0;
+			break;
+		}
+	}
+
+	fclose(fp);
+
+	return possible_cpus;
 }

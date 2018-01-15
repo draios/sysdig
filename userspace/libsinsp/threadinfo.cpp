@@ -364,6 +364,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 
 	m_comm = pi->comm;
 	m_exe = pi->exe;
+	m_exepath = pi->exepath;
 	set_args(pi->args, pi->args_len);
 	if(is_main_thread())
 	{
@@ -462,6 +463,11 @@ string sinsp_threadinfo::get_exe()
 	return m_exe;
 }
 
+string sinsp_threadinfo::get_exepath()
+{
+	return m_exepath;
+}
+
 void sinsp_threadinfo::set_args(const char* args, size_t len)
 {
 	m_args.clear();
@@ -523,20 +529,22 @@ const vector<string>& sinsp_threadinfo::get_env()
 	}
 }
 
+// Return value string for the exact environment variable name given
 string sinsp_threadinfo::get_env(const string& name)
 {
+	size_t nlen = name.length();
 	for(const auto& env_var : get_env())
 	{
-		if((env_var.length() > name.length()) && (env_var.substr(0, name.length()) == name))
+		if((env_var.length() > (nlen + 1)) && (env_var[nlen] == '=') &&
+			!env_var.compare(0, nlen, name))
 		{
-			std::string::size_type pos = env_var.find('=');
-			if(pos != std::string::npos && env_var.size() > pos + 1)
-			{
-				string val = env_var.substr(pos + 1);
-				std::string::size_type first = val.find_first_not_of(' ');
-				std::string::size_type last = val.find_last_not_of(' ');
-				return val.substr(first, last - first + 1);
-			}
+			// Stripping spaces, not sure if we really should or need to
+			size_t first = env_var.find_first_not_of(' ', nlen + 1);
+			if (first == string::npos)
+				return "";
+			size_t last = env_var.find_last_not_of(' ');
+
+			return env_var.substr(first, last - first + 1);
 		}
 	}
 
@@ -1258,7 +1266,7 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 
 		//
 		// If the thread has a nonzero refcount, it means that we are forcing the removal
-		// of a main process or program that some childs refer to.
+		// of a main process or program that some child refer to.
 		// We need to recalculate the child relationships, or the table will become
 		// corrupted.
 		//
@@ -1365,6 +1373,7 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, 	scap_threadi
 
 	strncpy(sctinfo->comm, tinfo.m_comm.c_str(), SCAP_MAX_PATH_SIZE);
 	strncpy(sctinfo->exe, tinfo.m_exe.c_str(), SCAP_MAX_PATH_SIZE);
+	strncpy(sctinfo->exepath, tinfo.m_exepath.c_str(), SCAP_MAX_PATH_SIZE);
 	tinfo.args_to_scap(sctinfo);
 	tinfo.env_to_scap(sctinfo);
 	string tcwd = (tinfo.m_cwd == "")? "/": tinfo.m_cwd;
@@ -1388,8 +1397,6 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, 	scap_threadi
 
 void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 {
-	scap_threadinfo sctinfo;
-
 	//
 	// First pass of the table to calculate the length
 	//
@@ -1397,11 +1404,18 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 
 	for(auto it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
 	{
+		scap_threadinfo *sctinfo;
+
+		if((sctinfo = scap_proc_alloc(m_inspector->m_h)) == NULL)
+		{
+			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+		}
+
 		sinsp_threadinfo& tinfo = it->second;
 
-		tinfo.args_to_scap(&sctinfo);
-		tinfo.env_to_scap(&sctinfo);
-		tinfo.cgroups_to_scap(&sctinfo);
+		tinfo.args_to_scap(sctinfo);
+		tinfo.env_to_scap(sctinfo);
+		tinfo.cgroups_to_scap(sctinfo);
 
 		string tcwd = (tinfo.m_cwd == "")? "/": tinfo.m_cwd;
 
@@ -1412,7 +1426,8 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			sizeof(uint64_t) +	// sid
 			2 + MIN(tinfo.m_comm.size(), SCAP_MAX_PATH_SIZE) +
 			2 + MIN(tinfo.m_exe.size(), SCAP_MAX_PATH_SIZE) +
-			2 + sctinfo.args_len +
+			2 + MIN(tinfo.m_exepath.size(), SCAP_MAX_PATH_SIZE) +
+			2 + sctinfo->args_len +
 			2 + MIN(tcwd.size(), SCAP_MAX_PATH_SIZE) +
 			sizeof(uint64_t) +	// fdlimit
 			sizeof(uint32_t) +	// uid
@@ -1422,14 +1437,16 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			sizeof(uint32_t) +  // vmswap_kb
 			sizeof(uint64_t) +  // pfmajor
 			sizeof(uint64_t) +  // pfminor
-			2 + sctinfo.env_len +
+			2 + sctinfo->env_len +
 			sizeof(int64_t) +  // vtid
 			sizeof(int64_t) +  // vpid
-			2 + sctinfo.cgroups_len +
+			2 + sctinfo->cgroups_len +
 			sizeof(uint32_t) +
 			2 + MIN(tinfo.m_root.size(), SCAP_MAX_PATH_SIZE));
 
 		totlen += il;
+
+		scap_proc_free(m_inspector->m_h, sctinfo);
 	}
 
 	//
@@ -1442,14 +1459,22 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 
 	for(auto it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
 	{
-		sinsp_threadinfo& tinfo = it->second;
+		scap_threadinfo *sctinfo;
 
-		thread_to_scap(tinfo, &sctinfo);
-
-		if(scap_write_proclist_entry(m_inspector->m_h, dumper, &sctinfo) != SCAP_SUCCESS)
+		if((sctinfo = scap_proc_alloc(m_inspector->m_h)) == NULL)
 		{
 			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 		}
+		sinsp_threadinfo& tinfo = it->second;
+
+		thread_to_scap(tinfo, sctinfo);
+
+		if(scap_write_proclist_entry(m_inspector->m_h, dumper, sctinfo) != SCAP_SUCCESS)
+		{
+			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+		}
+
+		scap_proc_free(m_inspector->m_h, sctinfo);
 	}
 
 	if(scap_write_proclist_trailer(m_inspector->m_h, dumper, totlen) != SCAP_SUCCESS)
@@ -1460,16 +1485,19 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 	//
 	// Third pass of the table to dump the FDs
 	//
-	vector<scap_fdinfo*>* fdinfos_to_free = new vector<scap_fdinfo*>();
 
 	for(auto it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
 	{
+		scap_threadinfo *sctinfo;
+
+		if((sctinfo = scap_proc_alloc(m_inspector->m_h)) == NULL)
+		{
+			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+		}
+
 		sinsp_threadinfo& tinfo = it->second;
 
-		thread_to_scap(tinfo, &sctinfo);
-
-		fdinfos_to_free->clear();
-
+		thread_to_scap(tinfo, sctinfo);
 
 		if(tinfo.is_main_thread())
 		{
@@ -1485,12 +1513,9 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 				scap_fdinfo* scfdinfo = (scap_fdinfo*)malloc(sizeof(scap_fdinfo));
 				if(scfdinfo == NULL)
 				{
-					free_dump_fdinfos(fdinfos_to_free);
-					delete fdinfos_to_free;
+					scap_proc_free(m_inspector->m_h, sctinfo);
 					throw sinsp_exception("thread memory allocation error in sinsp_thread_manager::to_scap");
 				}
-
-				fdinfos_to_free->push_back(scfdinfo);
 
 				//
 				// Populate the fd info
@@ -1501,10 +1526,9 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 				//
 				// Add the new fd to the scap table
 				//
-				if(scap_fd_add(&sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
+				if(scap_fd_add(sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
 				{
-					free_dump_fdinfos(fdinfos_to_free);
-					delete fdinfos_to_free;
+					scap_proc_free(m_inspector->m_h, sctinfo);
 					throw sinsp_exception("error calling scap_fd_add in sinsp_thread_manager::to_scap");
 				}
 			}
@@ -1513,16 +1537,12 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		//
 		// Dump the thread to disk
 		//
-		if(scap_write_proc_fds(m_inspector->m_h, &sctinfo, dumper) != SCAP_SUCCESS)
+		if(scap_write_proc_fds(m_inspector->m_h, sctinfo, dumper) != SCAP_SUCCESS)
 		{
-			free_dump_fdinfos(fdinfos_to_free);
-			delete fdinfos_to_free;
+			scap_proc_free(m_inspector->m_h, sctinfo);
 			throw sinsp_exception("error calling scap_proc_add in sinsp_thread_manager::to_scap");
 		}
 
-		free_dump_fdinfos(fdinfos_to_free);
+		scap_proc_free(m_inspector->m_h, sctinfo);
 	}
-
-	free_dump_fdinfos(fdinfos_to_free);
-	delete fdinfos_to_free;
 }

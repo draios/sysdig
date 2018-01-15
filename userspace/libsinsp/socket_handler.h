@@ -38,6 +38,23 @@
 #define SOCK_NONBLOCK 0
 #endif
 
+struct gaicb_free
+{
+	void operator() (struct gaicb **reqs) const
+		{
+			if(reqs[0]->ar_result)
+			{
+				freeaddrinfo(reqs[0]->ar_result);
+			}
+			if(reqs[0]->ar_name)
+			{
+				free((void*)reqs[0]->ar_name);
+			}
+			free(reqs[0]);
+			free(reqs);
+		}
+};
+
 template <typename T>
 class socket_data_handler
 {
@@ -368,11 +385,15 @@ public:
 				//g_logger.log("Socket handler (" + m_id + ") received=" + std::to_string(rec) +
 				//			 "\n\n" + data + "\n\n", sinsp_logger::SEV_TRACE);
 			}
-			if(++counter > 100)
+
+                        // To prevent reads from entirely stalling (like in gigantic k8s
+                        // environments), give up after reading 30mb.
+			++counter;
+			if(processed > 30 * 1024 * 1024)
 			{
 				throw sinsp_exception("Socket handler (" + m_id + "): "
-						      "unable to retrieve data from " + m_url.to_string(false) + m_path +
-						      " (" + std::to_string(counter) + " attempts, read " + std::to_string(processed) + " bytes)");
+						      "read more than 30MB of data from " + m_url.to_string(false) + m_path +
+						      " (" + std::to_string(processed) + " bytes, " + std::to_string(counter) + " reads). Giving up");
 			}
 			else { usleep(10000); }
 		} while(!m_msg_completed);
@@ -467,7 +488,12 @@ public:
 				// connection. The m_wants_send flag has to be checked by the caller and request re-sent, otherwise
 				// this pipeline will remain idle. To force client-initiated socket close on chunked transfer end,
 				// set the m_close_on_chunked_end flag to true (default).
-				if(m_close_on_chunked_end) { return CONNECTION_CLOSED; }
+				if(m_close_on_chunked_end)
+				{
+					g_logger.log("Socket handler (" + m_id + ") chunked response ended",
+						     sinsp_logger::SEV_DEBUG);
+					return CONNECTION_CLOSED;
+				}
 				m_wants_send = true;
 				if(reinit) { init_http_parser(); }
 			}
@@ -506,10 +532,12 @@ public:
 				}
 				if(iolen > 0) { len_read += iolen; }
 				m_sock_err = errno;
+				sinsp_logger::severity sev = (iolen < 0 && m_sock_err != EAGAIN) ?
+					sinsp_logger::SEV_DEBUG : sinsp_logger::SEV_TRACE;
 				g_logger.log("Socket handler (" + m_id + ") " + m_url.to_string(false) + ", iolen=" +
-							 std::to_string(iolen) + ", data=" + std::to_string(len_read) + " bytes, "
-							 "errno=" + std::to_string(m_sock_err) + " (" + strerror(m_sock_err) + ')',
-							 sinsp_logger::SEV_TRACE);
+					     std::to_string(iolen) + ", data=" + std::to_string(len_read) + " bytes, "
+					     "errno=" + std::to_string(m_sock_err) + " (" + strerror(m_sock_err) + ')',
+					     sev);
 				/* uncomment to see raw HTTP stream data in trace logs
 					if((iolen > 0) && g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
 					{
@@ -531,6 +559,14 @@ public:
 					{
 						if(m_ssl_connection)
 						{
+							int err = SSL_get_error(m_ssl_connection, iolen);
+							if (err != SSL_ERROR_ZERO_RETURN)
+							{
+								g_logger.log("Socket handler(" + m_id + "): SSL conn closed with code "
+									     + std::to_string(err),
+									     sinsp_logger::SEV_DEBUG);
+							}
+
 							int sd = SSL_get_shutdown(m_ssl_connection);
 							if(sd == 0)
 							{
@@ -572,6 +608,9 @@ public:
 						int err = SSL_get_error(m_ssl_connection, iolen);
 						if(err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE)
 						{
+							g_logger.log("Socket handler(" + m_id + "): received SSL error"
+								     + std::to_string(err),
+								     sinsp_logger::SEV_ERROR);
 							goto connection_error;
 						}
 					}
@@ -603,11 +642,6 @@ public:
 			}
 		}
 		return is_error ? m_sock_err : CONNECTION_CLOSED;
-	}
-
-	static bool is_connection_closed(int val)
-	{
-		return val == CONNECTION_CLOSED;
 	}
 
 	void on_error(const std::string& /*err*/, bool /*disconnect*/)
@@ -696,7 +730,7 @@ public:
 	}
 
 	static json_ptr_t try_parse(json_query& jq, const std::string& json, const std::string& filter,
-								const std::string& id, const std::string& url)
+				    const std::string& id, const std::string& url)
 	{
 		std::string filtered_json(json);
 		if(!filter.empty())
@@ -706,9 +740,22 @@ public:
 			if(jq.process(json, filter))
 			{
 				filtered_json = jq.result();
+				if (filtered_json.empty() && !jq.get_error().empty())
+				{
+					g_logger.log("Socket handler (" + id + "), [" +
+						     url + "] filter result is empty \"" +
+						     jq.get_error() + "\"; JSON: <" +
+						     json + ">, jq filter: <" + filter + '>',
+						     sinsp_logger::SEV_DEBUG);
+				}
 			}
 			else
 			{
+				g_logger.log("Socket handler (" + id + "), [" +
+					     url + "] filter processing error \"" +
+					     jq.get_error() + "\"; JSON: <" +
+					     json + ">, jq filter: <" + filter + '>',
+					     sinsp_logger::SEV_DEBUG);
 				return nullptr;
 			}
 		}
@@ -1275,10 +1322,8 @@ private:
 				{
 					g_logger.log("Socket handler (" + m_id + ") resolving " + m_url.get_host(),
 								 sinsp_logger::SEV_TRACE);
-					m_dns_reqs = (struct gaicb**)calloc(1, sizeof(struct gaicb*));
-					m_dns_reqs[0] = (struct gaicb*)calloc(1, sizeof(struct gaicb));
-					m_dns_reqs[0]->ar_name = strdup(m_url.get_host().c_str());
-					ret = getaddrinfo_a(GAI_NOWAIT, &m_dns_reqs[0], 1, NULL);
+					m_dns_reqs = make_gaicb(m_url.get_host());
+					ret = getaddrinfo_a(GAI_NOWAIT, m_dns_reqs.get(), 1, NULL);
 					if(ret)
 					{
 						throw sinsp_exception("Socket handler (" + m_id + "): " + m_url.get_host() +
@@ -1423,7 +1468,7 @@ private:
 		m_connect_called = true;
 	}
 
-	bool dns_cleanup(struct gaicb** dns_reqs)
+	bool dns_req_done(struct gaicb** dns_reqs) const
 	{
 		if(dns_reqs && dns_reqs[0])
 		{
@@ -1431,17 +1476,6 @@ private:
 			int err = gai_error(dns_reqs[0]);
 			if(ret == EAI_ALLDONE || err == EAI_CANCELED)
 			{
-				if(dns_reqs[0]->ar_result)
-				{
-					freeaddrinfo(dns_reqs[0]->ar_result);
-				}
-				if(dns_reqs[0]->ar_name)
-				{
-					free((void*)dns_reqs[0]->ar_name);
-				}
-				free(dns_reqs[0]);
-				dns_reqs[0] = 0;
-				free(dns_reqs);
 				return true;
 			}
 			else if(err == EAI_INPROGRESS || err == EAI_AGAIN)
@@ -1472,7 +1506,7 @@ private:
 	{
 		for(dns_list_t::iterator it = m_pending_dns_reqs.begin(); it != m_pending_dns_reqs.end();)
 		{
-			if(dns_cleanup(*it))
+			if(dns_req_done(it->get()))
 			{
 				it = m_pending_dns_reqs.erase(it);
 				g_logger.log("Socket handler: postponed canceling of DNS request succeeded, number of pending "
@@ -1489,14 +1523,11 @@ private:
 						 (pending_reqs > 10) ? sinsp_logger::SEV_WARNING : sinsp_logger::SEV_TRACE);
 		}
 
-		if(dns_cleanup(m_dns_reqs))
+		if(!dns_req_done(m_dns_reqs.get()))
 		{
-			m_dns_reqs = 0;
+			m_pending_dns_reqs.emplace_back(std::move(m_dns_reqs));
 		}
-		else // store for postponed canceling
-		{
-			m_pending_dns_reqs.push_back(m_dns_reqs);
-		}
+		m_dns_reqs = nullptr;
 	}
 
 	void ssl_cleanup()
@@ -1641,7 +1672,16 @@ private:
 		return http_reason::get(status);
 	}
 
-	typedef std::deque<struct gaicb**> dns_list_t;
+	using gaicb_t = std::unique_ptr<struct gaicb* [], gaicb_free>;
+	using dns_list_t = std::deque<gaicb_t>;
+
+	gaicb_t make_gaicb(const std::string &host)
+	{
+		gaicb_t dns_reqs((struct gaicb**)calloc(1, sizeof(struct gaicb*)));
+		dns_reqs[0] = (struct gaicb*)calloc(1, sizeof(struct gaicb));
+		dns_reqs[0]->ar_name = strdup(m_url.get_host().c_str());
+		return dns_reqs;
+	}
 
 	T&                       m_obj;
 	std::string              m_id;
@@ -1658,7 +1698,7 @@ private:
 	bool                     m_blocking = false;
 	std::vector<char>        m_buf;
 	int                      m_sock_err = 0;
-	struct gaicb**           m_dns_reqs = nullptr;
+	gaicb_t m_dns_reqs = nullptr;
 	static dns_list_t        m_pending_dns_reqs;
 	ssl_ptr_t                m_ssl;
 	bt_ptr_t                 m_bt;

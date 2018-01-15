@@ -35,7 +35,7 @@ typedef enum filtercheck_field_flags
 	EPF_FILTER_ONLY       = 1 << 0, ///< this field can only be used as a filter.
 	EPF_PRINT_ONLY        = 1 << 1, ///< this field can only be printed.
 	EPF_REQUIRES_ARGUMENT = 1 << 2, ///< this field includes an argument, under the form 'property.argument'.
-	EPF_TABLE_ONLY        = 1 << 3, ///< this field is desgned to be used in a table and won't appear in the list created by sysdig's '-l'.
+	EPF_TABLE_ONLY        = 1 << 3, ///< this field is designed to be used in a table and won't appear in the list created by sysdig's '-l'.
 }filtercheck_field_flags;
 
 /*!
@@ -73,7 +73,7 @@ class SINSP_PUBLIC sinsp_evt_param
 {
 public:
 	char* m_val;	///< Pointer to the event parameter data.
-	uint16_t m_len; ///< Lenght os the parameter pointed by m_val.
+	uint16_t m_len; ///< Length os the parameter pointed by m_val.
 private:
 	inline void init(char* valptr, uint16_t len)
 	{
@@ -105,11 +105,12 @@ public:
 		PF_HEX =            (1 << 3),	///< Hexadecimal output
 		PF_HEXASCII =       (1 << 4),	///< Hexadecimal + ASCII output
 		PF_EOLS =           (1 << 5),	///< Normal + end of lines
-		PF_BASE64 =         (1 << 6),	///< Base64 output
-		PF_JSONEOLS =       (1 << 7),	///< Json formatting with data in hexadecimal format
-		PF_JSONHEX =        (1 << 8),	///< Json formatting with data in hexadecimal format
-		PF_JSONHEXASCII =   (1 << 9),	///< Json formatting with data in hexadecimal + ASCII format
-		PF_JSONBASE64 =     (1 << 10),	///< Json formatting with data in base64 format
+		PF_EOLS_COMPACT =   (1 << 6),	///< Normal + end of lines but with no force EOL at the beginning
+		PF_BASE64 =         (1 << 7),	///< Base64 output
+		PF_JSONEOLS =       (1 << 8),	///< Json formatting with data in hexadecimal format
+		PF_JSONHEX =        (1 << 9),	///< Json formatting with data in hexadecimal format
+		PF_JSONHEXASCII =   (1 << 10),	///< Json formatting with data in hexadecimal + ASCII format
+		PF_JSONBASE64 =     (1 << 11),	///< Json formatting with data in base64 format
 	};
 
 	/*!
@@ -419,6 +420,8 @@ VISIBILITY_PRIVATE
 	friend class sinsp_table;
 	friend class sinsp_cursesui;
 	friend class sinsp_baseliner;
+	friend class capture_job_handler;
+	friend class capture_job;
 	friend class sinsp_memory_dumper;
 	friend class sinsp_memory_dumper_job;
 };

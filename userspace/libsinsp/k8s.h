@@ -37,7 +37,8 @@ public:
 		bool block = false,
 #endif // HAS_CAPTURE
 		filter_ptr_t event_filter = nullptr,
-		ext_list_ptr_t extensions = nullptr);
+		ext_list_ptr_t extensions = nullptr,
+		bool events_only = false);
 
 	~k8s();
 

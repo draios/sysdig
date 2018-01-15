@@ -7,11 +7,11 @@
 #include "marathon_http.h"
 #include "curl/curl.h"
 #include "curl/easy.h"
-#include "curl/curlbuild.h"
 #define BUFFERSIZE 512 // b64 needs this macro
 #include "b64/encode.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "json_error_log.h"
 #include "mesos.h"
 #include <iostream>
 #include <sstream>
@@ -43,11 +43,14 @@ marathon_http::~marathon_http()
 bool marathon_http::refresh_data()
 {
 	std::ostringstream os;
-	CURLcode res = get_data(make_uri("/v2/info"), os);
+	std::string uri = make_uri("/v2/info");
+	CURLcode res = get_data(uri, os);
 
 	if(res != CURLE_OK)
 	{
-		g_logger.log(curl_easy_strerror(res), sinsp_logger::SEV_ERROR);
+		std::string errstr = std::string("Problem accessing /v2/info: ") + curl_easy_strerror(res);
+		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+		g_json_error_log.log(os.str(), errstr, sinsp_utils::get_current_time_ns(), uri);
 		return false;
 	}
 
@@ -64,13 +67,18 @@ bool marathon_http::refresh_data()
 		}
 		else
 		{
-			g_logger.log("Error parsing framework info.\nJSON:\n---\n" + os.str() + "\n---", sinsp_logger::SEV_ERROR);
+			std::string errstr;
+			errstr = reader.getFormattedErrorMessages();
+			g_logger.log("Error parsing framework info (" + errstr + ").\nJSON:\n---\n" + os.str() + "\n---", sinsp_logger::SEV_ERROR);
+			g_json_error_log.log(os.str(), errstr, sinsp_utils::get_current_time_ns(), uri);
 			return false;
 		}
 	}
 	catch(std::exception& ex)
 	{
-		g_logger.log(std::string("Error parsing framework info:") + ex.what(), sinsp_logger::SEV_ERROR);
+		std::string errstr = std::string("Error parsing framework info:") + ex.what();
+		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+		g_json_error_log.log(os.str(), errstr, sinsp_utils::get_current_time_ns(), uri);
 		return false;
 	}
 	
@@ -80,11 +88,14 @@ bool marathon_http::refresh_data()
 std::string marathon_http::get_groups(const std::string& group_id)
 {
 	std::ostringstream os;
-	CURLcode res = get_data(make_uri("/v2/groups" + group_id), os);
+	std::string uri = make_uri("/v2/groups" + group_id);
+	CURLcode res = get_data(uri, os);
 
 	if(res != CURLE_OK)
 	{
-		g_logger.log(curl_easy_strerror(res), sinsp_logger::SEV_ERROR);
+		std::string errstr = std::string("Problem accessing /v2/groups: ") + curl_easy_strerror(res);
+		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+		g_json_error_log.log(os.str(), errstr, sinsp_utils::get_current_time_ns(), uri);
 		return "";
 	}
 

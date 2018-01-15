@@ -1708,7 +1708,16 @@ void sinsp_filter_compiler::parse_check()
 	{
 		if(!(chk->get_fields()->m_flags & filter_check_info::FL_WORKS_ON_THREAD_TABLE))
 		{
-			throw sinsp_exception("the given filter is not supported for thread table filtering");
+			if(str_operand1 != "evt.rawtime" && 
+				str_operand1 != "evt.rawtime.s" && 
+				str_operand1 != "evt.rawtime.ns" && 
+				str_operand1 != "evt.time" && 
+				str_operand1 != "evt.time.s" && 
+				str_operand1 != "evt.datetime" && 
+				str_operand1 != "evt.reltime")
+			{
+				throw sinsp_exception("the given filter is not supported for thread table filtering");
+			}
 		}
 	}
 
@@ -1803,7 +1812,6 @@ void sinsp_filter_compiler::parse_check()
 			//
 			// Create the 'or' sequence
 			//
-			uint32_t num_values = 0;
 			while(true)
 			{
 				// 'in' clause aware
@@ -1815,8 +1823,7 @@ void sinsp_filter_compiler::parse_check()
 				sinsp_filter_check* newchk = g_filterlist.new_filter_check_from_another(chk);
 				newchk->m_boolop = op;
 				newchk->m_cmpop = CO_EQ;
-				newchk->add_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1, num_values);
-				num_values++;
+				newchk->add_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
 
 				m_filter->add_check(newchk);
 
@@ -2067,7 +2074,12 @@ void sinsp_evttype_filter::add(string &name,
 {
 	filter_wrapper *wrap = new filter_wrapper();
 	wrap->filter = filter;
-	wrap->evttypes = evttypes;
+
+	wrap->evttypes.assign(PPM_EVENT_MAX+1, false);
+	for(auto &evttype : evttypes)
+	{
+		wrap->evttypes[evttype] = true;
+	}
 
 	m_evttype_filters.insert(pair<string,filter_wrapper *>(name, wrap));
 
@@ -2170,5 +2182,44 @@ bool sinsp_evttype_filter::run(sinsp_evt *evt, uint16_t ruleset)
 	}
 
 	return false;
+}
+
+
+// Solely used for code sharing in evttypes_for_rulset
+void sinsp_evttype_filter::check_filter_wrappers(std::vector<bool> &evttypes,
+						 uint32_t etype,
+						 std::list<filter_wrapper *> &filters,
+						 uint16_t ruleset)
+{
+	for(filter_wrapper *wrap : filters)
+	{
+		if(wrap->enabled.size() >= (size_t) (ruleset + 1) &&
+		   wrap->enabled[ruleset])
+		{
+			evttypes[etype] = true;
+			break;
+		}
+	}
+}
+
+void sinsp_evttype_filter::evttypes_for_ruleset(std::vector<bool> &evttypes, uint16_t ruleset)
+{
+	evttypes.assign(PPM_EVENT_MAX+1, false);
+
+	for(uint32_t etype = 0; etype < PPM_EVENT_MAX; etype++)
+	{
+		// Catchall filters (ones that don't explicitly refer
+		// to a type) must run for all event types.
+		check_filter_wrappers(evttypes, etype, m_catchall_evttype_filters, ruleset);
+
+		if(!evttypes[etype])
+		{
+			list<filter_wrapper *> *filters = m_filter_by_evttype[etype];
+			if(filters)
+			{
+				check_filter_wrappers(evttypes, etype, *filters, ruleset);
+			}
+		}
+	}
 }
 #endif // HAS_FILTERING

@@ -155,6 +155,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 										       detected to be the source in a shell pipe. */
 #define PPM_CL_PIPE_DST (1 << 22)			/* libsinsp-specific flag. Set if this thread has been 
 										       detected to be the destination in a shell pipe. */
+#define PPM_CL_CLONE_CHILD_CLEARTID (1 << 23)
+#define PPM_CL_CLONE_CHILD_SETTID (1 << 24)
+#define PPM_CL_CLONE_SETTLS (1 << 25)
+#define PPM_CL_CLONE_STOPPED (1 << 26)
+#define PPM_CL_CLONE_VFORK (1 << 27)
+#define PPM_CL_CLONE_NEWCGROUP (1 << 28)
 
 /*
  * Futex Operations
@@ -357,6 +363,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #define PPM_PTRACE_IDX_MAX 2
 
+#define PPM_BPF_IDX_FD 0
+#define PPM_BPF_IDX_RES 1
+
+#define PPM_BPF_IDX_MAX 2
+
 /*
  * memory protection flags
  */
@@ -475,6 +486,17 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
  */
 #define PPM_AT_REMOVEDIR    (1 << 0)
 
+/*
+ * Page fault flags
+ */
+#define PPM_PF_PROTECTION_VIOLATION	(1 << 0)
+#define PPM_PF_PAGE_NOT_PRESENT		(1 << 1)
+#define PPM_PF_WRITE_ACCESS		(1 << 2)
+#define PPM_PF_READ_ACCESS		(1 << 3)
+#define PPM_PF_USER_FAULT		(1 << 4)
+#define PPM_PF_SUPERVISOR_FAULT		(1 << 5)
+#define PPM_PF_RESERVED_PAGE		(1 << 6)
+#define PPM_PF_INSTRUCTION_FETCH	(1 << 7)
 
 /*
  * SuS says limits have to be unsigned.
@@ -492,7 +514,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef _STK_LIM_MAX
 # define _STK_LIM_MAX           RLIM_INFINITY
 #endif
-
 
 /*
  * The list of event types
@@ -513,6 +534,7 @@ enum ppm_capture_category {
 	PPMC_SYSCALL = 1,
 	PPMC_CONTEXT_SWITCH = 2,
 	PPMC_SIGNAL = 3,
+	PPMC_PAGE_FAULT = 4,
 };
 
 /** @defgroup etypes Event Types
@@ -806,9 +828,19 @@ enum ppm_event_type {
 	PPME_SYSCALL_EXECVE_17_X = 283,
 	PPME_SYSCALL_UNSHARE_E = 284,
 	PPME_SYSCALL_UNSHARE_X = 285,
-	PPME_SYSCALL_UNLINKAT_2_E = 286,
-	PPME_SYSCALL_UNLINKAT_2_X = 287,
-	PPM_EVENT_MAX = 288
+	PPME_INFRASTRUCTURE_EVENT_E = 286,
+	PPME_INFRASTRUCTURE_EVENT_X = 287,
+	PPME_SYSCALL_EXECVE_18_E = 288,
+	PPME_SYSCALL_EXECVE_18_X = 289,
+	PPME_PAGE_FAULT_E = 290,
+	PPME_PAGE_FAULT_X = 291,
+	PPME_SYSCALL_BPF_E = 292,
+	PPME_SYSCALL_BPF_X = 293,
+	PPME_SYSCALL_SECCOMP_E = 294,
+	PPME_SYSCALL_SECCOMP_X = 295,
+	PPME_SYSCALL_UNLINKAT_2_E = 296,
+	PPME_SYSCALL_UNLINKAT_2_X = 297,
+	PPM_EVENT_MAX = 298
 };
 /*@}*/
 
@@ -998,7 +1030,7 @@ enum ppm_syscall_code {
 	PPM_SC_TGKILL = 179,
 	PPM_SC_UTIMES = 180,
 	PPM_SC_MQ_OPEN = 181,
-	PPM_SC_MQ_UNLINK = 18,
+	PPM_SC_MQ_UNLINK = 182,
 	PPM_SC_MQ_TIMEDSEND = 183,
 	PPM_SC_MQ_TIMEDRECEIVE = 184,
 	PPM_SC_MQ_NOTIFY = 185,
@@ -1130,7 +1162,10 @@ enum ppm_syscall_code {
 	PPM_SC_SETRESGID32 = 311,
 	PPM_SC_GETRESUID32 = 312,
 	PPM_SC_GETRESGID32 = 313,
-	PPM_SC_MAX = 314,
+	PPM_SC_FINIT_MODULE = 314,
+	PPM_SC_BPF = 315,
+	PPM_SC_SECCOMP = 316,
+	PPM_SC_MAX = 317,
 };
 
 /*
@@ -1241,8 +1276,8 @@ struct ppm_name_value {
   \brief Event parameter information.
 */
 struct ppm_param_info {
-	char name[PPM_MAX_NAME_LEN];  /**< Paramter name, e.g. 'size'. */
-	enum ppm_param_type type; /**< Paramter type, e.g. 'uint16', 'string'... */
+	char name[PPM_MAX_NAME_LEN];  /**< Parameter name, e.g. 'size'. */
+	enum ppm_param_type type; /**< Parameter type, e.g. 'uint16', 'string'... */
 	enum ppm_print_format fmt; /**< If this is a numeric parameter, this flag specifies if it should be rendered as decimal or hex. */
 	const void *info; /**< If this is a flags parameter, it points to an array of ppm_name_value,
 			       else if this is a dynamic parameter it points to an array of ppm_param_info */
@@ -1308,7 +1343,9 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_ENABLE_SIGNAL_DELIVER _IO(PPM_IOCTL_MAGIC, 15)
 #define PPM_IOCTL_GET_PROCLIST _IO(PPM_IOCTL_MAGIC, 16)
 #define PPM_IOCTL_SET_TRACERS_CAPTURE _IO(PPM_IOCTL_MAGIC, 17)
-
+#define PPM_IOCTL_SET_SIMPLE_MODE _IO(PPM_IOCTL_MAGIC, 18)
+#define PPM_IOCTL_ENABLE_PAGE_FAULTS _IO(PPM_IOCTL_MAGIC, 19)
+#define PPM_IOCTL_GET_N_TRACEPOINT_HIT _IO(PPM_IOCTL_MAGIC, 20)
 
 extern const struct ppm_name_value socket_families[];
 extern const struct ppm_name_value file_flags[];
@@ -1335,8 +1372,10 @@ extern const struct ppm_name_value semget_flags[];
 extern const struct ppm_name_value semctl_commands[];
 extern const struct ppm_name_value access_flags[];
 extern const struct ppm_name_value unlinkat_flags[];
+extern const struct ppm_name_value pf_flags[];
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
+extern const struct ppm_param_info bpf_dynamic_param[];
 
 /*
  * Driver event notification ID

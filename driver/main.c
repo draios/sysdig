@@ -49,7 +49,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/tracepoint.h>
 #include <linux/cpu.h>
 #include <linux/jiffies.h>
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 26))
+#include <linux/file.h>
+#else
 #include <linux/fdtable.h>
+#endif
 #include <net/sock.h>
 #include <asm/asm-offsets.h>	/* For NR_syscalls */
 #include <asm/unistd.h>
@@ -104,6 +108,8 @@ struct event_data_t {
 			struct siginfo *info;
 			struct k_sigaction *ka;
 		} signal_data;
+
+		struct fault_data_t fault_data;
 	} event_info;
 };
 
@@ -150,12 +156,18 @@ TRACEPOINT_PROBE(sched_switch_probe, bool preempt, struct task_struct *prev, str
 TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_sigaction *ka);
 #endif
 
+#ifdef CAPTURE_PAGE_FAULTS
+TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code);
+#endif
+
 DECLARE_BITMAP(g_events_mask, PPM_EVENT_MAX);
 static struct ppm_device *g_ppm_devs;
 static struct class *g_ppm_class;
 static unsigned int g_ppm_numdevs;
 static int g_ppm_major;
 bool g_tracers_enabled = false;
+bool g_simple_mode_enabled = false;
+static DEFINE_PER_CPU(long, g_n_tracepoint_hit);
 static const struct file_operations g_ppm_fops = {
 	.open = ppm_open,
 	.release = ppm_release,
@@ -182,6 +194,14 @@ static struct tracepoint *tp_sched_switch;
 #endif
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 static struct tracepoint *tp_signal_deliver;
+#endif
+#ifdef CAPTURE_PAGE_FAULTS
+// Even in kernels that can support page fault tracepoints, tracepoints may be
+// disabled so check if g_fault_tracepoint_disabled is set.
+static struct tracepoint *tp_page_fault_user;
+static struct tracepoint *tp_page_fault_kernel;
+static bool g_fault_tracepoint_registered;
+static bool g_fault_tracepoint_disabled;
 #endif
 
 #ifdef _DEBUG
@@ -427,7 +447,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		ret = compat_register_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
 #else
-		ret = register_trace_syscall_enter(syscall_enter_probe);
+		ret = register_trace_syscall_exit(syscall_exit_probe);
 #endif
 		if (ret) {
 			pr_err("can't create the sys_exit tracepoint\n");
@@ -437,7 +457,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		ret = compat_register_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
 #else
-		ret = register_trace_syscall_exit(syscall_exit_probe);
+		ret = register_trace_syscall_enter(syscall_enter_probe);
 #endif
 		if (ret) {
 			pr_err("can't create the sys_enter tracepoint\n");
@@ -474,7 +494,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 err_signal_deliver:
-	compat_unregister_trace(sched_switch_probe, "signal_switch", tp_signal_deliver);
+	compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
 #endif
 err_sched_switch:
 	compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
@@ -502,6 +522,7 @@ cleanup_open:
 
 static int ppm_release(struct inode *inode, struct file *filp)
 {
+	int cpu;
 	int ret;
 	struct ppm_ring_buffer_context *ring;
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
@@ -571,10 +592,30 @@ static int ppm_release(struct inode *inode, struct file *filp)
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 			compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
 #endif
+#ifdef CAPTURE_PAGE_FAULTS
+			if (g_fault_tracepoint_registered) {
+				compat_unregister_trace(page_fault_probe, "page_fault_user", tp_page_fault_user);
+				compat_unregister_trace(page_fault_probe, "page_fault_kernel", tp_page_fault_kernel);
+
+				g_fault_tracepoint_registered = false;
+			}
+#endif
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 			tracepoint_synchronize_unregister();
 #endif
 			g_tracepoint_registered = false;
+
+			/*
+			 * While we're here, disable simple mode if it's active
+			 */
+			g_simple_mode_enabled = false;
+
+			/*
+			 * Reset tracepoint counter
+			 */
+			for_each_possible_cpu(cpu) {
+				per_cpu(g_n_tracepoint_hit, cpu) = 0;
+			}
 		} else {
 			ASSERT(false);
 		}
@@ -590,6 +631,7 @@ cleanup_release:
 
 static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
+	int cpu;
 	int ret;
 	struct task_struct *consumer_id = filp->private_data;
 	struct ppm_consumer_t *consumer = NULL;
@@ -694,7 +736,20 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		ret = 0;
 cleanup_ioctl_procinfo:
-		vfree((void*)proclist_info);
+		vfree((void *)proclist_info);
+		goto cleanup_ioctl_nolock;
+	}
+
+	if (cmd == PPM_IOCTL_GET_N_TRACEPOINT_HIT) {
+		long __user *counters = (long __user *) arg;
+
+		for_each_possible_cpu(cpu) {
+			if (put_user(per_cpu(g_n_tracepoint_hit, cpu), &counters[cpu])) {
+				ret = -EINVAL;
+				goto cleanup_ioctl_nolock;
+			}
+		}
+		ret = 0;
 		goto cleanup_ioctl_nolock;
 	}
 
@@ -962,11 +1017,60 @@ cleanup_ioctl_procinfo:
 		ret = 0;
 		goto cleanup_ioctl;
 	}
+	case PPM_IOCTL_SET_SIMPLE_MODE:
+	{
+		vpr_info("PPM_IOCTL_SET_SIMPLE_MODE, consumer %p\n", consumer_id);
+		g_simple_mode_enabled = true;
+		ret = 0;
+		goto cleanup_ioctl;
+	}
+	case PPM_IOCTL_ENABLE_PAGE_FAULTS:
+	{
+		vpr_info("PPM_IOCTL_ENABLE_PAGE_FAULTS\n");
+#ifdef CAPTURE_PAGE_FAULTS
+		ASSERT(g_tracepoint_registered);
+
+		if (g_fault_tracepoint_disabled) {
+			pr_err("kernel page fault tracepoints are disabled\n");
+			ret = -EPERM;
+			goto cleanup_ioctl;
+		}
+
+		if (!g_fault_tracepoint_registered) {
+			ret = compat_register_trace(page_fault_probe, "page_fault_user", tp_page_fault_user);
+			if (ret) {
+				pr_err("can't create the page_fault_user tracepoint\n");
+				ret = -EINVAL;
+				goto cleanup_ioctl;
+			}
+
+			ret = compat_register_trace(page_fault_probe, "page_fault_kernel", tp_page_fault_kernel);
+			if (ret) {
+				pr_err("can't create the page_fault_kernel tracepoint\n");
+				ret = -EINVAL;
+				goto err_page_fault_kernel;
+			}
+
+			g_fault_tracepoint_registered = true;
+		}
+
+		ret = 0;
+		goto cleanup_ioctl;
+#else
+		pr_err("kernel doesn't support page fault tracepoints\n");
+		ret = -EINVAL;
+		goto cleanup_ioctl;
+#endif
+	}
 	default:
 		ret = -ENOTTY;
 		goto cleanup_ioctl;
 	}
 
+#ifdef CAPTURE_PAGE_FAULTS
+err_page_fault_kernel:
+	compat_unregister_trace(page_fault_probe, "page_fault_user", tp_page_fault_user);
+#endif
 cleanup_ioctl:
 	mutex_unlock(&g_consumer_mutex);
 cleanup_ioctl_nolock:
@@ -1436,10 +1540,23 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	 * Preemption gate
 	 */
 	if (unlikely(atomic_inc_return(&ring->preempt_count) != 1)) {
+		/* When this driver executing a filler calls ppm_copy_from_user(),
+		 * even if the page fault is disabled, the page fault tracepoint gets
+		 * called very early in the page fault handler, way before the kernel
+		 * terminates it, so this is legit. Still not sure how to solve this,
+		 * so for the moment handle this case by not complaining and ignoring
+		 * the false alarm if the preemption exception is generated by
+		 * page_fault_kernel. The alternative would be to disable the kernel
+		 * tracepoint completely, but there is value in seeing page faults
+		 * generated on this side, so let's see if someone complains.
+		 * This means that effectively those events would be lost.
+		 */
+		if (event_type != PPME_PAGE_FAULT_E) {
+			ring_info->n_preemptions++;
+			ASSERT(false);
+		}
 		atomic_dec(&ring->preempt_count);
-		ring_info->n_preemptions++;
 		put_cpu();
-		ASSERT(false);
 		return res;
 	}
 
@@ -1478,7 +1595,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		enum ppm_event_type tet;
 
 		args.is_socketcall = true;
-		args.compat = true;
+		args.compat = event_datap->compat;
 		tet = parse_socketcall(&args, event_datap->event_info.syscall_data.regs);
 
 		if (event_type == PPME_GENERIC_E)
@@ -1575,6 +1692,9 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		}
 		args.dpid = current->pid;
 
+		if (event_datap->category == PPMC_PAGE_FAULT)
+			args.fault_data = event_datap->event_info.fault_data;
+
 		args.curarg = 0;
 		args.arg_data_size = args.buffer_size - args.arg_data_offset;
 		args.nevents = ring->nevents;
@@ -1602,7 +1722,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 			 */
 			if (likely(args.curarg == args.nargs)) {
 				/*
-				 * The event was successfully insterted in the buffer
+				 * The event was successfully inserted in the buffer
 				 */
 				event_size = sizeof(struct ppm_evt_hdr) + args.arg_data_offset;
 				hdr->len = event_size;
@@ -1684,6 +1804,22 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	return res;
 }
 
+static inline void g_n_tracepoint_hit_inc(void)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
+	this_cpu_inc(g_n_tracepoint_hit);
+#elif defined(this_cpu_inc)
+	/* this_cpu_inc has been added with 2.6.33 but backported by RHEL/CentOS to 2.6.32
+	 * so just checking the existence of the symbol rather than matching the kernel version
+	 * https://github.com/torvalds/linux/commit/7340a0b15280c9d902c7dd0608b8e751b5a7c403
+	 * 
+	 * per_cpu_var removed with:
+	 * https://github.com/torvalds/linux/commit/dd17c8f72993f9461e9c19250e3f155d6d99df22
+	 */
+	this_cpu_inc(per_cpu_var(g_n_tracepoint_hit));
+#endif
+}
+
 TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 {
 	long table_index;
@@ -1702,7 +1838,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	 * kernel flag), we switch to the ia32 syscall table.
 	 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
-	if(in_ia32_syscall()) {
+	if (in_ia32_syscall()) {
 #else
 	if (unlikely(task_thread_info(current)->status & TS_COMPAT)) {
 #endif
@@ -1713,12 +1849,23 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	}
 #endif
 
+	g_n_tracepoint_hit_inc();
+	
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
 		struct event_data_t event_data;
 		int used = cur_g_syscall_table[table_index].flags & UF_USED;
 		enum syscall_flags drop_flags = cur_g_syscall_table[table_index].flags;
 		enum ppm_event_type type;
+
+		/*
+		 * Simple mode event filtering
+		 */
+		if (g_simple_mode_enabled) {
+			if ((drop_flags & UF_SIMPLEDRIVER_KEEP) == 0) {
+				return;
+			}
+		}
 
 #ifdef _HAS_SOCKETCALL
 		if (id == socketcall_syscall) {
@@ -1768,7 +1915,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	 * which is a very old syscall, not used anymore by most applications
 	 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
-	if(in_ia32_syscall() && id != __NR_execve) {
+	if (in_ia32_syscall() && id != __NR_execve) {
 #else
 	if (unlikely((task_thread_info(current)->status & TS_COMPAT) && id != __NR_execve)) {
 #endif
@@ -1779,12 +1926,23 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	}
 #endif
 
+	g_n_tracepoint_hit_inc();
+
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
 		struct event_data_t event_data;
 		int used = cur_g_syscall_table[table_index].flags & UF_USED;
 		enum syscall_flags drop_flags = cur_g_syscall_table[table_index].flags;
 		enum ppm_event_type type;
+
+		/*
+		 * Simple mode event filtering
+		 */
+		if (g_simple_mode_enabled) {
+			if ((drop_flags & UF_SIMPLEDRIVER_KEEP) == 0) {
+				return;
+			}
+		}
 
 #ifdef _HAS_SOCKETCALL
 		if (id == socketcall_syscall) {
@@ -1820,6 +1978,8 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 {
 	struct event_data_t event_data;
 
+	g_n_tracepoint_hit_inc();
+
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	if (unlikely(current->flags & PF_KTHREAD)) {
 #else
@@ -1853,6 +2013,8 @@ TRACEPOINT_PROBE(sched_switch_probe, bool preempt, struct task_struct *prev, str
 {
 	struct event_data_t event_data;
 
+	g_n_tracepoint_hit_inc();
+
 	event_data.category = PPMC_CONTEXT_SWITCH;
 	event_data.event_info.context_data.sched_prev = prev;
 	event_data.event_info.context_data.sched_next = next;
@@ -1866,12 +2028,40 @@ TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_s
 {
 	struct event_data_t event_data;
 
+	g_n_tracepoint_hit_inc();
+
 	event_data.category = PPMC_SIGNAL;
 	event_data.event_info.signal_data.sig = sig;
 	event_data.event_info.signal_data.info = info;
 	event_data.event_info.signal_data.ka = ka;
 
 	record_event_all_consumers(PPME_SIGNALDELIVER_E, UF_USED | UF_ALWAYS_DROP, &event_data);
+}
+#endif
+
+#ifdef CAPTURE_PAGE_FAULTS
+TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code)
+{
+	struct event_data_t event_data;
+
+	/* We register both tracepoints under the same probe and
+	 * sysdig event since there's little reason to expose this
+	 * complexity to the sysdig user. The distinction can still be made
+	 * in the output by looking for the USER_FAULT/SUPERVISOR_FAULT
+	 * flags
+	 */
+	g_n_tracepoint_hit_inc();
+
+	/* I still haven't decided if I'm interested in kernel threads or not.
+	 * For the moment, I assume yes since I can see some value for it.
+	 */
+
+	event_data.category = PPMC_PAGE_FAULT;
+	event_data.event_info.fault_data.address = address;
+	event_data.event_info.fault_data.regs = regs;
+	event_data.event_info.fault_data.error_code = error_code;
+
+	record_event_all_consumers(PPME_PAGE_FAULT_E, UF_ALWAYS_DROP, &event_data);
 }
 #endif
 
@@ -1980,6 +2170,12 @@ static void visit_tracepoint(struct tracepoint *tp, void *priv)
 	else if (!strcmp(tp->name, "signal_deliver"))
 		tp_signal_deliver = tp;
 #endif
+#ifdef CAPTURE_PAGE_FAULTS
+	else if (!strcmp(tp->name, "page_fault_user"))
+		tp_page_fault_user = tp;
+	else if (!strcmp(tp->name, "page_fault_kernel"))
+		tp_page_fault_kernel = tp;
+#endif
 }
 
 static int get_tracepoint_handles(void)
@@ -2008,6 +2204,16 @@ static int get_tracepoint_handles(void)
 	if (!tp_signal_deliver) {
 		pr_err("failed to find signal_deliver tracepoint\n");
 		return -ENOENT;
+	}
+#endif
+#ifdef CAPTURE_PAGE_FAULTS
+	if (!tp_page_fault_user) {
+		pr_notice("failed to find page_fault_user tracepoint, disabling page-faults\n");
+		g_fault_tracepoint_disabled = true;
+	}
+	if (!tp_page_fault_kernel) {
+		pr_notice("failed to find page_fault_kernel tracepoint, disabling page-faults\n");
+		g_fault_tracepoint_disabled = true;
 	}
 #endif
 
@@ -2179,7 +2385,7 @@ int sysdig_init(void)
 	g_ppm_numdevs = num_cpus;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0)
 	g_ppm_devs = kmalloc(g_ppm_numdevs * sizeof(struct ppm_device), GFP_KERNEL);
-#else	
+#else
 	g_ppm_devs = kmalloc_array(g_ppm_numdevs, sizeof(struct ppm_device), GFP_KERNEL);
 #endif
 	if (!g_ppm_devs) {
@@ -2254,7 +2460,7 @@ int sysdig_init(void)
 #endif
 
 	/*
-	 * All ok. Final initalizations.
+	 * All ok. Final initializations.
 	 */
 	g_tracepoint_registered = false;
 
@@ -2262,7 +2468,13 @@ int sysdig_init(void)
 
 init_module_err:
 	for (j = 0; j < n_created_devices; ++j) {
-		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		device_destroy(
+#else
+		class_device_destroy(
+#endif
+				g_ppm_class, g_ppm_devs[j].dev);
+
 		cdev_del(&g_ppm_devs[j].cdev);
 	}
 
@@ -2284,7 +2496,12 @@ void sysdig_exit(void)
 	pr_info("driver unloading\n");
 
 	for (j = 0; j < g_ppm_numdevs; ++j) {
-		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		device_destroy(
+#else
+		class_device_destroy(
+#endif
+				g_ppm_class, g_ppm_devs[j].dev);
 		cdev_del(&g_ppm_devs[j].cdev);
 	}
 

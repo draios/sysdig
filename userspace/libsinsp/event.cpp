@@ -292,7 +292,10 @@ uint32_t binary_buffer_to_asciionly_string(char *dst, char *src, uint32_t dstlen
 	uint32_t j;
 	uint32_t k = 0;
 
-	dst[k++] = '\n';
+	if(fmt != sinsp_evt::PF_EOLS_COMPACT)
+	{
+		dst[k++] = '\n';
+	}
 
 	for(j = 0; j < srclen; j++)
 	{
@@ -482,7 +485,7 @@ uint32_t binary_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t
 	{
 		k = binary_buffer_to_json_string(dst, src, dstlen, srclen, fmt);
 	}
-	else if(fmt & sinsp_evt::PF_EOLS)
+	else if(fmt & (sinsp_evt::PF_EOLS | sinsp_evt::PF_EOLS_COMPACT))
 	{
 		k = binary_buffer_to_asciionly_string(dst, src, dstlen, srclen, fmt);
 	}
@@ -520,7 +523,7 @@ uint32_t strcpy_sanitized(char *dest, char *src, uint32_t dstsize)
 	}
 
 	//
-	// In case there wasn't enough space, null-termninate the destination
+	// In case there wasn't enough space, null-terminate the destination
 	//
 	if(dstsize)
 	{
@@ -1553,21 +1556,24 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 		if(tinfo)
 		{
-			string cwd = tinfo->get_cwd();
-
-			if(payload_len + cwd.length() >= m_resolved_paramstr_storage.size())
+			if (strncmp(payload, "<NA>", 4) != 0)
 			{
-				m_resolved_paramstr_storage.resize(payload_len + cwd.length() + 1, 0);
-			}
+				string cwd = tinfo->get_cwd();
 
-			if(!sinsp_utils::concatenate_paths(&m_resolved_paramstr_storage[0],
-				(uint32_t)m_resolved_paramstr_storage.size(),
-				(char*)cwd.c_str(),
-				(uint32_t)cwd.length(),
-				payload,
-				payload_len))
-			{
-				m_resolved_paramstr_storage[0] = 0;
+				if(payload_len + cwd.length() >= m_resolved_paramstr_storage.size())
+				{
+					m_resolved_paramstr_storage.resize(payload_len + cwd.length() + 1, 0);
+				}
+
+				if(!sinsp_utils::concatenate_paths(&m_resolved_paramstr_storage[0],
+					(uint32_t)m_resolved_paramstr_storage.size(),
+					(char*)cwd.c_str(),
+					(uint32_t)cwd.length(),
+					payload,
+					payload_len))
+				{
+					m_resolved_paramstr_storage[0] = 0;
+				}
 			}
 		}
 		else
@@ -1578,7 +1584,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	break;
 	case PT_BYTEBUF:
 	{
-		/* This would include quotes around the outpur string
+		/* This would include quotes around the output string
 		            m_paramstr_storage[0] = '"';
 		            cres = binary_buffer_to_string(m_paramstr_storage + 1,
 		                param->m_val,
@@ -1915,7 +1921,8 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	case PT_FLAGS16:
 	case PT_FLAGS32:
 		{
-			uint32_t val = *(uint32_t *)payload & (((uint64_t)1 << payload_len * 8) - 1);
+			uint32_t val = (param_info->type == PT_FLAGS8) ? *(uint8_t *)payload :
+				(param_info->type == PT_FLAGS16) ? *(uint16_t *)payload : *(uint32_t *)payload;
 			snprintf(&m_paramstr_storage[0],
 				     m_paramstr_storage.size(),
 				     "%" PRIu32, val);
@@ -2367,6 +2374,7 @@ void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 					case SCAP_FD_IPV4_SOCK:
 					case SCAP_FD_IPV6_SOCK:
 						cat->m_subcategory = SC_NET;
+						break;
 					case SCAP_FD_IPV4_SERVSOCK:
 					case SCAP_FD_IPV6_SERVSOCK:
 						cat->m_subcategory = SC_NET;

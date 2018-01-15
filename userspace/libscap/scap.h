@@ -77,7 +77,7 @@ typedef struct ppm_evt_hdr scap_evt;
 #define SCAP_LASTERR_SIZE 256
 
 /*!
-  \brief Statisitcs about an in progress capture
+  \brief Statistics about an in progress capture
 */
 typedef struct scap_stats
 {
@@ -204,13 +204,14 @@ typedef struct scap_threadinfo
 	uint64_t pid; ///< The id of the process containing this thread. In single thread processes, this is equal to tid.
 	uint64_t ptid; ///< The id of the thread that created this thread.
 	uint64_t sid; ///< The session id of the process containing this thread.
-	char comm[SCAP_MAX_PATH_SIZE]; ///< Command name (e.g. "top")
-	char exe[SCAP_MAX_PATH_SIZE]; ///< argv[0] (e.g. "sshd: user@pts/4")
-	char args[SCAP_MAX_ARGS_SIZE]; ///< Command line arguments (e.g. "-d1")
+	char comm[SCAP_MAX_PATH_SIZE+1]; ///< Command name (e.g. "top")
+	char exe[SCAP_MAX_PATH_SIZE+1]; ///< argv[0] (e.g. "sshd: user@pts/4")
+	char exepath[SCAP_MAX_PATH_SIZE+1]; ///< full executable path
+	char args[SCAP_MAX_ARGS_SIZE+1]; ///< Command line arguments (e.g. "-d1")
 	uint16_t args_len; ///< Command line arguments length
-	char env[SCAP_MAX_ENV_SIZE]; ///< Environment
+	char env[SCAP_MAX_ENV_SIZE+1]; ///< Environment
 	uint16_t env_len; ///< Environment length
-	char cwd[SCAP_MAX_PATH_SIZE]; ///< The current working directory
+	char cwd[SCAP_MAX_PATH_SIZE+1]; ///< The current working directory
 	int64_t fdlimit; ///< The maximum number of files this thread is allowed to open
 	uint32_t flags; ///< the process flags.
 	uint32_t uid; ///< user id
@@ -224,7 +225,7 @@ typedef struct scap_threadinfo
 	int64_t vpid;
 	char cgroups[SCAP_MAX_CGROUPS_SIZE];
 	uint16_t cgroups_len;
-	char root[SCAP_MAX_PATH_SIZE];
+	char root[SCAP_MAX_PATH_SIZE+1];
 	int filtered_out; ///< nonzero if this entry should not be saved to file
 	scap_fdinfo* fdlist; ///< The fd table for this process
 	uint64_t clone_ts;
@@ -281,10 +282,10 @@ typedef struct _scap_machine_info
 	uint64_t memory_size_bytes; ///< Physical memory size
 	uint64_t max_pid; ///< Highest PID number on this machine
 	char hostname[128]; ///< The machine hostname
-	uint64_t reserved1; ///< reserved for fututre use
-	uint64_t reserved2; ///< reserved for fututre use
-	uint64_t reserved3; ///< reserved for fututre use
-	uint64_t reserved4; ///< reserved for fututre use
+	uint64_t reserved1; ///< reserved for future use
+	uint64_t reserved2; ///< reserved for future use
+	uint64_t reserved3; ///< reserved for future use
+	uint64_t reserved4; ///< reserved for future use
 }scap_machine_info;
 
 
@@ -317,7 +318,7 @@ typedef struct scap_ifinfo_ipv4
 }scap_ifinfo_ipv4;
 
 /*!
-  \brief For backword compatibility only
+  \brief For backward compatibility only
 */
 typedef struct scap_ifinfo_ipv4_nolinkspeed
 {
@@ -560,7 +561,7 @@ char* scap_getlasterr(scap_t* handle);
   \param pcpuid User-provided event pointer that will be initialized with the ID if the CPU
     where the event was captured.
 
-  \return SCAP_SUCCESS if the call is succesful and pevent and pcpuid contain valid data.
+  \return SCAP_SUCCESS if the call is successful and pevent and pcpuid contain valid data.
    SCAP_TIMEOUT in case the read timeout expired and no event is available.
    SCAP_EOF when the end of an offline capture is reached.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain the cause of the error.
@@ -629,17 +630,17 @@ uint32_t scap_event_get_dump_flags(scap_t* handle);
 int64_t scap_get_readfile_offset(scap_t* handle);
 
 /*!
-  \brief Open a tracefile for writing
+  \brief Open a trace file for writing
 
   \param handle Handle to the capture instance.
-  \param fname The name of the tracefile.
+  \param fname The name of the trace file.
 
   \return Dump handle that can be used to identify this specific dump instance.
 */
 scap_dumper_t* scap_dump_open(scap_t *handle, const char *fname, compression_mode compress);
 
 /*!
-  \brief Open a tracefile for writing, using the provided fd.
+  \brief Open a trace file for writing, using the provided fd.
 
   \param handle Handle to the capture instance.
   \param fd A file descriptor to which the dumper will write
@@ -649,14 +650,14 @@ scap_dumper_t* scap_dump_open(scap_t *handle, const char *fname, compression_mod
 scap_dumper_t* scap_dump_open_fd(scap_t *handle, int fd, compression_mode compress, bool skip_proc_scan);
 
 /*!
-  \brief Close a tracefile.
+  \brief Close a trace file.
 
   \param d The dump handle, returned by \ref scap_dump_open
 */
 void scap_dump_close(scap_dumper_t *d);
 
 /*!
-  \brief Return the current size of a tracefile.
+  \brief Return the current size of a trace file.
 
   \param d The dump handle, returned by \ref scap_dump_open
   \return The current size of the dump file pointed by d.
@@ -664,7 +665,7 @@ void scap_dump_close(scap_dumper_t *d);
 int64_t scap_dump_get_offset(scap_dumper_t *d);
 
 /*!
-  \brief Return the position for the next write to a tracefile.
+  \brief Return the position for the next write to a trace file.
          This uses gztell, while scap_dump_get_offset uses gzoffset.
 
   \param d The dump handle, returned by \ref scap_dump_open
@@ -686,7 +687,7 @@ void scap_dump_flush(scap_dumper_t *d);
   \param cpuid The cpu from which the event was captured. Returned by \ref scap_next.
   \param bytes The number of bytes to write
 
-  \return SCAP_SUCCESS if the call is succesful.
+  \return SCAP_SUCCESS if the call is successful.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
    the cause of the error.
 */
@@ -701,7 +702,7 @@ int32_t scap_number_of_bytes_to_write(scap_evt *e, uint16_t cpuid, int32_t* byte
   \param cpuid The cpu from which the event was captured. Returned by \ref scap_next.
   \param flags The event flags. 0 means no flags.
 
-  \return SCAP_SUCCESS if the call is succesful.
+  \return SCAP_SUCCESS if the call is successful.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
    the cause of the error.
 */
@@ -742,7 +743,7 @@ scap_threadinfo* scap_get_proc_table(scap_t* handle);
   \param stats Pointer to a \ref scap_stats structure that will be filled with the
   statistics.
 
-  \return SCAP_SECCESS if the call is succesful.
+  \return SCAP_SECCESS if the call is successful.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
    the cause of the error.
 */
@@ -753,7 +754,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats);
 
   \param handle Handle to the capture that will be stopped.
 
-  \return SCAP_SUCCESS if the call is succesful.
+  \return SCAP_SUCCESS if the call is successful.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
    the cause of the error.
 */
@@ -764,7 +765,7 @@ int32_t scap_stop_capture(scap_t* handle);
 
   \param handle Handle to the capture that will be started.
 
-  \return SCAP_SUCCESS if the call is succesful.
+  \return SCAP_SUCCESS if the call is successful.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
    the cause of the error.
 */
@@ -918,6 +919,7 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 // like getpid() but returns the global PID even inside a container
 int32_t scap_getpid_global(scap_t* handle, int64_t* pid);
 
+struct scap_threadinfo *scap_proc_alloc(scap_t* handle);
 void scap_proc_free(scap_t* handle, struct scap_threadinfo* procinfo);
 int32_t scap_stop_dropping_mode(scap_t* handle);
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);
@@ -930,6 +932,7 @@ void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh);
 uint64_t scap_ftell(scap_t *handle);
 void scap_fseek(scap_t *handle, uint64_t off);
 int32_t scap_enable_tracers_capture(scap_t* handle);
+int32_t scap_enable_page_faults(scap_t *handle);
 uint64_t scap_get_unexpected_block_readsize(scap_t* handle);
 int32_t scap_proc_add(scap_t* handle, uint64_t tid, scap_threadinfo* tinfo);
 int32_t scap_fd_add(scap_threadinfo* tinfo, uint64_t fd, scap_fdinfo* fdinfo);
@@ -940,6 +943,8 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 int32_t scap_write_proclist_header(scap_t *handle, scap_dumper_t *d, uint32_t totlen);
 int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t totlen);
 int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo);
+int32_t scap_enable_simpledriver_mode(scap_t* handle);
+int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret);
 
 #ifdef __cplusplus
 }
