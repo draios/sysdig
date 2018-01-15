@@ -593,6 +593,13 @@ int sinsp_evt::render_fd_json(Json::Value *ret, int64_t fd, const char** resolve
 			(*ret)["name"] = sanitized_str;
 		}
 	}
+	else if(fd == PPM_AT_FDCWD)
+	{
+		//
+		// `fd` can be AT_FDCWD on all *at syscalls
+		//
+		(*ret)["name"] = "AT_FDCWD";
+	}
 	else
 	{
 		//
