@@ -153,6 +153,7 @@ static int f_sys_mount_e(struct event_filler_arguments *args);
 static int f_sys_access_e(struct event_filler_arguments *args);
 static int f_sys_access_x(struct event_filler_arguments *args);
 static int f_sys_unlinkat_e(struct event_filler_arguments *args);
+static int f_sys_unlinkat_x(struct event_filler_arguments *args);
 static int f_sys_bpf_x(struct event_filler_arguments *args);
 
 /*
@@ -252,7 +253,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_UNLINK_E] = {f_sys_single},
 	[PPME_SYSCALL_UNLINK_X] = {f_sys_single_x},
 	[PPME_SYSCALL_UNLINKAT_2_E] = {f_sys_unlinkat_e},
-	[PPME_SYSCALL_UNLINKAT_2_X] = {f_sys_single_x},
+	[PPME_SYSCALL_UNLINKAT_2_X] = {f_sys_unlinkat_x},
 #ifdef _64BIT_ARGS_SINGLE_REGISTER
 	[PPME_SYSCALL_PREAD_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {2}, {3} } },
 #else
@@ -5632,19 +5633,37 @@ static int f_sys_unlinkat_e(struct event_filler_arguments *args)
 	if(unlikely(res != PPM_SUCCESS))
 		return res;
 
-	/*
-	 * name
-	 */
-	syscall_get_arguments(current, args->regs, 1, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
-	if(unlikely(res != PPM_SUCCESS))
-		return res;
 
 	/*
 	 * flags
 	 */
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 	res = val_to_ring(args, unlinkat_flags_to_scap(val), 0, false, 0);
+	if(unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_unlinkat_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	int64_t retval;
+
+	/*
+	 * return value
+	 */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+ 	* name
+ 	*/
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 		return res;
 
