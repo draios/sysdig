@@ -5629,6 +5629,10 @@ static int f_sys_unlinkat_e(struct event_filler_arguments *args)
 	 * dirfd
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
+
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
 	res = val_to_ring(args, val, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 		return res;
