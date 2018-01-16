@@ -124,8 +124,8 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_MKDIR_X */{"mkdir", EC_FILE, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_RMDIR_E */{"rmdir", EC_FILE, EF_NONE, 1, {{"path", PT_FSPATH, PF_NA} } },
 	/* PPME_SYSCALL_RMDIR_X */{"rmdir", EC_FILE, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
-	/* PPME_SYSCALL_OPENAT_E */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 4, {{"dirfd", PT_FD, PF_DEC}, {"name", PT_CHARBUF, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_OCT} } },
-	/* PPME_SYSCALL_OPENAT_X */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 1, {{"fd", PT_FD, PF_DEC} } },
+	/* PPME_SYSCALL_OPENAT_E */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE | EF_OLD_VERSION, 4, {{"dirfd", PT_FD, PF_DEC}, {"name", PT_CHARBUF, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_OCT} } },
+	/* PPME_SYSCALL_OPENAT_X */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE | EF_OLD_VERSION, 1, {{"fd", PT_FD, PF_DEC} } },
 	/* PPME_SYSCALL_LINK_E */{"link", EC_FILE, EF_NONE, 2, {{"oldpath", PT_FSPATH, PF_NA}, {"newpath", PT_FSPATH, PF_NA} } },
 	/* PPME_SYSCALL_LINK_X */{"link", EC_FILE, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_LINKAT_E */{"linkat", EC_FILE, EF_NONE, 4, {{"olddir", PT_FD, PF_DEC}, {"oldpath", PT_CHARBUF, PF_NA}, {"newdir", PT_FD, PF_DEC}, {"newpath", PT_CHARBUF, PF_NA} } },
@@ -321,5 +321,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_BPF_E */{"bpf", EC_OTHER, EF_CREATES_FD, 1, {{"cmd", PT_INT64, PF_DEC} } },
 	/* PPME_SYSCALL_BPF_X */{"bpf", EC_OTHER, EF_CREATES_FD, 1, {{"res", PT_DYN, PF_DEC, bpf_dynamic_param, PPM_BPF_IDX_MAX} }},
 	/* PPME_SYSCALL_SECCOMP_E */{"seccomp", EC_OTHER, EF_NONE, 1, {{"op", PT_UINT64, PF_DEC}, {"flags", PT_UINT64, PF_HEX} } },
-	/* PPME_SYSCALL_SECCOMP_X */{"seccomp", EC_OTHER, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } }
+	/* PPME_SYSCALL_SECCOMP_X */{"seccomp", EC_OTHER, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
+	/* PPME_SYSCALL_OPENAT_2_E */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 3, {{"dirfd", PT_FD, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_OCT} } },
+	/* PPME_SYSCALL_OPENAT_2_X */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"fd", PT_FD, PF_DEC}, {"name", PT_CHARBUF, PF_NA} } },
 };
