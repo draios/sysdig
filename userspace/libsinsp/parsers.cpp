@@ -4089,7 +4089,9 @@ void sinsp_parser::parse_setresuid_exit(sinsp_evt *evt)
 
 		if(new_euid < std::numeric_limits<uint32_t>::max())
 		{
-			evt->get_thread_info()->m_uid = new_euid;
+			if (evt->get_thread_info()) {
+				evt->get_thread_info()->m_uid = new_euid;
+			}
 		}
 	}
 }
@@ -4115,7 +4117,9 @@ void sinsp_parser::parse_setresgid_exit(sinsp_evt *evt)
 
 		if(new_egid < std::numeric_limits<uint32_t>::max())
 		{
-			evt->get_thread_info()->m_gid = new_egid;
+			if (evt->get_thread_info()) {
+				evt->get_thread_info()->m_gid = new_egid;
+			}
 		}
 	}
 }
@@ -4138,7 +4142,9 @@ void sinsp_parser::parse_setuid_exit(sinsp_evt *evt)
 		parinfo = enter_evt->get_param(0);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		uint32_t new_euid = *(uint32_t *)parinfo->m_val;
-		evt->get_thread_info()->m_uid = new_euid;
+		if (evt->get_thread_info()) {
+			evt->get_thread_info()->m_uid = new_euid;
+		}
 	}
 }
 
@@ -4160,7 +4166,9 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt *evt)
 		parinfo = enter_evt->get_param(0);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		uint32_t new_egid = *(uint32_t *)parinfo->m_val;
-		evt->get_thread_info()->m_gid = new_egid;
+		if (evt->get_thread_info()) {
+			evt->get_thread_info()->m_gid = new_egid;
+		}
 	}
 }
 
@@ -4400,7 +4408,9 @@ void sinsp_parser::parse_setsid_exit(sinsp_evt *evt)
 
 	if(retval >= 0)
 	{
-		evt->get_thread_info()->m_sid = retval;
+		if (evt->get_thread_info()) {
+			evt->get_thread_info()->m_sid = retval;
+		}
 	}
 }
 
