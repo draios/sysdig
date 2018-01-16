@@ -141,6 +141,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define SE_ENOMEDIUM       123     /* No medium found */
 #define SE_EMEDIUMTYPE     124     /* Wrong medium type */
 #define SE_ECANCELED       125
+#define SE_ENOKEY          126     /* Required key not available */
+#define SE_EKEYEXPIRED     127     /* Key has expired */
+#define SE_EKEYREVOKED     128     /* Key has been revoked */
+#define SE_EKEYREJECTED    129     /* Key was rejected by service */
+#define SE_EOWNERDEAD      130     /* Owner died */
+#define SE_ENOTRECOVERABLE 131     /* State not recoverable */
+#define SE_ERFKILL         132     /* Operation not possible due to RF-kill */
+#define SE_EHWPOISON       133     /* Memory page has hardware error */
 #define SE_ERESTARTSYS     512     /* Interrupted system call */
 #define SE_ERESTARTNOINTR  513
 #define SE_ERESTARTNOHAND  514     /* restart if no handler.. */
