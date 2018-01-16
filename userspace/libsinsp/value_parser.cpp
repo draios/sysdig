@@ -20,11 +20,14 @@ void sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len, 
 			*(int16_t*)storage = sinsp_numparser::parsed16(str);
 			break;
 		case PT_INT32:
+		case PT_UID:
+		case PT_GID:
 			*(int32_t*)storage = sinsp_numparser::parsed32(str);
 			break;
 		case PT_INT64:
 		case PT_FD:
 		case PT_ERRNO:
+		case PT_PID:
 			*(int64_t*)storage = sinsp_numparser::parsed64(str);
 			break;
 		case PT_L4PROTO: // This can be resolved in the future
