@@ -185,8 +185,8 @@ else()
 	if(NOT WIN32)
 		set(ZLIB_LIB "${ZLIB_SRC}/libz.a")
 		ExternalProject_Add(zlib
-			URL "http://download.draios.com/dependencies/zlib-1.2.8.tar.gz"
-			URL_MD5 "44d667c142d7cda120332623eab69f40"
+			URL "http://download.draios.com/dependencies/zlib-1.2.11.tar.gz"
+			URL_MD5 "1c9f62f0778697a09d36121ead88e08e"
 			CONFIGURE_COMMAND "./configure"
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
@@ -195,8 +195,8 @@ else()
 	else()
 		set(ZLIB_LIB "${ZLIB_SRC}/zdll.lib")
 		ExternalProject_Add(zlib
-			URL "http://download.draios.com/dependencies/zlib-1.2.8.tar.gz"
-			URL_MD5 "44d667c142d7cda120332623eab69f40"
+			URL "http://download.draios.com/dependencies/zlib-1.2.11.tar.gz"
+			URL_MD5 "1c9f62f0778697a09d36121ead88e08e"
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND nmake -f win32/Makefile.msc
 			BUILD_IN_SOURCE 1
@@ -310,8 +310,8 @@ if(NOT WIN32 AND NOT APPLE)
 		message(STATUS "Using bundled openssl in '${OPENSSL_BUNDLE_DIR}'")
 
 		ExternalProject_Add(openssl
-			URL "http://download.draios.com/dependencies/openssl-1.0.2j.tar.gz"
-			URL_MD5 "96322138f0b69e61b7212bc53d5e912b"
+			URL "http://download.draios.com/dependencies/openssl-1.0.2n.tar.gz"
+			URL_MD5 "13bdc1b1d1ff39b6fd42a255e74676a4"
 			CONFIGURE_COMMAND ./config shared --prefix=${OPENSSL_INSTALL_DIR}
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
@@ -343,9 +343,9 @@ if(NOT WIN32 AND NOT APPLE)
 
 		ExternalProject_Add(curl
 			DEPENDS openssl
-			URL "http://download.draios.com/dependencies/curl-7.52.1.tar.bz2"
-			URL_MD5 "dd014df06ff1d12e173de86873f9f77a"
-			CONFIGURE_COMMAND ./configure ${CURL_SSL_OPTION} --disable-shared --enable-optimize --disable-curldebug --disable-rt --enable-http --disable-ftp --disable-file --disable-ldap --disable-ldaps --disable-rtsp --disable-telnet --disable-tftp --disable-pop3 --disable-imap --disable-smb --disable-smtp --disable-gopher --disable-sspi --disable-ntlm-wb --disable-tls-srp --without-winssl --without-darwinssl --without-polarssl --without-cyassl --without-nss --without-axtls --without-ca-path --without-ca-bundle --without-libmetalink --without-librtmp --without-winidn --without-libidn --without-nghttp2 --without-libssh2
+			URL "http://download.draios.com/dependencies/curl-7.57.0.tar.bz2"
+			URL_MD5 "dd3e22e923be17663e67f721c2aec054"
+			CONFIGURE_COMMAND ./configure ${CURL_SSL_OPTION} --disable-threaded-resolver --disable-shared --enable-optimize --disable-curldebug --disable-rt --enable-http --disable-ftp --disable-file --disable-ldap --disable-ldaps --disable-rtsp --disable-telnet --disable-tftp --disable-pop3 --disable-imap --disable-smb --disable-smtp --disable-gopher --disable-sspi --disable-ntlm-wb --disable-tls-srp --without-winssl --without-darwinssl --without-polarssl --without-cyassl --without-nss --without-axtls --without-ca-path --without-ca-bundle --without-libmetalink --without-librtmp --without-winidn --without-libidn --without-nghttp2 --without-libssh2
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${CURL_LIBRARIES}

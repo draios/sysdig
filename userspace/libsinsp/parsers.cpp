@@ -274,6 +274,8 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETGID_E:
 	case PPME_SYSCALL_EXECVE_18_E:
 	case PPME_SYSCALL_EXECVE_19_E:
+	case PPME_SYSCALL_SETPGID_E:
+	case PPME_SYSCALL_EXECVE_20_E:
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_WRITE_E:
@@ -340,6 +342,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVE_20_X:
 		parse_execve_exit(evt);
 		break;
 	case PPME_PROCEXIT_E:
@@ -461,6 +464,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_SETSID_X:
 		parse_setsid_exit(evt);
+		break;
+	case PPME_SYSCALL_SETPGID_X:
+		parse_setpgid_exit(evt);
 		break;
 	default:
 		break;
@@ -1125,6 +1131,9 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		// Copy the session id from the parent
 		tinfo.m_sid = ptinfo->m_sid;
 
+		// Copy the process group id from the parent
+		tinfo.m_pgid = ptinfo->m_pgid;
+
 		tinfo.m_tty = ptinfo->m_tty;
 
 		tinfo.m_loginuid = ptinfo->m_loginuid;
@@ -1161,6 +1170,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			tinfo.m_args = ptinfo->m_args;
 			tinfo.m_root = ptinfo->m_root;
 			tinfo.m_sid = ptinfo->m_sid;
+			tinfo.m_pgid = ptinfo->m_pgid;
 			tinfo.m_tty = ptinfo->m_tty;
 			tinfo.m_loginuid = ptinfo->m_loginuid;
 		}
@@ -1509,6 +1519,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVE_20_X:
 		// Get the comm
 		parinfo = evt->get_param(13);
 		evt->m_tinfo->m_comm = parinfo->m_val;
@@ -1554,6 +1565,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVE_20_X:
 		// Get the pgflt_maj
 		parinfo = evt->get_param(8);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -1602,6 +1614,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVE_20_X:
 		// Get the environment
 		parinfo = evt->get_param(15);
 		evt->m_tinfo->set_env(parinfo->m_val, parinfo->m_len);
@@ -1639,6 +1652,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVE_20_X:
 		// Get the tty
 		parinfo = evt->get_param(16);
 		ASSERT(parinfo->m_len == sizeof(int32_t));
@@ -1659,6 +1673,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVE_20_X:
 		// Get exepath
 		if (retrieve_enter_event(enter_evt, evt))
 		{
@@ -1683,22 +1698,44 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 
 	switch(etype)
 	{
-		case PPME_SYSCALL_EXECVE_8_X:
-		case PPME_SYSCALL_EXECVE_13_X:
-		case PPME_SYSCALL_EXECVE_14_X:
-		case PPME_SYSCALL_EXECVE_15_X:
-		case PPME_SYSCALL_EXECVE_16_X:
-		case PPME_SYSCALL_EXECVE_17_X:
-		case PPME_SYSCALL_EXECVE_18_X:
-			break;
-		case PPME_SYSCALL_EXECVE_19_X:
-			// Get the loginuid
-			parinfo = evt->get_param(17);
-			ASSERT(parinfo->m_len == sizeof(uint32_t));
-			evt->m_tinfo->m_loginuid = *(uint32_t *) parinfo->m_val;
-			break;
-		default:
-			ASSERT(false);
+	case PPME_SYSCALL_EXECVE_8_X:
+	case PPME_SYSCALL_EXECVE_13_X:
+	case PPME_SYSCALL_EXECVE_14_X:
+	case PPME_SYSCALL_EXECVE_15_X:
+	case PPME_SYSCALL_EXECVE_16_X:
+	case PPME_SYSCALL_EXECVE_17_X:
+	case PPME_SYSCALL_EXECVE_18_X:
+		break;
+	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVE_20_X:
+		// Get the pgid
+		parinfo = evt->get_param(17);
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		evt->m_tinfo->m_pgid = *(int64_t *) parinfo->m_val;
+		break;
+	default:
+		ASSERT(false);
+	}
+
+	switch(etype)
+	{
+	case PPME_SYSCALL_EXECVE_8_X:
+	case PPME_SYSCALL_EXECVE_13_X:
+	case PPME_SYSCALL_EXECVE_14_X:
+	case PPME_SYSCALL_EXECVE_15_X:
+	case PPME_SYSCALL_EXECVE_16_X:
+	case PPME_SYSCALL_EXECVE_17_X:
+	case PPME_SYSCALL_EXECVE_18_X:
+	case PPME_SYSCALL_EXECVE_19_X:
+		break;
+	case PPME_SYSCALL_EXECVE_20_X:
+		// Get the loginuid
+		parinfo = evt->get_param(18);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		evt->m_tinfo->m_loginuid = *(uint32_t *) parinfo->m_val;
+		break;
+	default:
+		ASSERT(false);
 	}
 	
 	//
@@ -2066,11 +2103,11 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 
 		if(protocol == IPPROTO_TCP)
 		{
-			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_TCP;
+			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = (type == SOCK_RAW)? SCAP_L4_RAW : SCAP_L4_TCP;
 		}
 		else if(protocol == IPPROTO_UDP)
 		{
-			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_UDP;
+			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = (type == SOCK_RAW)? SCAP_L4_RAW : SCAP_L4_UDP;
 		}
 		else if(protocol == IPPROTO_IP)
 		{
@@ -2094,10 +2131,14 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 		}
 		else if(protocol == IPPROTO_ICMP)
 		{
-			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_ICMP;
+			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = (type == SOCK_RAW)? SCAP_L4_RAW : SCAP_L4_ICMP;
+		}
+		else if(protocol == IPPROTO_RAW)
+		{
+			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_RAW;
 		}
 	}
-	else if (domain == PPM_AF_NETLINK)
+	else if(domain == PPM_AF_NETLINK)
 	{
 		fdi.m_type = SCAP_FD_NETLINK;
 	}
@@ -2247,6 +2288,8 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 		{
 			evt->m_fdinfo->m_type = SCAP_FD_IPV4_SERVSOCK;
 			evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port = port;
+			evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_l4proto =
+					evt->m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_l4proto;
 		}
 	}
 	else if (family == PPM_AF_INET6)
@@ -2256,6 +2299,8 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 		{
 			evt->m_fdinfo->m_type = SCAP_FD_IPV6_SERVSOCK;
 			evt->m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port = port;
+			evt->m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_l4proto =
+					evt->m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_l4proto;
 		}
 	}
 	//
@@ -4213,7 +4258,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		{
 			container_info.m_mesos_task_id = mesos_task_id.asString();
 		}
-		m_inspector->m_container_manager.add_container(container_info);
+		m_inspector->m_container_manager.add_container(container_info, evt->get_thread_info(true));
 		/*
 		g_logger.log("Container\n-------\nID:" + container_info.m_id +
 					 "\nType: " + std::to_string(container_info.m_type) +
@@ -4224,7 +4269,9 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 	}
 	else
 	{
-		throw sinsp_exception("Invalid JSON encountered while parsing container info: " + json);
+		std::string errstr;
+		errstr = Json::Reader().getFormattedErrorMessages();
+		throw sinsp_exception("Invalid JSON encountered while parsing container info: " + json + "error=" + errstr);
 	}
 }
 
@@ -4246,7 +4293,7 @@ void sinsp_parser::parse_container_evt(sinsp_evt *evt)
 	parinfo = evt->get_param(3);
 	container_info.m_image = parinfo->m_val;
 
-	m_inspector->m_container_manager.add_container(container_info);
+	m_inspector->m_container_manager.add_container(container_info, evt->get_thread_info(true));
 }
 
 void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt *evt)
@@ -4302,7 +4349,9 @@ int sinsp_parser::get_k8s_version(const std::string& json)
 		}
 		else
 		{
-			throw sinsp_exception("Invalid K8s capture JSON encountered.");
+			std::string errstr;
+			errstr = Json::Reader().getFormattedErrorMessages();
+			throw sinsp_exception("Invalid K8s capture JSON encountered (" + errstr + ")");
 		}
 	}
 
@@ -4384,6 +4433,70 @@ void sinsp_parser::parse_setsid_exit(sinsp_evt *evt)
 	if(retval >= 0)
 	{
 		evt->get_thread_info()->m_sid = retval;
+	}
+}
+
+void sinsp_parser::parse_setpgid_exit(sinsp_evt *evt)
+{
+	sinsp_evt *enter_evt = &m_tmp_evt;
+	sinsp_evt_param *parinfo;
+	int64_t retval, pid, pgid;
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(retval >= 0 && retrieve_enter_event(enter_evt, evt))
+	{
+		//
+		// Extract the pid
+		//
+		parinfo = enter_evt->get_param(0);
+		pid = *(int64_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+
+		//
+		// Extract the pgid
+		//
+		parinfo = enter_evt->get_param(1);
+		pgid = *(int64_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+
+		//
+		// If pid is zero, then the process ID of the calling process is used.
+		//
+		sinsp_threadinfo* ptinfo = NULL;
+		if (pid == 0)
+		{
+			ptinfo = evt->get_thread_info();
+		}
+		else
+		{
+			ptinfo = m_inspector->get_thread(pid, false, true);
+		}
+
+		if(ptinfo == NULL)
+		{
+			ASSERT(false);
+			return;
+		}
+
+		//
+		// If pgid is zero, then the PGID of the process specified
+		// by pid is made the same as its process ID.
+		//
+		if (pgid == 0)
+		{
+			ptinfo->m_pgid = ptinfo->m_pid;
+		}
+		else
+		{
+			ptinfo->m_pgid = pgid;
+		}
+
 	}
 }
 

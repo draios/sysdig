@@ -373,6 +373,7 @@ public:
 		TYPE_TTY = 42,
 		TYPE_EXEPATH = 43,
 		TYPE_NAMETID = 44,
+		TYPE_PGID = 45,
 	};
 
 	sinsp_filter_check_thread();
@@ -384,7 +385,7 @@ public:
 private:
 	uint64_t extract_exectime(sinsp_evt *evt);
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
-	uint8_t* extract_thread_cpu(sinsp_evt *evt, sinsp_threadinfo* tinfo, bool extract_user, bool extract_system);
+	uint8_t* extract_thread_cpu(sinsp_evt *evt, OUT uint32_t* len, sinsp_threadinfo* tinfo, bool extract_user, bool extract_system);
 	inline bool compare_full_apid(sinsp_evt *evt);
 	bool compare_full_aname(sinsp_evt *evt);
 
@@ -508,7 +509,7 @@ private:
 	int32_t extract_type(string fldname, string val, OUT const struct ppm_param_info** parinfo);
 	uint8_t* extract_error_count(sinsp_evt *evt, OUT uint32_t* len);
 	uint8_t *extract_abspath(sinsp_evt *evt, OUT uint32_t *len);
-	inline uint8_t* extract_buflen(sinsp_evt *evt);
+	inline uint8_t* extract_buflen(sinsp_evt *evt, OUT uint32_t* len);
 
 	bool m_is_compare;
 	char* m_storage;
@@ -600,7 +601,7 @@ public:
 
 private:
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
-	inline int64_t* extract_duration(uint16_t etype, sinsp_tracerparser* eparser);
+	inline uint8_t* extract_duration(uint16_t etype, sinsp_tracerparser* eparser, OUT uint32_t* len);
 	uint8_t* extract_args(sinsp_partial_tracer* pae, OUT uint32_t *len);
 	uint8_t* extract_arg(sinsp_partial_tracer* pae, OUT uint32_t *len);
 

@@ -262,7 +262,6 @@ captureinfo do_inspect(sinsp* inspector,
 			{
 				ui->set_truncated_input(true);
 				res = SCAP_EOF;
-				continue;
 			}
 		}
 

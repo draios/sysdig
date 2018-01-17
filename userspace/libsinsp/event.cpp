@@ -1921,7 +1921,8 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	case PT_FLAGS16:
 	case PT_FLAGS32:
 		{
-			uint32_t val = *(uint32_t *)payload & (((uint64_t)1 << payload_len * 8) - 1);
+			uint32_t val = (param_info->type == PT_FLAGS8) ? *(uint8_t *)payload :
+				(param_info->type == PT_FLAGS16) ? *(uint16_t *)payload : *(uint32_t *)payload;
 			snprintf(&m_paramstr_storage[0],
 				     m_paramstr_storage.size(),
 				     "%" PRIu32, val);
