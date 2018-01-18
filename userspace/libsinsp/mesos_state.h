@@ -11,6 +11,7 @@
 #include "json/json.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "json_error_log.h"
 #include <vector>
 #include <map>
 #include <unordered_map>
@@ -317,14 +318,18 @@ inline void mesos_state_t::remove_task(mesos_framework& framework, const std::st
 			{
 				if(!group->remove_task(uid))
 				{
-					g_logger.log("Task [" + uid + "] not found in Marathon app [" + app_id + ']',
-							 sinsp_logger::SEV_ERROR);
+					std::string errstr = "Task [" + uid + "] not found in Marathon app [" + app_id + ']';
+					g_logger.log(errstr,
+						     sinsp_logger::SEV_ERROR);
+					g_json_error_log.log(uid, errstr, sinsp_utils::get_current_time_ns(), "remove-task");
 				}
 			}
 			else
 			{
-				g_logger.log("Group not found for Marathon app [" + app_id + "] while trying to remove task [" + uid + ']',
-							 sinsp_logger::SEV_ERROR);
+				std::string errstr = "Group not found for Marathon app [" + app_id + "] while trying to remove task [" + uid + ']';
+				g_logger.log(errstr,
+					     sinsp_logger::SEV_ERROR);
+				g_json_error_log.log(app_id, errstr, sinsp_utils::get_current_time_ns(), "remove-task");
 			}
 		}
 		else

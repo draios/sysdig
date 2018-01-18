@@ -363,6 +363,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #define PPM_PTRACE_IDX_MAX 2
 
+#define PPM_BPF_IDX_FD 0
+#define PPM_BPF_IDX_RES 1
+
+#define PPM_BPF_IDX_MAX 2
+
 /*
  * memory protection flags
  */
@@ -824,7 +829,11 @@ enum ppm_event_type {
 	PPME_SYSCALL_EXECVE_18_X = 289,
 	PPME_PAGE_FAULT_E = 290,
 	PPME_PAGE_FAULT_X = 291,
-	PPM_EVENT_MAX = 292
+	PPME_SYSCALL_BPF_E = 292,
+	PPME_SYSCALL_BPF_X = 293,
+	PPME_SYSCALL_SECCOMP_E = 294,
+	PPME_SYSCALL_SECCOMP_X = 295,
+	PPM_EVENT_MAX = 296
 };
 /*@}*/
 
@@ -1146,7 +1155,10 @@ enum ppm_syscall_code {
 	PPM_SC_SETRESGID32 = 311,
 	PPM_SC_GETRESUID32 = 312,
 	PPM_SC_GETRESGID32 = 313,
-	PPM_SC_MAX = 314,
+	PPM_SC_FINIT_MODULE = 314,
+	PPM_SC_BPF = 315,
+	PPM_SC_SECCOMP = 316,
+	PPM_SC_MAX = 317,
 };
 
 /*
@@ -1257,8 +1269,8 @@ struct ppm_name_value {
   \brief Event parameter information.
 */
 struct ppm_param_info {
-	char name[PPM_MAX_NAME_LEN];  /**< Paramter name, e.g. 'size'. */
-	enum ppm_param_type type; /**< Paramter type, e.g. 'uint16', 'string'... */
+	char name[PPM_MAX_NAME_LEN];  /**< Parameter name, e.g. 'size'. */
+	enum ppm_param_type type; /**< Parameter type, e.g. 'uint16', 'string'... */
 	enum ppm_print_format fmt; /**< If this is a numeric parameter, this flag specifies if it should be rendered as decimal or hex. */
 	const void *info; /**< If this is a flags parameter, it points to an array of ppm_name_value,
 			       else if this is a dynamic parameter it points to an array of ppm_param_info */
@@ -1355,6 +1367,7 @@ extern const struct ppm_name_value access_flags[];
 extern const struct ppm_name_value pf_flags[];
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
+extern const struct ppm_param_info bpf_dynamic_param[];
 
 /*
  * Driver event notification ID

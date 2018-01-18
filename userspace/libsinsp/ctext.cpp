@@ -761,7 +761,7 @@ ctext_row* ctext::add_row()
 {
 	ctext_row row;
 
-	// If there is an exsting line, then
+	// If there is an existing line, then
 	// we carry over the format from the
 	// last line..
 	if(!this->m_buffer.empty())

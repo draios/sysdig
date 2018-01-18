@@ -50,6 +50,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "ppm_events_public.h"
 #include "ppm_events.h"
 #include "ppm.h"
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
+#include <linux/bpf.h>
+#endif
 
 /* This is described in syscall(2). Some syscalls take 64-bit arguments. On
  * arches that have 64-bit registers, these arguments are shipped in a register.
@@ -149,6 +152,7 @@ static int f_sys_ppoll_e(struct event_filler_arguments *args);
 static int f_sys_mount_e(struct event_filler_arguments *args);
 static int f_sys_access_e(struct event_filler_arguments *args);
 static int f_sys_access_x(struct event_filler_arguments *args);
+static int f_sys_bpf_x(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -392,6 +396,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_PAGE_FAULT_E] = {f_sys_pagefault_e},
 	[PPME_PAGE_FAULT_X] = {f_sys_empty},
 #endif
+	[PPME_SYSCALL_BPF_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
+	[PPME_SYSCALL_BPF_X] = {f_sys_bpf_x},
+	[PPME_SYSCALL_SECCOMP_E] = {PPM_AUTOFILL, 1, APT_REG, {{0}, {1} } },
+	[PPME_SYSCALL_SECCOMP_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } }
 };
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
@@ -1106,7 +1114,6 @@ static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 		n_bytes_copied--;
 
 		if (n_bytes_copied < 0) {
-			printk(pr_fmt("Error on copy here3"));
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 		}
 		if (n_bytes_copied >= available)
@@ -1234,7 +1241,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 
 		if (likely(retval >= 0)) {
 			/*
-			 * The call suceeded. Get exe, args from the current
+			 * The call succeeded. Get exe, args from the current
 			 * process; put one \0-separated exe-args string into
 			 * str_storage
 			 */
@@ -1441,9 +1448,13 @@ cgroups_error:
 		/*
 		 * flags
 		 */
-		if (args->event_type == PPME_SYSCALL_CLONE_20_X)
+		if (args->event_type == PPME_SYSCALL_CLONE_20_X) {
+#ifdef CONFIG_S390
+			syscall_get_arguments(current, args->regs, 1, 1, &val);
+#else
 			syscall_get_arguments(current, args->regs, 0, 1, &val);
-		else
+#endif
+		} else
 			val = 0;
 
 		res = val_to_ring(args, (uint64_t)clone_flags_to_scap(val), 0, false, 0);
@@ -1736,7 +1747,7 @@ static int f_sys_socketpair_x(struct event_filler_arguments *args)
 		return res;
 
 	/*
-	 * If the call was succesful, copy the FDs
+	 * If the call was successful, copy the FDs
 	 */
 	if (likely(retval >= 0)) {
 		/*
@@ -3167,7 +3178,7 @@ static int f_sys_openat_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 
-	if (val == AT_FDCWD)
+	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, val, 0, false, 0);
@@ -4536,7 +4547,7 @@ static int f_sys_renameat_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 
-	if (val == AT_FDCWD)
+	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, val, 0, false, 0);
@@ -4556,7 +4567,7 @@ static int f_sys_renameat_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 
-	if (val == AT_FDCWD)
+	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, val, 0, false, 0);
@@ -4598,7 +4609,7 @@ static int f_sys_symlinkat_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 
-	if (val == AT_FDCWD)
+	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, val, 0, false, 0);
@@ -5591,6 +5602,45 @@ static int f_sys_access_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_bpf_x(struct event_filler_arguments *args)
+{
+	int64_t retval;
+	unsigned long cmd;
+	int res;
+
+	/*
+	 * res, if failure or depending on cmd
+	 */
+	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+	if (retval < 0) {
+		res = val_to_ring(args, retval, 0, false, PPM_BPF_IDX_RES);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+
+		return add_sentinel(args);
+	}
+	/*
+	 * fd, depending on cmd
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &cmd);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
+	if(cmd == BPF_MAP_CREATE || cmd == BPF_PROG_LOAD)
+#else
+	if(0)
+#endif
+	{
+		res = val_to_ring(args, retval, 0, false, PPM_BPF_IDX_FD);
+	}
+	else
+	{
+		res = val_to_ring(args, retval, 0, false, PPM_BPF_IDX_RES);
+	}
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

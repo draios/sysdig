@@ -2074,7 +2074,12 @@ void sinsp_evttype_filter::add(string &name,
 {
 	filter_wrapper *wrap = new filter_wrapper();
 	wrap->filter = filter;
-	wrap->evttypes = evttypes;
+
+	wrap->evttypes.assign(PPM_EVENT_MAX+1, false);
+	for(auto &evttype : evttypes)
+	{
+		wrap->evttypes[evttype] = true;
+	}
 
 	m_evttype_filters.insert(pair<string,filter_wrapper *>(name, wrap));
 
@@ -2177,5 +2182,44 @@ bool sinsp_evttype_filter::run(sinsp_evt *evt, uint16_t ruleset)
 	}
 
 	return false;
+}
+
+
+// Solely used for code sharing in evttypes_for_rulset
+void sinsp_evttype_filter::check_filter_wrappers(std::vector<bool> &evttypes,
+						 uint32_t etype,
+						 std::list<filter_wrapper *> &filters,
+						 uint16_t ruleset)
+{
+	for(filter_wrapper *wrap : filters)
+	{
+		if(wrap->enabled.size() >= (size_t) (ruleset + 1) &&
+		   wrap->enabled[ruleset])
+		{
+			evttypes[etype] = true;
+			break;
+		}
+	}
+}
+
+void sinsp_evttype_filter::evttypes_for_ruleset(std::vector<bool> &evttypes, uint16_t ruleset)
+{
+	evttypes.assign(PPM_EVENT_MAX+1, false);
+
+	for(uint32_t etype = 0; etype < PPM_EVENT_MAX; etype++)
+	{
+		// Catchall filters (ones that don't explicitly refer
+		// to a type) must run for all event types.
+		check_filter_wrappers(evttypes, etype, m_catchall_evttype_filters, ruleset);
+
+		if(!evttypes[etype])
+		{
+			list<filter_wrapper *> *filters = m_filter_by_evttype[etype];
+			if(filters)
+			{
+				check_filter_wrappers(evttypes, etype, *filters, ruleset);
+			}
+		}
+	}
 }
 #endif // HAS_FILTERING

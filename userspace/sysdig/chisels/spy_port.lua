@@ -90,7 +90,7 @@ function on_event()
 			infostr = string.format("%s------ Read %s", terminal.red, format_bytes(res))
 			direction = DIR_READ
 		elseif not isread and direction ~= DIR_WRITE then
-			infostr = string.format("%s------ Read %s", terminal.blue, format_bytes(res))
+			infostr = string.format("%s------ Write %s", terminal.blue, format_bytes(res))
 			direction = DIR_WRITE
 		end
 

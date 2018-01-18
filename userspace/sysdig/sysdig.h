@@ -74,16 +74,13 @@ public:
 class summary_table_entry
 {
 public:
-	summary_table_entry(uint16_t id, bool is_unsupported_syscall)
+	summary_table_entry(uint16_t id, bool is_unsupported_syscall) : m_ncalls(0), m_id(id), m_is_unsupported_syscall(is_unsupported_syscall)
 	{
-		m_id = id;
-		m_ncalls = 0;
-		m_is_unsupported_syscall = is_unsupported_syscall;
 	}
 
-	uint16_t m_id;
 	uint64_t m_ncalls;
-	bool m_is_unsupported_syscall;
+	uint16_t m_id;
+	bool m_is_unsupported_syscall;	
 };
 
 struct summary_table_entry_rsort_comparer

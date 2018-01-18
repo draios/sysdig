@@ -262,7 +262,6 @@ captureinfo do_inspect(sinsp* inspector,
 			{
 				ui->set_truncated_input(true);
 				res = SCAP_EOF;
-				continue;
 			}
 		}
 
@@ -672,7 +671,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		}
 
 		//
-		// Set the initial disply view
+		// Set the initial display view
 		//
 		view_manager.set_selected_view(display_view);
 

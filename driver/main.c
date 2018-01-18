@@ -196,9 +196,12 @@ static struct tracepoint *tp_sched_switch;
 static struct tracepoint *tp_signal_deliver;
 #endif
 #ifdef CAPTURE_PAGE_FAULTS
+// Even in kernels that can support page fault tracepoints, tracepoints may be
+// disabled so check if g_fault_tracepoint_disabled is set.
 static struct tracepoint *tp_page_fault_user;
 static struct tracepoint *tp_page_fault_kernel;
 static bool g_fault_tracepoint_registered;
+static bool g_fault_tracepoint_disabled;
 #endif
 
 #ifdef _DEBUG
@@ -1027,6 +1030,12 @@ cleanup_ioctl_procinfo:
 #ifdef CAPTURE_PAGE_FAULTS
 		ASSERT(g_tracepoint_registered);
 
+		if (g_fault_tracepoint_disabled) {
+			pr_err("kernel page fault tracepoints are disabled\n");
+			ret = -EPERM;
+			goto cleanup_ioctl;
+		}
+
 		if (!g_fault_tracepoint_registered) {
 			ret = compat_register_trace(page_fault_probe, "page_fault_user", tp_page_fault_user);
 			if (ret) {
@@ -1586,7 +1595,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		enum ppm_event_type tet;
 
 		args.is_socketcall = true;
-		args.compat = true;
+		args.compat = event_datap->compat;
 		tet = parse_socketcall(&args, event_datap->event_info.syscall_data.regs);
 
 		if (event_type == PPME_GENERIC_E)
@@ -1713,7 +1722,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 			 */
 			if (likely(args.curarg == args.nargs)) {
 				/*
-				 * The event was successfully insterted in the buffer
+				 * The event was successfully inserted in the buffer
 				 */
 				event_size = sizeof(struct ppm_evt_hdr) + args.arg_data_offset;
 				hdr->len = event_size;
@@ -1840,6 +1849,8 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	}
 #endif
 
+	g_n_tracepoint_hit_inc();
+	
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
 		struct event_data_t event_data;
@@ -2197,12 +2208,12 @@ static int get_tracepoint_handles(void)
 #endif
 #ifdef CAPTURE_PAGE_FAULTS
 	if (!tp_page_fault_user) {
-		pr_err("failed to find page_fault_user tracepoint\n");
-		return -ENOENT;
+		pr_notice("failed to find page_fault_user tracepoint, disabling page-faults\n");
+		g_fault_tracepoint_disabled = true;
 	}
 	if (!tp_page_fault_kernel) {
-		pr_err("failed to find page_fault_kernel tracepoint\n");
-		return -ENOENT;
+		pr_notice("failed to find page_fault_kernel tracepoint, disabling page-faults\n");
+		g_fault_tracepoint_disabled = true;
 	}
 #endif
 
@@ -2449,7 +2460,7 @@ int sysdig_init(void)
 #endif
 
 	/*
-	 * All ok. Final initalizations.
+	 * All ok. Final initializations.
 	 */
 	g_tracepoint_registered = false;
 
@@ -2457,7 +2468,13 @@ int sysdig_init(void)
 
 init_module_err:
 	for (j = 0; j < n_created_devices; ++j) {
-		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		device_destroy(
+#else
+		class_device_destroy(
+#endif
+				g_ppm_class, g_ppm_devs[j].dev);
+
 		cdev_del(&g_ppm_devs[j].cdev);
 	}
 
@@ -2479,7 +2496,12 @@ void sysdig_exit(void)
 	pr_info("driver unloading\n");
 
 	for (j = 0; j < g_ppm_numdevs; ++j) {
-		device_destroy(g_ppm_class, g_ppm_devs[j].dev);
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		device_destroy(
+#else
+		class_device_destroy(
+#endif
+				g_ppm_class, g_ppm_devs[j].dev);
 		cdev_del(&g_ppm_devs[j].cdev);
 	}
 

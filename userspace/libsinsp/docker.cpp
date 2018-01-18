@@ -33,6 +33,7 @@ docker::docker(std::string url,
 		{
 			// container
 			{ "attach",      sinsp_logger::SEV_EVT_INFORMATION },
+			{ "archive-path", sinsp_logger::SEV_EVT_INFORMATION },
 			{ "commit",      sinsp_logger::SEV_EVT_INFORMATION },
 			{ "copy",        sinsp_logger::SEV_EVT_INFORMATION },
 			{ "create",      sinsp_logger::SEV_EVT_INFORMATION },
@@ -231,7 +232,10 @@ void docker::set_event_json(json_ptr_t json, const std::string&)
 #ifdef HAS_CAPTURE
 void docker::emit_event(Json::Value& root, std::string type, std::string status, bool send_to_backend)
 {
-	++m_event_counter;
+	if(send_to_backend)
+	{
+		++m_event_counter;
+	}
 	std::string::size_type delim_pos = status.find(':');
 	if(delim_pos != std::string::npos)
 	{
@@ -330,10 +334,13 @@ void docker::emit_event(Json::Value& root, std::string type, std::string status,
 			{
 				status.append("; ID: ").append(id);
 			}
-			const Json::Value& name = attrib["name"];
-			if(!name.isNull() && name.isConvertibleTo(Json::stringValue))
+			for(const auto attribute_name : {"name", "exitCode", "signal"})
 			{
-				status.append("; Name: ").append(name.asString());
+				const Json::Value& name = attrib[attribute_name];
+				if(!name.isNull() && name.isConvertibleTo(Json::stringValue))
+				{
+					status.append("; ").append(attribute_name).append(": ").append(name.asString());
+				}
 			}
 		}
 	}
