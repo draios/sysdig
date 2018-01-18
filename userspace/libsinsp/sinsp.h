@@ -747,7 +747,7 @@ public:
 	*/
 	double get_read_progress();
 
-	void init_k8s_ssl(const string &ssl_cert);
+	void init_k8s_ssl(const string *ssl_cert);
 	void init_k8s_client(string* api_server, string* ssl_cert, bool verbose = false);
 	void make_k8s_client();
 	k8s* get_k8s_client() const { return m_k8s_client; }
