@@ -423,6 +423,11 @@ const struct ppm_name_value access_flags[] = {
 	{ },
 };
 
+const struct ppm_name_value unlinkat_flags[] = {
+	{"AT_REMOVEDIR", PPM_AT_REMOVEDIR},
+	{ },
+};
+
 const struct ppm_name_value pf_flags[] = {
 	{"PROTECTION_VIOLATION", PPM_PF_PROTECTION_VIOLATION},
 	{"PAGE_NOT_PRESENT", PPM_PF_PAGE_NOT_PRESENT},

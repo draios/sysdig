@@ -482,6 +482,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_R_OK            (1 << 2)
 
 /*
+ * Unlinkat flags
+ */
+#define PPM_AT_REMOVEDIR    (1 << 0)
+
+/*
  * Page fault flags
  */
 #define PPM_PF_PROTECTION_VIOLATION	(1 << 0)
@@ -833,7 +838,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_BPF_X = 293,
 	PPME_SYSCALL_SECCOMP_E = 294,
 	PPME_SYSCALL_SECCOMP_X = 295,
-	PPM_EVENT_MAX = 296
+	PPME_SYSCALL_UNLINKAT_2_E = 296,
+	PPME_SYSCALL_UNLINKAT_2_X = 297,
+	PPM_EVENT_MAX = 298
 };
 /*@}*/
 
@@ -1364,6 +1371,7 @@ extern const struct ppm_name_value semop_flags[];
 extern const struct ppm_name_value semget_flags[];
 extern const struct ppm_name_value semctl_commands[];
 extern const struct ppm_name_value access_flags[];
+extern const struct ppm_name_value unlinkat_flags[];
 extern const struct ppm_name_value pf_flags[];
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
