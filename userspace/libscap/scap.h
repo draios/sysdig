@@ -204,7 +204,6 @@ typedef struct scap_threadinfo
 	uint64_t pid; ///< The id of the process containing this thread. In single thread processes, this is equal to tid.
 	uint64_t ptid; ///< The id of the thread that created this thread.
 	uint64_t sid; ///< The session id of the process containing this thread.
-	uint64_t pgid; ///< The process group of this thread.
 	char comm[SCAP_MAX_PATH_SIZE+1]; ///< Command name (e.g. "top")
 	char exe[SCAP_MAX_PATH_SIZE+1]; ///< argv[0] (e.g. "sshd: user@pts/4")
 	char exepath[SCAP_MAX_PATH_SIZE+1]; ///< full executable path

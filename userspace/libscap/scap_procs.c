@@ -60,7 +60,6 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	uint64_t vpid;
 	uint64_t vtid;
 	int64_t sid;
-	int64_t pgid;
 	uint32_t vmsize_kb;
 	uint32_t vmrss_kb;
 	uint32_t vmswap_kb;
@@ -74,7 +73,6 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	tinfo->uid = (uint32_t)-1;
 	tinfo->ptid = (uint32_t)-1LL;
 	tinfo->sid = 0;
-	tinfo->pgid = 0;
 	tinfo->vmsize_kb = 0;
 	tinfo->vmrss_kb = 0;
 	tinfo->vmswap_kb = 0;
@@ -237,7 +235,7 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	if(sscanf(s + 2, "%c %" PRId64 " %" PRId64 " %" PRId64 " %" PRId32 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64,
 		&tmpc,
 		&tmp,
-		&pgid,
+		&tmp,
 		&sid,
 		&tty,
 		&tmp,
@@ -254,7 +252,6 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	tinfo->pfmajor = pfmajor;
 	tinfo->pfminor = pfminor;
 	tinfo->sid = (uint64_t) sid;
-	tinfo->pgid = (uint64_t) pgid;
 	tinfo->tty = tty;
 
 	fclose(f);

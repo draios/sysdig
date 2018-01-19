@@ -373,7 +373,6 @@ public:
 		TYPE_TTY = 42,
 		TYPE_EXEPATH = 43,
 		TYPE_NAMETID = 44,
-		TYPE_PGID = 45,
 	};
 
 	sinsp_filter_check_thread();

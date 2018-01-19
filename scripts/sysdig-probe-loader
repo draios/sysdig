@@ -64,14 +64,25 @@ if lsmod | grep $(echo $PROBE_NAME | tr "-" "_") > /dev/null 2>&1; then
 	exit 0
 fi
 
-echo "* Running dkms autoinstall"
-dkms autoinstall --kernelver $KERNEL_RELEASE
+# skip dkms on UEK hosts because it will always fail
+if [[ $(uname -r) == *uek* ]]; then
+	echo "* Skipping dkms install for UEK host"
+else
+	echo "* Running dkms install for $PACKAGE_NAME"
+	if dkms install -m $PACKAGE_NAME -v $SYSDIG_VERSION -k $KERNEL_RELEASE; then
+		echo "* Trying to load a dkms $PROBE_NAME, if present"
 
-echo "* Trying to load a dkms $PROBE_NAME, if present"
-
-if insmod /var/lib/dkms/$PACKAGE_NAME/$SYSDIG_VERSION/$KERNEL_RELEASE/$ARCH/module/$PROBE_NAME.ko > /dev/null 2>&1; then
-	echo "$PROBE_NAME found and loaded in dkms"
-	exit 0
+		if insmod /var/lib/dkms/$PACKAGE_NAME/$SYSDIG_VERSION/$KERNEL_RELEASE/$ARCH/module/$PROBE_NAME.ko > /dev/null 2>&1; then
+			echo "$PROBE_NAME found and loaded in dkms"
+			exit 0
+		fi
+	else
+		DKMS_LOG=/var/lib/dkms/$PACKAGE_NAME/$SYSDIG_VERSION/build/make.log
+		if [ -f $DKMS_LOG ]; then
+			echo "* Running dkms build failed, dumping $DKMS_LOG"
+			cat $DKMS_LOG
+		fi
+	fi
 fi
 
 echo "* Trying to load a system $PROBE_NAME, if present"
