@@ -256,14 +256,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 			//
 			// XXX support earlier scap file
 			//
-			if (etype == PPME_SYSCALL_OPENAT_X)
-			{
-				parinfo = enter_evt.get_param(1);
-			}
-			else // PPME_SYSCALL_OPENAT_2_X
-			{
-				parinfo = evt->get_param(1);
-			}
+			parinfo = etype == PPME_SYSCALL_OPENAT_X ? enter_evt.get_param(1) : evt->get_param(1);
 			name = parinfo->m_val;
 			namelen = parinfo->m_len;
 
