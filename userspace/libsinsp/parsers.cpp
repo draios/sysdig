@@ -260,6 +260,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_CHDIR_E:
 	case PPME_SYSCALL_FCHDIR_E:
 	case PPME_SYSCALL_CREAT_E:
+	case PPME_SYSCALL_OPENAT_E:
 	case PPME_SYSCALL_OPENAT_2_E:
 	case PPME_SOCKET_SHUTDOWN_E:
 	case PPME_SYSCALL_GETRLIMIT_E:
@@ -310,6 +311,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_OPEN_X:
 	case PPME_SYSCALL_CREAT_X:
+	case PPME_SYSCALL_OPENAT_X:
 	case PPME_SYSCALL_OPENAT_2_X:
 		parse_open_openat_creat_exit(evt);
 		break;
@@ -1931,6 +1933,22 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		flags = 0;
 
 		sdir = evt->m_tinfo->get_cwd();
+	}
+	else if(evt->get_type() == PPME_SYSCALL_OPENAT_X)
+	{
+		parinfo = enter_evt->get_param(1);
+		name = parinfo->m_val;
+		namelen = parinfo->m_len;
+
+		parinfo = enter_evt->get_param(2);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		flags = *(uint32_t *)parinfo->m_val;
+
+		parinfo = enter_evt->get_param(0);
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		int64_t dirfd = *(int64_t *)parinfo->m_val;
+
+		parse_openat_dir(evt, name, dirfd, &sdir);
 	}
 	else if(evt->get_type() == PPME_SYSCALL_OPENAT_2_X)
 	{

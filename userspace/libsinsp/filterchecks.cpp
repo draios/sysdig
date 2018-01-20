@@ -234,6 +234,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 
 			return true;
 		}
+	case PPME_SYSCALL_OPENAT_X:
 	case PPME_SYSCALL_OPENAT_2_X:
 		{
 			//
@@ -252,7 +253,17 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 			uint32_t namelen;
 			string sdir;
 
-			parinfo = enter_evt.get_param(1);
+			//
+			// XXX support earlier scap file
+			//
+			if (etype == PPME_SYSCALL_OPENAT_X)
+			{
+				parinfo = enter_evt.get_param(1);
+			}
+			else // PPME_SYSCALL_OPENAT_2_X
+			{
+				parinfo = evt->get_param(1);
+			}
 			name = parinfo->m_val;
 			namelen = parinfo->m_len;
 
@@ -378,8 +389,8 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	}
 	case TYPE_FILENAME:
 	{
-		if(evt->get_type() != PPME_SYSCALL_OPEN_E && evt->get_type() != PPME_SYSCALL_OPENAT_2_E &&
-			evt->get_type() != PPME_SYSCALL_CREAT_E)
+		if(evt->get_type() != PPME_SYSCALL_OPEN_E && evt->get_type() != PPME_SYSCALL_OPENAT_E &&
+			evt->get_type() != PPME_SYSCALL_CREAT_E && evt->get_type() != PPME_SYSCALL_OPENAT_2_X)
 		{
 			return NULL;
 		}
@@ -412,6 +423,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 		switch(PPME_MAKE_ENTER(evt->get_type()))
 		{
 		case PPME_SYSCALL_OPEN_E:
+		case PPME_SYSCALL_OPENAT_E:
 		case PPME_SYSCALL_OPENAT_2_E:
 		case PPME_SYSCALL_CREAT_E:
 			m_tcstr[0] = CHAR_FD_FILE;
@@ -2698,7 +2710,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 		dirfdarg = "linkdirfd";
 		patharg = "linkpath";
 	}
-	else if(etype == PPME_SYSCALL_OPENAT_2_E)
+	else if(etype == PPME_SYSCALL_OPENAT_E || etype == PPME_SYSCALL_OPENAT_2_E)
 	{
 		dirfdarg = "dirfd";
 		patharg = "name";
@@ -3661,6 +3673,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 				if(etype == PPME_SYSCALL_OPEN_X ||
 					etype == PPME_SYSCALL_CREAT_X ||
+					etype == PPME_SYSCALL_OPENAT_X ||
 					etype == PPME_SYSCALL_OPENAT_2_X)
 				{
 					return extract_error_count(evt, len);
@@ -3735,6 +3748,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 				if(!(etype == PPME_SYSCALL_OPEN_X ||
 					etype == PPME_SYSCALL_CREAT_X ||
+					etype == PPME_SYSCALL_OPENAT_X ||
 					etype == PPME_SYSCALL_OPENAT_2_X ||
 					etype == PPME_SOCKET_ACCEPT_X ||
 					etype == PPME_SOCKET_ACCEPT_5_X ||
