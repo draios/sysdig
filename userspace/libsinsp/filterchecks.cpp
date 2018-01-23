@@ -4036,7 +4036,7 @@ const filtercheck_field_info sinsp_filter_check_user_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.name", "user name."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.homedir", "home directory of the user."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.shell", "user's shell."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "user.loginuid", "audit user id (auid)."},
+	{PT_UINT32, EPF_NONE, PF_NA, "user.loginuid", "audit user id (auid)."},
 };
 
 sinsp_filter_check_user::sinsp_filter_check_user()
