@@ -59,7 +59,6 @@ void sinsp_threadinfo::init()
 {
 	m_pid = (uint64_t) - 1LL;
 	m_sid = (uint64_t) - 1LL;
-	m_pgid = (uint64_t) - 1LL;
 	set_lastevent_data_validity(false);
 	m_lastevent_type = -1;
 	m_lastevent_ts = 0;
@@ -363,7 +362,6 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_pid = pi->pid;
 	m_ptid = pi->ptid;
 	m_sid = pi->sid;
-	m_pgid = pi->pgid;
 
 	m_comm = pi->comm;
 	m_exe = pi->exe;
@@ -1374,7 +1372,6 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, 	scap_threadi
 	sctinfo->pid = tinfo.m_pid;
 	sctinfo->ptid = tinfo.m_ptid;
 	sctinfo->sid = tinfo.m_sid;
-	sctinfo->pgid = tinfo.m_pgid;
 
 	strncpy(sctinfo->comm, tinfo.m_comm.c_str(), SCAP_MAX_PATH_SIZE);
 	strncpy(sctinfo->exe, tinfo.m_exe.c_str(), SCAP_MAX_PATH_SIZE);
@@ -1429,7 +1426,6 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			sizeof(uint64_t) +	// pid
 			sizeof(uint64_t) +	// ptid
 			sizeof(uint64_t) +	// sid
-			sizeof(uint64_t) +  // pgid
 			2 + MIN(tinfo.m_comm.size(), SCAP_MAX_PATH_SIZE) +
 			2 + MIN(tinfo.m_exe.size(), SCAP_MAX_PATH_SIZE) +
 			2 + MIN(tinfo.m_exepath.size(), SCAP_MAX_PATH_SIZE) +

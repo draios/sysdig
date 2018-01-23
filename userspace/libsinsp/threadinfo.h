@@ -218,7 +218,6 @@ public:
 	int64_t m_pid; ///< The id of the process containing this thread. In single thread threads, this is equal to tid.
 	int64_t m_ptid; ///< The id of the process that started this thread.
 	int64_t m_sid; ///< The session id of the process containing this thread.
-	int64_t m_pgid; ///< The process group of this thread.
 	string m_comm; ///< Command name (e.g. "top")
 	string m_exe; ///< argv[0] (e.g. "sshd: user@pts/4")
 	string m_exepath; ///< full executable path

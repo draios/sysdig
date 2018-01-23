@@ -1873,10 +1873,11 @@ void sinsp::init_mesos_client(string* api_server, bool verbose)
 	}
 }
 
-void sinsp::init_k8s_ssl(const string &ssl_cert)
+void sinsp::init_k8s_ssl(const string *ssl_cert)
 {
 #ifdef HAS_CAPTURE
-	if(!ssl_cert.empty() && (!m_k8s_ssl || ! m_k8s_bt))
+	if(ssl_cert != nullptr && !ssl_cert->empty()
+	   && (!m_k8s_ssl || ! m_k8s_bt))
 	{
 		std::string cert;
 		std::string key;
@@ -1884,35 +1885,35 @@ void sinsp::init_k8s_ssl(const string &ssl_cert)
 		std::string ca_cert;
 
 		// -K <bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>]
-		std::string::size_type pos = ssl_cert.find(':');
+		std::string::size_type pos = ssl_cert->find(':');
 		if(pos == std::string::npos) // ca_cert-only is obsoleted, single entry is now bearer token
 		{
-			m_k8s_bt = std::make_shared<sinsp_bearer_token>(ssl_cert);
+			m_k8s_bt = std::make_shared<sinsp_bearer_token>(*ssl_cert);
 		}
 		else
 		{
-			cert = ssl_cert.substr(0, pos);
+			cert = ssl_cert->substr(0, pos);
 			if(cert.empty())
 			{
-				throw sinsp_exception(string("Invalid K8S SSL entry: ") + ssl_cert);
+				throw sinsp_exception(string("Invalid K8S SSL entry: ") + *ssl_cert);
 			}
 
-			// pos < ssl_cert.length() so it's safe to take
+			// pos < ssl_cert->length() so it's safe to take
 			// substr() from head, but it may be empty
 			std::string::size_type head = pos + 1;
-			pos = ssl_cert.find(':', head);
+			pos = ssl_cert->find(':', head);
 			if (pos == std::string::npos)
 			{
-				key = ssl_cert.substr(head);
+				key = ssl_cert->substr(head);
 			}
 			else
 			{
-				key = ssl_cert.substr(head, pos - head);
-				ca_cert = ssl_cert.substr(pos + 1);
+				key = ssl_cert->substr(head, pos - head);
+				ca_cert = ssl_cert->substr(pos + 1);
 			}
 			if(key.empty())
 			{
-				throw sinsp_exception(string("Invalid K8S SSL entry: ") + ssl_cert);
+				throw sinsp_exception(string("Invalid K8S SSL entry: ") + *ssl_cert);
 			}
 
 			// Parse the password if it exists
@@ -1968,7 +1969,7 @@ void sinsp::init_k8s_client(string* api_server, string* ssl_cert, bool verbose)
 			delete m_k8s_client;
 			m_k8s_client = nullptr;
 		}
-		init_k8s_ssl(*ssl_cert);
+		init_k8s_ssl(ssl_cert);
 		make_k8s_client();
 	}
 }
@@ -2022,7 +2023,7 @@ void sinsp::k8s_discover_ext()
 				{
 					m_k8s_collector = std::make_shared<k8s_handler::collector_t>();
 				}
-				if(uri(*m_k8s_api_server).is_secure()) { init_k8s_ssl(*m_k8s_api_cert); }
+				if(uri(*m_k8s_api_server).is_secure()) { init_k8s_ssl(m_k8s_api_cert); }
 				m_k8s_ext_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
 									    "/apis/extensions/v1beta1", "[.resources[].name]",
 									    "1.1", m_k8s_ssl, m_k8s_bt, true));
@@ -2095,7 +2096,7 @@ void sinsp::update_k8s_state()
 					}
 					if(uri(*m_k8s_api_server).is_secure() && (!m_k8s_ssl || ! m_k8s_bt))
 					{
-						init_k8s_ssl(*m_k8s_api_cert);
+						init_k8s_ssl(m_k8s_api_cert);
 					}
 					m_k8s_api_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
 										    "/api", ".versions", "1.1",

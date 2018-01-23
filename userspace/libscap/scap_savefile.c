@@ -219,7 +219,7 @@ int32_t scap_write_proclist_header(scap_t *handle, scap_dumper_t *d, uint32_t to
 	//
 	// Create the block header
 	//
-	bh.block_type = PL_BLOCK_TYPE_V9;
+	bh.block_type = PL_BLOCK_TYPE_V8;
 	bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + totlen + 4);
 
 	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh))
@@ -239,7 +239,7 @@ int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t t
 	block_header bh;
 	uint32_t bt;
 
-	bh.block_type = PL_BLOCK_TYPE_V9;
+	bh.block_type = PL_BLOCK_TYPE_V8;
 	bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + totlen + 4);
 
 	//
@@ -290,7 +290,6 @@ int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_
 		    scap_dump_write(d, &(tinfo->pid), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		    scap_dump_write(d, &(tinfo->ptid), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		    scap_dump_write(d, &(tinfo->sid), sizeof(uint64_t)) != sizeof(uint64_t) ||
-		    scap_dump_write(d, &(tinfo->pgid), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		    scap_dump_write(d, &commlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
 		    scap_dump_write(d, tinfo->comm, commlen) != commlen ||
 		    scap_dump_write(d, &exelen, sizeof(uint16_t)) != sizeof(uint16_t) ||
@@ -348,7 +347,6 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 				sizeof(uint64_t) +	// pid
 				sizeof(uint64_t) +	// ptid
 				sizeof(uint64_t) +	// sid
-				sizeof(uint64_t) +	// pgid
 				2 + strnlen(tinfo->comm, SCAP_MAX_PATH_SIZE) +
 				2 + strnlen(tinfo->exe, SCAP_MAX_PATH_SIZE) +
 				2 + strnlen(tinfo->exepath, SCAP_MAX_PATH_SIZE) +
@@ -1076,7 +1074,6 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 	tinfo.filtered_out = 0;
 	tinfo.root[0] = 0;
 	tinfo.sid = -1;
-	tinfo.pgid = -1;
 	tinfo.clone_ts = 0;
 	tinfo.tty = 0;
 	tinfo.exepath[0] = 0;
@@ -1121,37 +1118,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		case PL_BLOCK_TYPE_V6:
 		case PL_BLOCK_TYPE_V7:
 		case PL_BLOCK_TYPE_V8:
-		case PL_BLOCK_TYPE_V9:
 			readsize = gzread(f, &(tinfo.sid), sizeof(uint64_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
-
-			totreadsize += readsize;
-			break;
-		default:
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted process block type (fd1)");
-			ASSERT(false);
-			return SCAP_FAILURE;
-		}
-
-		//
-		// pgid
-		//
-		switch(block_type)
-		{
-		case PL_BLOCK_TYPE_V1:
-		case PL_BLOCK_TYPE_V1_INT:
-		case PL_BLOCK_TYPE_V2:
-		case PL_BLOCK_TYPE_V2_INT:
-		case PL_BLOCK_TYPE_V3:
-		case PL_BLOCK_TYPE_V3_INT:
-		case PL_BLOCK_TYPE_V4:
-		case PL_BLOCK_TYPE_V5:
-		case PL_BLOCK_TYPE_V6:
-		case PL_BLOCK_TYPE_V7:
-			break;
-		case PL_BLOCK_TYPE_V8:
-		case PL_BLOCK_TYPE_V9:
-			readsize = gzread(f, &(tinfo.pgid), sizeof(uint64_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
 
 			totreadsize += readsize;
@@ -1220,7 +1187,6 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 			break;
 		case PL_BLOCK_TYPE_V7:
 		case PL_BLOCK_TYPE_V8:
-		case PL_BLOCK_TYPE_V9:
 			//
 			// exepath
 			//
@@ -1341,7 +1307,6 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		case PL_BLOCK_TYPE_V6:
 		case PL_BLOCK_TYPE_V7:
 		case PL_BLOCK_TYPE_V8:
-		case PL_BLOCK_TYPE_V9:
 			//
 			// vmsize_kb
 			//
@@ -1388,8 +1353,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 				block_type == PL_BLOCK_TYPE_V5 ||
 				block_type == PL_BLOCK_TYPE_V6 ||
 				block_type == PL_BLOCK_TYPE_V7 ||
-                block_type == PL_BLOCK_TYPE_V8 ||
-				block_type == PL_BLOCK_TYPE_V9)
+                block_type == PL_BLOCK_TYPE_V8)
 			{
 				//
 				// env
@@ -1419,8 +1383,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 			   block_type == PL_BLOCK_TYPE_V5 ||
 			   block_type == PL_BLOCK_TYPE_V6 ||
 			   block_type == PL_BLOCK_TYPE_V7 ||
-               block_type == PL_BLOCK_TYPE_V8 ||
-			   block_type == PL_BLOCK_TYPE_V9)
+               block_type == PL_BLOCK_TYPE_V8)
 			{
 				//
 				// vtid
@@ -1461,8 +1424,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 				if(block_type == PL_BLOCK_TYPE_V5 ||
 				   block_type == PL_BLOCK_TYPE_V6 ||
 				   block_type == PL_BLOCK_TYPE_V7 ||
-                   block_type == PL_BLOCK_TYPE_V8 ||
-				   block_type == PL_BLOCK_TYPE_V9)
+                   block_type == PL_BLOCK_TYPE_V8)
 				{
 					readsize = gzread(f, &(stlen), sizeof(uint16_t));
 					CHECK_READ_SIZE(readsize, sizeof(uint16_t));
@@ -1503,9 +1465,8 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
         case PL_BLOCK_TYPE_V5:
         case PL_BLOCK_TYPE_V6:
         case PL_BLOCK_TYPE_V7:
-        case PL_BLOCK_TYPE_V8:
 			break;
-        case PL_BLOCK_TYPE_V9:
+        case PL_BLOCK_TYPE_V8:
             //
             // loginuid
             //
@@ -2287,7 +2248,6 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 		case PL_BLOCK_TYPE_V6:
 		case PL_BLOCK_TYPE_V7:
 		case PL_BLOCK_TYPE_V8:
-		case PL_BLOCK_TYPE_V9:
 		case PL_BLOCK_TYPE_V1_INT:
 		case PL_BLOCK_TYPE_V2_INT:
 		case PL_BLOCK_TYPE_V3_INT:
