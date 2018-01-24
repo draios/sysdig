@@ -1592,6 +1592,24 @@ const unordered_map<uint32_t, scap_userinfo*>* sinsp::get_userlist()
 	return &m_userlist;
 }
 
+scap_userinfo* sinsp::get_user(uint32_t uid)
+{
+	unordered_map<uint32_t, scap_userinfo*>::const_iterator it;
+
+	if(uid == 0xffffffff)
+	{
+		return NULL;
+	}
+
+	it = m_userlist.find(uid);
+	if(it == m_userlist.end())
+	{
+		return NULL;
+	}
+
+	return it->second;
+}
+
 const unordered_map<uint32_t, scap_groupinfo*>* sinsp::get_grouplist()
 {
 	return &m_grouplist;

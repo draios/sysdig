@@ -4037,6 +4037,7 @@ const filtercheck_field_info sinsp_filter_check_user_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.homedir", "home directory of the user."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.shell", "user's shell."},
 	{PT_INT32, EPF_NONE, PF_ID, "user.loginuid", "audit user id (auid)."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "user.loginname", "audit user name (auid)."},
 };
 
 sinsp_filter_check_user::sinsp_filter_check_user()
@@ -4063,26 +4064,15 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, boo
 		return NULL;
 	}
 
-	if(m_field_id != TYPE_UID && m_field_id != TYPE_LOGINUID)
+	if(m_field_id != TYPE_UID && m_field_id != TYPE_LOGINUID && m_field_id != TYPE_LOGINNAME)
 	{
-		unordered_map<uint32_t, scap_userinfo*>::const_iterator it;
-
 		ASSERT(m_inspector != NULL);
-		const unordered_map<uint32_t, scap_userinfo*>* userlist = m_inspector->get_userlist();
-
-		if(tinfo->m_uid == 0xffffffff)
-		{
-			return NULL;
-		}
-
-		it = userlist->find(tinfo->m_uid);
-		if(it == userlist->end())
-		{
-			return NULL;
-		}
-
-		uinfo = it->second;
+		uinfo = m_inspector->get_user(tinfo->m_uid);
 		ASSERT(uinfo != NULL);
+		if(uinfo == NULL)
+		{
+			return NULL;
+		}
 	}
 
 	switch(m_field_id)
@@ -4097,6 +4087,14 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, boo
 		RETURN_EXTRACT_CSTR(uinfo->shell);
 	case TYPE_LOGINUID:
 		RETURN_EXTRACT_VAR(tinfo->m_loginuid);
+	case TYPE_LOGINNAME:
+		ASSERT(m_inspector != NULL);
+		uinfo = m_inspector->get_user(tinfo->m_loginuid);
+		if(uinfo == NULL)
+		{
+			return NULL;
+		}
+		RETURN_EXTRACT_VAR(uinfo->name);
 	default:
 		ASSERT(false);
 		break;

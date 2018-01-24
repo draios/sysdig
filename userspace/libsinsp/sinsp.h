@@ -507,6 +507,17 @@ public:
 	const unordered_map<uint32_t, scap_userinfo*>* get_userlist();
 
 	/*!
+	  \brief Lookup for user in the user table.
+
+	  \return the \ref scap_userinfo object containing full user information.
+
+	  \note this call works with file captures as well, because the user
+	   table is stored in the trace files. In that case, the returned
+	   user list is the one of the machine where the capture happened.
+	*/
+	scap_userinfo* get_user(uint32_t uid);
+
+	/*!
 	  \brief Return the table with all the machine user groups.
 
 	  \return a hash table with the group ID (GID) as the key and the group
