@@ -4063,7 +4063,7 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, boo
 		return NULL;
 	}
 
-	if(m_field_id != TYPE_UID)
+	if(m_field_id != TYPE_UID && m_field_id != TYPE_LOGINUID)
 	{
 		unordered_map<uint32_t, scap_userinfo*>::const_iterator it;
 
