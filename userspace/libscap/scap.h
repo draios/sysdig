@@ -230,7 +230,7 @@ typedef struct scap_threadinfo
 	scap_fdinfo* fdlist; ///< The fd table for this process
 	uint64_t clone_ts;
 	int32_t tty;
-	uint32_t loginuid; ///< loginuid (auid)
+	int32_t loginuid; ///< loginuid (auid)
 
 	UT_hash_handle hh; ///< makes this structure hashable
 }scap_threadinfo;

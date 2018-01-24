@@ -241,7 +241,7 @@ public:
 	size_t m_program_hash;
 	size_t m_program_hash_falco;
 	int32_t m_tty;
-	uint32_t m_loginuid; ///< loginuid (auid)
+	int32_t m_loginuid; ///< loginuid (auid)
 
 	//
 	// State for multi-event processing

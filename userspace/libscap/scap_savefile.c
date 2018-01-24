@@ -366,7 +366,7 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 				2 + tinfo->cgroups_len +
 				sizeof(uint32_t) +
 				2 + strnlen(tinfo->root, SCAP_MAX_PATH_SIZE) +
-				sizeof(uint32_t)); // loginuid
+				sizeof(int32_t)); // loginuid
 
 			totlen += il;
 		}
