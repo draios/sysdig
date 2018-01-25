@@ -1359,6 +1359,16 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 #endif
 		))
 	{
+		// Certain code paths can lead to this point from scap_open() (incomplete example:
+		// scap_proc_scan_proc_dir() -> resolve_container() -> get_env()). Adding a
+		// defensive check here to protect both, callers of get_env and get_thread.
+		if (!m_h)
+		{
+			g_logger.format(sinsp_logger::SEV_INFO, "%s: Unable to complete for tid=%"
+							PRIu64 ": sinsp::scap_t* is uninitialized", __func__, tid);
+			return NULL;
+		}
+
 		scap_threadinfo* scap_proc = NULL;
 		sinsp_threadinfo newti(this);
 

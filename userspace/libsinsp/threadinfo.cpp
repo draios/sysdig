@@ -523,6 +523,7 @@ const vector<string>& sinsp_threadinfo::get_env()
 		else
 		{
 			// it should never happen but provide a safe fallback just in case
+			// except during sinsp::scap_open() (see sinsp::get_thread()).
 			ASSERT(false);
 			return m_env;
 		}
