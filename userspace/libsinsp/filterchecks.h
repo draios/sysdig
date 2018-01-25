@@ -85,7 +85,7 @@ public:
 	// Doesn't return the field length because the filtering engine can calculate it.
 	//
 	void add_filter_value(const char* str, uint32_t len, uint32_t i = 0 );
-	virtual void parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
+	virtual size_t parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
 
 	//
 	// Called after parsing for optional validation of the filter value
@@ -480,7 +480,7 @@ public:
 	~sinsp_filter_check_event();
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
-	void parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
+	size_t parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
 	void validate_filter_value(const char* str, uint32_t len);
 	const filtercheck_field_info* get_field_info();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
