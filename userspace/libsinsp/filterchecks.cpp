@@ -166,6 +166,7 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.snet", "server IP network."},
 	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.lnet", "local IP network."},
 	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.rnet", "remote IP network."},
+	{PT_BOOL, EPF_NONE, PF_NA, "fd.connected", "for TCP/UDP FDs, 'true' if the socket is connected."},
 
 };
 
@@ -1035,6 +1036,18 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 
 			m_tstr = to_string(m_tinfo->m_tid) + to_string(m_tinfo->m_lastevent_fd);
 			RETURN_EXTRACT_STRING(m_tstr);
+		}
+		break;
+	case TYPE_IS_CONNECTED:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			m_tbool = m_fdinfo->is_socket_connected();
+
+			return (uint8_t*)&m_tbool;
 		}
 		break;
 	default:
