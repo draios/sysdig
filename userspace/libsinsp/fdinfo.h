@@ -285,6 +285,11 @@ public:
 		return (m_flags & (FLAGS_ROLE_CLIENT | FLAGS_ROLE_SERVER)) == 0;
 	}
 
+	inline bool is_socket_connected()
+	{
+		return (m_flags & FLAGS_SOCKET_CONNECTED) == FLAGS_SOCKET_CONNECTED;
+	}
+
 	scap_fd_type m_type; ///< The fd type, e.g. file, directory, IPv4 socket...
 	uint32_t m_openflags; ///< If this FD is a file, the flags that were used when opening it. See the PPM_O_* definitions in driver/ppm_events_public.h.
 	
@@ -327,6 +332,7 @@ private:
 		FLAGS_IN_BASELINE_R = (1 << 10),
 		FLAGS_IN_BASELINE_RW = (1 << 11),
 		FLAGS_IN_BASELINE_OTHER = (1 << 12),
+		FLAGS_SOCKET_CONNECTED = (1 << 13),
 	};
 
 	void add_filename(const char* fullpath);
@@ -406,6 +412,11 @@ private:
 	inline bool is_inpipeline_other()
 	{
 		return (m_flags & FLAGS_IN_BASELINE_OTHER) == FLAGS_IN_BASELINE_OTHER; 
+	}
+
+	inline void set_socket_connected()
+	{
+		m_flags |= FLAGS_SOCKET_CONNECTED;
 	}
 
 	T* m_usrstate;

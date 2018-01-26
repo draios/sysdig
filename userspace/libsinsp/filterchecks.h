@@ -280,7 +280,8 @@ public:
 		TYPE_CNET = 28,
 		TYPE_SNET = 29,
 		TYPE_LNET = 30,
-		TYPE_RNET = 31
+		TYPE_RNET = 31,
+		TYPE_IS_CONNECTED = 32,
 	};
 
 	enum fd_type
