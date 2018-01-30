@@ -238,6 +238,16 @@ public:
 		return m_fdinfo;
 	}
 
+	inline bool fdinfo_name_changed()
+	{
+		return m_fdinfo_name_changed;
+	}
+
+	inline void set_fdinfo_name_changed(bool changed)
+	{
+		m_fdinfo_name_changed = changed;
+	}
+
 	/*!
 	  \brief Return the number of the FD associated with this event.
 
@@ -333,6 +343,7 @@ private:
 		m_info = &(m_event_info_table[m_pevt->type]);
 		m_tinfo = NULL;
 		m_fdinfo = NULL;
+		m_fdinfo_name_changed = false;
 		m_iosize = 0;
 		m_poriginal_evt = NULL;
 	}
@@ -343,6 +354,7 @@ private:
 		m_info = &(m_event_info_table[m_pevt->type]);
 		m_tinfo = NULL;
 		m_fdinfo = NULL;
+		m_fdinfo_name_changed = false;
 		m_iosize = 0;
 		m_cpuid = cpuid;
 		m_evtnum = 0;
@@ -396,6 +408,11 @@ VISIBILITY_PRIVATE
 
 	sinsp_threadinfo* m_tinfo;
 	sinsp_fdinfo_t* m_fdinfo;
+
+	// If true, then the associated fdinfo changed names as a part
+	// of parsing this event.
+	bool m_fdinfo_name_changed;
+
 	uint32_t m_iosize;
 	int32_t m_errorcode;
 	int32_t m_rawbuf_str_len;
