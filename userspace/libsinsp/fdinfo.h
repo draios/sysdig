@@ -111,6 +111,7 @@ public:
 		m_openflags = other.m_openflags;	
 		m_sockinfo = other.m_sockinfo;
 		m_name = other.m_name;
+		m_oldname = other.m_oldname;
 		m_flags = other.m_flags;
 		m_ino = other.m_ino;
 		
@@ -300,6 +301,7 @@ public:
 	sinsp_sockinfo m_sockinfo;
 
 	string m_name; ///< Human readable rendering of this FD. For files, this is the full file name. For sockets, this is the tuple. And so on.
+	string m_oldname; // The name of this fd at the beginning of event parsing. Used to detect name changes that result from parsing an event.
 
 	inline bool has_decoder_callbacks()
 	{

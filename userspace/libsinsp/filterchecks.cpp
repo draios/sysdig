@@ -167,7 +167,7 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.lnet", "local IP network."},
 	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.rnet", "remote IP network."},
 	{PT_BOOL, EPF_NONE, PF_NA, "fd.connected", "for TCP/UDP FDs, 'true' if the socket is connected."},
-
+	{PT_BOOL, EPF_NONE, PF_NA, "fd.name_changed", "True when an event changes the name of an fd used by this event. This can occur in some cases such as udp connections where the connection tuple changes."}
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -1047,7 +1047,19 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 
 			m_tbool = m_fdinfo->is_socket_connected();
 
-			return (uint8_t*)&m_tbool;
+			RETURN_EXTRACT_VAR(m_tbool);
+		}
+		break;
+	case TYPE_NAME_CHANGED:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			m_tbool = evt->fdinfo_name_changed();
+
+			RETURN_EXTRACT_VAR(m_tbool);
 		}
 		break;
 	default:

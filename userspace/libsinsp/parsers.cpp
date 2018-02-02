@@ -491,6 +491,14 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 			evt->m_filtered_out = true;
 		}
 	}
+
+	// Check to see if the name changed as a side-effect of
+	// parsing this event. Try to avoid the overhead of a string
+	// compare for every event.
+	if(evt->m_fdinfo)
+	{
+		evt->set_fdinfo_name_changed(evt->m_fdinfo->m_name != evt->m_fdinfo->m_oldname);
+	}
 }
 
 void sinsp_parser::event_cleanup(sinsp_evt *evt)
