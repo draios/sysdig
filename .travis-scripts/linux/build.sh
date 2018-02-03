@@ -18,9 +18,9 @@ cd ..
 test/sysdig_trace_regression.sh build/userspace/sysdig/sysdig build/userspace/sysdig/chisels $TRAVIS_BRANCH
 rm -rf build
 pushd $(mktemp -d --tmpdir sysdig.XXXXXXXXXX)
-wget http://download.draios.com/dependencies/zlib-1.2.8.tar.gz
-tar -xzf zlib-1.2.8.tar.gz
-cd zlib-1.2.8
+wget http://download.draios.com/dependencies/zlib-1.2.11.tar.gz
+tar -xzf zlib-1.2.11.tar.gz
+cd zlib-1.2.11
 ./configure
 make
 sudo make install

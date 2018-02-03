@@ -6,8 +6,11 @@
 import bz2
 import sqlite3
 import sys
-import urllib2
 import tempfile
+import time
+import urllib2
+import zlib
+
 from lxml import html
 
 #
@@ -175,25 +178,36 @@ repos = {
             "page_pattern": "/html/body//a[regex:test(@href, '^linux-kbuild-.*amd64.deb$')]/@href",
             "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp", "unsigned"]
         }
-    ],
-
-    "AmazonLinux": [
-        {
-            "root": "http://repo.us-east-1.amazonaws.com/latest/updates/mirror.list",
-            "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
-            "subdirs": [""],
-            "page_pattern": "",
-            "exclude_patterns": ["doc","tools","headers"]
-        },
-        {
-            "root": "http://repo.us-east-1.amazonaws.com/latest/main/mirror.list",
-            "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
-            "subdirs": [""],
-            "page_pattern": "",
-            "exclude_patterns": ["doc","tools","headers"]
-        }
     ]
 }
+
+# Build static list, 2017.09 is last Amazon Linux AMI release https://aws.amazon.com/amazon-linux-2/faqs/
+amazon_linux_builder = [('latest', 'updates'), ('latest', 'main'), ('2017.03', 'updates'), ('2017.03', 'main')]
+amazon_repos = []
+for repo_release, release_type in amazon_linux_builder:
+    amazon_repos.append({
+        "root": "http://repo.us-east-1.amazonaws.com/" + repo_release + "/" + release_type + "/mirror.list",
+        "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
+        "subdirs": [""],
+        "page_pattern": "",
+        "exclude_patterns": ["doc", "tools", "headers"]
+    })
+repos['AmazonLinux'] = amazon_repos
+
+prev_months = 24
+now = time.localtime()
+check_months = [time.localtime(time.mktime((now.tm_year, now.tm_mon - n, 1, 0, 0, 0, 0, 0, 0)))[:2] for n in range(prev_months)]
+amazon_linux2 = []
+for year, month in check_months[:-1]:
+    amazon_linux2.append({
+        "root": "http://amazonlinux.us-east-1.amazonaws.com/" + str(year) + "." + str(month).zfill(2) + "/core/latest/x86_64/mirror.list",
+        "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
+        "subdirs": [""],
+        "page_pattern": "",
+        "exclude_patterns": ["doc", "tools", "headers"]
+        })
+
+repos['AmazonLinux2'] = amazon_linux2
 
 def exclude_patterns(repo, packages, base_url, urls):
     for rpm in packages:
@@ -201,6 +215,39 @@ def exclude_patterns(repo, packages, base_url, urls):
             continue
         else:
             urls.add(base_url + str(urllib2.unquote(rpm)))
+
+def process_al_distro(al_distro_name, current_repo):
+    get_url = urllib2.urlopen(current_repo["root"]).readline()
+    if get_url:
+        if al_distro_name == "AmazonLinux":
+            base_mirror_url = get_url.replace('$basearch','x86_64').replace('\n','') + '/'
+            db_path = "repodata/primary.sqlite.bz2"
+        elif al_distro_name == "AmazonLinux2":
+            base_mirror_url = get_url.replace('\n','') + '/'
+            db_path = "repodata/primary.sqlite.gz"
+        
+        response = urllib2.urlopen(base_mirror_url + db_path)
+
+        if al_distro_name == "AmazonLinux":
+            decompressed_data = bz2.decompress(response.read())
+        elif al_distro_name == "AmazonLinux2":
+            decompressed_data = zlib.decompress(response.read(), 16+zlib.MAX_WBITS)
+
+        db_file = tempfile.NamedTemporaryFile()
+        db_file.write(decompressed_data)
+        conn = sqlite3.connect(db_file.name)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        al_rpms = [r["location_href"] for r in c.execute(current_repo["discovery_pattern"])]
+        exclude_patterns(current_repo, al_rpms, base_mirror_url, urls)
+        conn.close()
+        db_file.close()
+
+        return True
+
+    else:
+        return False
+
 
 #
 # In our design you are not supposed to modify the code. The whole script is
@@ -221,31 +268,23 @@ distro = sys.argv[1]
 # Navigate the `repos` tree and look for packages we need that match the
 # patterns given. Save the result in `packages`.
 #
+
+al2_repo_count = 0
+
 for repo in repos[distro]:
     if distro == 'AmazonLinux':
         try:
-            # Look for the first mirror that works
-            for line in urllib2.urlopen(repo["root"]).readlines():
-                base_mirror_url = line.replace('$basearch','x86_64').replace('\n','') + '/'
-                try:
-                    response = urllib2.urlopen(base_mirror_url + 'repodata/primary.sqlite.bz2')
-                except:
-                    continue
-
-                break
+            process_al_distro(distro, repo)
         except:
             continue
-
-        decompressed_data = bz2.decompress(response.read())
-        db_file = tempfile.NamedTemporaryFile()
-        db_file.write(decompressed_data)
-        conn = sqlite3.connect(db_file.name)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        rpms = [r["location_href"] for r in c.execute(repo["discovery_pattern"])]
-        exclude_patterns(repo, rpms, base_mirror_url, urls)
-        conn.close()
-        db_file.close()
+    elif distro == 'AmazonLinux2':
+        try:
+            # Brute force finding the repositories and only grab the most recent two, then skip the rest.
+            if al2_repo_count < 2:
+                if process_al_distro(distro, repo):
+                    al2_repo_count += 1
+        except:
+            continue
     else:
         try:
             root = urllib2.urlopen(repo["root"],timeout=URL_TIMEOUT).read()

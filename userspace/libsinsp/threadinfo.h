@@ -169,7 +169,15 @@ public:
 
 		if(fdt)
 		{
-			return fdt->find(fd);
+			sinsp_fdinfo_t *fdinfo = fdt->find(fd);
+			if(fdinfo)
+			{
+				// Its current name is now its old
+				// name. The name might change as a
+				// result of parsing.
+				fdinfo->m_oldname = fdinfo->m_name;
+				return fdinfo;
+			}
 		}
 
 		return NULL;

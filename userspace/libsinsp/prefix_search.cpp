@@ -16,6 +16,8 @@ You should have received a copy of the GNU General Public License
 along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <string.h>
+
 #include "prefix_search.h"
 
 using namespace std;
@@ -55,6 +57,32 @@ bool path_prefix_search::match(const filter_value_t &path)
 std::string path_prefix_search::as_string()
 {
 	return path_prefix_map<bool>::as_string(false);
+}
+
+void path_prefix_map_ut::split_path(const filter_value_t &path, filter_components_t &components)
+{
+	components.clear();
+
+	uint8_t *pos = path.first;
+
+	while (pos < path.first + path.second)
+	{
+		uint8_t *sep = (uint8_t *) memchr((char *) pos, '/', path.second - (pos - path.first));
+
+		if (sep)
+		{
+			if (sep-pos > 0)
+			{
+				components.emplace_back(pos, sep-pos);
+			}
+			pos = sep + 1;
+		}
+		else
+		{
+			components.emplace_back(pos, path.second - (pos - path.first));
+			pos = path.first + path.second + 1;
+		}
+	}
 }
 
 

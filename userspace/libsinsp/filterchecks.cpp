@@ -166,7 +166,8 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.snet", "server IP network."},
 	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.lnet", "local IP network."},
 	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.rnet", "remote IP network."},
-
+	{PT_BOOL, EPF_NONE, PF_NA, "fd.connected", "for TCP/UDP FDs, 'true' if the socket is connected."},
+	{PT_BOOL, EPF_NONE, PF_NA, "fd.name_changed", "True when an event changes the name of an fd used by this event. This can occur in some cases such as udp connections where the connection tuple changes."}
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -1035,6 +1036,30 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 
 			m_tstr = to_string(m_tinfo->m_tid) + to_string(m_tinfo->m_lastevent_fd);
 			RETURN_EXTRACT_STRING(m_tstr);
+		}
+		break;
+	case TYPE_IS_CONNECTED:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			m_tbool = m_fdinfo->is_socket_connected();
+
+			RETURN_EXTRACT_VAR(m_tbool);
+		}
+		break;
+	case TYPE_NAME_CHANGED:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			m_tbool = evt->fdinfo_name_changed();
+
+			RETURN_EXTRACT_VAR(m_tbool);
 		}
 		break;
 	default:
@@ -2581,17 +2606,20 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 	return res;
 }
 
-void sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len)
+size_t sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len)
 {
+	size_t parsed_len;
 	if(m_field_id == sinsp_filter_check_event::TYPE_ARGRAW)
 	{
 		ASSERT(m_arginfo != NULL);
-		sinsp_filter_value_parser::string_to_rawval(str, len, filter_value_p(), filter_value().size(), m_arginfo->type);
+		parsed_len = sinsp_filter_value_parser::string_to_rawval(str, len, filter_value_p(), filter_value().size(), m_arginfo->type);
 	}
 	else
 	{
-		sinsp_filter_check::parse_filter_value(str, len, storage, storage_len);
+		parsed_len = sinsp_filter_check::parse_filter_value(str, len, storage, storage_len);
 	}
+
+	return parsed_len;
 }
 
 
@@ -2761,9 +2789,9 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 	if(is_absolute)
 	{
 		//
-		// The path is absoulte.
+		// The path is absolute.
 		// Some processes (e.g. irqbalance) actually do this: they pass an invalid fd and
-		// and bsolute path, and openat succeeds.
+		// and absolute path, and openat succeeds.
 		//
 		sdir = ".";
 	}

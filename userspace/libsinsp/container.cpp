@@ -846,16 +846,20 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	}
 
 	const Json::Value& env_vars = config_obj["Env"];
-	string mesos_task_id = get_docker_env(env_vars, "MESOS_TASK_ID");
-	if(mesos_task_id.empty())
+
+	for(const auto& env_var : env_vars)
 	{
-		mesos_task_id = get_docker_env(env_vars, "mesos_task_id");
+		if(env_var.isString())
+		{
+			container->m_env.emplace_back(env_var.asString());
+		}
 	}
-	if(mesos_task_id.empty())
-	{
-		mesos_task_id = get_docker_env(env_vars, "MESOS_EXECUTOR_ID");
-	}
-	if(!mesos_task_id.empty())
+
+	static const vector<std::string> task_id_envs = { "MESOS_TASK_ID", "mesos_task_id", "MESOS_EXECUTOR_ID" };
+	string mesos_task_id;
+
+	if(sinsp_utils::find_first_env(mesos_task_id, container->get_env(), task_id_envs) &&
+		!mesos_task_id.empty())
 	{
 		container->m_mesos_task_id = mesos_task_id;
 		g_logger.log("Mesos Docker container: [" + root["Id"].asString() + "], Mesos task ID: [" + container->m_mesos_task_id + ']', sinsp_logger::SEV_DEBUG);
@@ -884,26 +888,10 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 	sinsp_container_info::parse_json_mounts(root["Mounts"], container->m_mounts);
 
 #ifdef HAS_ANALYZER
-	container->m_sysdig_agent_conf = get_docker_env(env_vars, "SYSDIG_AGENT_CONF");
+	sinsp_utils::find_env(container->m_sysdig_agent_conf, container->get_env(), "SYSDIG_AGENT_CONF");
+	// container->m_sysdig_agent_conf = get_docker_env(env_vars, "SYSDIG_AGENT_CONF");
 #endif
 	return true;
-}
-
-string sinsp_container_manager::get_docker_env(const Json::Value &env_vars, const string &mti)
-{
-	string ret;
-	for(const auto& env_var : env_vars)
-	{
-		if(env_var.isString())
-		{
-			ret = env_var.asString();
-			if((ret.length() > (mti.length() + 1)) && (ret.substr(0, mti.length()) == mti))
-			{
-				return ret.substr(mti.length() + 1);
-			}
-		}
-	}
-	return "";
 }
 
 bool sinsp_container_manager::parse_rkt(sinsp_container_info *container, const string &podid, const string &appname)

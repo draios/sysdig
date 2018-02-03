@@ -268,7 +268,7 @@ static void usage()
 }
 
 void print_summary_table(sinsp* inspector,
-						 vector<summary_table_entry>* summary_table,
+						 vector<summary_table_entry> &summary_table,
 						 uint32_t nentries)
 {
 	sinsp_evttables* einfo = inspector->get_event_info_tables();
@@ -280,37 +280,37 @@ void print_summary_table(sinsp* inspector,
 	cout << tstr;
 	cout << "----------------------\n";
 
-	sort(summary_table->begin(), summary_table->end(),
+	sort(summary_table.begin(), summary_table.end(),
 		summary_table_entry_rsort_comparer());
 
 	for(uint32_t j = 0; j < nentries; j++)
 	{
-		summary_table_entry* e = &summary_table->at(j);
+		const summary_table_entry &e = summary_table.at(j);
 
-		if(e->m_ncalls == 0)
+		if(e.m_ncalls == 0)
 		{
 			break;
 		}
 
-		if(e->m_is_unsupported_syscall)
+		if(e.m_is_unsupported_syscall)
 		{
-			tstr = einfo->m_syscall_info_table[e->m_id / 2].name;
+			tstr = einfo->m_syscall_info_table[e.m_id / 2].name;
 			tstr.resize(16, ' ');
 
 			printf("%s%s%" PRIu64 "\n",
-				(PPME_IS_ENTER(e->m_id))? "> ": "< ",
+				(PPME_IS_ENTER(e.m_id))? "> ": "< ",
 				tstr.c_str(),
-				e->m_ncalls);
+				e.m_ncalls);
 		}
 		else
 		{
-			tstr = einfo->m_event_info[e->m_id].name;
+			tstr = einfo->m_event_info[e.m_id].name;
 			tstr.resize(16, ' ');
 
 			printf("%s%s%" PRIu64 "\n",
-				(PPME_IS_ENTER(e->m_id))? "> ": "< ",
+				(PPME_IS_ENTER(e.m_id))? "> ": "< ",
 				tstr.c_str(),
-				e->m_ncalls);
+				e.m_ncalls);
 		}
 	}
 }
@@ -549,7 +549,7 @@ captureinfo do_inspect(sinsp* inspector,
 	bool do_flush,
 	bool print_progress,
 	sinsp_filter* display_filter,
-	vector<summary_table_entry>* summary_table,
+	vector<summary_table_entry> &summary_table,
 	sinsp_evt_formatter* formatter)
 {
 	captureinfo retval;
@@ -657,7 +657,7 @@ captureinfo do_inspect(sinsp* inspector,
 			//
 			// If we're supposed to summarize, increase the count for this event
 			//
-			if(summary_table != NULL)
+			if(!summary_table.empty())
 			{
 				uint16_t etype = ev->get_type();
 
@@ -665,17 +665,17 @@ captureinfo do_inspect(sinsp* inspector,
 				{
 					sinsp_evt_param *parinfo = ev->get_param(0);
 					uint16_t id = *(int16_t *)parinfo->m_val;
-					((*summary_table)[PPM_EVENT_MAX + id * 2]).m_ncalls++;
+					summary_table[PPM_EVENT_MAX + id * 2].m_ncalls++;
 				}
 				else if(etype == PPME_GENERIC_X)
 				{
 					sinsp_evt_param *parinfo = ev->get_param(0);
 					uint16_t id = *(int16_t *)parinfo->m_val;
-					((*summary_table)[PPM_EVENT_MAX + id * 2 + 1]).m_ncalls++;
+					summary_table[PPM_EVENT_MAX + id * 2 + 1].m_ncalls++;
 				}
 				else
 				{
-					((*summary_table)[etype]).m_ncalls++;
+					summary_table[etype].m_ncalls++;
 				}
 			}
 
@@ -756,7 +756,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool unbuf_flag = false;
 	bool filter_proclist_flag = false;
 	string cname;
-	vector<summary_table_entry>* summary_table = NULL;
+	vector<summary_table_entry> summary_table;
 	string* k8s_api = 0;
 	string* k8s_api_cert = 0;
 	string* mesos_api = 0;
@@ -1084,16 +1084,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				mesos_api = new string();
 				break;
 			case 'S':
-				summary_table = new vector<summary_table_entry>;
-
 				for(uint32_t j = 0; j < PPM_EVENT_MAX; j++)
 				{
-					summary_table->push_back(summary_table_entry(j, false));
+					summary_table.push_back(summary_table_entry(j, false));
 				}
 
 				for(uint32_t j = 0; j < PPM_SC_MAX * 2; j++)
 				{
-					summary_table->push_back(summary_table_entry(j, true));
+					summary_table.push_back(summary_table_entry(j, true));
 				}
 
 				break;
@@ -1568,9 +1566,9 @@ exit:
 	}
 
 	//
-	// If there's a summary table, sort and print it
+	// If summary table is not empty, sort and print it
 	//
-	if(summary_table != NULL)
+	if(!summary_table.empty())
 	{
 		print_summary_table(inspector, summary_table, 100);
 	}

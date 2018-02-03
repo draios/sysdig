@@ -27,6 +27,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "filter_value.h"
 
+namespace path_prefix_map_ut
+{
+	typedef std::list<filter_value_t> filter_components_t;
+
+        // Split path /var/log/messages into a list of components (var, log, messages). Empty components are skipped.
+	void split_path(const filter_value_t &path, filter_components_t &components);
+};
+
 //
 // A data structure that allows testing a path P against a set of
 // search paths S. The search succeeds if any of the search paths Si
@@ -57,9 +65,7 @@ public:
 	// Similar to add_search_path, but takes a path already split
 	// into a list of components. This allows for custom splitting
 	// of paths other than on '/' boundaries.
-	typedef std::list<filter_value_t> filter_components_t;
-
-	void add_search_path_components(const filter_components_t &components, Value &v);
+	void add_search_path_components(const path_prefix_map_ut::filter_components_t &components, Value &v);
 
 	// If non-NULL, Value is not allocated. It points to memory
 	// held within this path_prefix_map() and is only valid as
@@ -67,7 +73,7 @@ public:
 	Value * match(const char *path);
 	Value * match(const filter_value_t &path);
 
-	Value *match_components(const filter_components_t &components);
+	Value *match_components(const path_prefix_map_ut::filter_components_t &components);
 
 	std::string as_string(bool include_vals);
 
@@ -75,11 +81,9 @@ private:
 
 	std::string as_string(const std::string &prefix, bool include_vals);
 
-	void add_search_path_components(const filter_components_t &components, filter_components_t::const_iterator comp, Value &v);
+	void add_search_path_components(const path_prefix_map_ut::filter_components_t &components, path_prefix_map_ut::filter_components_t::const_iterator comp, Value &v);
 
-	Value *match_components(const filter_components_t &components, filter_components_t::const_iterator comp);
-
-	static void split_path(const filter_value_t &path, filter_components_t &components);
+	Value *match_components(const path_prefix_map_ut::filter_components_t &components, path_prefix_map_ut::filter_components_t::const_iterator comp);
 
 	// Maps from the path component at the current level to a
 	// prefix search for the sub-path below the current level.
@@ -114,34 +118,6 @@ path_prefix_map<Value>::~path_prefix_map()
 	}
 }
 
-// Split path /var/log/messages into a list of components (var, log, messages). Empty components are skipped.
-template<class Value>
-void path_prefix_map<Value>::split_path(const filter_value_t &path, filter_components_t &components)
-{
-	components.clear();
-
-	uint8_t *pos = path.first;
-
-	while (pos < path.first + path.second)
-	{
-		uint8_t *sep = (uint8_t *) memchr((char *) pos, '/', path.second - (pos - path.first));
-
-		if (sep)
-		{
-			if (sep-pos > 0)
-			{
-				components.emplace_back(pos, sep-pos);
-			}
-			pos = sep + 1;
-		}
-		else
-		{
-			components.emplace_back(pos, path.second - (pos - path.first));
-			pos = path.first + path.second + 1;
-		}
-	}
-}
-
 // NOTE: this does not copy, so it is only valid as long as path is valid.
 template<class Value>
 void path_prefix_map<Value>::add_search_path(const char *path, Value &v)
@@ -153,9 +129,9 @@ void path_prefix_map<Value>::add_search_path(const char *path, Value &v)
 template<class Value>
 void path_prefix_map<Value>::add_search_path(const filter_value_t &path, Value &v)
 {
-	filter_components_t components;
+	path_prefix_map_ut::filter_components_t components;
 
-	split_path(path, components);
+	path_prefix_map_ut::split_path(path, components);
 
 	// Add an initial "root" to the set of components. That
 	// ensures that a top-level path of '/' still results in a
@@ -167,14 +143,14 @@ void path_prefix_map<Value>::add_search_path(const filter_value_t &path, Value &
 }
 
 template<class Value>
-void path_prefix_map<Value>::add_search_path_components(const filter_components_t &components, Value &v)
+void path_prefix_map<Value>::add_search_path_components(const path_prefix_map_ut::filter_components_t &components, Value &v)
 {
 	add_search_path_components(components, components.begin(), v);
 }
 
 template<class Value>
-void path_prefix_map<Value>::add_search_path_components(const filter_components_t &components,
-							filter_components_t::const_iterator comp,
+void path_prefix_map<Value>::add_search_path_components(const path_prefix_map_ut::filter_components_t &components,
+							path_prefix_map_ut::filter_components_t::const_iterator comp,
 							Value &v)
 {
 	path_prefix_map *subtree = NULL;
@@ -237,9 +213,9 @@ Value *path_prefix_map<Value>::match(const char *path)
 template<class Value>
 Value *path_prefix_map<Value>::match(const filter_value_t &path)
 {
-	filter_components_t components;
+	path_prefix_map_ut::filter_components_t components;
 
-	split_path(path, components);
+	path_prefix_map_ut::split_path(path, components);
 
 	// Add an initial "root" to the set of components. That
 	// ensures that a top-level path of '/' still results in a
@@ -251,13 +227,13 @@ Value *path_prefix_map<Value>::match(const filter_value_t &path)
 }
 
 template<class Value>
-Value *path_prefix_map<Value>::match_components(const filter_components_t &components)
+Value *path_prefix_map<Value>::match_components(const path_prefix_map_ut::filter_components_t &components)
 {
 	return match_components(components, components.begin());
 }
 
 template<class Value>
-Value *path_prefix_map<Value>::match_components(const filter_components_t &components, filter_components_t::const_iterator comp)
+Value *path_prefix_map<Value>::match_components(const path_prefix_map_ut::filter_components_t &components, path_prefix_map_ut::filter_components_t::const_iterator comp)
 {
 	auto it = m_dirs.find(*comp);
 	comp++;

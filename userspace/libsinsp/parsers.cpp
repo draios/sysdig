@@ -493,6 +493,14 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 			evt->m_filtered_out = true;
 		}
 	}
+
+	// Check to see if the name changed as a side-effect of
+	// parsing this event. Try to avoid the overhead of a string
+	// compare for every event.
+	if(evt->m_fdinfo)
+	{
+		evt->set_fdinfo_name_changed(evt->m_fdinfo->m_name != evt->m_fdinfo->m_oldname);
+	}
 }
 
 void sinsp_parser::event_cleanup(sinsp_evt *evt)
@@ -1643,34 +1651,34 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 
 	switch(etype)
 	{
-		case PPME_SYSCALL_EXECVE_8_X:
-		case PPME_SYSCALL_EXECVE_13_X:
-		case PPME_SYSCALL_EXECVE_14_X:
-		case PPME_SYSCALL_EXECVE_15_X:
-		case PPME_SYSCALL_EXECVE_16_X:
-		case PPME_SYSCALL_EXECVE_17_X:
-			break;
-		case PPME_SYSCALL_EXECVE_18_X:
-			// Get exepath
-			if (retrieve_enter_event(enter_evt, evt))
+	case PPME_SYSCALL_EXECVE_8_X:
+	case PPME_SYSCALL_EXECVE_13_X:
+	case PPME_SYSCALL_EXECVE_14_X:
+	case PPME_SYSCALL_EXECVE_15_X:
+	case PPME_SYSCALL_EXECVE_16_X:
+	case PPME_SYSCALL_EXECVE_17_X:
+		break;
+	case PPME_SYSCALL_EXECVE_18_X:
+		// Get exepath
+		if (retrieve_enter_event(enter_evt, evt))
+		{
+			char fullpath[SCAP_MAX_PATH_SIZE];
+			parinfo = enter_evt->get_param(0);
+			if (strncmp(parinfo->m_val, "<NA>", 4) == 0)
 			{
-				char fullpath[SCAP_MAX_PATH_SIZE];
-				parinfo = enter_evt->get_param(0);
-				if (strncmp(parinfo->m_val, "<NA>", 4) == 0)
-				{
-					evt->m_tinfo->m_exepath = "<NA>";
-				}
-				else
-				{
-					sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
-												   evt->m_tinfo->m_cwd.c_str(), (uint32_t)evt->m_tinfo->m_cwd.size(),
-												   parinfo->m_val, (uint32_t)parinfo->m_len);
-					evt->m_tinfo->m_exepath = fullpath;
-				}
+				evt->m_tinfo->m_exepath = "<NA>";
 			}
-			break;
-		default:
-			ASSERT(false);
+			else
+			{
+				sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
+											   evt->m_tinfo->m_cwd.c_str(), (uint32_t)evt->m_tinfo->m_cwd.size(),
+											   parinfo->m_val, (uint32_t)parinfo->m_len);
+				evt->m_tinfo->m_exepath = fullpath;
+			}
+		}
+		break;
+	default:
+		ASSERT(false);
 	}
 	
 	//
@@ -2383,6 +2391,11 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 	evt->m_fdinfo->set_role_client();
 
 	//
+	// Mark this fd as a connected socket
+	//
+	evt->m_fdinfo->set_socket_connected();
+
+	//
 	// Call the protocol decoder callbacks associated to this event
 	//
 	vector<sinsp_protodecoder*>::iterator it;
@@ -2509,6 +2522,11 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 	// Mark this fd as a server
 	//
 	fdi.set_role_server();
+
+	//
+	// Mark this fd as a connected socket
+	//
+	fdi.set_socket_connected();
 
 	//
 	// Add the entry to the table
@@ -4058,7 +4076,9 @@ void sinsp_parser::parse_setresuid_exit(sinsp_evt *evt)
 
 		if(new_euid < std::numeric_limits<uint32_t>::max())
 		{
-			evt->get_thread_info()->m_uid = new_euid;
+			if (evt->get_thread_info()) {
+				evt->get_thread_info()->m_uid = new_euid;
+			}
 		}
 	}
 }
@@ -4084,7 +4104,9 @@ void sinsp_parser::parse_setresgid_exit(sinsp_evt *evt)
 
 		if(new_egid < std::numeric_limits<uint32_t>::max())
 		{
-			evt->get_thread_info()->m_gid = new_egid;
+			if (evt->get_thread_info()) {
+				evt->get_thread_info()->m_gid = new_egid;
+			}
 		}
 	}
 }
@@ -4107,7 +4129,9 @@ void sinsp_parser::parse_setuid_exit(sinsp_evt *evt)
 		parinfo = enter_evt->get_param(0);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		uint32_t new_euid = *(uint32_t *)parinfo->m_val;
-		evt->get_thread_info()->m_uid = new_euid;
+		if (evt->get_thread_info()) {
+			evt->get_thread_info()->m_uid = new_euid;
+		}
 	}
 }
 
@@ -4129,7 +4153,9 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt *evt)
 		parinfo = enter_evt->get_param(0);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		uint32_t new_egid = *(uint32_t *)parinfo->m_val;
-		evt->get_thread_info()->m_gid = new_egid;
+		if (evt->get_thread_info()) {
+			evt->get_thread_info()->m_gid = new_egid;
+		}
 	}
 }
 
@@ -4371,7 +4397,9 @@ void sinsp_parser::parse_setsid_exit(sinsp_evt *evt)
 
 	if(retval >= 0)
 	{
-		evt->get_thread_info()->m_sid = retval;
+		if (evt->get_thread_info()) {
+			evt->get_thread_info()->m_sid = retval;
+		}
 	}
 }
 
