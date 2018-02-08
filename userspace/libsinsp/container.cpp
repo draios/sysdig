@@ -210,15 +210,21 @@ bool sinsp_container_manager::set_mesos_task_id(sinsp_container_info* container,
 		if(mtid.empty())
 		{
 			mtid = get_env_mesos_task_id(tinfo);
-			if(!mtid.empty())
+
+			// Ensure that the mesos task id vaguely looks
+			// like a real id. We assume it must be at
+			// least 3 characters and contain a dot or underscore
+			if(!mtid.empty() && mtid.length()>=3 &&
+			   (mtid.find_first_of("._") != std::string::npos))
 			{
 				g_logger.log("Mesos native container: [" + container->m_id + "], Mesos task ID: " + mtid, sinsp_logger::SEV_DEBUG);
 				return true;
 			}
 			else
 			{
-				g_logger.log("Mesos task ID not found for Mesos container [" + container->m_id + "],"
-							 "thread [" + std::to_string(tinfo->m_tid) + ']', sinsp_logger::SEV_DEBUG);
+				g_logger.log("Mesos container [" + container->m_id + "],"
+					     "thread [" + std::to_string(tinfo->m_tid) +
+					     "], has likely malformed mesos task id [" + mtid + "], ignoring", sinsp_logger::SEV_DEBUG);
 			}
 		}
 	}
@@ -417,7 +423,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 			{
 				auto last_slash = cgroup.find_last_of("/");
 				rkt_appname = cgroup.substr(last_slash + 1, cgroup.size() - last_slash - SERVICE_SUFFIX.size() - 1);
-				
+
 				char image_manifest_path[SCAP_MAX_PATH_SIZE];
 				snprintf(image_manifest_path, sizeof(image_manifest_path), "%s/var/lib/rkt/pods/run/%s/appsinfo/%s/manifest", scap_get_host_root(), rkt_podid.c_str(), rkt_appname.c_str());
 
@@ -430,7 +436,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 				{
 					is_rkt_pod_id_valid = (access(image_manifest_path, F_OK) == 0);
 				}
-#endif			
+#endif
 				if(is_rkt_pod_id_valid)
 				{
 					container_info.m_type = CT_RKT;

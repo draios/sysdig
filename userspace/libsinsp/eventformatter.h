@@ -80,7 +80,10 @@ public:
 
 private:
 	void set_format(const string& fmt);
-	vector<sinsp_filter_check*> m_tokens;
+
+	// vector of (full string of the token, filtercheck) pairs
+	// e.g. ("proc.aname[2], ptr to sinsp_filter_check_thread)
+	vector<pair<string, sinsp_filter_check*>> m_tokens;
 	vector<uint32_t> m_tokenlens;
 	sinsp* m_inspector;
 	bool m_require_all_values;

@@ -528,7 +528,8 @@ public:
 	*/
 	void get_capture_stats(scap_stats* stats);
 
-
+	void set_max_thread_table_size(uint32_t value);
+	
 #ifdef GATHER_INTERNAL_STATS
 	sinsp_stats get_stats();
 #endif
@@ -907,8 +908,8 @@ private:
 
 	scap_mode_t m_mode;
 
-        // If non-zero, reading from this fd and m_input_filename contains "fd
-        // <m_input_fd>". Otherwise, reading from m_input_filename.
+	// If non-zero, reading from this fd and m_input_filename contains "fd
+	// <m_input_fd>". Otherwise, reading from m_input_filename.
 	int m_input_fd;
 	string m_input_filename;
 	bool m_isdebug_enabled;
