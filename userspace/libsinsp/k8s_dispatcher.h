@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "k8s_common.h"
 #include "k8s.h"
 #include "k8s_component.h"
 #include "k8s_state.h"
