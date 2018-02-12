@@ -7,7 +7,6 @@
 #pragma once
 
 #include "json/json.h"
-#include "k8s_common.h"
 #include "k8s_component.h"
 #include "k8s_state.h"
 #include "k8s_event_data.h"
