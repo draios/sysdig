@@ -1240,6 +1240,14 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		tinfo.m_fdtable = *(ptinfo->get_fd_table());
 
 		//
+		// Track down that those are cloned fds
+		//
+		for(auto fdit = tinfo.m_fdtable.m_table.begin(); fdit != tinfo.m_fdtable.m_table.end(); ++fdit)
+		{
+			fdit->second.set_is_cloned();
+		}
+
+		//
 		// It's important to reset the cache of the child thread, to prevent it from
 		// referring to an element in the parent's table.
 		//

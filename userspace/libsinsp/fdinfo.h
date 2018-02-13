@@ -291,6 +291,11 @@ public:
 		return (m_flags & FLAGS_SOCKET_CONNECTED) == FLAGS_SOCKET_CONNECTED;
 	}
 
+	inline bool is_cloned()
+	{
+		return (m_flags & FLAGS_IS_CLONED) == FLAGS_IS_CLONED;
+	}
+
 	scap_fd_type m_type; ///< The fd type, e.g. file, directory, IPv4 socket...
 	uint32_t m_openflags; ///< If this FD is a file, the flags that were used when opening it. See the PPM_O_* definitions in driver/ppm_events_public.h.
 	
@@ -335,6 +340,7 @@ private:
 		FLAGS_IN_BASELINE_RW = (1 << 11),
 		FLAGS_IN_BASELINE_OTHER = (1 << 12),
 		FLAGS_SOCKET_CONNECTED = (1 << 13),
+		FLAGS_IS_CLONED = (1 << 14),
 	};
 
 	void add_filename(const char* fullpath);
@@ -419,6 +425,11 @@ private:
 	inline void set_socket_connected()
 	{
 		m_flags |= FLAGS_SOCKET_CONNECTED;
+	}
+
+	inline void set_is_cloned()
+	{
+		m_flags |= FLAGS_IS_CLONED;
 	}
 
 	T* m_usrstate;
