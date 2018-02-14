@@ -1104,13 +1104,8 @@ public:
 	friend class sinsp_filter_check_evtin;
 	friend class sinsp_baseliner;
 	friend class sinsp_memory_dumper;
-
 	friend class sinsp_network_interfaces;
-	friend class k8s_delegator;
 
-#ifdef HAS_ANALYZER
-	friend class thread_analyzer_info;
-#endif
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };
 
