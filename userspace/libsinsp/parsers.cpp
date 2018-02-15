@@ -1242,6 +1242,14 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		tinfo.m_fdtable = *(ptinfo->get_fd_table());
 
 		//
+		// Track down that those are cloned fds
+		//
+		for(auto fdit = tinfo.m_fdtable.m_table.begin(); fdit != tinfo.m_fdtable.m_table.end(); ++fdit)
+		{
+			fdit->second.set_is_cloned();
+		}
+
+		//
 		// It's important to reset the cache of the child thread, to prevent it from
 		// referring to an element in the parent's table.
 		//
@@ -2270,6 +2278,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 	const char *parstr;
 	int64_t retval;
+	bool changed;
 
 	if(evt->m_fdinfo == NULL)
 	{
@@ -2341,24 +2350,40 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 		//
 		ASSERT(evt->m_fdinfo->m_type == SCAP_FD_IPV4_SOCK || evt->m_fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK);
 
-#ifndef HAS_ANALYZER
 		//
 		// Update the FD info with this tuple
 		//
 		if(family == PPM_AF_INET)
 		{
-			m_inspector->m_parser->set_ipv4_addresses_and_ports(evt->m_fdinfo, packed_data);
+			changed = m_inspector->m_parser->set_ipv4_addresses_and_ports(evt->m_fdinfo, packed_data);
 		}
 		else
 		{
-			m_inspector->m_parser->set_ipv4_mapped_ipv6_addresses_and_ports(evt->m_fdinfo, packed_data);
+			changed = m_inspector->m_parser->set_ipv4_mapped_ipv6_addresses_and_ports(evt->m_fdinfo, packed_data);
 		}
-#endif
+
+		if(changed && evt->m_fdinfo->is_role_server() && evt->m_fdinfo->is_udp_socket())
+		{
+			// connect done by a udp server, swap the addresses
+			swap_ipv4_addresses(evt->m_fdinfo);
+		}
 
 		//
 		// Add the friendly name to the fd info
 		//
-		evt->m_fdinfo->m_name = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
+		if(evt->m_fdinfo->is_role_server() && evt->m_fdinfo->is_udp_socket())
+		{
+			sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo,
+						     evt->m_fdinfo->m_type, &evt->m_paramstr_storage[0],
+						     (uint32_t)evt->m_paramstr_storage.size(),
+						     m_inspector->m_hostname_and_port_resolution_enabled);
+
+			evt->m_fdinfo->m_name = &evt->m_paramstr_storage[0];
+		}
+		else
+		{
+			evt->m_fdinfo->m_name = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
+		}
 	}
 	else
 	{
@@ -2385,10 +2410,13 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 #endif
 	}
 
-	//
-	// Mark this fd as a client
-	//
-	evt->m_fdinfo->set_role_client();
+	if(evt->m_fdinfo->is_role_none())
+	{
+		//
+		// Mark this fd as a client
+		//
+		evt->m_fdinfo->set_role_client();
+	}
 
 	//
 	// Mark this fd as a connected socket
