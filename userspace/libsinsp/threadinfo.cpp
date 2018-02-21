@@ -1440,7 +1440,10 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			sizeof(uint64_t) +	// pid
 			sizeof(uint64_t) +	// ptid
 			sizeof(uint64_t) +	// sid
+// Removing until this writes block version PL_BLOCK_TYPE_V8
+#if 0
 			sizeof(uint64_t) +  // pgid
+#endif
 			2 + MIN(tinfo.m_comm.size(), SCAP_MAX_PATH_SIZE) +
 			2 + MIN(tinfo.m_exe.size(), SCAP_MAX_PATH_SIZE) +
 			2 + MIN(tinfo.m_exepath.size(), SCAP_MAX_PATH_SIZE) +
