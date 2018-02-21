@@ -303,8 +303,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_DROP_X] = {f_sched_drop},
 	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
-	[PPME_SYSCALL_EXECVE_19_E] = {f_sys_execve_e},
-	[PPME_SYSCALL_EXECVE_19_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_EXECVE_18_E] = {f_sys_execve_e},
+	[PPME_SYSCALL_EXECVE_18_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_CLONE_20_E] = {f_sys_empty},
 	[PPME_SYSCALL_CLONE_20_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
@@ -1221,7 +1221,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		return res;
 
 	if (unlikely(retval < 0 &&
-		     args->event_type != PPME_SYSCALL_EXECVE_19_X)) {
+		     args->event_type != PPME_SYSCALL_EXECVE_18_X)) {
 
 		/* The call failed, but this syscall has no exe, args
 		 * anyway, so I report empty ones */
@@ -1502,7 +1502,7 @@ cgroups_error:
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
-	} else if (args->event_type == PPME_SYSCALL_EXECVE_19_X) {
+	} else if (args->event_type == PPME_SYSCALL_EXECVE_18_X) {
 		/*
 		 * execve-only parameters
 		 */
@@ -1560,6 +1560,8 @@ cgroups_error:
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
+// We'll add this back once the driver starts emitting EXECVE_19 events.
+#if 0
 		/*
 		 * pgid
 		 */
@@ -1570,6 +1572,7 @@ cgroups_error:
 #endif
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
+#endif
 	}
 
 	return add_sentinel(args);
