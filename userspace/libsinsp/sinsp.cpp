@@ -1646,7 +1646,8 @@ void sinsp::get_capture_stats(scap_stats* stats)
 
 void sinsp::set_max_thread_table_size(uint32_t value)
 {
-	m_max_thread_table_size = std::min(value, uint32_t(MAX_THREAD_TABLE_SIZE));
+	uint32_t max_size = uint32_t(MAX_THREAD_TABLE_SIZE);
+	m_max_thread_table_size = (value < max_size ? value : max_size);
 }
 
 #ifdef GATHER_INTERNAL_STATS
