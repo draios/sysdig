@@ -766,7 +766,7 @@ public:
 	void stop_dropping_mode();
 	void start_dropping_mode(uint32_t sampling_ratio);
 	void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_threadinfo* tinfo,
-		scap_fdinfo* fdinfo, scap_t* newhandle);
+		scap_fdinfo* fdinfo);
 	void set_get_procs_cpu_from_driver(bool get_procs_cpu_from_driver)
 	{
 		m_get_procs_cpu_from_driver = get_procs_cpu_from_driver;

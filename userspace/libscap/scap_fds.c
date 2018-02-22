@@ -603,7 +603,7 @@ int32_t scap_add_fd_to_proc_table(scap_t *handle, scap_threadinfo *tinfo, scap_f
 	}
 	else
 	{
-		handle->m_proc_callback(handle->m_proc_callback_context, handle, tinfo->tid, tinfo, fdi, handle);
+		handle->m_proc_callback(handle->m_proc_callback_context, handle, tinfo->tid, tinfo, fdi);
 	}
 
 	return SCAP_SUCCESS;

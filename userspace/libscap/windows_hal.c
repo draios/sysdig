@@ -72,7 +72,7 @@ int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, struct scap_threadi
 	}
 	else
 	{
-		handle->m_proc_callback(handle->m_proc_callback_context, handle, tinfo->tid, tinfo, NULL, handle);
+		handle->m_proc_callback(handle->m_proc_callback_context, handle, tinfo->tid, tinfo, NULL);
 		free(tinfo);
 	}
 

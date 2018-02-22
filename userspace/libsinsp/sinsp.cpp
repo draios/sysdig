@@ -51,7 +51,7 @@ extern vector<chiseldir_info>* g_chisel_dirs;
 #endif
 
 void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_threadinfo* tinfo,
-							scap_fdinfo* fdinfo, scap_t* newhandle);
+							scap_fdinfo* fdinfo);
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp implementation
@@ -754,8 +754,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 								   scap_t* handle,
 								   int64_t tid,
 								   scap_threadinfo* tinfo,
-								   scap_fdinfo* fdinfo,
-								   scap_t* newhandle)
+								   scap_fdinfo* fdinfo)
 {
 	ASSERT(tinfo != NULL);
 
@@ -765,7 +764,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 	// Retrieve machine information if we don't have it yet
 	//
 	{
-		m_machine_info = scap_get_machine_info(newhandle);
+		m_machine_info = scap_get_machine_info(handle);
 		if(m_machine_info != NULL)
 		{
 			m_num_cpus = m_machine_info->num_cpus;
@@ -825,11 +824,10 @@ void on_new_entry_from_proc(void* context,
 							scap_t* handle,
 							int64_t tid,
 							scap_threadinfo* tinfo,
-							scap_fdinfo* fdinfo,
-							scap_t* newhandle)
+							scap_fdinfo* fdinfo)
 {
 	sinsp* _this = (sinsp*)context;
-	_this->on_new_entry_from_proc(context, handle, tid, tinfo, fdinfo, newhandle);
+	_this->on_new_entry_from_proc(context, handle, tid, tinfo, fdinfo);
 }
 
 void sinsp::import_thread_table()
