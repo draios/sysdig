@@ -445,6 +445,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_CPU_HOTPLUG_E:
 		parse_cpu_hotplug_enter(evt);
 		break;
+#ifndef CYGWING_AGENT
 	case PPME_K8S_E:
 		if(!m_inspector->is_live())
 		{
@@ -457,6 +458,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 			parse_mesos_evt(evt);
 		}
 		break;
+#endif
 	case PPME_SYSCALL_CHROOT_X:
 		parse_chroot_exit(evt);
 		break;
@@ -1868,6 +1870,7 @@ void schedule_more_evts(sinsp* inspector, void* data, T* client, ppm_event_type 
 #endif // HAS_CAPTURE
 }
 
+#ifndef CYGWING_AGENT
 void schedule_more_k8s_evts(sinsp* inspector, void* data)
 {
 	schedule_more_evts(inspector, data, inspector->get_k8s_client(), PPME_K8S_E);
@@ -1925,6 +1928,7 @@ void sinsp_parser::schedule_mesos_events()
 	}
 #endif // HAS_CAPTURE
 }
+#endif // CYGWING_AGENT
 
 void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 {
@@ -4342,6 +4346,7 @@ uint8_t* sinsp_parser::reserve_event_buffer()
 	}
 }
 
+#ifndef CYGWING_AGENT
 int sinsp_parser::get_k8s_version(const std::string& json)
 {
 	if(m_k8s_capture_version == k8s_state_t::CAPTURE_VERSION_NONE)
@@ -4417,6 +4422,7 @@ void sinsp_parser::parse_mesos_evt(sinsp_evt *evt)
 	ASSERT(m_inspector->m_mesos_client);
 	m_inspector->m_mesos_client->simulate_event(json);
 }
+#endif // CYGWING_AGENT
 
 void sinsp_parser::parse_chroot_exit(sinsp_evt *evt)
 {

@@ -1,6 +1,7 @@
 //
 // k8s_pod_handler.cpp
 //
+#ifndef CYGWING_AGENT
 
 #include "k8s_pod_handler.h"
 #include "sinsp.h"
@@ -267,3 +268,4 @@ bool k8s_pod_handler::handle_component(const Json::Value& json, const msg_data* 
 	}
 	return true;
 }
+#endif // CYGWING_AGENT

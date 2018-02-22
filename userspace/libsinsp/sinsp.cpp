@@ -36,7 +36,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "cyclewriter.h"
 #include "protodecoder.h"
 
+#ifndef CYGWING_AGENT
 #include "k8s_api_handler.h"
+#endif
 
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
@@ -48,8 +50,8 @@ extern sinsp_evttables g_infotables;
 extern vector<chiseldir_info>* g_chisel_dirs;
 #endif
 
-void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo,
-							scap_fdinfo* fdinfo, scap_t* newhandle);
+void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_threadinfo* tinfo,
+							scap_fdinfo* fdinfo);
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp implementation
@@ -142,6 +144,7 @@ sinsp::sinsp() :
 	m_meinfo.m_n_procinfo_evts = 0;
 	m_meta_event_callback = NULL;
 	m_meta_event_callback_data = NULL;
+#ifndef CYGWING_AGENT
 	m_k8s_client = NULL;
 	m_k8s_last_watch_time_ns = 0;
 
@@ -151,6 +154,7 @@ sinsp::sinsp() :
 
 	m_mesos_client = NULL;
 	m_mesos_last_watch_time_ns = 0;
+#endif
 
 	m_filter_proc_table_when_saving = false;
 }
@@ -193,11 +197,13 @@ sinsp::~sinsp()
 		delete[] m_meinfo.m_piscapevt;
 	}
 
+#ifndef CYGWING_AGENT
 	delete m_k8s_client;
 	delete m_k8s_api_server;
 	delete m_k8s_api_cert;
 
 	delete m_mesos_client;
+#endif
 }
 
 void sinsp::add_protodecoders()
@@ -217,7 +223,7 @@ void sinsp::filter_proc_table_when_saving(bool filter)
 
 void sinsp::enable_tracers_capture()
 {
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT)
 	if(!m_is_tracers_capture_enabled)
 	{
 		if(is_live() && m_h != NULL)
@@ -235,7 +241,7 @@ void sinsp::enable_tracers_capture()
 
 void sinsp::enable_page_faults()
 {
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT)
 	if(is_live() && m_h != NULL)
 	{
 		if(scap_enable_page_faults(m_h) != SCAP_SUCCESS)
@@ -427,6 +433,7 @@ void sinsp::open(uint32_t timeout_ms)
 	oargs.fname = NULL;
 	oargs.proc_callback = NULL;
 	oargs.proc_callback_context = NULL;
+
 	if(!m_filter_proc_table_when_saving)
 	{
 		oargs.proc_callback = ::on_new_entry_from_proc;
@@ -744,18 +751,20 @@ void sinsp::autodump_stop()
 }
 
 void sinsp::on_new_entry_from_proc(void* context,
+								   scap_t* handle,
 								   int64_t tid,
 								   scap_threadinfo* tinfo,
-								   scap_fdinfo* fdinfo,
-								   scap_t* newhandle)
+								   scap_fdinfo* fdinfo)
 {
 	ASSERT(tinfo != NULL);
 
+	m_h = handle;
+
 	//
 	// Retrieve machine information if we don't have it yet
-	//proc
+	//
 	{
-		m_machine_info = scap_get_machine_info(newhandle);
+		m_machine_info = scap_get_machine_info(handle);
 		if(m_machine_info != NULL)
 		{
 			m_num_cpus = m_machine_info->num_cpus;
@@ -812,13 +821,13 @@ void sinsp::on_new_entry_from_proc(void* context,
 }
 
 void on_new_entry_from_proc(void* context,
+							scap_t* handle,
 							int64_t tid,
 							scap_threadinfo* tinfo,
-							scap_fdinfo* fdinfo,
-							scap_t* newhandle)
+							scap_fdinfo* fdinfo)
 {
 	sinsp* _this = (sinsp*)context;
-	_this->on_new_entry_from_proc(context, tid, tinfo, fdinfo, newhandle);
+	_this->on_new_entry_from_proc(context, handle, tid, tinfo, fdinfo);
 }
 
 void sinsp::import_thread_table()
@@ -1857,6 +1866,7 @@ bool sinsp::remove_inactive_threads()
 	return m_thread_manager->remove_inactive_threads();
 }
 
+#ifndef CYGWING_AGENT
 void sinsp::init_mesos_client(string* api_server, bool verbose)
 {
 	m_verbose_json = verbose;
@@ -2221,6 +2231,7 @@ void sinsp::update_mesos_state()
 		}
 	}
 }
+#endif // CYGWING_AGENT
 
 ///////////////////////////////////////////////////////////////////////////////
 // Note: this is defined here so we can inline it in sinso::next

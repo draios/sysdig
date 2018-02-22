@@ -135,9 +135,11 @@ private:
 	inline uint32_t parse_tracer(sinsp_evt *evt, int64_t retval);
 	void parse_cpu_hotplug_enter(sinsp_evt* evt);
 	int get_k8s_version(const std::string& json);
+#ifndef CYGWING_AGENT
 	void parse_k8s_evt(sinsp_evt *evt);
-	void parse_chroot_exit(sinsp_evt *evt);
 	void parse_mesos_evt(sinsp_evt *evt);
+#endif
+	void parse_chroot_exit(sinsp_evt *evt);
 	void parse_setsid_exit(sinsp_evt *evt);
 	void parse_setpgid_exit(sinsp_evt *evt);
 

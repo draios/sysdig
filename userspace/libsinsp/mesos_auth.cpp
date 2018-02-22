@@ -19,6 +19,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 //
 // mesos_auth.cpp
 //
+#ifndef CYGWING_AGENT
 
 #include <time.h>
 
@@ -124,4 +125,5 @@ void mesos_auth::refresh_token()
 	}
 #endif // HAS_CAPTURE
 }
+#endif // CYGWING_AGENT
 

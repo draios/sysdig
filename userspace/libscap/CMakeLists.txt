@@ -1,7 +1,10 @@
 include_directories("${PROJECT_SOURCE_DIR}/common")
 include_directories("${ZLIB_INCLUDE}")
+if(CYGWIN)
+include_directories("${WIN_HAL_INCLUDE}")
+endif()
 
-add_library(scap STATIC
+list(APPEND targetfiles
 	scap.c
 	scap_event.c
 	scap_fds.c
@@ -14,6 +17,14 @@ add_library(scap STATIC
 	event_table.c
 	syscall_info_table.c)
 
+if(CYGWIN)
+	list(APPEND targetfiles
+		windows_hal.c)
+endif()
+
+add_library(scap STATIC 
+	${targetfiles})
+
 if(USE_BUNDLED_ZLIB)
 	add_dependencies(scap zlib)
 endif()
@@ -21,10 +32,14 @@ endif()
 if (CMAKE_SYSTEM_NAME MATCHES "SunOS")
 	target_link_libraries(scap
 		socket nsl)
-
 elseif (WIN32)
 	target_link_libraries(scap
 		Ws2_32.lib)
+elseif (CYGWIN)
+	target_link_libraries(scap
+		/lib/w32api/libpsapi.a
+		${WIN_HAL_LIB}/dragent_win_hal.lib
+		)
 endif()
 
 target_link_libraries(scap

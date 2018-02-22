@@ -1,6 +1,7 @@
 //
 // mesos_http.cpp
 //
+#ifndef CYGWING_AGENT
 
 #ifdef HAS_CAPTURE
 
@@ -850,3 +851,4 @@ Json::Value mesos_http::get_task_labels(const std::string& task_id)
 }
 
 #endif // HAS_CAPTURE
+#endif // CYGWING_AGENT

@@ -21,7 +21,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <limits.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#ifndef CYGWING_AGENT
 #include <execinfo.h>
+#endif
 #include <unistd.h>
 #include <sys/time.h>
 #include <netdb.h>
@@ -768,6 +770,7 @@ bool sinsp_utils::glob_match(const char *pattern, const char *string)
 #endif
 }
 
+#ifndef CYGWING_AGENT
 #ifndef _WIN32
 void sinsp_utils::bt(void)
 {
@@ -791,6 +794,7 @@ void sinsp_utils::bt(void)
 	free(bt_syms);
 }
 #endif // _WIN32
+#endif // CYGWING_AGENT
 
 bool sinsp_utils::find_first_env(std::string &out, const vector<std::string> &env, const vector<std::string> &keys)
 {

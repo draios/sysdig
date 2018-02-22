@@ -1,6 +1,7 @@
 //
 // k8s_replicationcontroller_handler.cpp
 //
+#ifndef CYGWING_AGENT
 
 #include "k8s_replicationcontroller_handler.h"
 #include "sinsp.h"
@@ -139,3 +140,4 @@ bool k8s_replicationcontroller_handler::handle_component(const Json::Value& json
 	}
 	return true;
 }
+#endif // CYGWING_AGENT
