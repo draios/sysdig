@@ -24,6 +24,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <functional>
 
+#include <cassert>
+
+#include "radix_tree.h"
+
 class sinsp_delays_info;
 class sinsp_threadtable_listener;
 class thread_analyzer_info;
@@ -367,7 +371,7 @@ VISIBILITY_PRIVATE
 
 /*@}*/
 
-typedef unordered_map<int64_t, sinsp_threadinfo> threadinfo_map_t;
+typedef radix_tree_32<unique_ptr<sinsp_threadinfo>> threadinfo_map_t;
 typedef threadinfo_map_t::iterator threadinfo_map_iterator_t;
 
 
@@ -431,19 +435,25 @@ public:
 		return &m_threadtable;
 	}
 
+	inline sinsp_threadinfo* get_thread(uint64_t tid)
+	{
+		if ((uint64_t)tid >= m_threadtable.max_size()) {
+			return NULL;
+		}
+		auto thread = m_threadtable[tid];
+		return thread;
+	}
+
 	set<uint16_t> m_server_ports;
 
 private:
-	void remove_thread(threadinfo_map_iterator_t it, bool force);
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
-	inline void clear_thread_pointers(threadinfo_map_iterator_t it);
+	inline void clear_thread_pointers(sinsp_threadinfo *threadinfo);
 	void free_dump_fdinfos(vector<scap_fdinfo*>* fdinfos_to_free);
 	void thread_to_scap(sinsp_threadinfo& tinfo, scap_threadinfo* sctinfo);
 
 	sinsp* m_inspector;
 	threadinfo_map_t m_threadtable;
-	int64_t m_last_tid;
-	sinsp_threadinfo* m_last_tinfo;
 	uint64_t m_last_flush_time_ns;
 	uint32_t m_n_drops;
 	uint32_t m_n_proc_lookups;

@@ -1440,11 +1440,10 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 		// properly set its reference count, by scanning the table
 		//
 		threadinfo_map_t* pttable = &m_thread_manager->m_threadtable;
-		threadinfo_map_iterator_t it;
 
-		for(it = pttable->begin(); it != pttable->end(); ++it)
+		for(auto it = pttable->begin(); it != pttable->end(); ++it)
 		{
-			if(it->second.m_pid == tid)
+			if((*it)->m_pid == tid)
 			{
 				newti.m_nchilds++;
 			}
@@ -2270,25 +2269,23 @@ bool sinsp_thread_manager::remove_inactive_threads()
 		//
 		// Go through the table and remove dead entries.
 		//
-		for(threadinfo_map_iterator_t it = m_threadtable.begin(); it != m_threadtable.end();)
+		for(auto it = m_threadtable.pairs_begin(); it != m_threadtable.pairs_end();)
 		{
-			bool closed = (it->second.m_flags & PPM_CL_CLOSED) != 0;
+			auto tid = (*it).first;
+			auto tinfo = (*it).second;
+			bool closed = (tinfo->m_flags & PPM_CL_CLOSED) != 0;
 
 			if(closed ||
-				((m_inspector->m_lastevent_ts > it->second.m_lastaccess_ts + m_inspector->m_thread_timeout_ns) &&
-					!scap_is_thread_alive(m_inspector->m_h, it->second.m_pid, it->first, it->second.m_comm.c_str()))
+				((m_inspector->m_lastevent_ts > tinfo->m_lastaccess_ts + m_inspector->m_thread_timeout_ns) &&
+					!scap_is_thread_alive(m_inspector->m_h, tinfo->m_pid, tid, tinfo->m_comm.c_str()))
 					)
 			{
-				//
-				// Reset the cache
-				//
-				m_last_tid = 0;
-				m_last_tinfo = NULL;
 
 #ifdef GATHER_INTERNAL_STATS
 				m_removed_threads->increment();
 #endif
-				remove_thread(it++, closed);
+				remove_thread(tid, closed);
+				++it;
 			}
 			else
 			{

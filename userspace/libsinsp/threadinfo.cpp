@@ -1113,8 +1113,6 @@ sinsp_thread_manager::sinsp_thread_manager(sinsp* inspector)
 void sinsp_thread_manager::clear()
 {
 	m_threadtable.clear();
-	m_last_tid = 0;
-	m_last_tinfo = NULL;
 	m_last_flush_time_ns = 0;
 	m_n_drops = 0;
 
@@ -1160,9 +1158,8 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo& threadinfo, bool from_sc
 	m_added_threads->increment();
 #endif
 
-	m_last_tinfo = NULL;
-
-	if (m_threadtable.size() >= m_inspector->m_max_thread_table_size
+	if (((uint64_t)threadinfo.m_tid >= m_threadtable.max_size() ||
+		m_threadtable.size() >= m_inspector->m_max_thread_table_size)
 #if defined(HAS_CAPTURE)
 		&& threadinfo.m_pid != m_inspector->m_sysdig_pid
 #endif
@@ -1179,26 +1176,26 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo& threadinfo, bool from_sc
 
 	threadinfo.compute_program_hash();
 
-	sinsp_threadinfo& newentry = (m_threadtable[threadinfo.m_tid] = threadinfo);
+	sinsp_threadinfo* newentry = new sinsp_threadinfo(threadinfo);
+	m_threadtable.insert(threadinfo.m_tid, newentry);
 
-	newentry.allocate_private_state();
+	newentry->allocate_private_state();
 
 	if(m_listener)
 	{
-		m_listener->on_thread_created(&newentry);
+		m_listener->on_thread_created(newentry);
 	}
 }
 
 void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 {
-	remove_thread(m_threadtable.find(tid), force);
-}
-
-void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool force)
-{
 	uint64_t nchilds;
 
-	if(it == m_threadtable.end())
+	if ((uint64_t)tid >= m_threadtable.size()) return;
+
+	sinsp_threadinfo *tinfo = m_threadtable[tid];
+
+	if(!tinfo)
 	{
 		//
 		// Looks like there's no thread to remove.
@@ -1211,16 +1208,16 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 #endif
 		return;
 	}
-	else if((nchilds = it->second.m_nchilds) == 0 || force)
+	else if((nchilds = tinfo->m_nchilds) == 0 || force)
 	{
 		//
 		// Decrement the refcount of the main thread/program because
 		// this reference is gone
 		//
-		if(it->second.m_flags & PPM_CL_CLONE_THREAD)
+		if(tinfo->m_flags & PPM_CL_CLONE_THREAD)
 		{
-			ASSERT(it->second.m_pid != it->second.m_tid);
-			sinsp_threadinfo* main_thread = m_inspector->get_thread(it->second.m_pid, false, true);
+			ASSERT(tinfo->m_pid != tinfo->m_tid);
+			sinsp_threadinfo* main_thread = m_inspector->get_thread(tinfo->m_pid, false, true);
 			if(main_thread)
 			{
 				if(main_thread->m_nchilds > 0)
@@ -1241,15 +1238,15 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 		//
 		// If this is the main thread of a process, erase all the FDs that the process owns
 		//
-		if(it->second.m_pid == it->second.m_tid)
+		if(tinfo->m_pid == tinfo->m_tid)
 		{
-			unordered_map<int64_t, sinsp_fdinfo_t>* fdtable = &(it->second.get_fd_table()->m_table);
+			unordered_map<int64_t, sinsp_fdinfo_t>* fdtable = &(tinfo->get_fd_table()->m_table);
 			unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 
 			erase_fd_params eparams;
 			eparams.m_remove_from_table = false;
 			eparams.m_inspector = m_inspector;
-			eparams.m_tinfo = &(it->second);
+			eparams.m_tinfo = tinfo;
 			eparams.m_ts = m_inspector->m_lastevent_ts;
 
 			for(fdit = fdtable->begin(); fdit != fdtable->end(); ++fdit)
@@ -1267,17 +1264,11 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 			}
 		}
 
-		//
-		// Reset the cache
-		//
-		m_last_tid = 0;
-		m_last_tinfo = NULL;
-
 #ifdef GATHER_INTERNAL_STATS
 		m_removed_threads->increment();
 #endif
 
-		m_threadtable.erase(it);
+		m_threadtable.erase(tid);
 
 		//
 		// If the thread has a nonzero refcount, it means that we are forcing the removal
@@ -1294,19 +1285,17 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 
 void sinsp_thread_manager::fix_sockets_coming_from_proc()
 {
-	threadinfo_map_iterator_t it;
-
-	for(it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
+	for(auto it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
 	{
-		it->second.fix_sockets_coming_from_proc();
+		it->fix_sockets_coming_from_proc();
 	}
 }
 
-void sinsp_thread_manager::clear_thread_pointers(threadinfo_map_iterator_t it)
+void sinsp_thread_manager::clear_thread_pointers(sinsp_threadinfo *threadinfo)
 {
-	it->second.m_main_thread = NULL;
+	threadinfo->m_main_thread = NULL;
 
-	sinsp_fdtable* fdt = it->second.get_fd_table();
+	sinsp_fdtable* fdt = threadinfo->get_fd_table();
 	if(fdt != NULL)
 	{
 		fdt->reset_cache();
@@ -1325,25 +1314,18 @@ void sinsp_thread_manager::clear_thread_pointers(threadinfo_map_iterator_t it)
 
 void sinsp_thread_manager::reset_child_dependencies()
 {
-	threadinfo_map_iterator_t it;
-
-	m_last_tinfo = NULL;
-	m_last_tid = 0;
-
-	for(it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
+	for(auto it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
 	{
-		it->second.m_nchilds = 0;
-		clear_thread_pointers(it);
+		(*it)->m_nchilds = 0;
+		clear_thread_pointers(*it);
 	}
 }
 
 void sinsp_thread_manager::create_child_dependencies()
 {
-	threadinfo_map_iterator_t it;
-
-	for(it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
+	for(auto it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
 	{
-		increment_mainthread_childcount(&it->second);
+		increment_mainthread_childcount(*it);
 	}
 }
 
@@ -1361,7 +1343,7 @@ void sinsp_thread_manager::update_statistics()
 	m_inspector->m_stats.m_n_fds = 0;
 	for(threadinfo_map_iterator_t it = m_threadtable.begin(); it != m_threadtable.end(); it++)
 	{
-		m_inspector->m_stats.m_n_fds += it->second.get_fd_table()->size();
+		m_inspector->m_stats.m_n_fds += (*it)->get_fd_table()->size();
 	}
 #endif
 }
@@ -1427,7 +1409,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 		}
 
-		sinsp_threadinfo& tinfo = it->second;
+		sinsp_threadinfo& tinfo = **it;
 
 		tinfo.args_to_scap(sctinfo);
 		tinfo.env_to_scap(sctinfo);
@@ -1482,7 +1464,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		{
 			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 		}
-		sinsp_threadinfo& tinfo = it->second;
+		sinsp_threadinfo& tinfo = **it;
 
 		thread_to_scap(tinfo, sctinfo);
 
@@ -1512,7 +1494,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 		}
 
-		sinsp_threadinfo& tinfo = it->second;
+		sinsp_threadinfo& tinfo = **it;
 
 		thread_to_scap(tinfo, sctinfo);
 

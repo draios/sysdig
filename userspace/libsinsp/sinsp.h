@@ -840,37 +840,18 @@ private:
 	//
 	inline sinsp_threadinfo* find_thread(int64_t tid, bool lookup_only)
 	{
-		threadinfo_map_iterator_t it;
+		sinsp_threadinfo* tinfo = m_thread_manager->get_thread(tid);
 
-		//
-		// Try looking up in our simple cache
-		//
-		if(m_thread_manager->m_last_tinfo && tid == m_thread_manager->m_last_tid)
-		{
-	#ifdef GATHER_INTERNAL_STATS
-			m_thread_manager->m_cached_lookups->increment();
-	#endif
-			m_thread_manager->m_last_tinfo->m_lastaccess_ts = m_lastevent_ts;
-			return m_thread_manager->m_last_tinfo;
-		}
-
-		//
-		// Caching failed, do a real lookup
-		//
-		it = m_thread_manager->m_threadtable.find(tid);
-
-		if(it != m_thread_manager->m_threadtable.end())
+		if(tinfo)
 		{
 	#ifdef GATHER_INTERNAL_STATS
 			m_thread_manager->m_non_cached_lookups->increment();
 	#endif
 			if(!lookup_only)
 			{
-				m_thread_manager->m_last_tid = tid;
-				m_thread_manager->m_last_tinfo = &(it->second);
-				m_thread_manager->m_last_tinfo->m_lastaccess_ts = m_lastevent_ts;
+				tinfo->m_lastaccess_ts = m_lastevent_ts;
 			}
-			return &(it->second);
+			return tinfo;
 		}
 		else
 		{
