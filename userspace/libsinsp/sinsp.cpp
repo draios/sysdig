@@ -1432,21 +1432,6 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 			newti.m_exe = "<NA>";
 			newti.m_uid = 0xffffffff;
 			newti.m_gid = 0xffffffff;
-			newti.m_nchilds = 0;
-		}
-
-		//
-		// Since this thread is created out of thin air, we need to
-		// properly set its reference count, by scanning the table
-		//
-		threadinfo_map_t* pttable = &m_thread_manager->m_threadtable;
-
-		for(auto it = pttable->begin(); it != pttable->end(); ++it)
-		{
-			if((*it)->m_pid == tid)
-			{
-				newti.m_nchilds++;
-			}
 		}
 
 		//

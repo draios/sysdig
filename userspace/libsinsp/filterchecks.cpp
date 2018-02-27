@@ -1774,21 +1774,11 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		m_tstr = tinfo->get_cwd();
 		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_NTHREADS:
-		{
-			sinsp_threadinfo* ptinfo = tinfo->get_main_thread();
-			if(ptinfo)
-			{
-				m_u64val = ptinfo->m_nchilds + 1;
-				RETURN_EXTRACT_VAR(m_u64val);
-			}
-			else
-			{
-				ASSERT(false);
-				return NULL;
-			}
-		}
+		m_u64val = m_inspector->m_thread_manager->ref_count(tinfo->m_pid) + 1;
+		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_NCHILDS:
-		RETURN_EXTRACT_VAR(tinfo->m_nchilds);
+		m_u64val = m_inspector->m_thread_manager->ref_count(evt->get_tid());
+		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_ISMAINTHREAD:
 		m_tbool = (uint32_t)tinfo->is_main_thread();
 		RETURN_EXTRACT_VAR(m_tbool);

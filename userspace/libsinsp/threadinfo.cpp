@@ -68,7 +68,6 @@ void sinsp_threadinfo::init()
 	m_clone_ts = 0;
 	m_lastevent_category.m_category = EC_UNKNOWN;
 	m_flags = PPM_CL_NAME_CHANGED;
-	m_nchilds = 0;
 	m_fdlimit = -1;
 	m_vmsize_kb = 0;
 	m_vmrss_kb = 0;
@@ -396,7 +395,6 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_vmswap_kb = pi->vmswap_kb;
 	m_pfmajor = pi->pfmajor;
 	m_pfminor = pi->pfminor;
-	m_nchilds = 0;
 	m_vtid = pi->vtid;
 	m_vpid = pi->vpid;
 	m_clone_ts = pi->clone_ts;
@@ -1139,16 +1137,7 @@ void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* thr
 		// be deleted (if it calls pthread_exit()) until we are done
 		//
 		ASSERT(threadinfo->m_pid != threadinfo->m_tid);
-
-		sinsp_threadinfo* main_thread = m_inspector->get_thread(threadinfo->m_pid, true, true);
-		if(main_thread)
-		{
-			++main_thread->m_nchilds;
-		}
-		else
-		{
-			ASSERT(false);
-		}
+		m_inspector->m_thread_manager->ref_inc(threadinfo->m_pid);
 	}
 }
 
@@ -1208,7 +1197,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 #endif
 		return;
 	}
-	else if((nchilds = tinfo->m_nchilds) == 0 || force)
+	else if((nchilds = ref_count(tid)) == 0 || force)
 	{
 		//
 		// Decrement the refcount of the main thread/program because
@@ -1217,22 +1206,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 		if(tinfo->m_flags & PPM_CL_CLONE_THREAD)
 		{
 			ASSERT(tinfo->m_pid != tinfo->m_tid);
-			sinsp_threadinfo* main_thread = m_inspector->get_thread(tinfo->m_pid, false, true);
-			if(main_thread)
-			{
-				if(main_thread->m_nchilds > 0)
-				{
-					--main_thread->m_nchilds;
-				}
-				else
-				{
-					ASSERT(false);
-				}
-			}
-			else
-			{
-				ASSERT(false);
-			}
+			m_inspector->m_thread_manager->ref_dec(tinfo->m_pid);
 		}
 
 		//
@@ -1314,9 +1288,9 @@ void sinsp_thread_manager::clear_thread_pointers(threadinfo_map_iterator_t it)
 
 void sinsp_thread_manager::reset_child_dependencies()
 {
+	m_nchildren.clear();
 	for(auto it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
 	{
-		(*it)->m_nchilds = 0;
 		clear_thread_pointers(*it);
 	}
 }

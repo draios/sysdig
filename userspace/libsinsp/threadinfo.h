@@ -242,7 +242,6 @@ public:
 	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open
 	uint32_t m_uid; ///< user id
 	uint32_t m_gid; ///< group id
-	uint64_t m_nchilds; ///< When this is 0 the process can be deleted
 	uint32_t m_vmsize_kb; ///< total virtual memory (as kb).
 	uint32_t m_vmrss_kb; ///< resident non-swapped memory (as kb).
 	uint32_t m_vmswap_kb; ///< swapped memory (as kb).
@@ -371,7 +370,7 @@ VISIBILITY_PRIVATE
 
 /*@}*/
 
-typedef radix_tree_32<unique_ptr<sinsp_threadinfo>> threadinfo_map_t;
+typedef radix_tree_32<sinsp_threadinfo*> threadinfo_map_t;
 typedef threadinfo_map_t::iterator threadinfo_map_iterator_t;
 
 
@@ -444,6 +443,28 @@ public:
 		return thread;
 	}
 
+	inline void ref_inc(uint64_t tid)
+	{
+		m_nchildren.ref(tid)++;
+	}
+
+	inline bool ref_dec(uint64_t tid)
+	{
+		auto& refcount = m_nchildren.ref(tid);
+		if (refcount > 0)
+		{
+			refcount--;
+		} else {
+			assert(false);
+		}
+		return refcount > 0;
+	}
+
+	inline uint64_t ref_count(uint64_t tid)
+	{
+		return m_nchildren[tid];
+	}
+
 	set<uint16_t> m_server_ports;
 
 private:
@@ -454,6 +475,7 @@ private:
 
 	sinsp* m_inspector;
 	threadinfo_map_t m_threadtable;
+	radix_tree_32<uint64_t> m_nchildren;
 	uint64_t m_last_flush_time_ns;
 	uint32_t m_n_drops;
 	uint32_t m_n_proc_lookups;
