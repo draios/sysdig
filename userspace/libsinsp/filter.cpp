@@ -345,7 +345,7 @@ bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2)
 		return ((operand1 & operand2->m_netmask) == (operand2->m_ip & operand2->m_netmask));
 	}
 	case CO_NE:
-		return ((operand1 & operand2->m_netmask) != (operand2->m_ip && operand2->m_netmask));
+		return ((operand1 & operand2->m_netmask) != (operand2->m_ip & operand2->m_netmask));
 	case CO_CONTAINS:
 		throw sinsp_exception("'contains' not supported for numeric filters");
 		return false;
