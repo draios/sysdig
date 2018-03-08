@@ -2282,24 +2282,40 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 	//
 	if(family == PPM_AF_INET)
 	{
+		uint32_t ip = *(uint32_t *)(packed_data + 1);
 		uint16_t port = *(uint16_t *)(packed_data + 5);
 		if(port > 0)
 		{
 			evt->m_fdinfo->m_type = SCAP_FD_IPV4_SERVSOCK;
+			evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip = ip;
 			evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port = port;
 			evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_l4proto =
 					evt->m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_l4proto;
+			evt->m_fdinfo->set_role_server();
 		}
 	}
 	else if (family == PPM_AF_INET6)
 	{
+		uint8_t* ip = packed_data + 1;
 		uint16_t port = *(uint16_t *)(packed_data + 17);
 		if(port > 0)
 		{
-			evt->m_fdinfo->m_type = SCAP_FD_IPV6_SERVSOCK;
-			evt->m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port = port;
-			evt->m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_l4proto =
+			if(sinsp_utils::is_ipv4_mapped_ipv6(ip))
+			{
+				evt->m_fdinfo->m_type = SCAP_FD_IPV4_SERVSOCK;
+				evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_l4proto =
 					evt->m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_l4proto;
+				evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip = *(uint32_t *)(packed_data + 13);
+				evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port = port;
+			}
+			else
+			{
+				evt->m_fdinfo->m_type = SCAP_FD_IPV6_SERVSOCK;
+				evt->m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port = port;
+				evt->m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_l4proto =
+					evt->m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_l4proto;
+			}
+			evt->m_fdinfo->set_role_server();
 		}
 	}
 	//
