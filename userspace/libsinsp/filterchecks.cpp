@@ -319,34 +319,6 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 		}
 	}
 	case TYPE_DIRECTORY:
-	{
-		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
-		{
-			if(sanitize_strings)
-			{
-				sanitize_string(m_tstr);
-			}
-
-			size_t pos = m_tstr.rfind('/');
-			if(pos != string::npos)
-			{
-				if(pos < m_tstr.size() - 1)
-				{
-					m_tstr.resize(pos);
-				}
-			}
-			else
-			{
-				m_tstr = "/";
-			}
-
-			RETURN_EXTRACT_STRING(m_tstr);
-		}
-		else
-		{
-			return NULL;
-		}
-	}
 	case TYPE_CONTAINERDIRECTORY:
 	{
 		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
@@ -357,7 +329,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			}
 
 			size_t pos = m_tstr.rfind('/');
-			if(pos != string::npos)
+			if(pos != string::npos && pos != 0)
 			{
 				if(pos < m_tstr.size() - 1)
 				{
@@ -369,7 +341,11 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 				m_tstr = "/";
 			}
 
-			m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
+			if(m_field_id == TYPE_CONTAINERDIRECTORY)
+			{
+				m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
+			}
+
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		else
@@ -551,7 +527,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			if(m_fdinfo->is_file())
 			{
 				size_t pos = m_tstr.rfind('/');
-				if(pos != string::npos)
+				if(pos != string::npos && pos != 0)
 				{
 					if(pos < m_tstr.size() - 1)
 					{
