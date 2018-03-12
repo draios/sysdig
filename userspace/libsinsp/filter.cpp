@@ -1083,14 +1083,14 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 	filter_value_t item(filter_value_p(i), parsed_len);
 	m_val_storages_members.insert(item);
 
-	if(len < m_val_storages_min_size)
+	if(parsed_len < m_val_storages_min_size)
 	{
-		m_val_storages_min_size = len;
+		m_val_storages_min_size = parsed_len;
 	}
 
-	if(len > m_val_storages_max_size)
+	if(parsed_len > m_val_storages_max_size)
 	{
-		m_val_storages_max_size = len;
+		m_val_storages_max_size = parsed_len;
 	}
 
 	// If the operator is CO_PMATCH, also add the value to the paths set.
