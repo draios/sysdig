@@ -17,8 +17,8 @@ along with falco.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <cstddef>
-#include <sys/time.h>
 
+#include "sinsp.h"
 #include "utils.h"
 #include "token_bucket.h"
 
