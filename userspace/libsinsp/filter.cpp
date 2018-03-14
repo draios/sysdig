@@ -345,7 +345,7 @@ bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2)
 		return ((operand1 & operand2->m_netmask) == (operand2->m_ip & operand2->m_netmask));
 	}
 	case CO_NE:
-		return ((operand1 & operand2->m_netmask) != (operand2->m_ip && operand2->m_netmask));
+		return ((operand1 & operand2->m_netmask) != (operand2->m_ip & operand2->m_netmask));
 	case CO_CONTAINS:
 		throw sinsp_exception("'contains' not supported for numeric filters");
 		return false;
@@ -1083,14 +1083,14 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 	filter_value_t item(filter_value_p(i), parsed_len);
 	m_val_storages_members.insert(item);
 
-	if(len < m_val_storages_min_size)
+	if(parsed_len < m_val_storages_min_size)
 	{
-		m_val_storages_min_size = len;
+		m_val_storages_min_size = parsed_len;
 	}
 
-	if(len > m_val_storages_max_size)
+	if(parsed_len > m_val_storages_max_size)
 	{
-		m_val_storages_max_size = len;
+		m_val_storages_max_size = parsed_len;
 	}
 
 	// If the operator is CO_PMATCH, also add the value to the paths set.

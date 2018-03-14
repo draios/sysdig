@@ -161,11 +161,11 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.sproto", "for TCP/UDP FDs, server protocol."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.lproto", "for TCP/UDP FDs, the local protocol."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.rproto", "for TCP/UDP FDs, the remote protocol."},
-	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.net", "matches the IP network (client or server) of the fd."},
-	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.cnet", "client IP network."},
-	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.snet", "server IP network."},
-	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.lnet", "local IP network."},
-	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.rnet", "remote IP network."},
+	{PT_IPV4NET, EPF_FILTER_ONLY, PF_NA, "fd.net", "matches the IP network (client or server) of the fd."},
+	{PT_IPV4NET, EPF_FILTER_ONLY, PF_NA, "fd.cnet", "matches the client IP network of the fd."},
+	{PT_IPV4NET, EPF_FILTER_ONLY, PF_NA, "fd.snet", "matches the server IP network of the fd."},
+	{PT_IPV4NET, EPF_FILTER_ONLY, PF_NA, "fd.lnet", "matches the local IP network of the fd."},
+	{PT_IPV4NET, EPF_FILTER_ONLY, PF_NA, "fd.rnet", "matches the remote IP network of the fd."},
 	{PT_BOOL, EPF_NONE, PF_NA, "fd.connected", "for TCP/UDP FDs, 'true' if the socket is connected."},
 	{PT_BOOL, EPF_NONE, PF_NA, "fd.name_changed", "True when an event changes the name of an fd used by this event. This can occur in some cases such as udp connections where the connection tuple changes."}
 };
@@ -319,34 +319,6 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 		}
 	}
 	case TYPE_DIRECTORY:
-	{
-		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
-		{
-			if(sanitize_strings)
-			{
-				sanitize_string(m_tstr);
-			}
-
-			size_t pos = m_tstr.rfind('/');
-			if(pos != string::npos)
-			{
-				if(pos < m_tstr.size() - 1)
-				{
-					m_tstr.resize(pos);
-				}
-			}
-			else
-			{
-				m_tstr = "/";
-			}
-
-			RETURN_EXTRACT_STRING(m_tstr);
-		}
-		else
-		{
-			return NULL;
-		}
-	}
 	case TYPE_CONTAINERDIRECTORY:
 	{
 		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
@@ -357,7 +329,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			}
 
 			size_t pos = m_tstr.rfind('/');
-			if(pos != string::npos)
+			if(pos != string::npos && pos != 0)
 			{
 				if(pos < m_tstr.size() - 1)
 				{
@@ -369,7 +341,11 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 				m_tstr = "/";
 			}
 
-			m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
+			if(m_field_id == TYPE_CONTAINERDIRECTORY)
+			{
+				m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
+			}
+
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		else
@@ -551,7 +527,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			if(m_fdinfo->is_file())
 			{
 				size_t pos = m_tstr.rfind('/');
-				if(pos != string::npos)
+				if(pos != string::npos && pos != 0)
 				{
 					if(pos < m_tstr.size() - 1)
 					{
@@ -1142,8 +1118,8 @@ bool sinsp_filter_check_fd::compare_net(sinsp_evt *evt)
 			}
 			else if(m_cmpop == CO_NE)
 			{
-				if(!flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, (ipv4net*)filter_value_p()) &&
-				   !flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, (ipv4net*)filter_value_p()))
+				if(flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, (ipv4net*)filter_value_p()) &&
+				   flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, (ipv4net*)filter_value_p()))
 				{
 					return true;
 				}
