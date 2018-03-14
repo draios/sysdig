@@ -97,8 +97,14 @@ fi
 echo "* Detecting operating system"
 
 ARCH=$(uname -m)
-if [[ ! $ARCH = *86 ]] && [ ! $ARCH = "x86_64" ]; then
+if [[ ! $ARCH = *86 ]] && [ ! $ARCH = "x86_64" ] && [ ! $ARCH = "s390x" ]; then
 	unsupported
+fi
+
+if [ $ARCH = "s390x" ]; then
+	echo "------------"
+	echo "WARNING: A Docker container is the only officially supported platform on s390x"
+	echo "------------"
 fi
 
 if [ -f /etc/debian_version ]; then
@@ -147,6 +153,16 @@ if [ -f /etc/debian_version ]; then
 
 elif [ -f /etc/system-release-cpe ]; then
 	DISTRO=$(cat /etc/system-release-cpe | cut -d':' -f3)
+
+	# New Amazon Linux 2 distro
+	if [[ -f /etc/image-id ]]; then
+		AMZ_AMI_VERSION=$(cat /etc/image-id | grep 'image_name' | cut -d"=" -f2 | tr -d "\"")
+	fi
+
+	if [[ "${DISTRO}" == "o" ]] && [[ ${AMZ_AMI_VERSION} = *"amzn2"* ]]; then
+		DISTRO=$(cat /etc/system-release-cpe | cut -d':' -f4)
+	fi
+
 	VERSION=$(cat /etc/system-release-cpe | cut -d':' -f5 | cut -d'.' -f1 | sed 's/[^0-9]*//g')
 
 	case "$DISTRO" in

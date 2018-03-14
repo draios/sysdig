@@ -1,6 +1,7 @@
 //
 // k8s_service_handler.cpp
 //
+#ifndef CYGWING_AGENT
 
 #include "k8s_service_handler.h"
 #include "sinsp.h"
@@ -233,3 +234,4 @@ bool k8s_service_handler::handle_component(const Json::Value& json, const msg_da
 	}
 	return true;
 }
+#endif

@@ -253,7 +253,7 @@ void docker::emit_event(Json::Value& root, std::string type, std::string status,
 	}
 	if(it == m_severity_map.end())
 	{
-		g_logger.log("No configured severity for docker event \"" + status + "\". Assuming SEV_EVT_INFORMATION", sinsp_logger::SEV_WARNING);
+		g_logger.log("No configured severity for docker event \"" + status + "\". Assuming SEV_EVT_INFORMATION", sinsp_logger::SEV_DEBUG);
 		severity = sinsp_logger::SEV_EVT_INFORMATION;
 	}
 	else

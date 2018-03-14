@@ -30,6 +30,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/file.h>
 #include <linux/futex.h>
 #include <linux/fs_struct.h>
+#include <linux/pid_namespace.h>
 #include <linux/ptrace.h>
 #include <linux/version.h>
 #include <linux/module.h>
@@ -304,8 +305,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_DROP_X] = {f_sched_drop},
 	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
-	[PPME_SYSCALL_EXECVE_19_E] = {f_sys_execve_e},
-	[PPME_SYSCALL_EXECVE_19_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_EXECVE_20_E] = {f_sys_execve_e},
+	[PPME_SYSCALL_EXECVE_20_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_CLONE_20_E] = {f_sys_empty},
 	[PPME_SYSCALL_CLONE_20_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
@@ -388,6 +389,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_CHROOT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_SYSCALL_SETSID_E] = {f_sys_empty},
 	[PPME_SYSCALL_SETSID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
+	[PPME_SYSCALL_SETPGID_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
+	[PPME_SYSCALL_SETPGID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 	[PPME_SYSCALL_MKDIR_2_E] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_USEDEFAULT, 0} } },
 	[PPME_SYSCALL_MKDIR_2_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_SYSCALL_RMDIR_2_E] = {f_sys_empty},
@@ -1220,7 +1223,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		return res;
 
 	if (unlikely(retval < 0 &&
-		     args->event_type != PPME_SYSCALL_EXECVE_19_X)) {
+		     args->event_type != PPME_SYSCALL_EXECVE_20_X)) {
 
 		/* The call failed, but this syscall has no exe, args
 		 * anyway, so I report empty ones */
@@ -1501,7 +1504,7 @@ cgroups_error:
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
-	} else if (args->event_type == PPME_SYSCALL_EXECVE_19_X) {
+	} else if (args->event_type == PPME_SYSCALL_EXECVE_20_X) {
 		/*
 		 * execve-only parameters
 		 */
@@ -1560,8 +1563,19 @@ cgroups_error:
 			return res;
 
 		/*
- 		* loginuid
- 		*/
+		 * pgid
+		 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
+		res = val_to_ring(args, (int64_t)task_pgrp_nr_ns(current, task_active_pid_ns(current)), 0, false, 0);
+#else
+		res = val_to_ring(args, (int64_t)process_group(current), 0, false, 0);
+#endif
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+
+		/*
+		 * loginuid
+		 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 		val = from_kuid(current_user_ns(), audit_get_loginuid(current));
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)

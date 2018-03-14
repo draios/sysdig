@@ -30,9 +30,16 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/time.h>
 #endif // _WIN32
 
+#ifdef CYGWING_AGENT
+#define DRAGENT_WIN_HAL_C_ONLY
+#include <dragent_win_hal_public.h>
+#endif
+
 #include "scap.h"
 #ifdef HAS_CAPTURE
+#ifndef CYGWING_AGENT
 #include "../../driver/driver_config.h"
+#endif // CYGWING_AGENT
 #endif // HAS_CAPTURE
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap_savefile.h"
@@ -46,7 +53,7 @@ char* scap_getlasterr(scap_t* handle)
 	return handle->m_lasterr;
 }
 
-#if !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 scap_t* scap_open_live_int(char *error,
 						   proc_entry_callback proc_callback,
 						   void* proc_callback_context,
@@ -146,6 +153,10 @@ scap_t* scap_open_live_int(char *error,
 	handle->m_machine_info.reserved4 = 0;
 	handle->m_driver_procinfo = NULL;
 	handle->m_fd_lookup_limit = 0;
+#ifdef CYGWING_AGENT
+	handle->m_whh = NULL;
+#endif
+
 	//
 	// Create the interface list
 	//
@@ -332,6 +343,9 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 	handle->m_driver_procinfo = NULL;
 	handle->refresh_proc_table_when_saving = true;
 	handle->m_fd_lookup_limit = 0;
+#ifdef CYGWING_AGENT
+	handle->m_whh = NULL;
+#endif
 
 	handle->m_file_evt_buf = (char*)malloc(FILE_READ_BUF_SIZE);
 	if(!handle->m_file_evt_buf)
@@ -456,6 +470,18 @@ scap_t* scap_open_nodriver_int(char *error,
 	handle->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP; // fd lookup is limited here because is very expensive
 
 	//
+	// If this is part of the windows agent, open the windows HAL
+	//
+#ifdef CYGWING_AGENT
+	handle->m_whh = wh_open(error);
+	if(handle->m_whh == NULL)
+	{
+		scap_close(handle);
+		return NULL;
+	}
+#endif
+
+	//
 	// Create the interface list
 	//
 	if(scap_create_iflist(handle) != SCAP_SUCCESS)
@@ -541,9 +567,14 @@ scap_t* scap_open(scap_open_args args, char *error)
 									 args.import_users, args.start_offset);
 	}
 	case SCAP_MODE_LIVE:
+#ifndef CYGWING_AGENT
 		return scap_open_live_int(error, args.proc_callback,
 								  args.proc_callback_context,
 								  args.import_users);
+#else
+		snprintf(error,	SCAP_LASTERR_SIZE, "scap_open: live mode currently not supproted on windows. Use nodriver mode instead.");
+		return NULL;
+#endif								  
 	case SCAP_MODE_NODRIVER:
 		return scap_open_nodriver_int(error, args.proc_callback,
 									  args.proc_callback_context,
@@ -589,6 +620,13 @@ void scap_close(scap_t* handle)
 		}
 #endif // HAS_CAPTURE
 	}
+
+#ifdef CYGWING_AGENT
+	if(handle->m_whh != NULL)
+	{
+		wh_close(handle->m_whh);
+	}
+#endif
 
 	if(handle->m_file_evt_buf)
 	{
@@ -971,7 +1009,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 //
 int32_t scap_stop_capture(scap_t* handle)
 {
-#if !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1009,7 +1047,7 @@ int32_t scap_stop_capture(scap_t* handle)
 //
 int32_t scap_start_capture(scap_t* handle)
 {
-#if !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1042,7 +1080,7 @@ int32_t scap_start_capture(scap_t* handle)
 #endif // HAS_CAPTURE
 }
 
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t sampling_ratio)
 {
 	//
@@ -1080,7 +1118,7 @@ static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t samp
 }
 #endif
 
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT)
 int32_t scap_enable_tracers_capture(scap_t* handle)
 {
 	//
@@ -1107,7 +1145,7 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 }
 #endif
 
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT)
 int32_t scap_enable_page_faults(scap_t *handle)
 {
 	if(handle->m_mode != SCAP_MODE_LIVE)
@@ -1133,7 +1171,7 @@ int32_t scap_enable_page_faults(scap_t *handle)
 
 int32_t scap_stop_dropping_mode(scap_t* handle)
 {
-#if !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1143,7 +1181,7 @@ int32_t scap_stop_dropping_mode(scap_t* handle)
 
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 {
-#if !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1196,7 +1234,7 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 		return SCAP_FAILURE;
 	}
 
-#if !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1243,6 +1281,7 @@ int64_t scap_get_readfile_offset(scap_t* handle)
 	return gzoffset(handle->m_file);
 }
 
+#ifndef CYGWING_AGENT
 static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event_id)
 {
 	//
@@ -1301,11 +1340,12 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 	}
 
 	return SCAP_SUCCESS;
-#endif
+#endif // HAS_CAPTURE
 }
+#endif // CYGWING_AGENT
 
 int32_t scap_clear_eventmask(scap_t* handle) {
-#if !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1314,7 +1354,7 @@ int32_t scap_clear_eventmask(scap_t* handle) {
 }
 
 int32_t scap_set_eventmask(scap_t* handle, uint32_t event_id) {
-#if !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1323,7 +1363,7 @@ int32_t scap_set_eventmask(scap_t* handle, uint32_t event_id) {
 }
 
 int32_t scap_unset_eventmask(scap_t* handle, uint32_t event_id) {
-#if !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1347,7 +1387,7 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 		return SCAP_FAILURE;
 	}
 
-#if !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1377,7 +1417,7 @@ int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 		return SCAP_FAILURE;
 	}
 
-#if !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1452,7 +1492,7 @@ struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle)
 		return NULL;
 	}
 
-#if !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return NULL;
 #else
@@ -1510,7 +1550,7 @@ int32_t scap_enable_simpledriver_mode(scap_t* handle)
 		return SCAP_FAILURE;
 	}
 
-#if !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1542,7 +1582,7 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 		return SCAP_FAILURE;
 	}
 
-#if !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1565,3 +1605,10 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 	return SCAP_SUCCESS;
 #endif
 }
+
+#ifdef CYGWING_AGENT
+wh_t* scap_get_wmi_handle(scap_t* handle)
+{
+	return handle->m_whh;
+}
+#endif

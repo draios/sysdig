@@ -1,6 +1,7 @@
 //
 // marathon_http.cpp
 //
+#ifndef CYGWING_AGENT
 
 #ifdef HAS_CAPTURE
 
@@ -103,3 +104,4 @@ std::string marathon_http::get_groups(const std::string& group_id)
 }
 
 #endif // HAS_CAPTURE
+#endif // CYGWING_AGENT

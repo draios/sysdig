@@ -1,6 +1,7 @@
 //
 // mesos_component.cpp
 //
+#ifndef CYGWING_AGENT
 
 #include "mesos_component.h"
 #include "marathon_component.h"
@@ -315,4 +316,5 @@ mesos_slave::mesos_slave(const std::string& name, const std::string& uid) :
 	mesos_component(mesos_component::MESOS_SLAVE, name, uid)
 {
 }
+#endif // CYGWING_AGENT
 

@@ -161,12 +161,13 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.sproto", "for TCP/UDP FDs, server protocol."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.lproto", "for TCP/UDP FDs, the local protocol."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.rproto", "for TCP/UDP FDs, the remote protocol."},
-	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.net", "matches the IP network (client or server) of the fd."},
-	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.cnet", "client IP network."},
-	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.snet", "server IP network."},
-	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.lnet", "local IP network."},
-	{PT_IPV4NET, EPF_NONE, PF_NA, "fd.rnet", "remote IP network."},
-
+	{PT_IPV4NET, EPF_FILTER_ONLY, PF_NA, "fd.net", "matches the IP network (client or server) of the fd."},
+	{PT_IPV4NET, EPF_FILTER_ONLY, PF_NA, "fd.cnet", "matches the client IP network of the fd."},
+	{PT_IPV4NET, EPF_FILTER_ONLY, PF_NA, "fd.snet", "matches the server IP network of the fd."},
+	{PT_IPV4NET, EPF_FILTER_ONLY, PF_NA, "fd.lnet", "matches the local IP network of the fd."},
+	{PT_IPV4NET, EPF_FILTER_ONLY, PF_NA, "fd.rnet", "matches the remote IP network of the fd."},
+	{PT_BOOL, EPF_NONE, PF_NA, "fd.connected", "for TCP/UDP FDs, 'true' if the socket is connected."},
+	{PT_BOOL, EPF_NONE, PF_NA, "fd.name_changed", "True when an event changes the name of an fd used by this event. This can occur in some cases such as udp connections where the connection tuple changes."}
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -318,34 +319,6 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 		}
 	}
 	case TYPE_DIRECTORY:
-	{
-		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
-		{
-			if(sanitize_strings)
-			{
-				sanitize_string(m_tstr);
-			}
-
-			size_t pos = m_tstr.rfind('/');
-			if(pos != string::npos)
-			{
-				if(pos < m_tstr.size() - 1)
-				{
-					m_tstr.resize(pos);
-				}
-			}
-			else
-			{
-				m_tstr = "/";
-			}
-
-			RETURN_EXTRACT_STRING(m_tstr);
-		}
-		else
-		{
-			return NULL;
-		}
-	}
 	case TYPE_CONTAINERDIRECTORY:
 	{
 		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
@@ -356,7 +329,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			}
 
 			size_t pos = m_tstr.rfind('/');
-			if(pos != string::npos)
+			if(pos != string::npos && pos != 0)
 			{
 				if(pos < m_tstr.size() - 1)
 				{
@@ -368,7 +341,11 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 				m_tstr = "/";
 			}
 
-			m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
+			if(m_field_id == TYPE_CONTAINERDIRECTORY)
+			{
+				m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
+			}
+
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		else
@@ -550,7 +527,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			if(m_fdinfo->is_file())
 			{
 				size_t pos = m_tstr.rfind('/');
-				if(pos != string::npos)
+				if(pos != string::npos && pos != 0)
 				{
 					if(pos < m_tstr.size() - 1)
 					{
@@ -1037,6 +1014,30 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
+	case TYPE_IS_CONNECTED:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			m_tbool = m_fdinfo->is_socket_connected();
+
+			RETURN_EXTRACT_VAR(m_tbool);
+		}
+		break;
+	case TYPE_NAME_CHANGED:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			m_tbool = evt->fdinfo_name_changed();
+
+			RETURN_EXTRACT_VAR(m_tbool);
+		}
+		break;
 	default:
 		ASSERT(false);
 	}
@@ -1117,8 +1118,8 @@ bool sinsp_filter_check_fd::compare_net(sinsp_evt *evt)
 			}
 			else if(m_cmpop == CO_NE)
 			{
-				if(!flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, (ipv4net*)filter_value_p()) &&
-				   !flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, (ipv4net*)filter_value_p()))
+				if(flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, (ipv4net*)filter_value_p()) &&
+				   flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, (ipv4net*)filter_value_p()))
 				{
 					return true;
 				}
@@ -1352,6 +1353,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_INT32, EPF_NONE, PF_ID, "proc.tty", "The controlling terminal of the process. 0 for processes without a terminal."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exepath", "The full executable path of the process."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "thread.nametid", "this field chains the process name and tid of a thread and can be used as a specific identifier of a thread for a specific execve."},
+	{PT_INT64, EPF_NONE, PF_ID, "proc.pgid", "the process group id of the process generating the event."},
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -1627,6 +1629,8 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		RETURN_EXTRACT_VAR(tinfo->m_pid);
 	case TYPE_SID:
 		RETURN_EXTRACT_VAR(tinfo->m_sid);
+	case TYPE_PGID:
+		RETURN_EXTRACT_VAR(tinfo->m_pgid);
 	case TYPE_SNAME:
 		{
 			//
@@ -2581,17 +2585,20 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 	return res;
 }
 
-void sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len)
+size_t sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len)
 {
+	size_t parsed_len;
 	if(m_field_id == sinsp_filter_check_event::TYPE_ARGRAW)
 	{
 		ASSERT(m_arginfo != NULL);
-		sinsp_filter_value_parser::string_to_rawval(str, len, filter_value_p(), filter_value().size(), m_arginfo->type);
+		parsed_len = sinsp_filter_value_parser::string_to_rawval(str, len, filter_value_p(), filter_value().size(), m_arginfo->type);
 	}
 	else
 	{
-		sinsp_filter_check::parse_filter_value(str, len, storage, storage_len);
+		parsed_len = sinsp_filter_check::parse_filter_value(str, len, storage, storage_len);
 	}
+
+	return parsed_len;
 }
 
 
@@ -7018,6 +7025,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_mesos implementation
 ///////////////////////////////////////////////////////////////////////////////
+#ifndef CYGWING_AGENT
 const filtercheck_field_info sinsp_filter_check_mesos_fields[] =
 {
 	{PT_CHARBUF, EPF_NONE, PF_NA, "mesos.task.name", "Mesos task name."},
@@ -7321,5 +7329,6 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 	return NULL;
 }
+#endif // CYGWING_AGENT
 
 #endif // HAS_FILTERING

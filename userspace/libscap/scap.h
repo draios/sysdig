@@ -204,6 +204,7 @@ typedef struct scap_threadinfo
 	uint64_t pid; ///< The id of the process containing this thread. In single thread processes, this is equal to tid.
 	uint64_t ptid; ///< The id of the thread that created this thread.
 	uint64_t sid; ///< The session id of the process containing this thread.
+	uint64_t pgid; ///< The process group of this thread.
 	char comm[SCAP_MAX_PATH_SIZE+1]; ///< Command name (e.g. "top")
 	char exe[SCAP_MAX_PATH_SIZE+1]; ///< argv[0] (e.g. "sshd: user@pts/4")
 	char exepath[SCAP_MAX_PATH_SIZE+1]; ///< full executable path
@@ -236,10 +237,10 @@ typedef struct scap_threadinfo
 }scap_threadinfo;
 
 typedef void (*proc_entry_callback)(void* context,
+									scap_t* handle,
 									int64_t tid,
 									scap_threadinfo* tinfo,
-									scap_fdinfo* fdinfo,
-									scap_t* newhandle);
+									scap_fdinfo* fdinfo);
 
 /*!
   \brief Arguments for scap_open
@@ -946,6 +947,10 @@ int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t t
 int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo);
 int32_t scap_enable_simpledriver_mode(scap_t* handle);
 int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret);
+#ifdef CYGWING_AGENT
+typedef struct wh_t wh_t;
+wh_t* scap_get_wmi_handle(scap_t* handle);
+#endif
 
 #ifdef __cplusplus
 }
