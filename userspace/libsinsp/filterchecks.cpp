@@ -2689,7 +2689,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 	const char *dirfdarg = NULL, *patharg = NULL;
 	if(etype == PPME_SYSCALL_RENAMEAT_X)
 	{
-		if(m_argid == 1)
+		if(m_argid == 0 || m_argid == 1)
 		{
 			dirfdarg = "olddirfd";
 			patharg = "oldpath";
@@ -2712,7 +2712,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 	}
 	else if(etype == PPME_SYSCALL_LINKAT_E)
 	{
-		if(m_argid == 1)
+		if(m_argid == 0 || m_argid == 1)
 		{
 			dirfdarg = "olddir";
 			patharg = "oldpath";
