@@ -1353,7 +1353,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_INT32, EPF_NONE, PF_ID, "proc.tty", "The controlling terminal of the process. 0 for processes without a terminal."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exepath", "The full executable path of the process."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "thread.nametid", "this field chains the process name and tid of a thread and can be used as a specific identifier of a thread for a specific execve."},
-	{PT_INT64, EPF_NONE, PF_ID, "proc.pgid", "the process group id of the process generating the event."},
+	{PT_INT64, EPF_NONE, PF_ID, "proc.vpgid", "the process group id of the process generating the event, as seen from its current PID namespace."},
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -1629,8 +1629,8 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		RETURN_EXTRACT_VAR(tinfo->m_pid);
 	case TYPE_SID:
 		RETURN_EXTRACT_VAR(tinfo->m_sid);
-	case TYPE_PGID:
-		RETURN_EXTRACT_VAR(tinfo->m_pgid);
+	case TYPE_VPGID:
+		RETURN_EXTRACT_VAR(tinfo->m_vpgid);
 	case TYPE_SNAME:
 		{
 			//
