@@ -290,7 +290,7 @@ int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_
 		    scap_dump_write(d, &(tinfo->pid), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		    scap_dump_write(d, &(tinfo->ptid), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		    scap_dump_write(d, &(tinfo->sid), sizeof(uint64_t)) != sizeof(uint64_t) ||
-		    scap_dump_write(d, &(tinfo->pgid), sizeof(uint64_t)) != sizeof(uint64_t) ||
+		    scap_dump_write(d, &(tinfo->vpgid), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		    scap_dump_write(d, &commlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
 		    scap_dump_write(d, tinfo->comm, commlen) != commlen ||
 		    scap_dump_write(d, &exelen, sizeof(uint16_t)) != sizeof(uint16_t) ||
@@ -347,7 +347,7 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 				sizeof(uint64_t) +	// pid
 				sizeof(uint64_t) +	// ptid
 				sizeof(uint64_t) +	// sid
-				sizeof(uint64_t) +	// pgid
+				sizeof(uint64_t) +	// vpgid
 				2 + strnlen(tinfo->comm, SCAP_MAX_PATH_SIZE) +
 				2 + strnlen(tinfo->exe, SCAP_MAX_PATH_SIZE) +
 				2 + strnlen(tinfo->exepath, SCAP_MAX_PATH_SIZE) +
@@ -1074,7 +1074,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 	tinfo.filtered_out = 0;
 	tinfo.root[0] = 0;
 	tinfo.sid = -1;
-	tinfo.pgid = -1;
+	tinfo.vpgid = -1;
 	tinfo.clone_ts = 0;
 	tinfo.tty = 0;
 	tinfo.exepath[0] = 0;
@@ -1131,7 +1131,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		}
 
 		//
-		// pgid
+		// vpgid
 		//
 		switch(block_type)
 		{
@@ -1147,7 +1147,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		case PL_BLOCK_TYPE_V7:
 			break;
 		case PL_BLOCK_TYPE_V8:
-			readsize = gzread(f, &(tinfo.pgid), sizeof(uint64_t));
+			readsize = gzread(f, &(tinfo.vpgid), sizeof(uint64_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
 
 			totreadsize += readsize;

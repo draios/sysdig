@@ -1140,7 +1140,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		tinfo.m_sid = ptinfo->m_sid;
 
 		// Copy the process group id from the parent
-		tinfo.m_pgid = ptinfo->m_pgid;
+		tinfo.m_vpgid = ptinfo->m_vpgid;
 
 		tinfo.m_tty = ptinfo->m_tty;
 	}
@@ -1176,7 +1176,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			tinfo.m_args = ptinfo->m_args;
 			tinfo.m_root = ptinfo->m_root;
 			tinfo.m_sid = ptinfo->m_sid;
-			tinfo.m_pgid = ptinfo->m_pgid;
+			tinfo.m_vpgid = ptinfo->m_vpgid;
 			tinfo.m_tty = ptinfo->m_tty;
 		}
 		else
@@ -1715,10 +1715,10 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_18_X:
 		break;
 	case PPME_SYSCALL_EXECVE_19_X:
-		// Get the pgid
+		// Get the vpgid
 		parinfo = evt->get_param(17);
 		ASSERT(parinfo->m_len == sizeof(int64_t));
-		evt->m_tinfo->m_pgid = *(int64_t *) parinfo->m_val;
+		evt->m_tinfo->m_vpgid = *(int64_t *) parinfo->m_val;
 		break;
 	default:
 		ASSERT(false);
