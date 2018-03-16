@@ -250,10 +250,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_LINK_X] = {f_sys_single_x},
 	[PPME_SYSCALL_LINKAT_E] = {PPM_AUTOFILL, 4, APT_REG, {{0}, {1}, {2}, {3} } },
 	[PPME_SYSCALL_LINKAT_X] = {f_sys_single_x},
-	[PPME_SYSCALL_UNLINK_E] = {f_sys_single},
-	[PPME_SYSCALL_UNLINK_X] = {f_sys_single_x},
-	[PPME_SYSCALL_UNLINKAT_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
-	[PPME_SYSCALL_UNLINKAT_X] = {f_sys_single_x},
+	[PPME_SYSCALL_UNLINK_E] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_EMPTYSTR, 0} } },
+	[PPME_SYSCALL_UNLINK_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
+	[PPME_SYSCALL_UNLINKAT_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {AF_ID_EMPTYSTR, 1} } },
+	[PPME_SYSCALL_UNLINKAT_X] = {f_sys_unlinkat_x},
 #ifdef _64BIT_ARGS_SINGLE_REGISTER
 	[PPME_SYSCALL_PREAD_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {2}, {3} } },
 #else

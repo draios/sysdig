@@ -1460,6 +1460,7 @@ int f_sys_autofill(struct event_filler_arguments *args, const struct ppm_event_e
 	unsigned long val;
 	u32 j;
 	int64_t retval;
+	char *estr = "";
 
 	ASSERT(evinfo->n_autofill_args <= PPM_MAX_AUTOFILL_ARGS);
 
@@ -1497,6 +1498,13 @@ int f_sys_autofill(struct event_filler_arguments *args, const struct ppm_event_e
 			 * Default Value
 			 */
 			res = val_to_ring(args, evinfo->autofill_args[j].default_val, 0, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				return res;
+		} else if (evinfo->autofill_args[j].id == AF_ID_EMPTYSTR) {
+			/*
+			 * Fill with empty string
+			 */
+			res = val_to_ring(args, (uint64_t)(long)estr, 0, false, 0);
 			if (unlikely(res != PPM_SUCCESS))
 				return res;
 		} else {

@@ -95,6 +95,7 @@ typedef int (*filler_callback) (struct event_filler_arguments *args);
 struct ppm_autofill_arg {
 #define AF_ID_RETVAL -1
 #define AF_ID_USEDEFAULT -2
+#define AF_ID_EMPTYSTR -3
 	int16_t id;
 	long default_val;
 };
