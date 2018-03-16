@@ -578,6 +578,8 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		}
 	}
 
+	m_inspector->m_thread_manager->update_pid_for_vpid(tinfo->m_container_id, tinfo->m_vpid, tinfo->m_pid);
+
 	return valid_id;
 }
 

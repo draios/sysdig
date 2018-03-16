@@ -409,6 +409,16 @@ public:
 	void set_listener(sinsp_threadtable_listener* listener);
 	void add_thread(sinsp_threadinfo& threadinfo, bool from_scap_proctable);
 	void remove_thread(int64_t tid, bool force);
+
+	// Returns -1 if can't find the corresponding value
+	int64_t get_pid_for_vpid(std::string &container_id, int64_t vpid);
+
+	void update_pid_for_vpid(std::string &container_id,
+				 int64_t vpid, int64_t pid);
+
+	void delete_pid_for_vpid(std::string &container_id,
+				 int64_t vpid);
+
 	// Returns true if the table is actually scanned
 	// NOTE: this is implemented in sinsp.cpp so we can inline it from there
 	inline bool remove_inactive_threads();
@@ -442,6 +452,12 @@ private:
 
 	sinsp* m_inspector;
 	threadinfo_map_t m_threadtable;
+
+	// Maps from container to vpid to pid. Allows finding the global pid for
+	// any virtual pid.
+	typedef unordered_map<int64_t, int64_t> vpidmap_t;
+	map<std::string, vpidmap_t> m_vpidtable;
+
 	int64_t m_last_tid;
 	sinsp_threadinfo* m_last_tinfo;
 	uint64_t m_last_flush_time_ns;

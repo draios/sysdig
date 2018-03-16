@@ -1113,6 +1113,7 @@ sinsp_thread_manager::sinsp_thread_manager(sinsp* inspector)
 void sinsp_thread_manager::clear()
 {
 	m_threadtable.clear();
+	m_vpidtable.clear();
 	m_last_tid = 0;
 	m_last_tinfo = NULL;
 	m_last_flush_time_ns = 0;
@@ -1187,11 +1188,60 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo& threadinfo, bool from_sc
 	{
 		m_listener->on_thread_created(&newentry);
 	}
+
+	update_pid_for_vpid(newentry.m_container_id, newentry.m_vpid, newentry.m_pid);
 }
 
 void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 {
 	remove_thread(m_threadtable.find(tid), force);
+}
+
+int64_t sinsp_thread_manager::get_pid_for_vpid(std::string &container_id, int64_t vpid)
+{
+	auto it = m_vpidtable.find(container_id);
+	if(it == m_vpidtable.end())
+	{
+		return -1;
+	}
+	else
+	{
+		auto it2 = it->second.find(vpid);
+		if(it2 == it->second.end())
+		{
+			return -1;
+		}
+
+		return it2->second;
+	}
+}
+
+void sinsp_thread_manager::update_pid_for_vpid(std::string &container_id,
+					       int64_t vpid, int64_t pid)
+{
+	auto it = m_vpidtable.lower_bound(container_id);
+	if(it == m_vpidtable.end() ||
+	   it->first != container_id)
+	{
+		it = m_vpidtable.emplace_hint(it,
+					      std::make_pair(container_id, vpidmap_t()));
+	}
+
+	it->second[vpid] = pid;
+}
+
+void sinsp_thread_manager::delete_pid_for_vpid(std::string &container_id,
+					       int64_t vpid)
+{
+	auto it = m_vpidtable.find(container_id);
+	if(it != m_vpidtable.end())
+	{
+		it->second.erase(vpid);
+		if(it->second.size() == 0)
+		{
+			m_vpidtable.erase(container_id);
+		}
+	}
 }
 
 void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool force)
@@ -1266,6 +1316,9 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 				m_inspector->m_parser->erase_fd(&eparams);
 			}
 		}
+
+		// Also remove the mapping between the vpid and pid
+		delete_pid_for_vpid(it->second.m_container_id, it->second.m_vpid);
 
 		//
 		// Reset the cache
