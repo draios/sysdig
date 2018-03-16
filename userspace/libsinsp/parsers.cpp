@@ -4498,6 +4498,20 @@ void sinsp_parser::parse_setpgid_exit(sinsp_evt *evt)
 	sinsp_evt *enter_evt = &m_tmp_evt;
 	sinsp_evt_param *parinfo;
 	int64_t retval, pid, pgid;
+	int64_t gpid;
+
+	// The thread performing the setpgid(). Used to determine
+	// whether the call is being done in a pid namespace or not.
+	sinsp_threadinfo *cinfo = evt->get_thread_info();
+
+	if(!cinfo)
+	{
+		ASSERT(false);
+		return;
+	}
+
+	// The target of the setpgid().
+	sinsp_threadinfo *tinfo;
 
 	//
 	// Extract the return value
@@ -4522,38 +4536,61 @@ void sinsp_parser::parse_setpgid_exit(sinsp_evt *evt)
 		pgid = *(int64_t *)parinfo->m_val;
 		ASSERT(parinfo->m_len == sizeof(int64_t));
 
-		//
-		// If pid is zero, then the process ID of the calling process is used.
-		//
-		sinsp_threadinfo* ptinfo = NULL;
-		if (pid == 0)
+		// Determine whether the caller is in a pid namespace
+		// or not. That determines how we should interpret the
+		// pid arg.
+		if(cinfo->m_pid == cinfo->m_vpid)
 		{
-			ptinfo = evt->get_thread_info();
+			// The caller is not in a pid namespace, so
+			// the pid is already in the global pid
+			// namespace.
+			gpid = pid;
 		}
 		else
 		{
-			ptinfo = m_inspector->get_thread(pid, false, true);
+			// pidarg is relative to the namespace of the
+			// caller. Convert it to the global namespace.
+			gpid = (pid == 0 ?
+				0 :
+				m_inspector->m_thread_manager->get_pid_for_vpid(cinfo->m_container_id, pid));
+
+			if(gpid == -1)
+			{
+				ASSERT(false);
+				return;
+			}
 		}
 
-		if(ptinfo == NULL)
+		//
+		// If pid is zero, then the process ID of the calling process is used.
+		//
+		if (gpid == 0)
+		{
+			gpid = cinfo->m_pid;
+		}
+
+		// Now look up the target threadinfo
+		tinfo = m_inspector->get_thread(gpid, false, true);
+
+		if(!tinfo)
 		{
 			ASSERT(false);
 			return;
 		}
 
 		//
-		// If pgid is zero, then the PGID of the process specified
-		// by pid is made the same as its process ID.
+		// If pgid is zero, then the PGID of the process
+		// specified by pid is made the same as its process ID
+		// (in its pid namespace).
 		//
 		if (pgid == 0)
 		{
-			ptinfo->m_pgid = ptinfo->m_pid;
-		}
-		else
-		{
-			ptinfo->m_pgid = pgid;
+			pgid = tinfo->m_vpid;
 		}
 
+		// Now actually change the target's vpgid to that
+		// of pinfo.
+		tinfo->m_vpgid = pgid;
 	}
 }
 
