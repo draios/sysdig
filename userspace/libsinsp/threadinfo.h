@@ -226,7 +226,6 @@ public:
 	int64_t m_pid; ///< The id of the process containing this thread. In single thread threads, this is equal to tid.
 	int64_t m_ptid; ///< The id of the process that started this thread.
 	int64_t m_sid; ///< The session id of the process containing this thread.
-	int64_t m_pgid; ///< The process group of this thread.
 	string m_comm; ///< Command name (e.g. "top")
 	string m_exe; ///< argv[0] (e.g. "sshd: user@pts/4")
 	string m_exepath; ///< full executable path
@@ -246,6 +245,7 @@ public:
 	uint64_t m_pfminor; ///< number of minor page faults since start.
 	int64_t m_vtid;  ///< The virtual id of this thread.
 	int64_t m_vpid; ///< The virtual id of the process containing this thread. In single thread threads, this is equal to vtid.
+	int64_t m_vpgid; // The virtual process group id, as seen from its pid namespace
 	string m_root;
 	size_t m_program_hash;
 	size_t m_program_hash_falco;

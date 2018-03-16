@@ -67,6 +67,7 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	uint64_t vtid;
 	int64_t sid;
 	int64_t pgid;
+	int64_t vpgid;
 	uint32_t vmsize_kb;
 	uint32_t vmrss_kb;
 	uint32_t vmswap_kb;
@@ -80,7 +81,7 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	tinfo->uid = (uint32_t)-1;
 	tinfo->ptid = (uint32_t)-1LL;
 	tinfo->sid = 0;
-	tinfo->pgid = 0;
+	tinfo->vpgid = 0;
 	tinfo->vmsize_kb = 0;
 	tinfo->vmrss_kb = 0;
 	tinfo->vmswap_kb = 0;
@@ -190,6 +191,14 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 				tinfo->vtid = tinfo->tid;
 			}
 		}
+		else if(strstr(line, "NSpgid:") == line)
+		{
+			nfound++;
+			if(sscanf(line, "NSpgid: %*u %" PRIu64, &vpgid) == 1)
+			{
+				tinfo->vpgid = vpgid;
+			}
+		}
 		else if(strstr(line, "NStgid:") == line)
 		{
 			nfound++;
@@ -203,13 +212,13 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 			}
 		}
 
-		if(nfound == 8)
+		if(nfound == 9)
 		{
 			break;
 		}
 	}
 
-	ASSERT(nfound == 8 || nfound == 6 || nfound == 5);
+	ASSERT(nfound == 9 || nfound == 6 || nfound == 5);
 
 	fclose(f);
 
@@ -260,7 +269,14 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	tinfo->pfmajor = pfmajor;
 	tinfo->pfminor = pfminor;
 	tinfo->sid = (uint64_t) sid;
-	tinfo->pgid = (uint64_t) pgid;
+
+	// If we did not find vpgid above, set it to pgid from the
+	// global namespace.
+	if(tinfo->vpgid != 0)
+	{
+		tinfo->vpgid = pgid;
+	}
+
 	tinfo->tty = tty;
 
 	fclose(f);
