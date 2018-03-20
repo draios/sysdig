@@ -168,11 +168,11 @@ int main()
 			&new_mask);
 	*/
 
-	scap_t* h = scap_open_live(error);
+	scap_t* h = scap_open_live(error, &ret);
 	if(h == NULL)
 	{
-		fprintf(stderr, "%s\n", error);
-		return -1;
+		fprintf(stderr, "%s (%d)\n", error, ret);
+		return ret;
 	}
 
 	ndevs = scap_get_ndevs(h);

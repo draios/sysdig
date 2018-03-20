@@ -54,12 +54,13 @@ char* scap_getlasterr(scap_t* handle)
 }
 
 #if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
-scap_t* scap_open_live_int(char *error,
-						   proc_entry_callback proc_callback,
-						   void* proc_callback_context,
-						   bool import_users)
+scap_t* scap_open_live_int(char *error, int32_t *rc,
+			   proc_entry_callback proc_callback,
+			   void* proc_callback_context,
+			   bool import_users)
 {
 	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	*rc = SCAP_NOT_SUPPORTED;
 	return NULL;
 }
 #else
@@ -82,17 +83,16 @@ static uint32_t get_max_consumers()
 	return 0;
 }
 
-scap_t* scap_open_live_int(char *error,
-						   proc_entry_callback proc_callback,
-						   void* proc_callback_context,
-						   bool import_users)
+scap_t* scap_open_live_int(char *error, int32_t *rc,
+			   proc_entry_callback proc_callback,
+			   void* proc_callback_context,
+			   bool import_users)
 {
 	uint32_t j;
 	char filename[SCAP_MAX_PATH_SIZE];
 	scap_t* handle = NULL;
 	int len;
 	uint32_t ndevs;
-	uint32_t res;
 	uint32_t max_devs;
 	uint32_t all_scanned_devs;
 
@@ -103,6 +103,7 @@ scap_t* scap_open_live_int(char *error,
 	if(!handle)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
+		*rc = SCAP_FAILURE;
 		return NULL;
 	}
 
@@ -128,6 +129,7 @@ scap_t* scap_open_live_int(char *error,
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the device handles");
+		*rc = SCAP_FAILURE;
 		return NULL;
 	}
 
@@ -160,7 +162,7 @@ scap_t* scap_open_live_int(char *error,
 	//
 	// Create the interface list
 	//
-	if(scap_create_iflist(handle) != SCAP_SUCCESS)
+	if((*rc = scap_create_iflist(handle)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error creating the interface list");
@@ -172,7 +174,7 @@ scap_t* scap_open_live_int(char *error,
 	//
 	if(import_users)
 	{
-		if(scap_create_userlist(handle) != SCAP_SUCCESS)
+		if((*rc = scap_create_userlist(handle)) != SCAP_SUCCESS)
 		{
 			scap_close(handle);
 			snprintf(error, SCAP_LASTERR_SIZE, "error creating the interface list");
@@ -222,6 +224,7 @@ scap_t* scap_open_live_int(char *error,
 			}
 
 			scap_close(handle);
+			*rc = SCAP_FAILURE;
 			return NULL;
 		}
 
@@ -229,6 +232,7 @@ scap_t* scap_open_live_int(char *error,
 		if (fcntl(handle->m_devs[j].m_fd, F_SETFD, FD_CLOEXEC) == -1) {
 			snprintf(error, SCAP_LASTERR_SIZE, "Can not set close-on-exec flag for fd for device %s (%s)", filename, strerror(errno));
 			scap_close(handle);
+			*rc = SCAP_FAILURE;
 			return NULL;
 		}
 
@@ -250,6 +254,7 @@ scap_t* scap_open_live_int(char *error,
 			scap_close(handle);
 
 			snprintf(error, SCAP_LASTERR_SIZE, "error mapping the ring buffer for device %s", filename);
+			*rc = SCAP_FAILURE;
 			return NULL;
 		}
 
@@ -272,6 +277,7 @@ scap_t* scap_open_live_int(char *error,
 			scap_close(handle);
 
 			snprintf(error, SCAP_LASTERR_SIZE, "error mapping the ring buffer info for device %s", filename);
+			*rc = SCAP_FAILURE;
 			return NULL;
 		}
 
@@ -290,7 +296,7 @@ scap_t* scap_open_live_int(char *error,
 	//
 	error[0] = '\0';
 	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-	if((res = scap_proc_scan_proc_dir(handle, filename, -1, -1, NULL, error, true)) != SCAP_SUCCESS)
+	if((*rc = scap_proc_scan_proc_dir(handle, filename, -1, -1, NULL, error, true)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error creating the process list. Make sure you have root credentials.");
@@ -307,11 +313,12 @@ scap_t* scap_open_live_int(char *error,
 #endif // HAS_CAPTURE
 
 scap_t* scap_open_offline_int(gzFile gzfile,
-							  char *error,
-							  proc_entry_callback proc_callback,
-							  void* proc_callback_context,
-							  bool import_users,
-							  uint64_t start_offset)
+			      char *error,
+			      int32_t *rc,
+			      proc_entry_callback proc_callback,
+			      void* proc_callback_context,
+			      bool import_users,
+			      uint64_t start_offset)
 {
 	scap_t* handle = NULL;
 
@@ -322,6 +329,7 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 	if(!handle)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
+		*rc = SCAP_FAILURE;
 		return NULL;
 	}
 
@@ -352,6 +360,7 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the read buffer");
 		scap_close(handle);
+		*rc = SCAP_FAILURE;
 		return NULL;
 	}
 
@@ -368,7 +377,7 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 	//
 	// Validate the file and load the non-event blocks
 	//
-	if(scap_read_init(handle, handle->m_file) != SCAP_SUCCESS)
+	if((*rc = scap_read_init(handle, handle->m_file)) != SCAP_SUCCESS)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "Could not initialize reader: %s", scap_getlasterr(handle));
 		scap_close(handle);
@@ -397,42 +406,45 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 	return handle;
 }
 
-scap_t* scap_open_offline(const char* fname, char *error)
+scap_t* scap_open_offline(const char* fname, char *error, int32_t* rc)
 {
 	gzFile gzfile = gzopen(fname, "rb");
 	if(gzfile == NULL)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "can't open file %s", fname);
+		*rc = SCAP_FAILURE;
 		return NULL;
 	}
 
-	return scap_open_offline_int(gzfile, error, NULL, NULL, true, 0);
+	return scap_open_offline_int(gzfile, error, rc, NULL, NULL, true, 0);
 }
 
-scap_t* scap_open_offline_fd(int fd, char *error)
+scap_t* scap_open_offline_fd(int fd, char *error, int32_t *rc)
 {
 	gzFile gzfile = gzdopen(fd, "rb");
 	if(gzfile == NULL)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "can't open fd %d", fd);
+		*rc = SCAP_FAILURE;
 		return NULL;
 	}
 
-	return scap_open_offline_int(gzfile, error, NULL, NULL, true, 0);
+	return scap_open_offline_int(gzfile, error, rc, NULL, NULL, true, 0);
 }
 
-scap_t* scap_open_live(char *error)
+scap_t* scap_open_live(char *error, int32_t *rc)
 {
-	return scap_open_live_int(error, NULL, NULL, true);
+	return scap_open_live_int(error, rc, NULL, NULL, true);
 }
 
-scap_t* scap_open_nodriver_int(char *error,
-						   proc_entry_callback proc_callback,
-						   void* proc_callback_context,
-						   bool import_users)
+scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
+			       proc_entry_callback proc_callback,
+			       void* proc_callback_context,
+			       bool import_users)
 {
 #if !defined(HAS_CAPTURE)
 	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	*rc = SCAP_NOT_SUPPORTED;
 	return NULL;
 #else
 	char filename[SCAP_MAX_PATH_SIZE];
@@ -445,6 +457,7 @@ scap_t* scap_open_nodriver_int(char *error,
 	if(!handle)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
+		*rc = SCAP_FAILURE;
 		return NULL;
 	}
 
@@ -477,6 +490,7 @@ scap_t* scap_open_nodriver_int(char *error,
 	if(handle->m_whh == NULL)
 	{
 		scap_close(handle);
+		*rc = SCAP_FAILURE;
 		return NULL;
 	}
 #endif
@@ -484,7 +498,7 @@ scap_t* scap_open_nodriver_int(char *error,
 	//
 	// Create the interface list
 	//
-	if(scap_create_iflist(handle) != SCAP_SUCCESS)
+	if((*rc = scap_create_iflist(handle)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error creating the interface list");
@@ -496,7 +510,7 @@ scap_t* scap_open_nodriver_int(char *error,
 	//
 	if(import_users)
 	{
-		if(scap_create_userlist(handle) != SCAP_SUCCESS)
+		if((*rc = scap_create_userlist(handle)) != SCAP_SUCCESS)
 		{
 			scap_close(handle);
 			snprintf(error, SCAP_LASTERR_SIZE, "error creating the interface list");
@@ -521,7 +535,7 @@ scap_t* scap_open_nodriver_int(char *error,
 	//
 	error[0] = '\0';
 	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-	if(scap_proc_scan_proc_dir(handle, filename, -1, -1, NULL, error, true) != SCAP_SUCCESS)
+	if((*rc = scap_proc_scan_proc_dir(handle, filename, -1, -1, NULL, error, true)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error creating the process list. Make sure you have root credentials.");
@@ -532,7 +546,7 @@ scap_t* scap_open_nodriver_int(char *error,
 #endif // HAS_CAPTURE
 }
 
-scap_t* scap_open(scap_open_args args, char *error)
+scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 {
 	switch(args.mode)
 	{
@@ -559,28 +573,31 @@ scap_t* scap_open(scap_open_args args, char *error)
 			{
 				snprintf(error, SCAP_LASTERR_SIZE, "can't open file %s", args.fname);
 			}
+			*rc = SCAP_FAILURE;
 			return NULL;
 		}
 
-		return scap_open_offline_int(gzfile, error,
-									 args.proc_callback, args.proc_callback_context,
-									 args.import_users, args.start_offset);
+		return scap_open_offline_int(gzfile, error, rc,
+					     args.proc_callback, args.proc_callback_context,
+					     args.import_users, args.start_offset);
 	}
 	case SCAP_MODE_LIVE:
 #ifndef CYGWING_AGENT
-		return scap_open_live_int(error, args.proc_callback,
-								  args.proc_callback_context,
-								  args.import_users);
+		return scap_open_live_int(error, rc, args.proc_callback,
+					  args.proc_callback_context,
+					  args.import_users);
 #else
-		snprintf(error,	SCAP_LASTERR_SIZE, "scap_open: live mode currently not supproted on windows. Use nodriver mode instead.");
+		snprintf(error,	SCAP_LASTERR_SIZE, "scap_open: live mode currently not supported on windows. Use nodriver mode instead.");
+		*rc = SCAP_NOT_SUPPORTED;
 		return NULL;
 #endif								  
 	case SCAP_MODE_NODRIVER:
-		return scap_open_nodriver_int(error, args.proc_callback,
-									  args.proc_callback_context,
-									  args.import_users);
+		return scap_open_nodriver_int(error, rc, args.proc_callback,
+					      args.proc_callback_context,
+					      args.import_users);
 	default:
 		snprintf(error, SCAP_LASTERR_SIZE, "incorrect mode %d", args.mode);
+		*rc = SCAP_FAILURE;
 		return NULL;
 	}
 }
