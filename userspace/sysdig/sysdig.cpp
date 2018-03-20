@@ -1543,7 +1543,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	{
 		cerr << e.what() << endl;
 		handle_end_of_file(print_progress);
-		res.m_res = EXIT_FAILURE;
+		res.m_res = e.scap_rc();
 	}
 	catch(...)
 	{

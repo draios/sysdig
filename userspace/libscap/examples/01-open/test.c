@@ -41,10 +41,10 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	scap_t* h = scap_open_live(error);
+	scap_t* h = scap_open_live(error, &res);
 	if(h == NULL)
 	{
-		fprintf(stderr, "%s\n", error);
+		fprintf(stderr, "%s (%d)\n", error, res);
 		return -1;
 	}
 	
