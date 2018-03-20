@@ -2210,6 +2210,14 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 		return SCAP_FAILURE;
 	}
 
+	if(sh.major_version != CURRENT_MAJOR_VERSION ||
+	   sh.minor_version != CURRENT_MINOR_VERSION)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE,
+			 "capture created with a newer version of sysdig");
+		return SCAP_VERSION_MISMATCH;
+	}
+
 	//
 	// Read the metadata blocks (processes, FDs, etc.)
 	//
