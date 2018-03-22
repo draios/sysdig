@@ -383,7 +383,7 @@ function debian_build {
 	else
 		KERNEL_RELEASE=$(echo ${DEB} | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+(-[0-9]+)?"| head -1)
 		KERNEL_MAJOR=$(echo ${KERNEL_RELEASE} | grep -E -o "[0-9]{1}\.[0-9]+")
-		PACKAGE=$(echo ${DEB} | grep -E -o "(common_[0-9]{1}\.[0-9]+.*amd64|amd64_[0-9]{1}\.[0-9]+.*amd64)" | sed -E 's/(common_|amd64_|_amd64)//g')
+		PACKAGE=$(echo ${DEB} | grep -E -o "(common_[0-9]{1}\.[0-9]+.*amd64|amd64_[0-9]{1}\.[0-9]+.*amd64|common_[0-9]{1}\.[0-9]+.*_all)" | sed -E 's/(common_|amd64_|_amd64|_all)//g')
 
 		if [[ ! -d ${KERNEL_RELEASE} ]]; then
 			mkdir ${KERNEL_RELEASE}
