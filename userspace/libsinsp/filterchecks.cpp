@@ -2728,6 +2728,11 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 		dirfdarg = "dirfd";
 		patharg = "name";
 	}
+	else if(etype == PPME_SYSCALL_MKDIRAT_X)
+	{
+		dirfdarg = "dirfd";
+		patharg = "path";
+	}
 
 	if(!dirfdarg || !patharg)
 	{
