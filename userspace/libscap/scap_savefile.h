@@ -51,7 +51,7 @@ typedef struct _block_header
 // Must be increased every time we change the capture format
 // (e.g. most of the changes in the event table, like adding
 // a syscall)
-#define CURRENT_MINOR_VERSION	0
+#define CURRENT_MINOR_VERSION	1
 
 typedef struct _section_header_block
 {
