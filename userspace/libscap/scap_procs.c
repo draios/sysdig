@@ -272,7 +272,7 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 
 	// If we did not find vpgid above, set it to pgid from the
 	// global namespace.
-	if(tinfo->vpgid != 0)
+	if(tinfo->vpgid == 0)
 	{
 		tinfo->vpgid = pgid;
 	}
