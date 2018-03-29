@@ -4101,7 +4101,7 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, boo
 		{
 			return NULL;
 		}
-		RETURN_EXTRACT_VAR(uinfo->name);
+        RETURN_EXTRACT_CSTR(uinfo->name);
 	default:
 		ASSERT(false);
 		break;
