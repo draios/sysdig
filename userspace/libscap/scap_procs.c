@@ -18,8 +18,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #ifdef HAS_CAPTURE
 #ifndef CYGWING_AGENT
+#include <ctype.h>
 #include <unistd.h>
 #include <sys/param.h>
 #include <dirent.h>
@@ -592,8 +594,24 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 		}
 
 		line[SCAP_MAX_PATH_SIZE - 1] = 0;
-		sscanf(line, "Name:%s", tinfo->comm);
-		fclose(f);
+		if(strncmp(line, "Name:", 5) == 0)
+		{
+			char *comm;
+			for(comm = line + 5; *comm && isspace(*comm); comm++);
+			strcpy(tinfo->comm, comm);
+			size_t len = strlen(tinfo->comm);
+			if(tinfo->comm[len-1] == '\n')
+			{
+				tinfo->comm[len-1] = '\0';
+			}
+		}
+		else
+		{
+			snprintf(error, SCAP_LASTERR_SIZE, "can't find \"Name:\" in proc status");
+			fclose(f);
+			free(tinfo);
+			return SCAP_FAILURE;
+		}
 	}
 
 	//
