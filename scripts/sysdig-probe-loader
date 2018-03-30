@@ -126,7 +126,7 @@ fi
 
 if [ ! -z $SYSDIG_PROBE_URL ]; then
 	URL=$SYSDIG_PROBE_URL/$SYSDIG_PROBE_FILENAME
-	echo "* Trying to downlod a precompiled module from a custom $URL"
+	echo "* Trying to downlod a precompiled module from a custom URL $URL"
 else 
 	URL=$(echo https://s3.amazonaws.com/download.draios.com/$SYSDIG_REPOSITORY/sysdig-probe-binaries/$SYSDIG_PROBE_FILENAME | sed s/+/%2B/g)
 	echo "* Trying to download a precompiled module from $URL"
