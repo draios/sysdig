@@ -1265,7 +1265,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		//
 		// Not a thread, copy cwd
 		//
-		tinfo.m_cwd = ptinfo->m_cwd;
+		tinfo.m_cwd = ptinfo->get_cwd();
 	}
 	//if((tinfo.m_flags & (PPM_CL_CLONE_FILES)))
 	//{
