@@ -21,6 +21,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <winsock2.h>
 #else
 #include <sys/socket.h>
+#include <sys/prctl.h>
 #include <netinet/in.h>
 #ifdef _DEBUG
 #endif // _DEBUG
@@ -464,6 +465,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_SETSID_X:
 		parse_setsid_exit(evt);
+		break;
+	case PPME_SYSCALL_PRCTL_X:
+		parse_prctl_exit(evt);
 		break;
 	default:
 		break;
@@ -1555,7 +1559,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	{
 		parinfo = evt->get_param(5);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
-		evt->m_tinfo->m_ptid = *(uint64_t *)parinfo->m_val;	
+		evt->m_tinfo->m_ptid = *(uint64_t *)parinfo->m_val;
 	}
 
 	// Get the fdlimit
@@ -1637,7 +1641,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		// because at container startup docker spawn a process with vpid=1
 		// outside of container cgroup and correct cgroups are
 		// assigned just before doing execve:
-		// 
+		//
 		// 1. docker-runc calls fork() and created process with vpid=1
 		// 2. docker-runc changes cgroup hierarchy of it
 		// 3. vpid=1 execve to the real process the user wants to run inside the container
@@ -1720,7 +1724,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	default:
 		ASSERT(false);
 	}
-	
+
 	//
 	// execve starts with a clean fd list, so we get rid of the fd list that clone
 	// copied from the parent
@@ -3890,7 +3894,7 @@ void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt *evt)
 	{
 		return;
 	}
-	
+
 	//
 	// Extract the return value
 	//
@@ -4486,6 +4490,44 @@ void sinsp_parser::parse_setsid_exit(sinsp_evt *evt)
 	{
 		if (evt->get_thread_info()) {
 			evt->get_thread_info()->m_sid = retval;
+		}
+	}
+}
+
+void sinsp_parser::parse_prctl_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	int64_t retval;
+	sinsp_threadinfo *tinfo = evt->get_thread_info();
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(retval >= 0)
+	{
+		// If the option is PR_SET_NAME, change the name of
+		// this thread's program.
+		parinfo = evt->get_param(1);
+		int64_t option = *(int64_t *)parinfo->m_val;
+
+		if(option == PR_SET_NAME)
+		{
+			if(tinfo == NULL)
+			{
+				ASSERT(false);
+				return;
+			}
+
+			// This param is dynamic. We could just peek
+			// ahead 1 byte, assuming it's PT_DYN and
+			// actually has dyn_idx=PPM_PRCTL_IDX_NAME,
+			// but we'll call the full wrapper for safety.
+
+			const char* resolved_argstr;
+			tinfo->m_comm = evt->get_param_as_str(2, &resolved_argstr);
 		}
 	}
 }

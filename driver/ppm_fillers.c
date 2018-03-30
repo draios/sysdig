@@ -31,6 +31,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/futex.h>
 #include <linux/fs_struct.h>
 #include <linux/pid_namespace.h>
+#include <linux/prctl.h>
 #include <linux/ptrace.h>
 #include <linux/version.h>
 #include <linux/module.h>
@@ -156,6 +157,7 @@ static int f_sys_access_e(struct event_filler_arguments *args);
 static int f_sys_access_x(struct event_filler_arguments *args);
 static int f_sys_bpf_x(struct event_filler_arguments *args);
 static int f_sys_mkdirat_x(struct event_filler_arguments *args);
+static int f_sys_prctl_x(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -410,7 +412,9 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_UNLINKAT_2_E] = {f_sys_empty},
 	[PPME_SYSCALL_UNLINKAT_2_X] = {f_sys_unlinkat_x},
 	[PPME_SYSCALL_MKDIRAT_E] = {f_sys_empty},
-	[PPME_SYSCALL_MKDIRAT_X] = {f_sys_mkdirat_x}
+	[PPME_SYSCALL_MKDIRAT_X] = {f_sys_mkdirat_x},
+	[PPME_SYSCALL_PRCTL_E] = {f_sys_empty},
+	[PPME_SYSCALL_PRCTL_X] = {f_sys_prctl_x}
 };
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
@@ -5757,6 +5761,76 @@ static int f_sys_mkdirat_x(struct event_filler_arguments *args)
 	 * mode
 	 */
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_prctl_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	int64_t retval;
+	unsigned long option;
+	u8 idx;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * option. Changes interpretation of arg2.
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &option);
+	res = val_to_ring(args, option, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * arg2. Can sometimes be a program name
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+
+	if(option == PR_SET_NAME)
+	{
+		idx = PPM_PRCTL_IDX_NAME;
+		res = val_to_ring(args, val, 0, true, idx);
+	}
+	else
+	{
+		idx = PPM_PRCTL_IDX_UINT64;
+		res = val_to_ring(args, val, 0, false, idx);
+	}
+
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * arg3
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * arg4
+	 */
+	syscall_get_arguments(current, args->regs, 3, 1, &val);
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * arg5
+	 */
+	syscall_get_arguments(current, args->regs, 4, 1, &val);
+
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
