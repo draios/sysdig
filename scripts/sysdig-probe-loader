@@ -127,15 +127,11 @@ fi
 if [ ! -z $SYSDIG_PROBE_URL ]; then
 	URL=$SYSDIG_PROBE_URL/$SYSDIG_PROBE_FILENAME
 	echo "* Trying to downlod precompiled module from custom location $URL"
-	if curl --create-dirs -f -s -o ~/.sysdig/$SYSDIG_PROBE_FILENAME $URL; then
-		echo "Download succeeded, loading module"
-		insmod ~/.sysdig/$SYSDIG_PROBE_FILENAME
-		exit $?
-	fi
+else 
+        URL=$(echo https://s3.amazonaws.com/download.draios.com/$SYSDIG_REPOSITORY/sysdig-probe-binaries/$SYSDIG_PROBE_FILENAME | sed s/+/%2B/g)
+        echo "* Trying to download precompiled module from $URL"
 fi
 
-URL=$(echo https://s3.amazonaws.com/download.draios.com/$SYSDIG_REPOSITORY/sysdig-probe-binaries/$SYSDIG_PROBE_FILENAME | sed s/+/%2B/g)
-echo "* Trying to download precompiled module from $URL"
 if curl --create-dirs -f -s -o ~/.sysdig/$SYSDIG_PROBE_FILENAME $URL; then
 	echo "Download succeeded, loading module"
 	insmod ~/.sysdig/$SYSDIG_PROBE_FILENAME
