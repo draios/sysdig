@@ -126,7 +126,7 @@ fi
 
 if [ ! -z $SYSDIG_PROBE_URL ]; then
 	URL=$SYSDIG_PROBE_URL/$SYSDIG_PROBE_FILENAME
-	echo "* Trying to downlod precompiled module from custom location $URL"
+	echo "* Trying to downlod a precompiled module from a custom URL $URL"
 	if curl --create-dirs -f -s -o ~/.sysdig/$SYSDIG_PROBE_FILENAME $URL; then
 		echo "Download succeeded, loading module"
 		insmod ~/.sysdig/$SYSDIG_PROBE_FILENAME
