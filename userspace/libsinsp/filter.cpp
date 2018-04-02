@@ -1133,32 +1133,58 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 {
 	if (op == CO_IN || op == CO_PMATCH)
 	{
-		// For raw strings, the length may not be set. So we do a strlen to find it.
-		if(type == PT_CHARBUF && op1_len == 0)
+		// Certain filterchecks can't be done as a set
+		// membership test/group match. For these, just loop over the
+		// values and see if any value is equal.
+		switch(type)
 		{
-			op1_len = strlen((char *) operand1);
-		}
-
-		filter_value_t item((uint8_t *) operand1, op1_len);
-
-		if (op == CO_IN)
-		{
-			if(op1_len >= m_val_storages_min_size &&
-			   op1_len <= m_val_storages_max_size &&
-			   m_val_storages_members.find(item) != m_val_storages_members.end())
+		case PT_IPV4NET:
+		case PT_SOCKADDR:
+		case PT_SOCKTUPLE:
+		case PT_FDLIST:
+		case PT_FSPATH:
+		case PT_SIGSET:
+			for (uint16_t i=0; i < m_val_storages.size(); i++)
 			{
-				return true;
+				if (::flt_compare(CO_EQ,
+						  type,
+						  operand1,
+						  filter_value_p(i)))
+				{
+					return true;
+				}
 			}
-		}
-		else
-		{
-			if (m_val_storages_paths.match(item))
+			return false;
+			break;
+		default:
+			// For raw strings, the length may not be set. So we do a strlen to find it.
+			if(type == PT_CHARBUF && op1_len == 0)
 			{
-				return true;
+				op1_len = strlen((char *) operand1);
 			}
-		}
 
-		return false;
+			filter_value_t item((uint8_t *) operand1, op1_len);
+
+			if (op == CO_IN)
+			{
+				if(op1_len >= m_val_storages_min_size &&
+				   op1_len <= m_val_storages_max_size &&
+				   m_val_storages_members.find(item) != m_val_storages_members.end())
+				{
+					return true;
+				}
+			}
+			else
+			{
+				if (m_val_storages_paths.match(item))
+				{
+					return true;
+				}
+			}
+
+			return false;
+			break;
+		}
 	}
 	else
 	{
