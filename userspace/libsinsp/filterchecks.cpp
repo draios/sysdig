@@ -2551,24 +2551,21 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 		m_field_id = TYPE_ABSPATH;
 		m_field = &m_info.m_fields[m_field_id];
 
-		if(val == "evt.abspath")
-		{
-			m_argid = 0;
-		}
-		else if(val == "evt.abspath.src")
+		if(string(val, 0, sizeof("evt.abspath.src") - 1) == "evt.abspath.src")
 		{
 			m_argid = 1;
+			res = sizeof("evt.abspath.src") - 1;
 		}
-		else if(val == "evt.abspath.dst")
+		else if(string(val, 0, sizeof("evt.abspath.dst") - 1) == "evt.abspath.dst")
 		{
 			m_argid = 2;
+			res = sizeof("evt.abspath.dst") - 1;
 		}
 		else
 		{
-			throw sinsp_exception("wrong syntax for evt.abspath");
+			m_argid = 0;
+			res = sizeof("evt.abspath") - 1;
 		}
-
-		res = (int32_t)val.size() + 1;
 	}
 	else if(string(val, 0, sizeof("evt.type.is") - 1) == "evt.type.is")
 	{
