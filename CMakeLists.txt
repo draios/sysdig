@@ -62,6 +62,7 @@ if(NOT WIN32)
 
 		add_subdirectory(driver)
 		add_definitions(-DHAS_CAPTURE)
+		add_definitions(-DHAS_PRCTL)
 	endif()
 
 	add_subdirectory(scripts)

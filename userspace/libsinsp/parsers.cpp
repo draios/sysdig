@@ -21,7 +21,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <winsock2.h>
 #else
 #include <sys/socket.h>
+#ifdef HAS_PRCTL
 #include <sys/prctl.h>
+#else
+// Copied from <linux/prctl.h>
+#define PR_SET_NAME    15
+#endif
 #include <netinet/in.h>
 #ifdef _DEBUG
 #endif // _DEBUG
