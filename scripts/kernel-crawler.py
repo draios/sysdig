@@ -73,7 +73,7 @@ repos = {
             "root" : "https://mirrors.kernel.org/ubuntu/pool/main/l/",
             "discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
             "subdirs" : [""],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9].*-generic.*amd64.deb$')]/@href"
+            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9].*-generic.*amd64.deb$')]/@href",
             "exclude_patterns": ["4.15.0-14"]
         },
 
@@ -81,7 +81,7 @@ repos = {
             "root" : "https://mirrors.kernel.org/ubuntu/pool/main/l/",
             "discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
             "subdirs" : [""],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-headers-[3-9].*_all.deb$')]/@href"
+            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-headers-[3-9].*_all.deb$')]/@href",
             "exclude_patterns": ["4.15.0-14"]
         },
 
@@ -89,7 +89,7 @@ repos = {
             "root" : "http://security.ubuntu.com/ubuntu/pool/main/l/",
             "discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
             "subdirs" : [""],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9].*-generic.*amd64.deb$')]/@href"
+            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9].*-generic.*amd64.deb$')]/@href",
             "exclude_patterns": ["4.15.0-14"]
         },
 
@@ -97,7 +97,7 @@ repos = {
             "root" : "http://security.ubuntu.com/ubuntu/pool/main/l/",
             "discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
             "subdirs" : [""],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-headers-[3-9].*_all.deb$')]/@href"
+            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-headers-[3-9].*_all.deb$')]/@href",
             "exclude_patterns": ["4.15.0-14"]
         }
     ],
