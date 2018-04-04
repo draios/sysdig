@@ -898,6 +898,11 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	catch(sinsp_capture_interrupt_exception&)
 	{
 	}
+	catch(sinsp_exception& e)
+	{
+		errorstr = e.what();
+		res.m_res = e.scap_rc();
+	}
 	catch(std::exception& e)
 	{
 		errorstr = e.what();

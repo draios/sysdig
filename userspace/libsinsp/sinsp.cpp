@@ -441,11 +441,12 @@ void sinsp::open(uint32_t timeout_ms)
 	}
 	oargs.import_users = m_import_users;
 
-	m_h = scap_open(oargs, error);
+	int32_t scap_rc;
+	m_h = scap_open(oargs, error, &scap_rc);
 
 	if(m_h == NULL)
 	{
-		throw sinsp_exception(error);
+		throw sinsp_exception(error, scap_rc);
 	}
 
 	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
@@ -480,11 +481,12 @@ void sinsp::open_nodriver()
 	}
 	oargs.import_users = m_import_users;
 
-	m_h = scap_open(oargs, error);
+	int32_t scap_rc;
+	m_h = scap_open(oargs, error, &scap_rc);
 
 	if(m_h == NULL)
 	{
-		throw sinsp_exception(error);
+		throw sinsp_exception(error, scap_rc);
 	}
 
 	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
@@ -616,11 +618,12 @@ void sinsp::open_int()
 		oargs.start_offset = 0;
 	}
 
-	m_h = scap_open(oargs, error);
+	int32_t scap_rc;
+	m_h = scap_open(oargs, error, &scap_rc);
 
 	if(m_h == NULL)
 	{
-		throw sinsp_exception(error);
+		throw sinsp_exception(error, scap_rc);
 	}
 
 	if(m_input_fd != 0)

@@ -465,9 +465,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETSID_X:
 		parse_setsid_exit(evt);
 		break;
-	case PPME_SYSCALL_SETPGID_X:
-		parse_setpgid_exit(evt);
-		break;
 	default:
 		break;
 	}
@@ -1140,7 +1137,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		tinfo.m_sid = ptinfo->m_sid;
 
 		// Copy the process group id from the parent
-		tinfo.m_pgid = ptinfo->m_pgid;
+		tinfo.m_vpgid = ptinfo->m_vpgid;
 
 		tinfo.m_tty = ptinfo->m_tty;
 	}
@@ -1176,7 +1173,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			tinfo.m_args = ptinfo->m_args;
 			tinfo.m_root = ptinfo->m_root;
 			tinfo.m_sid = ptinfo->m_sid;
-			tinfo.m_pgid = ptinfo->m_pgid;
+			tinfo.m_vpgid = ptinfo->m_vpgid;
 			tinfo.m_tty = ptinfo->m_tty;
 		}
 		else
@@ -1268,7 +1265,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		//
 		// Not a thread, copy cwd
 		//
-		tinfo.m_cwd = ptinfo->m_cwd;
+		tinfo.m_cwd = ptinfo->get_cwd();
 	}
 	//if((tinfo.m_flags & (PPM_CL_CLONE_FILES)))
 	//{
@@ -1715,10 +1712,10 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_18_X:
 		break;
 	case PPME_SYSCALL_EXECVE_19_X:
-		// Get the pgid
+		// Get the vpgid
 		parinfo = evt->get_param(17);
 		ASSERT(parinfo->m_len == sizeof(int64_t));
-		evt->m_tinfo->m_pgid = *(int64_t *) parinfo->m_val;
+		evt->m_tinfo->m_vpgid = *(int64_t *) parinfo->m_val;
 		break;
 	default:
 		ASSERT(false);
@@ -4490,70 +4487,6 @@ void sinsp_parser::parse_setsid_exit(sinsp_evt *evt)
 		if (evt->get_thread_info()) {
 			evt->get_thread_info()->m_sid = retval;
 		}
-	}
-}
-
-void sinsp_parser::parse_setpgid_exit(sinsp_evt *evt)
-{
-	sinsp_evt *enter_evt = &m_tmp_evt;
-	sinsp_evt_param *parinfo;
-	int64_t retval, pid, pgid;
-
-	//
-	// Extract the return value
-	//
-	parinfo = evt->get_param(0);
-	retval = *(int64_t *)parinfo->m_val;
-	ASSERT(parinfo->m_len == sizeof(int64_t));
-
-	if(retval >= 0 && retrieve_enter_event(enter_evt, evt))
-	{
-		//
-		// Extract the pid
-		//
-		parinfo = enter_evt->get_param(0);
-		pid = *(int64_t *)parinfo->m_val;
-		ASSERT(parinfo->m_len == sizeof(int64_t));
-
-		//
-		// Extract the pgid
-		//
-		parinfo = enter_evt->get_param(1);
-		pgid = *(int64_t *)parinfo->m_val;
-		ASSERT(parinfo->m_len == sizeof(int64_t));
-
-		//
-		// If pid is zero, then the process ID of the calling process is used.
-		//
-		sinsp_threadinfo* ptinfo = NULL;
-		if (pid == 0)
-		{
-			ptinfo = evt->get_thread_info();
-		}
-		else
-		{
-			ptinfo = m_inspector->get_thread(pid, false, true);
-		}
-
-		if(ptinfo == NULL)
-		{
-			ASSERT(false);
-			return;
-		}
-
-		//
-		// If pgid is zero, then the PGID of the process specified
-		// by pid is made the same as its process ID.
-		//
-		if (pgid == 0)
-		{
-			ptinfo->m_pgid = ptinfo->m_pid;
-		}
-		else
-		{
-			ptinfo->m_pgid = pgid;
-		}
-
 	}
 }
 
