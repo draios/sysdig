@@ -80,6 +80,10 @@ MODULE_AUTHOR("sysdig inc");
     #define TRACEPOINT_PROBE(probe, args...) static void probe(void *__data, args)
 #endif
 
+#ifndef pgprot_encrypted
+#define pgprot_encrypted(x) (x)
+#endif
+
 struct ppm_device {
 	dev_t dev;
 	struct cdev cdev;
@@ -1152,7 +1156,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			pfn = vmalloc_to_pfn(vmalloc_area_ptr);
 
 			ret = remap_pfn_range(vma, useraddr, pfn,
-					      PAGE_SIZE, PAGE_SHARED);
+					      PAGE_SIZE, pgprot_encrypted(PAGE_SHARED));
 			if (ret < 0) {
 				pr_err("remap_pfn_range failed (1)\n");
 				goto cleanup_mmap;
@@ -1190,7 +1194,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 				pfn = vmalloc_to_pfn(vmalloc_area_ptr);
 
 				ret = remap_pfn_range(vma, useraddr, pfn,
-						      PAGE_SIZE, PAGE_SHARED);
+						      PAGE_SIZE, pgprot_encrypted(PAGE_SHARED));
 				if (ret < 0) {
 					pr_err("remap_pfn_range failed (1)\n");
 					goto cleanup_mmap;
@@ -1212,7 +1216,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 				pfn = vmalloc_to_pfn(vmalloc_area_ptr);
 
 				ret = remap_pfn_range(vma, useraddr, pfn,
-						      PAGE_SIZE, PAGE_SHARED);
+						      PAGE_SIZE, pgprot_encrypted(PAGE_SHARED));
 				if (ret < 0) {
 					pr_err("remap_pfn_range failed (1)\n");
 					goto cleanup_mmap;
