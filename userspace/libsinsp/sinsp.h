@@ -177,12 +177,24 @@ struct sinsp_exception : std::exception
 		m_error_str = error_str;
 	}
 
+	sinsp_exception(string error_str, int32_t scap_rc)
+	{
+		m_error_str = error_str;
+		m_scap_rc = scap_rc;
+	}
+
 	char const* what() const throw()
 	{
 		return m_error_str.c_str();
 	}
 
+	int32_t scap_rc()
+	{
+		return m_scap_rc;
+	}
+
 	string m_error_str;
+	int32_t m_scap_rc;
 };
 
 /*!

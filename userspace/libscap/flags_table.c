@@ -435,3 +435,8 @@ const struct ppm_name_value pf_flags[] = {
 	{"INSTRUCTION_FETCH", PPM_PF_INSTRUCTION_FETCH},
 	{0, 0},
 };
+
+const struct ppm_name_value unlinkat_flags[] = {
+	{"AT_REMOVEDIR", PPM_AT_REMOVEDIR},
+	{0, 0},
+};
