@@ -505,6 +505,58 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_PF_INSTRUCTION_FETCH	(1 << 7)
 
 /*
+ * prctl option flags
+ */
+
+#define PPM_PR_OPT_UNKNOWN		0
+#define PPM_PR_SET_PDEATHSIG		1
+#define PPM_PR_GET_PDEATHSIG		2
+#define PPM_PR_GET_DUMPABLE		3
+#define PPM_PR_SET_DUMPABLE		4
+#define PPM_PR_GET_UNALIGN		5
+#define PPM_PR_SET_UNALIGN		6
+#define PPM_PR_GET_KEEPCAPS		7
+#define PPM_PR_SET_KEEPCAPS		8
+#define PPM_PR_GET_FPEMU		9
+#define PPM_PR_SET_FPEMU		10
+#define PPM_PR_GET_FPEXC		11
+#define PPM_PR_SET_FPEXC		12
+#define PPM_PR_GET_TIMING		13
+#define PPM_PR_SET_TIMING		14
+#define PPM_PR_SET_NAME			15
+#define PPM_PR_GET_NAME			16
+#define PPM_PR_GET_ENDIAN		19
+#define PPM_PR_SET_ENDIAN		20
+#define PPM_PR_GET_SECCOMP		21
+#define PPM_PR_SET_SECCOMP		22
+#define PPM_PR_CAPBSET_READ		23
+#define PPM_PR_CAPBSET_DROP		24
+#define PPM_PR_GET_TSC			25
+#define PPM_PR_SET_TSC			26
+#define PPM_PR_GET_SECUREBITS		27
+#define PPM_PR_SET_SECUREBITS		28
+#define PPM_PR_SET_TIMERSLACK		29
+#define PPM_PR_GET_TIMERSLACK		30
+#define PPM_PR_TASK_PERF_EVENTS_DISABLE	31
+#define PPM_PR_TASK_PERF_EVENTS_ENABLE	32
+#define PPM_PR_MCE_KILL			33
+#define PPM_PR_MCE_KILL_GET		34
+#define PPM_PR_SET_MM			35
+#define PPM_PR_SET_PTRACER 		0x59616d61 /* Has this strange value in linux/prctl.h */
+#define PPM_PR_SET_CHILD_SUBREAPER	36
+#define PPM_PR_GET_CHILD_SUBREAPER	37
+#define PPM_PR_SET_NO_NEW_PRIVS		38
+#define PPM_PR_GET_NO_NEW_PRIVS		39
+#define PPM_PR_GET_TID_ADDRESS		40
+#define PPM_PR_SET_THP_DISABLE		41
+#define PPM_PR_GET_THP_DISABLE		42
+#define PPM_PR_MPX_ENABLE_MANAGEMENT	43
+#define PPM_PR_MPX_DISABLE_MANAGEMENT	44
+#define PPM_PR_SET_FP_MODE		45
+#define PPM_PR_GET_FP_MODE		46
+#define PPM_PR_CAP_AMBIENT		47
+
+/*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
  *

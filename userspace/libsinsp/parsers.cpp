@@ -21,12 +21,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <winsock2.h>
 #else
 #include <sys/socket.h>
-#ifdef HAS_PRCTL
-#include <sys/prctl.h>
-#else
-// Copied from <linux/prctl.h>
-#define PR_SET_NAME    15
-#endif
 #include <netinet/in.h>
 #ifdef _DEBUG
 #endif // _DEBUG
@@ -4518,7 +4512,7 @@ void sinsp_parser::parse_prctl_exit(sinsp_evt *evt)
 		parinfo = evt->get_param(1);
 		int64_t option = *(int64_t *)parinfo->m_val;
 
-		if(option == PR_SET_NAME)
+		if(option == PPM_PR_SET_NAME)
 		{
 			if(tinfo == NULL)
 			{

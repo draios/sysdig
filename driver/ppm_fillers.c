@@ -5768,6 +5768,153 @@ static int f_sys_mkdirat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+static inline u32 prctl_option_to_scap(unsigned long option)
+{
+	switch (option)
+	{
+	case PR_SET_PDEATHSIG:
+		return PPM_PR_SET_PDEATHSIG;
+		break;
+	case PR_GET_PDEATHSIG:
+		return PPM_PR_GET_PDEATHSIG;
+		break;
+	case PR_GET_DUMPABLE:
+		return PPM_PR_GET_DUMPABLE;
+		break;
+	case PR_SET_DUMPABLE:
+		return PPM_PR_SET_DUMPABLE;
+		break;
+	case PR_GET_UNALIGN:
+		return PPM_PR_GET_UNALIGN;
+		break;
+	case PR_SET_UNALIGN:
+		return PPM_PR_SET_UNALIGN;
+		break;
+	case PR_GET_KEEPCAPS:
+		return PPM_PR_GET_KEEPCAPS;
+		break;
+	case PR_SET_KEEPCAPS:
+		return PPM_PR_SET_KEEPCAPS;
+		break;
+	case PR_GET_FPEMU:
+		return PPM_PR_GET_FPEMU;
+		break;
+	case PR_SET_FPEMU:
+		return PPM_PR_SET_FPEMU;
+		break;
+	case PR_GET_FPEXC:
+		return PPM_PR_GET_FPEXC;
+		break;
+	case PR_SET_FPEXC:
+		return PPM_PR_SET_FPEXC;
+		break;
+	case PR_GET_TIMING:
+		return PPM_PR_GET_TIMING;
+		break;
+	case PR_SET_TIMING:
+		return PPM_PR_SET_TIMING;
+		break;
+	case PR_SET_NAME:
+		return PPM_PR_SET_NAME;
+		break;
+	case PR_GET_NAME:
+		return PPM_PR_GET_NAME;
+		break;
+	case PR_GET_ENDIAN:
+		return PPM_PR_GET_ENDIAN;
+		break;
+	case PR_SET_ENDIAN:
+		return PPM_PR_SET_ENDIAN;
+		break;
+	case PR_GET_SECCOMP:
+		return PPM_PR_GET_SECCOMP;
+		break;
+	case PR_SET_SECCOMP:
+		return PPM_PR_SET_SECCOMP;
+		break;
+	case PR_CAPBSET_READ:
+		return PPM_PR_CAPBSET_READ;
+		break;
+	case PR_CAPBSET_DROP:
+		return PPM_PR_CAPBSET_DROP;
+		break;
+	case PR_GET_TSC:
+		return PPM_PR_GET_TSC;
+		break;
+	case PR_SET_TSC:
+		return PPM_PR_SET_TSC;
+		break;
+	case PR_GET_SECUREBITS:
+		return PPM_PR_GET_SECUREBITS;
+		break;
+	case PR_SET_SECUREBITS:
+		return PPM_PR_SET_SECUREBITS;
+		break;
+	case PR_SET_TIMERSLACK:
+		return PPM_PR_SET_TIMERSLACK;
+		break;
+	case PR_GET_TIMERSLACK:
+		return PPM_PR_GET_TIMERSLACK;
+		break;
+	case PR_TASK_PERF_EVENTS_DISABLE:
+		return PPM_PR_TASK_PERF_EVENTS_DISABLE;
+		break;
+	case PR_TASK_PERF_EVENTS_ENABLE:
+		return PPM_PR_TASK_PERF_EVENTS_ENABLE;
+		break;
+	case PR_MCE_KILL:
+		return PPM_PR_MCE_KILL;
+		break;
+	case PR_MCE_KILL_GET:
+		return PPM_PR_MCE_KILL_GET;
+		break;
+	case PR_SET_MM:
+		return PPM_PR_SET_MM;
+		break;
+	case PR_SET_PTRACER:
+		return PPM_PR_SET_PTRACER;
+		break;
+	case PR_SET_CHILD_SUBREAPER:
+		return PPM_PR_SET_CHILD_SUBREAPER;
+		break;
+	case PR_GET_CHILD_SUBREAPER:
+		return PPM_PR_GET_CHILD_SUBREAPER;
+		break;
+	case PR_SET_NO_NEW_PRIVS:
+		return PPM_PR_SET_NO_NEW_PRIVS;
+		break;
+	case PR_GET_NO_NEW_PRIVS:
+		return PPM_PR_GET_NO_NEW_PRIVS;
+		break;
+	case PR_GET_TID_ADDRESS:
+		return PPM_PR_GET_TID_ADDRESS;
+		break;
+	case PR_SET_THP_DISABLE:
+		return PPM_PR_SET_THP_DISABLE;
+		break;
+	case PR_GET_THP_DISABLE:
+		return PPM_PR_GET_THP_DISABLE;
+		break;
+	case PR_MPX_ENABLE_MANAGEMENT:
+		return PPM_PR_MPX_ENABLE_MANAGEMENT;
+		break;
+	case PR_MPX_DISABLE_MANAGEMENT:
+		return PPM_PR_MPX_DISABLE_MANAGEMENT;
+		break;
+	case PR_SET_FP_MODE:
+		return PPM_PR_SET_FP_MODE;
+		break;
+	case PR_GET_FP_MODE:
+		return PPM_PR_GET_FP_MODE;
+		break;
+	case PR_CAP_AMBIENT:
+		return PPM_PR_CAP_AMBIENT;
+		break;
+	};
+
+	return PPM_PR_OPT_UNKNOWN;
+}
+
 static int f_sys_prctl_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -5785,7 +5932,7 @@ static int f_sys_prctl_x(struct event_filler_arguments *args)
 	 * option. Changes interpretation of arg2.
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &option);
-	res = val_to_ring(args, option, 0, false, 0);
+	res = val_to_ring(args, prctl_option_to_scap(option), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
