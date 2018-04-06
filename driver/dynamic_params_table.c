@@ -27,8 +27,3 @@ const struct ppm_param_info bpf_dynamic_param[PPM_BPF_IDX_MAX] = {
 	[PPM_BPF_IDX_FD] = {{0}, PT_FD, PF_DEC},
 	[PPM_BPF_IDX_RES] = {{0}, PT_ERRNO, PF_DEC},
 };
-
-const struct ppm_param_info prctl_dynamic_param[PPM_PRCTL_IDX_MAX] = {
-	[PPM_PRCTL_IDX_UINT64] = {{0}, PT_UINT64, PF_DEC},
-	[PPM_PRCTL_IDX_NAME] = {{0}, PT_CHARBUF, PF_NA},
-};

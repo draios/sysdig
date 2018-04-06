@@ -373,12 +373,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #define PPM_BPF_IDX_MAX 2
 
-#define PPM_PRCTL_IDX_UINT64 0
-#define PPM_PRCTL_IDX_NAME 1
-
-#define PPM_PRCTL_IDX_MAX 2
-
-
 /*
  * memory protection flags
  */
@@ -1446,7 +1440,6 @@ extern const struct ppm_name_value unlinkat_flags[];
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
 extern const struct ppm_param_info bpf_dynamic_param[];
-extern const struct ppm_param_info prctl_dynamic_param[];
 
 /*
  * Driver event notification ID

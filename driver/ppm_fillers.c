@@ -5922,6 +5922,7 @@ static int f_sys_prctl_x(struct event_filler_arguments *args)
 	int64_t retval;
 	unsigned long option;
 	u8 idx;
+	const char empty_string[] = "";
 
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
@@ -5929,7 +5930,7 @@ static int f_sys_prctl_x(struct event_filler_arguments *args)
 		return res;
 
 	/*
-	 * option. Changes interpretation of arg2.
+	 * option. Changes what is returned in name
 	 */
 	syscall_get_arguments(current, args->regs, 0, 1, &option);
 	res = val_to_ring(args, prctl_option_to_scap(option), 0, false, 0);
@@ -5937,21 +5938,11 @@ static int f_sys_prctl_x(struct event_filler_arguments *args)
 		return res;
 
 	/*
-	 * arg2. Can sometimes be a program name
+	 * arg2.
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
 
-	if(option == PR_SET_NAME)
-	{
-		idx = PPM_PRCTL_IDX_NAME;
-		res = val_to_ring(args, val, 0, true, idx);
-	}
-	else
-	{
-		idx = PPM_PRCTL_IDX_UINT64;
-		res = val_to_ring(args, val, 0, false, idx);
-	}
-
+	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -5979,6 +5970,22 @@ static int f_sys_prctl_x(struct event_filler_arguments *args)
 	syscall_get_arguments(current, args->regs, 4, 1, &val);
 
 	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * name. Either an empty string or the new program name, depending on option.
+	 */
+	if(option == PR_SET_NAME)
+	{
+		syscall_get_arguments(current, args->regs, 1, 1, &val);
+		res = val_to_ring(args, val, 0, true, 0);
+	}
+	else
+	{
+		res = val_to_ring(args, (unsigned long)empty_string, 0, false, 0);
+	}
+
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

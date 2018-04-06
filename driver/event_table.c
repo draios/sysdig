@@ -329,5 +329,5 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_MKDIRAT_E */{"mkdirat", EC_FILE, EF_NONE, 0},
 	/* PPME_SYSCALL_MKDIRAT_X */{"mkdirat", EC_FILE, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"path", PT_FSPATH, PF_NA}, {"mode", PT_UINT32, PF_HEX} } },
 	/* PPME_SYSCALL_PRCTL_E */{"prctl", EC_FILE, EF_NONE, 0},
-	/* PPME_SYSCALL_PRCTL_X */{"prctl", EC_FILE, EF_NONE, 6, {{"res", PT_ERRNO, PF_DEC}, {"option", PT_INT64, PF_DEC}, {"arg2", PT_DYN, PF_DEC, prctl_dynamic_param, PPM_PRCTL_IDX_MAX}, {"arg3", PT_UINT64, PF_DEC}, {"arg4", PT_UINT64, PF_DEC}, {"arg5", PT_UINT64, PF_DEC} } }
+	/* PPME_SYSCALL_PRCTL_X */{"prctl", EC_FILE, EF_NONE, 7, {{"res", PT_ERRNO, PF_DEC}, {"option", PT_INT64, PF_DEC}, {"arg2", PT_UINT64, PF_DEC}, {"arg3", PT_UINT64, PF_DEC}, {"arg4", PT_UINT64, PF_DEC}, {"arg5", PT_UINT64, PF_DEC}, {"name", PT_CHARBUF, PF_NA} } },
 };

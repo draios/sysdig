@@ -4520,13 +4520,8 @@ void sinsp_parser::parse_prctl_exit(sinsp_evt *evt)
 				return;
 			}
 
-			// This param is dynamic. We could just peek
-			// ahead 1 byte, assuming it's PT_DYN and
-			// actually has dyn_idx=PPM_PRCTL_IDX_NAME,
-			// but we'll call the full wrapper for safety.
-
-			const char* resolved_argstr;
-			tinfo->m_comm = evt->get_param_as_str(2, &resolved_argstr);
+			parinfo = evt->get_param(6);
+			tinfo->m_comm = parinfo->m_val;
 		}
 	}
 }
