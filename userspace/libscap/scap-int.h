@@ -26,6 +26,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 extern "C" {
 #endif
 
+#ifdef CYGWING_AGENT
+typedef struct wh_t wh_t;
+#endif
+
 #ifdef _WIN32
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
@@ -100,6 +104,10 @@ struct scap
 	bool refresh_proc_table_when_saving;
 	uint32_t m_fd_lookup_limit;
 	uint64_t m_unexpected_block_readsize;
+	// Abstraction layer for windows
+#ifdef CYGWING_AGENT
+	wh_t* m_whh;
+#endif
 };
 
 typedef enum ppm_dumper_type
@@ -138,7 +146,7 @@ struct scap_ns_socket_list
 int32_t scap_readbuf(scap_t* handle, uint32_t proc, bool blocking, OUT char** buf, OUT uint32_t* len);
 // Scan a directory containing process information
 int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid, int tid_to_scan, struct scap_threadinfo** pi, char *error, bool scan_sockets);
-// Remove an entry from the process list by parsin a PPME_PROC_EXIT event
+// Remove an entry from the process list by parsing a PPME_PROC_EXIT event
 // void scap_proc_schedule_removal(scap_t* handle, scap_evt* e);
 // Remove the process that was scheduled for deletion for this handle
 // void scap_proc_remove_scheduled(scap_t* handle);
@@ -158,7 +166,7 @@ void scap_fd_print_fd_table(scap_fdinfo* fds);
 // Given an event, get the info entry for the process that generated it.
 // NOTE: this is different from scap_event_getprocinfo() because it returns the full event information
 // struct scap_threadinfo* scap_proc_get_from_event(scap_t* handle, scap_evt* e);
-// Return the process info entry geiven a tid
+// Return the process info entry given a tid
 // Free an fd table and set it to NULL when done
 void scap_fd_free_table(scap_t* handle, scap_fdinfo** fds);
 void scap_fd_free_ns_sockets_list(scap_t* handle, struct scap_ns_socket_list** sockets);
@@ -181,7 +189,7 @@ int32_t scap_add_fd_to_proc_table(scap_t* handle, scap_threadinfo* pi, scap_fdin
 void scap_fd_remove(scap_t* handle, scap_threadinfo* pi, int64_t fd);
 // Read an event from disk
 int32_t scap_next_offline(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
-// read the filedescriptors for a given process directory
+// read the file descriptors for a given process directory
 int32_t scap_fd_scan_fd_dir(scap_t* handle, char * procdir, scap_threadinfo* pi, struct scap_ns_socket_list** sockets_by_ns, char *error);
 // read tcp or udp sockets from the proc filesystem
 int32_t scap_fd_read_ipv4_sockets_from_proc_fs(scap_t* handle, const char * dir, int l4proto, scap_fdinfo ** sockets);

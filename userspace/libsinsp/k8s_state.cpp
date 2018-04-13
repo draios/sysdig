@@ -1,6 +1,7 @@
 //
 // k8s_state.cpp
 //
+#ifndef CYGWING_AGENT
 
 #include "k8s_state.h"
 #include "k8s_pod_handler.h"
@@ -787,4 +788,5 @@ Json::Value k8s_state_t::extract_capture_data(const Json::Value& item)
 
 	return cap_item;
 }
+#endif // CYGWING_AGENT
 

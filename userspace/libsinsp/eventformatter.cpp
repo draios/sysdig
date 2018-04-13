@@ -86,7 +86,7 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 			if(last_nontoken_str_start != j)
 			{
 				rawstring_check* newtkn = new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
-				m_tokens.push_back(newtkn);
+				m_tokens.emplace_back(make_pair("", newtkn));
 				m_tokenlens.push_back(0);
 				m_chks_to_free.push_back(newtkn);
 			}
@@ -138,10 +138,13 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 
 			m_chks_to_free.push_back(chk);
 
-			j += chk->parse_field_name(cfmt + j + 1, true, false);
+			const char * fstart = cfmt + j + 1;
+			uint32_t fsize = chk->parse_field_name(fstart, true, false);
+
+			j += fsize;
 			ASSERT(j <= lfmt.length());
 
-			m_tokens.push_back(chk);
+			m_tokens.emplace_back(make_pair(string(fstart, fsize), chk));
 			m_tokenlens.push_back(toklen);
 
 			last_nontoken_str_start = j + 1;
@@ -151,7 +154,7 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 	if(last_nontoken_str_start != j)
 	{
 		sinsp_filter_check * chk = new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
-		m_tokens.push_back(chk);
+		m_tokens.emplace_back(make_pair("", chk));
 		m_chks_to_free.push_back(chk);
 		m_tokenlens.push_back(0);
 	}
@@ -162,6 +165,42 @@ bool sinsp_evt_formatter::on_capture_end(OUT string* res)
 	res->clear();
 	return res->size() > 0;
 }
+
+bool sinsp_evt_formatter::resolve_tokens(sinsp_evt *evt, map<string,string>& values)
+{
+	bool retval = true;
+	const filtercheck_field_info* fi;
+	uint32_t j = 0;
+
+	ASSERT(m_tokenlens.size() == m_tokens.size());
+
+	for(j = 0; j < m_tokens.size(); j++)
+	{
+		char* str = m_tokens[j].second->tostring(evt);
+
+		if(str == NULL)
+		{
+			if(m_require_all_values)
+			{
+				retval = false;
+				break;
+			}
+			else
+			{
+				str = (char*)"<NA>";
+			}
+		}
+
+		fi = m_tokens[j].second->get_field_info();
+		if(fi)
+		{
+			values[m_tokens[j].first] = string(str);
+		}
+	}
+
+	return retval;
+}
+
 
 bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 {
@@ -182,7 +221,7 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 		   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEXASCII
 		   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONBASE64)
 		{
-			Json::Value json_value = m_tokens[j]->tojson(evt);
+			Json::Value json_value = m_tokens[j].second->tojson(evt);
 
 			if(retval == false)
 			{
@@ -195,16 +234,16 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 				continue;
 			}
 
-			fi = m_tokens[j]->get_field_info();
+			fi = m_tokens[j].second->get_field_info();
 
 			if(fi)
 			{
-				m_root[fi->m_name] = m_tokens[j]->tojson(evt);
+				m_root[m_tokens[j].first] = m_tokens[j].second->tojson(evt);
 			}
 		}
 		else
 		{
-			char* str = m_tokens[j]->tostring(evt);
+			char* str = m_tokens[j].second->tostring(evt);
 
 			if(retval == false)
 			{
@@ -264,10 +303,14 @@ void sinsp_evt_formatter::set_format(const string& fmt)
 	throw sinsp_exception("sinsp_evt_formatter unvavailable because it was not compiled in the library");
 }
 
+bool sinsp_evt_formatter::resolve_tokens(sinsp_evt *evt, map<string,string>& values)
+{
+	throw sinsp_exception("sinsp_evt_formatter unvavailable because it was not compiled in the library");
+}
+
 bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 {
 	throw sinsp_exception("sinsp_evt_formatter unvavailable because it was not compiled in the library");
-	return false;
 }
 #endif // HAS_FILTERING
 
@@ -280,7 +323,7 @@ sinsp_evt_formatter_cache::~sinsp_evt_formatter_cache()
 {
 }
 
-bool sinsp_evt_formatter_cache::tostring(sinsp_evt *evt, string &format, OUT string *res)
+std::shared_ptr<sinsp_evt_formatter>& sinsp_evt_formatter_cache::get_cached_formatter(string &format)
 {
 	auto it = m_formatter_cache.lower_bound(format);
 
@@ -291,5 +334,15 @@ bool sinsp_evt_formatter_cache::tostring(sinsp_evt *evt, string &format, OUT str
 						    std::make_pair(format, make_shared<sinsp_evt_formatter>(m_inspector, format)));
 	}
 
-	return it->second->tostring(evt, res);
+	return it->second;
+}
+
+bool sinsp_evt_formatter_cache::resolve_tokens(sinsp_evt *evt, string &format, map<string,string>& values)
+{
+	return get_cached_formatter(format)->resolve_tokens(evt, values);
+}
+
+bool sinsp_evt_formatter_cache::tostring(sinsp_evt *evt, string &format, OUT string *res)
+{
+	return get_cached_formatter(format)->tostring(evt, res);
 }

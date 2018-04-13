@@ -151,7 +151,7 @@ public:
 	sinsp_threadinfo* get_parent_thread();
 
 	/*!
-	  \brief Retrive information about one of this thread/process FDs.
+	  \brief Retrieve information about one of this thread/process FDs.
 
 	  \param fd The file descriptor number, e.g. 0 for stdin.
 
@@ -169,7 +169,15 @@ public:
 
 		if(fdt)
 		{
-			return fdt->find(fd);
+			sinsp_fdinfo_t *fdinfo = fdt->find(fd);
+			if(fdinfo)
+			{
+				// Its current name is now its old
+				// name. The name might change as a
+				// result of parsing.
+				fdinfo->m_oldname = fdinfo->m_name;
+				return fdinfo;
+			}
 		}
 
 		return NULL;
@@ -204,7 +212,7 @@ public:
 	uint64_t get_fd_limit();
 
 	//
-	// Walk up the parent process heirarchy, calling the provided
+	// Walk up the parent process hierarchy, calling the provided
 	// function for each node. If the function returns false, the
 	// traversal stops.
 	//
@@ -237,6 +245,7 @@ public:
 	uint64_t m_pfminor; ///< number of minor page faults since start.
 	int64_t m_vtid;  ///< The virtual id of this thread.
 	int64_t m_vpid; ///< The virtual id of the process containing this thread. In single thread threads, this is equal to vtid.
+	int64_t m_vpgid; // The virtual process group id, as seen from its pid namespace
 	string m_root;
 	size_t m_program_hash;
 	size_t m_program_hash_falco;

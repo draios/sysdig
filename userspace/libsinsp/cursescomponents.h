@@ -84,7 +84,7 @@ public:
 	}
 
 	//
-	// Retuens false if this chart doesn't support returning the current position
+	// Returns false if this chart doesn't support returning the current position
 	//
 	virtual bool get_position(OUT int32_t* pos, 
 		OUT int32_t* totlines, 

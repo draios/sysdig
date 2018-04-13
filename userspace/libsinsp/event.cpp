@@ -523,7 +523,7 @@ uint32_t strcpy_sanitized(char *dest, char *src, uint32_t dstsize)
 	}
 
 	//
-	// In case there wasn't enough space, null-termninate the destination
+	// In case there wasn't enough space, null-terminate the destination
 	//
 	if(dstsize)
 	{
@@ -592,6 +592,13 @@ int sinsp_evt::render_fd_json(Json::Value *ret, int64_t fd, const char** resolve
 			(*ret)["typechar"] = typestr;
 			(*ret)["name"] = sanitized_str;
 		}
+	}
+	else if(fd == PPM_AT_FDCWD)
+	{
+		//
+		// `fd` can be AT_FDCWD on all *at syscalls
+		//
+		(*ret)["name"] = "AT_FDCWD";
 	}
 	else
 	{
@@ -702,6 +709,15 @@ char* sinsp_evt::render_fd(int64_t fd, const char** resolved_str, sinsp_evt::par
 			}
 */
 		}
+	}
+	else if(fd == PPM_AT_FDCWD)
+	{
+		//
+		// `fd` can be AT_FDCWD on all *at syscalls
+		//
+		snprintf(&m_resolved_paramstr_storage[0],
+				 m_resolved_paramstr_storage.size(),
+				 "AT_FDCWD");
 	}
 	else
 	{
@@ -1584,7 +1600,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	break;
 	case PT_BYTEBUF:
 	{
-		/* This would include quotes around the outpur string
+		/* This would include quotes around the output string
 		            m_paramstr_storage[0] = '"';
 		            cres = binary_buffer_to_string(m_paramstr_storage + 1,
 		                param->m_val,
@@ -1921,7 +1937,8 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	case PT_FLAGS16:
 	case PT_FLAGS32:
 		{
-			uint32_t val = *(uint32_t *)payload & (((uint64_t)1 << payload_len * 8) - 1);
+			uint32_t val = (param_info->type == PT_FLAGS8) ? *(uint8_t *)payload :
+				(param_info->type == PT_FLAGS16) ? *(uint16_t *)payload : *(uint32_t *)payload;
 			snprintf(&m_paramstr_storage[0],
 				     m_paramstr_storage.size(),
 				     "%" PRIu32, val);
@@ -2373,6 +2390,7 @@ void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 					case SCAP_FD_IPV4_SOCK:
 					case SCAP_FD_IPV6_SOCK:
 						cat->m_subcategory = SC_NET;
+						break;
 					case SCAP_FD_IPV4_SERVSOCK:
 					case SCAP_FD_IPV6_SERVSOCK:
 						cat->m_subcategory = SC_NET;

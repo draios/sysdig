@@ -47,6 +47,18 @@ public:
 	~sinsp_evt_formatter();
 
 	/*!
+	  \brief Resolve all the formatted tokens and return them in a key/value
+	  map.
+
+	  \param evt Pointer to the event to be converted into string.
+	  \param res Reference to the map that will be filled with the result.
+
+	  \return true if all the tokens can be retrieved successfully, false
+	  otherwise.
+	*/
+	bool resolve_tokens(sinsp_evt *evt, map<string,string>& values);
+
+	/*!
 	  \brief Fills res with the string rendering of the event.
 
 	  \param evt Pointer to the event to be converted into string.
@@ -68,7 +80,10 @@ public:
 
 private:
 	void set_format(const string& fmt);
-	vector<sinsp_filter_check*> m_tokens;
+
+	// vector of (full string of the token, filtercheck) pairs
+	// e.g. ("proc.aname[2], ptr to sinsp_filter_check_thread)
+	vector<pair<string, sinsp_filter_check*>> m_tokens;
 	vector<uint32_t> m_tokenlens;
 	sinsp* m_inspector;
 	bool m_require_all_values;
@@ -90,12 +105,21 @@ public:
 	sinsp_evt_formatter_cache(sinsp *inspector);
 	virtual ~sinsp_evt_formatter_cache();
 
+	// Resolve the tokens inside format and return them as a key/value map.
+	// Creates a new sinsp_evt_formatter object if necessary.
+	bool resolve_tokens(sinsp_evt *evt, std::string &format, map<string,string>& values);
+
 	// Fills in res with the event formatted according to
 	// format. Creates a new sinsp_evt_formatter object if
 	// necessary.
 	bool tostring(sinsp_evt *evt, std::string &format, OUT std::string *res);
 
 private:
+
+	// Get the formatter for this format string. Creates a new
+	// sinsp_evt_formatter object if necessary.
+	std::shared_ptr<sinsp_evt_formatter>& get_cached_formatter(string &format);
+
 	std::map<std::string,std::shared_ptr<sinsp_evt_formatter>> m_formatter_cache;
 	sinsp *m_inspector;
 };

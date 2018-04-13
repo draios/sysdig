@@ -1,11 +1,13 @@
 //
 // mesos.cpp
 //
+#ifndef CYGWING_AGENT
 
 #include "mesos.h"
 #include "mesos_component.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "json_error_log.h"
 
 const mesos_component::component_map mesos::m_components =
 {
@@ -36,7 +38,7 @@ mesos::mesos(const std::string& mesos_state_json,
 	{
 		throw sinsp_exception("Mesos state AND (both OR none [marathon apps and groups]) are needed");
 	}
-	mesos_http::json_ptr_t state_json = mesos_http::try_parse(mesos_state_json);
+	mesos_http::json_ptr_t state_json = mesos_http::try_parse(mesos_state_json, "fixed-mesos-state");
 	if(state_json)
 	{
 		set_state_json(state_json);
@@ -62,8 +64,8 @@ mesos::mesos(const std::string& mesos_state_json,
 				}
 			}
 			mesos_http::json_ptr_t dummy_group;
-			set_marathon_groups_json(mesos_http::try_parse(marathon_groups_json), framework_id);
-			set_marathon_apps_json(dummy_group/*mesos_http::try_parse(marathon_apps_json)*/, framework_id);
+			set_marathon_groups_json(mesos_http::try_parse(marathon_groups_json, "fixed-marathon-state"), framework_id);
+			set_marathon_apps_json(dummy_group/*mesos_http::try_parse(marathon_apps_json, "fixed-groups-state")*/, framework_id);
 		}
 		collect_data();
 	}
@@ -642,7 +644,9 @@ bool mesos::collect_data()
 							}
 							else if((difftime(now, m_last_marathon_refresh) > tout_s) || m_json_error)
 							{
-								g_logger.log("Detected null Marathon app (" + app_it->first + "), resetting current state.", sinsp_logger::SEV_WARNING);
+								std::string errstr = "Detected null Marathon app (" + app_it->first + "), resetting current state.";
+								g_logger.log(errstr, sinsp_logger::SEV_WARNING);
+								g_json_error_log.log(app_it->first, errstr, sinsp_utils::get_current_time_ns(), "marathon-apps-state");
 								m_mesos_state_json.reset();
 								group.second.reset();
 								app_it->second.reset();
@@ -875,13 +879,16 @@ void mesos::add_tasks_impl(mesos_framework& framework, const Json::Value& tasks)
 					if(!fsid.isNull()) { sid = fsid.asString(); }
 					os << "Failed to add Mesos task: [" << framework.get_name() << ':' << name << ',' << uid << "], running on slave " << sid;
 					g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
+					g_json_error_log.log(framework.get_name(), os.str(), sinsp_utils::get_current_time_ns(), "add_tasks_impl");
 				}
 			}
 		}
 	}
 	else
 	{
-		g_logger.log("Tasks is null", sinsp_logger::SEV_ERROR);
+		std::string errstr = "Tasks is null";
+		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+		g_json_error_log.log(framework.get_name(), errstr, sinsp_utils::get_current_time_ns(), "add_tasks_impl for framework");
 	}
 }
 
@@ -994,7 +1001,9 @@ void mesos::set_marathon_apps_json(json_ptr_t json, const std::string& framework
 	}
 	else
 	{
-		g_logger.log("Received invalid Marathon apps JSON", sinsp_logger::SEV_WARNING);
+		std::string errstr = "Received invalid Marathon apps JSON";
+		g_logger.log(errstr, sinsp_logger::SEV_WARNING);
+		g_json_error_log.log("(null)", errstr, sinsp_utils::get_current_time_ns(), "set-marathon-apps-json");
 	}
 	m_json_error = m_json_error || json_error;
 }
@@ -1039,4 +1048,11 @@ void mesos::simulate_event(const std::string& json)
 			}
 		}
 	}
+	else
+	{
+		std::string errstr = "Could not parse json (" + reader.getFormattedErrorMessages() + ")";
+		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+		g_json_error_log.log(json, errstr, sinsp_utils::get_current_time_ns(), "parse-mesos-evt");
+	}
 }
+#endif // CYGWING_AGENT

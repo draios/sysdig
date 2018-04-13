@@ -394,20 +394,20 @@ const struct ppm_name_value semop_flags[] = {
 };
 
 const struct ppm_name_value semctl_commands[] = {
-        {"IPC_STAT", PPM_IPC_STAT},
-        {"IPC_SET", PPM_IPC_SET},
-        {"IPC_RMID", PPM_IPC_RMID},
-        {"IPC_INFO", PPM_IPC_INFO},
-        {"SEM_INFO", PPM_SEM_INFO},
-        {"SEM_STAT", PPM_SEM_STAT},
-        {"GETALL", PPM_GETALL},
-        {"GETNCNT", PPM_GETNCNT},
-        {"GETPID", PPM_GETPID},
-        {"GETVAL", PPM_GETVAL},
-        {"GETZCNT", PPM_GETZCNT},
-        {"SETALL", PPM_SETALL},
-        {"SETVAL", PPM_SETVAL},
-		{0, 0},
+	{"IPC_STAT", PPM_IPC_STAT},
+	{"IPC_SET", PPM_IPC_SET},
+	{"IPC_RMID", PPM_IPC_RMID},
+	{"IPC_INFO", PPM_IPC_INFO},
+	{"SEM_INFO", PPM_SEM_INFO},
+	{"SEM_STAT", PPM_SEM_STAT},
+	{"GETALL", PPM_GETALL},
+	{"GETNCNT", PPM_GETNCNT},
+	{"GETPID", PPM_GETPID},
+	{"GETVAL", PPM_GETVAL},
+	{"GETZCNT", PPM_GETZCNT},
+	{"SETALL", PPM_SETALL},
+	{"SETVAL", PPM_SETVAL},
+	{0, 0},
 };
 
 const struct ppm_name_value semget_flags[] = {
@@ -439,5 +439,10 @@ const struct ppm_name_value pf_flags[] = {
 	{"SUPERVISOR_FAULT", PPM_PF_SUPERVISOR_FAULT},
 	{"RESERVED_PAGE", PPM_PF_RESERVED_PAGE},
 	{"INSTRUCTION_FETCH", PPM_PF_INSTRUCTION_FETCH},
+	{0, 0},
+};
+
+const struct ppm_name_value unlinkat_flags[] = {
+	{"AT_REMOVEDIR", PPM_AT_REMOVEDIR},
 	{0, 0},
 };

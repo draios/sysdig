@@ -62,7 +62,7 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_FCNTL*/ { EC_WAIT, (enum ppm_event_flags)(EF_DROP_FALCO), "fcntl" },
 	/*PPM_SC_SETPGID*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "setpgid" },
 	/*PPM_SC_UMASK*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "umask" },	/* sets the calling process's file mode creation mask */
-	/*PPM_SC_CHROOT*/ { EC_IPC, (enum ppm_event_flags)(EF_NONE), "chroot" }, /* changes the root directory of the calling process to that specified in path. This directory will be used for pathnames beginning with /. The root directory is inherited by all children of the calling process. */
+	/*PPM_SC_CHROOT*/ { EC_IPC, (enum ppm_event_flags)(EF_NONE), "chroot" }, /* changes the root directory of the calling process to that specified in path. This directory will be used for path names beginning with /. The root directory is inherited by all children of the calling process. */
 	/*PPM_SC_USTAT*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "ustat" }, /* returns information about a mounted file system. */
 	/*PPM_SC_DUP2*/ { EC_IO_OTHER, (enum ppm_event_flags)(EF_NONE), "dup2" },
 	/*PPM_SC_GETPPID*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "getppid" },
@@ -344,6 +344,9 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_SETRESGID32*/ { EC_IO_OTHER, (enum ppm_event_flags)(EF_NONE), "setresgid" },
 	/*PPM_SC_GETRESUID32*/ { EC_IO_OTHER, (enum ppm_event_flags)(EF_NONE), "getresuid" },
 	/*PPM_SC_GETRESGID32*/ { EC_IO_OTHER, (enum ppm_event_flags)(EF_NONE), "getresgid" },
+	/*PPM_SC_FINIT_MODULE*/ { EC_SYSTEM, (enum ppm_event_flags)(EF_NONE), "finit_module" }, /* load a kernel module */
+	/*PPM_SC_BPF*/ { EC_OTHER, (enum ppm_event_flags)(EF_NONE), "bpf" },
+	/*PPM_SC_SECCOMP*/ { EC_OTHER, (enum ppm_event_flags)(EF_NONE), "seccomp" }
 };
 
 bool validate_info_table_size()

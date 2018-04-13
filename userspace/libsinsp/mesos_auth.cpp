@@ -19,10 +19,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 //
 // mesos_auth.cpp
 //
+#ifndef CYGWING_AGENT
 
 #include <time.h>
 
 #include "mesos_auth.h"
+#include "json_error_log.h"
 
 using namespace std;
 
@@ -78,6 +80,13 @@ void mesos_auth::authenticate()
 				m_token = response_obj["token"].asString();
 				g_logger.format(sinsp_logger::SEV_DEBUG, "Mesos authenticated with token=%s", m_token.c_str());
 			}
+			else if (!parse_ok)
+			{
+				std::string errstr;
+				errstr = json_reader.getFormattedErrorMessages();
+				g_json_error_log.log(response, errstr, sinsp_utils::get_current_time_ns(), m_auth_uri.to_string());
+				throw sinsp_exception(string("Cannot parse json (" + errstr + ")"));
+			}
 			else
 			{
 				throw sinsp_exception(string("Cannot authenticate on Mesos master, response=") + response);
@@ -90,10 +99,13 @@ void mesos_auth::authenticate()
 	}
 	catch(std::exception& e)
 	{
-		g_logger.format(sinsp_logger::SEV_ERROR,
-				"Could not fetch authentication token via %s: %s",
-				m_auth_uri.to_string().c_str(),
-				e.what());
+		std::string errstr = "Could not fetch authentication token via " +
+			m_auth_uri.to_string() + ": " +
+			e.what();
+
+		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
+
+		g_json_error_log.log("", errstr, sinsp_utils::get_current_time_ns(), m_auth_uri.to_string());
 	}
 #endif // HAS_CAPTURE
 }
@@ -113,4 +125,5 @@ void mesos_auth::refresh_token()
 	}
 #endif // HAS_CAPTURE
 }
+#endif // CYGWING_AGENT
 

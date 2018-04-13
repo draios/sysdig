@@ -603,7 +603,7 @@ int32_t scap_add_fd_to_proc_table(scap_t *handle, scap_threadinfo *tinfo, scap_f
 	}
 	else
 	{
-		handle->m_proc_callback(handle->m_proc_callback_context, tinfo->tid, tinfo, fdi, handle);
+		handle->m_proc_callback(handle->m_proc_callback_context, handle, tinfo->tid, tinfo, fdi);
 	}
 
 	return SCAP_SUCCESS;
@@ -1012,7 +1012,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filen
 		HASH_ADD_INT64((*sockets), ino, fdinfo);
 		if(uth_status != SCAP_SUCCESS)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unix socket allocatiallocation error");
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unix socket allocation error");
 			return SCAP_FAILURE;
 		}
 	}
@@ -1607,7 +1607,7 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
 	}
 
 	snprintf(filename, sizeof(filename), "%stcp6", netroot);
-    /* We assume if there is /proc/net/tcp6 that ipv6 is avaiable */
+    /* We assume if there is /proc/net/tcp6 that ipv6 is available */
     if(access(filename, R_OK) == 0)
     {
 		if(scap_fd_read_ipv6_sockets_from_proc_fs(handle, filename, SCAP_L4_TCP, &sockets->sockets) == SCAP_FAILURE)

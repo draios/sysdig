@@ -448,34 +448,6 @@ k8s_pod_t::k8s_pod_t(const std::string& name, const std::string& uid, const std:
 {
 }
 
-bool k8s_pod_t::has_container_id(const std::string& container_id)
-{
-	for(const auto& c : m_container_ids)
-	{
-		if(c == container_id) { return true; }
-	}
-	return false;
-}
-
-std::string* k8s_pod_t::get_container_id(const std::string& container_id)
-{
-	for(auto& c : m_container_ids)
-	{
-		if(c == container_id) { return &c; }
-	}
-	return 0;
-}
-
-k8s_container* k8s_pod_t::get_container(const std::string& container_name)
-{
-	for(auto& c : m_containers)
-	{
-		if(c.get_name() == container_name) { return &c; }
-	}
-	return 0;
-}
-
-
 //
 // replicas
 //
@@ -885,7 +857,7 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 				scope.add("kubernetes.namespace.name", ns);
 			}
 			const std::string& comp_name = comp->get_name();
-			if(comp_name.empty())
+			if(!comp_name.empty())
 			{
 				scope.add(std::string("kubernetes.").append(t).append(".name"), comp_name);
 			}

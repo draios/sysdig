@@ -81,7 +81,9 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 #ifndef HAS_ANALYZER
 	add_filter_check(new sinsp_filter_check_k8s());
 #endif // HAS_ANALYZER
+#ifndef CYGWING_AGENT
 	add_filter_check(new sinsp_filter_check_mesos());
+#endif
 	add_filter_check(new sinsp_filter_check_tracer());
 	add_filter_check(new sinsp_filter_check_evtin());
 }
@@ -343,7 +345,7 @@ bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2)
 		return ((operand1 & operand2->m_netmask) == (operand2->m_ip & operand2->m_netmask));
 	}
 	case CO_NE:
-		return ((operand1 & operand2->m_netmask) != (operand2->m_ip && operand2->m_netmask));
+		return ((operand1 & operand2->m_netmask) != (operand2->m_ip & operand2->m_netmask));
 	case CO_CONTAINS:
 		throw sinsp_exception("'contains' not supported for numeric filters");
 		return false;
@@ -1067,27 +1069,28 @@ int32_t sinsp_filter_check::get_check_id()
 
 void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_t i)
 {
+	size_t parsed_len;
 
 	if (i >= m_val_storages.size())
 	{
 		m_val_storages.push_back(vector<uint8_t>(256));
 	}
 
-	parse_filter_value(str, len, filter_value_p(i), filter_value(i).size());
+	parsed_len = parse_filter_value(str, len, filter_value_p(i), filter_value(i).size());
 
 	// XXX/mstemm this doesn't work if someone called
 	// add_filter_value more than once for a given index.
-	filter_value_t item(filter_value_p(i), len);
+	filter_value_t item(filter_value_p(i), parsed_len);
 	m_val_storages_members.insert(item);
 
-	if(len < m_val_storages_min_size)
+	if(parsed_len < m_val_storages_min_size)
 	{
-		m_val_storages_min_size = len;
+		m_val_storages_min_size = parsed_len;
 	}
 
-	if(len > m_val_storages_max_size)
+	if(parsed_len > m_val_storages_max_size)
 	{
-		m_val_storages_max_size = len;
+		m_val_storages_max_size = parsed_len;
 	}
 
 	// If the operator is CO_PMATCH, also add the value to the paths set.
@@ -1097,8 +1100,10 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 	}
 }
 
-void sinsp_filter_check::parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len)
+size_t sinsp_filter_check::parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len)
 {
+	size_t parsed_len;
+
 	// byte buffer, no parsing needed
 	if (m_field->m_type == PT_BYTEBUF)
 	{
@@ -1108,13 +1113,15 @@ void sinsp_filter_check::parse_filter_value(const char* str, uint32_t len, uint8
 		}
 		memcpy(storage, str, len);
 		m_val_storage_len = len;
-		return;
+		return len;
 	}
 	else
 	{
-		sinsp_filter_value_parser::string_to_rawval(str, len, storage, storage_len, m_field->m_type);
+		parsed_len = sinsp_filter_value_parser::string_to_rawval(str, len, storage, storage_len, m_field->m_type);
 	}
 	validate_filter_value(str, len);
+
+	return parsed_len;
 }
 
 const filtercheck_field_info* sinsp_filter_check::get_field_info()
@@ -1708,12 +1715,12 @@ void sinsp_filter_compiler::parse_check()
 	{
 		if(!(chk->get_fields()->m_flags & filter_check_info::FL_WORKS_ON_THREAD_TABLE))
 		{
-			if(str_operand1 != "evt.rawtime" && 
-				str_operand1 != "evt.rawtime.s" && 
-				str_operand1 != "evt.rawtime.ns" && 
-				str_operand1 != "evt.time" && 
-				str_operand1 != "evt.time.s" && 
-				str_operand1 != "evt.datetime" && 
+			if(str_operand1 != "evt.rawtime" &&
+				str_operand1 != "evt.rawtime.s" &&
+				str_operand1 != "evt.rawtime.ns" &&
+				str_operand1 != "evt.time" &&
+				str_operand1 != "evt.time.s" &&
+				str_operand1 != "evt.datetime" &&
 				str_operand1 != "evt.reltime")
 			{
 				throw sinsp_exception("the given filter is not supported for thread table filtering");
@@ -2074,7 +2081,12 @@ void sinsp_evttype_filter::add(string &name,
 {
 	filter_wrapper *wrap = new filter_wrapper();
 	wrap->filter = filter;
-	wrap->evttypes = evttypes;
+
+	wrap->evttypes.assign(PPM_EVENT_MAX+1, false);
+	for(auto &evttype : evttypes)
+	{
+		wrap->evttypes[evttype] = true;
+	}
 
 	m_evttype_filters.insert(pair<string,filter_wrapper *>(name, wrap));
 
@@ -2177,5 +2189,44 @@ bool sinsp_evttype_filter::run(sinsp_evt *evt, uint16_t ruleset)
 	}
 
 	return false;
+}
+
+
+// Solely used for code sharing in evttypes_for_rulset
+void sinsp_evttype_filter::check_filter_wrappers(std::vector<bool> &evttypes,
+						 uint32_t etype,
+						 std::list<filter_wrapper *> &filters,
+						 uint16_t ruleset)
+{
+	for(filter_wrapper *wrap : filters)
+	{
+		if(wrap->enabled.size() >= (size_t) (ruleset + 1) &&
+		   wrap->enabled[ruleset])
+		{
+			evttypes[etype] = true;
+			break;
+		}
+	}
+}
+
+void sinsp_evttype_filter::evttypes_for_ruleset(std::vector<bool> &evttypes, uint16_t ruleset)
+{
+	evttypes.assign(PPM_EVENT_MAX+1, false);
+
+	for(uint32_t etype = 0; etype < PPM_EVENT_MAX; etype++)
+	{
+		// Catchall filters (ones that don't explicitly refer
+		// to a type) must run for all event types.
+		check_filter_wrappers(evttypes, etype, m_catchall_evttype_filters, ruleset);
+
+		if(!evttypes[etype])
+		{
+			list<filter_wrapper *> *filters = m_filter_by_evttype[etype];
+			if(filters)
+			{
+				check_filter_wrappers(evttypes, etype, *filters, ruleset);
+			}
+		}
+	}
 }
 #endif // HAS_FILTERING

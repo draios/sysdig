@@ -22,7 +22,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 	\section Introduction
 
 	libsinsp is a system inspection library written in C++ and implementing high level
-	functionlity like:
+	functionality like:
 	- live capture control (start/stop/pause...)
 	- event capture from file or the live OS
 	- OS state reconstruction. By parsing /proc and inspecting the live event stream,
@@ -108,7 +108,9 @@ class sinsp_analyzer;
 class sinsp_filter;
 class cycle_writer;
 class sinsp_protodecoder;
+#ifndef CYGWING_AGENT
 class k8s;
+#endif
 class sinsp_partial_tracer;
 class mesos;
 
@@ -175,12 +177,24 @@ struct sinsp_exception : std::exception
 		m_error_str = error_str;
 	}
 
+	sinsp_exception(string error_str, int32_t scap_rc)
+	{
+		m_error_str = error_str;
+		m_scap_rc = scap_rc;
+	}
+
 	char const* what() const throw()
 	{
 		return m_error_str.c_str();
 	}
 
+	int32_t scap_rc()
+	{
+		return m_scap_rc;
+	}
+
 	string m_error_str;
+	int32_t m_scap_rc;
 };
 
 /*!
@@ -191,7 +205,7 @@ struct sinsp_capture_interrupt_exception : sinsp_exception
 };
 
 /*!
-  \brief The deafult way an event is converted to string by the library
+  \brief The default way an event is converted to string by the library
 */
 #define DEFAULT_OUTPUT_STR "*%evt.num %evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args"
 
@@ -276,7 +290,7 @@ public:
 	  \param evt a \ref sinsp_evt pointer that will be initialized to point to
 	  the next available event.
 
-	  \return SCAP_SUCCESS if the call is succesful and pevent and pcpuid contain
+	  \return SCAP_SUCCESS if the call is successful and pevent and pcpuid contain
 	   valid data. SCAP_TIMEOUT in case the read timeout expired and no event is
 	   available. SCAP_EOF when the end of an offline capture is reached.
 	   On Failure, SCAP_FAILURE is returned and getlasterr() can be used to
@@ -320,7 +334,7 @@ public:
 
 	  \param import_users if true, no user tables will be created for
 	  this capture. This also means that no user or group info will be
-	  written to the tracefile by the -w flag. The user/group tables are
+	  written to the trace file by the -w flag. The user/group tables are
 	  necessary to use filter fields like user.name or group.name. However,
 	  creating them can increase sysdig's startup time. Moreover, they contain
 	  information that could be privacy sensitive.
@@ -412,7 +426,7 @@ public:
 
 	  \param dump_filename the destination trace file.
 
-	  \param compress true to save the tracefile in a compressed format.
+	  \param compress true to save the trace file in a compressed format.
 
 	  \note only the events that pass the capture filter set with \ref set_filter()
 	   will be saved to disk.
@@ -526,7 +540,8 @@ public:
 	*/
 	void get_capture_stats(scap_stats* stats);
 
-
+	void set_max_thread_table_size(uint32_t value);
+	
 #ifdef GATHER_INTERNAL_STATS
 	sinsp_stats get_stats();
 #endif
@@ -720,26 +735,50 @@ public:
 	}
 
 	/*!
+	  \brief If this is an online capture, set event_id.
+	  \param event type to set
+	  \return SCAP_SUCCESS if the call is succesful
+	   On Failure, SCAP_FAILURE is returned and getlasterr() can be used to
+	   obtain the cause of the error.
+
+	  \note For a list of event types, refer to \ref etypes.
+	*/
+	void set_eventmask(uint32_t event_types);
+
+	/*!
+	  \brief If this is an online capture, unset event_id.
+	  \param event type to unset
+	  \return SCAP_SUCCESS if the call is succesful
+	   On Failure, SCAP_FAILURE is returned and getlasterr() can be used to
+	   obtain the cause of the error.
+
+	  \note For a list of event types, refer to \ref etypes.
+	*/
+	void unset_eventmask(uint32_t event_id);
+
+	/*!
 	  \brief When reading events from a trace file, this function returns the
 	   read progress as a number between 0 and 100.
 	*/
 	double get_read_progress();
 
-	void init_k8s_ssl(string* api_server, string* ssl_cert);
+#ifndef CYGWING_AGENT
+	void init_k8s_ssl(const string *ssl_cert);
 	void init_k8s_client(string* api_server, string* ssl_cert, bool verbose = false);
 	void make_k8s_client();
 	k8s* get_k8s_client() const { return m_k8s_client; }
 
 	void init_mesos_client(string* api_server, bool verbose = false);
 	mesos* get_mesos_client() const { return m_mesos_client; }
+#endif
 
 	//
 	// Misc internal stuff
 	//
 	void stop_dropping_mode();
 	void start_dropping_mode(uint32_t sampling_ratio);
-	void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo,
-		scap_fdinfo* fdinfo, scap_t* newhandle);
+	void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_threadinfo* tinfo,
+		scap_fdinfo* fdinfo);
 	void set_get_procs_cpu_from_driver(bool get_procs_cpu_from_driver)
 	{
 		m_get_procs_cpu_from_driver = get_procs_cpu_from_driver;
@@ -780,7 +819,15 @@ public:
 		scap_refresh_proc_table(m_h);
 	}
 	void set_simpledriver_mode();
+	vector<long> get_n_tracepoint_hit();
 
+	static unsigned num_possible_cpus();
+#ifdef CYGWING_AGENT
+	wh_t* get_wmi_handle()
+	{
+		return scap_get_wmi_handle(m_h);
+	}
+#endif
 VISIBILITY_PRIVATE
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE
@@ -849,11 +896,13 @@ private:
 	sinsp_threadinfo* find_thread_test(int64_t tid, bool lookup_only);
 	bool remove_inactive_threads();
 
+#ifndef CYGWING_AGENT
 	void k8s_discover_ext();
 	void collect_k8s();
 	void update_k8s_state();
 	void update_mesos_state();
 	bool get_mesos_data();
+#endif
 
 	static int64_t get_file_size(const std::string& fname, char *error);
 	static std::string get_error_desc(const std::string& msg = "");
@@ -871,8 +920,8 @@ private:
 
 	scap_mode_t m_mode;
 
-        // If non-zero, reading from this fd and m_input_filename contains "fd
-        // <m_input_fd>". Otherwise, reading from m_input_filename.
+	// If non-zero, reading from this fd and m_input_filename contains "fd
+	// <m_input_fd>". Otherwise, reading from m_input_filename.
 	int m_input_fd;
 	string m_input_filename;
 	bool m_isdebug_enabled;
@@ -912,6 +961,7 @@ public:
 	//
 	// Kubernetes
 	//
+#ifndef CYGWING_AGENT
 	string* m_k8s_api_server;
 	string* m_k8s_api_cert;
 #ifdef HAS_CAPTURE
@@ -926,6 +976,7 @@ public:
 #endif // HAS_CAPTURE
 	k8s* m_k8s_client;
 	uint64_t m_k8s_last_watch_time_ns;
+#endif // CYGWING_AGENT
 
 	//
 	// Mesos/Marathon
@@ -1049,6 +1100,7 @@ public:
 	uint64_t m_last_procrequest_tod;
 	sinsp_proc_metainfo m_meinfo;
 
+	static unsigned int m_num_possible_cpus;
 #if defined(HAS_CAPTURE)
 	int64_t m_sysdig_pid;
 #endif
@@ -1078,13 +1130,8 @@ public:
 	friend class sinsp_filter_check_evtin;
 	friend class sinsp_baseliner;
 	friend class sinsp_memory_dumper;
-
 	friend class sinsp_network_interfaces;
-	friend class k8s_delegator;
 
-#ifdef HAS_ANALYZER
-	friend class thread_analyzer_info;
-#endif
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };
 

@@ -27,6 +27,13 @@ enum sinsp_container_type
 	CT_RKT = 4
 };
 
+enum sinsp_docker_response
+{
+	RESP_OK = 0,
+	RESP_BAD_REQUEST = 1,
+	RESP_ERROR = 2
+};
+
 class sinsp_container_info
 {
 public:
@@ -109,6 +116,8 @@ public:
 
 	static void parse_json_mounts(const Json::Value &mnt_obj, vector<container_mount_info> &mounts);
 
+	const vector<string>& get_env() const { return m_env; }
+
 	container_mount_info *mount_by_idx(uint32_t idx);
 	container_mount_info *mount_by_source(std::string &source);
 	container_mount_info *mount_by_dest(std::string &dest);
@@ -123,6 +132,7 @@ public:
 	vector<container_mount_info> m_mounts;
 	vector<container_port_mapping> m_port_mappings;
 	map<string, string> m_labels;
+	vector<string> m_env;
 	string m_mesos_task_id;
 	int64_t m_memory_limit;
 	int64_t m_swap_limit;
@@ -141,7 +151,7 @@ public:
 
 	const unordered_map<string, sinsp_container_info>* get_containers();
 	bool remove_inactive_containers();
-	void add_container(const sinsp_container_info& container_info);
+	void add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread);
 	bool get_container(const string& id, sinsp_container_info* container_info) const;
 	bool resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	void dump_containers(scap_dumper_t* dumper);
@@ -153,6 +163,7 @@ public:
 private:
 	string container_to_json(const sinsp_container_info& container_info);
 	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);
+	sinsp_docker_response get_docker(const string& api_version, const string& container_id, string& json);
 	bool parse_docker(sinsp_container_info* container);
 	string get_docker_env(const Json::Value &env_vars, const string &mti);
 	bool parse_rkt(sinsp_container_info* container, const string& podid, const string& appname);

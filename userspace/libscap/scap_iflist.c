@@ -157,6 +157,7 @@ int32_t scap_create_iflist(scap_t* handle)
 				handle->m_addrlist->v4list[ifcnt4].netmask = 0;
 			}
 
+#ifndef CYGWING_AGENT
 			if(tempIfAddr->ifa_ifu.ifu_broadaddr != NULL)
 			{
 				handle->m_addrlist->v4list[ifcnt4].bcast = *(uint32_t*)&(((struct sockaddr_in *)tempIfAddr->ifa_ifu.ifu_broadaddr)->sin_addr);
@@ -165,7 +166,9 @@ int32_t scap_create_iflist(scap_t* handle)
 			{
 				handle->m_addrlist->v4list[ifcnt4].bcast = 0;
 			}
-
+#else
+			handle->m_addrlist->v4list[ifcnt4].bcast = 0;
+#endif
 			strncpy(handle->m_addrlist->v4list[ifcnt4].ifname, tempIfAddr->ifa_name, SCAP_MAX_PATH_SIZE);
 			handle->m_addrlist->v4list[ifcnt4].ifnamelen = strlen(tempIfAddr->ifa_name);
 
@@ -193,6 +196,7 @@ int32_t scap_create_iflist(scap_t* handle)
 				memset(handle->m_addrlist->v6list[ifcnt6].netmask, 0, 16);
 			}
 
+#ifndef CYGWING_AGENT
 			if(tempIfAddr->ifa_ifu.ifu_broadaddr != NULL)
 			{
 				memcpy(handle->m_addrlist->v6list[ifcnt6].bcast,
@@ -203,6 +207,9 @@ int32_t scap_create_iflist(scap_t* handle)
 			{
 				memset(handle->m_addrlist->v6list[ifcnt6].bcast, 0, 16);
 			}
+#else
+			handle->m_addrlist->v4list[ifcnt4].bcast = 0;
+#endif
 
 			strncpy(handle->m_addrlist->v6list[ifcnt6].ifname, tempIfAddr->ifa_name, SCAP_MAX_PATH_SIZE);
 			handle->m_addrlist->v6list[ifcnt6].ifnamelen = strlen(tempIfAddr->ifa_name);

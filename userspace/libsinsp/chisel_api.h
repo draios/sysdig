@@ -48,6 +48,8 @@ public:
 	static int get_machine_info(lua_State *ls);
 	static int get_thread_table(lua_State *ls);
 	static int get_thread_table_nofds(lua_State *ls);
+	static int get_thread_table_barebone(lua_State *ls);
+	static int get_thread_table_barebone_nofds(lua_State *ls);
 	static int get_container_table(lua_State *ls);
 	static int is_print_container_data(lua_State *ls);
 	static int get_output_format(lua_State *ls);
@@ -67,7 +69,7 @@ public:
 	static int push_metric(lua_State *ls);
 #endif
 private:
-	static int get_thread_table_int(lua_State *ls, bool include_fds);
+	static int get_thread_table_int(lua_State *ls, bool include_fds, bool barebone);
 };
 
 #endif // HAS_CHISELS
