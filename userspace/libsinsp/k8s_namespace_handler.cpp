@@ -1,6 +1,7 @@
 //
 // k8s_namespace_handler.cpp
 //
+#ifndef CYGWING_AGENT
 
 #include "k8s_namespace_handler.h"
 #include "sinsp.h"
@@ -113,3 +114,4 @@ bool k8s_namespace_handler::handle_component(const Json::Value& json, const msg_
 	}
 	return true;
 }
+#endif // CYGWING_AGENT

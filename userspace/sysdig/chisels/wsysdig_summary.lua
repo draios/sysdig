@@ -947,7 +947,7 @@ function build_output(captureDuration)
 	if should_include(gsummary.fileCountW) then
 		res[#res+1] = {
 			name = 'Modified Files',
-			desc = 'Number of files that have been accessed during the capture',
+			desc = 'Number of files that have been received writes during the capture',
 			category = 'file',
 			targetView = 'files',
 			drillDownKey = 'fd.directory',

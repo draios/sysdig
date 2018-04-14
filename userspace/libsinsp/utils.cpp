@@ -21,7 +21,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <limits.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#ifndef CYGWING_AGENT
 #include <execinfo.h>
+#endif
 #include <unistd.h>
 #include <sys/time.h>
 #include <netdb.h>
@@ -305,6 +307,8 @@ const char* sinsp_utils::errno_to_str(int32_t code)
 		return "ENOMEDIUM";
 	case SE_ECANCELED:
 		return "ECANCELED";
+	case SE_EPROTONOSUPPORT:
+		return "EPROTONOSUPPORT";
 	default:
 		ASSERT(false);
 		return "";
@@ -766,6 +770,7 @@ bool sinsp_utils::glob_match(const char *pattern, const char *string)
 #endif
 }
 
+#ifndef CYGWING_AGENT
 #ifndef _WIN32
 void sinsp_utils::bt(void)
 {
@@ -789,6 +794,29 @@ void sinsp_utils::bt(void)
 	free(bt_syms);
 }
 #endif // _WIN32
+#endif // CYGWING_AGENT
+
+bool sinsp_utils::find_first_env(std::string &out, const vector<std::string> &env, const vector<std::string> &keys)
+{
+	for (const string key : keys)
+	{
+		for(const auto& env_var : env)
+		{
+			if((env_var.size() > key.size()) && !env_var.compare(0, key.size(), key) && (env_var[key.size()] == '='))
+			{
+				out = env_var.substr(key.size()+1);
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+bool sinsp_utils::find_env(std::string &out, const vector<std::string> &env, const std::string &key)
+{
+	const vector<std::string> keys = { key };
+	return find_first_env(out, env, keys);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Time utility functions.
@@ -927,15 +955,12 @@ string port_to_string(uint16_t port, uint8_t l4proto, bool resolve)
 string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve)
 {
 	char buf[50];
+	uint8_t *ip = (uint8_t *)&addr->m_ip;
 
-	// IP address is saved with host byte order, that's why we do shifts
+	// IP address is in network byte order regardless of host endianness
 	snprintf(buf,
 		sizeof(buf),
-		"%d.%d.%d.%d:%s",
-		(addr->m_ip & 0xFF),
-		((addr->m_ip & 0xFF00) >> 8),
-		((addr->m_ip & 0xFF0000) >> 16),
-		((addr->m_ip & 0xFF000000) >> 24),
+		"%d.%d.%d.%d:%s", ip[0], ip[1], ip[2], ip[3],
 		port_to_string(addr->m_port, addr->m_l4proto, resolve).c_str());
 
 	return string(buf);

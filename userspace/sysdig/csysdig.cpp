@@ -262,7 +262,6 @@ captureinfo do_inspect(sinsp* inspector,
 			{
 				ui->set_truncated_input(true);
 				res = SCAP_EOF;
-				continue;
 			}
 		}
 
@@ -898,6 +897,11 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	}
 	catch(sinsp_capture_interrupt_exception&)
 	{
+	}
+	catch(sinsp_exception& e)
+	{
+		errorstr = e.what();
+		res.m_res = e.scap_rc();
 	}
 	catch(std::exception& e)
 	{

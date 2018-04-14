@@ -44,9 +44,14 @@ typedef struct _block_header
 // Used to recognize if a section is in host byte order or not.
 #define SHB_MAGIC		0x1A2B3C4D
 // Major version of the file format supported by this library.
+// Must be increased only when if the new version of the software
+// is not able anymore to read older captures
 #define CURRENT_MAJOR_VERSION	1
 // Minor version of the file format supported by this library.
-#define CURRENT_MINOR_VERSION	0
+// Must be increased every time we change the capture format
+// (e.g. most of the changes in the event table, like adding
+// a syscall)
+#define CURRENT_MINOR_VERSION	1
 
 typedef struct _section_header_block
 {
@@ -89,6 +94,8 @@ typedef struct _section_header_block
 #define PL_BLOCK_TYPE_V6		0x212
 
 #define PL_BLOCK_TYPE_V7		0x213
+
+#define PL_BLOCK_TYPE_V8		0x214
 
 ///////////////////////////////////////////////////////////////////////////////
 // FD LIST BLOCK

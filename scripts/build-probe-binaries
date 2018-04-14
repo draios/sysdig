@@ -174,44 +174,44 @@ function coreos_build_new {
 
 	cd $COREOS_DIR
 
-	# If past runs fail, /tmp/loop and relative device
-	# may be hanging around
-	if mount | grep /tmp/loop; then
-		LOOPDEV=$(mount |grep /tmp/loop|cut -d" " -f1|egrep -o "loop[0-9]+")
-		sudo umount /tmp/loop
-		sudo kpartx -dv /dev/$LOOPDEV
-	fi
-
 	if [ ! -f coreos_developer_container.bin ]; then
 		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} ${VERSION_URL}coreos_developer_container.bin.bz2
 		bunzip2 coreos_developer_container.bin.bz2
 	fi
-	sudo kpartx -asv coreos_developer_container.bin
-	LOOPDEV=$(sudo kpartx -asv coreos_developer_container.bin | cut -d\  -f 3)
-	sudo mkdir /tmp/loop || true
-	sudo mount /dev/mapper/$LOOPDEV /tmp/loop
 
-	rm config* || true
-	cp /tmp/loop/usr/boot/config-* .
-	cp config-* config_orig
-	cp config_orig config
+	if [ ! -f config_orig ]; then
+		# mount developer container is a very stateful part of this script
+		# the section between mount/unmounting should be kept very small
+		# otherwise if something fails there are many inconsistencies that can happen
+		sudo kpartx -asv coreos_developer_container.bin
+		LOOPDEV=$(sudo kpartx -asv coreos_developer_container.bin | cut -d\  -f 3)
+		sudo mkdir /tmp/loop || true
+		sudo mount /dev/mapper/$LOOPDEV /tmp/loop
+		
+		# Copy kernel headers
+		cp -r /tmp/loop/lib/modules .
+
+		# Copy kernel config
+		rm config* || true
+		cp /tmp/loop/usr/boot/config-* .
+		cp config-* config_orig
+		cp config_orig config
+
+		# umount and remove the developer container
+		sudo umount /tmp/loop
+		sudo kpartx -dv coreos_developer_container.bin
+	fi
+
 	# https://groups.google.com/forum/#!topic/coreos-dev/Z8Q7sIy6YwE
 	sed -i 's/CONFIG_INITRAMFS_SOURCE=""/CONFIG_INITRAMFS_SOURCE="bootengine.cpio"\nCONFIG_INITRAMFS_ROOT_UID=0\nCONFIG_INITRAMFS_ROOT_GID=0/' config
+	sed -i 'N;s/\(CONFIG_RD_LZ4=.\)\n\(CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=\)/\1\nCONFIG_INITRAMFS_COMPRESSION=".gz"\n\2/' config
 	KERNEL_RELEASE=$(ls config-* | sed s/config-//)
 	HASH_ORIG=$(md5sum config_orig | cut -d' ' -f1)
 	HASH=$(md5sum config | cut -d' ' -f1)
 
+	export KERNELDIR=$PWD/modules/$KERNEL_RELEASE/build
 	cd $BASEDIR
-	export KERNELDIR=$(readlink -f /tmp/loop/lib/modules/$KERNEL_RELEASE/build)
-
 	build_probe
-
-	cd $COREOS_DIR
-	# cleanup
-	sudo umount /tmp/loop
-	sudo kpartx -dv coreos_developer_container.bin
-
-	cd $BASEDIR
 
 	return
 }
@@ -376,7 +376,7 @@ function debian_build {
 			mkdir -p ${BASEDIR}/common-dependencies/debian/kbuild
 		fi
 		if [ ! -f ${BASEDIR}/common-dependencies/debian/kbuild/${DEB} ]; then
-			echo Downloading ${DEB} [Ubuntu]
+			echo Downloading ${DEB} [Debian]
 			wget --timeout=${URL_TIMEOUT} --tries=${RETRY} -P ${BASEDIR}/common-dependencies/debian/kbuild ${URL}
 		fi
 		return
@@ -398,7 +398,7 @@ function debian_build {
 		cd ${PACKAGE}
 
 		if [ ! -f ${DEB} ]; then
-			echo Downloading ${DEB} [Ubuntu]
+			echo Downloading ${DEB} [Debian]
 			wget --timeout=${URL_TIMEOUT} --tries=${RETRY} ${URL}
 			dpkg -x ${DEB} ./
 		fi
@@ -533,8 +533,10 @@ if [ -z "$KERNEL_TYPE" ]; then
 	# because they are still in use by some GCE customers but the headers
 	# are no longer available from the mirror. We pass the URL but nothing
 	# needs to be downloaded because we already have it cached on the builder.
-	debian_build https://mirrors.kernel.org/debian/pool/main/l/linux/linux-headers-3.16.0-4-amd64_3.16.36-1+deb8u2_amd64.deb
-	debian_build https://mirrors.kernel.org/debian/pool/main/l/linux/linux-headers-3.16.0-4-amd64_3.16.39-1+deb8u2_amd64.deb
+	#
+	# These are no longer available, so disabling for now.
+	#debian_build https://mirrors.kernel.org/debian/pool/main/l/linux/linux-headers-3.16.0-4-amd64_3.16.36-1+deb8u2_amd64.deb
+	#debian_build https://mirrors.kernel.org/debian/pool/main/l/linux/linux-headers-3.16.0-4-amd64_3.16.39-1+deb8u2_amd64.deb
 
 	#
 	# Oracle RHCK build
@@ -560,7 +562,7 @@ if [ -z "$KERNEL_TYPE" ]; then
 	#
 	echo "Creating Oracle Linux 6 UEK builder"
 	docker ps -q -f 'name=ol6-build' | xargs --no-run-if-empty docker rm
-	docker build -t ol6-builder:latest -f ../sysdig/scripts/Dockerfile.ol6 ../sysdig/scripts
+	docker build -t ol6-builder:latest -f ../sysdig/scripts/Dockerfile.ol6 --pull ../sysdig/scripts
 	docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi
 	docker run -i --rm --name ol6-build -v $BASEDIR:/build/probe ol6-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL6-UEK
 
@@ -569,7 +571,7 @@ if [ -z "$KERNEL_TYPE" ]; then
 	#
 	echo "Creating Oracle Linux 7 UEK builder"
 	docker ps -q -f 'name=ol7-build' | xargs --no-run-if-empty docker rm
-	docker build -t ol7-builder:latest -f ../sysdig/scripts/Dockerfile.ol7 ../sysdig/scripts
+	docker build -t ol7-builder:latest -f ../sysdig/scripts/Dockerfile.ol7 --pull ../sysdig/scripts
 	docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi
 	docker run -i --rm --name ol7-build -v $BASEDIR:/build/probe ol7-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL7-UEK
 
@@ -579,6 +581,18 @@ if [ -z "$KERNEL_TYPE" ]; then
 	echo Building AmazonLinux
 	DIR=$(dirname $(readlink -f $0))
 	URLS="$($DIR/kernel-crawler.py AmazonLinux)"
+
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
+
+	#
+	# AmazonLinux2 build
+	#
+	echo Building AmazonLinux2
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py AmazonLinux2)"
 
 	for URL in $URLS
 	do

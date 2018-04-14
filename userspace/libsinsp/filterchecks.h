@@ -21,11 +21,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <json/json.h>
 #include "filter_value.h"
 #include "prefix_search.h"
+#ifndef CYGWING_AGENT
 #include "k8s.h"
 #include "mesos.h"
+#endif
 
 #ifdef HAS_FILTERING
-
 class sinsp_filter_check_reference;
 
 bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
@@ -85,7 +86,7 @@ public:
 	// Doesn't return the field length because the filtering engine can calculate it.
 	//
 	void add_filter_value(const char* str, uint32_t len, uint32_t i = 0 );
-	virtual void parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
+	virtual size_t parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
 
 	//
 	// Called after parsing for optional validation of the filter value
@@ -280,7 +281,9 @@ public:
 		TYPE_CNET = 28,
 		TYPE_SNET = 29,
 		TYPE_LNET = 30,
-		TYPE_RNET = 31
+		TYPE_RNET = 31,
+		TYPE_IS_CONNECTED = 32,
+		TYPE_NAME_CHANGED = 33,
 	};
 
 	enum fd_type
@@ -373,6 +376,7 @@ public:
 		TYPE_TTY = 42,
 		TYPE_EXEPATH = 43,
 		TYPE_NAMETID = 44,
+		TYPE_VPGID = 45,
 	};
 
 	sinsp_filter_check_thread();
@@ -384,7 +388,7 @@ public:
 private:
 	uint64_t extract_exectime(sinsp_evt *evt);
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
-	uint8_t* extract_thread_cpu(sinsp_evt *evt, sinsp_threadinfo* tinfo, bool extract_user, bool extract_system);
+	uint8_t* extract_thread_cpu(sinsp_evt *evt, OUT uint32_t* len, sinsp_threadinfo* tinfo, bool extract_user, bool extract_system);
 	inline bool compare_full_apid(sinsp_evt *evt);
 	bool compare_full_aname(sinsp_evt *evt);
 
@@ -480,7 +484,7 @@ public:
 	~sinsp_filter_check_event();
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
-	void parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
+	size_t parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
 	void validate_filter_value(const char* str, uint32_t len);
 	const filtercheck_field_info* get_field_info();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
@@ -508,7 +512,7 @@ private:
 	int32_t extract_type(string fldname, string val, OUT const struct ppm_param_info** parinfo);
 	uint8_t* extract_error_count(sinsp_evt *evt, OUT uint32_t* len);
 	uint8_t *extract_abspath(sinsp_evt *evt, OUT uint32_t *len);
-	inline uint8_t* extract_buflen(sinsp_evt *evt);
+	inline uint8_t* extract_buflen(sinsp_evt *evt, OUT uint32_t* len);
 
 	bool m_is_compare;
 	char* m_storage;
@@ -599,7 +603,7 @@ public:
 
 private:
 	int32_t extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo);
-	inline int64_t* extract_duration(uint16_t etype, sinsp_tracerparser* eparser);
+	inline uint8_t* extract_duration(uint16_t etype, sinsp_tracerparser* eparser, OUT uint32_t* len);
 	uint8_t* extract_args(sinsp_partial_tracer* pae, OUT uint32_t *len);
 	uint8_t* extract_arg(sinsp_partial_tracer* pae, OUT uint32_t *len);
 
@@ -909,6 +913,7 @@ private:
 
 #endif // HAS_ANALYZER
 
+#ifndef CYGWING_AGENT
 class sinsp_filter_check_mesos : public sinsp_filter_check
 {
 public:
@@ -946,5 +951,6 @@ private:
 	string m_argname;
 	string m_tstr;
 };
+#endif // CYGWING_AGENT
 
 #endif // HAS_FILTERING

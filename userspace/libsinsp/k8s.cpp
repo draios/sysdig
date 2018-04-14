@@ -1,6 +1,7 @@
 //
 // k8s.cpp
 //
+#ifndef CYGWING_AGENT
 
 #include "k8s.h"
 #include "k8s_component.h"
@@ -302,3 +303,4 @@ std::size_t k8s::count(k8s_component::type component) const
 	os << "Unknown component " << static_cast<int>(component);
 	throw sinsp_exception(os.str());
 }
+#endif // CYGWING_AGENT

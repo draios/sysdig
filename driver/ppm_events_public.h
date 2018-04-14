@@ -253,9 +253,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_SHUT_RDWR 2
 
 /*
- * openat() flags
+ * fs *at() flags
  */
 #define PPM_AT_FDCWD -100
+
+/*
+ * unlinkat() flags
+ */
+#define PPM_AT_REMOVEDIR 0x200
 
 /*
  * rlimit resources
@@ -362,6 +367,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_PTRACE_IDX_SIGTYPE 1
 
 #define PPM_PTRACE_IDX_MAX 2
+
+#define PPM_BPF_IDX_FD 0
+#define PPM_BPF_IDX_RES 1
+
+#define PPM_BPF_IDX_MAX 2
 
 /*
  * memory protection flags
@@ -830,21 +840,35 @@ enum ppm_event_type {
 	PPME_SYSCALL_EXECVE_18_X = 289,
 	PPME_PAGE_FAULT_E = 290,
 	PPME_PAGE_FAULT_X = 291,
-	PPME_SYSCALL_CHOWN_E = 292,
-	PPME_SYSCALL_CHOWN_X = 293,
-	PPME_SYSCALL_LCHOWN_E = 294,
-	PPME_SYSCALL_LCHOWN_X = 295,
-	PPME_SYSCALL_FCHOWN_E = 296,
-	PPME_SYSCALL_FCHOWN_X = 297,
-	PPME_SYSCALL_FCHOWNAT_E = 298,
-	PPME_SYSCALL_FCHOWNAT_X = 299,
-	PPME_SYSCALL_CHMOD_E = 300,
-	PPME_SYSCALL_CHMOD_X = 301,
-	PPME_SYSCALL_FCHMOD_E = 302,
-	PPME_SYSCALL_FCHMOD_X = 303,
-	PPME_SYSCALL_FCHMODAT_E = 304,
-	PPME_SYSCALL_FCHMODAT_X = 305,
-	PPM_EVENT_MAX = 306
+	PPME_SYSCALL_EXECVE_19_E = 292,
+	PPME_SYSCALL_EXECVE_19_X = 293,
+	PPME_SYSCALL_SETPGID_E = 294,
+	PPME_SYSCALL_SETPGID_X = 295,
+	PPME_SYSCALL_BPF_E = 296,
+	PPME_SYSCALL_BPF_X = 297,
+	PPME_SYSCALL_SECCOMP_E = 298,
+	PPME_SYSCALL_SECCOMP_X = 299,
+	PPME_SYSCALL_UNLINK_2_E = 300,
+	PPME_SYSCALL_UNLINK_2_X = 301,
+	PPME_SYSCALL_UNLINKAT_2_E = 302,
+	PPME_SYSCALL_UNLINKAT_2_X = 303,
+	PPME_SYSCALL_MKDIRAT_E = 304,
+	PPME_SYSCALL_MKDIRAT_X = 305,
+	PPME_SYSCALL_CHOWN_E = 306,
+	PPME_SYSCALL_CHOWN_X = 307,
+	PPME_SYSCALL_LCHOWN_E = 308,
+	PPME_SYSCALL_LCHOWN_X = 309,
+	PPME_SYSCALL_FCHOWN_E = 310,
+	PPME_SYSCALL_FCHOWN_X = 311,
+	PPME_SYSCALL_FCHOWNAT_E = 312,
+	PPME_SYSCALL_FCHOWNAT_X = 313,
+	PPME_SYSCALL_CHMOD_E = 314,
+	PPME_SYSCALL_CHMOD_X = 315,
+	PPME_SYSCALL_FCHMOD_E = 316,
+	PPME_SYSCALL_FCHMOD_X = 317,
+	PPME_SYSCALL_FCHMODAT_E = 318,
+	PPME_SYSCALL_FCHMODAT_X = 319,
+	PPM_EVENT_MAX = 320
 };
 /*@}*/
 
@@ -1166,7 +1190,10 @@ enum ppm_syscall_code {
 	PPM_SC_SETRESGID32 = 311,
 	PPM_SC_GETRESUID32 = 312,
 	PPM_SC_GETRESGID32 = 313,
-	PPM_SC_MAX = 314,
+	PPM_SC_FINIT_MODULE = 314,
+	PPM_SC_BPF = 315,
+	PPM_SC_SECCOMP = 316,
+	PPM_SC_MAX = 317,
 };
 
 /*
@@ -1277,8 +1304,8 @@ struct ppm_name_value {
   \brief Event parameter information.
 */
 struct ppm_param_info {
-	char name[PPM_MAX_NAME_LEN];  /**< Paramter name, e.g. 'size'. */
-	enum ppm_param_type type; /**< Paramter type, e.g. 'uint16', 'string'... */
+	char name[PPM_MAX_NAME_LEN];  /**< Parameter name, e.g. 'size'. */
+	enum ppm_param_type type; /**< Parameter type, e.g. 'uint16', 'string'... */
 	enum ppm_print_format fmt; /**< If this is a numeric parameter, this flag specifies if it should be rendered as decimal or hex. */
 	const void *info; /**< If this is a flags parameter, it points to an array of ppm_name_value,
 			       else if this is a dynamic parameter it points to an array of ppm_param_info */
@@ -1325,6 +1352,7 @@ struct ppm_evt_hdr {
 /*
  * IOCTL codes
  */
+#ifndef CYGWING_AGENT
 #define PPM_IOCTL_MAGIC	's'
 #define PPM_IOCTL_DISABLE_CAPTURE _IO(PPM_IOCTL_MAGIC, 0)
 #define PPM_IOCTL_ENABLE_CAPTURE _IO(PPM_IOCTL_MAGIC, 1)
@@ -1347,6 +1375,7 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_SET_SIMPLE_MODE _IO(PPM_IOCTL_MAGIC, 18)
 #define PPM_IOCTL_ENABLE_PAGE_FAULTS _IO(PPM_IOCTL_MAGIC, 19)
 #define PPM_IOCTL_GET_N_TRACEPOINT_HIT _IO(PPM_IOCTL_MAGIC, 20)
+#endif // CYGWING_AGENT
 
 extern const struct ppm_name_value socket_families[];
 extern const struct ppm_name_value file_flags[];
@@ -1373,9 +1402,11 @@ extern const struct ppm_name_value semget_flags[];
 extern const struct ppm_name_value semctl_commands[];
 extern const struct ppm_name_value access_flags[];
 extern const struct ppm_name_value pf_flags[];
+extern const struct ppm_name_value unlinkat_flags[];
 extern const struct ppm_name_value chown_chmod_flags[];
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
+extern const struct ppm_param_info bpf_dynamic_param[];
 
 /*
  * Driver event notification ID

@@ -1,6 +1,7 @@
 //
 // k8s_dispatcher.cpp
 //
+#ifndef CYGWING_AGENT
 
 #include "k8s_dispatcher.h"
 #include "k8s_service_handler.h"
@@ -765,3 +766,4 @@ k8s_dispatcher::msg_reason k8s_dispatcher::to_reason(const std::string& desc)
 	else if(desc == "UNKNOWN") { return COMPONENT_UNKNOWN; }
 	throw sinsp_exception(desc);
 }
+#endif // CYGWING_AGENT

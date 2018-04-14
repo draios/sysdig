@@ -70,6 +70,8 @@ typedef struct ppm_evt_hdr scap_evt;
 #define SCAP_INPUT_TOO_SMALL 5
 #define SCAP_EOF 6
 #define SCAP_UNEXPECTED_BLOCK 7
+#define SCAP_VERSION_MISMATCH 8
+#define SCAP_NOT_SUPPORTED 9
 
 //
 // Last error string size for scap_open_live()
@@ -204,6 +206,7 @@ typedef struct scap_threadinfo
 	uint64_t pid; ///< The id of the process containing this thread. In single thread processes, this is equal to tid.
 	uint64_t ptid; ///< The id of the thread that created this thread.
 	uint64_t sid; ///< The session id of the process containing this thread.
+	uint64_t vpgid; ///< The process group of this thread, as seen from its current pid namespace
 	char comm[SCAP_MAX_PATH_SIZE+1]; ///< Command name (e.g. "top")
 	char exe[SCAP_MAX_PATH_SIZE+1]; ///< argv[0] (e.g. "sshd: user@pts/4")
 	char exepath[SCAP_MAX_PATH_SIZE+1]; ///< full executable path
@@ -235,10 +238,10 @@ typedef struct scap_threadinfo
 }scap_threadinfo;
 
 typedef void (*proc_entry_callback)(void* context,
+									scap_t* handle,
 									int64_t tid,
 									scap_threadinfo* tinfo,
-									scap_fdinfo* fdinfo,
-									scap_t* newhandle);
+									scap_fdinfo* fdinfo);
 
 /*!
   \brief Arguments for scap_open
@@ -490,10 +493,12 @@ struct ppm_syscall_desc {
 
   \param error Pointer to a buffer that will contain the error string in case the
     function fails. The buffer must have size SCAP_LASTERR_SIZE.
+  \param rc Integer pointer that will contain the scap return code in case the
+    function fails.
 
   \return The capture instance handle in case of success. NULL in case of failure.
 */
-scap_t* scap_open_live(char *error);
+scap_t* scap_open_live(char *error, int32_t *rc);
 
 /*!
   \brief Start an event capture from file.
@@ -501,10 +506,12 @@ scap_t* scap_open_live(char *error);
   \param fname The name of the file to open.
   \param error Pointer to a buffer that will contain the error string in case the
     function fails. The buffer must have size SCAP_LASTERR_SIZE.
+  \param rc Integer pointer that will contain the scap return code in case the
+    function fails.
 
   \return The capture instance handle in case of success. NULL in case of failure.
 */
-scap_t* scap_open_offline(const char* fname, char *error);
+scap_t* scap_open_offline(const char* fname, char *error, int32_t *rc);
 
 /*!
   \brief Start an event capture from an already opened file descriptor.
@@ -512,10 +519,12 @@ scap_t* scap_open_offline(const char* fname, char *error);
   \param fd The fd to use.
   \param error Pointer to a buffer that will contain the error string in case the
     function fails. The buffer must have size SCAP_LASTERR_SIZE.
+  \param rc Integer pointer that will contain the scap return code in case the
+    function fails.
 
   \return The capture instance handle in case of success. NULL in case of failure.
 */
-scap_t* scap_open_offline_fd(int fd, char *error);
+scap_t* scap_open_offline_fd(int fd, char *error, int32_t *rc);
 
 /*!
   \brief Advanced function to start a capture.
@@ -523,10 +532,12 @@ scap_t* scap_open_offline_fd(int fd, char *error);
   \param args a \ref scap_open_args structure containing the open paraneters.
   \param error Pointer to a buffer that will contain the error string in case the
     function fails. The buffer must have size SCAP_LASTERR_SIZE.
+  \param rc Integer pointer that will contain the scap return code in case the
+    function fails.
 
   \return The capture instance handle in case of success. NULL in case of failure.
 */
-scap_t* scap_open(scap_open_args args, char *error);
+scap_t* scap_open(scap_open_args args, char *error, int32_t *rc);
 
 /*!
   \brief Close a capture handle.
@@ -945,6 +956,10 @@ int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t t
 int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo);
 int32_t scap_enable_simpledriver_mode(scap_t* handle);
 int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret);
+#ifdef CYGWING_AGENT
+typedef struct wh_t wh_t;
+wh_t* scap_get_wmi_handle(scap_t* handle);
+#endif
 
 #ifdef __cplusplus
 }

@@ -1,11 +1,13 @@
 //
 // mesos_component.cpp
 //
+#ifndef CYGWING_AGENT
 
 #include "mesos_component.h"
 #include "marathon_component.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "json_error_log.h"
 #include <sstream>
 #include <iostream>
 
@@ -302,6 +304,7 @@ void mesos_task::add_labels(mesos_task::ptr_t task, const Json::Value& t_val)
 	{
 		os << "Attempt to add Mesos task labels to null task.";
 		g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
+		g_json_error_log.log("", os.str(), sinsp_utils::get_current_time_ns(), "mesos-task-add-labels");
 	}
 }
 
@@ -313,4 +316,5 @@ mesos_slave::mesos_slave(const std::string& name, const std::string& uid) :
 	mesos_component(mesos_component::MESOS_SLAVE, name, uid)
 {
 }
+#endif // CYGWING_AGENT
 

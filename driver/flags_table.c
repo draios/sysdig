@@ -435,6 +435,11 @@ const struct ppm_name_value pf_flags[] = {
 	{ },
 };
 
+const struct ppm_name_value unlinkat_flags[] = {
+	{"AT_REMOVEDIR", PPM_AT_REMOVEDIR},
+	{ },
+};
+
 const struct ppm_name_value chown_chmod_flags[] = {
 	{"AT_EMPTY_PATH", PPM_AT_EMPTY_PATH},
 	{"AT_SYMLINK_NOFOLLOW", PPM_AT_SYMLINK_NOFOLLOW},

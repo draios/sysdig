@@ -18,7 +18,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <stdio.h>
 #include <stdlib.h>
-#ifndef _WIN32
+#ifdef HAS_CAPTURE
+#ifndef CYGWING_AGENT
 #include <unistd.h>
 #include <sys/param.h>
 #include <dirent.h>
@@ -26,13 +27,18 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/syscall.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
-#endif
+#endif // CYGWING_AGENT
+#endif // HAS_CAPTURE
 
 #include "scap.h"
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap-int.h"
+#ifdef CYGWING_AGENT
+#include "windows_hal.h"
+#endif
 
 #if defined(HAS_CAPTURE)
+#ifndef CYGWING_AGENT
 int32_t scap_proc_fill_cwd(char* procdirname, struct scap_threadinfo* tinfo)
 {
 	int target_res;
@@ -60,6 +66,8 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	uint64_t vpid;
 	uint64_t vtid;
 	int64_t sid;
+	int64_t pgid;
+	int64_t vpgid;
 	uint32_t vmsize_kb;
 	uint32_t vmrss_kb;
 	uint32_t vmswap_kb;
@@ -73,6 +81,7 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	tinfo->uid = (uint32_t)-1;
 	tinfo->ptid = (uint32_t)-1LL;
 	tinfo->sid = 0;
+	tinfo->vpgid = 0;
 	tinfo->vmsize_kb = 0;
 	tinfo->vmrss_kb = 0;
 	tinfo->vmswap_kb = 0;
@@ -182,6 +191,14 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 				tinfo->vtid = tinfo->tid;
 			}
 		}
+		else if(strstr(line, "NSpgid:") == line)
+		{
+			nfound++;
+			if(sscanf(line, "NSpgid: %*u %" PRIu64, &vpgid) == 1)
+			{
+				tinfo->vpgid = vpgid;
+			}
+		}
 		else if(strstr(line, "NStgid:") == line)
 		{
 			nfound++;
@@ -195,13 +212,13 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 			}
 		}
 
-		if(nfound == 8)
+		if(nfound == 9)
 		{
 			break;
 		}
 	}
 
-	ASSERT(nfound == 8 || nfound == 6 || nfound == 5);
+	ASSERT(nfound == 9 || nfound == 6 || nfound == 5);
 
 	fclose(f);
 
@@ -235,7 +252,7 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	if(sscanf(s + 2, "%c %" PRId64 " %" PRId64 " %" PRId64 " %" PRId32 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64,
 		&tmpc,
 		&tmp,
-		&tmp,
+		&pgid,
 		&sid,
 		&tty,
 		&tmp,
@@ -252,6 +269,14 @@ int32_t scap_proc_fill_info_from_stats(char* procdirname, struct scap_threadinfo
 	tinfo->pfmajor = pfmajor;
 	tinfo->pfminor = pfminor;
 	tinfo->sid = (uint64_t) sid;
+
+	// If we did not find vpgid above, set it to pgid from the
+	// global namespace.
+	if(tinfo->vpgid == 0)
+	{
+		tinfo->vpgid = pgid;
+	}
+
 	tinfo->tty = tty;
 
 	fclose(f);
@@ -416,30 +441,6 @@ static int32_t scap_get_vpid(scap_t* handle, int64_t tid, int64_t *vpid)
 	*vpid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_VPID, tid);
 
 	if(*vpid == -1)
-	{
-		ASSERT(false);
-		return SCAP_FAILURE;
-	}
-
-	return SCAP_SUCCESS;
-#endif
-}
-
-int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
-{
-	if(handle->m_mode != SCAP_MODE_LIVE)
-	{
-		ASSERT(false);
-		return SCAP_FAILURE;
-	}
-
-#if !defined(HAS_CAPTURE)
-	ASSERT(false)
-	return SCAP_FAILURE;
-#else
-
-	*pid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_CURRENT_PID);
-	if(*pid == -1)
 	{
 		ASSERT(false);
 		return SCAP_FAILURE;
@@ -757,7 +758,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 		}
 		else
 		{
-			handle->m_proc_callback(handle->m_proc_callback_context, tinfo->tid, tinfo, NULL, handle);
+			handle->m_proc_callback(handle->m_proc_callback_context, handle, tinfo->tid, tinfo, NULL);
 			free_tinfo = true;
 		}
 	}
@@ -908,7 +909,45 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 	return res;
 }
 
+#endif // CYGWING_AGENT
+
+int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
+{
+#ifndef CYGWING_AGENT
+	if(handle->m_mode != SCAP_MODE_LIVE)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE)
+	ASSERT(false)
+	return SCAP_FAILURE;
+#else
+
+	*pid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_CURRENT_PID);
+	if(*pid == -1)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+#endif
+#else // CYGWING_AGENT
+	return getpid();
+#endif // CYGWING_AGENT
+}
+
 #endif // HAS_CAPTURE
+
+#ifdef CYGWING_AGENT
+int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid, int tid_to_scan, struct scap_threadinfo** procinfo, char *error, bool scan_sockets)
+{
+	return scap_proc_scan_proc_dir_windows(handle, procinfo, error);
+	return SCAP_FAILURE;
+}
+#endif
 
 //
 // Delete a process entry

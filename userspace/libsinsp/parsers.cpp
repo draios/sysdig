@@ -273,6 +273,8 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETUID_E:
 	case PPME_SYSCALL_SETGID_E:
 	case PPME_SYSCALL_EXECVE_18_E:
+	case PPME_SYSCALL_EXECVE_19_E:
+	case PPME_SYSCALL_SETPGID_E:
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_WRITE_E:
@@ -338,6 +340,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_16_X:
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
+	case PPME_SYSCALL_EXECVE_19_X:
 		parse_execve_exit(evt);
 		break;
 	case PPME_PROCEXIT_E:
@@ -442,6 +445,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_CPU_HOTPLUG_E:
 		parse_cpu_hotplug_enter(evt);
 		break;
+#ifndef CYGWING_AGENT
 	case PPME_K8S_E:
 		if(!m_inspector->is_live())
 		{
@@ -454,6 +458,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 			parse_mesos_evt(evt);
 		}
 		break;
+#endif
 	case PPME_SYSCALL_CHROOT_X:
 		parse_chroot_exit(evt);
 		break;
@@ -490,6 +495,14 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		{
 			evt->m_filtered_out = true;
 		}
+	}
+
+	// Check to see if the name changed as a side-effect of
+	// parsing this event. Try to avoid the overhead of a string
+	// compare for every event.
+	if(evt->m_fdinfo)
+	{
+		evt->set_fdinfo_name_changed(evt->m_fdinfo->m_name != evt->m_fdinfo->m_oldname);
 	}
 }
 
@@ -1123,6 +1136,9 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		// Copy the session id from the parent
 		tinfo.m_sid = ptinfo->m_sid;
 
+		// Copy the process group id from the parent
+		tinfo.m_vpgid = ptinfo->m_vpgid;
+
 		tinfo.m_tty = ptinfo->m_tty;
 	}
 	else
@@ -1157,6 +1173,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			tinfo.m_args = ptinfo->m_args;
 			tinfo.m_root = ptinfo->m_root;
 			tinfo.m_sid = ptinfo->m_sid;
+			tinfo.m_vpgid = ptinfo->m_vpgid;
 			tinfo.m_tty = ptinfo->m_tty;
 		}
 		else
@@ -1232,6 +1249,14 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		tinfo.m_fdtable = *(ptinfo->get_fd_table());
 
 		//
+		// Track down that those are cloned fds
+		//
+		for(auto fdit = tinfo.m_fdtable.m_table.begin(); fdit != tinfo.m_fdtable.m_table.end(); ++fdit)
+		{
+			fdit->second.set_is_cloned();
+		}
+
+		//
 		// It's important to reset the cache of the child thread, to prevent it from
 		// referring to an element in the parent's table.
 		//
@@ -1240,7 +1265,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		//
 		// Not a thread, copy cwd
 		//
-		tinfo.m_cwd = ptinfo->m_cwd;
+		tinfo.m_cwd = ptinfo->get_cwd();
 	}
 	//if((tinfo.m_flags & (PPM_CL_CLONE_FILES)))
 	//{
@@ -1503,6 +1528,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_16_X:
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
+	case PPME_SYSCALL_EXECVE_19_X:
 		// Get the comm
 		parinfo = evt->get_param(13);
 		evt->m_tinfo->m_comm = parinfo->m_val;
@@ -1547,6 +1573,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_16_X:
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
+	case PPME_SYSCALL_EXECVE_19_X:
 		// Get the pgflt_maj
 		parinfo = evt->get_param(8);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -1594,6 +1621,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_16_X:
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
+	case PPME_SYSCALL_EXECVE_19_X:
 		// Get the environment
 		parinfo = evt->get_param(15);
 		evt->m_tinfo->set_env(parinfo->m_val, parinfo->m_len);
@@ -1630,6 +1658,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
+	case PPME_SYSCALL_EXECVE_19_X:
 		// Get the tty
 		parinfo = evt->get_param(16);
 		ASSERT(parinfo->m_len == sizeof(int32_t));
@@ -1641,34 +1670,55 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 
 	switch(etype)
 	{
-		case PPME_SYSCALL_EXECVE_8_X:
-		case PPME_SYSCALL_EXECVE_13_X:
-		case PPME_SYSCALL_EXECVE_14_X:
-		case PPME_SYSCALL_EXECVE_15_X:
-		case PPME_SYSCALL_EXECVE_16_X:
-		case PPME_SYSCALL_EXECVE_17_X:
-			break;
-		case PPME_SYSCALL_EXECVE_18_X:
-			// Get exepath
-			if (retrieve_enter_event(enter_evt, evt))
+	case PPME_SYSCALL_EXECVE_8_X:
+	case PPME_SYSCALL_EXECVE_13_X:
+	case PPME_SYSCALL_EXECVE_14_X:
+	case PPME_SYSCALL_EXECVE_15_X:
+	case PPME_SYSCALL_EXECVE_16_X:
+	case PPME_SYSCALL_EXECVE_17_X:
+		break;
+	case PPME_SYSCALL_EXECVE_18_X:
+	case PPME_SYSCALL_EXECVE_19_X:
+		// Get exepath
+		if (retrieve_enter_event(enter_evt, evt))
+		{
+			char fullpath[SCAP_MAX_PATH_SIZE];
+			parinfo = enter_evt->get_param(0);
+			if (strncmp(parinfo->m_val, "<NA>", 4) == 0)
 			{
-				char fullpath[SCAP_MAX_PATH_SIZE];
-				parinfo = enter_evt->get_param(0);
-				if (strncmp(parinfo->m_val, "<NA>", 4) == 0)
-				{
-					evt->m_tinfo->m_exepath = "<NA>";
-				}
-				else
-				{
-					sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
-												   evt->m_tinfo->m_cwd.c_str(), (uint32_t)evt->m_tinfo->m_cwd.size(),
-												   parinfo->m_val, (uint32_t)parinfo->m_len);
-					evt->m_tinfo->m_exepath = fullpath;
-				}
+				evt->m_tinfo->m_exepath = "<NA>";
 			}
-			break;
-		default:
-			ASSERT(false);
+			else
+			{
+				sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
+											   evt->m_tinfo->m_cwd.c_str(), (uint32_t)evt->m_tinfo->m_cwd.size(),
+											   parinfo->m_val, (uint32_t)parinfo->m_len);
+				evt->m_tinfo->m_exepath = fullpath;
+			}
+		}
+		break;
+	default:
+		ASSERT(false);
+	}
+
+	switch(etype)
+	{
+	case PPME_SYSCALL_EXECVE_8_X:
+	case PPME_SYSCALL_EXECVE_13_X:
+	case PPME_SYSCALL_EXECVE_14_X:
+	case PPME_SYSCALL_EXECVE_15_X:
+	case PPME_SYSCALL_EXECVE_16_X:
+	case PPME_SYSCALL_EXECVE_17_X:
+	case PPME_SYSCALL_EXECVE_18_X:
+		break;
+	case PPME_SYSCALL_EXECVE_19_X:
+		// Get the vpgid
+		parinfo = evt->get_param(17);
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		evt->m_tinfo->m_vpgid = *(int64_t *) parinfo->m_val;
+		break;
+	default:
+		ASSERT(false);
 	}
 	
 	//
@@ -1817,6 +1867,7 @@ void schedule_more_evts(sinsp* inspector, void* data, T* client, ppm_event_type 
 #endif // HAS_CAPTURE
 }
 
+#ifndef CYGWING_AGENT
 void schedule_more_k8s_evts(sinsp* inspector, void* data)
 {
 	schedule_more_evts(inspector, data, inspector->get_k8s_client(), PPME_K8S_E);
@@ -1874,6 +1925,7 @@ void sinsp_parser::schedule_mesos_events()
 	}
 #endif // HAS_CAPTURE
 }
+#endif // CYGWING_AGENT
 
 void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 {
@@ -2034,13 +2086,14 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 	{
 		fdi.m_type = (domain == PPM_AF_INET)? SCAP_FD_IPV4_SOCK : SCAP_FD_IPV6_SOCK;
 
+		uint8_t l4proto = SCAP_L4_UNKNOWN;
 		if(protocol == IPPROTO_TCP)
 		{
-			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_TCP;
+			l4proto = (type == SOCK_RAW)? SCAP_L4_RAW : SCAP_L4_TCP;
 		}
 		else if(protocol == IPPROTO_UDP)
 		{
-			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_UDP;
+			l4proto = (type == SOCK_RAW)? SCAP_L4_RAW : SCAP_L4_UDP;
 		}
 		else if(protocol == IPPROTO_IP)
 		{
@@ -2051,11 +2104,11 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 			//
 			if((type & 0xff) == SOCK_STREAM)
 			{
-				fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_TCP;
+				l4proto = SCAP_L4_TCP;
 			}
 			else if((type & 0xff) == SOCK_DGRAM)
 			{
-				fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_UDP;
+				l4proto = SCAP_L4_UDP;
 			}
 			else
 			{
@@ -2064,10 +2117,24 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 		}
 		else if(protocol == IPPROTO_ICMP)
 		{
-			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = SCAP_L4_ICMP;
+			l4proto = (type == SOCK_RAW)? SCAP_L4_RAW : SCAP_L4_ICMP;
+		}
+		else if(protocol == IPPROTO_RAW)
+		{
+			l4proto = SCAP_L4_RAW;
+		}
+
+		if(domain == PPM_AF_INET)
+		{
+			fdi.m_sockinfo.m_ipv4info.m_fields.m_l4proto = l4proto;
+		}
+		else
+		{
+			memset(&(fdi.m_sockinfo.m_ipv6info), 0, sizeof(fdi.m_sockinfo.m_ipv6info));
+			fdi.m_sockinfo.m_ipv6info.m_fields.m_l4proto = l4proto;
 		}
 	}
-	else if (domain == PPM_AF_NETLINK)
+	else if(domain == PPM_AF_NETLINK)
 	{
 		fdi.m_type = SCAP_FD_NETLINK;
 	}
@@ -2212,20 +2279,40 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 	//
 	if(family == PPM_AF_INET)
 	{
+		uint32_t ip = *(uint32_t *)(packed_data + 1);
 		uint16_t port = *(uint16_t *)(packed_data + 5);
 		if(port > 0)
 		{
 			evt->m_fdinfo->m_type = SCAP_FD_IPV4_SERVSOCK;
+			evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip = ip;
 			evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port = port;
+			evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_l4proto =
+					evt->m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_l4proto;
+			evt->m_fdinfo->set_role_server();
 		}
 	}
 	else if (family == PPM_AF_INET6)
 	{
+		uint8_t* ip = packed_data + 1;
 		uint16_t port = *(uint16_t *)(packed_data + 17);
 		if(port > 0)
 		{
-			evt->m_fdinfo->m_type = SCAP_FD_IPV6_SERVSOCK;
-			evt->m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port = port;
+			if(sinsp_utils::is_ipv4_mapped_ipv6(ip))
+			{
+				evt->m_fdinfo->m_type = SCAP_FD_IPV4_SERVSOCK;
+				evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_l4proto =
+					evt->m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_l4proto;
+				evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip = *(uint32_t *)(packed_data + 13);
+				evt->m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_port = port;
+			}
+			else
+			{
+				evt->m_fdinfo->m_type = SCAP_FD_IPV6_SERVSOCK;
+				evt->m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_port = port;
+				evt->m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_l4proto =
+					evt->m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_l4proto;
+			}
+			evt->m_fdinfo->set_role_server();
 		}
 	}
 	//
@@ -2250,6 +2337,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 	const char *parstr;
 	int64_t retval;
+	bool changed;
 
 	if(evt->m_fdinfo == NULL)
 	{
@@ -2321,24 +2409,40 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 		//
 		ASSERT(evt->m_fdinfo->m_type == SCAP_FD_IPV4_SOCK || evt->m_fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK);
 
-#ifndef HAS_ANALYZER
 		//
 		// Update the FD info with this tuple
 		//
 		if(family == PPM_AF_INET)
 		{
-			m_inspector->m_parser->set_ipv4_addresses_and_ports(evt->m_fdinfo, packed_data);
+			changed = m_inspector->m_parser->set_ipv4_addresses_and_ports(evt->m_fdinfo, packed_data);
 		}
 		else
 		{
-			m_inspector->m_parser->set_ipv4_mapped_ipv6_addresses_and_ports(evt->m_fdinfo, packed_data);
+			changed = m_inspector->m_parser->set_ipv4_mapped_ipv6_addresses_and_ports(evt->m_fdinfo, packed_data);
 		}
-#endif
+
+		if(changed && evt->m_fdinfo->is_role_server() && evt->m_fdinfo->is_udp_socket())
+		{
+			// connect done by a udp server, swap the addresses
+			swap_ipv4_addresses(evt->m_fdinfo);
+		}
 
 		//
 		// Add the friendly name to the fd info
 		//
-		evt->m_fdinfo->m_name = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
+		if(evt->m_fdinfo->is_role_server() && evt->m_fdinfo->is_udp_socket())
+		{
+			sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo,
+						     evt->m_fdinfo->m_type, &evt->m_paramstr_storage[0],
+						     (uint32_t)evt->m_paramstr_storage.size(),
+						     m_inspector->m_hostname_and_port_resolution_enabled);
+
+			evt->m_fdinfo->m_name = &evt->m_paramstr_storage[0];
+		}
+		else
+		{
+			evt->m_fdinfo->m_name = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
+		}
 	}
 	else
 	{
@@ -2365,10 +2469,18 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 #endif
 	}
 
+	if(evt->m_fdinfo->is_role_none())
+	{
+		//
+		// Mark this fd as a client
+		//
+		evt->m_fdinfo->set_role_client();
+	}
+
 	//
-	// Mark this fd as a client
+	// Mark this fd as a connected socket
 	//
-	evt->m_fdinfo->set_role_client();
+	evt->m_fdinfo->set_socket_connected();
 
 	//
 	// Call the protocol decoder callbacks associated to this event
@@ -2497,6 +2609,11 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 	// Mark this fd as a server
 	//
 	fdi.set_role_server();
+
+	//
+	// Mark this fd as a connected socket
+	//
+	fdi.set_socket_connected();
 
 	//
 	// Add the entry to the table
@@ -4046,7 +4163,9 @@ void sinsp_parser::parse_setresuid_exit(sinsp_evt *evt)
 
 		if(new_euid < std::numeric_limits<uint32_t>::max())
 		{
-			evt->get_thread_info()->m_uid = new_euid;
+			if (evt->get_thread_info()) {
+				evt->get_thread_info()->m_uid = new_euid;
+			}
 		}
 	}
 }
@@ -4072,7 +4191,9 @@ void sinsp_parser::parse_setresgid_exit(sinsp_evt *evt)
 
 		if(new_egid < std::numeric_limits<uint32_t>::max())
 		{
-			evt->get_thread_info()->m_gid = new_egid;
+			if (evt->get_thread_info()) {
+				evt->get_thread_info()->m_gid = new_egid;
+			}
 		}
 	}
 }
@@ -4095,7 +4216,9 @@ void sinsp_parser::parse_setuid_exit(sinsp_evt *evt)
 		parinfo = enter_evt->get_param(0);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		uint32_t new_euid = *(uint32_t *)parinfo->m_val;
-		evt->get_thread_info()->m_uid = new_euid;
+		if (evt->get_thread_info()) {
+			evt->get_thread_info()->m_uid = new_euid;
+		}
 	}
 }
 
@@ -4117,7 +4240,9 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt *evt)
 		parinfo = enter_evt->get_param(0);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		uint32_t new_egid = *(uint32_t *)parinfo->m_val;
-		evt->get_thread_info()->m_gid = new_egid;
+		if (evt->get_thread_info()) {
+			evt->get_thread_info()->m_gid = new_egid;
+		}
 	}
 }
 
@@ -4183,7 +4308,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		{
 			container_info.m_mesos_task_id = mesos_task_id.asString();
 		}
-		m_inspector->m_container_manager.add_container(container_info);
+		m_inspector->m_container_manager.add_container(container_info, evt->get_thread_info(true));
 		/*
 		g_logger.log("Container\n-------\nID:" + container_info.m_id +
 					 "\nType: " + std::to_string(container_info.m_type) +
@@ -4194,7 +4319,9 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 	}
 	else
 	{
-		throw sinsp_exception("Invalid JSON encountered while parsing container info: " + json);
+		std::string errstr;
+		errstr = Json::Reader().getFormattedErrorMessages();
+		throw sinsp_exception("Invalid JSON encountered while parsing container info: " + json + "error=" + errstr);
 	}
 }
 
@@ -4216,7 +4343,7 @@ void sinsp_parser::parse_container_evt(sinsp_evt *evt)
 	parinfo = evt->get_param(3);
 	container_info.m_image = parinfo->m_val;
 
-	m_inspector->m_container_manager.add_container(container_info);
+	m_inspector->m_container_manager.add_container(container_info, evt->get_thread_info(true));
 }
 
 void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt *evt)
@@ -4243,6 +4370,7 @@ uint8_t* sinsp_parser::reserve_event_buffer()
 	}
 }
 
+#ifndef CYGWING_AGENT
 int sinsp_parser::get_k8s_version(const std::string& json)
 {
 	if(m_k8s_capture_version == k8s_state_t::CAPTURE_VERSION_NONE)
@@ -4272,7 +4400,9 @@ int sinsp_parser::get_k8s_version(const std::string& json)
 		}
 		else
 		{
-			throw sinsp_exception("Invalid K8s capture JSON encountered.");
+			std::string errstr;
+			errstr = Json::Reader().getFormattedErrorMessages();
+			throw sinsp_exception("Invalid K8s capture JSON encountered (" + errstr + ")");
 		}
 	}
 
@@ -4316,6 +4446,7 @@ void sinsp_parser::parse_mesos_evt(sinsp_evt *evt)
 	ASSERT(m_inspector->m_mesos_client);
 	m_inspector->m_mesos_client->simulate_event(json);
 }
+#endif // CYGWING_AGENT
 
 void sinsp_parser::parse_chroot_exit(sinsp_evt *evt)
 {
@@ -4353,7 +4484,9 @@ void sinsp_parser::parse_setsid_exit(sinsp_evt *evt)
 
 	if(retval >= 0)
 	{
-		evt->get_thread_info()->m_sid = retval;
+		if (evt->get_thread_info()) {
+			evt->get_thread_info()->m_sid = retval;
+		}
 	}
 }
 

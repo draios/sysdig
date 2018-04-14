@@ -54,7 +54,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 //
 // Max size that the thread table can reach
 //
-#define MAX_THREAD_TABLE_SIZE 32768
+#define MAX_THREAD_TABLE_SIZE 65536
+#define DEFAULT_THREAD_TABLE_SIZE 32768
 
 //
 // Max size that the FD table of a process can reach
@@ -72,9 +73,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define DEFAULT_INACTIVE_THREAD_SCAN_TIME_S 1200
 
 //
-// How often the thread table is scanned for inactive threads
+// How often the container table is scanned for inactive containers
 //
-#define DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S DEFAULT_INACTIVE_THREAD_SCAN_TIME_S
+#define DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S 30
 
 //
 // Enables Lua chisel scripts support
