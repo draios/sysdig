@@ -24,7 +24,8 @@ enum sinsp_container_type
 	CT_LXC = 1,
 	CT_LIBVIRT_LXC = 2,
 	CT_MESOS = 3,
-	CT_RKT = 4
+	CT_RKT = 4,
+	CT_CUSTOM = 5
 };
 
 enum sinsp_docker_response
@@ -144,6 +145,65 @@ public:
 #endif
 };
 
+class sinsp_container_manager;
+
+typedef std::function<bool(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)> sinsp_container_engine;
+
+class sinsp_container_engine_docker
+{
+public:
+	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+protected:
+	sinsp_docker_response get_docker(const sinsp_container_manager* manager, const string& api_version, const string& container_id, string& json);
+	bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
+
+	inline sinsp_docker_response json_resp_ok(const string& json) const
+	{
+		if(strncmp(json.c_str(), "HTTP/1.0 200 OK", sizeof("HTTP/1.0 200 OK") -1))
+		{
+			return sinsp_docker_response::RESP_BAD_REQUEST;
+		}
+
+		return sinsp_docker_response::RESP_OK;
+	}
+};
+
+#ifndef CYGWING_AGENT
+class sinsp_container_engine_lxc
+{
+public:
+	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+};
+
+class sinsp_container_engine_libvirt_lxc
+{
+public:
+	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+protected:
+	bool match(sinsp_threadinfo* tinfo, sinsp_container_info* container_info);
+};
+
+class sinsp_container_engine_mesos
+{
+public:
+	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+	static bool set_mesos_task_id(sinsp_container_info* container, sinsp_threadinfo* tinfo);
+protected:
+	bool match(sinsp_threadinfo* tinfo, sinsp_container_info* container_info);
+	static string get_env_mesos_task_id(sinsp_threadinfo* tinfo);
+};
+
+class sinsp_container_engine_rkt
+{
+public:
+	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+protected:
+	bool match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp_container_info* container_info, string& rkt_podid, string& rkt_appname, bool query_os_for_missing_info);
+	bool parse_rkt(sinsp_container_info* container, const string& podid, const string& appname);
+};
+
+#endif
+
 class sinsp_container_manager
 {
 public:
@@ -153,12 +213,16 @@ public:
 	bool remove_inactive_containers();
 	void add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread);
 	const sinsp_container_info* get_container(const string& id) const;
+	void notify_new_container(const sinsp_container_info& container_info);
+	template<typename E> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+	template<typename E1, typename E2, typename... Args> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	bool resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	void dump_containers(scap_dumper_t* dumper);
 	string get_container_name(sinsp_threadinfo* tinfo);
-	string get_env_mesos_task_id(sinsp_threadinfo* tinfo);
-	bool set_mesos_task_id(sinsp_container_info* container, sinsp_threadinfo* tinfo);
-	string get_mesos_task_id(const string& container_id);
+
+	bool container_exists(const string& container_id) const {
+		return m_containers.find(container_id) != m_containers.end();
+	}
 
 	typedef std::function<void(const sinsp_container_info&, sinsp_threadinfo *)> new_container_cb;
 	typedef std::function<void(const sinsp_container_info&)> remove_container_cb;
@@ -168,10 +232,7 @@ public:
 private:
 	string container_to_json(const sinsp_container_info& container_info);
 	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);
-	sinsp_docker_response get_docker(const string& api_version, const string& container_id, string& json);
-	bool parse_docker(sinsp_container_info* container);
 	string get_docker_env(const Json::Value &env_vars, const string &mti);
-	bool parse_rkt(sinsp_container_info* container, const string& podid, const string& appname);
 
 	sinsp* m_inspector;
 	unordered_map<string, sinsp_container_info> m_containers;
@@ -179,3 +240,18 @@ private:
 	list<new_container_cb> m_new_callbacks;
 	list<remove_container_cb> m_remove_callbacks;
 };
+
+template<typename E> bool sinsp_container_manager::resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+{
+	E engine;
+	return engine.resolve(this, tinfo, query_os_for_missing_info);
+}
+
+template<typename E1, typename E2, typename... Args> bool sinsp_container_manager::resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+{
+	if (resolve_container_impl<E1>(tinfo, query_os_for_missing_info))
+	{
+		return true;
+	}
+	return resolve_container_impl<E2, Args...>(tinfo, query_os_for_missing_info);
+}
