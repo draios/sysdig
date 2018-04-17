@@ -1224,6 +1224,20 @@ bool sinsp_filter_check_fd::compare_port(sinsp_evt *evt)
 				return true;
 			}
 			break;
+
+		case CO_IN:
+			if(flt_compare(m_cmpop,
+				       PT_PORT,
+				       sport,
+				       sizeof(*sport)) ||
+			   flt_compare(m_cmpop,
+				       PT_PORT,
+				       dport,
+				       sizeof(*dport)))
+			{
+				return true;
+			}
+			break;
 		default:
 			throw sinsp_exception("filter error: unsupported port comparison operator");
 		}
