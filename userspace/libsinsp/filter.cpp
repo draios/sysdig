@@ -2232,7 +2232,7 @@ bool sinsp_evttype_filter::run(sinsp_evt *evt, uint16_t ruleset)
 
 	uint16_t etype = evt->m_pevt->type;
 
-	list<filter_wrapper *> *filters = m_filter_by_evttype[etype];
+	list<filter_wrapper *> *filters;
 
 	if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
 	{
@@ -2241,6 +2241,10 @@ bool sinsp_evttype_filter::run(sinsp_evt *evt, uint16_t ruleset)
 		uint16_t evid = *(uint16_t *)parinfo->m_val;
 
 		filters = m_filter_by_syscall[evid];
+	}
+	else
+	{
+		filters = m_filter_by_evttype[etype];
 	}
 
 	if(filters)
