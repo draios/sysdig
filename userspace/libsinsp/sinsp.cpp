@@ -1570,6 +1570,7 @@ const string sinsp::get_filter()
 
 void sinsp::add_evttype_filter(string &name,
 			       set<uint32_t> &evttypes,
+			       set<uint32_t> &syscalls,
 			       set<string> &tags,
 			       sinsp_filter *filter)
 {
@@ -1579,7 +1580,7 @@ void sinsp::add_evttype_filter(string &name,
 		m_evttype_filter = new sinsp_evttype_filter();
 	}
 
-	m_evttype_filter->add(name, evttypes, tags, filter);
+	m_evttype_filter->add(name, evttypes, syscalls, tags, filter);
 }
 
 bool sinsp::run_filters_on_evt(sinsp_evt *evt)

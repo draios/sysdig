@@ -391,6 +391,7 @@ public:
 
 	void add_evttype_filter(std::string &name,
 				std::set<uint32_t> &evttypes,
+				std::set<uint32_t> &syscalls,
 				std::set<std::string> &tags,
 				sinsp_filter* filter);
 
