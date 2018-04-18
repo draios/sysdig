@@ -232,7 +232,23 @@ private:
 		// expecting ruleset ids that are small and grouped in the range
 		// 0..k, as compared to all possible event types.
 		std::vector<bool> enabled;
+
+		// An ordering number, used to ensure that filters are
+		// always run in the order that they were added to
+		// this object. Specifically, this is used between the
+		// catchall list and the per-eventtype/per-syscallnum
+		// lists.
+		uint64_t order;
 	};
+
+	bool check_filter(filter_wrapper *wrap,
+			  sinsp_evt *evt,
+			  uint16_t ruleset);
+
+	bool check_filters(sinsp_evt *evt,
+			   uint16_t ruleset,
+			   std::list<filter_wrapper *> &la,
+			   std::list<filter_wrapper *> &lb);
 
         // Solely used for code sharing in evttypes_for_ruleset/syscalls_for_ruleset
 	void check_filter_wrappers(std::vector<bool> &evttypes_syscalls,
@@ -261,6 +277,8 @@ private:
 	// be cleaned up.
 
 	map<std::string,filter_wrapper *> m_filters;
+
+	uint64_t m_cur_order;
 };
 
 /*@}*/
