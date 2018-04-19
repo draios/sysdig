@@ -829,8 +829,27 @@ public:
 		return scap_get_wmi_handle(m_h);
 	}
 #endif
+
+	static inline bool falco_consider_evtnum(uint16_t etype)
+	{
+		enum ppm_event_flags flags = g_infotables.m_event_info[etype].flags;
+
+		return ! (flags & sinsp::falco_skip_flags());
+	}
+
+	static inline bool falco_consider_syscallid(uint16_t scid)
+	{
+		enum ppm_event_flags flags = g_infotables.m_syscall_info_table[scid].flags;
+
+		return ! (flags & sinsp::falco_skip_flags());
+	}
+
 VISIBILITY_PRIVATE
 
+        static inline ppm_event_flags falco_skip_flags()
+        {
+		return (ppm_event_flags) (EF_SKIPPARSERESET | EF_UNUSED | EF_OLD_VERSION | EF_DROP_FALCO);
+        }
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
 private:

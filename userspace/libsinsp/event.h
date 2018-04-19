@@ -325,6 +325,14 @@ public:
 	scap_dump_flags get_dump_flags(OUT bool* should_drop);
 #endif
 
+	/*!
+	  \brief Return whether or not falco should consider this
+	  event. (Generally, these events are automatically filtered
+	  out, but some events related to internal tracking are returned by next() anyway).
+	*/
+
+	bool falco_consider();
+
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
 private:
