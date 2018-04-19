@@ -2067,6 +2067,7 @@ sinsp_filter* sinsp_filter_compiler::compile_()
 }
 
 sinsp_evttype_filter::sinsp_evttype_filter()
+	: m_cur_order(0)
 {
 	memset(m_filter_by_evttype, 0, PPM_EVENT_MAX * sizeof(list<sinsp_filter *> *));
 	memset(m_filter_by_syscall, 0, PPM_SC_MAX * sizeof(list<sinsp_filter *> *));
@@ -2118,6 +2119,7 @@ void sinsp_evttype_filter::add(string &name,
 			       sinsp_filter *filter)
 {
 	filter_wrapper *wrap = new filter_wrapper();
+	wrap->order = m_cur_order++;
 	wrap->filter = filter;
 
 	wrap->evttypes.assign(PPM_EVENT_MAX+1, false);
@@ -2213,23 +2215,54 @@ void sinsp_evttype_filter::enable_tags(const set<string> &tags, bool enabled, ui
 	}
 }
 
-bool sinsp_evttype_filter::run(sinsp_evt *evt, uint16_t ruleset)
+bool sinsp_evttype_filter::check_filter(filter_wrapper *wrap,
+					sinsp_evt *evt,
+					uint16_t ruleset)
 {
-	//
-	// First run any catchall event type filters (ones that did not
-	// explicitly specify any event type.
-	//
-	for(filter_wrapper *wrap : m_catchall_filters)
+	return (wrap->enabled.size() >= (size_t) (ruleset + 1) &&
+		wrap->enabled[ruleset] &&
+		wrap->filter->run(evt));
+}
+
+// Given two lists of filter_wrappers, consider all the
+// filter_wrappers ordered by wrap->order.
+bool sinsp_evttype_filter::check_filters(sinsp_evt *evt,
+					 uint16_t ruleset,
+					 std::list<filter_wrapper *> &la,
+					 std::list<filter_wrapper *> &lb)
+{
+	for(auto ita = la.begin(), itb = lb.begin();
+	    ita != la.end() || itb != lb.end();
+	    /* */)
 	{
-		if(wrap->enabled.size() >= (size_t) (ruleset + 1) &&
-		   wrap->enabled[ruleset] &&
-		   wrap->filter->run(evt))
+		while(ita != la.end() &&
+		      (itb == lb.end() ||
+		       (*ita)->order < (*itb)->order))
 		{
-			return true;
+			if(check_filter(*ita, evt, ruleset))
+			{
+				return true;
+			}
+			ita++;
+		}
+
+		while(itb != lb.end() &&
+		      (ita == la.end() ||
+		       (*itb)->order < (*ita)->order))
+		{
+			if(check_filter(*itb, evt, ruleset))
+			{
+				return true;
+			}
+			itb++;
 		}
 	}
 
+	return false;
+}
 
+bool sinsp_evttype_filter::run(sinsp_evt *evt, uint16_t ruleset)
+{
 	uint16_t etype = evt->m_pevt->type;
 
 	list<filter_wrapper *> *filters;
@@ -2247,20 +2280,13 @@ bool sinsp_evttype_filter::run(sinsp_evt *evt, uint16_t ruleset)
 		filters = m_filter_by_evttype[etype];
 	}
 
-	if(filters)
-	{
-		for(filter_wrapper *wrap : *filters)
-		{
-			if(wrap->enabled.size() >= (size_t) (ruleset + 1) &&
-			   wrap->enabled[ruleset] &&
-			   wrap->filter->run(evt))
-			{
-				return true;
-			}
-		}
+	list<filter_wrapper *> empty_list;
+
+	if (!filters) {
+		filters = &empty_list;
 	}
 
-	return false;
+	return check_filters(evt, ruleset, *filters, m_catchall_filters);
 }
 
 
