@@ -848,7 +848,7 @@ VISIBILITY_PRIVATE
 
         static inline ppm_event_flags falco_skip_flags()
         {
-		return (ppm_event_flags) (EF_SKIPPARSERESET | EF_UNUSED | EF_OLD_VERSION | EF_DROP_FALCO);
+		return (ppm_event_flags) (EF_SKIPPARSERESET | EF_UNUSED | EF_DROP_FALCO);
         }
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
