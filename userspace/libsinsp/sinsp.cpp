@@ -45,7 +45,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "analyzer.h"
 #endif
 
-extern sinsp_evttables g_infotables;
 #ifdef HAS_CHISELS
 extern vector<chiseldir_info>* g_chisel_dirs;
 #endif

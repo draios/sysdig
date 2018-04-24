@@ -37,6 +37,8 @@ typedef struct ipv4serverinfo ipv4serverinfo;
 typedef struct ipv6serverinfo ipv6serverinfo;
 class filter_check_info;
 
+extern sinsp_evttables g_infotables;
+
 ///////////////////////////////////////////////////////////////////////////////
 // Initializer class.
 // An instance of this class is created when the library is loaded.
