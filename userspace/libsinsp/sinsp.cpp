@@ -36,20 +36,21 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "cyclewriter.h"
 #include "protodecoder.h"
 
+#ifndef CYGWING_AGENT
 #include "k8s_api_handler.h"
+#endif
 
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
 #include "analyzer.h"
 #endif
 
-extern sinsp_evttables g_infotables;
 #ifdef HAS_CHISELS
 extern vector<chiseldir_info>* g_chisel_dirs;
 #endif
 
-void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo,
-							scap_fdinfo* fdinfo, scap_t* newhandle);
+void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_threadinfo* tinfo,
+							scap_fdinfo* fdinfo);
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp implementation
@@ -67,7 +68,7 @@ sinsp::sinsp() :
 	m_network_interfaces = NULL;
 	m_parser = new sinsp_parser(this);
 	m_thread_manager = new sinsp_thread_manager(this);
-	m_max_thread_table_size = MAX_THREAD_TABLE_SIZE;
+	m_max_thread_table_size = DEFAULT_THREAD_TABLE_SIZE;
 	m_max_fdtable_size = MAX_FD_TABLE_SIZE;
 	m_thread_timeout_ns = DEFAULT_THREAD_TIMEOUT_S * ONE_SECOND_IN_NS;
 	m_inactive_thread_scan_time_ns = DEFAULT_INACTIVE_THREAD_SCAN_TIME_S * ONE_SECOND_IN_NS;
@@ -142,6 +143,7 @@ sinsp::sinsp() :
 	m_meinfo.m_n_procinfo_evts = 0;
 	m_meta_event_callback = NULL;
 	m_meta_event_callback_data = NULL;
+#ifndef CYGWING_AGENT
 	m_k8s_client = NULL;
 	m_k8s_last_watch_time_ns = 0;
 
@@ -151,6 +153,7 @@ sinsp::sinsp() :
 
 	m_mesos_client = NULL;
 	m_mesos_last_watch_time_ns = 0;
+#endif
 
 	m_filter_proc_table_when_saving = false;
 }
@@ -193,11 +196,13 @@ sinsp::~sinsp()
 		delete[] m_meinfo.m_piscapevt;
 	}
 
+#ifndef CYGWING_AGENT
 	delete m_k8s_client;
 	delete m_k8s_api_server;
 	delete m_k8s_api_cert;
 
 	delete m_mesos_client;
+#endif
 }
 
 void sinsp::add_protodecoders()
@@ -217,7 +222,7 @@ void sinsp::filter_proc_table_when_saving(bool filter)
 
 void sinsp::enable_tracers_capture()
 {
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT)
 	if(!m_is_tracers_capture_enabled)
 	{
 		if(is_live() && m_h != NULL)
@@ -235,7 +240,7 @@ void sinsp::enable_tracers_capture()
 
 void sinsp::enable_page_faults()
 {
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT)
 	if(is_live() && m_h != NULL)
 	{
 		if(scap_enable_page_faults(m_h) != SCAP_SUCCESS)
@@ -427,6 +432,7 @@ void sinsp::open(uint32_t timeout_ms)
 	oargs.fname = NULL;
 	oargs.proc_callback = NULL;
 	oargs.proc_callback_context = NULL;
+
 	if(!m_filter_proc_table_when_saving)
 	{
 		oargs.proc_callback = ::on_new_entry_from_proc;
@@ -434,11 +440,12 @@ void sinsp::open(uint32_t timeout_ms)
 	}
 	oargs.import_users = m_import_users;
 
-	m_h = scap_open(oargs, error);
+	int32_t scap_rc;
+	m_h = scap_open(oargs, error, &scap_rc);
 
 	if(m_h == NULL)
 	{
-		throw sinsp_exception(error);
+		throw sinsp_exception(error, scap_rc);
 	}
 
 	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
@@ -473,11 +480,12 @@ void sinsp::open_nodriver()
 	}
 	oargs.import_users = m_import_users;
 
-	m_h = scap_open(oargs, error);
+	int32_t scap_rc;
+	m_h = scap_open(oargs, error, &scap_rc);
 
 	if(m_h == NULL)
 	{
-		throw sinsp_exception(error);
+		throw sinsp_exception(error, scap_rc);
 	}
 
 	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
@@ -609,11 +617,12 @@ void sinsp::open_int()
 		oargs.start_offset = 0;
 	}
 
-	m_h = scap_open(oargs, error);
+	int32_t scap_rc;
+	m_h = scap_open(oargs, error, &scap_rc);
 
 	if(m_h == NULL)
 	{
-		throw sinsp_exception(error);
+		throw sinsp_exception(error, scap_rc);
 	}
 
 	if(m_input_fd != 0)
@@ -744,18 +753,20 @@ void sinsp::autodump_stop()
 }
 
 void sinsp::on_new_entry_from_proc(void* context,
+								   scap_t* handle,
 								   int64_t tid,
 								   scap_threadinfo* tinfo,
-								   scap_fdinfo* fdinfo,
-								   scap_t* newhandle)
+								   scap_fdinfo* fdinfo)
 {
 	ASSERT(tinfo != NULL);
 
+	m_h = handle;
+
 	//
 	// Retrieve machine information if we don't have it yet
-	//proc
+	//
 	{
-		m_machine_info = scap_get_machine_info(newhandle);
+		m_machine_info = scap_get_machine_info(handle);
 		if(m_machine_info != NULL)
 		{
 			m_num_cpus = m_machine_info->num_cpus;
@@ -812,13 +823,13 @@ void sinsp::on_new_entry_from_proc(void* context,
 }
 
 void on_new_entry_from_proc(void* context,
+							scap_t* handle,
 							int64_t tid,
 							scap_threadinfo* tinfo,
-							scap_fdinfo* fdinfo,
-							scap_t* newhandle)
+							scap_fdinfo* fdinfo)
 {
 	sinsp* _this = (sinsp*)context;
-	_this->on_new_entry_from_proc(context, tid, tinfo, fdinfo, newhandle);
+	_this->on_new_entry_from_proc(context, handle, tid, tinfo, fdinfo);
 }
 
 void sinsp::import_thread_table()
@@ -1359,6 +1370,16 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 #endif
 		))
 	{
+		// Certain code paths can lead to this point from scap_open() (incomplete example:
+		// scap_proc_scan_proc_dir() -> resolve_container() -> get_env()). Adding a
+		// defensive check here to protect both, callers of get_env and get_thread.
+		if (!m_h)
+		{
+			g_logger.format(sinsp_logger::SEV_INFO, "%s: Unable to complete for tid=%"
+							PRIu64 ": sinsp::scap_t* is uninitialized", __func__, tid);
+			return NULL;
+		}
+
 		scap_threadinfo* scap_proc = NULL;
 		sinsp_threadinfo newti(this);
 
@@ -1548,6 +1569,7 @@ const string sinsp::get_filter()
 
 void sinsp::add_evttype_filter(string &name,
 			       set<uint32_t> &evttypes,
+			       set<uint32_t> &syscalls,
 			       set<string> &tags,
 			       sinsp_filter *filter)
 {
@@ -1557,7 +1579,7 @@ void sinsp::add_evttype_filter(string &name,
 		m_evttype_filter = new sinsp_evttype_filter();
 	}
 
-	m_evttype_filter->add(name, evttypes, tags, filter);
+	m_evttype_filter->add(name, evttypes, syscalls, tags, filter);
 }
 
 bool sinsp::run_filters_on_evt(sinsp_evt *evt)
@@ -1623,6 +1645,12 @@ void sinsp::get_capture_stats(scap_stats* stats)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
 	}
+}
+
+void sinsp::set_max_thread_table_size(uint32_t value)
+{
+	uint32_t max_size = uint32_t(MAX_THREAD_TABLE_SIZE);
+	m_max_thread_table_size = (value < max_size ? value : max_size);
 }
 
 #ifdef GATHER_INTERNAL_STATS
@@ -1842,6 +1870,7 @@ bool sinsp::remove_inactive_threads()
 	return m_thread_manager->remove_inactive_threads();
 }
 
+#ifndef CYGWING_AGENT
 void sinsp::init_mesos_client(string* api_server, bool verbose)
 {
 	m_verbose_json = verbose;
@@ -1872,10 +1901,11 @@ void sinsp::init_mesos_client(string* api_server, bool verbose)
 	}
 }
 
-void sinsp::init_k8s_ssl(const string &ssl_cert)
+void sinsp::init_k8s_ssl(const string *ssl_cert)
 {
 #ifdef HAS_CAPTURE
-	if(!ssl_cert.empty() && (!m_k8s_ssl || ! m_k8s_bt))
+	if(ssl_cert != nullptr && !ssl_cert->empty()
+	   && (!m_k8s_ssl || ! m_k8s_bt))
 	{
 		std::string cert;
 		std::string key;
@@ -1883,35 +1913,35 @@ void sinsp::init_k8s_ssl(const string &ssl_cert)
 		std::string ca_cert;
 
 		// -K <bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>]
-		std::string::size_type pos = ssl_cert.find(':');
+		std::string::size_type pos = ssl_cert->find(':');
 		if(pos == std::string::npos) // ca_cert-only is obsoleted, single entry is now bearer token
 		{
-			m_k8s_bt = std::make_shared<sinsp_bearer_token>(ssl_cert);
+			m_k8s_bt = std::make_shared<sinsp_bearer_token>(*ssl_cert);
 		}
 		else
 		{
-			cert = ssl_cert.substr(0, pos);
+			cert = ssl_cert->substr(0, pos);
 			if(cert.empty())
 			{
-				throw sinsp_exception(string("Invalid K8S SSL entry: ") + ssl_cert);
+				throw sinsp_exception(string("Invalid K8S SSL entry: ") + *ssl_cert);
 			}
 
-			// pos < ssl_cert.length() so it's safe to take
+			// pos < ssl_cert->length() so it's safe to take
 			// substr() from head, but it may be empty
 			std::string::size_type head = pos + 1;
-			pos = ssl_cert.find(':', head);
+			pos = ssl_cert->find(':', head);
 			if (pos == std::string::npos)
 			{
-				key = ssl_cert.substr(head);
+				key = ssl_cert->substr(head);
 			}
 			else
 			{
-				key = ssl_cert.substr(head, pos - head);
-				ca_cert = ssl_cert.substr(pos + 1);
+				key = ssl_cert->substr(head, pos - head);
+				ca_cert = ssl_cert->substr(pos + 1);
 			}
 			if(key.empty())
 			{
-				throw sinsp_exception(string("Invalid K8S SSL entry: ") + ssl_cert);
+				throw sinsp_exception(string("Invalid K8S SSL entry: ") + *ssl_cert);
 			}
 
 			// Parse the password if it exists
@@ -1967,7 +1997,7 @@ void sinsp::init_k8s_client(string* api_server, string* ssl_cert, bool verbose)
 			delete m_k8s_client;
 			m_k8s_client = nullptr;
 		}
-		init_k8s_ssl(*ssl_cert);
+		init_k8s_ssl(ssl_cert);
 		make_k8s_client();
 	}
 }
@@ -2021,7 +2051,7 @@ void sinsp::k8s_discover_ext()
 				{
 					m_k8s_collector = std::make_shared<k8s_handler::collector_t>();
 				}
-				if(uri(*m_k8s_api_server).is_secure()) { init_k8s_ssl(*m_k8s_api_cert); }
+				if(uri(*m_k8s_api_server).is_secure()) { init_k8s_ssl(m_k8s_api_cert); }
 				m_k8s_ext_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
 									    "/apis/extensions/v1beta1", "[.resources[].name]",
 									    "1.1", m_k8s_ssl, m_k8s_bt, true));
@@ -2094,7 +2124,7 @@ void sinsp::update_k8s_state()
 					}
 					if(uri(*m_k8s_api_server).is_secure() && (!m_k8s_ssl || ! m_k8s_bt))
 					{
-						init_k8s_ssl(*m_k8s_api_cert);
+						init_k8s_ssl(m_k8s_api_cert);
 					}
 					m_k8s_api_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
 										    "/api", ".versions", "1.1",
@@ -2205,6 +2235,7 @@ void sinsp::update_mesos_state()
 		}
 	}
 }
+#endif // CYGWING_AGENT
 
 ///////////////////////////////////////////////////////////////////////////////
 // Note: this is defined here so we can inline it in sinso::next

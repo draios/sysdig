@@ -593,6 +593,13 @@ int sinsp_evt::render_fd_json(Json::Value *ret, int64_t fd, const char** resolve
 			(*ret)["name"] = sanitized_str;
 		}
 	}
+	else if(fd == PPM_AT_FDCWD)
+	{
+		//
+		// `fd` can be AT_FDCWD on all *at syscalls
+		//
+		(*ret)["name"] = "AT_FDCWD";
+	}
 	else
 	{
 		//
@@ -702,6 +709,15 @@ char* sinsp_evt::render_fd(int64_t fd, const char** resolved_str, sinsp_evt::par
 			}
 */
 		}
+	}
+	else if(fd == PPM_AT_FDCWD)
+	{
+		//
+		// `fd` can be AT_FDCWD on all *at syscalls
+		//
+		snprintf(&m_resolved_paramstr_storage[0],
+				 m_resolved_paramstr_storage.size(),
+				 "AT_FDCWD");
 	}
 	else
 	{
@@ -2458,3 +2474,19 @@ scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop)
 	return (scap_dump_flags)dflags;
 }
 #endif
+
+bool sinsp_evt::falco_consider()
+{
+	uint16_t etype = get_type();
+
+	if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
+	{
+		sinsp_evt_param *parinfo = get_param(0);
+		ASSERT(parinfo->m_len == sizeof(uint16_t));
+		uint16_t scid = *(uint16_t *)parinfo->m_val;
+
+		return sinsp::falco_consider_syscallid(scid);
+	}
+
+	return sinsp::falco_consider_evtnum(etype);
+}

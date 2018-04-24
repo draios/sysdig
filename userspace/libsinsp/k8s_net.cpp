@@ -1,6 +1,7 @@
 //
 // k8s_net.cpp
 //
+#ifndef CYGWING_AGENT
 
 #ifdef HAS_CAPTURE
 
@@ -259,3 +260,4 @@ namespace k8s_net
 }
 
 #endif // HAS_CAPTURE
+#endif // CYGWING_AGENT

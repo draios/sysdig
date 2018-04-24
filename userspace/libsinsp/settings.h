@@ -54,7 +54,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 //
 // Max size that the thread table can reach
 //
-#define MAX_THREAD_TABLE_SIZE 32768
+#define MAX_THREAD_TABLE_SIZE 65536
+#define DEFAULT_THREAD_TABLE_SIZE 32768
 
 //
 // Max size that the FD table of a process can reach

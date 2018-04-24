@@ -1,6 +1,7 @@
 //
 // k8s_handler.cpp
 //
+#ifndef CYGWING_AGENT
 
 #include "k8s_handler.h"
 #include "sinsp.h"
@@ -785,3 +786,4 @@ void k8s_handler::log_error(const msg_data& data, const Json::Value& json)
 	g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
 #endif // HAS_CAPTURE
 }
+#endif // CYGWING_AGENT

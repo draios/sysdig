@@ -73,28 +73,32 @@ repos = {
             "root" : "https://mirrors.kernel.org/ubuntu/pool/main/l/",
             "discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
             "subdirs" : [""],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9].*-generic.*amd64.deb$')]/@href"
+            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9].*-generic.*amd64.deb$')]/@href",
+            "exclude_patterns": ["4.15.0-14"]
         },
 
         {
             "root" : "https://mirrors.kernel.org/ubuntu/pool/main/l/",
             "discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
             "subdirs" : [""],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-headers-[3-9].*_all.deb$')]/@href"
+            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-headers-[3-9].*_all.deb$')]/@href",
+            "exclude_patterns": ["4.15.0-14"]
         },
 
         {
             "root" : "http://security.ubuntu.com/ubuntu/pool/main/l/",
             "discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
             "subdirs" : [""],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9].*-generic.*amd64.deb$')]/@href"
+            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9].*-generic.*amd64.deb$')]/@href",
+            "exclude_patterns": ["4.15.0-14"]
         },
 
         {
             "root" : "http://security.ubuntu.com/ubuntu/pool/main/l/",
             "discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
             "subdirs" : [""],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-headers-[3-9].*_all.deb$')]/@href"
+            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-headers-[3-9].*_all.deb$')]/@href",
+            "exclude_patterns": ["4.15.0-14"]
         }
     ],
 
@@ -162,21 +166,21 @@ repos = {
             "discovery_pattern": "/html/body/pre/a[@href = 'linux/']/@href",
             "subdirs": [""],
             "page_pattern": "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9]\.[0-9]+\.[0-9]+.*amd64.deb$')]/@href",
-            "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp", "unsigned"]
+            "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp", "unsigned", "cloud-amd64"]
         },
         {
             "root": "http://security.debian.org/pool/updates/main/l/",
             "discovery_pattern": "/html/body/table//tr/td/a[@href = 'linux/']/@href",
             "subdirs": [""],
             "page_pattern": "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9]\.[0-9]+\.[0-9]+.*amd64.deb$')]/@href",
-            "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp", "unsigned"]
+            "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp", "unsigned", "cloud-amd64"]
         },
         {
             "root": "http://mirrors.kernel.org/debian/pool/main/l/",
             "discovery_pattern": "/html/body/pre/a[@href = 'linux-tools/']/@href",
             "subdirs": [""],
             "page_pattern": "/html/body//a[regex:test(@href, '^linux-kbuild-.*amd64.deb$')]/@href",
-            "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp", "unsigned"]
+            "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp", "unsigned", "cloud-amd64"]
         }
     ]
 }

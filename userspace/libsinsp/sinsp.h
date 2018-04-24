@@ -108,7 +108,9 @@ class sinsp_analyzer;
 class sinsp_filter;
 class cycle_writer;
 class sinsp_protodecoder;
+#ifndef CYGWING_AGENT
 class k8s;
+#endif
 class sinsp_partial_tracer;
 class mesos;
 
@@ -175,12 +177,24 @@ struct sinsp_exception : std::exception
 		m_error_str = error_str;
 	}
 
+	sinsp_exception(string error_str, int32_t scap_rc)
+	{
+		m_error_str = error_str;
+		m_scap_rc = scap_rc;
+	}
+
 	char const* what() const throw()
 	{
 		return m_error_str.c_str();
 	}
 
+	int32_t scap_rc()
+	{
+		return m_scap_rc;
+	}
+
 	string m_error_str;
+	int32_t m_scap_rc;
 };
 
 /*!
@@ -377,6 +391,7 @@ public:
 
 	void add_evttype_filter(std::string &name,
 				std::set<uint32_t> &evttypes,
+				std::set<uint32_t> &syscalls,
 				std::set<std::string> &tags,
 				sinsp_filter* filter);
 
@@ -526,7 +541,8 @@ public:
 	*/
 	void get_capture_stats(scap_stats* stats);
 
-
+	void set_max_thread_table_size(uint32_t value);
+	
 #ifdef GATHER_INTERNAL_STATS
 	sinsp_stats get_stats();
 #endif
@@ -747,21 +763,23 @@ public:
 	*/
 	double get_read_progress();
 
-	void init_k8s_ssl(const string &ssl_cert);
+#ifndef CYGWING_AGENT
+	void init_k8s_ssl(const string *ssl_cert);
 	void init_k8s_client(string* api_server, string* ssl_cert, bool verbose = false);
 	void make_k8s_client();
 	k8s* get_k8s_client() const { return m_k8s_client; }
 
 	void init_mesos_client(string* api_server, bool verbose = false);
 	mesos* get_mesos_client() const { return m_mesos_client; }
+#endif
 
 	//
 	// Misc internal stuff
 	//
 	void stop_dropping_mode();
 	void start_dropping_mode(uint32_t sampling_ratio);
-	void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo,
-		scap_fdinfo* fdinfo, scap_t* newhandle);
+	void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_threadinfo* tinfo,
+		scap_fdinfo* fdinfo);
 	void set_get_procs_cpu_from_driver(bool get_procs_cpu_from_driver)
 	{
 		m_get_procs_cpu_from_driver = get_procs_cpu_from_driver;
@@ -805,8 +823,33 @@ public:
 	vector<long> get_n_tracepoint_hit();
 
 	static unsigned num_possible_cpus();
+#ifdef CYGWING_AGENT
+	wh_t* get_wmi_handle()
+	{
+		return scap_get_wmi_handle(m_h);
+	}
+#endif
+
+	static inline bool falco_consider_evtnum(uint16_t etype)
+	{
+		enum ppm_event_flags flags = g_infotables.m_event_info[etype].flags;
+
+		return ! (flags & sinsp::falco_skip_flags());
+	}
+
+	static inline bool falco_consider_syscallid(uint16_t scid)
+	{
+		enum ppm_event_flags flags = g_infotables.m_syscall_info_table[scid].flags;
+
+		return ! (flags & sinsp::falco_skip_flags());
+	}
+
 VISIBILITY_PRIVATE
 
+        static inline ppm_event_flags falco_skip_flags()
+        {
+		return (ppm_event_flags) (EF_SKIPPARSERESET | EF_UNUSED | EF_DROP_FALCO);
+        }
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
 private:
@@ -873,11 +916,13 @@ private:
 	sinsp_threadinfo* find_thread_test(int64_t tid, bool lookup_only);
 	bool remove_inactive_threads();
 
+#ifndef CYGWING_AGENT
 	void k8s_discover_ext();
 	void collect_k8s();
 	void update_k8s_state();
 	void update_mesos_state();
 	bool get_mesos_data();
+#endif
 
 	static int64_t get_file_size(const std::string& fname, char *error);
 	static std::string get_error_desc(const std::string& msg = "");
@@ -895,8 +940,8 @@ private:
 
 	scap_mode_t m_mode;
 
-        // If non-zero, reading from this fd and m_input_filename contains "fd
-        // <m_input_fd>". Otherwise, reading from m_input_filename.
+	// If non-zero, reading from this fd and m_input_filename contains "fd
+	// <m_input_fd>". Otherwise, reading from m_input_filename.
 	int m_input_fd;
 	string m_input_filename;
 	bool m_isdebug_enabled;
@@ -936,6 +981,7 @@ public:
 	//
 	// Kubernetes
 	//
+#ifndef CYGWING_AGENT
 	string* m_k8s_api_server;
 	string* m_k8s_api_cert;
 #ifdef HAS_CAPTURE
@@ -950,6 +996,7 @@ public:
 #endif // HAS_CAPTURE
 	k8s* m_k8s_client;
 	uint64_t m_k8s_last_watch_time_ns;
+#endif // CYGWING_AGENT
 
 	//
 	// Mesos/Marathon
@@ -1103,13 +1150,8 @@ public:
 	friend class sinsp_filter_check_evtin;
 	friend class sinsp_baseliner;
 	friend class sinsp_memory_dumper;
-
 	friend class sinsp_network_interfaces;
-	friend class k8s_delegator;
 
-#ifdef HAS_ANALYZER
-	friend class thread_analyzer_info;
-#endif
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };
 

@@ -26,6 +26,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 extern "C" {
 #endif
 
+#ifdef CYGWING_AGENT
+typedef struct wh_t wh_t;
+#endif
+
 #ifdef _WIN32
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
@@ -100,6 +104,10 @@ struct scap
 	bool refresh_proc_table_when_saving;
 	uint32_t m_fd_lookup_limit;
 	uint64_t m_unexpected_block_readsize;
+	// Abstraction layer for windows
+#ifdef CYGWING_AGENT
+	wh_t* m_whh;
+#endif
 };
 
 typedef enum ppm_dumper_type

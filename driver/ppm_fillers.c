@@ -30,6 +30,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/file.h>
 #include <linux/futex.h>
 #include <linux/fs_struct.h>
+#include <linux/pid_namespace.h>
 #include <linux/ptrace.h>
 #include <linux/version.h>
 #include <linux/module.h>
@@ -99,6 +100,7 @@ static int f_sys_socket_bind_x(struct event_filler_arguments *args);
 static int f_sys_poll_e(struct event_filler_arguments *args);
 static int f_sys_poll_x(struct event_filler_arguments *args);
 static int f_sys_openat_e(struct event_filler_arguments *args);
+static int f_sys_unlinkat_x(struct event_filler_arguments *args);
 #ifndef _64BIT_ARGS_SINGLE_REGISTER
 static int f_sys_pread64_e(struct event_filler_arguments *args);
 static int f_sys_preadv_e(struct event_filler_arguments *args);
@@ -153,6 +155,7 @@ static int f_sys_mount_e(struct event_filler_arguments *args);
 static int f_sys_access_e(struct event_filler_arguments *args);
 static int f_sys_access_x(struct event_filler_arguments *args);
 static int f_sys_bpf_x(struct event_filler_arguments *args);
+static int f_sys_mkdirat_x(struct event_filler_arguments *args);
 
 /*
  * Note, this is not part of g_event_info because we want to share g_event_info with userland.
@@ -302,8 +305,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_DROP_X] = {f_sched_drop},
 	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
 	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
-	[PPME_SYSCALL_EXECVE_18_E] = {f_sys_execve_e},
-	[PPME_SYSCALL_EXECVE_18_X] = {f_proc_startupdate},
+	[PPME_SYSCALL_EXECVE_19_E] = {f_sys_execve_e},
+	[PPME_SYSCALL_EXECVE_19_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_CLONE_20_E] = {f_sys_empty},
 	[PPME_SYSCALL_CLONE_20_X] = {f_proc_startupdate},
 	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
@@ -386,6 +389,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_CHROOT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_SYSCALL_SETSID_E] = {f_sys_empty},
 	[PPME_SYSCALL_SETSID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
+	[PPME_SYSCALL_SETPGID_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
+	[PPME_SYSCALL_SETPGID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
 	[PPME_SYSCALL_MKDIR_2_E] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_USEDEFAULT, 0} } },
 	[PPME_SYSCALL_MKDIR_2_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_SYSCALL_RMDIR_2_E] = {f_sys_empty},
@@ -399,7 +404,13 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_BPF_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
 	[PPME_SYSCALL_BPF_X] = {f_sys_bpf_x},
 	[PPME_SYSCALL_SECCOMP_E] = {PPM_AUTOFILL, 1, APT_REG, {{0}, {1} } },
-	[PPME_SYSCALL_SECCOMP_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } }
+	[PPME_SYSCALL_SECCOMP_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
+	[PPME_SYSCALL_UNLINK_2_E] = {f_sys_empty},
+	[PPME_SYSCALL_UNLINK_2_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
+	[PPME_SYSCALL_UNLINKAT_2_E] = {f_sys_empty},
+	[PPME_SYSCALL_UNLINKAT_2_X] = {f_sys_unlinkat_x},
+	[PPME_SYSCALL_MKDIRAT_E] = {f_sys_empty},
+	[PPME_SYSCALL_MKDIRAT_X] = {f_sys_mkdirat_x}
 };
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
@@ -1218,7 +1229,7 @@ static int f_proc_startupdate(struct event_filler_arguments *args)
 		return res;
 
 	if (unlikely(retval < 0 &&
-		     args->event_type != PPME_SYSCALL_EXECVE_18_X)) {
+		     args->event_type != PPME_SYSCALL_EXECVE_19_X)) {
 
 		/* The call failed, but this syscall has no exe, args
 		 * anyway, so I report empty ones */
@@ -1499,7 +1510,7 @@ cgroups_error:
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
-	} else if (args->event_type == PPME_SYSCALL_EXECVE_18_X) {
+	} else if (args->event_type == PPME_SYSCALL_EXECVE_19_X) {
 		/*
 		 * execve-only parameters
 		 */
@@ -1554,6 +1565,17 @@ cgroups_error:
 		 */
 		tty_nr = ppm_get_tty();
 		res = val_to_ring(args, tty_nr, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+
+		/*
+		 * pgid
+		 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
+		res = val_to_ring(args, (int64_t)task_pgrp_nr_ns(current, task_active_pid_ns(current)), 0, false, 0);
+#else
+		res = val_to_ring(args, (int64_t)process_group(current), 0, false, 0);
+#endif
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 	}
@@ -3206,6 +3228,59 @@ static int f_sys_openat_e(struct event_filler_arguments *args)
 	 *  mode
 	 */
 	res = open_mode_to_ring(args, flags, 3);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static u32 unlinkat_flags_to_scap(unsigned long flags)
+{
+	u32 res = 0;
+
+	if (flags & AT_REMOVEDIR)
+		res |= PPM_AT_REMOVEDIR;
+
+	return res;
+}
+
+static int f_sys_unlinkat_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	int64_t retval;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * dirfd
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * name
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * flags
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, unlinkat_flags_to_scap(val), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -5641,6 +5716,48 @@ static int f_sys_bpf_x(struct event_filler_arguments *args)
 	{
 		res = val_to_ring(args, retval, 0, false, PPM_BPF_IDX_RES);
 	}
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+static int f_sys_mkdirat_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	int64_t retval;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * dirfd
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * path
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * mode
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

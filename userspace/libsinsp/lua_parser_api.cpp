@@ -1,3 +1,6 @@
+#include "sinsp.h"
+#include "sinsp_int.h"
+
 #include "filterchecks.h"
 #include "lua_parser_api.h"
 #include "lua_parser.h"

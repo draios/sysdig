@@ -253,9 +253,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_SHUT_RDWR 2
 
 /*
- * openat() flags
+ * fs *at() flags
  */
 #define PPM_AT_FDCWD -100
+
+/*
+ * unlinkat() flags
+ */
+#define PPM_AT_REMOVEDIR 0x200
 
 /*
  * rlimit resources
@@ -829,11 +834,21 @@ enum ppm_event_type {
 	PPME_SYSCALL_EXECVE_18_X = 289,
 	PPME_PAGE_FAULT_E = 290,
 	PPME_PAGE_FAULT_X = 291,
-	PPME_SYSCALL_BPF_E = 292,
-	PPME_SYSCALL_BPF_X = 293,
-	PPME_SYSCALL_SECCOMP_E = 294,
-	PPME_SYSCALL_SECCOMP_X = 295,
-	PPM_EVENT_MAX = 296
+	PPME_SYSCALL_EXECVE_19_E = 292,
+	PPME_SYSCALL_EXECVE_19_X = 293,
+	PPME_SYSCALL_SETPGID_E = 294,
+	PPME_SYSCALL_SETPGID_X = 295,
+	PPME_SYSCALL_BPF_E = 296,
+	PPME_SYSCALL_BPF_X = 297,
+	PPME_SYSCALL_SECCOMP_E = 298,
+	PPME_SYSCALL_SECCOMP_X = 299,
+	PPME_SYSCALL_UNLINK_2_E = 300,
+	PPME_SYSCALL_UNLINK_2_X = 301,
+	PPME_SYSCALL_UNLINKAT_2_E = 302,
+	PPME_SYSCALL_UNLINKAT_2_X = 303,
+	PPME_SYSCALL_MKDIRAT_E = 304,
+	PPME_SYSCALL_MKDIRAT_X = 305,
+	PPM_EVENT_MAX = 306
 };
 /*@}*/
 
@@ -1317,6 +1332,7 @@ struct ppm_evt_hdr {
 /*
  * IOCTL codes
  */
+#ifndef CYGWING_AGENT
 #define PPM_IOCTL_MAGIC	's'
 #define PPM_IOCTL_DISABLE_CAPTURE _IO(PPM_IOCTL_MAGIC, 0)
 #define PPM_IOCTL_ENABLE_CAPTURE _IO(PPM_IOCTL_MAGIC, 1)
@@ -1339,6 +1355,7 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_SET_SIMPLE_MODE _IO(PPM_IOCTL_MAGIC, 18)
 #define PPM_IOCTL_ENABLE_PAGE_FAULTS _IO(PPM_IOCTL_MAGIC, 19)
 #define PPM_IOCTL_GET_N_TRACEPOINT_HIT _IO(PPM_IOCTL_MAGIC, 20)
+#endif // CYGWING_AGENT
 
 extern const struct ppm_name_value socket_families[];
 extern const struct ppm_name_value file_flags[];
@@ -1365,6 +1382,7 @@ extern const struct ppm_name_value semget_flags[];
 extern const struct ppm_name_value semctl_commands[];
 extern const struct ppm_name_value access_flags[];
 extern const struct ppm_name_value pf_flags[];
+extern const struct ppm_name_value unlinkat_flags[];
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
 extern const struct ppm_param_info bpf_dynamic_param[];
