@@ -1,6 +1,8 @@
 #ifndef __TYPES_H
 #define __TYPES_H
 
+#ifdef __KERNEL__
+
 #define __bpf_section(NAME) __attribute__((section(NAME), used))
 
 #define __always_inline inline __attribute__((always_inline))
@@ -17,25 +19,62 @@
 #define BPF_FORBIDS_BIG_PROGRAMS
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)
+#define BPF_SUPPORTS_RAW_TRACEPOINTS
+#endif
+
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+#define TP_NAME "raw_tracepoint/"
+#else
+#define TP_NAME "tracepoint/"
+#endif
+
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+struct sys_enter_args {
+	unsigned long regs;
+	unsigned long id;
+};
+#else
 struct sys_enter_args {
 	__u64 pad;
 	long id;
 	unsigned long args[6];
 };
+#endif
 
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+struct sys_exit_args {
+	unsigned long regs;
+	unsigned long ret;
+};
+#else
 struct sys_exit_args {
 	__u64 pad;
 	long id;
 	long ret;
 };
+#endif
 
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+struct sched_process_exit_args {
+	unsigned long p;
+};
+#else
 struct sched_process_exit_args {
 	__u64 pad;
 	char comm[16];
 	pid_t pid;
 	int prio;
 };
+#endif
 
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+struct sched_switch_args {
+	unsigned long preempt;
+	unsigned long prev;
+	unsigned long next;
+};
+#else
 struct sched_switch_args {
 	__u64 pad;
 	char prev_comm[TASK_COMM_LEN];
@@ -46,7 +85,9 @@ struct sched_switch_args {
 	pid_t next_pid;
 	int next_prio;
 };
+#endif
 
+#ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
 struct sched_process_fork_args {
 	__u64 pad;
 	char parent_comm[TASK_COMM_LEN];
@@ -54,14 +95,30 @@ struct sched_process_fork_args {
 	char child_comm[TASK_COMM_LEN];
 	pid_t child_pid;
 };
+#endif
 
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+struct page_fault_args {
+	unsigned long address;
+	unsigned long regs;
+	unsigned long error_code;
+};
+#else
 struct page_fault_args {
 	__u64 pad;
 	unsigned long address;
 	unsigned long ip;
 	unsigned long error_code;
 };
+#endif
 
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+struct signal_deliver_args {
+	unsigned long sig;
+	unsigned long info;
+	unsigned long ka;
+};
+#else
 struct signal_deliver_args {
 	__u64 pad;
 	int sig;
@@ -70,41 +127,22 @@ struct signal_deliver_args {
 	unsigned long sa_handler;
 	unsigned long sa_flags;
 };
+#endif
 
-struct syscall_filler_data {
-	long syscall_id;
-	long ret;
+#ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
+struct sys_stash_args {
+	unsigned long args[6];
 };
+#endif
 
-struct sched_switch_filler_data {
-	pid_t next_pid;
-};
-
-struct page_fault_filler_data {
-	unsigned long address;
-	unsigned long ip;
-	unsigned long error_code;
-};
-
-struct signal_filler_data {
-	int sig;
-};
-
-union event_filler_data {
-	struct syscall_filler_data syscall_data;
-	struct sched_switch_filler_data sched_switch_data;
-	struct page_fault_filler_data page_fault_data;
-	struct signal_filler_data signal_data;
-};
-
-/* Can't put any pointer here */
+/* Can't put any pointer to maps here */
 struct tail_context {
 	enum ppm_event_type evt_type;
 	unsigned long long ts;
-	union event_filler_data event_data;
 };
 
 struct filler_data {
+	void *ctx;
 	struct tail_context tail_ctx;
 	struct sysdig_bpf_settings *settings;
 	char *tmp_scratch;
@@ -116,12 +154,62 @@ struct filler_data {
 	char *buf;
 	unsigned long curoff;
 	unsigned long len;
+#ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
 	unsigned long *args;
+#endif
 	int fd;
 };
 
-struct sys_stash_args {
-	unsigned long args[6];
+#endif /* __KERNEL__ */
+
+#define SCRATCH_SIZE (1 << 15)
+#define SCRATCH_SIZE_MAX (SCRATCH_SIZE - 1)
+#define SCRATCH_SIZE_HALF (SCRATCH_SIZE_MAX >> 1)
+
+struct bpf_map_def {
+	unsigned int type;
+	unsigned int key_size;
+	unsigned int value_size;
+	unsigned int max_entries;
+	unsigned int map_flags;
+	unsigned int inner_map_idx;
+	unsigned int numa_node;
 };
+
+enum sysdig_map_types {
+	SYSDIG_PERF_MAP = 0,
+	SYSDIG_TAIL_MAP = 1,
+	SYSDIG_SYSCALL_CODE_ROUTING_TABLE = 2,
+	SYSDIG_SYSCALL_TABLE = 3,
+	SYSDIG_EVENT_INFO_TABLE = 4,
+	SYSDIG_FILLERS_TABLE = 5,
+	SYSDIG_FRAME_SCRATCH_MAP = 6,
+	SYSDIG_TMP_SCRATCH_MAP = 7,
+	SYSDIG_SETTINGS_MAP = 8,
+	SYSDIG_LOCAL_STATE_MAP = 9,
+#ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
+	SYSDIG_STASH_MAP = 10,
+#endif
+};
+
+struct sysdig_bpf_settings {
+	uint64_t boot_time;
+	void *socket_file_ops;
+	uint32_t snaplen;
+	uint32_t sampling_ratio;
+	bool capture_enabled;
+	bool do_dynamic_snaplen;
+	bool page_faults;
+	bool dropping_mode;
+	bool is_dropping;
+	bool tracers_enabled;
+} __attribute__((packed));
+
+struct sysdig_bpf_per_cpu_state {
+	long preempt_count;
+	unsigned long long n_evts;
+	unsigned long long n_drops_buffer;
+	unsigned long long n_drops_pf;
+} __attribute__((packed));
 
 #endif

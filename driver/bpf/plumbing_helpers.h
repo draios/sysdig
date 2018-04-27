@@ -25,6 +25,7 @@
 #define VPRINTK(fmt, ...)
 #endif
 
+#ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
 static __always_inline int __stash_args(unsigned long long id,
 					unsigned long *args)
 {
@@ -66,6 +67,89 @@ static __always_inline void delete_args(void)
 	unsigned long long id = bpf_get_current_pid_tgid() & 0xffffffff;
 
 	bpf_map_delete_elem(&stash_map, &id);
+}
+#endif
+
+static __always_inline long bpf_syscall_get_retval(void *ctx)
+{
+	struct sys_exit_args *args = (struct sys_exit_args *)ctx;
+
+	return args->ret;
+}
+
+static __always_inline long bpf_syscall_get_nr(void *ctx)
+{
+	struct sys_enter_args *args = (struct sys_enter_args *)ctx;
+	long id;
+
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+	struct pt_regs *regs = (struct pt_regs *)args->regs;
+
+	id = _READ(regs->orig_ax);
+#else
+	id = args->id;
+#endif
+
+	return id;
+}
+
+static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx,
+								       int idx)
+{
+	unsigned long arg;
+
+	struct sys_enter_args *args = (struct sys_enter_args *)ctx;
+
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+	struct pt_regs *regs = (struct pt_regs *)args->regs;
+
+	switch (idx) {
+	case 0:
+		arg = _READ(regs->di);
+		break;
+	case 1:
+		arg = _READ(regs->si);
+		break;
+	case 2:
+		arg = _READ(regs->dx);
+		break;
+	case 3:
+		arg = _READ(regs->r10);
+		break;
+	case 4:
+		arg = _READ(regs->r8);
+		break;
+	case 5:
+		arg = _READ(regs->r9);
+		break;
+	default:
+		arg = 0;
+	}
+#else
+	if (idx <= 5)
+		arg = args->args[idx];
+	else
+		arg = 0;
+#endif
+
+	return arg;
+}
+
+static __always_inline unsigned long bpf_syscall_get_argument(struct filler_data *data,
+							      int idx)
+{
+	unsigned long arg;
+
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+	arg = bpf_syscall_get_argument_from_ctx(data->ctx, idx);
+#else
+	if (idx <= 5)
+		arg = data->args[idx];
+	else
+		arg = 0;
+#endif
+
+	return arg;
 }
 
 static __always_inline char *get_frame_scratch_area(void)
@@ -173,11 +257,13 @@ static __always_inline struct sysdig_bpf_per_cpu_state *get_local_state(void)
 	return state;
 }
 
-static __always_inline int init_filler_data(struct filler_data *data,
+static __always_inline int init_filler_data(void *ctx,
+					    struct filler_data *data,
 					    bool is_syscall)
 {
 	char *scratchp;
 
+	data->ctx = ctx;
 	data->tail_ctx.evt_type = 0;
 
 	scratchp = get_frame_scratch_area();
@@ -186,11 +272,13 @@ static __always_inline int init_filler_data(struct filler_data *data,
 
 	data->tail_ctx = *(struct tail_context *)scratchp;
 
+#ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
 	if (is_syscall) {
 		data->args = unstash_args();
 		if (!data->args)
 			return PPM_SKIP_EVENT;
 	}
+#endif
 
 	data->buf = scratchp;
 
@@ -222,18 +310,22 @@ static __always_inline int bpf_test_bit(int nr, unsigned long *addr)
 	return 1UL & (_READ(addr[BIT_WORD(nr)]) >> (nr & (BITS_PER_LONG - 1)));
 }
 
-static __always_inline bool drop_event(void *stack_ctx,
+static __always_inline bool drop_event(void *ctx,
 				       struct tail_context *tail_ctx,
+				       enum ppm_event_type evt_type,
 				       struct sysdig_bpf_settings *settings,
 				       enum syscall_flags drop_flags)
 {
 	if (!settings->dropping_mode)
 		return false;
 
-	if (tail_ctx->evt_type == PPME_SYSCALL_CLOSE_X) {
-		if (((struct sys_exit_args *)stack_ctx)->ret < 0)
+	if (evt_type == PPME_SYSCALL_CLOSE_X) {
+		long ret = bpf_syscall_get_retval(ctx);
+
+		if (ret < 0)
 			return true;
-	} else if (tail_ctx->evt_type == PPME_SYSCALL_CLOSE_E) {
+	} else if (evt_type == PPME_SYSCALL_CLOSE_E) {
+		struct sys_enter_args *args;
 		struct files_struct *files;
 		struct task_struct *task;
 		unsigned long *open_fds;
@@ -241,7 +333,7 @@ static __always_inline bool drop_event(void *stack_ctx,
 		int close_fd;
 		int max_fds;
 
-		close_fd = ((struct sys_enter_args *)stack_ctx)->args[0];
+		close_fd = bpf_syscall_get_argument_from_ctx(ctx, 0);
 		if (close_fd < 0)
 			return true;
 
@@ -295,26 +387,45 @@ static __always_inline bool drop_event(void *stack_ctx,
 	return false;
 }
 
-static __always_inline int call_filler(void *ctx,
-				       void *stack_ctx,
-				       struct tail_context *tail_ctx,
-				       struct sysdig_bpf_settings *settings,
-				       struct sysdig_bpf_per_cpu_state *state,
-				       enum syscall_flags drop_flags)
+static __always_inline void call_filler(void *ctx,
+					void *stack_ctx,
+					enum ppm_event_type evt_type,
+					struct sysdig_bpf_settings *settings,
+					enum syscall_flags drop_flags)
 {
 	const struct ppm_event_entry *filler_info;
+	struct sysdig_bpf_per_cpu_state *state;
+	struct tail_context *tail_ctx;
 	unsigned long long pid;
+	char *scratchp;
 
+	state = get_local_state();
+	if (!state)
+		return;
+
+	if (state->preempt_count) {
+		PRINTK("preempt %d\n", state->preempt_count);
+		return;
+	}
+
+	__sync_fetch_and_add(&state->preempt_count, 1);
+
+	scratchp = get_frame_scratch_area();
+	if (!scratchp)
+		goto cleanup;
+
+	tail_ctx = (struct tail_context *)scratchp;
+	tail_ctx->evt_type = evt_type;
 	tail_ctx->ts = settings->boot_time + bpf_ktime_get_ns();
 
-	if (drop_event(stack_ctx, tail_ctx, settings, drop_flags))
-		return 0;
+	if (drop_event(stack_ctx, tail_ctx, evt_type, settings, drop_flags))
+		goto cleanup;
 
 	++state->n_evts;
 
 	filler_info = get_event_filler_info(tail_ctx->evt_type);
 	if (!filler_info)
-		return 0;
+		goto cleanup;
 
 	bpf_tail_call(ctx, &tail_map, filler_info->bpf_filler_id);
 
@@ -323,7 +434,9 @@ static __always_inline int call_filler(void *ctx,
 	       pid,
 	       tail_ctx->evt_type,
 	       filler_info->bpf_filler_id);
-	return 0;
+
+cleanup:
+	__sync_fetch_and_add(&state->preempt_count, -1);
 }
 
 #endif

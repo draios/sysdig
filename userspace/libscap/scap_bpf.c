@@ -18,7 +18,7 @@
 #include "scap.h"
 #include "scap-int.h"
 #include "scap_bpf.h"
-#include "../../driver/bpf/maps.h"
+#include "../../driver/bpf/types.h"
 #include "../../driver/ppm_fillers.h"
 #include "compat/misc.h"
 #include "compat/bpf.h"
@@ -88,14 +88,18 @@ static int bpf_map_create(enum bpf_map_type map_type,
 	return sys_bpf(BPF_MAP_CREATE, &attr, sizeof(attr));
 }
 
-static int bpf_load_program(const struct bpf_insn *insns, size_t insns_cnt, char *log_buf, size_t log_buf_sz)
+static int bpf_load_program(const struct bpf_insn *insns,
+			    enum bpf_prog_type type,
+			    size_t insns_cnt,
+			    char *log_buf,
+			    size_t log_buf_sz)
 {
 	union bpf_attr attr;
 	int fd;
 
 	bzero(&attr, sizeof(attr));
 
-	attr.prog_type = BPF_PROG_TYPE_TRACEPOINT;
+	attr.prog_type = type;
 	attr.insn_cnt = (uint32_t) insns_cnt;
 	attr.insns = (unsigned long) insns;
 	attr.license = (unsigned long) "GPL";
@@ -115,6 +119,17 @@ static int bpf_load_program(const struct bpf_insn *insns, size_t insns_cnt, char
 	log_buf[0] = 0;
 
 	return sys_bpf(BPF_PROG_LOAD, &attr, sizeof(attr));
+}
+
+static int bpf_raw_tracepoint_open(const char *name, int prog_fd)
+{
+	union bpf_attr attr;
+
+	bzero(&attr, sizeof(attr));
+	attr.raw_tracepoint.name = (unsigned long) name;
+	attr.raw_tracepoint.prog_fd = prog_fd;
+
+	return sys_bpf(BPF_RAW_TRACEPOINT_OPEN, &attr, sizeof(attr));
 }
 
 static int32_t get_elf_section(Elf *elf, int i, GElf_Ehdr *ehdr, char **shname, GElf_Shdr *shdr, Elf_Data **data)
@@ -313,11 +328,13 @@ static int32_t parse_relocations(scap_t *handle, Elf_Data *data, Elf_Data *symbo
 static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_insn *prog, int size)
 {
 	struct perf_event_attr attr = {};
+	enum bpf_prog_type program_type;
 	size_t insns_cnt;
 	char buf[256];
-	int fd;
+	bool raw_tp;
 	int efd;
 	int err;
+	int fd;
 	int id;
 
 	insns_cnt = size / sizeof(struct bpf_insn);
@@ -334,7 +351,26 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 		return SCAP_FAILURE;
 	}
 
-	fd = bpf_load_program(prog, insns_cnt, error, BPF_LOG_SIZE);
+	if(memcmp(event, "raw_tracepoint/", sizeof("raw_tracepoint/") - 1) == 0)
+	{
+		raw_tp = true;
+		program_type = BPF_PROG_TYPE_RAW_TRACEPOINT;
+		event += sizeof("raw_tracepoint/") - 1;
+	}
+	else
+	{
+		raw_tp = false;
+		program_type = BPF_PROG_TYPE_TRACEPOINT;
+		event += sizeof("tracepoint/") - 1;
+	}
+
+	if(*event == 0)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "event name cannot be empty");
+		return SCAP_FAILURE;
+	}
+
+	fd = bpf_load_program(prog, program_type, insns_cnt, error, BPF_LOG_SIZE);
 	if(fd < 0)
 	{
 		fprintf(stderr, "%s", error);
@@ -346,13 +382,6 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 	free(error);
 
 	handle->m_bpf_prog_fds[handle->m_bpf_prog_cnt++] = fd;
-
-	event += sizeof("tracepoint/") - 1;
-	if(*event == 0)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "event name cannot be empty");
-		return SCAP_FAILURE;
-	}
 
 	if(isdigit(*event))
 	{
@@ -376,41 +405,61 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 		return SCAP_SUCCESS;
 	}
 
-	strcpy(buf, "/sys/kernel/debug/tracing/events/");
-	strcat(buf, event);
-	strcat(buf, "/id");
-
-	efd = open(buf, O_RDONLY, 0);
-	if(efd < 0)
+	if(raw_tp)
 	{
-		if(strcmp(event, "exceptions/page_fault_user") == 0 ||
-		   strcmp(event, "exceptions/page_fault_kernel") == 0)
+		efd = bpf_raw_tracepoint_open(event, fd);
+		if(efd < 0)
 		{
-			return SCAP_SUCCESS;
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "BPF_RAW_TRACEPOINT_OPEN: event %s: %s", event, strerror(errno));
+			return SCAP_FAILURE;
+		}
+	}
+	else
+	{
+		strcpy(buf, "/sys/kernel/debug/tracing/events/");
+		strcat(buf, event);
+		strcat(buf, "/id");
+
+		efd = open(buf, O_RDONLY, 0);
+		if(efd < 0)
+		{
+			if(strcmp(event, "exceptions/page_fault_user") == 0 ||
+			strcmp(event, "exceptions/page_fault_kernel") == 0)
+			{
+				return SCAP_SUCCESS;
+			}
+
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failed to open event %s", event);
+			return SCAP_FAILURE;
 		}
 
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failed to open event %s", event);
-		return SCAP_FAILURE;
-	}
+		err = read(efd, buf, sizeof(buf));
+		if(err < 0 || err >= sizeof(buf))
+		{
+			close(efd);
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "read from '%s' failed '%s'", event, strerror(errno));
+			return SCAP_FAILURE;
+		}
 
-	err = read(efd, buf, sizeof(buf));
-	if(err < 0 || err >= sizeof(buf))
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "read from '%s' failed '%s'", event, strerror(errno));
-		return SCAP_FAILURE;
-	}
+		close(efd);
 
-	close(efd);
+		buf[err] = 0;
+		id = atoi(buf);
+		attr.config = id;
 
-	buf[err] = 0;
-	id = atoi(buf);
-	attr.config = id;
+		efd = sys_perf_event_open(&attr, -1, 0, -1, 0);
+		if(efd < 0)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "event %d fd %d err %s", id, efd, strerror(errno));
+			return SCAP_FAILURE;
+		}
 
-	efd = sys_perf_event_open(&attr, -1, 0, -1, 0);
-	if(efd < 0)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "event %d fd %d err %s", id, efd, strerror(errno));
-		return SCAP_FAILURE;
+		if(ioctl(efd, PERF_EVENT_IOC_SET_BPF, fd))
+		{
+			close(efd);
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "PERF_EVENT_IOC_SET_BPF");
+			return SCAP_FAILURE;
+		}
 	}
 
 	handle->m_bpf_event_fd[handle->m_bpf_prog_cnt - 1] = efd;
@@ -545,7 +594,8 @@ static int32_t load_bpf_file(scap_t *handle, const char *path)
 			continue;
 		}
 
-		if(memcmp(shname, "tracepoint/", sizeof("tracepoint/") - 1) == 0)
+		if(memcmp(shname, "tracepoint/", sizeof("tracepoint/") - 1) == 0 ||
+		   memcmp(shname, "raw_tracepoint/", sizeof("raw_tracepoint/") - 1) == 0)
 		{
 			if(load_tracepoint(handle, shname, data->d_buf, data->d_size) != SCAP_SUCCESS)
 			{
@@ -1194,19 +1244,6 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 	if(set_default_settings(handle) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
-	}
-
-	for(j = 0; j < handle->m_bpf_prog_cnt; ++j)
-	{
-		if(handle->m_bpf_event_fd[j])
-		{
-			if(ioctl(handle->m_bpf_event_fd[j], PERF_EVENT_IOC_SET_BPF, handle->m_bpf_prog_fds[j]))
-			{
-				ASSERT(false);
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "PERF_EVENT_IOC_SET_BPF");
-				return SCAP_FAILURE;
-			}
-		}
 	}
 
 	return SCAP_SUCCESS;

@@ -25,7 +25,8 @@ static __always_inline void fixup_evt_len(char *p, unsigned long len)
 	evt_hdr->len = len;
 }
 
-static __always_inline void fixup_evt_arg_len(char *p, unsigned int argnum,
+static __always_inline void fixup_evt_arg_len(char *p,
+					      unsigned int argnum,
 					      unsigned int arglen)
 {
 	volatile unsigned int argnumv = argnum;
