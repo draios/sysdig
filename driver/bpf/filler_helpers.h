@@ -261,13 +261,13 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 		unsigned long val;
 		struct sockaddr *usrsockaddr;
 
-		usrsockaddr = (struct sockaddr *)data->args[4];
+		usrsockaddr = (struct sockaddr *)bpf_syscall_get_argument(data, 4);
 
 		if (!usrsockaddr) {
 			if (!bpf_getsockname(sock, peer_address, 1))
 				goto cleanup;
 		} else {
-			int addrlen = data->args[5];
+			int addrlen = bpf_syscall_get_argument(data, 5);
 
 			if (addrlen != 0) {
 				if (bpf_addr_to_kernel(usrsockaddr, addrlen, (struct sockaddr *)peer_address))
@@ -278,10 +278,12 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 		}
 	} else if (data->tail_ctx.evt_type == PPME_SOCKET_SENDMSG_X) {
 		struct sockaddr *usrsockaddr;
-		int addrlen;
 		struct user_msghdr mh;
+		unsigned long val;
+		int addrlen;
 
-		if (bpf_probe_read(&mh, sizeof(mh), (void *)data->args[1])) {
+		val = bpf_syscall_get_argument(data, 1);
+		if (bpf_probe_read(&mh, sizeof(mh), (void *)val)) {
 			usrsockaddr = NULL;
 			addrlen = 0;
 		} else {
