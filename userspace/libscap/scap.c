@@ -44,7 +44,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap_savefile.h"
 #include "scap-int.h"
+#ifdef HAS_CAPTURE
 #include "scap_bpf.h"
+#endif
 
 //#define NDEBUG
 #include <assert.h>
@@ -1105,6 +1107,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	stats->n_drops_pf = 0;
 	stats->n_preemptions = 0;
 
+#ifdef HAS_CAPTURE
 	if(handle->m_bpf)
 	{
 		return scap_bpf_get_stats(handle, stats);
@@ -1121,6 +1124,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 			stats->n_preemptions += handle->m_devs[j].m_bufinfo->n_preemptions;
 		}
 	}
+#endif
 
 	return SCAP_SUCCESS;
 }
@@ -1459,7 +1463,7 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 	//
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "manipulating eventmasks not supported on this scap mode");
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "manipulating eventmasks not supported on this scap mode");
 		return SCAP_FAILURE;
 	}
 
