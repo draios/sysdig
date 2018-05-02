@@ -1,0 +1,3293 @@
+#ifndef __FILLERS_H
+#define __FILLERS_H
+
+#include "../ppm_flag_helpers.h"
+
+#include <linux/tty.h>
+
+#define FILLER(x, is_syscall)						\
+static __always_inline int __bpf_##x(void *ctx,				\
+				     struct filler_data *data);		\
+									\
+__bpf_section("tracepoint/" __stringify(BPF_FILLER_ID_##x))		\
+static __always_inline int bpf_##x(void *ctx)				\
+{									\
+	struct filler_data data;					\
+	int res;							\
+									\
+	res = init_filler_data(&data, is_syscall);			\
+	if (res == PPM_SUCCESS) {					\
+		write_evt_hdr(&data);					\
+		res = __bpf_##x(ctx, &data);				\
+	}								\
+									\
+	if (res == PPM_SUCCESS)						\
+		res = push_evt_frame(ctx, &data);			\
+									\
+	return terminate_filler(res, &data);				\
+}									\
+									\
+static __always_inline int __bpf_##x(void *ctx,				\
+				     struct filler_data *data)		\
+
+FILLER(f_sys_empty, true)
+{
+	return PPM_SUCCESS;
+}
+
+FILLER(f_sys_single, true)
+{
+	int res;
+
+	res = val_to_ring(data, data->args[0]);
+
+	return res;
+}
+
+FILLER(f_sys_single_x, true)
+{
+	int res;
+
+	res = val_to_ring(data, data->tail_ctx.event_data.syscall_data.ret);
+
+	return res;
+}
+
+FILLER(f_sys_open_x, true)
+{
+	unsigned int flags;
+	unsigned int mode;
+	int res;
+
+	/*
+	 * fd
+	 */
+	res = val_to_ring(data, data->tail_ctx.event_data.syscall_data.ret);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * Name
+	 */
+	res = val_to_ring(data, data->args[0]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * Flags
+	 */
+	flags = open_flags_to_scap(data->args[1]);
+	res = val_to_ring(data, flags);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * Mode
+	 */
+	mode = open_modes_to_scap(data->args[1], data->args[2]);
+	res = val_to_ring(data, mode);
+
+	return res;
+}
+
+FILLER(f_sys_read_x, true)
+{
+	unsigned long bufsize;
+	unsigned long val;
+	int res;
+
+	// res
+	res = val_to_ring(data, data->tail_ctx.event_data.syscall_data.ret);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	if (data->tail_ctx.event_data.syscall_data.ret < 0) {
+		val = 0;
+		bufsize = 0;
+	} else {
+		val = data->args[1];
+		bufsize = data->tail_ctx.event_data.syscall_data.ret;
+	}
+
+	// data
+	data->fd = data->args[0];
+	res = __val_to_ring(data, val, bufsize, PT_BYTEBUF, -1, true);
+
+	return res;
+}
+
+FILLER(f_sys_write_x, true)
+{
+	int res;
+
+	// res
+	res = val_to_ring(data, data->tail_ctx.event_data.syscall_data.ret);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	// data
+	data->fd = data->args[0];
+	res = __val_to_ring(data, data->args[1], data->args[2], PT_BYTEBUF, -1, true);
+
+	return res;
+}
+
+#ifdef BPF_FORBIDS_BIG_PROGRAMS
+#define POLL_MAXFDS 28
+#else
+#define POLL_MAXFDS 48
+#endif
+
+static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
+					      bool enter_event)
+{
+	unsigned int read_size;
+	unsigned int fds_count;
+	unsigned long nfds;
+	struct pollfd *fds;
+	unsigned long off;
+	int j;
+
+	if (!acquire_tmp_scratch(data))
+		return PPM_FAILURE_BUG;
+
+	nfds = data->args[1];
+	fds = (struct pollfd *)data->tmp_scratch;
+	read_size = nfds * sizeof(struct pollfd);
+	if (read_size > SCRATCH_SIZE_MAX)
+		read_size = SCRATCH_SIZE_MAX;
+
+#ifdef BPF_FORBIDS_ZERO_ACCESS
+	if (read_size)
+		if (bpf_probe_read(fds,
+				   ((read_size - 1) & SCRATCH_SIZE_MAX) + 1,
+				   (void *)data->args[0]))
+#else
+	if (bpf_probe_read(fds, read_size & SCRATCH_SIZE_MAX, (void *)data->args[0]))
+#endif
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	off = data->curoff + sizeof(u16);
+	fds_count = 0;
+
+	#pragma unroll
+	for (j = 0; j < POLL_MAXFDS; ++j) {
+		u16 flags;
+
+		if (j == nfds)
+			break;
+
+		if (enter_event) {
+			flags = poll_events_to_scap(fds[j].events);
+		} else {
+			if (!fds[j].revents)
+				continue;
+
+			flags = poll_events_to_scap(fds[j].revents);
+		}
+
+		*(s64 *)&data->buf[off & SCRATCH_SIZE_HALF] = fds[j].fd;
+		off += sizeof(s64);
+		*(s16 *)&data->buf[off & SCRATCH_SIZE_HALF] = flags;
+		off += sizeof(s16);
+		++fds_count;
+	}
+
+	if (!release_tmp_scratch(data))
+		return PPM_FAILURE_BUG;
+
+	*((u16 *)&data->buf[data->curoff & SCRATCH_SIZE_HALF]) = fds_count;
+	data->curarg_already_on_frame = true;
+	return __val_to_ring(data, 0, off - data->curoff, PT_FDLIST, -1, false);
+}
+
+FILLER(f_sys_poll_e, true)
+{
+	int res;
+
+	// fds
+	res = bpf_poll_parse_fds(data, true);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	// timeout
+	res = val_to_ring(data, data->args[2]);
+
+	return res;
+}
+
+FILLER(f_sys_poll_x, true)
+{
+	int res;
+
+	// res
+	res = val_to_ring_type(data, data->tail_ctx.event_data.syscall_data.ret, PT_ERRNO);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	// fds
+	res = bpf_poll_parse_fds(data, false);
+
+	return res;
+}
+
+#ifdef BPF_FORBIDS_BIG_PROGRAMS
+#define MAX_IOVCNT 5
+#else
+#define MAX_IOVCNT 32
+#endif
+
+static __always_inline int parse_readv_writev_bufs(struct filler_data *data,
+						   const struct iovec __user *iovsrc,
+						   unsigned long iovcnt,
+						   int flags)
+{
+	const struct iovec *iov;
+	unsigned int copylen;
+	long size = 0;
+	int res;
+	int j;
+
+	if (!acquire_tmp_scratch(data))
+		return PPM_FAILURE_BUG;
+
+	copylen = iovcnt * sizeof(struct iovec);
+	iov = (const struct iovec *)data->tmp_scratch;
+
+	if (copylen > SCRATCH_SIZE_MAX)
+		copylen = SCRATCH_SIZE_MAX;
+
+#ifdef BPF_FORBIDS_ZERO_ACCESS
+	if (copylen)
+		if (bpf_probe_read((void *)iov,
+				   ((copylen - 1) & SCRATCH_SIZE_MAX) + 1,
+				   (void *)iovsrc))
+#else
+	if (bpf_probe_read((void *)iov,
+			   copylen & SCRATCH_SIZE_MAX,
+			   (void *)iovsrc))
+#endif
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	#pragma unroll
+	for (j = 0; j < MAX_IOVCNT; ++j) {
+		if (j == iovcnt)
+			break;
+
+		size += iov[j].iov_len;
+	}
+
+	if ((flags & PRB_FLAG_IS_WRITE) == 0)
+		if (size > data->tail_ctx.event_data.syscall_data.ret)
+			size = data->tail_ctx.event_data.syscall_data.ret;
+
+	if (flags & PRB_FLAG_PUSH_SIZE) {
+		res = val_to_ring_type(data, size, PT_UINT32);
+		if (res != PPM_SUCCESS)
+			return res;
+	}
+
+	if (flags & PRB_FLAG_PUSH_DATA) {
+		if (size > 0) {
+			unsigned long off = data->curoff;
+			unsigned long remaining = size;
+			int j;
+
+			#pragma unroll
+			for (j = 0; j < MAX_IOVCNT; ++j) {
+				unsigned int to_read;
+
+				if (j == iovcnt)
+					break;
+
+				if (iov[j].iov_len <= remaining)
+					to_read = iov[j].iov_len;
+				else
+					to_read = remaining;
+
+#ifdef BPF_FORBIDS_ZERO_ACCESS
+				if (to_read)
+					if (bpf_probe_read(&data->buf[off & SCRATCH_SIZE_HALF],
+							   ((to_read - 1) & SCRATCH_SIZE_HALF) + 1,
+							   iov[j].iov_base)) {
+#else
+				if (bpf_probe_read(&data->buf[off & SCRATCH_SIZE_HALF],
+						   to_read & SCRATCH_SIZE_HALF,
+						   iov[j].iov_base)) {
+#endif
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+				}
+
+				remaining -= to_read;
+				off += to_read;
+			}
+		} else {
+			size = 0;
+		}
+
+		if (!release_tmp_scratch(data))
+			return PPM_FAILURE_BUG;
+
+		data->fd = data->args[0];
+		data->curarg_already_on_frame = true;
+		res = __val_to_ring(data, 0, size, PT_BYTEBUF, -1, true);
+		if (res != PPM_SUCCESS)
+			return res;
+	} else {
+		if (!release_tmp_scratch(data))
+			return PPM_FAILURE_BUG;
+	}
+
+	return PPM_SUCCESS;
+}
+
+FILLER(f_sys_readv_preadv_x, true)
+{
+	int res;
+
+	/*
+	 * res
+	 */
+	res = val_to_ring_type(data, data->tail_ctx.event_data.syscall_data.ret, PT_ERRNO);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	res = parse_readv_writev_bufs(data,
+				      (const struct iovec __user *)data->args[1],
+				      data->args[2],
+				      PRB_FLAG_PUSH_ALL);
+
+	return res;
+}
+
+FILLER(f_sys_writev_e, true)
+{
+	int res;
+
+	/*
+	 * fd
+	 */
+	res = val_to_ring(data, data->args[0]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	res = parse_readv_writev_bufs(data,
+				      (const struct iovec __user *)data->args[1],
+				      data->args[2],
+				      PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
+
+	return res;
+}
+
+FILLER(f_sys_writev_pwritev_x, true)
+{
+	int res;
+
+	/*
+	 * res
+	 */
+	res = val_to_ring(data, data->tail_ctx.event_data.syscall_data.ret);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * data and size
+	 */
+	res = parse_readv_writev_bufs(data,
+				      (const struct iovec __user *)data->args[1],
+				      data->args[2],
+				      PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
+
+	return res;
+}
+
+static __always_inline int timespec_parse(struct filler_data *data,
+					  unsigned long val)
+{
+	u64 longtime;
+	struct timespec ts;
+
+	if (bpf_probe_read(&ts, sizeof(ts), (void *)val))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	longtime = ((u64)ts.tv_sec) * 1000000000 + ts.tv_nsec;
+
+	return val_to_ring_type(data, longtime, PT_RELTIME);
+}
+
+FILLER(f_sys_nanosleep_e, true)
+{
+	int res;
+
+	res = timespec_parse(data, data->args[0]);
+
+	return res;
+}
+
+FILLER(f_sys_futex_e, true)
+{
+	int res;
+
+	/*
+	 * addr
+	 */
+	res = val_to_ring(data, data->args[0]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * op
+	 */
+	res = val_to_ring(data, futex_op_to_scap(data->args[1]));
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * val
+	 */
+	res = val_to_ring(data, data->args[2]);
+
+	return res;
+}
+
+static __always_inline unsigned long bpf_get_mm_counter(struct mm_struct *mm,
+							int member)
+{
+	long val;
+
+	bpf_probe_read(&val, sizeof(val), &mm->rss_stat.count[member]);
+	if (val < 0)
+		val = 0;
+
+	return (unsigned long)val;
+}
+
+static __always_inline unsigned long bpf_get_mm_rss(struct mm_struct *mm)
+{
+	return bpf_get_mm_counter(mm, MM_FILEPAGES) +
+		bpf_get_mm_counter(mm, MM_ANONPAGES) +
+		bpf_get_mm_counter(mm, MM_SHMEMPAGES);
+}
+
+static __always_inline unsigned long bpf_get_mm_swap(struct mm_struct *mm)
+{
+	return bpf_get_mm_counter(mm, MM_SWAPENTS);
+}
+
+FILLER(f_sys_brk_munmap_mmap_x, true)
+{
+	unsigned long total_vm = 0;
+	long total_rss = 0;
+	long swap = 0;
+	int res;
+	struct task_struct *task;
+	struct mm_struct *mm;
+
+	task = (struct task_struct *)bpf_get_current_task();
+	mm = NULL;
+	bpf_probe_read(&mm, sizeof(mm), &task->mm);
+
+	res = val_to_ring_type(data, data->tail_ctx.event_data.syscall_data.ret, PT_UINT64);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	if (mm) {
+		total_vm = _READ(mm->total_vm);
+		total_vm <<= (PAGE_SHIFT - 10);
+		total_rss = bpf_get_mm_rss(mm) << (PAGE_SHIFT - 10);
+		swap = bpf_get_mm_swap(mm) << (PAGE_SHIFT - 10);
+	}
+
+	/*
+	 * vm_size
+	 */
+	res = val_to_ring_type(data, total_vm, PT_UINT32);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * vm_rss
+	 */
+	res = val_to_ring_type(data, total_rss, PT_UINT32);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * vm_swap
+	 */
+	res = val_to_ring_type(data, swap, PT_UINT32);
+
+	return res;
+}
+
+FILLER(f_sys_mmap_e, true)
+{
+	int res;
+
+	/*
+	 * addr
+	 */
+	res = val_to_ring(data, data->args[0]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * length
+	 */
+	res = val_to_ring(data, data->args[1]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * prot
+	 */
+	res = val_to_ring(data, prot_flags_to_scap(data->args[2]));
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * flags
+	 */
+	res = val_to_ring(data, mmap_flags_to_scap(data->args[3]));
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * fd
+	 */
+	res = val_to_ring(data, data->args[4]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * offset/pgoffset
+	 */
+	res = val_to_ring(data, data->args[5]);
+
+	return res;
+}
+
+FILLER(f_sys_fcntl_e, true)
+{
+	long cmd;
+	int res;
+
+	/*
+	 * fd
+	 */
+	res = val_to_ring(data, data->args[0]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * cmd
+	 */
+	cmd = fcntl_cmd_to_scap(data->args[1]);
+	res = val_to_ring(data, cmd);
+
+	return res;
+}
+
+FILLER(f_sys_access_e, true)
+{
+	int res;
+
+	/*
+	 * mode
+	 */
+	res = val_to_ring(data, access_flags_to_scap(data->args[1]));
+
+	return res;
+}
+
+FILLER(f_sys_getrlimit_setrlimit_e, true)
+{
+	int res;
+
+	/*
+	 * resource
+	 */
+	res = val_to_ring(data, rlimit_resource_to_scap(data->args[0]));
+
+	return res;
+}
+
+FILLER(f_sys_getrlimit_setrlrimit_x, true)
+{
+	s64 cur;
+	s64 max;
+	int res;
+
+	/*
+	 * res
+	 */
+	res = val_to_ring(data, data->tail_ctx.event_data.syscall_data.ret);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * Copy the user structure and extract cur and max
+	 */
+	if (data->tail_ctx.event_data.syscall_data.ret >= 0 ||
+	    data->tail_ctx.evt_type == PPME_SYSCALL_SETRLIMIT_X) {
+		struct rlimit rl;
+
+		if (bpf_probe_read(&rl, sizeof(rl), (void *)data->args[1]))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+
+		cur = rl.rlim_cur;
+		max = rl.rlim_max;
+	} else {
+		cur = -1;
+		max = -1;
+	}
+
+	/*
+	 * cur
+	 */
+	res = val_to_ring(data, cur);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * max
+	 */
+	res = val_to_ring(data, max);
+
+	return res;
+}
+
+FILLER(f_sys_connect_x, true)
+{
+	int err;
+	int fd;
+	struct sockaddr *usrsockaddr;
+	long size = 0;
+	unsigned long val;
+	int res;
+
+	/*
+	 * Push the result
+	 */
+	res = val_to_ring(data, data->tail_ctx.event_data.syscall_data.ret);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * Retrieve the fd and push it to the ring.
+	 * Note that, even if we are in the exit callback, the arguments are still
+	 * in the stack, and therefore we can consume them.
+	 */
+	fd = data->args[0];
+
+	if (fd >= 0) {
+		usrsockaddr = (struct sockaddr *)data->args[1];
+		val = data->args[2];
+
+		if (usrsockaddr && val != 0) {
+			if (!acquire_tmp_scratch(data))
+				return PPM_FAILURE_BUG;
+
+			/*
+			 * Copy the address
+			 */
+			err = bpf_addr_to_kernel(usrsockaddr, val,
+						 (struct sockaddr *)data->tmp_scratch);
+			if (err >= 0) {
+				/*
+				 * Convert the fd into socket endpoint information
+				 */
+				size = bpf_fd_to_socktuple(data,
+							   fd,
+							   (struct sockaddr *)data->tmp_scratch,
+							   val,
+							   true,
+							   false,
+							   data->tmp_scratch + sizeof(struct sockaddr_storage));
+			}
+
+			if (!release_tmp_scratch(data))
+				return PPM_FAILURE_BUG;
+		}
+	}
+
+	/*
+	 * Copy the endpoint info into the ring
+	 */
+	data->curarg_already_on_frame = true;
+	res = val_to_ring_len(data, 0, size);
+
+	return res;
+}
+
+FILLER(f_sys_socketpair_x, true)
+{
+	int fds[2] = { 0 };
+	struct unix_sock *us = NULL;
+	struct sock *speer = NULL;
+	int res;
+
+	/* ret */
+	res = val_to_ring_type(data, data->tail_ctx.event_data.syscall_data.ret, PT_ERRNO);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	if (data->tail_ctx.event_data.syscall_data.ret >= 0) {
+		if (bpf_probe_read(fds, 2 * sizeof(int), (void *)data->args[3]))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+
+		struct socket *sock = bpf_sockfd_lookup(data, fds[0]);
+
+		if (sock) {
+			us = (struct unix_sock *)_READ(sock->sk);
+			speer = _READ(us->peer);
+		}
+	}
+	/* fd1 */
+	res = val_to_ring_type(data, fds[0], PT_FD);
+	if (res != PPM_SUCCESS)
+		return res;
+	/* fd2 */
+	res = val_to_ring_type(data, fds[1], PT_FD);
+	if (res != PPM_SUCCESS)
+		return res;
+	/* source */
+	res = val_to_ring_type(data, (unsigned long)us, PT_UINT64);
+	if (res != PPM_SUCCESS)
+		return res;
+	/* peer */
+	res = val_to_ring_type(data, (unsigned long)speer, PT_UINT64);
+
+	return res;
+}
+
+static __always_inline int f_sys_send_e_common(struct filler_data *data)
+{
+	int res;
+
+	/*
+	 * fd
+	 */
+	res = val_to_ring(data, data->args[0]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * size
+	 */
+	res = val_to_ring(data, data->args[2]);
+
+	return res;
+}
+
+FILLER(f_sys_send_e, true)
+{
+	int res;
+
+	/*
+	 * Push the common params to the ring
+	 */
+	res = f_sys_send_e_common(data);
+
+	return res;
+}
+
+FILLER(f_sys_sendto_e, true)
+{
+	unsigned long val;
+	long size = 0;
+	struct sockaddr __user *usrsockaddr;
+	int err = 0;
+	int res;
+
+	/*
+	 * Push the common params to the ring
+	 */
+	res = f_sys_send_e_common(data);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * Get the address
+	 */
+	usrsockaddr = (struct sockaddr __user *)data->args[4];
+
+	/*
+	 * Get the address len
+	 */
+	val = data->args[5];
+
+	if (usrsockaddr && val != 0) {
+		if (!acquire_tmp_scratch(data))
+			return PPM_FAILURE_BUG;
+
+		/*
+		 * Copy the address
+		 */
+		err = bpf_addr_to_kernel(usrsockaddr, val,
+					 (struct sockaddr *)data->tmp_scratch);
+		if (err >= 0) {
+			/*
+			 * Convert the fd into socket endpoint information
+			 */
+			size = bpf_fd_to_socktuple(data,
+						   data->args[0],
+						   (struct sockaddr *)data->tmp_scratch,
+						   val,
+						   true,
+						   false,
+						   data->tmp_scratch + sizeof(struct sockaddr_storage));
+		}
+
+		if (!release_tmp_scratch(data))
+			return PPM_FAILURE_BUG;
+	}
+
+	/*
+	 * Copy the endpoint info into the ring
+	 */
+	data->curarg_already_on_frame = true;
+	res = val_to_ring_len(data, 0, size);
+
+	return res;
+}
+
+FILLER(f_sys_send_x, true)
+{
+	unsigned long val;
+	unsigned long bufsize;
+	int res;
+
+	/*
+	 * res
+	 */
+	res = val_to_ring_type(data, data->tail_ctx.event_data.syscall_data.ret, PT_ERRNO);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * data
+	 */
+	if (data->tail_ctx.event_data.syscall_data.ret < 0) {
+		/*
+		 * The operation failed, return an empty buffer
+		 */
+		val = 0;
+		bufsize = 0;
+	} else {
+		val = data->args[1];
+
+		/*
+		 * The return value can be lower than the value provided by the user,
+		 * and we take that into account.
+		 */
+		bufsize = data->tail_ctx.event_data.syscall_data.ret;
+	}
+
+	data->fd = data->args[0];
+	res = __val_to_ring(data, val, bufsize, PT_BYTEBUF, -1, true);
+
+	return res;
+}
+
+FILLER(f_sys_execve_e, true)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * filename
+	 */
+	res = val_to_ring(data, data->args[0]);
+	if (res == PPM_FAILURE_INVALID_USER_MEMORY) {
+		char na[] = "<NA>";
+
+		res = val_to_ring(data, (unsigned long)na);
+	}
+
+	return res;
+}
+
+static __always_inline int bpf_ppm_get_tty(struct task_struct *task)
+{
+	struct signal_struct *sig;
+	struct tty_struct *tty;
+	struct tty_driver *driver;
+	int major;
+	int minor_start;
+	int index;
+	int tty_nr = 0;
+
+	sig = _READ(task->signal);
+	if (!sig)
+		return 0;
+
+	tty = _READ(sig->tty);
+	if (!tty)
+		return 0;
+
+	index = _READ(tty->index);
+
+	driver = _READ(tty->driver);
+	if (!driver)
+		return 0;
+
+	major = _READ(driver->major);
+	minor_start = _READ(driver->minor_start);
+
+	tty_nr = new_encode_dev(MKDEV(major, minor_start) + index);
+
+	return tty_nr;
+}
+
+enum bpf_pid_type {
+	BPF_PIDTYPE_PID,
+	BPF_PIDTYPE_PGID,
+	BPF_PIDTYPE_SID,
+	BPF_PIDTYPE_MAX,
+	BPF__PIDTYPE_TGID
+};
+
+static __always_inline pid_t bpf_task_pid_nr_ns(struct task_struct *task,
+						enum bpf_pid_type type)
+{
+	pid_t nr = 0;
+	struct pid *pid = _READ(task->pids[PIDTYPE_PID].pid);
+	unsigned int pid_level = _READ(pid->level);
+	struct pid_namespace *ns = _READ(pid->numbers[pid_level].ns);
+	unsigned int ns_level = _READ(ns->level);
+
+	if (type != BPF_PIDTYPE_PID) {
+		if (type == BPF__PIDTYPE_TGID)
+			type = BPF_PIDTYPE_PID;
+
+		task = _READ(task->group_leader);
+	}
+
+	pid = _READ(task->pids[type].pid);
+	pid_level = _READ(pid->level);
+
+	if (pid && ns_level <= pid_level) {
+		struct upid *upid = &pid->numbers[ns_level];
+		struct pid_namespace *upid_ns = _READ(upid->ns);
+
+		if (upid_ns == ns)
+			nr = _READ(upid->nr);
+	}
+
+	return nr;
+}
+
+static __always_inline pid_t bpf_task_pid_vnr(struct task_struct *task)
+{
+	return bpf_task_pid_nr_ns(task, BPF_PIDTYPE_PID);
+}
+
+static __always_inline pid_t bpf_task_tgid_vnr(struct task_struct *task)
+{
+	return bpf_task_pid_nr_ns(task, BPF__PIDTYPE_TGID);
+}
+
+static __always_inline pid_t bpf_task_pgrp_vnr(struct task_struct *task)
+{
+	return bpf_task_pid_nr_ns(task, BPF_PIDTYPE_PGID);
+}
+
+#define MAX_CGROUP_PATHS 6
+
+static __always_inline bool __bpf_append_cgroup(struct css_set *cgroups,
+						int subsys_id,
+						char *buf,
+						int *len)
+{
+	struct cgroup_subsys_state *css = _READ(cgroups->subsys[subsys_id]);
+	struct cgroup_subsys *ss = _READ(css->ss);
+	char *subsys_name = (char *)_READ(ss->name);
+	struct cgroup *cgroup = _READ(css->cgroup);
+	struct kernfs_node *kn = _READ(cgroup->kn);
+	char *cgroup_path[MAX_CGROUP_PATHS];
+	bool prev_empty = false;
+
+	int res = bpf_probe_read_str(&buf[(*len) & SCRATCH_SIZE_HALF],
+				     SCRATCH_SIZE_HALF,
+				     subsys_name);
+	if (res < 0)
+		return false;
+
+	(*len) += res - 1;
+	buf[(*len) & SCRATCH_SIZE_HALF] = '=';
+	++(*len);
+
+	#pragma unroll MAX_CGROUP_PATHS
+	for (int k = 0; k < MAX_CGROUP_PATHS; ++k) {
+		if (kn) {
+			cgroup_path[k] = (char *)_READ(kn->name);
+			kn = _READ(kn->parent);
+		} else {
+			cgroup_path[k] = NULL;
+		}
+	}
+
+	#pragma unroll MAX_CGROUP_PATHS
+	for (int k = MAX_CGROUP_PATHS - 1; k >= 0 ; --k) {
+		if (cgroup_path[k]) {
+			if (!prev_empty) {
+				buf[(*len) & SCRATCH_SIZE_HALF] = '/';
+				++(*len);
+			}
+
+			prev_empty = false;
+
+			res = bpf_probe_read_str(&buf[(*len) & SCRATCH_SIZE_HALF],
+						 SCRATCH_SIZE_HALF,
+						 cgroup_path[k]);
+			if (res > 1)
+				(*len) += res - 1;
+			else if (res == 1)
+				prev_empty = true;
+			else
+				return false;
+		}
+	}
+
+	buf[(*len) & SCRATCH_SIZE_HALF] = 0;
+	++(*len);
+
+	return true;
+}
+
+static __always_inline bool bpf_append_cgroup(struct task_struct *task,
+					      char *buf, int *len)
+{
+	struct css_set *cgroups = _READ(task->cgroups);
+
+#if IS_ENABLED(CONFIG_CPUSETS)
+	if (!__bpf_append_cgroup(cgroups, cpuset_cgrp_id, buf, len))
+		return false;
+#endif
+
+#ifndef BPF_FORBIDS_BIG_PROGRAMS
+
+#if IS_ENABLED(CONFIG_CGROUP_SCHED)
+	if (!__bpf_append_cgroup(cgroups, cpu_cgrp_id, buf, len))
+		return false;
+#endif
+
+#if IS_ENABLED(CONFIG_CGROUP_CPUACCT)
+	if (!__bpf_append_cgroup(cgroups, cpuacct_cgrp_id, buf, len))
+		return false;
+#endif
+
+#if IS_ENABLED(CONFIG_BLK_CGROUP)
+	if (!__bpf_append_cgroup(cgroups, io_cgrp_id, buf, len))
+		return false;
+#endif
+
+#endif
+
+#if IS_ENABLED(CONFIG_MEMCG)
+	if (!__bpf_append_cgroup(cgroups, memory_cgrp_id, buf, len))
+		return false;
+#endif
+
+	return true;
+}
+
+#define ARGS_ENV_SIZE_MAX 4096
+
+FILLER(f_proc_startupdate, true)
+{
+	struct task_struct *real_parent;
+	struct signal_struct *signal;
+	struct task_struct *task;
+	unsigned long total_vm;
+	unsigned long min_flt;
+	unsigned long maj_flt;
+	unsigned long fdlimit;
+	struct mm_struct *mm;
+	int cgroups_len = 0;
+	long total_rss;
+	char empty = 0;
+	pid_t tgid;
+	long swap;
+	pid_t pid;
+	int res;
+
+	/*
+	 * Make sure the operation was successful
+	 */
+	res = val_to_ring_type(data, data->tail_ctx.event_data.syscall_data.ret, PT_ERRNO);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	task = (struct task_struct *)bpf_get_current_task();
+	mm = _READ(task->mm);
+	if (!mm)
+		return PPM_FAILURE_BUG;
+
+	if (data->tail_ctx.event_data.syscall_data.ret < 0 &&
+	    data->tail_ctx.evt_type != PPME_SYSCALL_EXECVE_19_X) {
+		/* The call failed, but this syscall has no exe, args
+		 * anyway, so I report empty ones
+		 */
+
+		/*
+		 * exe
+		 */
+		res = val_to_ring_type(data, (unsigned long)&empty, PT_CHARBUF);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		/*
+		 * Args
+		 */
+		res = val_to_ring_type(data, 0, PT_BYTEBUF);
+		if (res != PPM_SUCCESS)
+			return res;
+	} else {
+		long args_len;
+		int exe_len;
+
+		if (data->tail_ctx.event_data.syscall_data.ret >= 0) {
+			/*
+			 * The call succeeded. Get exe, args from the current
+			 * process; put one \0-separated exe-args string into
+			 * str_storage
+			 */
+			unsigned long arg_start;
+			unsigned long arg_end;
+
+			arg_end = _READ(mm->arg_end);
+			if (!arg_end)
+				return PPM_FAILURE_BUG;
+
+			arg_start = _READ(mm->arg_start);
+			args_len = arg_end - arg_start;
+
+			if (args_len) {
+				if (args_len > ARGS_ENV_SIZE_MAX)
+					args_len = ARGS_ENV_SIZE_MAX;
+
+#ifdef BPF_FORBIDS_ZERO_ACCESS
+				if (bpf_probe_read(&data->buf[data->curoff & SCRATCH_SIZE_HALF],
+						   ((args_len - 1) & SCRATCH_SIZE_HALF) + 1,
+						   (void *)arg_start))
+#else
+				if (bpf_probe_read(&data->buf[data->curoff & SCRATCH_SIZE_HALF],
+						   args_len & SCRATCH_SIZE_HALF,
+						   (void *)arg_start))
+#endif
+					args_len = 0;
+				else
+					data->buf[(data->curoff + args_len - 1) & SCRATCH_SIZE_MAX] = 0;
+			}
+		} else {
+			/* Deal with this! */
+			args_len = 0;
+		}
+
+		if (args_len == 0) {
+			exe_len = 0;
+		} else {
+			exe_len = bpf_probe_read_str(&data->buf[data->curoff & SCRATCH_SIZE_HALF],
+						     SCRATCH_SIZE_HALF,
+						     &data->buf[data->curoff & SCRATCH_SIZE_HALF]);
+
+			if (exe_len < 0)
+				return PPM_FAILURE_INVALID_USER_MEMORY;
+		}
+
+		/*
+		 * exe
+		 */
+		data->curarg_already_on_frame = true;
+		res = __val_to_ring(data, 0, exe_len, PT_CHARBUF, -1, false);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		/*
+		 * Args
+		 */
+		data->curarg_already_on_frame = true;
+		res = __val_to_ring(data, 0, args_len - exe_len, PT_BYTEBUF, -1, false);
+		if (res != PPM_SUCCESS)
+			return res;
+	}
+
+	/*
+	 * tid
+	 */
+	pid = _READ(task->pid);
+
+	res = val_to_ring_type(data, pid, PT_PID);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * pid
+	 */
+	tgid = _READ(task->tgid);
+
+	res = val_to_ring_type(data, tgid, PT_PID);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * ptid
+	 */
+	real_parent = _READ(task->real_parent);
+	pid_t ptid = _READ(real_parent->pid);
+
+	res = val_to_ring_type(data, ptid, PT_PID);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * cwd, pushed empty to avoid breaking compatibility
+	 * with the older event format
+	 */
+	res = val_to_ring_type(data, (unsigned long)&empty, PT_CHARBUF);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * fdlimit
+	 */
+	signal = _READ(task->signal);
+	fdlimit = _READ(signal->rlim[RLIMIT_NOFILE].rlim_cur);
+
+	res = val_to_ring_type(data, fdlimit, PT_UINT64);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * pgft_maj
+	 */
+	maj_flt = _READ(task->maj_flt);
+
+	res = val_to_ring_type(data, maj_flt, PT_UINT64);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * pgft_min
+	 */
+	min_flt = _READ(task->min_flt);
+
+	res = val_to_ring_type(data, min_flt, PT_UINT64);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	total_vm = 0;
+	total_rss = 0;
+	swap = 0;
+
+	if (mm) {
+		total_vm = _READ(mm->total_vm);
+		total_vm <<= (PAGE_SHIFT - 10);
+		total_rss = bpf_get_mm_rss(mm) << (PAGE_SHIFT - 10);
+		swap = bpf_get_mm_swap(mm) << (PAGE_SHIFT - 10);
+	}
+
+	/*
+	 * vm_size
+	 */
+	res = val_to_ring_type(data, total_vm, PT_UINT32);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * vm_rss
+	 */
+	res = val_to_ring_type(data, total_rss, PT_UINT32);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * vm_swap
+	 */
+	res = val_to_ring_type(data, swap, PT_UINT32);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * comm
+	 */
+	res = val_to_ring_type(data, (unsigned long)task->comm, PT_CHARBUF);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * cgroups
+	 */
+	if (!acquire_tmp_scratch(data))
+		return PPM_FAILURE_BUG;
+
+	if (!bpf_append_cgroup(task, data->tmp_scratch, &cgroups_len))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	res = __val_to_ring(data, (unsigned long)data->tmp_scratch, cgroups_len, PT_BYTEBUF, -1, false);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	if (!release_tmp_scratch(data))
+		return PPM_FAILURE_BUG;
+
+	if (data->tail_ctx.evt_type == PPME_SYSCALL_CLONE_20_X ||
+	    data->tail_ctx.evt_type == PPME_SYSCALL_FORK_20_X ||
+	    data->tail_ctx.evt_type == PPME_SYSCALL_VFORK_20_X) {
+		/*
+		 * clone-only parameters
+		 */
+		unsigned long flags;
+		struct cred *cred;
+		kuid_t euid;
+		kgid_t egid;
+		pid_t vtid;
+		pid_t vpid;
+
+		/*
+		 * flags
+		 */
+		if (data->tail_ctx.evt_type == PPME_SYSCALL_CLONE_20_X)
+			flags = data->args[0];
+		else
+			flags = 0;
+
+		flags = clone_flags_to_scap(flags);
+
+		res = val_to_ring_type(data, flags, PT_FLAGS32);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		/*
+		 * This logic is wrong and doesn't account for user
+		 * namespaces.
+		 * Fix this at some point, maybe with a custom BPF
+		 * helper.
+		 */
+		cred = (struct cred *)_READ(task->cred);
+
+		euid = _READ(cred->euid);
+
+		/*
+		 * uid
+		 */
+		res = val_to_ring_type(data, euid.val, PT_UINT32);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		egid = _READ(cred->egid);
+
+		/*
+		 * gid
+		 */
+		res = val_to_ring_type(data, egid.val, PT_UINT32);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		/*
+		 * vtid
+		 */
+		vtid = bpf_task_pid_vnr(task);
+		res = val_to_ring_type(data, vtid, PT_PID);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		/*
+		 * vpid
+		 */
+		vpid = bpf_task_tgid_vnr(task);
+		res = val_to_ring_type(data, vpid, PT_PID);
+
+	} else if (data->tail_ctx.evt_type == PPME_SYSCALL_EXECVE_19_X) {
+		/*
+		 * execve-only parameters
+		 */
+		long env_len = 0;
+		int tty;
+
+		/*
+		 * environ
+		 */
+		if (data->tail_ctx.event_data.syscall_data.ret >= 0) {
+			/*
+			 * Already checked for mm validity
+			 */
+			unsigned long env_end = _READ(mm->env_end);
+			unsigned long env_start = _READ(mm->env_start);
+
+			env_len = env_end - env_start;
+
+			if (env_len) {
+				if (env_len > ARGS_ENV_SIZE_MAX)
+					env_len = ARGS_ENV_SIZE_MAX;
+
+#ifdef BPF_FORBIDS_ZERO_ACCESS
+				if (bpf_probe_read(&data->buf[data->curoff & SCRATCH_SIZE_HALF],
+						   ((env_len - 1) & SCRATCH_SIZE_HALF) + 1,
+						   (void *)env_start))
+#else
+				if (bpf_probe_read(&data->buf[data->curoff & SCRATCH_SIZE_HALF],
+						   env_len & SCRATCH_SIZE_HALF,
+						   (void *)env_start))
+#endif
+					env_len = 0;
+				else
+					data->buf[(data->curoff + env_len - 1) & SCRATCH_SIZE_MAX] = 0;
+			}
+		} else {
+			/* Deal with this! */
+			env_len = 0;
+		}
+
+		data->curarg_already_on_frame = true;
+		res = __val_to_ring(data, 0, env_len, PT_BYTEBUF, -1, false);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		/*
+		 * tty
+		 */
+		tty = bpf_ppm_get_tty(task);
+
+		res = val_to_ring_type(data, tty, PT_INT32);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		/*
+		 * pgid
+		 */
+		res = val_to_ring_type(data, bpf_task_pgrp_vnr(task), PT_PID);
+	}
+
+	return res;
+}
+
+FILLER(f_sys_accept4_e, true)
+{
+	int res;
+
+	/*
+	 * push the flags into the ring.
+	 * XXX we don't support flags yet and so we just return zero
+	 */
+	res = val_to_ring(data, 0);
+
+	return res;
+}
+
+FILLER(f_sys_accept_x, true)
+{
+	unsigned long max_ack_backlog = 0;
+	unsigned long ack_backlog = 0;
+	unsigned long queuepct = 0;
+	struct socket *sock;
+	long size = 0;
+	int res;
+	int fd;
+
+	/*
+	 * Retrieve the fd and push it to the ring.
+	 * Note that, even if we are in the exit callback, the arguments are still
+	 * in the stack, and therefore we can consume them.
+	 */
+	fd = data->tail_ctx.event_data.syscall_data.ret;
+	res = val_to_ring_type(data, fd, PT_FD);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	if (!acquire_tmp_scratch(data))
+		return PPM_FAILURE_BUG;
+
+	/*
+	 * Convert the fd into socket endpoint information
+	 */
+	size = bpf_fd_to_socktuple(data, fd, NULL, 0, false, true,
+				   data->tmp_scratch);
+
+	if (!release_tmp_scratch(data))
+		return PPM_FAILURE_BUG;
+
+	/*
+	 * Copy the endpoint info into the ring
+	 */
+	data->curarg_already_on_frame = true;
+	res = __val_to_ring(data, 0, size, PT_SOCKTUPLE, -1, false);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	sock = bpf_sockfd_lookup(data, fd);
+	if (sock) {
+		struct sock *sk = _READ(sock->sk);
+
+		if (sk) {
+			ack_backlog = _READ(sk->sk_ack_backlog);
+			max_ack_backlog = _READ(sk->sk_max_ack_backlog);
+
+			if (max_ack_backlog)
+				queuepct = (unsigned long)ack_backlog * 100 / max_ack_backlog;
+		}
+	}
+
+	/* queuepct */
+	res = val_to_ring_type(data, queuepct, PT_UINT8);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* queuelen */
+	res = val_to_ring_type(data, ack_backlog, PT_UINT32);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* queuemax */
+	res = val_to_ring_type(data, max_ack_backlog, PT_UINT32);
+
+	return res;
+}
+
+FILLER(f_sys_setns_e, true)
+{
+	u32 flags;
+	int res;
+
+	res = val_to_ring(data, data->args[0]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	flags = clone_flags_to_scap(data->args[1]);
+	res = val_to_ring(data, flags);
+
+	return res;
+}
+
+FILLER(f_sys_unshare_e, true)
+{
+	u32 flags;
+	int res;
+
+	flags = clone_flags_to_scap(data->args[0]);
+	res = val_to_ring(data, flags);
+
+	return res;
+}
+
+FILLER(f_sys_generic, true)
+{
+	long *sysdig_id;
+	int native_id;
+	int res;
+
+	native_id = data->tail_ctx.event_data.syscall_data.syscall_id;
+	sysdig_id = bpf_map_lookup_elem(&syscall_code_routing_table, &native_id);
+	if (!sysdig_id) {
+		PRINTK("no routing for syscall %d\n", native_id);
+		return PPM_FAILURE_BUG;
+	}
+
+	if (*sysdig_id == PPM_SC_UNKNOWN)
+		VPRINTK("no syscall for id %d\n", native_id);
+
+	// id
+	res = val_to_ring(data, *sysdig_id);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	if (data->tail_ctx.evt_type == PPME_GENERIC_E) {
+		// native id
+		res = val_to_ring(data, native_id);
+	}
+
+	return res;
+}
+
+FILLER(f_sys_openat_e, true)
+{
+	unsigned int flags;
+	unsigned long val;
+	unsigned int mode;
+	int res;
+
+	/*
+	 * dirfd
+	 */
+	val = data->args[0];
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * name
+	 */
+	res = val_to_ring(data, data->args[1]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * Flags
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 */
+	flags = open_flags_to_scap(data->args[2]);
+	res = val_to_ring(data, flags);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * mode
+	 */
+	mode = open_modes_to_scap(data->args[2], data->args[3]);
+	res = val_to_ring(data, flags);
+
+	return res;
+}
+
+FILLER(f_sys_sendfile_e, true)
+{
+	off_t *offp;
+	off_t off;
+	int res;
+
+	/*
+	 * out_fd
+	 */
+	res = val_to_ring(data, data->args[0]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * in_fd
+	 */
+	res = val_to_ring(data, data->args[1]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * offset
+	 */
+	offp = (off_t *)data->args[2];
+	off = _READ(*offp);
+	res = val_to_ring(data, off);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * size
+	 */
+	res = val_to_ring(data, data->args[3]);
+
+	return res;
+}
+
+FILLER(f_sys_sendfile_x, true)
+{
+	off_t *offp;
+	off_t off;
+	int res;
+
+	/*
+	 * res
+	 */
+	res = val_to_ring(data, data->tail_ctx.event_data.syscall_data.ret);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * offset
+	 */
+	offp = (off_t *)data->args[2];
+	off = _READ(*offp);
+	res = val_to_ring(data, off);
+
+	return res;
+}
+
+FILLER(f_sys_prlimit_e, true)
+{
+	unsigned long val;
+	u8 ppm_resource;
+	int res;
+
+	/*
+	 * pid
+	 */
+	res = val_to_ring(data, data->args[0]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * resource
+	 */
+	res = val_to_ring(data, rlimit_resource_to_scap(data->args[1]));
+
+	return res;
+}
+
+FILLER(f_sys_prlimit_x, true)
+{
+	struct rlimit rl;
+	s64 newcur;
+	s64 newmax;
+	s64 oldcur;
+	s64 oldmax;
+	int res;
+
+	/*
+	 * res
+	 */
+	res = val_to_ring_type(data, data->tail_ctx.event_data.syscall_data.ret, PT_ERRNO);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * Copy the user structure and extract cur and max
+	 */
+	if (data->tail_ctx.event_data.syscall_data.ret >= 0) {
+		if (bpf_probe_read(&rl, sizeof(rl), (void *)data->args[2])) {
+			newcur = -1;
+			newmax = -1;
+		} else {
+			newcur = rl.rlim_cur;
+			newmax = rl.rlim_max;
+		}
+	} else {
+		newcur = -1;
+		newmax = -1;
+	}
+
+	if (bpf_probe_read(&rl, sizeof(rl), (void *)data->args[3])) {
+		oldcur = -1;
+		oldmax = -1;
+	} else {
+		oldcur = rl.rlim_cur;
+		oldmax = rl.rlim_max;
+	}
+
+	/*
+	 * newcur
+	 */
+	res = val_to_ring_type(data, newcur, PT_INT64);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * newmax
+	 */
+	res = val_to_ring_type(data, newmax, PT_INT64);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * oldcur
+	 */
+	res = val_to_ring_type(data, oldcur, PT_INT64);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * oldmax
+	 */
+	res = val_to_ring_type(data, oldmax, PT_INT64);
+
+	return res;
+}
+
+FILLER(f_sys_pwritev_e, true)
+{
+	int res;
+
+	/*
+	 * fd
+	 */
+	res = val_to_ring(data, data->args[0]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	res = parse_readv_writev_bufs(data,
+				      (const struct iovec __user *)data->args[1],
+				      data->args[2],
+				      PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	res = val_to_ring(data, data->args[3]);
+
+	return res;
+}
+
+FILLER(f_sys_getresuid_and_gid_x, true)
+{
+	u32 *idp;
+	u32 id;
+	int res;
+
+	/*
+	 * return value
+	 */
+	res = val_to_ring(data, data->tail_ctx.event_data.syscall_data.ret);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * ruid
+	 */
+	idp = (u32 *)data->args[0];
+	id = _READ(*idp);
+
+	res = val_to_ring(data, id);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * euid
+	 */
+	idp = (u32 *)data->args[1];
+	id = _READ(*idp);
+
+	res = val_to_ring(data, id);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * suid
+	 */
+	idp = (u32 *)data->args[2];
+	id = _READ(*idp);
+
+	res = val_to_ring(data, id);
+
+	return res;
+}
+
+FILLER(f_sys_socket_bind_x, true)
+{
+	struct sockaddr *usrsockaddr;
+	unsigned long val;
+	u16 size = 0;
+	int err = 0;
+	int res;
+
+	/*
+	 * res
+	 */
+	res = val_to_ring(data, data->tail_ctx.event_data.syscall_data.ret);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * addr
+	 */
+	usrsockaddr = (struct sockaddr __user *)data->args[1];
+	val = data->args[2];
+
+	if (usrsockaddr && val != 0) {
+		if (!acquire_tmp_scratch(data))
+			return PPM_FAILURE_BUG;
+
+		/*
+		 * Copy the address
+		 */
+		err = bpf_addr_to_kernel(usrsockaddr, val,
+					 (struct sockaddr *)data->tmp_scratch);
+		if (err >= 0) {
+			/*
+			 * Convert the fd into socket endpoint information
+			 */
+			size = bpf_pack_addr(data,
+					     (struct sockaddr *)data->tmp_scratch,
+					     val);
+		}
+
+		if (!release_tmp_scratch(data))
+			return PPM_FAILURE_BUG;
+	}
+
+	/*
+	 * Copy the endpoint info into the ring
+	 */
+	data->curarg_already_on_frame = true;
+	res = val_to_ring_len(data, 0, size);
+
+	return res;
+}
+
+static __always_inline int f_sys_recv_x_common(struct filler_data *data)
+{
+	unsigned long bufsize;
+	unsigned long val;
+	int res;
+
+	/*
+	 * res
+	 */
+	res = val_to_ring_type(data, data->tail_ctx.event_data.syscall_data.ret, PT_ERRNO);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * data
+	 */
+	if (data->tail_ctx.event_data.syscall_data.ret < 0) {
+		/*
+		 * The operation failed, return an empty buffer
+		 */
+		val = 0;
+		bufsize = 0;
+	} else {
+		val = data->args[1];
+
+		/*
+		 * The return value can be lower than the value provided by the user,
+		 * and we take that into account.
+		 */
+		bufsize = data->tail_ctx.event_data.syscall_data.ret;
+	}
+
+	data->fd = data->args[0];
+	res = __val_to_ring(data, val, bufsize, PT_BYTEBUF, -1, true);
+
+	return res;
+}
+
+FILLER(f_sys_recv_x, true)
+{
+	int res;
+
+	res = f_sys_recv_x_common(data);
+
+	return res;
+}
+
+FILLER(f_sys_recvfrom_x, true)
+{
+	struct sockaddr *usrsockaddr;
+	unsigned long val;
+	u16 size = 0;
+	int addrlen;
+	int err = 0;
+	int res;
+
+	/*
+	 * Push the common params to the ring
+	 */
+	res = f_sys_recv_x_common(data);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	if (data->tail_ctx.event_data.syscall_data.ret >= 0) {
+		/*
+		 * Get the address
+		 */
+		usrsockaddr = (struct sockaddr *)data->args[4];
+
+		/*
+		 * Get the address len
+		 */
+		val = data->args[5];
+
+		if (usrsockaddr && val != 0) {
+			if (bpf_probe_read(&addrlen, sizeof(addrlen),
+					   (void *)val))
+				return PPM_FAILURE_INVALID_USER_MEMORY;
+
+			if (!acquire_tmp_scratch(data))
+				return PPM_FAILURE_BUG;
+
+			/*
+			 * Copy the address
+			 */
+			err = bpf_addr_to_kernel(usrsockaddr, addrlen,
+						 (struct sockaddr *)data->tmp_scratch);
+			if (err >= 0) {
+				/*
+				 * Convert the fd into socket endpoint information
+				 */
+				size = bpf_fd_to_socktuple(data,
+							   data->args[0],
+							   (struct sockaddr *)data->tmp_scratch,
+							   addrlen,
+							   true,
+							   true,
+							   data->tmp_scratch + sizeof(struct sockaddr_storage));
+			}
+
+			if (!release_tmp_scratch(data))
+				return PPM_FAILURE_BUG;
+		}
+	}
+
+	/*
+	 * Copy the endpoint info into the ring
+	 */
+	data->curarg_already_on_frame = true;
+	res = __val_to_ring(data, 0, size, PT_SOCKTUPLE, -1, false);
+
+	return res;
+}
+
+FILLER(f_sys_shutdown_e, true)
+{
+	unsigned int flags;
+	unsigned long val;
+	int res;
+
+	/*
+	 * fd
+	 */
+	res = val_to_ring(data, data->args[0]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * how
+	 */
+	flags = shutdown_how_to_scap(data->args[1]);
+	res = val_to_ring(data, flags);
+
+	return res;
+}
+
+FILLER(f_sys_recvmsg_x, true)
+{
+	struct sockaddr *usrsockaddr;
+	const struct iovec *iov;
+	struct user_msghdr mh;
+	unsigned long iovcnt;
+	u16 size = 0;
+	int addrlen;
+	int err = 0;
+	int res;
+
+	/*
+	 * res
+	 */
+	res = val_to_ring_type(data, data->tail_ctx.event_data.syscall_data.ret, PT_ERRNO);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * Retrieve the message header
+	 */
+	if (bpf_probe_read(&mh, sizeof(mh), (void *)data->args[1]))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	/*
+	 * data and size
+	 */
+	iov = (const struct iovec *)mh.msg_iov;
+	iovcnt = mh.msg_iovlen;
+
+	res = parse_readv_writev_bufs(data, iov, iovcnt, PRB_FLAG_PUSH_ALL);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * tuple
+	 */
+	if (data->tail_ctx.event_data.syscall_data.ret >= 0) {
+		/*
+		 * Get the address
+		 */
+		usrsockaddr = (struct sockaddr *)mh.msg_name;
+		addrlen = mh.msg_namelen;
+
+		if (usrsockaddr && addrlen != 0) {
+			if (!acquire_tmp_scratch(data))
+				return PPM_FAILURE_BUG;
+
+			/*
+			 * Copy the address
+			 */
+			err = bpf_addr_to_kernel(usrsockaddr,
+						 addrlen,
+						 (struct sockaddr *)data->tmp_scratch);
+
+			if (err >= 0) {
+				/*
+				 * Convert the fd into socket endpoint information
+				 */
+				size = bpf_fd_to_socktuple(data,
+							   data->args[0],
+							   (struct sockaddr *)data->tmp_scratch,
+							   addrlen,
+							   true,
+							   true,
+							   data->tmp_scratch + sizeof(struct sockaddr_storage));
+			}
+
+			if (!release_tmp_scratch(data))
+				return PPM_FAILURE_BUG;
+		}
+	}
+
+	data->curarg_already_on_frame = true;
+	res = __val_to_ring(data, 0, size, PT_SOCKTUPLE, -1, false);
+
+	return res;
+}
+
+FILLER(f_sys_sendmsg_e, true)
+{
+	struct sockaddr *usrsockaddr;
+	const struct iovec *iov;
+	struct user_msghdr mh;
+	unsigned long iovcnt;
+	u16 size = 0;
+	int addrlen;
+	int err = 0;
+	int res;
+
+	/*
+	 * fd
+	 */
+	res = val_to_ring_type(data, data->args[0], PT_FD);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * Retrieve the message header
+	 */
+	if (bpf_probe_read(&mh, sizeof(mh), (void *)data->args[1]))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	/*
+	 * size
+	 */
+	iov = (const struct iovec *)mh.msg_iov;
+	iovcnt = mh.msg_iovlen;
+
+	res = parse_readv_writev_bufs(data, iov, iovcnt,
+				      PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * tuple
+	 */
+	usrsockaddr = (struct sockaddr *)mh.msg_name;
+	addrlen = mh.msg_namelen;
+
+	if (usrsockaddr && addrlen != 0) {
+		if (!acquire_tmp_scratch(data))
+			return PPM_FAILURE_BUG;
+
+		/*
+		 * Copy the address
+		 */
+		err = bpf_addr_to_kernel(usrsockaddr,
+					 addrlen,
+					 (struct sockaddr *)data->tmp_scratch);
+
+		if (err >= 0) {
+			/*
+			 * Convert the fd into socket endpoint information
+			 */
+			size = bpf_fd_to_socktuple(data,
+						   data->args[0],
+						   (struct sockaddr *)data->tmp_scratch,
+						   addrlen,
+						   true,
+						   false,
+						   data->tmp_scratch + sizeof(struct sockaddr_storage));
+		}
+
+		if (!release_tmp_scratch(data))
+			return PPM_FAILURE_BUG;
+	}
+
+	data->curarg_already_on_frame = true;
+	res = __val_to_ring(data, 0, size, PT_SOCKTUPLE, -1, false);
+
+	return res;
+}
+
+FILLER(f_sys_sendmsg_x, true)
+{
+	const struct iovec *iov;
+	struct user_msghdr mh;
+	unsigned long iovcnt;
+	int res;
+
+	/*
+	 * res
+	 */
+	res = val_to_ring_type(data, data->tail_ctx.event_data.syscall_data.ret, PT_ERRNO);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * data
+	 */
+	if (bpf_probe_read(&mh, sizeof(mh), (void *)data->args[1]))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	iov = (const struct iovec *)mh.msg_iov;
+	iovcnt = mh.msg_iovlen;
+
+	res = parse_readv_writev_bufs(data, iov, iovcnt,
+				      PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
+
+	return res;
+}
+
+FILLER(f_sys_pipe_x, true)
+{
+	unsigned long ino;
+	int fds[2];
+	int res;
+
+	/*
+	 * retval
+	 */
+	res = val_to_ring(data, data->tail_ctx.event_data.syscall_data.ret);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * fds
+	 */
+	if (bpf_probe_read(fds, sizeof(fds), (void *)data->args[0]))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	res = val_to_ring(data, fds[0]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	res = val_to_ring(data, fds[1]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	if (!bpf_get_ino_fd(fds[0], &ino))
+		ino = 0;
+
+	res = val_to_ring(data, ino);
+
+	return res;
+}
+
+FILLER(f_sys_lseek_e, true)
+{
+	unsigned long flags;
+	int res;
+
+	/*
+	 * fd
+	 */
+	res = val_to_ring(data, data->args[0]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * offset
+	 */
+	res = val_to_ring(data, data->args[1]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * whence
+	 */
+	flags = lseek_whence_to_scap(data->args[2]);
+	res = val_to_ring(data, flags);
+
+	return res;
+}
+
+FILLER(f_sys_llseek_e, true)
+{
+	unsigned long flags;
+	u64 offset;
+	int res;
+
+	/*
+	 * fd
+	 */
+	res = val_to_ring(data, data->args[0]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * offset
+	 * We build it by combining the offset_high and offset_low
+	 * system call arguments
+	 */
+	offset = (((u64)data->args[1]) << 32) + ((u64)data->args[2]);
+	res = val_to_ring(data, offset);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * whence
+	 */
+	flags = lseek_whence_to_scap(data->args[4]);
+	res = val_to_ring(data, flags);
+
+	return res;
+}
+
+FILLER(f_sys_eventfd_e, true)
+{
+	int res;
+
+	/*
+	 * initval
+	 */
+	res = val_to_ring(data, data->args[0]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * flags
+	 * XXX not implemented yet
+	 */
+	res = val_to_ring(data, 0);
+
+	return res;
+}
+
+FILLER(f_sys_mount_e, true)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * Fix mount flags in arg 3.
+	 * See http://lxr.free-electrons.com/source/fs/namespace.c?v=4.2#L2650
+	 */
+	val = data->args[3];
+	if ((val & PPM_MS_MGC_MSK) == PPM_MS_MGC_VAL)
+		val &= ~PPM_MS_MGC_MSK;
+
+	res = val_to_ring(data, val);
+
+	return res;
+}
+
+FILLER(f_sys_ppoll_e, true)
+{
+	unsigned long val;
+	int res;
+
+	res = bpf_poll_parse_fds(data, true);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * timeout
+	 */
+	val = data->args[2];
+
+	/* NULL timeout specified as 0xFFFFFF.... */
+	if (val == (unsigned long)NULL) {
+		res = val_to_ring_type(data, (u64)(-1), PT_RELTIME);
+		if (res != PPM_SUCCESS)
+			return res;
+	} else {
+		res = timespec_parse(data, val);
+		if (res != PPM_SUCCESS)
+			return res;
+	}
+
+	/*
+	 * sigmask
+	 */
+	val = data->args[3];
+	if (val != (unsigned long)NULL)
+		if (bpf_probe_read(&val, sizeof(val), (void *)val))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	res = val_to_ring_type(data, val, PT_SIGSET);
+
+	return res;
+}
+
+FILLER(f_sys_semop_x, true)
+{
+	unsigned long nsops;
+	struct sembuf *ptr;
+	int res;
+
+	/*
+	 * return value
+	 */
+	res = val_to_ring_type(data, data->tail_ctx.event_data.syscall_data.ret, PT_ERRNO);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * nsops
+	 * actually this could be read in the enter function but
+	 * we also need to know the value to access the sembuf structs
+	 */
+	nsops = data->args[2];
+	res = val_to_ring_type(data, nsops, PT_UINT32);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * sembuf
+	 */
+	ptr = (struct sembuf *)data->args[1];
+
+	if (nsops && ptr) {
+		int j;
+
+		#pragma unroll 2
+		for (j = 0; j < 2; j++) {
+			struct sembuf sops = {0, 0, 0};
+
+			if (nsops--)
+				if (bpf_probe_read(&sops, sizeof(sops),
+						   (void *)&ptr[j]))
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+
+			res = val_to_ring_type(data, sops.sem_num, PT_UINT16);
+			if (res != PPM_SUCCESS)
+				return res;
+
+			res = val_to_ring_type(data, sops.sem_op, PT_INT16);
+			if (res != PPM_SUCCESS)
+				return res;
+
+			res = val_to_ring_type(data, semop_flags_to_scap(sops.sem_flg), PT_FLAGS16);
+			if (res != PPM_SUCCESS)
+				return res;
+		}
+	}
+
+	return res;
+}
+
+FILLER(f_sys_socket_x, true)
+{
+	int res;
+
+	res = val_to_ring(data, data->tail_ctx.event_data.syscall_data.ret);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	if (data->tail_ctx.event_data.syscall_data.ret > 0 &&
+	    !data->settings->socket_file_ops) {
+		struct file *file =
+			bpf_fget(data->tail_ctx.event_data.syscall_data.ret);
+
+		if (file) {
+			const struct file_operations *f_op = _READ(file->f_op);
+
+			data->settings->socket_file_ops = (void *)f_op;
+		}
+	}
+
+	return res;
+}
+
+FILLER(f_sys_flock_e, true)
+{
+	unsigned int flags;
+	int res;
+
+	res = val_to_ring(data, data->args[0]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	flags = flock_flags_to_scap(data->args[1]);
+	res = val_to_ring(data, flags);
+
+	return res;
+}
+
+FILLER(f_sys_pread64_e, true)
+{
+#ifndef _64BIT_ARGS_SINGLE_REGISTER
+#error Implement this
+#endif
+	return PPM_FAILURE_BUG;
+}
+
+FILLER(f_sys_preadv64_e, true)
+{
+#ifndef _64BIT_ARGS_SINGLE_REGISTER
+#error Implement this
+#endif
+	return PPM_FAILURE_BUG;
+}
+
+FILLER(f_sys_pwrite64_e, true)
+{
+#ifndef _64BIT_ARGS_SINGLE_REGISTER
+#error Implement this
+#endif
+	return PPM_FAILURE_BUG;
+}
+
+FILLER(f_sys_renameat_x, true)
+{
+	unsigned long val;
+	s64 retval;
+	int res;
+
+	res = val_to_ring(data, data->tail_ctx.event_data.syscall_data.ret);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * olddirfd
+	 */
+	val = data->args[0];
+
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * oldpath
+	 */
+	res = val_to_ring(data, data->args[1]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * newdirfd
+	 */
+	val = data->args[2];
+
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * newpath
+	 */
+	res = val_to_ring(data, data->args[3]);
+
+	return res;
+}
+
+FILLER(f_sys_symlinkat_x, true)
+{
+	unsigned long val;
+	s64 retval;
+	int res;
+
+	res = val_to_ring_type(data, data->tail_ctx.event_data.syscall_data.ret, PT_ERRNO);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * oldpath
+	 */
+	res = val_to_ring_type(data, data->args[0], PT_CHARBUF);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * newdirfd
+	 */
+	val = data->args[1];
+
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring_type(data, val, PT_FD);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * newpath
+	 */
+	res = val_to_ring_type(data, data->args[2], PT_CHARBUF);
+
+	return res;
+}
+
+FILLER(f_sys_sysdigevent_e, false)
+{
+	PRINTK("f_sys_sysdigevent_e should never be called\n");
+	return PPM_FAILURE_BUG;
+}
+
+FILLER(f_cpu_hotplug_e, false)
+{
+	PRINTK("f_cpu_hotplug_e should never be called\n");
+	return PPM_FAILURE_BUG;
+}
+
+FILLER(f_sched_drop, false)
+{
+	int res;
+
+	/*
+	 * ratio
+	 */
+	res = val_to_ring(data, data->settings->sampling_ratio);
+
+	return res;
+}
+
+FILLER(f_sys_procexit_e, false)
+{
+	struct task_struct *task;
+	unsigned int flags;
+	int exit_code;
+	int res;
+
+	task = (struct task_struct *)bpf_get_current_task();
+
+	exit_code = _READ(task->exit_code);
+
+	res = val_to_ring(data, exit_code);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	delete_args();
+	return res;
+}
+
+FILLER(f_sched_switch_e, false)
+{
+	struct task_struct *task;
+	unsigned long total_vm;
+	unsigned long maj_flt;
+	unsigned long min_flt;
+	struct mm_struct *mm;
+	long total_rss;
+	long swap;
+	int res;
+
+	/*
+	 * next
+	 */
+	res = val_to_ring_type(data, data->tail_ctx.event_data.sched_switch_data.next_pid, PT_PID);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	task = (struct task_struct *)bpf_get_current_task();
+
+	/*
+	 * pgft_maj
+	 */
+	maj_flt = _READ(task->maj_flt);
+	res = val_to_ring_type(data, maj_flt, PT_UINT64);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * pgft_min
+	 */
+	min_flt = _READ(task->min_flt);
+	res = val_to_ring_type(data, min_flt, PT_UINT64);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	total_vm = 0;
+	total_rss = 0;
+	swap = 0;
+
+	mm = _READ(task->mm);
+	if (mm) {
+		total_vm = _READ(mm->total_vm);
+		total_vm <<= (PAGE_SHIFT - 10);
+		total_rss = bpf_get_mm_rss(mm) << (PAGE_SHIFT - 10);
+		swap = bpf_get_mm_swap(mm) << (PAGE_SHIFT - 10);
+	}
+
+	/*
+	 * vm_size
+	 */
+	res = val_to_ring_type(data, total_vm, PT_UINT32);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * vm_rss
+	 */
+	res = val_to_ring_type(data, total_rss, PT_UINT32);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * vm_swap
+	 */
+	res = val_to_ring_type(data, swap, PT_UINT32);
+
+	return res;
+}
+
+FILLER(f_sys_pagefault_e, false)
+{
+	u32 flags;
+	int res;
+
+	res = val_to_ring(data,
+			  data->tail_ctx.event_data.page_fault_data.address);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	res = val_to_ring(data, data->tail_ctx.event_data.page_fault_data.ip);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	flags = pf_flags_to_scap(data->tail_ctx.event_data.page_fault_data.error_code);
+	res = val_to_ring(data, flags);
+
+	return res;
+}
+
+FILLER(f_sys_signaldeliver_e, false)
+{
+	int res;
+
+	/*
+	 * source pid. XXX Fix this!
+	 */
+	res = val_to_ring(data, 0);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * destination pid
+	 */
+	res = val_to_ring(data, bpf_get_current_pid_tgid() & 0xffffffff);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * signal number
+	 */
+	res = val_to_ring(data, data->tail_ctx.event_data.signal_data.sig);
+
+	return res;
+}
+
+FILLER(f_sys_quotactl_e, true)
+{
+	int res;
+
+	u32 id;
+	u8 quota_fmt;
+	u16 cmd;
+
+	/*
+	 * extract cmd
+	 */
+	cmd = quotactl_cmd_to_scap(data->args[0]);
+	res = val_to_ring_type(data, cmd, PT_FLAGS16);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * extract type
+	 */
+	res = val_to_ring_type(data, quotactl_type_to_scap(data->args[0]), PT_FLAGS8);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 *  extract id
+	 */
+	id = 0;
+	if (cmd == PPM_Q_GETQUOTA ||
+	    cmd == PPM_Q_SETQUOTA ||
+	    cmd == PPM_Q_XGETQUOTA ||
+	    cmd == PPM_Q_XSETQLIM) {
+		/*
+		 * in this case id represent an userid or groupid so add it
+		 */
+		id = data->args[2];
+	}
+	res = val_to_ring_type(data, id, PT_UINT32);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * extract quota_fmt from id
+	 */
+	quota_fmt = PPM_QFMT_NOT_USED;
+	if (cmd == PPM_Q_QUOTAON)
+		quota_fmt = quotactl_fmt_to_scap(data->args[2]);
+
+	res = val_to_ring_type(data, quota_fmt, PT_FLAGS8);
+
+	return res;
+}
+
+FILLER(f_sys_quotactl_x, true)
+{
+	int res;
+
+	u16 cmd;
+	struct if_dqblk dqblk = {0};
+	struct if_dqinfo dqinfo = {0};
+	u32 quota_fmt_out;
+
+	const char empty[] = "";
+
+	/*
+	 * extract cmd
+	 */
+	cmd = quotactl_cmd_to_scap(data->args[0]);
+
+	/*
+	 * return value
+	 */
+	res = val_to_ring_type(data, data->tail_ctx.event_data.syscall_data.ret, PT_ERRNO);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * Add special
+	 */
+	res = val_to_ring_type(data, data->args[1], PT_CHARBUF);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * get quotafilepath only for QUOTAON
+	 */
+	if (cmd == PPM_Q_QUOTAON) {
+		res = val_to_ring_type(data, data->args[3], PT_CHARBUF);
+		if (res != PPM_SUCCESS)
+			return res;
+	} else {
+		res = val_to_ring_type(data, (unsigned long)empty, PT_CHARBUF);
+		if (res != PPM_SUCCESS)
+			return res;
+	}
+
+	/*
+	 * dqblk fields if present
+	 */
+	if (cmd == PPM_Q_GETQUOTA || cmd == PPM_Q_SETQUOTA) {
+		if (bpf_probe_read(&dqblk, sizeof(dqblk),
+				   (void *)data->args[3]))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+	}
+	if (dqblk.dqb_valid & QIF_BLIMITS) {
+		res = val_to_ring_type(data, dqblk.dqb_bhardlimit, PT_UINT64);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		res = val_to_ring_type(data, dqblk.dqb_bsoftlimit, PT_UINT64);
+		if (res != PPM_SUCCESS)
+			return res;
+	} else {
+		res = val_to_ring_type(data, 0, PT_UINT64);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		res = val_to_ring_type(data, 0, PT_UINT64);
+		if (res != PPM_SUCCESS)
+			return res;
+	}
+
+	if (dqblk.dqb_valid & QIF_SPACE) {
+		res = val_to_ring_type(data, dqblk.dqb_curspace, PT_UINT64);
+		if (res != PPM_SUCCESS)
+			return res;
+	} else {
+		res = val_to_ring_type(data, 0, PT_UINT64);
+		if (res != PPM_SUCCESS)
+			return res;
+	}
+
+	if (dqblk.dqb_valid & QIF_ILIMITS) {
+		res = val_to_ring_type(data, dqblk.dqb_ihardlimit, PT_UINT64);
+		if (res != PPM_SUCCESS)
+			return res;
+		res = val_to_ring_type(data, dqblk.dqb_isoftlimit, PT_UINT64);
+		if (res != PPM_SUCCESS)
+			return res;
+	} else {
+		res = val_to_ring_type(data, 0, PT_UINT64);
+		if (res != PPM_SUCCESS)
+			return res;
+		res = val_to_ring_type(data, 0, PT_UINT64);
+		if (res != PPM_SUCCESS)
+			return res;
+	}
+
+	if (dqblk.dqb_valid & QIF_BTIME) {
+		res = val_to_ring_type(data, dqblk.dqb_btime, PT_RELTIME);
+		if (res != PPM_SUCCESS)
+			return res;
+	} else {
+		res = val_to_ring_type(data, 0, PT_RELTIME);
+		if (res != PPM_SUCCESS)
+			return res;
+	}
+
+	if (dqblk.dqb_valid & QIF_ITIME) {
+		res = val_to_ring_type(data, dqblk.dqb_itime, PT_RELTIME);
+		if (res != PPM_SUCCESS)
+			return res;
+	} else {
+		res = val_to_ring_type(data, 0, PT_RELTIME);
+		if (res != PPM_SUCCESS)
+			return res;
+	}
+
+	/*
+	 * dqinfo fields if present
+	 */
+	if (cmd == PPM_Q_GETINFO || cmd == PPM_Q_SETINFO) {
+		if (bpf_probe_read(&dqinfo, sizeof(dqinfo),
+				   (void *)data->args[3]))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+	}
+
+	if (dqinfo.dqi_valid & IIF_BGRACE) {
+		res = val_to_ring_type(data, dqinfo.dqi_bgrace, PT_RELTIME);
+		if (res != PPM_SUCCESS)
+			return res;
+	} else {
+		res = val_to_ring_type(data, 0, PT_RELTIME);
+		if (res != PPM_SUCCESS)
+			return res;
+	}
+
+	if (dqinfo.dqi_valid & IIF_IGRACE) {
+		res = val_to_ring_type(data, dqinfo.dqi_igrace, PT_RELTIME);
+		if (res != PPM_SUCCESS)
+			return res;
+	} else {
+		res = val_to_ring_type(data, 0, PT_RELTIME);
+		if (res != PPM_SUCCESS)
+			return res;
+	}
+
+	if (dqinfo.dqi_valid & IIF_FLAGS) {
+		res = val_to_ring_type(data, dqinfo.dqi_flags, PT_FLAGS8);
+		if (res != PPM_SUCCESS)
+			return res;
+	} else {
+		res = val_to_ring_type(data, 0, PT_FLAGS8);
+		if (res != PPM_SUCCESS)
+			return res;
+	}
+
+	quota_fmt_out = PPM_QFMT_NOT_USED;
+	if (cmd == PPM_Q_GETFMT) {
+		u32 tmp;
+
+		if (bpf_probe_read(&tmp, sizeof(tmp), (void *)data->args[3]))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+		quota_fmt_out = quotactl_fmt_to_scap(tmp);
+	}
+
+	res = val_to_ring_type(data, quota_fmt_out, PT_FLAGS8);
+
+	return res;
+}
+
+FILLER(f_sys_semget_e, true)
+{
+	int res;
+
+	/*
+	 * key
+	 */
+	res = val_to_ring(data, data->args[0]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * nsems
+	 */
+	res = val_to_ring(data, data->args[1]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * semflg
+	 */
+	res = val_to_ring(data, semget_flags_to_scap(data->args[2]));
+
+	return res;
+}
+
+FILLER(f_sys_semctl_e, true)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * semid
+	 */
+	res = val_to_ring(data, data->args[0]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * semnum
+	 */
+	res = val_to_ring(data, data->args[1]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * cmd
+	 */
+	res = val_to_ring(data, semctl_cmd_to_scap(data->args[2]));
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * optional argument semun/val
+	 */
+	if (data->args[2] == SETVAL)
+		val = data->args[3];
+	else
+		val = 0;
+
+	res = val_to_ring(data, val);
+
+	return res;
+}
+
+FILLER(f_sys_ptrace_e, true)
+{
+	int res;
+
+	/*
+	 * request
+	 */
+	res = val_to_ring(data, ptrace_requests_to_scap(data->args[0]));
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * pid
+	 */
+	res = val_to_ring(data, data->args[1]);
+
+	return res;
+}
+
+static __always_inline int bpf_parse_ptrace_addr(struct filler_data *data, u16 request)
+{
+	enum ppm_param_type type;
+	unsigned long val;
+	u8 idx;
+
+	val = data->args[2];
+	switch (request) {
+	default:
+		idx = PPM_PTRACE_IDX_UINT64;
+		type = PT_UINT64;
+	}
+
+	return val_to_ring_dyn(data, val, type, idx);
+}
+
+static __always_inline int bpf_parse_ptrace_data(struct filler_data *data, u16 request)
+{
+	enum ppm_param_type type;
+	unsigned long val;
+	u64 dst;
+	u8 idx;
+
+	val = data->args[3];
+	switch (request) {
+	case PPM_PTRACE_PEEKTEXT:
+	case PPM_PTRACE_PEEKDATA:
+	case PPM_PTRACE_PEEKUSR:
+		idx = PPM_PTRACE_IDX_UINT64;
+		type = PT_UINT64;
+		if (bpf_probe_read(&dst, sizeof(long), (void *)val))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+
+		break;
+	case PPM_PTRACE_CONT:
+	case PPM_PTRACE_SINGLESTEP:
+	case PPM_PTRACE_DETACH:
+	case PPM_PTRACE_SYSCALL:
+		idx = PPM_PTRACE_IDX_SIGTYPE;
+		type = PT_SIGTYPE;
+		dst = (u64)val;
+		break;
+	case PPM_PTRACE_ATTACH:
+	case PPM_PTRACE_TRACEME:
+	case PPM_PTRACE_POKETEXT:
+	case PPM_PTRACE_POKEDATA:
+	case PPM_PTRACE_POKEUSR:
+	default:
+		idx = PPM_PTRACE_IDX_UINT64;
+		type = PT_UINT64;
+		dst = (u64)val;
+		break;
+	}
+
+	return val_to_ring_dyn(data, dst, type, idx);
+}
+
+FILLER(f_sys_ptrace_x, true)
+{
+#ifdef BPF_FORBIDS_BIG_PROGRAMS
+	return PPM_SKIP_EVENT;
+#else
+	u16 request;
+	int res;
+
+	/*
+	 * res
+	 */
+	res = val_to_ring_type(data, data->tail_ctx.event_data.syscall_data.ret, PT_ERRNO);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	if (data->tail_ctx.event_data.syscall_data.ret < 0) {
+		res = val_to_ring_dyn(data, 0, PT_UINT64, 0);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		res = val_to_ring_dyn(data, 0, PT_UINT64, 0);
+		if (res != PPM_SUCCESS)
+			return res;
+	}
+
+	request = ptrace_requests_to_scap(data->args[0]);
+
+	res = bpf_parse_ptrace_addr(data, request);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	res = bpf_parse_ptrace_data(data, request);
+
+	return res;
+#endif
+}
+
+FILLER(f_sys_bpf_x, true)
+{
+#ifdef BPF_FORBIDS_BIG_PROGRAMS
+	return PPM_SKIP_EVENT;
+#endif
+
+	unsigned long cmd;
+	s64 retval;
+	int res;
+
+	retval = data->tail_ctx.event_data.syscall_data.ret;
+	cmd = data->args[0];
+
+	/*
+	 * fd, depending on cmd
+	 */
+	if (retval >= 0 && (cmd == BPF_MAP_CREATE || cmd == BPF_PROG_LOAD))
+		res = val_to_ring_dyn(data, retval, PT_FD, PPM_BPF_IDX_FD);
+	else
+		res = val_to_ring_dyn(data, retval, PT_ERRNO, PPM_BPF_IDX_RES);
+
+	return res;
+}
+
+FILLER(f_sys_unlinkat_x, true)
+{
+	unsigned long val;
+	int res;
+
+	res = val_to_ring(data, data->tail_ctx.event_data.syscall_data.ret);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * dirfd
+	 */
+	val = data->args[0];
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * name
+	 */
+	res = val_to_ring(data, data->args[1]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * flags
+	 */
+	res = val_to_ring(data, unlinkat_flags_to_scap(data->args[2]));
+
+	return res;
+}
+
+FILLER(f_sys_mkdirat_x, true)
+{
+	unsigned long val;
+	int res;
+
+	res = val_to_ring(data, data->tail_ctx.event_data.syscall_data.ret);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * dirfd
+	 */
+	val = data->args[0];
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * path
+	 */
+	res = val_to_ring(data, data->args[1]);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * mode
+	 */
+	res = val_to_ring(data, data->args[2]);
+
+	return res;
+}
+
+FILLER(f_sys_autofill, true)
+{
+	const struct ppm_event_entry *evinfo;
+	int res;
+	int j;
+
+	evinfo = data->filler_info;
+
+	#pragma unroll
+	for (j = 0; j < PPM_MAX_AUTOFILL_ARGS; j++) {
+		struct ppm_autofill_arg arg = evinfo->autofill_args[j];
+		unsigned long val;
+
+		if (j == evinfo->n_autofill_args)
+			break;
+
+		if (arg.id >= 0)
+			val = data->args[arg.id & (PPM_MAX_AUTOFILL_ARGS - 1)];
+		else if (arg.id == AF_ID_RETVAL)
+			val = data->tail_ctx.event_data.syscall_data.ret;
+		else if (arg.id == AF_ID_USEDEFAULT)
+			val = arg.default_val;
+
+		res = val_to_ring(data, val);
+		if (res != PPM_SUCCESS)
+			return res;
+	}
+
+	return res;
+}
+
+#endif

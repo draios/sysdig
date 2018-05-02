@@ -62,17 +62,34 @@ typedef struct wh_t wh_t;
 #define PF_CLONING 1
 
 //
+// ebpf defs
+//
+#define BPF_PROGS_MAX 128
+#define BPF_MAPS_MAX 32
+
+//
 // The device descriptor
 //
 typedef struct scap_device
 {
 	int m_fd;
 	char* m_buffer;
-	struct ppm_ring_buffer_info* m_bufinfo;
 	uint32_t m_lastreadsize;
 	char* m_sn_next_event; // Pointer to the next event available for scap_next
 	uint32_t m_sn_len; // Number of bytes available in the buffer pointed by m_sn_next_event
-	uint32_t m_read_size; // Number of bytes currently ready to be read in this CPU's ring buffer
+	union
+	{
+		// Anonymous struct with ppm stuff
+		struct
+		{
+			struct ppm_ring_buffer_info* m_bufinfo;
+		};
+		// Anonymous struct with bpf stuff
+		struct
+		{
+			uint64_t m_evt_lost;
+		};
+	};
 }scap_device;
 
 //
@@ -108,6 +125,17 @@ struct scap
 #ifdef CYGWING_AGENT
 	wh_t* m_whh;
 #endif
+	bool m_bpf;
+	// Anonymous struct with bpf stuff
+	struct
+	{
+		int m_bpf_prog_fds[BPF_PROGS_MAX];
+		int m_bpf_prog_cnt;
+		bool m_bpf_fillers[BPF_PROGS_MAX];
+		int m_bpf_event_fd[BPF_PROGS_MAX];
+		int m_bpf_map_fds[BPF_MAPS_MAX];
+		int m_bpf_prog_array_map_idx;
+	};
 };
 
 typedef enum ppm_dumper_type
@@ -143,7 +171,7 @@ struct scap_ns_socket_list
 //
 
 // Read the full event buffer for the given processor
-int32_t scap_readbuf(scap_t* handle, uint32_t proc, bool blocking, OUT char** buf, OUT uint32_t* len);
+int32_t scap_readbuf(scap_t* handle, uint32_t proc, OUT char** buf, OUT uint32_t* len);
 // Scan a directory containing process information
 int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid, int tid_to_scan, struct scap_threadinfo** pi, char *error, bool scan_sockets);
 // Remove an entry from the process list by parsing a PPME_PROC_EXIT event
@@ -210,6 +238,8 @@ int32_t scap_fd_post_process_unix_sockets(scap_t* handle, scap_fdinfo* sockets);
 
 int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdirname);
 
+bool scap_alloc_proclist_info(scap_t* handle, uint32_t n_entries);
+
 //
 // ASSERT implementation
 //
@@ -257,6 +287,13 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 //
 #define SCAP_DRIVER_PROCINFO_INITIAL_SIZE 7
 #define SCAP_DRIVER_PROCINFO_MAX_SIZE 128000
+
+extern const enum ppm_syscall_code g_syscall_code_routing_table[];
+extern const struct syscall_evt_pair g_syscall_table[];
+extern const struct ppm_event_info g_event_info[];
+extern const struct ppm_syscall_desc g_syscall_info_table[];
+extern const struct ppm_event_entry g_ppm_events[];
+extern bool validate_info_table_size();
 
 #ifdef __cplusplus
 }

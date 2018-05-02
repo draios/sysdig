@@ -96,6 +96,7 @@ sinsp::sinsp() :
 	m_snaplen = DEFAULT_SNAPLEN;
 	m_buffer_format = sinsp_evt::PF_NORMAL;
 	m_input_fd = 0;
+	m_bpf = false;
 	m_isdebug_enabled = false;
 	m_isfatfile_enabled = false;
 	m_isinternal_events_enabled = false;
@@ -116,6 +117,7 @@ sinsp::sinsp() :
 	m_is_tracers_capture_enabled = false;
 	m_file_start_offset = 0;
 	m_flush_memory_dump = false;
+	m_next_stats_print_time_ns = 0;
 
 	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
 	m_print_container_data = false;
@@ -439,6 +441,15 @@ void sinsp::open(uint32_t timeout_ms)
 		oargs.proc_callback_context = this;
 	}
 	oargs.import_users = m_import_users;
+
+	if(m_bpf)
+	{
+		oargs.bpf_probe = m_bpf_probe.c_str();
+	}
+	else
+	{
+		oargs.bpf_probe = NULL;
+	}
 
 	int32_t scap_rc;
 	m_h = scap_open(oargs, error, &scap_rc);
@@ -1092,7 +1103,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 					m_last_procrequest_tod = procrequest_tod;
 					m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
 
-					m_meinfo.m_pli = scap_get_threadlist_from_driver(m_h);
+					m_meinfo.m_pli = scap_get_threadlist(m_h);
 					if(m_meinfo.m_pli == NULL)
 					{
 						throw sinsp_exception(string("scap error: ") + scap_getlasterr(m_h));
@@ -1137,6 +1148,30 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	{
 		remove_thread(m_tid_to_remove, false);
 		m_tid_to_remove = -1;
+	}
+
+	if(is_debug_enabled() && is_live())
+	{
+		if(ts > m_next_stats_print_time_ns)
+		{
+			if(m_next_stats_print_time_ns)
+			{
+				scap_stats stats;
+				get_capture_stats(&stats);
+
+				g_logger.format(sinsp_logger::SEV_DEBUG,
+					"n_evts:%" PRIu64
+					" n_drops:%" PRIu64
+					" n_drops_buffer:%" PRIu64
+					" n_drops_pf:%" PRIu64,
+					stats.n_evts,
+					stats.n_drops,
+					stats.n_drops_buffer,
+					stats.n_drops_pf);
+			}
+
+			m_next_stats_print_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
+		}
 	}
 
 	//
@@ -2235,6 +2270,12 @@ void sinsp::update_mesos_state()
 	}
 }
 #endif // CYGWING_AGENT
+
+void sinsp::set_bpf_probe(const string& bpf_probe)
+{
+	m_bpf = true;
+	m_bpf_probe = bpf_probe;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Note: this is defined here so we can inline it in sinso::next

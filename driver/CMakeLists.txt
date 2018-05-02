@@ -63,6 +63,7 @@ if(ENABLE_DKMS)
 		dynamic_params_table.c
 		driver_config.h
 		event_table.c
+		fillers_table.c
 		flags_table.c
 		main.c
 		ppm.h
@@ -70,6 +71,8 @@ if(ENABLE_DKMS)
 		ppm_events.h
 		ppm_events_public.h
 		ppm_fillers.c
+		ppm_fillers.h
+		ppm_flag_helpers.h
 		ppm_ringbuffer.h
 		ppm_syscall.h
 		syscall_table.c
@@ -78,3 +81,5 @@ if(ENABLE_DKMS)
 		DESTINATION "src/${PACKAGE_NAME}-${PROBE_VERSION}"
 		COMPONENT agent)
 endif()
+
+add_subdirectory(bpf)

@@ -44,11 +44,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap_savefile.h"
 #include "scap-int.h"
+#include "scap_bpf.h"
 
 //#define NDEBUG
 #include <assert.h>
 
-char* scap_getlasterr(scap_t* handle)
+const char* scap_getlasterr(scap_t* handle)
 {
 	return handle->m_lasterr;
 }
@@ -57,13 +58,15 @@ char* scap_getlasterr(scap_t* handle)
 scap_t* scap_open_live_int(char *error, int32_t *rc,
 			   proc_entry_callback proc_callback,
 			   void* proc_callback_context,
-			   bool import_users)
+			   bool import_users,
+			   const char *bpf_probe)
 {
 	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	*rc = SCAP_NOT_SUPPORTED;
 	return NULL;
 }
 #else
+
 static uint32_t get_max_consumers()
 {
 	uint32_t max;
@@ -86,20 +89,18 @@ static uint32_t get_max_consumers()
 scap_t* scap_open_live_int(char *error, int32_t *rc,
 			   proc_entry_callback proc_callback,
 			   void* proc_callback_context,
-			   bool import_users)
+			   bool import_users,
+			   const char *bpf_probe)
 {
 	uint32_t j;
 	char filename[SCAP_MAX_PATH_SIZE];
 	scap_t* handle = NULL;
-	int len;
 	uint32_t ndevs;
-	uint32_t max_devs;
-	uint32_t all_scanned_devs;
 
 	//
 	// Allocate the handle
 	//
-	handle = (scap_t*)malloc(sizeof(scap_t));
+	handle = (scap_t*) calloc(sizeof(scap_t), 1);
 	if(!handle)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
@@ -110,21 +111,43 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	//
 	// Preliminary initializations
 	//
-	memset(handle, 0, sizeof(scap_t));
 	handle->m_mode = SCAP_MODE_LIVE;
+
+	if(!bpf_probe)
+	{
+		bpf_probe = scap_bpf_probe_from_env(handle);
+	}
+
+	char buf[SCAP_MAX_PATH_SIZE];
+	if(bpf_probe)
+	{
+		handle->m_bpf = true;
+
+		if(strlen(bpf_probe) == 0)
+		{
+			const char *home = getenv("HOME");
+			if(!home)
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "HOME environment not set");
+				*rc = SCAP_FAILURE;
+				return NULL;
+			}
+
+			snprintf(buf, sizeof(buf), "%s/.sysdig/%s-bpf.o", home, PROBE_NAME);
+			bpf_probe = buf;
+		}
+	}
+	else
+	{
+		handle->m_bpf = false;
+	}
 
 	//
 	// Find out how many devices we have to open, which equals to the number of CPUs
 	//
 	ndevs = sysconf(_SC_NPROCESSORS_ONLN);
-	max_devs = sysconf(_SC_NPROCESSORS_CONF);
 
-	//
-	// Allocate the device descriptors.
-	//
-	len = RING_BUF_SIZE * 2;
-
-	handle->m_devs = (scap_device*)malloc(ndevs * sizeof(scap_device));
+	handle->m_devs = (scap_device*) calloc(sizeof(scap_device), ndevs);
 	if(!handle->m_devs)
 	{
 		scap_close(handle);
@@ -136,7 +159,10 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	for(j = 0; j < ndevs; j++)
 	{
 		handle->m_devs[j].m_buffer = (char*)MAP_FAILED;
-		handle->m_devs[j].m_bufinfo = (struct ppm_ring_buffer_info*)MAP_FAILED;
+		if(!handle->m_bpf)
+		{
+			handle->m_devs[j].m_bufinfo = (struct ppm_ring_buffer_info*)MAP_FAILED;
+		}
 	}
 
 	handle->m_ndevs = ndevs;
@@ -197,90 +223,117 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	//
 	// Open and initialize all the devices
 	//
-	for(j = 0, all_scanned_devs = 0; j < handle->m_ndevs && all_scanned_devs < max_devs; all_scanned_devs++)
+	if(handle->m_bpf)
 	{
-		//
-		// Open the device
-		//
-		sprintf(filename, "%s/dev/" PROBE_DEVICE_NAME "%d", scap_get_host_root(), all_scanned_devs);
-
-		if((handle->m_devs[j].m_fd = open(filename, O_RDWR | O_SYNC)) < 0)
+		if((*rc = scap_bpf_load(handle, bpf_probe)) != SCAP_SUCCESS)
 		{
-			if(errno == ENODEV)
-			{
-				//
-				// This CPU is offline, so we just skip it
-				//
-				continue;
-			}
-			else if(errno == EBUSY)
-			{
-				uint32_t curr_max_consumers = get_max_consumers();
-				snprintf(error, SCAP_LASTERR_SIZE, "Too many sysdig instances attached to device %s. Current value for /sys/module/" PROBE_DEVICE_NAME "_probe/parameters/max_consumers is '%"PRIu32"'.", filename, curr_max_consumers);
-			}
-			else
-			{
-				snprintf(error, SCAP_LASTERR_SIZE, "error opening device %s. Make sure you have root credentials and that the " PROBE_NAME " module is loaded.", filename);
-			}
-
+			snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
 			scap_close(handle);
-			*rc = SCAP_FAILURE;
 			return NULL;
 		}
+	}
+	else
+	{
+		int len;
+		uint32_t max_devs;
+		uint32_t all_scanned_devs;
 
-		// Set close-on-exec for the fd
-		if (fcntl(handle->m_devs[j].m_fd, F_SETFD, FD_CLOEXEC) == -1) {
-			snprintf(error, SCAP_LASTERR_SIZE, "Can not set close-on-exec flag for fd for device %s (%s)", filename, strerror(errno));
-			scap_close(handle);
-			*rc = SCAP_FAILURE;
-			return NULL;
-		}
+		max_devs = sysconf(_SC_NPROCESSORS_CONF);
 
 		//
-		// Map the ring buffer
+		// Allocate the device descriptors.
 		//
-		handle->m_devs[j].m_buffer = (char*)mmap(0,
-		                             len,
-		                             PROT_READ,
-		                             MAP_SHARED,
-		                             handle->m_devs[j].m_fd,
-		                             0);
+		len = RING_BUF_SIZE * 2;
 
-		if(handle->m_devs[j].m_buffer == MAP_FAILED)
+		for(j = 0, all_scanned_devs = 0; j < handle->m_ndevs && all_scanned_devs < max_devs; ++all_scanned_devs)
 		{
-			// we cleanup this fd and then we let scap_close() take care of the other ones
-			close(handle->m_devs[j].m_fd);
+			//
+			// Open the device
+			//
+			sprintf(filename, "%s/dev/" PROBE_DEVICE_NAME "%d", scap_get_host_root(), all_scanned_devs);
 
-			scap_close(handle);
+			if((handle->m_devs[j].m_fd = open(filename, O_RDWR | O_SYNC)) < 0)
+			{
+				if(errno == ENODEV)
+				{
+					//
+					// This CPU is offline, so we just skip it
+					//
+					continue;
+				}
+				else if(errno == EBUSY)
+				{
+					uint32_t curr_max_consumers = get_max_consumers();
+					snprintf(error, SCAP_LASTERR_SIZE, "Too many sysdig instances attached to device %s. Current value for /sys/module/" PROBE_DEVICE_NAME "_probe/parameters/max_consumers is '%"PRIu32"'.", filename, curr_max_consumers);
+				}
+				else
+				{
+					snprintf(error, SCAP_LASTERR_SIZE, "error opening device %s. Make sure you have root credentials and that the " PROBE_NAME " module is loaded.", filename);
+				}
 
-			snprintf(error, SCAP_LASTERR_SIZE, "error mapping the ring buffer for device %s", filename);
-			*rc = SCAP_FAILURE;
-			return NULL;
+				scap_close(handle);
+				*rc = SCAP_FAILURE;
+				return NULL;
+			}
+
+			// Set close-on-exec for the fd
+			if (fcntl(handle->m_devs[j].m_fd, F_SETFD, FD_CLOEXEC) == -1) {
+				snprintf(error, SCAP_LASTERR_SIZE, "Can not set close-on-exec flag for fd for device %s (%s)", filename, strerror(errno));
+				scap_close(handle);
+				*rc = SCAP_FAILURE;
+				return NULL;
+			}
+
+			//
+			// Map the ring buffer
+			//
+			handle->m_devs[j].m_buffer = (char*)mmap(0,
+						len,
+						PROT_READ,
+						MAP_SHARED,
+						handle->m_devs[j].m_fd,
+						0);
+
+			if(handle->m_devs[j].m_buffer == MAP_FAILED)
+			{
+				// we cleanup this fd and then we let scap_close() take care of the other ones
+				close(handle->m_devs[j].m_fd);
+
+				scap_close(handle);
+				snprintf(error, SCAP_LASTERR_SIZE, "error mapping the ring buffer for device %s", filename);
+				*rc = SCAP_FAILURE;
+				return NULL;
+			}
+
+			//
+			// Map the ppm_ring_buffer_info that contains the buffer pointers
+			//
+			handle->m_devs[j].m_bufinfo = (struct ppm_ring_buffer_info*)mmap(0,
+						sizeof(struct ppm_ring_buffer_info),
+						PROT_READ | PROT_WRITE,
+						MAP_SHARED,
+						handle->m_devs[j].m_fd,
+						0);
+
+			if(handle->m_devs[j].m_bufinfo == MAP_FAILED)
+			{
+				// we cleanup this fd and then we let scap_close() take care of the other ones
+				munmap(handle->m_devs[j].m_buffer, len);
+				close(handle->m_devs[j].m_fd);
+
+				scap_close(handle);
+
+				snprintf(error, SCAP_LASTERR_SIZE, "error mapping the ring buffer info for device %s", filename);
+				*rc = SCAP_FAILURE;
+				return NULL;
+			}
+
+			++j;
 		}
+	}
 
-		//
-		// Map the ppm_ring_buffer_info that contains the buffer pointers
-		//
-		handle->m_devs[j].m_bufinfo = (struct ppm_ring_buffer_info*)mmap(0,
-		                              sizeof(struct ppm_ring_buffer_info),
-		                              PROT_READ | PROT_WRITE,
-		                              MAP_SHARED,
-		                              handle->m_devs[j].m_fd,
-		                              0);
-
-		if(handle->m_devs[j].m_bufinfo == MAP_FAILED)
-		{
-			// we cleanup this fd and then we let scap_close() take care of the other ones
-			munmap(handle->m_devs[j].m_buffer, len);
-			close(handle->m_devs[j].m_fd);
-
-			scap_close(handle);
-
-			snprintf(error, SCAP_LASTERR_SIZE, "error mapping the ring buffer info for device %s", filename);
-			*rc = SCAP_FAILURE;
-			return NULL;
-		}
-
+	for(j = 0; j < handle->m_ndevs; ++j)
+	{
 		//
 		// Additional initializations
 		//
@@ -288,7 +341,6 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		handle->m_devs[j].m_sn_len = 0;
 		handle->m_n_consecutive_waits = 0;
 		scap_stop_dropping_mode(handle);
-		j++;
 	}
 
 	//
@@ -306,7 +358,11 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	//
 	// Now that sysdig has done all its /proc parsing, start the capture
 	//
-	scap_start_capture(handle);
+	if((*rc = scap_start_capture(handle)) != SCAP_SUCCESS)
+	{
+		scap_close(handle);
+		return NULL;
+	}
 
 	return handle;
 }
@@ -434,7 +490,7 @@ scap_t* scap_open_offline_fd(int fd, char *error, int32_t *rc)
 
 scap_t* scap_open_live(char *error, int32_t *rc)
 {
-	return scap_open_live_int(error, rc, NULL, NULL, true);
+	return scap_open_live_int(error, rc, NULL, NULL, true, NULL);
 }
 
 scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
@@ -585,12 +641,13 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 #ifndef CYGWING_AGENT
 		return scap_open_live_int(error, rc, args.proc_callback,
 					  args.proc_callback_context,
-					  args.import_users);
+					  args.import_users,
+					  args.bpf_probe);
 #else
 		snprintf(error,	SCAP_LASTERR_SIZE, "scap_open: live mode currently not supported on windows. Use nodriver mode instead.");
 		*rc = SCAP_NOT_SUPPORTED;
 		return NULL;
-#endif								  
+#endif
 	case SCAP_MODE_NODRIVER:
 		return scap_open_nodriver_int(error, rc, args.proc_callback,
 					      args.proc_callback_context,
@@ -617,16 +674,26 @@ void scap_close(scap_t* handle)
 
 		if(handle->m_devs != NULL)
 		{
-			//
-			// Destroy all the device descriptors
-			//
-			for(j = 0; j < handle->m_ndevs; j++)
+			if(handle->m_bpf)
 			{
-				if(handle->m_devs[j].m_buffer != MAP_FAILED)
+				if(scap_bpf_close(handle) != SCAP_SUCCESS)
 				{
-				    munmap(handle->m_devs[j].m_bufinfo, sizeof(struct ppm_ring_buffer_info));
-				    munmap(handle->m_devs[j].m_buffer, RING_BUF_SIZE * 2);
-				    close(handle->m_devs[j].m_fd);
+					ASSERT(false);
+				}
+			}
+			else
+			{
+				//
+				// Destroy all the device descriptors
+				//
+				for(j = 0; j < handle->m_ndevs; j++)
+				{
+					if(handle->m_devs[j].m_buffer != MAP_FAILED)
+					{
+						munmap(handle->m_devs[j].m_bufinfo, sizeof(struct ppm_ring_buffer_info));
+						munmap(handle->m_devs[j].m_buffer, RING_BUF_SIZE * 2);
+						close(handle->m_devs[j].m_fd);
+					}
 				}
 			}
 
@@ -668,6 +735,12 @@ void scap_close(scap_t* handle)
 		scap_free_userlist(handle->m_userlist);
 	}
 
+	if(handle->m_driver_procinfo)
+	{
+		free(handle->m_driver_procinfo);
+		handle->m_driver_procinfo = NULL;
+	}
+
 	//
 	// Release the handle
 	//
@@ -703,9 +776,9 @@ uint32_t scap_get_ndevs(scap_t* handle)
 #if defined(HAS_CAPTURE)
 
 #ifndef _WIN32
-static inline void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uint32_t* ptail, uint32_t* pread_size)
+static inline void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uint32_t* ptail, uint64_t* pread_size)
 #else
-void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uint32_t* ptail, uint32_t* pread_size)
+void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uint32_t* ptail, uint64_t* pread_size)
 #endif
 {
 	*phead = bufinfo->head;
@@ -721,11 +794,16 @@ void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uin
 	}
 }
 
-int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** buf, OUT uint32_t* len)
+int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_t* len)
 {
+	if(handle->m_bpf)
+	{
+		return scap_bpf_readbuf(handle, cpuid, buf, len);
+	}
+
 	uint32_t thead;
 	uint32_t ttail;
-	uint32_t read_size;
+	uint64_t read_size;
 
 	//
 	// Update the tail based on the amount of data read in the *previous* call.
@@ -780,13 +858,25 @@ bool check_scap_next_wait(scap_t* handle)
 
 	for(j = 0; j < handle->m_ndevs; j++)
 	{
-		uint32_t thead;
-		uint32_t ttail;
-		scap_device* dev = &(handle->m_devs[j]);
+		uint64_t read_size;
 
-		get_buf_pointers(dev->m_bufinfo, &thead, &ttail, &dev->m_read_size);
+		if(handle->m_bpf)
+		{
+			uint64_t thead;
+			uint64_t ttail;
 
-		if(dev->m_read_size > 20000)
+			scap_bpf_get_buf_pointers(handle->m_devs[j].m_buffer, &thead, &ttail, &read_size);
+
+		}
+		else
+		{
+			uint32_t thead;
+			uint32_t ttail;
+
+			get_buf_pointers(handle->m_devs[j].m_bufinfo, &thead, &ttail, &read_size);
+		}
+
+		if(read_size > 20000)
 		{
 			handle->m_n_consecutive_waits = 0;
 			res = false;
@@ -809,18 +899,15 @@ bool check_scap_next_wait(scap_t* handle)
 	}
 }
 
-int32_t refill_read_buffers(scap_t* handle, bool wait)
+int32_t refill_read_buffers(scap_t* handle)
 {
 	uint32_t j;
 	uint32_t ndevs = handle->m_ndevs;
 
-	if(wait)
+	if(check_scap_next_wait(handle))
 	{
-		if(check_scap_next_wait(handle))
-		{
-			usleep(BUFFER_EMPTY_WAIT_TIME_MS * 1000);
-			handle->m_n_consecutive_waits++;
-		}
+		usleep(BUFFER_EMPTY_WAIT_TIME_MS * 1000);
+		handle->m_n_consecutive_waits++;
 	}
 
 	//
@@ -828,11 +915,10 @@ int32_t refill_read_buffers(scap_t* handle, bool wait)
 	//
 	for(j = 0; j < ndevs; j++)
 	{
-		scap_device* dev = &(handle->m_devs[j]);
+		struct scap_device *dev = &(handle->m_devs[j]);
 
 		int32_t res = scap_readbuf(handle,
 		                           j,
-		                           false,
 		                           &dev->m_sn_next_event,
 		                           &dev->m_sn_len);
 
@@ -867,7 +953,6 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 #else
 	uint32_t j;
 	uint64_t max_ts = 0xffffffffffffffffLL;
-	uint64_t max_buf_size = 0;
 	scap_evt* pe = NULL;
 	uint32_t ndevs = handle->m_ndevs;
 
@@ -877,31 +962,28 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 	{
 		scap_device* dev = &(handle->m_devs[j]);
 
-		if(dev->m_sn_len == 0)
-		{
-			continue;
-		}
-
 		//
 		// Make sure that we have data from this ring
 		//
 		if(dev->m_sn_len != 0)
 		{
-			if(dev->m_sn_len > max_buf_size)
-			{
-				max_buf_size = dev->m_sn_len;
-			}
-
 			//
 			// We want to consume the event with the lowest timestamp
 			//
-			pe = (scap_evt*)dev->m_sn_next_event;
+			if(handle->m_bpf)
+			{
+				pe = scap_bpf_evt_from_perf_sample(dev->m_sn_next_event);
+			}
+			else
+			{
+				pe = (scap_evt *) dev->m_sn_next_event;
+			}
 
 			if(pe->ts < max_ts)
 			{
 				if(pe->len > dev->m_sn_len)
 				{
-					snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_next buffer corruption");
+					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_next buffer corruption");
 
 					//
 					// if you get the following assertion, first recompile the driver and libscap
@@ -922,12 +1004,25 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 	//
 	if(*pcpuid != 65535)
 	{
+		struct scap_device *dev = &handle->m_devs[*pcpuid];
+
 		//
 		// Update the pointers.
 		//
-		ASSERT(handle->m_devs[*pcpuid].m_sn_len >= (*pevent)->len);
-		handle->m_devs[*pcpuid].m_sn_len -= (*pevent)->len;
-		handle->m_devs[*pcpuid].m_sn_next_event += (*pevent)->len;
+		if(handle->m_bpf)
+		{
+			scap_bpf_advance_to_evt(handle, *pcpuid, true,
+						dev->m_sn_next_event,
+						&dev->m_sn_next_event,
+						&dev->m_sn_len);
+		}
+		else
+		{
+			ASSERT(dev->m_sn_len >= (*pevent)->len);
+			dev->m_sn_len -= (*pevent)->len;
+			dev->m_sn_next_event += (*pevent)->len;
+		}
+
 		return SCAP_SUCCESS;
 	}
 	else
@@ -936,7 +1031,7 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 		// All the buffers have been consumed. Check if there's enough data to keep going or
 		// if we should wait.
 		//
-		return refill_read_buffers(handle, true);
+		return refill_read_buffers(handle);
 	}
 #endif
 }
@@ -1007,15 +1102,24 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	stats->n_evts = 0;
 	stats->n_drops = 0;
 	stats->n_drops_buffer = 0;
+	stats->n_drops_pf = 0;
 	stats->n_preemptions = 0;
 
-	for(j = 0; j < handle->m_ndevs; j++)
+	if(handle->m_bpf)
 	{
-		stats->n_evts += handle->m_devs[j].m_bufinfo->n_evts;
-		stats->n_drops_buffer += handle->m_devs[j].m_bufinfo->n_drops_buffer;
-		stats->n_drops += handle->m_devs[j].m_bufinfo->n_drops_buffer +
-			handle->m_devs[j].m_bufinfo->n_drops_pf;
-		stats->n_preemptions += handle->m_devs[j].m_bufinfo->n_preemptions;
+		return scap_bpf_get_stats(handle, stats);
+	}
+	else
+	{
+		for(j = 0; j < handle->m_ndevs; j++)
+		{
+			stats->n_evts += handle->m_devs[j].m_bufinfo->n_evts;
+			stats->n_drops_buffer += handle->m_devs[j].m_bufinfo->n_drops_buffer;
+			stats->n_drops_pf += handle->m_devs[j].m_bufinfo->n_drops_pf;
+			stats->n_drops += handle->m_devs[j].m_bufinfo->n_drops_buffer +
+						handle->m_devs[j].m_bufinfo->n_drops_pf;
+			stats->n_preemptions += handle->m_devs[j].m_bufinfo->n_preemptions;
+		}
 	}
 
 	return SCAP_SUCCESS;
@@ -1047,11 +1151,18 @@ int32_t scap_stop_capture(scap_t* handle)
 	//
 	for(j = 0; j < handle->m_ndevs; j++)
 	{
-		if(ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_DISABLE_CAPTURE))
+		if(handle->m_bpf)
 		{
-			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_stop_capture failed for device %" PRIu32, j);
-			ASSERT(false);
-			return SCAP_FAILURE;
+			return scap_bpf_stop_capture(handle);
+		}
+		else
+		{
+			if(ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_DISABLE_CAPTURE))
+			{
+				snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_stop_capture failed for device %" PRIu32, j);
+				ASSERT(false);
+				return SCAP_FAILURE;
+			}
 		}
 	}
 
@@ -1075,7 +1186,7 @@ int32_t scap_start_capture(scap_t* handle)
 	//
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "cannot start capture on this scap mode");
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "cannot start capture on this scap mode");
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
@@ -1083,13 +1194,20 @@ int32_t scap_start_capture(scap_t* handle)
 	//
 	// Enable capture on all the rings
 	//
-	for(j = 0; j < handle->m_ndevs; j++)
+	if(handle->m_bpf)
 	{
-		if(ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_ENABLE_CAPTURE))
+		return scap_bpf_start_capture(handle);
+	}
+	else
+	{
+		for(j = 0; j < handle->m_ndevs; j++)
 		{
-			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_start_capture failed for device %" PRIu32, j);
-			ASSERT(false);
-			return SCAP_FAILURE;
+			if(ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_ENABLE_CAPTURE))
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_start_capture failed for device %" PRIu32, j);
+				ASSERT(false);
+				return SCAP_FAILURE;
+			}
 		}
 	}
 
@@ -1105,7 +1223,7 @@ static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t samp
 	//
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s: dropping not supported in replay mode", __FUNCTION__);
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s: dropping not supported in replay mode", __FUNCTION__);
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
@@ -1113,7 +1231,7 @@ static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t samp
 	if(handle->m_ndevs)
 	{
 		ASSERT((request == PPM_IOCTL_ENABLE_DROPPING_MODE &&
-			   ((sampling_ratio == 1)  ||
+			((sampling_ratio == 1)  ||
 				(sampling_ratio == 2)  ||
 				(sampling_ratio == 4)  ||
 				(sampling_ratio == 8)  ||
@@ -1125,7 +1243,7 @@ static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t samp
 		if(ioctl(handle->m_devs[0].m_fd, request, sampling_ratio))
 		{
 			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s, request %d for sampling ratio %u: %s",
-					 __FUNCTION__, request, sampling_ratio, strerror(errno));
+					__FUNCTION__, request, sampling_ratio, strerror(errno));
 			ASSERT(false);
 			return SCAP_FAILURE;
 		}
@@ -1150,11 +1268,18 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 
 	if(handle->m_ndevs)
 	{
-		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_TRACERS_CAPTURE))
+		if(handle->m_bpf)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
-			ASSERT(false);
-			return SCAP_FAILURE;
+			return scap_bpf_enable_tracers_capture(handle);
+		}
+		else
+		{
+			if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_TRACERS_CAPTURE))
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
+				ASSERT(false);
+				return SCAP_FAILURE;
+			}
 		}
 	}
 
@@ -1174,11 +1299,18 @@ int32_t scap_enable_page_faults(scap_t *handle)
 
 	if(handle->m_ndevs)
 	{
-		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_ENABLE_PAGE_FAULTS))
+		if(handle->m_bpf)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
-			ASSERT(false);
-			return SCAP_FAILURE;
+			return scap_bpf_enable_page_faults(handle);
+		}
+		else
+		{
+			if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_ENABLE_PAGE_FAULTS))
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
+				ASSERT(false);
+				return SCAP_FAILURE;
+			}
 		}
 	}
 
@@ -1192,7 +1324,14 @@ int32_t scap_stop_dropping_mode(scap_t* handle)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
-	return scap_set_dropping_mode(handle, PPM_IOCTL_DISABLE_DROPPING_MODE, 0);
+	if(handle->m_bpf)
+	{
+		return scap_bpf_stop_dropping_mode(handle);
+	}
+	else
+	{
+		return scap_set_dropping_mode(handle, PPM_IOCTL_DISABLE_DROPPING_MODE, 0);
+	}
 #endif
 }
 
@@ -1202,7 +1341,14 @@ int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
-	return scap_set_dropping_mode(handle, PPM_IOCTL_ENABLE_DROPPING_MODE, sampling_ratio);
+	if(handle->m_bpf)
+	{
+		return scap_bpf_start_dropping_mode(handle, sampling_ratio);
+	}
+	else
+	{
+		return scap_set_dropping_mode(handle, PPM_IOCTL_ENABLE_DROPPING_MODE, sampling_ratio);
+	}
 #endif
 }
 
@@ -1255,31 +1401,38 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
-	//
-	// Tell the driver to change the snaplen
-	//
-	if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_SNAPLEN, snaplen))
+
+	if(handle->m_bpf)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_set_snaplen failed");
-		ASSERT(false);
-		return SCAP_FAILURE;
+		return scap_bpf_set_snaplen(handle, snaplen);
 	}
-
+	else
 	{
-		uint32_t j;
-
 		//
-		// Force a flush of the read buffers, so we don't capture events with the old snaplen
+		// Tell the driver to change the snaplen
 		//
-		for(j = 0; j < handle->m_ndevs; j++)
+		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_SNAPLEN, snaplen))
 		{
-			scap_readbuf(handle,
-               j,
-               false,
-               &handle->m_devs[j].m_sn_next_event,
-               &handle->m_devs[j].m_sn_len);
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_set_snaplen failed");
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
 
-			handle->m_devs[j].m_sn_len = 0;
+		{
+			uint32_t j;
+
+			//
+			// Force a flush of the read buffers, so we don't capture events with the old snaplen
+			//
+			for(j = 0; j < handle->m_ndevs; j++)
+			{
+				scap_readbuf(handle,
+							j,
+							&handle->m_devs[j].m_sn_next_event,
+							&handle->m_devs[j].m_sn_len);
+
+				handle->m_devs[j].m_sn_len = 0;
+			}
 		}
 	}
 
@@ -1331,28 +1484,36 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 		break;
 	}
 
-	if(ioctl(handle->m_devs[0].m_fd, op, event_id))
+	if(handle->m_bpf)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) failed", __FUNCTION__, op);
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on bpf");
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
-
+	else
 	{
-		uint32_t j;
-
-		//
-		// Force a flush of the read buffers, so we don't capture events with the old snaplen
-		//
-		for(j = 0; j < handle->m_ndevs; j++)
+		if(ioctl(handle->m_devs[0].m_fd, op, event_id))
 		{
-			scap_readbuf(handle,
-				j,
-				false,
-				&handle->m_devs[j].m_sn_next_event,
-				&handle->m_devs[j].m_sn_len);
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) failed", __FUNCTION__, op);
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
 
-			handle->m_devs[j].m_sn_len = 0;
+		{
+			uint32_t j;
+
+			//
+			// Force a flush of the read buffers, so we don't capture events with the old snaplen
+			//
+			for(j = 0; j < handle->m_ndevs; j++)
+			{
+				scap_readbuf(handle,
+					j,
+					&handle->m_devs[j].m_sn_next_event,
+					&handle->m_devs[j].m_sn_len);
+
+				handle->m_devs[j].m_sn_len = 0;
+			}
 		}
 	}
 
@@ -1400,7 +1561,7 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 	//
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "setting snaplen not supported on this scap mode");
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "setting snaplen not supported on this scap mode");
 		return SCAP_FAILURE;
 	}
 
@@ -1412,11 +1573,18 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 	//
 	// Tell the driver to change the snaplen
 	//
-	if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_ENABLE_DYNAMIC_SNAPLEN))
+	if(handle->m_bpf)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_enable_dynamic_snaplen failed");
-		ASSERT(false);
-		return SCAP_FAILURE;
+		return scap_bpf_enable_dynamic_snaplen(handle);
+	}
+	else
+	{
+		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_ENABLE_DYNAMIC_SNAPLEN))
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_dynamic_snaplen failed");
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
 	}
 
 	return SCAP_SUCCESS;
@@ -1430,7 +1598,7 @@ int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 	//
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "setting snaplen not supported on this scap mode");
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "setting snaplen not supported on this scap mode");
 		return SCAP_FAILURE;
 	}
 
@@ -1442,11 +1610,18 @@ int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 	//
 	// Tell the driver to change the snaplen
 	//
-	if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_DISABLE_DYNAMIC_SNAPLEN))
+	if(handle->m_bpf)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_enable_dynamic_snaplen failed");
-		ASSERT(false);
-		return SCAP_FAILURE;
+		return scap_bpf_disable_dynamic_snaplen(handle);
+	}
+	else
+	{
+		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_DISABLE_DYNAMIC_SNAPLEN))
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_disable_dynamic_snaplen failed");
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
 	}
 
 	return SCAP_SUCCESS;
@@ -1467,45 +1642,45 @@ const char* scap_get_host_root()
 	return env_str;
 }
 
-bool alloc_proclist_info(scap_t* handle, uint32_t n_entries)
+bool scap_alloc_proclist_info(scap_t* handle, uint32_t n_entries)
 {
 	uint32_t memsize;
 
 	if(n_entries >= SCAP_DRIVER_PROCINFO_MAX_SIZE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "driver process list too big");
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "driver process list too big");
 		return false;
 	}
 
 	memsize = sizeof(struct ppm_proclist_info) +
-	sizeof(struct ppm_proc_info) * n_entries;
+		sizeof(struct ppm_proc_info) * n_entries;
 
-	if(handle->m_driver_procinfo != NULL)
+	struct ppm_proclist_info *procinfo = (struct ppm_proclist_info*) realloc(handle->m_driver_procinfo, memsize);
+	if(procinfo == NULL)
 	{
-		free(handle->m_driver_procinfo);
-	}
-
-	handle->m_driver_procinfo = (struct ppm_proclist_info*)malloc(memsize);
-	if(handle->m_driver_procinfo == NULL)
-	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "driver process list allocation error");
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "driver process list allocation error");
 		return false;
 	}
 
-	handle->m_driver_procinfo->max_entries = n_entries;
-	handle->m_driver_procinfo->n_entries = 0;
+	if(handle->m_driver_procinfo == NULL)
+	{
+		procinfo->n_entries = 0;
+	}
+
+	procinfo->max_entries = n_entries;
+	handle->m_driver_procinfo = procinfo;
 
 	return true;
 }
 
-struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle)
+struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
 {
 	//
 	// Not supported on files
 	//
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_get_threadlist_from_driver not supported on this scap mode");
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_get_threadlist not supported on this scap mode");
 		return NULL;
 	}
 
@@ -1515,30 +1690,37 @@ struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle)
 #else
 	if(handle->m_driver_procinfo == NULL)
 	{
-		if(alloc_proclist_info(handle, SCAP_DRIVER_PROCINFO_INITIAL_SIZE) == false)
+		if(scap_alloc_proclist_info(handle, SCAP_DRIVER_PROCINFO_INITIAL_SIZE) == false)
 		{
 			return NULL;
 		}
 	}
 
-	int ioctlres = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_PROCLIST, handle->m_driver_procinfo);
-	if(ioctlres)
+	if(handle->m_bpf)
 	{
-		if(errno == ENOSPC)
+		return scap_bpf_get_threadlist(handle);
+	}
+	else
+	{
+		int ioctlres = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_PROCLIST, handle->m_driver_procinfo);
+		if(ioctlres)
 		{
-			if(alloc_proclist_info(handle, handle->m_driver_procinfo->n_entries + 256) == false)
+			if(errno == ENOSPC)
 			{
-				return NULL;
+				if(scap_alloc_proclist_info(handle, handle->m_driver_procinfo->n_entries + 256) == false)
+				{
+					return NULL;
+				}
+				else
+				{
+					return scap_get_threadlist(handle);
+				}
 			}
 			else
 			{
-				return scap_get_threadlist_from_driver(handle);
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Error calling PPM_IOCTL_GET_PROCLIST");
+				return NULL;
 			}
-		}
-		else
-		{
-			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "Error calling PPM_IOCTL_GET_PROCLIST");
-			return NULL;
 		}
 	}
 
@@ -1563,7 +1745,7 @@ int32_t scap_enable_simpledriver_mode(scap_t* handle)
 	//
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "setting simpledriver mode not supported on this scap mode");
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "setting simpledriver mode not supported on this scap mode");
 		return SCAP_FAILURE;
 	}
 
@@ -1575,11 +1757,20 @@ int32_t scap_enable_simpledriver_mode(scap_t* handle)
 	//
 	// Tell the driver to change the snaplen
 	//
-	if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_SIMPLE_MODE))
+	if(handle->m_bpf)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_enable_simpledriver_mode failed");
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "setting simpledriver mode not supported on bpf");
 		ASSERT(false);
 		return SCAP_FAILURE;
+	}
+	else
+	{
+		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_SIMPLE_MODE))
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_simpledriver_mode failed");
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
 	}
 
 	return SCAP_SUCCESS;
@@ -1595,7 +1786,7 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 	//
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "getting n_tracepoint_hit not supported on this scap mode");
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "getting n_tracepoint_hit not supported on this scap mode");
 		return SCAP_FAILURE;
 	}
 
@@ -1604,19 +1795,27 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 	return SCAP_FAILURE;
 #else
 
-	ioctl_ret = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_N_TRACEPOINT_HIT, ret);
-	if(ioctl_ret != 0)
+	if(handle->m_bpf)
 	{
-		if (errno == ENOTTY)
+		return scap_bpf_get_n_tracepoint_hit(handle, ret);
+	}
+	else
+	{
+		ioctl_ret = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_N_TRACEPOINT_HIT, ret);
+		if(ioctl_ret != 0)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_get_n_tracepoint_hit failed, ioctl not supported");
+			if(errno == ENOTTY)
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_get_n_tracepoint_hit failed, ioctl not supported");
+			}
+			else
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_get_n_tracepoint_hit failed (%s)", strerror(errno));
+			}
+
+			ASSERT(false);
+			return SCAP_FAILURE;
 		}
-		else
-		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_get_n_tracepoint_hit failed (%s)", strerror(errno));
-		}
-		ASSERT(false);
-		return SCAP_FAILURE;
 	}
 
 	return SCAP_SUCCESS;

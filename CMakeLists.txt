@@ -336,8 +336,8 @@ if(NOT WIN32 AND NOT APPLE)
 			set(CURL_SSL_OPTION "--with-ssl")
 		else()
 			set(CURL_SSL_OPTION "--with-ssl=${OPENSSL_INSTALL_DIR}")
-                        message(STATUS "Using bundled curl in '${CURL_BUNDLE_DIR}'")
-                        message(STATUS "Using SSL for curl in '${CURL_SSL_OPTION}'")
+			message(STATUS "Using bundled curl in '${CURL_BUNDLE_DIR}'")
+			message(STATUS "Using SSL for curl in '${CURL_SSL_OPTION}'")
 		endif()
 
 

@@ -72,6 +72,11 @@ static void usage()
 " -A, --print-ascii  When emitting JSON, only print the text portion of data buffers, and echo\n"
 "                    end-of-lines. This is useful to only display human-readable\n"
 "                    data.\n"
+" -B<bpf_probe>, --bpf=<bpf_probe>\n"
+"                    Enable live capture using the specified BPF probe instead of the kernel module.\n"
+"                    The BPF probe can also be specified via the environment variable\n"
+"                    SYSDIG_BPF_PROBE. If <bpf_probe> is left empty, sysdig will\n"
+"                    try to load one from the sysdig-probe-loader script.\n"
 " -d <period>, --delay=<period>\n"
 "                    Set the delay between updates, in milliseconds. This works\n"
 "                    similarly to the -d option in top.\n"
@@ -299,6 +304,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	int32_t json_last_row = 0;
 	int32_t sorting_col = -1;
 	bool list_views = false;
+	bool bpf = false;
 
 #ifndef _WIN32
 	sinsp_table::output_type output_type = sinsp_table::OT_CURSES;
@@ -313,10 +319,11 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	bool force_term_compat = false;
 	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
 	bool page_faults = false;
-	
+
 	static struct option long_options[] =
 	{
 		{"print-ascii", no_argument, 0, 'A' },
+		{"bpf", optional_argument, 0, 'B' },
 		{"delay", required_argument, 0, 'd' },
 		{"exclude-users", no_argument, 0, 'E' },
 		{"from", required_argument, 0, 0 },
@@ -361,13 +368,13 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-			"Ad:Ehk:K:jlm:n:p:Rr:s:Tv:X", long_options, &long_index)) != -1)
+			"AB::d:Ehk:K:jlm:n:p:Rr:s:Tv:X", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
 			case '?':
 				//
-				// Command line error 
+				// Command line error
 				//
 				throw sinsp_exception("command line error");
 				break;
@@ -381,6 +388,17 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 
 				event_buffer_format = sinsp_evt::PF_EOLS_COMPACT;
 				break;
+			case 'B':
+			{
+				string bpf_probe;
+				bpf = true;
+				if(optarg)
+				{
+					bpf_probe = optarg;
+				}
+				inspector->set_bpf_probe(bpf_probe);
+				break;
+			}
 			case 'd':
 				try
 				{
@@ -658,8 +676,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 
 				if(output_type != sinsp_table::OT_JSON)
 				{
-					if(std::find(it.m_viewinfo.m_tags.begin(), 
-						it.m_viewinfo.m_tags.end(), 
+					if(std::find(it.m_viewinfo.m_tags.begin(),
+						it.m_viewinfo.m_tags.end(),
 						"nocsysdig") != it.m_viewinfo.m_tags.end())
 					{
 						continue;
@@ -689,14 +707,14 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			//
 			// Initialize the UI
 			//
-			sinsp_cursesui ui(inspector, 
+			sinsp_cursesui ui(inspector,
 				(infiles.size() != 0)? infiles[0] : "",
 				(filter.size() != 0)? filter : "",
 				refresh_interval_ns,
 				print_containers,
 				output_type,
 				terminal_with_mouse,
-				json_first_row, 
+				json_first_row,
 				json_last_row,
 				sorting_col,
 				event_buffer_format);
@@ -750,13 +768,18 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				//
 #if defined(HAS_CAPTURE)
 				bool open_success = true;
-				
+
 				try
 				{
 					inspector->open("");
 				}
 				catch(sinsp_exception e)
 				{
+					if(bpf)
+					{
+						throw e;
+					}
+
 					open_success = false;
 				}
 

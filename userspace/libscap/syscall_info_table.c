@@ -346,7 +346,10 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_GETRESGID32*/ { EC_IO_OTHER, (enum ppm_event_flags)(EF_DROP_FALCO), "getresgid" },
 	/*PPM_SC_FINIT_MODULE*/ { EC_SYSTEM, (enum ppm_event_flags)(EF_NONE), "finit_module" }, /* load a kernel module */
 	/*PPM_SC_BPF*/ { EC_OTHER, (enum ppm_event_flags)(EF_NONE), "bpf" },
-	/*PPM_SC_SECCOMP*/ { EC_OTHER, (enum ppm_event_flags)(EF_NONE), "seccomp" }
+	/*PPM_SC_SECCOMP*/ { EC_OTHER, (enum ppm_event_flags)(EF_NONE), "seccomp" },
+	/*PPM_SC_SIGALTSTACK*/ { EC_IO_OTHER, (enum ppm_event_flags)(EF_NONE), "sigaltstack" },
+	/*PPM_SC_GETRANDOM*/ { EC_IO_OTHER, (enum ppm_event_flags)(EF_NONE), "getrandom" },
+	/*PPM_SC_FADVISE64*/ { EC_IO_OTHER, (enum ppm_event_flags)(EF_NONE), "fadvise64" },
 };
 
 bool validate_info_table_size()

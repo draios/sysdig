@@ -86,6 +86,7 @@ typedef struct scap_stats
 	uint64_t n_evts; ///< Total number of events that were received by the driver.
 	uint64_t n_drops; ///< Number of dropped events.
 	uint64_t n_drops_buffer; ///< Number of dropped events caused by full buffer.
+	uint64_t n_drops_pf; ///< Number of dropped events caused by invalid memory access.
 	uint64_t n_preemptions; ///< Number of preemptions.
 }scap_stats;
 
@@ -261,6 +262,7 @@ typedef struct scap_open_args
 	void* proc_callback_context; ///< Opaque pointer that will be included in the calls to proc_callback. Ignored if proc_callback is NULL.
 	bool import_users; ///< true if the user list should be created when opening the capture.
 	uint64_t start_offset; ///< Used to start reading a capture file from an arbitrary offset. This is leveraged when opening merged files.
+	const char *bpf_probe; ///< The name of the BPF probe to open. If NULL, the kernel driver will be used.
 }scap_open_args;
 
 
@@ -562,7 +564,7 @@ scap_os_platform scap_get_os_platform(scap_t* handle);
 /*!
   \brief Return a string with the last error that happened on the given capture.
 */
-char* scap_getlasterr(scap_t* handle);
+const char* scap_getlasterr(scap_t* handle);
 
 /*!
   \brief Get the next event from the from the given capture instance
@@ -895,9 +897,9 @@ int32_t scap_unset_eventmask(scap_t* handle, uint32_t event_id);
 const char* scap_get_host_root();
 
 /*!
-  \brief Get the process list by querying the sysdig kernel module.
+  \brief Get the process list.
 */
-struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle);
+struct ppm_proclist_info* scap_get_threadlist(scap_t* handle);
 
 
 /*@}*/
@@ -913,7 +915,7 @@ struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle);
 uint32_t scap_get_ndevs(scap_t* handle);
 
 // Retrieve a buffer of events from one of the cpus
-extern int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** buf, OUT uint32_t* len);
+extern int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_t* len);
 
 #ifdef PPM_ENABLE_SENTINEL
 // Get the sentinel at the beginning of the event
