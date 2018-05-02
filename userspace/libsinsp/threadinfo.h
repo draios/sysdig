@@ -446,7 +446,6 @@ private:
 	sinsp_threadinfo* m_last_tinfo;
 	uint64_t m_last_flush_time_ns;
 	uint32_t m_n_drops;
-	uint32_t m_n_proc_lookups;
 
 	sinsp_threadtable_listener* m_listener;
 

@@ -91,8 +91,6 @@ sinsp::sinsp() :
 #endif
 	m_n_proc_lookups = 0;
 	m_n_proc_lookups_duration_ns = 0;
-	m_max_n_proc_lookups = 0;
-	m_max_n_proc_socket_lookups = 0;
 	m_snaplen = DEFAULT_SNAPLEN;
 	m_buffer_format = sinsp_evt::PF_NORMAL;
 	m_input_fd = 0;
@@ -1391,13 +1389,13 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 				m_n_proc_lookups_duration_ns / 1000000);
 		}
 
-		if(m_max_n_proc_lookups == 0 || (m_max_n_proc_lookups != 0 &&
-			(m_n_proc_lookups <= m_max_n_proc_lookups)))
+		if(m_max_n_proc_lookups < 0 ||
+		   m_n_proc_lookups <= m_max_n_proc_lookups)
 		{
 			bool scan_sockets = false;
 
-			if(m_max_n_proc_socket_lookups == 0 || (m_max_n_proc_socket_lookups != 0 &&
-				(m_n_proc_lookups <= m_max_n_proc_socket_lookups)))
+			if(m_max_n_proc_socket_lookups < 0 ||
+			   m_n_proc_lookups <= m_max_n_proc_socket_lookups)
 			{
 				scan_sockets = true;
 				if(m_n_proc_lookups == m_max_n_proc_socket_lookups)

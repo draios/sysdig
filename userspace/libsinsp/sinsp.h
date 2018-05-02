@@ -1032,10 +1032,10 @@ public:
 #ifdef GATHER_INTERNAL_STATS
 	sinsp_stats m_stats;
 #endif
-	uint32_t m_n_proc_lookups;
+	int32_t m_n_proc_lookups;
 	uint64_t m_n_proc_lookups_duration_ns;
-	uint32_t m_max_n_proc_lookups;
-	uint32_t m_max_n_proc_socket_lookups;
+	int32_t m_max_n_proc_lookups = -1;
+	int32_t m_max_n_proc_socket_lookups = -1;
 #ifdef HAS_ANALYZER
 	vector<uint64_t> m_tid_collisions;
 #endif
