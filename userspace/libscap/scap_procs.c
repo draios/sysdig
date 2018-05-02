@@ -414,12 +414,19 @@ static int32_t scap_get_vtid(scap_t* handle, int64_t tid, int64_t *vtid)
 	return SCAP_FAILURE;
 #else
 
-	*vtid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_VTID, tid);
-
-	if(*vtid == -1)
+	if(handle->m_bpf)
 	{
-		ASSERT(false);
-		return SCAP_FAILURE;
+		*vtid = 0;
+	}
+	else
+	{
+		*vtid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_VTID, tid);
+
+		if(*vtid == -1)
+		{
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
 	}
 
 	return SCAP_SUCCESS;
@@ -438,12 +445,19 @@ static int32_t scap_get_vpid(scap_t* handle, int64_t tid, int64_t *vpid)
 	return SCAP_FAILURE;
 #else
 
-	*vpid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_VPID, tid);
-
-	if(*vpid == -1)
+	if(handle->m_bpf)
 	{
-		ASSERT(false);
-		return SCAP_FAILURE;
+		*vpid = 0;
+	}
+	else
+	{
+		*vpid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_VPID, tid);
+
+		if(*vpid == -1)
+		{
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
 	}
 
 	return SCAP_SUCCESS;
@@ -925,11 +939,40 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 	return SCAP_FAILURE;
 #else
 
-	*pid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_CURRENT_PID);
-	if(*pid == -1)
+	if(handle->m_bpf)
 	{
-		ASSERT(false);
+		char filename[SCAP_MAX_PATH_SIZE];
+		char line[512];
+
+		snprintf(filename, sizeof(filename), "%s/proc/self/status", scap_get_host_root());
+
+		FILE* f = fopen(filename, "r");
+		if(f == NULL)
+		{
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
+
+		while(fgets(line, sizeof(line), f) != NULL)
+		{
+			if(sscanf(line, "Tgid: %" PRId64, pid) == 1)
+			{
+				fclose(f);
+				return SCAP_SUCCESS;
+			}
+		}
+
+		fclose(f);
 		return SCAP_FAILURE;
+	}
+	else
+	{
+		*pid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_CURRENT_PID);
+		if(*pid == -1)
+		{
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
 	}
 
 	return SCAP_SUCCESS;

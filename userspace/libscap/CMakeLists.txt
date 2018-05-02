@@ -6,23 +6,26 @@ endif()
 
 list(APPEND targetfiles
 	scap.c
+	scap_bpf.c
 	scap_event.c
 	scap_fds.c
 	scap_iflist.c
 	scap_savefile.c
 	scap_procs.c
 	scap_userlist.c
-	flags_table.c
-	dynamic_params_table.c
-	event_table.c
-	syscall_info_table.c)
+	syscall_info_table.c
+	../../driver/dynamic_params_table.c
+	../../driver/event_table.c
+	../../driver/fillers_table.c
+	../../driver/flags_table.c
+	../../driver/syscall_table.c)
 
 if(CYGWIN)
 	list(APPEND targetfiles
 		windows_hal.c)
 endif()
 
-add_library(scap STATIC 
+add_library(scap STATIC
 	${targetfiles})
 
 if(USE_BUNDLED_ZLIB)
@@ -43,7 +46,9 @@ elseif (CYGWIN)
 endif()
 
 target_link_libraries(scap
-	"${ZLIB_LIB}")
+	"${ZLIB_LIB}"
+	elf
+	rt)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)

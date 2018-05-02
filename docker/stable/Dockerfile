@@ -18,6 +18,8 @@ RUN apt-get update \
  && apt-get upgrade -y \
  && apt-get install -y --no-install-recommends \
 	bash-completion \
+	bc \
+	clang-7 \
 	curl \
 	gnupg2 \
 	ca-certificates \
@@ -27,6 +29,7 @@ RUN apt-get update \
 	libelf-dev \
 	libelf1 \
 	less \
+	llvm-7 \
 	procps \
  && rm -rf /var/lib/apt/lists/*
 

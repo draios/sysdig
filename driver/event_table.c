@@ -17,7 +17,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "ppm_events_public.h"
-#include "ppm.h"
 
 const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_GENERIC_E */{"syscall", EC_OTHER, EF_NONE, 2, {{"ID", PT_SYSCALLID, PF_DEC}, {"nativeID", PT_UINT16, PF_DEC} } },
@@ -174,7 +173,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_DROP_X */{"drop", EC_INTERNAL, EF_SKIPPARSERESET, 1, {{"ratio", PT_UINT32, PF_DEC} } },
 	/* PPME_SYSCALL_FCNTL_E */{"fcntl", EC_IO_OTHER, EF_USES_FD | EF_MODIFIES_STATE | EF_DROP_FALCO, 2, {{"fd", PT_FD, PF_DEC}, {"cmd", PT_FLAGS8, PF_DEC, fcntl_commands} } },
 	/* PPME_SYSCALL_FCNTL_X */{"fcntl", EC_IO_OTHER, EF_USES_FD | EF_MODIFIES_STATE | EF_DROP_FALCO, 1, {{"res", PT_FD, PF_DEC} } },
-	/* PPME_SCHEDSWITCH_6_E */{"switch", EC_SCHEDULER, EF_DROP_FALCO , 6, {{"next", PT_PID, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC} } },
+	/* PPME_SCHEDSWITCH_6_E */{"switch", EC_SCHEDULER, EF_DROP_FALCO, 6, {{"next", PT_PID, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC} } },
 	/* PPME_SCHEDSWITCH_6_X */{"NA2", EC_SCHEDULER, EF_UNUSED, 0},
 	/* PPME_SYSCALL_EXECVE_13_E */{"execve", EC_PROCESS, EF_MODIFIES_STATE | EF_OLD_VERSION, 0},
 	/* PPME_SYSCALL_EXECVE_13_X */{"execve", EC_PROCESS, EF_MODIFIES_STATE | EF_OLD_VERSION, 13, {{"res", PT_ERRNO, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_UINT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC} } },
@@ -310,16 +309,16 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_UNSHARE_X */ {"unshare", EC_PROCESS, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_INFRASTRUCTURE_EVENT_E */{"infra", EC_INTERNAL, EF_SKIPPARSERESET, 4, {{"source", PT_CHARBUF, PF_DEC}, {"name", PT_CHARBUF, PF_NA}, {"description", PT_CHARBUF, PF_NA}, {"scope", PT_CHARBUF, PF_NA} } },
 	/* PPME_INFRASTRUCTURE_EVENT_X */{"NA4", EC_SYSTEM, EF_UNUSED, 0},
-	/* PPME_SYSCALL_EXECVE_18_E */{"execve", EC_PROCESS, EF_MODIFIES_STATE | EF_OLD_VERSION, 1, {{"filename", PT_FSPATH, PF_NA}} },
+	/* PPME_SYSCALL_EXECVE_18_E */{"execve", EC_PROCESS, EF_MODIFIES_STATE | EF_OLD_VERSION, 1, {{"filename", PT_FSPATH, PF_NA} } },
 	/* PPME_SYSCALL_EXECVE_18_X */{"execve", EC_PROCESS, EF_MODIFIES_STATE | EF_OLD_VERSION, 17, {{"res", PT_ERRNO, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_UINT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"comm", PT_CHARBUF, PF_NA}, {"cgroups", PT_BYTEBUF, PF_NA}, {"env", PT_BYTEBUF, PF_NA}, {"tty", PT_INT32, PF_DEC} } },
 	/* PPME_PAGE_FAULT_E */ {"page_fault", EC_OTHER, EF_SKIPPARSERESET | EF_DROP_FALCO, 3, {{"addr", PT_UINT64, PF_HEX}, {"ip", PT_UINT64, PF_HEX}, {"error", PT_FLAGS32, PF_HEX, pf_flags} } },
 	/* PPME_PAGE_FAULT_X */ {"NA5", EC_OTHER, EF_UNUSED, 0},
-	/* PPME_SYSCALL_EXECVE_19_E */{"execve", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"filename", PT_FSPATH, PF_NA}} },
+	/* PPME_SYSCALL_EXECVE_19_E */{"execve", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"filename", PT_FSPATH, PF_NA} } },
 	/* PPME_SYSCALL_EXECVE_19_X */{"execve", EC_PROCESS, EF_MODIFIES_STATE, 18, {{"res", PT_ERRNO, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_UINT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"comm", PT_CHARBUF, PF_NA}, {"cgroups", PT_BYTEBUF, PF_NA}, {"env", PT_BYTEBUF, PF_NA}, {"tty", PT_INT32, PF_DEC}, {"pgid", PT_PID, PF_DEC} } },
-	/* PPME_SYSCALL_SETPGID_E */{"setpgid", EC_PROCESS, EF_MODIFIES_STATE, 2, {{"pid", PT_PID, PF_DEC}, {"pgid", PT_PID, PF_DEC}} },
-	/* PPME_SYSCALL_SETPGID_X */{"setpgid", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"res", PT_PID, PF_DEC}} },
+	/* PPME_SYSCALL_SETPGID_E */{"setpgid", EC_PROCESS, EF_MODIFIES_STATE, 2, {{"pid", PT_PID, PF_DEC}, {"pgid", PT_PID, PF_DEC} } },
+	/* PPME_SYSCALL_SETPGID_X */{"setpgid", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"res", PT_PID, PF_DEC} } },
 	/* PPME_SYSCALL_BPF_E */{"bpf", EC_OTHER, EF_CREATES_FD, 1, {{"cmd", PT_INT64, PF_DEC} } },
-	/* PPME_SYSCALL_BPF_X */{"bpf", EC_OTHER, EF_CREATES_FD, 1, {{"res", PT_DYN, PF_DEC, bpf_dynamic_param, PPM_BPF_IDX_MAX} }},
+	/* PPME_SYSCALL_BPF_X */{"bpf", EC_OTHER, EF_CREATES_FD, 1, {{"res_or_fd", PT_DYN, PF_DEC, bpf_dynamic_param, PPM_BPF_IDX_MAX} }},
 	/* PPME_SYSCALL_SECCOMP_E */{"seccomp", EC_OTHER, EF_NONE, 1, {{"op", PT_UINT64, PF_DEC}, {"flags", PT_UINT64, PF_HEX} } },
 	/* PPME_SYSCALL_SECCOMP_X */{"seccomp", EC_OTHER, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_UNLINK_2_E */{"unlink", EC_FILE, EF_NONE, 0},

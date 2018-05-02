@@ -675,8 +675,13 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		// Error detection logic
 		//
 		if(evt->m_info->nparams != 0 &&
-			((evt->m_info->params[0].name[0] == 'r' && evt->m_info->params[0].name[1] == 'e' && evt->m_info->params[0].name[2] == 's') ||
-			(evt->m_info->params[0].name[0] == 'f' && evt->m_info->params[0].name[1] == 'd')))
+			((evt->m_info->params[0].name[0] == 'r' &&
+			  evt->m_info->params[0].name[1] == 'e' &&
+			  evt->m_info->params[0].name[2] == 's' &&
+			  evt->m_info->params[0].name[3] == '\0') ||
+			 (evt->m_info->params[0].name[0] == 'f' &&
+			  evt->m_info->params[0].name[1] == 'd' &&
+			  evt->m_info->params[0].name[2] == '\0')))
 		{
 			sinsp_evt_param *parinfo;
 
@@ -1555,7 +1560,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	{
 		parinfo = evt->get_param(5);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
-		evt->m_tinfo->m_ptid = *(uint64_t *)parinfo->m_val;	
+		evt->m_tinfo->m_ptid = *(uint64_t *)parinfo->m_val;
 	}
 
 	// Get the fdlimit
@@ -1637,7 +1642,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		// because at container startup docker spawn a process with vpid=1
 		// outside of container cgroup and correct cgroups are
 		// assigned just before doing execve:
-		// 
+		//
 		// 1. docker-runc calls fork() and created process with vpid=1
 		// 2. docker-runc changes cgroup hierarchy of it
 		// 3. vpid=1 execve to the real process the user wants to run inside the container
@@ -1720,7 +1725,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	default:
 		ASSERT(false);
 	}
-	
+
 	//
 	// execve starts with a clean fd list, so we get rid of the fd list that clone
 	// copied from the parent
@@ -3890,7 +3895,7 @@ void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt *evt)
 	{
 		return;
 	}
-	
+
 	//
 	// Extract the return value
 	//

@@ -28,11 +28,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "scap.h"
 #include "scap-int.h"
 
-// This is defined in the driver
-extern const struct ppm_event_info g_event_info[];
-extern const struct ppm_syscall_desc g_syscall_info_table[];
-extern bool validate_info_table_size();
-
 //
 // Get the event info table
 //

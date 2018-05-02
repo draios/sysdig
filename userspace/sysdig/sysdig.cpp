@@ -70,8 +70,13 @@ static void usage()
 " -b, --print-base64 Print data buffers in base64. This is useful for encoding\n"
 "                    binary data that needs to be used over media designed to\n"
 "                    handle textual data (i.e., terminal or json).\n"
+" -B<bpf_probe>, --bpf=<bpf_probe>\n"
+"                    Enable live capture using the specified BPF probe instead of the kernel module.\n"
+"                    The BPF probe can also be specified via the environment variable\n"
+"                    SYSDIG_BPF_PROBE. If <bpf_probe> is left empty, sysdig will\n"
+"                    try to load one from the sysdig-probe-loader script.\n"
 #ifdef HAS_CHISELS
-" -c <chiselname> <chiselargs>, --chisel  <chiselname> <chiselargs>\n"
+" -c <chiselname> <chiselargs>, --chisel <chiselname> <chiselargs>\n"
 "                    run the specified chisel. If the chisel require arguments,\n"
 "                    they must be specified in the command line after the name.\n"
 " -cl, --list-chisels\n"
@@ -762,6 +767,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string* mesos_api = 0;
 	bool force_tracers_capture = false;
 	bool page_faults = false;
+	bool bpf = false;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -773,6 +779,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	{
 		{"print-ascii", no_argument, 0, 'A' },
 		{"print-base64", no_argument, 0, 'b' },
+		{"bpf", optional_argument, 0, 'B' },
 #ifdef HAS_CHISELS
 		{"chisel", required_argument, 0, 'c' },
 		{"list-chisels", no_argument, &cflag, 1 },
@@ -833,7 +840,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-                                        "Abc:"
+                                        "AbB::c:"
                                         "C:"
                                         "dDEe:F"
                                         "G:"
@@ -863,6 +870,17 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 				event_buffer_format = sinsp_evt::PF_BASE64;
 				break;
+			case 'B':
+			{
+				string bpf_probe;
+				bpf = true;
+				if(optarg)
+				{
+					bpf_probe = optarg;
+				}
+				inspector->set_bpf_probe(bpf_probe);
+				break;
+			}
 			case 0:
 				if(cflag != 1 && cflag != 2)
 				{
@@ -1159,7 +1177,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			case 'z':
 				compress = true;
 				break;
-            // getopt_long : '?' for an ambiguous match or an extraneous parameter 
+            // getopt_long : '?' for an ambiguous match or an extraneous parameter
 			case '?':
 				delete inspector;
 				return sysdig_init_res(EXIT_FAILURE);
@@ -1364,7 +1382,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				//
 #if defined(HAS_CAPTURE)
 				bool open_success = true;
-				
+
 				if(print_progress)
 				{
 					fprintf(stderr, "the -P flag cannot be used with live captures.\n");
@@ -1378,6 +1396,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				catch(sinsp_exception e)
 				{
+					if(bpf)
+					{
+						throw e;
+					}
+
 					open_success = false;
 				}
 

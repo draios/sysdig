@@ -47,7 +47,7 @@ EXPORTS
 		scap_disable_dynamic_snaplen
 		scap_proc_free_table
 		scap_is_thread_alive
-		scap_get_threadlist_from_driver
+		scap_get_threadlist
 		scap_get_host_root
 		scap_ftell
 		scap_fseek

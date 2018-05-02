@@ -542,7 +542,7 @@ public:
 	void get_capture_stats(scap_stats* stats);
 
 	void set_max_thread_table_size(uint32_t value);
-	
+
 #ifdef GATHER_INTERNAL_STATS
 	sinsp_stats get_stats();
 #endif
@@ -821,6 +821,7 @@ public:
 	}
 	void set_simpledriver_mode();
 	vector<long> get_n_tracepoint_hit();
+	void set_bpf_probe(const string& bpf_probe);
 
 	static unsigned num_possible_cpus();
 #ifdef CYGWING_AGENT
@@ -944,6 +945,8 @@ private:
 	// <m_input_fd>". Otherwise, reading from m_input_filename.
 	int m_input_fd;
 	string m_input_filename;
+	bool m_bpf;
+	string m_bpf_probe;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;
 	bool m_isinternal_events_enabled;
@@ -1119,6 +1122,7 @@ public:
 	uint64_t m_next_flush_time_ns;
 	uint64_t m_last_procrequest_tod;
 	sinsp_proc_metainfo m_meinfo;
+	uint64_t m_next_stats_print_time_ns;
 
 	static unsigned int m_num_possible_cpus;
 #if defined(HAS_CAPTURE)

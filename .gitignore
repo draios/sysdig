@@ -18,3 +18,6 @@ driver/driver_config.h
 *.files
 *.includes
 *.pro.user
+*.ll
+.vscode
+.cache.mk
