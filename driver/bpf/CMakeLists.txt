@@ -1,4 +1,4 @@
-option(BUILD_BPF "Build the BPF driver on Linux" ON)
+option(BUILD_BPF "Build the BPF driver on Linux" OFF)
 
 if(BUILD_BPF)
 	add_custom_target(bpf ALL
