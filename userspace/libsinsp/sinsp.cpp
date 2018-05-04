@@ -43,6 +43,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
 #include "analyzer.h"
+#include "tracer_emitter.h"
 #endif
 
 #ifdef HAS_CHISELS
@@ -1379,6 +1380,10 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 							PRIu64 ": sinsp::scap_t* is uninitialized", __func__, tid);
 			return NULL;
 		}
+
+#ifdef HAS_ANALYZER
+		tracer_emitter("sinsp_proc_lookup");
+#endif
 
 		scap_threadinfo* scap_proc = NULL;
 		sinsp_threadinfo newti(this);
