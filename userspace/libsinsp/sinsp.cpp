@@ -1379,10 +1379,6 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 			return NULL;
 		}
 
-#ifdef HAS_ANALYZER
-		tracer_emitter("sinsp_proc_lookup");
-#endif
-
 		scap_threadinfo* scap_proc = NULL;
 		sinsp_threadinfo newti(this);
 
@@ -1397,6 +1393,10 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 		if(m_max_n_proc_lookups < 0 ||
 		   m_n_proc_lookups <= m_max_n_proc_lookups)
 		{
+#ifdef HAS_ANALYZER
+			tracer_emitter("sinsp_proc_lookup");
+#endif
+
 			bool scan_sockets = false;
 
 			if(m_max_n_proc_socket_lookups < 0 ||
