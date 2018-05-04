@@ -28,7 +28,7 @@ private:
 
 	int m_fd = -1;
 	run_on_interval m_open_interval = 60 * ONE_SECOND_IN_NS;
-	mutable std::mutex m_fd_lock;
+	std::mutex m_fd_lock;
 	constexpr static const char *m_file = "/dev/null";
 };
 
