@@ -313,6 +313,16 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 	case SCAP_FD_FILE_V2:
 		newfdi->m_openflags = fdi->info.regularinfo.open_flags;
 		newfdi->m_name = fdi->info.regularinfo.fname;
+
+		if(newfdi->m_name == USER_EVT_DEVICE_NAME)
+		{
+			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE;
+		}
+		else
+		{
+			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD;
+		}
+
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:
