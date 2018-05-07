@@ -37,6 +37,11 @@ RUN apt-get update \
 # default to gcc-5.
 RUN rm -rf /usr/bin/gcc && ln -s /usr/bin/gcc-5 /usr/bin/gcc
 
+RUN rm -rf /usr/bin/clang \
+ && rm -rf /usr/bin/llc \
+ && ln -s /usr/bin/clang-7 /usr/bin/clang \
+ && ln -s /usr/bin/llc-7 /usr/bin/llc
+
 RUN curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public | apt-key add - \
  && curl -s -o /etc/apt/sources.list.d/draios.list http://download.draios.com/$SYSDIG_REPOSITORY/deb/draios.list \
  && apt-get update \
