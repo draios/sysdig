@@ -38,6 +38,11 @@ RUN apt-get update \
 # default to gcc-5.
 RUN rm -rf /usr/bin/gcc && ln -s /usr/bin/gcc-5 /usr/bin/gcc
 
+RUN rm -rf /usr/bin/clang \
+ && rm -rf /usr/bin/llc \
+ && ln -s /usr/bin/clang-7 /usr/bin/clang \
+ && ln -s /usr/bin/llc-7 /usr/bin/llc
+
 RUN ln -s $SYSDIG_HOST_ROOT/lib/modules /lib/modules
 
 ADD sysdig-${SYSDIG_VERSION}-x86_64.deb /

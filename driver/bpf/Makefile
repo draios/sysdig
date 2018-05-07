@@ -1,7 +1,7 @@
 always += probe.o
 
-LLC ?= llc-7
-CLANG ?= clang-7
+LLC ?= llc
+CLANG ?= clang
 
 KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 

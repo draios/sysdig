@@ -34,8 +34,15 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 	const struct syscall_evt_pair *sc_evt;
 	struct sysdig_bpf_settings *settings;
 	enum ppm_event_type evt_type;
+	struct task_struct *task;
 	int drop_flags;
+	u32 status;
 	long id;
+
+	task = (struct task_struct *)bpf_get_current_task();
+	status = _READ(task->thread_info.status);
+	if (status & TS_COMPAT)
+		return 0;
 
 	id = bpf_syscall_get_nr(ctx);
 	if (id < 0 || id >= SYSCALL_TABLE_SIZE)
@@ -80,8 +87,15 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 	const struct syscall_evt_pair *sc_evt;
 	struct sysdig_bpf_settings *settings;
 	enum ppm_event_type evt_type;
+	struct task_struct *task;
 	int drop_flags;
+	u32 status;
 	long id;
+
+	task = (struct task_struct *)bpf_get_current_task();
+	status = _READ(task->thread_info.status);
+	if (status & TS_COMPAT)
+		return 0;
 
 	id = bpf_syscall_get_nr(ctx);
 	if (id < 0 || id >= SYSCALL_TABLE_SIZE)
@@ -207,8 +221,17 @@ BPF_PROBE("signal/", signal_deliver, signal_deliver_args)
 __bpf_section(TP_NAME "sched/sched_process_fork")
 int bpf_sched_process_fork(struct sched_process_fork_args *ctx)
 {
+	struct sysdig_bpf_settings *settings;
+	enum ppm_event_type evt_type;
 	struct sys_stash_args args;
 	unsigned long *argsp;
+
+	settings = get_bpf_settings();
+	if (!settings)
+		return 0;
+
+	if (!settings->capture_enabled)
+		return 0;
 
 	argsp = __unstash_args(ctx->parent_pid);
 	if (!argsp)

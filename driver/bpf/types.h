@@ -7,16 +7,12 @@
 
 #define __always_inline inline __attribute__((always_inline))
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0)
-#error Kernel version must be >= 4.12 with eBPF enabled
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
+#error Kernel version must be >= 4.14 with eBPF enabled
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
 #define BPF_FORBIDS_ZERO_ACCESS
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
-#define BPF_FORBIDS_BIG_PROGRAMS
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)
@@ -135,25 +131,15 @@ struct sys_stash_args {
 };
 #endif
 
-/* Can't put any pointer to maps here */
-struct tail_context {
-	enum ppm_event_type evt_type;
-	unsigned long long ts;
-};
-
 struct filler_data {
 	void *ctx;
-	struct tail_context tail_ctx;
 	struct sysdig_bpf_settings *settings;
+	struct sysdig_bpf_per_cpu_state *state;
 	char *tmp_scratch;
-	bool tmp_scratch_in_use;
 	const struct ppm_event_info *evt;
 	const struct ppm_event_entry *filler_info;
-	unsigned long curarg;
 	bool curarg_already_on_frame;
 	char *buf;
-	unsigned long curoff;
-	unsigned long len;
 #ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
 	unsigned long *args;
 #endif
@@ -205,11 +191,21 @@ struct sysdig_bpf_settings {
 	bool tracers_enabled;
 } __attribute__((packed));
 
+struct tail_context {
+	enum ppm_event_type evt_type;
+	unsigned long long ts;
+	unsigned long curarg;
+	unsigned long curoff;
+	unsigned long len;
+	int prev_res;
+} __attribute__((packed));
+
 struct sysdig_bpf_per_cpu_state {
-	long preempt_count;
+	struct tail_context tail_ctx;
 	unsigned long long n_evts;
 	unsigned long long n_drops_buffer;
 	unsigned long long n_drops_pf;
+	bool in_use;
 } __attribute__((packed));
 
 #endif

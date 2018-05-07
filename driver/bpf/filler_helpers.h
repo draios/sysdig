@@ -206,7 +206,7 @@ static __always_inline int bpf_addr_to_kernel(void *uaddr, int ulen,
 	return 0;
 }
 
-#define get_buf(x) data->buf[(data->curoff + (x)) & SCRATCH_SIZE_HALF]
+#define get_buf(x) data->buf[(data->state->tail_ctx.curoff + (x)) & SCRATCH_SIZE_HALF]
 
 static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 					       u32 lookahead_size)
@@ -219,7 +219,8 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 	u16 sport;
 	u16 dport;
 
-	if (data->settings->tracers_enabled && data->tail_ctx.evt_type == PPME_SYSCALL_WRITE_X) {
+	if (data->settings->tracers_enabled &&
+	    data->state->tail_ctx.evt_type == PPME_SYSCALL_WRITE_X) {
 		struct file *fil;
 		struct inode *f_inode;
 		dev_t i_rdev;
@@ -241,7 +242,7 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 		return res;
 
 	if (data->fd == -1) {
-		PRINTK("invalid fd during snaplen calculation, evt %d\n", data->tail_ctx.evt_type);
+		PRINTK("invalid fd during snaplen calculation, evt %d\n", data->state->tail_ctx.evt_type);
 		return res;
 	}
 
@@ -249,15 +250,13 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 	if (!sock)
 		return res;
 
-	acquire_tmp_scratch(data);
-
 	sock_address = (struct sockaddr_storage *)data->tmp_scratch;
 	peer_address = (struct sockaddr_storage *)data->tmp_scratch + 1;
 
 	if (!bpf_getsockname(sock, sock_address, 0))
-		goto cleanup;
+		return res;
 
-	if (data->tail_ctx.evt_type == PPME_SOCKET_SENDTO_X) {
+	if (data->state->tail_ctx.evt_type == PPME_SOCKET_SENDTO_X) {
 		unsigned long val;
 		struct sockaddr *usrsockaddr;
 
@@ -265,18 +264,18 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 
 		if (!usrsockaddr) {
 			if (!bpf_getsockname(sock, peer_address, 1))
-				goto cleanup;
+				return res;
 		} else {
 			int addrlen = bpf_syscall_get_argument(data, 5);
 
 			if (addrlen != 0) {
 				if (bpf_addr_to_kernel(usrsockaddr, addrlen, (struct sockaddr *)peer_address))
-					goto cleanup;
+					return res;
 			} else if (!bpf_getsockname(sock, peer_address, 1)) {
-				goto cleanup;
+				return res;
 			}
 		}
-	} else if (data->tail_ctx.evt_type == PPME_SOCKET_SENDMSG_X) {
+	} else if (data->state->tail_ctx.evt_type == PPME_SOCKET_SENDMSG_X) {
 		struct sockaddr *usrsockaddr;
 		struct user_msghdr mh;
 		unsigned long val;
@@ -293,17 +292,17 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 
 		if (usrsockaddr && addrlen != 0) {
 			if (bpf_addr_to_kernel(usrsockaddr, addrlen, (struct sockaddr *)peer_address))
-				goto cleanup;
+				return res;
 		} else if (!bpf_getsockname(sock, peer_address, 1)) {
-			goto cleanup;
+			return res;
 		}
 	} else if (!bpf_getsockname(sock, peer_address, 1)) {
-		goto cleanup;
+		return res;
 	}
 
 	sk = _READ(sock->sk);
 	if (!sk)
-		goto cleanup;
+		return res;
 
 	sa_family_t family = _READ(sk->sk_family);
 
@@ -325,11 +324,9 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 			    get_buf(2) == 3 ||
 			    get_buf(3) == 3 ||
 			    get_buf(4) == 3) {
-				res = 2000;
-				goto cleanup;
+				return 2000;
 			} else if (get_buf(2) == 0 && get_buf(3) == 0) {
-				res = 2000;
-				goto cleanup;
+				return 2000;
 			}
 		}
 	} else if (sport == PPM_PORT_POSTGRES || dport == PPM_PORT_POSTGRES) {
@@ -339,8 +336,7 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 			    (get_buf(4) == 0 && get_buf(5) == 3 && get_buf(6) == 0) || /* startup command */
 			    (get_buf(0) == 'E' && get_buf(1) == 0) /* error or execute command */
 			) {
-				res = 2000;
-				goto cleanup;
+				return 2000;
 			}
 		}
 	} else if ((lookahead_size >= 4 && get_buf(1) == 0 && get_buf(2) == 0 && get_buf(2) == 0) || /* matches command */
@@ -352,11 +348,9 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 						  *(s32 *)&get_buf(12) == 2005 ||
 						  *(s32 *)&get_buf(12) == 2006 ||
 						  *(s32 *)&get_buf(12) == 2007))) {
-		res = 2000;
-		goto cleanup;
+		return 2000;
 	} else if (dport == PPM_PORT_STATSD) {
-		res = 2000;
-		goto cleanup;
+		return 2000;
 	} else {
 		if (lookahead_size >= 5) {
 			u32 buf = *(u32 *)&get_buf(0);
@@ -368,15 +362,12 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 			    buf == 0x43415254 || // "TRAC"
 			    buf == 0x4E4E4F43 || // "CONN"
 			    buf == 0x4954504F || // "OPTI"
-			    (buf == 0x50545448 && data->buf[(data->curoff + 4) & SCRATCH_SIZE_HALF] == '/')) { // "HTTP/"
-				res = 2000;
-				goto cleanup;
+			    (buf == 0x50545448 && data->buf[(data->state->tail_ctx.curoff + 4) & SCRATCH_SIZE_HALF] == '/')) { // "HTTP/"
+				return 2000;
 			}
 		}
 	}
 
-cleanup:
-	release_tmp_scratch(data);
 	return res;
 }
 
@@ -412,9 +403,9 @@ static __always_inline u16 bpf_pack_addr(struct filler_data *data,
 		 */
 		size = 1 + 4 + 2; /* family + ip + port */
 
-		data->buf[data->curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
-		memcpy(&data->buf[(data->curoff + 1) & SCRATCH_SIZE_HALF], &ip, 4);
-		memcpy(&data->buf[(data->curoff + 5) & SCRATCH_SIZE_HALF], &port, 2);
+		data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
+		memcpy(&data->buf[(data->state->tail_ctx.curoff + 1) & SCRATCH_SIZE_HALF], &ip, 4);
+		memcpy(&data->buf[(data->state->tail_ctx.curoff + 5) & SCRATCH_SIZE_HALF], &port, 2);
 
 		break;
 	case AF_INET6:
@@ -433,10 +424,10 @@ static __always_inline u16 bpf_pack_addr(struct filler_data *data,
 		 */
 		size = 1 + 16 + 2; /* family + ip + port */
 
-		data->buf[data->curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
-		memcpy(&data->buf[(data->curoff + 1) & SCRATCH_SIZE_HALF],
+		data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
+		memcpy(&data->buf[(data->state->tail_ctx.curoff + 1) & SCRATCH_SIZE_HALF],
 		       usrsockaddr_in6->sin6_addr.s6_addr, 16);
-		memcpy(&data->buf[(data->curoff + 17) & SCRATCH_SIZE_HALF], &port, 2);
+		memcpy(&data->buf[(data->state->tail_ctx.curoff + 17) & SCRATCH_SIZE_HALF], &port, 2);
 
 		break;
 	case AF_UNIX:
@@ -459,9 +450,9 @@ static __always_inline u16 bpf_pack_addr(struct filler_data *data,
 		 */
 		size = 1;
 
-		data->buf[data->curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
+		data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
 
-		res = bpf_probe_read_str(&data->buf[(data->curoff + 1) & SCRATCH_SIZE_HALF],
+		res = bpf_probe_read_str(&data->buf[(data->state->tail_ctx.curoff + 1) & SCRATCH_SIZE_HALF],
 					 UNIX_PATH_MAX,
 					 usrsockaddr_un->sun_path);
 
@@ -552,11 +543,11 @@ static __always_inline long bpf_fd_to_socktuple(struct filler_data *data,
 
 		size = 1 + 4 + 4 + 2 + 2;
 
-		data->buf[data->curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
-		memcpy(&data->buf[(data->curoff + 1) & SCRATCH_SIZE_HALF], &sip, 4);
-		memcpy(&data->buf[(data->curoff + 5) & SCRATCH_SIZE_HALF], &sport, 2);
-		memcpy(&data->buf[(data->curoff + 7) & SCRATCH_SIZE_HALF], &dip, 4);
-		memcpy(&data->buf[(data->curoff + 11) & SCRATCH_SIZE_HALF], &dport, 2);
+		data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
+		memcpy(&data->buf[(data->state->tail_ctx.curoff + 1) & SCRATCH_SIZE_HALF], &sip, 4);
+		memcpy(&data->buf[(data->state->tail_ctx.curoff + 5) & SCRATCH_SIZE_HALF], &sport, 2);
+		memcpy(&data->buf[(data->state->tail_ctx.curoff + 7) & SCRATCH_SIZE_HALF], &dip, 4);
+		memcpy(&data->buf[(data->state->tail_ctx.curoff + 11) & SCRATCH_SIZE_HALF], &dport, 2);
 
 		break;
 	}
@@ -611,11 +602,11 @@ static __always_inline long bpf_fd_to_socktuple(struct filler_data *data,
 		 */
 		size = 1 + 16 + 16 + 2 + 2; /* family + sip + dip + sport + dport */
 
-		data->buf[data->curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
-		memcpy(&data->buf[(data->curoff + 1) & SCRATCH_SIZE_HALF], sip6, 16);
-		memcpy(&data->buf[(data->curoff + 17) & SCRATCH_SIZE_HALF], &sport, 2);
-		memcpy(&data->buf[(data->curoff + 19) & SCRATCH_SIZE_HALF], dip6, 16);
-		memcpy(&data->buf[(data->curoff + 35) & SCRATCH_SIZE_HALF], &dport, 2);
+		data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
+		memcpy(&data->buf[(data->state->tail_ctx.curoff + 1) & SCRATCH_SIZE_HALF], sip6, 16);
+		memcpy(&data->buf[(data->state->tail_ctx.curoff + 17) & SCRATCH_SIZE_HALF], &sport, 2);
+		memcpy(&data->buf[(data->state->tail_ctx.curoff + 19) & SCRATCH_SIZE_HALF], dip6, 16);
+		memcpy(&data->buf[(data->state->tail_ctx.curoff + 35) & SCRATCH_SIZE_HALF], &dport, 2);
 
 		break;
 	}
@@ -628,14 +619,14 @@ static __always_inline long bpf_fd_to_socktuple(struct filler_data *data,
 		struct sock *speer = _READ(us->peer);
 		char *us_name;
 
-		data->buf[data->curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
+		data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
 
 		if (is_inbound) {
-			memcpy(&data->buf[(data->curoff + 1) & SCRATCH_SIZE_HALF], &us, 8);
-			memcpy(&data->buf[(data->curoff + 1 + 8) & SCRATCH_SIZE_HALF], &speer, 8);
+			memcpy(&data->buf[(data->state->tail_ctx.curoff + 1) & SCRATCH_SIZE_HALF], &us, 8);
+			memcpy(&data->buf[(data->state->tail_ctx.curoff + 1 + 8) & SCRATCH_SIZE_HALF], &speer, 8);
 		} else {
-			memcpy(&data->buf[(data->curoff + 1) & SCRATCH_SIZE_HALF], &speer, 8);
-			memcpy(&data->buf[(data->curoff + 1 + 8) & SCRATCH_SIZE_HALF], &us, 8);
+			memcpy(&data->buf[(data->state->tail_ctx.curoff + 1) & SCRATCH_SIZE_HALF], &speer, 8);
+			memcpy(&data->buf[(data->state->tail_ctx.curoff + 1 + 8) & SCRATCH_SIZE_HALF], &us, 8);
 		}
 
 		/*
@@ -671,7 +662,7 @@ static __always_inline long bpf_fd_to_socktuple(struct filler_data *data,
 				us_name = usrsockaddr_un->sun_path;
 		}
 
-		int res = bpf_probe_read_str(&data->buf[(data->curoff + 1 + 8 + 8) & SCRATCH_SIZE_HALF],
+		int res = bpf_probe_read_str(&data->buf[(data->state->tail_ctx.curoff + 1 + 8 + 8) & SCRATCH_SIZE_HALF],
 					     UNIX_PATH_MAX,
 					     us_name);
 
@@ -684,25 +675,28 @@ static __always_inline long bpf_fd_to_socktuple(struct filler_data *data,
 	return size;
 }
 
-static __always_inline int __val_to_ring(struct filler_data *data,
-					 unsigned long val,
-					 unsigned long val_len,
-					 enum ppm_param_type type,
-					 u8 dyn_idx,
-					 bool enforce_snaplen)
+static __always_inline int __bpf_val_to_ring(struct filler_data *data,
+					     unsigned long val,
+					     unsigned long val_len,
+					     enum ppm_param_type type,
+					     u8 dyn_idx,
+					     bool enforce_snaplen)
 {
 	unsigned int len_dyn = 0;
 	unsigned int len;
 
-	if (data->curoff > SCRATCH_SIZE_HALF)
+	if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
 		return PPM_FAILURE_BUFFER_FULL;
 
 	if (dyn_idx != (u8)-1) {
-		*((u8 *)&data->buf[data->curoff & SCRATCH_SIZE_HALF]) = dyn_idx;
+		*((u8 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = dyn_idx;
 		len_dyn = sizeof(u8);
-		data->curoff += len_dyn;
-		data->len += len_dyn;
+		data->state->tail_ctx.curoff += len_dyn;
+		data->state->tail_ctx.len += len_dyn;
 	}
+
+	if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
+		return PPM_FAILURE_BUFFER_FULL;
 
 	switch (type) {
 	case PT_CHARBUF:
@@ -710,7 +704,7 @@ static __always_inline int __val_to_ring(struct filler_data *data,
 		if (!data->curarg_already_on_frame) {
 			int res;
 
-			res = bpf_probe_read_str(&data->buf[data->curoff & SCRATCH_SIZE_HALF],
+			res = bpf_probe_read_str(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 						 SCRATCH_SIZE_HALF,
 						 (const void *)val);
 			if (res < 0)
@@ -722,24 +716,26 @@ static __always_inline int __val_to_ring(struct filler_data *data,
 		break;
 	}
 	case PT_BYTEBUF: {
-		if (data->curarg_already_on_frame || val) {
+		if (val_len) {
+			len = val_len;
+
 			if (enforce_snaplen) {
 				u32 dpi_lookahead_size = DPI_LOOKAHEAD_SIZE;
 				unsigned int sl;
 
-				if (dpi_lookahead_size > val_len)
-					dpi_lookahead_size = val_len;
+				if (dpi_lookahead_size > len)
+					dpi_lookahead_size = len;
 
 				if (!data->curarg_already_on_frame) {
 					volatile unsigned long read_size = dpi_lookahead_size;
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 					if (read_size)
-						if (bpf_probe_read(&data->buf[data->curoff & SCRATCH_SIZE_HALF],
+						if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 								   ((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
 								   (void *)val))
 #else
-					if (bpf_probe_read(&data->buf[data->curoff & SCRATCH_SIZE_HALF],
+					if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 							   read_size & SCRATCH_SIZE_HALF,
 							   (void *)val))
 #endif
@@ -748,27 +744,23 @@ static __always_inline int __val_to_ring(struct filler_data *data,
 
 				sl = bpf_compute_snaplen(data, dpi_lookahead_size);
 
-				if (val_len > sl)
+				if (len > sl)
 					len = sl;
-				else
-					len = val_len;
-			} else {
-				if (val_len > SCRATCH_SIZE_HALF)
-					len = SCRATCH_SIZE_HALF;
-				else
-					len = val_len;
 			}
+
+			if (len > SCRATCH_SIZE_HALF)
+				len = SCRATCH_SIZE_HALF;
 
 			if (!data->curarg_already_on_frame) {
 				volatile unsigned long read_size = len;
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 				if (read_size)
-					if (bpf_probe_read(&data->buf[data->curoff & SCRATCH_SIZE_HALF],
+					if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 							   ((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
 							   (void *)val))
 #else
-				if (bpf_probe_read(&data->buf[data->curoff & SCRATCH_SIZE_HALF],
+				if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 						   read_size & SCRATCH_SIZE_HALF,
 						   (void *)val))
 #endif
@@ -784,8 +776,8 @@ static __always_inline int __val_to_ring(struct filler_data *data,
 	case PT_FDLIST:
 		if (!data->curarg_already_on_frame) {
 			PRINTK("expected arg already on frame: evt_type %d, curarg %d, type %d\n",
-			       data->tail_ctx.evt_type,
-			       data->curarg, type);
+			       data->state->tail_ctx.evt_type,
+			       data->state->tail_ctx.curarg, type);
 			return PPM_FAILURE_BUG;
 		}
 
@@ -794,13 +786,13 @@ static __always_inline int __val_to_ring(struct filler_data *data,
 	case PT_FLAGS8:
 	case PT_UINT8:
 	case PT_SIGTYPE:
-		*((u8 *)&data->buf[data->curoff & SCRATCH_SIZE_HALF]) = val;
+		*((u8 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = val;
 		len = sizeof(u8);
 		break;
 	case PT_FLAGS16:
 	case PT_UINT16:
 	case PT_SYSCALLID:
-		*((u16 *)&data->buf[data->curoff & SCRATCH_SIZE_HALF]) = val;
+		*((u16 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = val;
 		len = sizeof(u16);
 		break;
 	case PT_FLAGS32:
@@ -808,126 +800,91 @@ static __always_inline int __val_to_ring(struct filler_data *data,
 	case PT_UID:
 	case PT_GID:
 	case PT_SIGSET:
-		*((u32 *)&data->buf[data->curoff & SCRATCH_SIZE_HALF]) = val;
+		*((u32 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = val;
 		len = sizeof(u32);
 		break;
 	case PT_RELTIME:
 	case PT_ABSTIME:
 	case PT_UINT64:
-		*((u64 *)&data->buf[data->curoff & SCRATCH_SIZE_HALF]) = val;
+		*((u64 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = val;
 		len = sizeof(u64);
 		break;
 	case PT_INT8:
-		*((s8 *)&data->buf[data->curoff & SCRATCH_SIZE_HALF]) = val;
+		*((s8 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = val;
 		len = sizeof(s8);
 		break;
 	case PT_INT16:
-		*((s16 *)&data->buf[data->curoff & SCRATCH_SIZE_HALF]) = val;
+		*((s16 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = val;
 		len = sizeof(s16);
 		break;
 	case PT_INT32:
-		*((s32 *)&data->buf[data->curoff & SCRATCH_SIZE_HALF]) = val;
+		*((s32 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = val;
 		len = sizeof(s32);
 		break;
 	case PT_INT64:
 	case PT_ERRNO:
 	case PT_FD:
 	case PT_PID:
-		*((s64 *)&data->buf[data->curoff & SCRATCH_SIZE_HALF]) = val;
+		*((s64 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = val;
 		len = sizeof(s64);
 		break;
 	default: {
-		PRINTK("unhandled type in val_to_ring: evt_type %d, curarg %d, type %d\n",
-		       data->tail_ctx.evt_type,
-		       data->curarg, type);
+		PRINTK("unhandled type in bpf_val_to_ring: evt_type %d, curarg %d, type %d\n",
+		       data->state->tail_ctx.evt_type,
+		       data->state->tail_ctx.curarg, type);
 		return PPM_FAILURE_BUG;
 	}
 	}
 
-	fixup_evt_arg_len(data->buf, data->curarg, len_dyn + len);
-	data->curoff += len;
-	data->len += len;
+	fixup_evt_arg_len(data->buf, data->state->tail_ctx.curarg, len_dyn + len);
+	data->state->tail_ctx.curoff += len;
+	data->state->tail_ctx.len += len;
 	data->curarg_already_on_frame = false;
-	++data->curarg;
+	++data->state->tail_ctx.curarg;
 
 	return PPM_SUCCESS;
 }
 
-static __always_inline int val_to_ring(struct filler_data *data,
-				       unsigned long val)
+static __always_inline int bpf_val_to_ring(struct filler_data *data,
+					   unsigned long val)
 {
 	const struct ppm_param_info *param_info;
 
-	if (data->curarg >= PPM_MAX_EVENT_PARAMS)
+	if (data->state->tail_ctx.curarg >= PPM_MAX_EVENT_PARAMS)
 		return PPM_FAILURE_BUG;
 
-	param_info = &data->evt->params[data->curarg & (PPM_MAX_EVENT_PARAMS - 1)];
+	param_info = &data->evt->params[data->state->tail_ctx.curarg & (PPM_MAX_EVENT_PARAMS - 1)];
 
-	return __val_to_ring(data, val, 0, param_info->type, -1, false);
+	return __bpf_val_to_ring(data, val, 0, param_info->type, -1, false);
 }
 
-static __always_inline int val_to_ring_len(struct filler_data *data,
-					   unsigned long val,
-					   unsigned long val_len)
+static __always_inline int bpf_val_to_ring_len(struct filler_data *data,
+					       unsigned long val,
+					       unsigned long val_len)
 {
 	const struct ppm_param_info *param_info;
 
-	if (data->curarg >= PPM_MAX_EVENT_PARAMS)
+	if (data->state->tail_ctx.curarg >= PPM_MAX_EVENT_PARAMS)
 		return PPM_FAILURE_BUG;
 
-	param_info = &data->evt->params[data->curarg & (PPM_MAX_EVENT_PARAMS - 1)];
+	param_info = &data->evt->params[data->state->tail_ctx.curarg & (PPM_MAX_EVENT_PARAMS - 1)];
 
-	return __val_to_ring(data, val, val_len, param_info->type, -1, false);
+	return __bpf_val_to_ring(data, val, val_len, param_info->type, -1, false);
 }
 
-static __always_inline int val_to_ring_dyn(struct filler_data *data,
-					   unsigned long val,
-					   enum ppm_param_type type,
-					   u8 dyn_idx)
+static __always_inline int bpf_val_to_ring_dyn(struct filler_data *data,
+					       unsigned long val,
+					       enum ppm_param_type type,
+					       u8 dyn_idx)
 {
-	return __val_to_ring(data, val, 0, type, dyn_idx, false);
+	return __bpf_val_to_ring(data, val, 0, type, dyn_idx, false);
 }
 
-static __always_inline int val_to_ring_type(struct filler_data *data,
-					    unsigned long val,
-					    enum ppm_param_type type)
+static __always_inline int bpf_val_to_ring_type(struct filler_data *data,
+						unsigned long val,
+						enum ppm_param_type type)
 {
-	return __val_to_ring(data, val, 0, type, -1, false);
-}
-
-static __always_inline int terminate_filler(int filler_res, struct filler_data *data)
-{
-	struct sysdig_bpf_per_cpu_state *state;
-
-	state = get_local_state();
-	if (!state)
-		return 0;
-
-#ifndef BPF_FORBIDS_BIG_PROGRAMS
-	switch (filler_res) {
-	case PPM_SUCCESS:
-		break;
-	case PPM_FAILURE_BUFFER_FULL:
-		VPRINTK("PPM_FAILURE_BUFFER_FULL, evt %d\n", data->tail_ctx.evt_type);
-		++state->n_drops_buffer;
-		break;
-	case PPM_FAILURE_INVALID_USER_MEMORY:
-		VPRINTK("PPM_FAILURE_INVALID_USER_MEMORY, evt %d\n", data->tail_ctx.evt_type);
-		++state->n_drops_pf;
-		break;
-	case PPM_FAILURE_BUG:
-		VPRINTK("PPM_FAILURE_BUG, evt %d\n", data->tail_ctx.evt_type);
-		break;
-	case PPM_SKIP_EVENT:
-		break;
-	default:
-		VPRINTK("Unknown filler res %d, evt %d\n", filler_res, data->tail_ctx.evt_type);
-		break;
-	}
-#endif
-
-	__sync_fetch_and_add(&state->preempt_count, -1);
-	return 0;
+	return __bpf_val_to_ring(data, val, 0, type, -1, false);
 }
 
 #endif
