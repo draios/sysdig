@@ -158,9 +158,9 @@ static __always_inline unsigned long bpf_syscall_get_argument(struct filler_data
 static __always_inline char *get_frame_scratch_area(void)
 {
 	char *scratchp;
-	int id = 0;
+	int id = SCRATCH_TYPE_FRAME;
 
-	scratchp = bpf_map_lookup_elem(&frame_scratch_map, &id);
+	scratchp = bpf_map_lookup_elem(&scratch_map, &id);
 	if (!scratchp)
 		bpf_printk("frame scratch NULL\n");
 
@@ -170,9 +170,9 @@ static __always_inline char *get_frame_scratch_area(void)
 static __always_inline char *get_tmp_scratch_area(void)
 {
 	char *scratchp;
-	int id = 0;
+	int id = SCRATCH_TYPE_TMP;
 
-	scratchp = bpf_map_lookup_elem(&tmp_scratch_map, &id);
+	scratchp = bpf_map_lookup_elem(&scratch_map, &id);
 	if (!scratchp)
 		bpf_printk("tmp scratch NULL\n");
 
