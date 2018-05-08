@@ -121,6 +121,7 @@ struct scap
 	bool refresh_proc_table_when_saving;
 	uint32_t m_fd_lookup_limit;
 	uint64_t m_unexpected_block_readsize;
+	uint32_t m_ncpus;
 	// Abstraction layer for windows
 #ifdef CYGWING_AGENT
 	wh_t* m_whh;

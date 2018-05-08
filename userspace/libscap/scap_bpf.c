@@ -245,7 +245,7 @@ static int32_t load_maps(scap_t *handle, struct bpf_map_data *maps, int nr_maps)
 	{
 		if(j == SYSDIG_PERF_MAP || j == SYSDIG_LOCAL_STATE_MAP)
 		{
-			maps[j].def.max_entries = sysconf(_SC_NPROCESSORS_ONLN);
+			maps[j].def.max_entries = handle->m_ncpus;
 		}
 
 		handle->m_bpf_map_fds[j] = bpf_map_create(maps[j].def.type,
@@ -994,7 +994,10 @@ int32_t scap_bpf_close(scap_t *handle)
 			munmap(handle->m_devs[j].m_buffer, total_size);
 #endif
 			ASSERT(ret == 0);
-			close(handle->m_devs[j].m_fd);
+			if(handle->m_devs[j].m_fd > 0)
+			{
+				close(handle->m_devs[j].m_fd);
+			}
 		}
 	}
 
@@ -1158,6 +1161,7 @@ static int32_t set_default_settings(scap_t *handle)
 
 int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 {
+	int online_cpu;
 	int j;
 
 	if(set_runtime_params(handle) != SCAP_SUCCESS)
@@ -1201,27 +1205,65 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 	//
 	// Open and initialize all the devices
 	//
-	for(j = 0; j < handle->m_ndevs; ++j)
+	online_cpu = 0;
+	for(j = 0; j < handle->m_ncpus; ++j)
 	{
 		struct perf_event_attr attr = {
 			.sample_type = PERF_SAMPLE_RAW,
 			.type = PERF_TYPE_SOFTWARE,
 			.config = PERF_COUNT_SW_BPF_OUTPUT,
 		};
+		int pmu_fd;
 
-		int pmu_fd = sys_perf_event_open(&attr, -1, j, -1, 0);
-
-		if(pmu_fd < 0)
+		if(j > 0)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "pmu_fd < 0");
+			char filename[SCAP_MAX_PATH_SIZE];
+			int online;
+			FILE *fp;
+
+			snprintf(filename, sizeof(filename), "/sys/devices/system/cpu/cpu%d/online", j);
+
+			fp = fopen(filename, "r");
+			if(fp == NULL)
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open %s: %s", filename, strerror(errno));
+				return SCAP_FAILURE;
+			}
+
+			if(fscanf(fp, "%d", &online) != 1)
+			{
+				fclose(fp);
+
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't read %s: %s", filename, strerror(errno));
+				return SCAP_FAILURE;
+			}
+
+			fclose(fp);
+
+			if(!online)
+			{
+				continue;
+			}
+		}
+
+		if(online_cpu >= handle->m_ndevs)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "processors online: %d, expected: %d", online_cpu, handle->m_ndevs);
 			return SCAP_FAILURE;
 		}
 
-		handle->m_devs[j].m_fd = pmu_fd;
+		pmu_fd = sys_perf_event_open(&attr, -1, j, -1, 0);
+		if(pmu_fd < 0)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "pmu_fd < 0: %s", strerror(errno));
+			return SCAP_FAILURE;
+		}
+
+		handle->m_devs[online_cpu].m_fd = pmu_fd;
 
 		if(bpf_map_update_elem(handle->m_bpf_map_fds[SYSDIG_PERF_MAP], &j, &pmu_fd, BPF_ANY) != 0)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SYSDIG_PERF_MAP bpf_map_update_elem < 0");
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SYSDIG_PERF_MAP bpf_map_update_elem < 0: %s", strerror(errno));
 			return SCAP_FAILURE;
 		}
 
@@ -1234,11 +1276,19 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 		//
 		// Map the ring buffer
 		//
-		handle->m_devs[j].m_buffer = perf_event_mmap(handle, pmu_fd);
-		if(!handle->m_devs[j].m_buffer)
+		handle->m_devs[online_cpu].m_buffer = perf_event_mmap(handle, pmu_fd);
+		if(!handle->m_devs[online_cpu].m_buffer)
 		{
 			return SCAP_FAILURE;
 		}
+
+		++online_cpu;
+	}
+
+	if(online_cpu != handle->m_ndevs)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "processors online: %d, expected: %d", j, handle->m_ndevs);
+		return SCAP_FAILURE;
 	}
 
 	if(set_default_settings(handle) != SCAP_SUCCESS)
@@ -1361,7 +1411,7 @@ int32_t scap_bpf_get_stats(scap_t* handle, OUT scap_stats* stats)
 {
 	int j;
 
-	for(j = 0; j < handle->m_ndevs; j++)
+	for(j = 0; j < handle->m_ncpus; j++)
 	{
 		struct sysdig_bpf_per_cpu_state v;
 		if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SYSDIG_LOCAL_STATE_MAP], &j, &v))
@@ -1387,7 +1437,7 @@ int32_t scap_bpf_get_n_tracepoint_hit(scap_t* handle, long* ret)
 {
 	int j;
 
-	for(j = 0; j < handle->m_ndevs; j++)
+	for(j = 0; j < handle->m_ncpus; j++)
 	{
 		struct sysdig_bpf_per_cpu_state v;
 		if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SYSDIG_LOCAL_STATE_MAP], &j, &v))

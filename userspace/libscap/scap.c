@@ -130,6 +130,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			const char *home = getenv("HOME");
 			if(!home)
 			{
+				scap_close(handle);
 				snprintf(error, SCAP_LASTERR_SIZE, "HOME environment not set");
 				*rc = SCAP_FAILURE;
 				return NULL;
@@ -144,10 +145,26 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		handle->m_bpf = false;
 	}
 
+	handle->m_ncpus = sysconf(_SC_NPROCESSORS_CONF);
+	if(handle->m_ncpus == -1)
+	{
+		scap_close(handle);
+		snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_CONF: %s", strerror(errno));
+		*rc = SCAP_FAILURE;
+		return NULL;
+	}
+
 	//
 	// Find out how many devices we have to open, which equals to the number of CPUs
 	//
 	ndevs = sysconf(_SC_NPROCESSORS_ONLN);
+	if(ndevs == -1)
+	{
+		scap_close(handle);
+		snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_ONLN: %s", strerror(errno));
+		*rc = SCAP_FAILURE;
+		return NULL;
+	}
 
 	handle->m_devs = (scap_device*) calloc(sizeof(scap_device), ndevs);
 	if(!handle->m_devs)
@@ -237,17 +254,14 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	else
 	{
 		int len;
-		uint32_t max_devs;
 		uint32_t all_scanned_devs;
-
-		max_devs = sysconf(_SC_NPROCESSORS_CONF);
 
 		//
 		// Allocate the device descriptors.
 		//
 		len = RING_BUF_SIZE * 2;
 
-		for(j = 0, all_scanned_devs = 0; j < handle->m_ndevs && all_scanned_devs < max_devs; ++all_scanned_devs)
+		for(j = 0, all_scanned_devs = 0; j < handle->m_ndevs && all_scanned_devs < handle->m_ncpus; ++all_scanned_devs)
 		{
 			//
 			// Open the device

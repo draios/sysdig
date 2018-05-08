@@ -199,6 +199,7 @@ struct sysdig_bpf_per_cpu_state {
 	unsigned long long n_drops_buffer;
 	unsigned long long n_drops_pf;
 	unsigned long long n_drops_bug;
+	int hotplug_cpu;
 	bool in_use;
 } __attribute__((packed));
 
