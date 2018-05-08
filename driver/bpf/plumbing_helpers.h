@@ -224,12 +224,11 @@ static __always_inline struct sysdig_bpf_settings *get_bpf_settings(void)
 	return settings;
 }
 
-static __always_inline struct sysdig_bpf_per_cpu_state *get_local_state(void)
+static __always_inline struct sysdig_bpf_per_cpu_state *get_local_state(int cpu)
 {
 	struct sysdig_bpf_per_cpu_state *state;
-	int id = bpf_get_smp_processor_id();
 
-	state = bpf_map_lookup_elem(&local_state_map, &id);
+	state = bpf_map_lookup_elem(&local_state_map, &cpu);
 	if (!state)
 		bpf_printk("state NULL\n");
 
@@ -272,7 +271,7 @@ static __always_inline int init_filler_data(void *ctx,
 	if (!data->buf)
 		return PPM_FAILURE_BUG;
 
-	data->state = get_local_state();
+	data->state = get_local_state(bpf_get_smp_processor_id());
 	if (!data->state)
 		return PPM_FAILURE_BUG;
 
@@ -296,6 +295,7 @@ static __always_inline int init_filler_data(void *ctx,
 	}
 #endif
 
+	data->curarg_already_on_frame = false;
 	data->fd = -1;
 
 	return PPM_SUCCESS;
@@ -383,6 +383,18 @@ static __always_inline bool drop_event(void *ctx,
 	return false;
 }
 
+static __always_inline void reset_tail_ctx(struct sysdig_bpf_per_cpu_state *state,
+					   enum ppm_event_type evt_type,
+					   unsigned long long ts)
+{
+	state->tail_ctx.evt_type = evt_type;
+	state->tail_ctx.ts = ts;
+	state->tail_ctx.curarg = 0;
+	state->tail_ctx.curoff = 0;
+	state->tail_ctx.len = 0;
+	state->tail_ctx.prev_res = 0;
+}
+
 static __always_inline void call_filler(void *ctx,
 					void *stack_ctx,
 					enum ppm_event_type evt_type,
@@ -392,20 +404,25 @@ static __always_inline void call_filler(void *ctx,
 	const struct ppm_event_entry *filler_info;
 	struct sysdig_bpf_per_cpu_state *state;
 	unsigned long long pid;
+	unsigned long long ts;
+	int cpu;
 
-	state = get_local_state();
+	cpu = bpf_get_smp_processor_id();
+
+	state = get_local_state(cpu);
 	if (!state)
 		return;
 
 	if (!acquire_local_state(state))
 		return;
 
-	state->tail_ctx.evt_type = evt_type;
-	state->tail_ctx.ts = settings->boot_time + bpf_ktime_get_ns();
-	state->tail_ctx.curarg = 0;
-	state->tail_ctx.curoff = 0;
-	state->tail_ctx.len = 0;
-	state->tail_ctx.prev_res = 0;
+	if (cpu == 0 && state->hotplug_cpu != 0) {
+		evt_type = PPME_CPU_HOTPLUG_E;
+		drop_flags = UF_NEVER_DROP;
+	}
+
+	ts = settings->boot_time + bpf_ktime_get_ns();
+	reset_tail_ctx(state, evt_type, ts);
 
 	/* drop_event can change state->tail_ctx.evt_type */
 	if (drop_event(stack_ctx, state, evt_type, settings, drop_flags))

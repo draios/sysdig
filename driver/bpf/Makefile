@@ -20,6 +20,7 @@ $(obj)/probe.o: $(src)/probe.c \
 		$(src)/fillers.h \
 		$(src)/maps.h \
 		$(src)/plumbing_helpers.h \
+		$(src)/quirks.h \
 		$(src)/ring_helpers.h \
 		$(src)/types.h
 	$(CLANG) $(LINUXINCLUDE) \

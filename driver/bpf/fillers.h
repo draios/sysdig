@@ -44,7 +44,7 @@ FILLER_RAW(terminate_filler)
 {
 	struct sysdig_bpf_per_cpu_state *state;
 
-	state = get_local_state();
+	state = get_local_state(bpf_get_smp_processor_id());
 	if (!state)
 		return 0;
 
@@ -1453,17 +1453,10 @@ FILLER(f_proc_startupdate, true)
 FILLER(f_proc_startupdate_2, true)
 {
 	struct task_struct *task;
-	struct mm_struct *mm;
 	int cgroups_len = 0;
-	long retval;
 	int res;
 
-	retval = bpf_syscall_get_retval(data->ctx);
-
 	task = (struct task_struct *)bpf_get_current_task();
-	mm = _READ(task->mm);
-	if (!mm)
-		return PPM_FAILURE_BUG;
 
 	/*
 	 * cgroups
@@ -1474,6 +1467,25 @@ FILLER(f_proc_startupdate_2, true)
 	res = __bpf_val_to_ring(data, (unsigned long)data->tmp_scratch, cgroups_len, PT_BYTEBUF, -1, false);
 	if (res != PPM_SUCCESS)
 		return res;
+
+	bpf_tail_call(data->ctx, &tail_map, BPF_FILLER_ID_f_proc_startupdate_3);
+	bpf_printk("Can't tail call f_proc_startupdate_3 filler\n");
+	return PPM_FAILURE_BUG;
+}
+
+FILLER(f_proc_startupdate_3, true)
+{
+	struct task_struct *task;
+	struct mm_struct *mm;
+	long retval;
+	int res;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+
+	task = (struct task_struct *)bpf_get_current_task();
+	mm = _READ(task->mm);
+	if (!mm)
+		return PPM_FAILURE_BUG;
 
 	if (data->state->tail_ctx.evt_type == PPME_SYSCALL_CLONE_20_X ||
 	    data->state->tail_ctx.evt_type == PPME_SYSCALL_FORK_20_X ||
@@ -2840,8 +2852,19 @@ FILLER(f_sys_sysdigevent_e, false)
 
 FILLER(f_cpu_hotplug_e, false)
 {
-	bpf_printk("f_cpu_hotplug_e should never be called\n");
-	return PPM_FAILURE_BUG;
+	int res;
+
+	res = bpf_val_to_ring(data, data->state->hotplug_cpu);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	res = bpf_val_to_ring(data, 0);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	data->state->hotplug_cpu = 0;
+
+	return res;
 }
 
 FILLER(f_sched_drop, false)

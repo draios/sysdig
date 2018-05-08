@@ -154,6 +154,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 			etype != PPME_DROP_X &&
 			etype != PPME_SYSDIGEVENT_E &&
 			etype != PPME_PROCINFO_E &&
+			etype != PPME_CPU_HOTPLUG_E &&
 			m_inspector->m_sysdig_pid)
 		{
 			evt->m_filtered_out = true;
@@ -162,27 +163,27 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	}
 #endif
 
-		if (m_drop_event_flags)
+	if(m_drop_event_flags)
+	{
+		enum ppm_event_flags flags;
+		uint16_t etype = evt->m_pevt->type;
+		if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
 		{
-			enum ppm_event_flags flags;
-			uint16_t etype = evt->m_pevt->type;
-			if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
-			{
-				sinsp_evt_param *parinfo = evt->get_param(0);
-				uint16_t evid = *(uint16_t *)parinfo->m_val;
-				flags = g_infotables.m_syscall_info_table[evid].flags;
-			}
-			else
-			{
-				flags = evt->get_info_flags();
-			}
-
-			if (flags & m_drop_event_flags)
-			{
-				evt->m_filtered_out = true;
-				return;
-			}
+			sinsp_evt_param *parinfo = evt->get_param(0);
+			uint16_t evid = *(uint16_t *)parinfo->m_val;
+			flags = g_infotables.m_syscall_info_table[evid].flags;
 		}
+		else
+		{
+			flags = evt->get_info_flags();
+		}
+
+		if (flags & m_drop_event_flags)
+		{
+			evt->m_filtered_out = true;
+			return;
+		}
+	}
 
 	//
 	// Filtering
@@ -4353,12 +4354,11 @@ void sinsp_parser::parse_container_evt(sinsp_evt *evt)
 
 void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt *evt)
 {
-#ifdef HAS_ANALYZER
 	if(m_inspector->is_live())
 	{
-		throw sinsp_exception("CPUs configuration change detected. Aborting.");
+		throw sinsp_exception("CPU " + evt->get_param_value_str("cpu") +
+				      " configuration change detected. Aborting.");
 	}
-#endif
 }
 
 uint8_t* sinsp_parser::reserve_event_buffer()
