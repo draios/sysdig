@@ -6,6 +6,8 @@
 #ifndef __NR_bpf
 #ifdef __x86_64__
 #define __NR_bpf 321
+#else
+#define __NR_bpf 357
 #endif /* __x86_64__ */
 #endif /* __NR_bpf */
 
