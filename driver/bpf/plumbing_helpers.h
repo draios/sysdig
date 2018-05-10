@@ -13,16 +13,14 @@
 		    _val;					\
 		 })
 
-#define PRINTK(fmt, ...)					\
+#ifdef BPF_DEBUG
+#define bpf_printk(fmt, ...)					\
 	do {							\
 		char s[] = fmt;					\
 		bpf_trace_printk(s, sizeof(s), ##__VA_ARGS__);	\
 	} while (0)
-
-#ifdef BPF_DEBUG
-#define VPRINTK PRINTK
 #else
-#define VPRINTK(fmt, ...)
+#define bpf_printk(fmt, ...)
 #endif
 
 #ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
@@ -32,7 +30,7 @@ static __always_inline int __stash_args(unsigned long long id,
 	int ret = bpf_map_update_elem(&stash_map, &id, args, BPF_ANY);
 
 	if (ret)
-		PRINTK("error stashing arguments for %d:%d\n", id, ret);
+		bpf_printk("error stashing arguments for %d:%d\n", id, ret);
 
 	return ret;
 }
@@ -164,7 +162,7 @@ static __always_inline char *get_frame_scratch_area(void)
 
 	scratchp = bpf_map_lookup_elem(&frame_scratch_map, &id);
 	if (!scratchp)
-		PRINTK("frame scratch NULL\n");
+		bpf_printk("frame scratch NULL\n");
 
 	return scratchp;
 }
@@ -176,7 +174,7 @@ static __always_inline char *get_tmp_scratch_area(void)
 
 	scratchp = bpf_map_lookup_elem(&tmp_scratch_map, &id);
 	if (!scratchp)
-		PRINTK("tmp scratch NULL\n");
+		bpf_printk("tmp scratch NULL\n");
 
 	return scratchp;
 }
@@ -187,7 +185,7 @@ static __always_inline const struct syscall_evt_pair *get_syscall_info(int id)
 			bpf_map_lookup_elem(&syscall_table, &id);
 
 	if (!p)
-		PRINTK("no syscall_info for %d\n", id);
+		bpf_printk("no syscall_info for %d\n", id);
 
 	return p;
 }
@@ -198,7 +196,7 @@ static __always_inline const struct ppm_event_info *get_event_info(enum ppm_even
 		bpf_map_lookup_elem(&event_info_table, &event_type);
 
 	if (!e)
-		PRINTK("no event info for %d\n", event_type);
+		bpf_printk("no event info for %d\n", event_type);
 
 	return e;
 }
@@ -209,7 +207,7 @@ static __always_inline const struct ppm_event_entry *get_event_filler_info(enum 
 
 	e = bpf_map_lookup_elem(&fillers_table, &event_type);
 	if (!e)
-		PRINTK("no filler info for %d\n", event_type);
+		bpf_printk("no filler info for %d\n", event_type);
 
 	return e;
 }
@@ -221,7 +219,7 @@ static __always_inline struct sysdig_bpf_settings *get_bpf_settings(void)
 
 	settings = bpf_map_lookup_elem(&settings_map, &id);
 	if (!settings)
-		PRINTK("settings NULL\n");
+		bpf_printk("settings NULL\n");
 
 	return settings;
 }
@@ -233,7 +231,7 @@ static __always_inline struct sysdig_bpf_per_cpu_state *get_local_state(void)
 
 	state = bpf_map_lookup_elem(&local_state_map, &id);
 	if (!state)
-		PRINTK("state NULL\n");
+		bpf_printk("state NULL\n");
 
 	return state;
 }
@@ -241,7 +239,7 @@ static __always_inline struct sysdig_bpf_per_cpu_state *get_local_state(void)
 static __always_inline bool acquire_local_state(struct sysdig_bpf_per_cpu_state *state)
 {
 	if (state->in_use) {
-		PRINTK("acquire_local_state: already in use\n");
+		bpf_printk("acquire_local_state: already in use\n");
 		return false;
 	}
 
@@ -252,7 +250,7 @@ static __always_inline bool acquire_local_state(struct sysdig_bpf_per_cpu_state 
 static __always_inline bool release_local_state(struct sysdig_bpf_per_cpu_state *state)
 {
 	if (!state->in_use) {
-		PRINTK("release_local_state: already not in use\n");
+		bpf_printk("release_local_state: already not in use\n");
 		return false;
 	}
 
@@ -420,9 +418,9 @@ static __always_inline void call_filler(void *ctx,
 		goto cleanup;
 
 	bpf_tail_call(ctx, &tail_map, filler_info->bpf_filler_id);
-	PRINTK("Can't tail call filler evt=%d, filler=%d\n",
-	       state->tail_ctx.evt_type,
-	       filler_info->bpf_filler_id);
+	bpf_printk("Can't tail call filler evt=%d, filler=%d\n",
+		   state->tail_ctx.evt_type,
+		   filler_info->bpf_filler_id);
 
 cleanup:
 	release_local_state(state);

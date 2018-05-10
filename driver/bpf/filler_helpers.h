@@ -241,10 +241,8 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 	if (!data->settings->do_dynamic_snaplen)
 		return res;
 
-	if (data->fd == -1) {
-		PRINTK("invalid fd during snaplen calculation, evt %d\n", data->state->tail_ctx.evt_type);
+	if (data->fd == -1)
 		return res;
-	}
 
 	sock = bpf_sockfd_lookup(data, data->fd);
 	if (!sock)
@@ -775,9 +773,9 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
 		if (!data->curarg_already_on_frame) {
-			PRINTK("expected arg already on frame: evt_type %d, curarg %d, type %d\n",
-			       data->state->tail_ctx.evt_type,
-			       data->state->tail_ctx.curarg, type);
+			bpf_printk("expected arg already on frame: evt_type %d, curarg %d, type %d\n",
+				   data->state->tail_ctx.evt_type,
+				   data->state->tail_ctx.curarg, type);
 			return PPM_FAILURE_BUG;
 		}
 
@@ -829,9 +827,9 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 		len = sizeof(s64);
 		break;
 	default: {
-		PRINTK("unhandled type in bpf_val_to_ring: evt_type %d, curarg %d, type %d\n",
-		       data->state->tail_ctx.evt_type,
-		       data->state->tail_ctx.curarg, type);
+		bpf_printk("unhandled type in bpf_val_to_ring: evt_type %d, curarg %d, type %d\n",
+			   data->state->tail_ctx.evt_type,
+			   data->state->tail_ctx.curarg, type);
 		return PPM_FAILURE_BUG;
 	}
 	}
@@ -850,8 +848,10 @@ static __always_inline int bpf_val_to_ring(struct filler_data *data,
 {
 	const struct ppm_param_info *param_info;
 
-	if (data->state->tail_ctx.curarg >= PPM_MAX_EVENT_PARAMS)
+	if (data->state->tail_ctx.curarg >= PPM_MAX_EVENT_PARAMS) {
+		bpf_printk("invalid curarg: %d\n", data->state->tail_ctx.curarg);
 		return PPM_FAILURE_BUG;
+	}
 
 	param_info = &data->evt->params[data->state->tail_ctx.curarg & (PPM_MAX_EVENT_PARAMS - 1)];
 
@@ -864,8 +864,10 @@ static __always_inline int bpf_val_to_ring_len(struct filler_data *data,
 {
 	const struct ppm_param_info *param_info;
 
-	if (data->state->tail_ctx.curarg >= PPM_MAX_EVENT_PARAMS)
+	if (data->state->tail_ctx.curarg >= PPM_MAX_EVENT_PARAMS) {
+		bpf_printk("invalid curarg: %d\n", data->state->tail_ctx.curarg);
 		return PPM_FAILURE_BUG;
+	}
 
 	param_info = &data->evt->params[data->state->tail_ctx.curarg & (PPM_MAX_EVENT_PARAMS - 1)];
 

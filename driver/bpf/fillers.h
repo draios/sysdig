@@ -34,7 +34,7 @@ static __always_inline int bpf_##x(void *ctx)				\
 		data.state->tail_ctx.prev_res = res;			\
 									\
 	bpf_tail_call(ctx, &tail_map, BPF_FILLER_ID_terminate_filler);	\
-	PRINTK("Can't tail call terminate filler\n");			\
+	bpf_printk("Can't tail call terminate filler\n");		\
 	return 0;							\
 }									\
 									\
@@ -52,29 +52,30 @@ FILLER_RAW(terminate_filler)
 	case PPM_SUCCESS:
 		break;
 	case PPM_FAILURE_BUFFER_FULL:
-		VPRINTK("PPM_FAILURE_BUFFER_FULL event=%d curarg=%d\n",
-			state->tail_ctx.evt_type,
-			state->tail_ctx.curarg);
+		bpf_printk("PPM_FAILURE_BUFFER_FULL event=%d curarg=%d\n",
+			   state->tail_ctx.evt_type,
+			   state->tail_ctx.curarg);
 		++state->n_drops_buffer;
 		break;
 	case PPM_FAILURE_INVALID_USER_MEMORY:
-		VPRINTK("PPM_FAILURE_INVALID_USER_MEMORY event=%d curarg=%d\n",
-			state->tail_ctx.evt_type,
-			state->tail_ctx.curarg);
+		bpf_printk("PPM_FAILURE_INVALID_USER_MEMORY event=%d curarg=%d\n",
+			   state->tail_ctx.evt_type,
+			   state->tail_ctx.curarg);
 		++state->n_drops_pf;
 		break;
 	case PPM_FAILURE_BUG:
-		VPRINTK("PPM_FAILURE_BUG event=%d curarg=%d\n",
-			state->tail_ctx.evt_type,
-			state->tail_ctx.curarg);
+		bpf_printk("PPM_FAILURE_BUG event=%d curarg=%d\n",
+			   state->tail_ctx.evt_type,
+			   state->tail_ctx.curarg);
+		++state->n_drops_bug;
 		break;
 	case PPM_SKIP_EVENT:
 		break;
 	default:
-		VPRINTK("Unknown filler res=%d event=%d curarg=%d\n",
-			state->tail_ctx.prev_res,
-			state->tail_ctx.evt_type,
-			state->tail_ctx.curarg);
+		bpf_printk("Unknown filler res=%d event=%d curarg=%d\n",
+			   state->tail_ctx.prev_res,
+			   state->tail_ctx.evt_type,
+			   state->tail_ctx.curarg);
 		break;
 	}
 
@@ -1445,7 +1446,7 @@ FILLER(f_proc_startupdate, true)
 		return res;
 
 	bpf_tail_call(data->ctx, &tail_map, BPF_FILLER_ID_f_proc_startupdate_2);
-	PRINTK("Can't tail call f_proc_startupdate_2 filler\n");
+	bpf_printk("Can't tail call f_proc_startupdate_2 filler\n");
 	return PPM_FAILURE_BUG;
 }
 
@@ -1721,12 +1722,12 @@ FILLER(f_sys_generic, true)
 	native_id = bpf_syscall_get_nr(data->ctx);
 	sysdig_id = bpf_map_lookup_elem(&syscall_code_routing_table, &native_id);
 	if (!sysdig_id) {
-		PRINTK("no routing for syscall %d\n", native_id);
+		bpf_printk("no routing for syscall %d\n", native_id);
 		return PPM_FAILURE_BUG;
 	}
 
 	if (*sysdig_id == PPM_SC_UNKNOWN)
-		VPRINTK("no syscall for id %d\n", native_id);
+		bpf_printk("no syscall for id %d\n", native_id);
 
 	/*
 	 * id
@@ -2255,7 +2256,7 @@ FILLER(f_sys_recvmsg_x, true)
 		return res;
 
 	bpf_tail_call(data->ctx, &tail_map, BPF_FILLER_ID_f_sys_recvmsg_x_2);
-	PRINTK("Can't tail call f_sys_recvmsg_x_2 filler\n");
+	bpf_printk("Can't tail call f_sys_recvmsg_x_2 filler\n");
 	return PPM_FAILURE_BUG;
 }
 
@@ -2833,13 +2834,13 @@ FILLER(f_sys_symlinkat_x, true)
 
 FILLER(f_sys_sysdigevent_e, false)
 {
-	PRINTK("f_sys_sysdigevent_e should never be called\n");
+	bpf_printk("f_sys_sysdigevent_e should never be called\n");
 	return PPM_FAILURE_BUG;
 }
 
 FILLER(f_cpu_hotplug_e, false)
 {
-	PRINTK("f_cpu_hotplug_e should never be called\n");
+	bpf_printk("f_cpu_hotplug_e should never be called\n");
 	return PPM_FAILURE_BUG;
 }
 

@@ -205,6 +205,7 @@ struct sysdig_bpf_per_cpu_state {
 	unsigned long long n_evts;
 	unsigned long long n_drops_buffer;
 	unsigned long long n_drops_pf;
+	unsigned long long n_drops_bug;
 	bool in_use;
 } __attribute__((packed));
 

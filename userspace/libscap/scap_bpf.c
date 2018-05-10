@@ -1373,7 +1373,11 @@ int32_t scap_bpf_get_stats(scap_t* handle, OUT scap_stats* stats)
 		stats->n_evts += v.n_evts;
 		stats->n_drops_buffer += handle->m_devs[j].m_evt_lost + v.n_drops_buffer;
 		stats->n_drops_pf += v.n_drops_pf;
-		stats->n_drops += handle->m_devs[j].m_evt_lost + v.n_drops_buffer + v.n_drops_pf;
+		stats->n_drops_bug += v.n_drops_bug;
+		stats->n_drops += handle->m_devs[j].m_evt_lost +
+				  v.n_drops_buffer +
+				  v.n_drops_pf +
+				  v.n_drops_bug;
 	}
 
 	return SCAP_SUCCESS;
