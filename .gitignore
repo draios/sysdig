@@ -8,6 +8,7 @@
 *.mod.c
 *.o.d
 *.o.rc
+*.o.ur-safe
 build/
 driver/Makefile
 driver/driver_config.h
