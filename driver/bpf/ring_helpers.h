@@ -34,10 +34,10 @@ static __always_inline void fixup_evt_arg_len(char *p,
 static __always_inline int push_evt_frame(void *ctx, struct filler_data *data)
 {
 	if (data->state->tail_ctx.curarg != data->evt->nparams) {
-		PRINTK("corrupted filler for event type %d (added %u args, should have added %u)\n",
-		       data->state->tail_ctx.evt_type,
-		       data->state->tail_ctx.curarg,
-		       data->evt->nparams);
+		bpf_printk("corrupted filler for event type %d (added %u args, should have added %u)\n",
+			   data->state->tail_ctx.evt_type,
+			   data->state->tail_ctx.curarg,
+			   data->evt->nparams);
 		return PPM_FAILURE_BUG;
 	}
 
@@ -60,7 +60,7 @@ static __always_inline int push_evt_frame(void *ctx, struct filler_data *data)
 					data->state->tail_ctx.len & SCRATCH_SIZE_MAX);
 #endif
 	if (res) {
-		PRINTK("bpf_perf_event_output failed: %d\n", res);
+		bpf_printk("bpf_perf_event_output failed: %d\n", res);
 		return PPM_FAILURE_BUG;
 	}
 

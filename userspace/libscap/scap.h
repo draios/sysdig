@@ -87,6 +87,7 @@ typedef struct scap_stats
 	uint64_t n_drops; ///< Number of dropped events.
 	uint64_t n_drops_buffer; ///< Number of dropped events caused by full buffer.
 	uint64_t n_drops_pf; ///< Number of dropped events caused by invalid memory access.
+	uint64_t n_drops_bug; ///< Number of dropped events caused by an invalid condition in the kernel instrumentation.
 	uint64_t n_preemptions; ///< Number of preemptions.
 }scap_stats;
 
