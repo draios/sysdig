@@ -1,9 +1,4 @@
-#include <linux/version.h>
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0) && LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
-#define randomized_struct_fields_start  struct {
-#define randomized_struct_fields_end    };
-#endif
+#include "quirks.h"
 
 #include <generated/utsrelease.h>
 #include <uapi/linux/bpf.h>

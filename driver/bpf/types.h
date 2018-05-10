@@ -7,18 +7,6 @@
 
 #define __always_inline inline __attribute__((always_inline))
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
-#error Kernel version must be >= 4.14 with eBPF enabled
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
-#define BPF_FORBIDS_ZERO_ACCESS
-#endif
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)
-#define BPF_SUPPORTS_RAW_TRACEPOINTS
-#endif
-
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 #define TP_NAME "raw_tracepoint/"
 #else
