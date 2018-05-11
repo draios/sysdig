@@ -804,7 +804,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					{
 						if(bpf_probe.empty())
 						{
-							if(system("sysdig-probe-loader"))
+							if(system("sysdig-probe-loader bpf"))
 							{
 								fprintf(stderr, "Unable to load the BPF probe\n");
 							}
