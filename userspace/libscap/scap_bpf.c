@@ -18,6 +18,7 @@
 #include "scap.h"
 #include "scap-int.h"
 #include "scap_bpf.h"
+#include "../../driver/driver_config.h"
 #include "../../driver/bpf/types.h"
 #include "../../driver/ppm_fillers.h"
 #include "compat/misc.h"
@@ -533,11 +534,19 @@ static int32_t load_bpf_file(scap_t *handle, const char *path)
 			strtabidx = shdr.sh_link;
 			symbols = data;
 		}
-		else if(strcmp(shname, "version") == 0) {
+		else if(strcmp(shname, "kernel_version") == 0) {
 			if(strcmp(osname.release, data->d_buf))
 			{
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "BPF probe is compiled for %s, but running version is %s",
 					 (char *) data->d_buf, osname.release);
+				goto cleanup;
+			}
+		}
+		else if(strcmp(shname, "probe_version") == 0) {
+			if(strcmp(PROBE_VERSION, data->d_buf))
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "BPF probe version is %s, but running version is %s",
+					 (char *) data->d_buf, PROBE_VERSION);
 				goto cleanup;
 			}
 		}
