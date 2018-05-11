@@ -305,6 +305,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	int32_t sorting_col = -1;
 	bool list_views = false;
 	bool bpf = false;
+	string bpf_probe;
 
 #ifndef _WIN32
 	sinsp_table::output_type output_type = sinsp_table::OT_CURSES;
@@ -390,13 +391,11 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 			case 'B':
 			{
-				string bpf_probe;
 				bpf = true;
 				if(optarg)
 				{
 					bpf_probe = optarg;
 				}
-				inspector->set_bpf_probe(bpf_probe);
 				break;
 			}
 			case 'd':
@@ -579,6 +578,21 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			res.m_res = EXIT_FAILURE;
 			goto exit;
 #endif
+		}
+
+		if(!bpf)
+		{
+			const char *probe = scap_get_bpf_probe_from_env();
+			if(probe)
+			{
+				bpf = true;
+				bpf_probe = probe;
+			}
+		}
+
+		if(bpf)
+		{
+			inspector->set_bpf_probe(bpf_probe);
 		}
 
 		if(signal(SIGINT, signal_callback) == SIG_ERR)
@@ -775,11 +789,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				}
 				catch(sinsp_exception e)
 				{
-					if(bpf)
-					{
-						throw e;
-					}
-
 					open_success = false;
 				}
 
@@ -791,9 +800,22 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				{
 					open_success = true;
 
-					if(system("modprobe " PROBE_NAME " > /dev/null 2> /dev/null"))
+					if(bpf)
 					{
-						fprintf(stderr, "Unable to load the driver\n");
+						if(bpf_probe.empty())
+						{
+							if(system("sysdig-probe-loader"))
+							{
+								fprintf(stderr, "Unable to load the BPF probe\n");
+							}
+						}
+					}
+					else
+					{
+						if(system("modprobe " PROBE_NAME " > /dev/null 2> /dev/null"))
+						{
+							fprintf(stderr, "Unable to load the driver\n");
+						}
 					}
 
 					inspector->open("");

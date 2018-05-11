@@ -15,7 +15,6 @@ struct perf_lost_sample {
 	uint64_t lost;
 };
 
-const char *scap_bpf_probe_from_env(scap_t *handle);
 int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe);
 int32_t scap_bpf_start_capture(scap_t *handle);
 int32_t scap_bpf_stop_capture(scap_t *handle);

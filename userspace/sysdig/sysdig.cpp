@@ -768,6 +768,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool force_tracers_capture = false;
 	bool page_faults = false;
 	bool bpf = false;
+	string bpf_probe;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -872,13 +873,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			case 'B':
 			{
-				string bpf_probe;
 				bpf = true;
 				if(optarg)
 				{
 					bpf_probe = optarg;
 				}
-				inspector->set_bpf_probe(bpf_probe);
 				break;
 			}
 			case 0:
@@ -1215,6 +1214,21 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			}
 		}
 
+		if(!bpf)
+		{
+			const char *probe = scap_get_bpf_probe_from_env();
+			if(probe)
+			{
+				bpf = true;
+				bpf_probe = probe;
+			}
+		}
+
+		if(bpf)
+		{
+			inspector->set_bpf_probe(bpf_probe);
+		}
+
 		//
 		// If -j was specified the event_buffer_format must be rewritten to account for it
 		//
@@ -1396,11 +1410,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				catch(sinsp_exception e)
 				{
-					if(bpf)
-					{
-						throw e;
-					}
-
 					open_success = false;
 				}
 
@@ -1412,9 +1421,22 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				{
 					open_success = true;
 
-					if(system("modprobe " PROBE_NAME " > /dev/null 2> /dev/null"))
+					if(bpf)
 					{
-						fprintf(stderr, "Unable to load the driver\n");
+						if(bpf_probe.empty())
+						{
+							if(system("sysdig-probe-loader"))
+							{
+								fprintf(stderr, "Unable to load the BPF probe\n");
+							}
+						}
+					}
+					else
+					{
+						if(system("modprobe " PROBE_NAME " > /dev/null 2> /dev/null"))
+						{
+							fprintf(stderr, "Unable to load the driver\n");
+						}
 					}
 
 					inspector->open("");
