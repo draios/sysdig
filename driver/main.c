@@ -1384,51 +1384,78 @@ static inline void record_drop_x(struct ppm_consumer_t *consumer, struct timespe
 	}
 }
 
+// Return 1 if the event should be dropped, else 0
+static inline int drop_nostate_event(enum ppm_event_type event_type,
+				     struct pt_regs *regs)
+{
+	unsigned long arg = 0;
+	int close_fd = -1;
+	struct files_struct *files;
+	struct fdtable *fdt;
+	bool drop = false;
+
+	switch (event_type) {
+	case PPME_SYSCALL_CLOSE_X:
+	case PPME_SOCKET_BIND_X:
+		if (syscall_get_return_value(current, regs) < 0)
+			drop = true;
+		break;
+	case PPME_SYSCALL_CLOSE_E:
+		/*
+		 * It's annoying but valid for a program to make a large number of
+		 * close() calls on nonexistent fds. That can cause driver cpu usage
+		 * to spike dramatically, so drop close events if the fd is not valid.
+		 *
+		 * The invalid fd events don't matter to userspace in dropping mode,
+		 * so we do this before the UF_NEVER_DROP check
+		 */
+		syscall_get_arguments(current, regs, 0, 1, &arg);
+		close_fd = (int)arg;
+
+		files = current->files;
+		spin_lock(&files->file_lock);
+		fdt = files_fdtable(files);
+		if (close_fd < 0 || close_fd >= fdt->max_fds ||
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0))
+		    !FD_ISSET(close_fd, fdt->open_fds)
+#else
+		    !fd_is_open(close_fd, fdt)
+#endif
+			) {
+			drop = true;
+		}
+		spin_unlock(&files->file_lock);
+		break;
+	case PPME_SYSCALL_FCNTL_E:
+	case PPME_SYSCALL_FCNTL_X:
+		// cmd arg
+		syscall_get_arguments(current, regs, 1, 1, &arg);
+		if (arg != F_DUPFD && arg != F_DUPFD_CLOEXEC)
+			drop = true;
+		break;
+	default:
+		break;
+	}
+
+	if (drop)
+		return 1;
+	else
+		return 0;
+}
+
+// Return 1 if the event should be dropped, else 0
 static inline int drop_event(struct ppm_consumer_t *consumer,
 			     enum ppm_event_type event_type,
 			     enum syscall_flags drop_flags,
 			     struct timespec *ts,
 			     struct pt_regs *regs)
 {
-	unsigned long close_arg = 0;
-	int close_fd = -1;
-	struct files_struct *files;
-	struct fdtable *fdt;
-	bool close_return = false;
+	int maybe_ret = 0;
 
-	/*
-	 * It's annoying but valid for a program to make a large number of
-	 * close() calls on nonexistent fds. That can cause driver cpu usage
-	 * to spike dramatically, so drop close events if the fd is not valid.
-	 *
-	 * The invalid fd events don't matter to userspace in dropping mode,
-	 * so we do this before the UF_NEVER_DROP check
-	 */
 	if (consumer->dropping_mode) {
-		if (event_type == PPME_SYSCALL_CLOSE_X) {
-			if (syscall_get_return_value(current, regs) < 0)
-				close_return = true;
-		} else if (event_type == PPME_SYSCALL_CLOSE_E) {
-			syscall_get_arguments(current, regs, 0, 1, &close_arg);
-			close_fd = (int)close_arg;
-
-			files = current->files;
-			spin_lock(&files->file_lock);
-			fdt = files_fdtable(files);
-			if (close_fd < 0 || close_fd >= fdt->max_fds ||
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0))
-			    !FD_ISSET(close_fd, fdt->open_fds)
-#else
-			    !fd_is_open(close_fd, fdt)
-#endif
-				) {
-				close_return = true;
-			}
-			spin_unlock(&files->file_lock);
-		}
-
-		if (close_return)
-			return 1;
+		maybe_ret = drop_nostate_event(event_type, regs);
+		if (maybe_ret > 0)
+			return maybe_ret;
 	}
 
 	if (drop_flags & UF_NEVER_DROP) {
