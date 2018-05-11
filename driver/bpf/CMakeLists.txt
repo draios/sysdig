@@ -16,6 +16,7 @@ install(FILES
 	maps.h
 	plumbing_helpers.h
 	probe.c
+	quirks.h
 	ring_helpers.h
 	types.h
 	DESTINATION "src/${PACKAGE_NAME}-${PROBE_VERSION}/bpf"

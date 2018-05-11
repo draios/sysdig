@@ -902,6 +902,8 @@ const char* scap_get_host_root();
 */
 struct ppm_proclist_info* scap_get_threadlist(scap_t* handle);
 
+const char *scap_get_bpf_probe_from_env();
+
 
 /*@}*/
 

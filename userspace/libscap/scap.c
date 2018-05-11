@@ -115,9 +115,15 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
 
+	//
+	// While in theory we could always rely on the scap caller to properly
+	// set a BPF probe from the environment variable, it's in practice easier
+	// to do one more check here in scap so we don't have to repeat the logic
+	// in all the possible users of the libraries (falco, sysdig, csysdig, dragent, ...)
+	//
 	if(!bpf_probe)
 	{
-		bpf_probe = scap_bpf_probe_from_env(handle);
+		bpf_probe = scap_get_bpf_probe_from_env();
 	}
 
 	char buf[SCAP_MAX_PATH_SIZE];
