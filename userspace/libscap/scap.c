@@ -51,6 +51,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 //#define NDEBUG
 #include <assert.h>
 
+static const char *SYSDIG_BPF_PROBE_ENV = "SYSDIG_BPF_PROBE";
+
 const char* scap_getlasterr(scap_t* handle)
 {
 	return handle->m_lasterr;
@@ -1853,3 +1855,8 @@ wh_t* scap_get_wmi_handle(scap_t* handle)
 	return handle->m_whh;
 }
 #endif
+
+const char *scap_get_bpf_probe_from_env()
+{
+	return getenv(SYSDIG_BPF_PROBE_ENV);
+}

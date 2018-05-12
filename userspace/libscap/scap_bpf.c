@@ -43,8 +43,6 @@ static const int BUF_SIZE_PAGES = 2048;
 
 static const int BPF_LOG_SIZE = 1 << 18;
 
-static const char *SYSDIG_BPF_PROBE_ENV = "SYSDIG_BPF_PROBE";
-
 static int bpf_map_update_elem(int fd, const void *key, const void *value, uint64_t flags)
 {
 	union bpf_attr attr;
@@ -618,11 +616,6 @@ cleanup:
 	elf_end(elf);
 	close(program_fd);
 	return res;
-}
-
-const char *scap_get_bpf_probe_from_env()
-{
-	return getenv(SYSDIG_BPF_PROBE_ENV);
 }
 
 static void *perf_event_mmap(scap_t *handle, int fd)
