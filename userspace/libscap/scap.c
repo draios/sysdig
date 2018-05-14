@@ -44,7 +44,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap_savefile.h"
 #include "scap-int.h"
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 #include "scap_bpf.h"
 #endif
 
@@ -691,7 +691,7 @@ void scap_close(scap_t* handle)
 	}
 	else if(handle->m_mode == SCAP_MODE_LIVE)
 	{
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 		uint32_t j;
 
 		ASSERT(handle->m_file == NULL);
@@ -797,7 +797,7 @@ uint32_t scap_get_ndevs(scap_t* handle)
 	return handle->m_ndevs;
 }
 
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 
 #ifndef _WIN32
 static inline void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uint32_t* ptail, uint64_t* pread_size)
@@ -968,7 +968,7 @@ static inline int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT 
 static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 #endif
 {
-#if !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 	//
 	// this should be prevented at open time
 	//
@@ -1130,7 +1130,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	stats->n_drops_bug = 0;
 	stats->n_preemptions = 0;
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 	if(handle->m_bpf)
 	{
 		return scap_bpf_get_stats(handle, stats);
