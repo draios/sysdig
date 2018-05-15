@@ -5599,19 +5599,19 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			sinsp_container_info container_info;
-			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
-			if(!found)
+			const sinsp_container_info *container_info =
+				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			if(!container_info)
 			{
 				return NULL;
 			}
 
-			if(container_info.m_name.empty())
+			if(container_info->m_name.empty())
 			{
 				return NULL;
 			}
 
-			m_tstr = container_info.m_name;
+			m_tstr = container_info->m_name;
 		}
 
 		RETURN_EXTRACT_STRING(m_tstr);
@@ -5622,19 +5622,19 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			sinsp_container_info container_info;
-			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
-			if(!found)
+			const sinsp_container_info *container_info =
+				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			if(!container_info)
 			{
 				return NULL;
 			}
 
-			if(container_info.m_image.empty())
+			if(container_info->m_image.empty())
 			{
 				return NULL;
 			}
 
-			m_tstr = container_info.m_image;
+			m_tstr = container_info->m_image;
 		}
 
 		RETURN_EXTRACT_STRING(m_tstr);
@@ -5645,19 +5645,19 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			sinsp_container_info container_info;
-			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
-			if(!found)
+			const sinsp_container_info *container_info =
+				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			if(!container_info)
 			{
 				return NULL;
 			}
 
-			if(container_info.m_imageid.empty())
+			if(container_info->m_imageid.empty())
 			{
 				return NULL;
 			}
 
-			m_tstr = container_info.m_imageid;
+			m_tstr = container_info->m_imageid;
 		}
 
 		RETURN_EXTRACT_STRING(m_tstr);
@@ -5668,13 +5668,13 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			sinsp_container_info container_info;
-			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
-			if(!found)
+			const sinsp_container_info *container_info =
+				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			if(!container_info)
 			{
 				return NULL;
 			}
-			switch(container_info.m_type)
+			switch(container_info->m_type)
 			{
 			case sinsp_container_type::CT_DOCKER:
 				m_tstr = "docker";
@@ -5704,9 +5704,9 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			sinsp_container_info container_info;
-			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
-			if(!found)
+			const sinsp_container_info *container_info =
+				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			if(!container_info)
 			{
 				return NULL;
 			}
@@ -5714,12 +5714,12 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			// Only return a true/false value for
 			// container types where we really know the
 			// privileged status.
-			if (container_info.m_type != sinsp_container_type::CT_DOCKER)
+			if (container_info->m_type != sinsp_container_type::CT_DOCKER)
 			{
 				return NULL;
 			}
 
-			m_u32val = (container_info.m_privileged ? 1 : 0);
+			m_u32val = (container_info->m_privileged ? 1 : 0);
 		}
 
 		RETURN_EXTRACT_VAR(m_u32val);
@@ -5731,16 +5731,16 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			sinsp_container_info container_info;
-			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
-			if(!found)
+			const sinsp_container_info *container_info =
+				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			if(!container_info)
 			{
 				return NULL;
 			}
 
 			m_tstr = "";
 			bool first = true;
-			for(auto &mntinfo : container_info.m_mounts)
+			for(auto &mntinfo : container_info->m_mounts)
 			{
 				if(first)
 				{
@@ -5766,22 +5766,22 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		else
 		{
 
-			sinsp_container_info container_info;
-			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
-			if(!found)
+			const sinsp_container_info *container_info =
+				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			if(!container_info)
 			{
 				return NULL;
 			}
 
-			sinsp_container_info::container_mount_info *mntinfo;
+			const sinsp_container_info::container_mount_info *mntinfo;
 
 			if(m_argid != -1)
 			{
-				mntinfo = container_info.mount_by_idx(m_argid);
+				mntinfo = container_info->mount_by_idx(m_argid);
 			}
 			else
 			{
-				mntinfo = container_info.mount_by_source(m_argstr);
+				mntinfo = container_info->mount_by_source(m_argstr);
 			}
 
 			if(!mntinfo)
@@ -5809,28 +5809,28 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		else
 		{
 
-			sinsp_container_info container_info;
-			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
-			if(!found)
+			const sinsp_container_info *container_info =
+				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			if(!container_info)
 			{
 				return NULL;
 			}
 
-			sinsp_container_info::container_mount_info *mntinfo;
+			const sinsp_container_info::container_mount_info *mntinfo;
 
 			if(m_argid != -1)
 			{
-				mntinfo = container_info.mount_by_idx(m_argid);
+				mntinfo = container_info->mount_by_idx(m_argid);
 			}
 			else
 			{
 				if (m_field_id == TYPE_CONTAINER_MOUNT_SOURCE)
 				{
-					mntinfo = container_info.mount_by_dest(m_argstr);
+					mntinfo = container_info->mount_by_dest(m_argstr);
 				}
 				else
 				{
-					mntinfo = container_info.mount_by_source(m_argstr);
+					mntinfo = container_info->mount_by_source(m_argstr);
 				}
 			}
 
@@ -7138,14 +7138,14 @@ mesos_task::ptr_t sinsp_filter_check_mesos::find_task_for_thread(const sinsp_thr
 
 		if(m_inspector && m_inspector->m_mesos_client)
 		{
-			sinsp_container_info container_info;
-			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
-			if(!found || container_info.m_mesos_task_id.empty())
+			const sinsp_container_info *container_info =
+				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			if(!container_info || container_info->m_mesos_task_id.empty())
 			{
 				return NULL;
 			}
 			const mesos_state_t& mesos_state = m_inspector->m_mesos_client->get_state();
-			return mesos_state.get_task(container_info.m_mesos_task_id);
+			return mesos_state.get_task(container_info->m_mesos_task_id);
 		}
 	}
 
