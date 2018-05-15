@@ -79,6 +79,8 @@ public:
 	//
 	static void init_scapevt(metaevents_state& evt_state, uint16_t evt_type, uint16_t buf_size);
 
+	bool should_early_filter(sinsp_evt* evt);
+
 private:
 	//
 	// Initializers

@@ -4506,3 +4506,12 @@ void sinsp_parser::free_event_buffer(uint8_t *ptr)
 		free(ptr);
 	}
 }
+
+bool sinsp_parser::should_early_filter(sinsp_evt* evt)
+{
+	if(m_fd_listener)
+	{
+		return m_fd_listener->should_early_filter(evt);
+	}
+	return false;
+}

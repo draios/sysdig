@@ -66,7 +66,7 @@ using namespace std;
 	{ \
 		g_logger.format(sinsp_logger::SEV_ERROR, "ASSERTION %s at %s:%d", #X , __FILE__, __LINE__); \
 		assert(X); \
-	} 
+	}
 #else
 #define ASSERT(X) assert(X)
 #endif // ASSERT_TO_LOG
@@ -101,7 +101,7 @@ extern sinsp_logger g_logger;
 #define glogf g_logger.format
 
 //
-// Prototype of the callback invoked by the thread table when a thread is 
+// Prototype of the callback invoked by the thread table when a thread is
 // created or destroyed
 //
 class sinsp_threadtable_listener
@@ -115,7 +115,7 @@ public:
 };
 
 //
-// Prototype of the callback invoked by the thread table when a thread is 
+// Prototype of the callback invoked by the thread table when a thread is
 // created or destroyed
 //
 class sinsp_fd_listener
@@ -138,4 +138,5 @@ public:
 	virtual void on_bind(sinsp_evt* evt) = 0;
 	virtual void on_new_container(const sinsp_container_info& container_info, sinsp_threadinfo *tinfo) = 0;
 	virtual void on_remove_container(const sinsp_container_info& container_info) = 0;
+	virtual bool should_early_filter(sinsp_evt* evt) = 0;
 };

@@ -1074,6 +1074,14 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 			return res;
 		}
+
+		if(m_parser->should_early_filter(evt))
+		{
+			// returning timeout just to avoid to create a new exit code for this case
+			// with timeout returned, consumers of this API don't expect the event to be
+			// initialized
+			return SCAP_TIMEOUT;
+		}
 	}
 
 	uint64_t ts = evt->get_ts();
