@@ -6,7 +6,6 @@
 
 #include "../driver_config.h"
 #include "../ppm_events_public.h"
-#include "../ppm_fillers.h"
 #include "bpf_helpers.h"
 #include "types.h"
 #include "maps.h"

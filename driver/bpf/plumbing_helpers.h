@@ -434,10 +434,10 @@ static __always_inline void call_filler(void *ctx,
 	if (!filler_info)
 		goto cleanup;
 
-	bpf_tail_call(ctx, &tail_map, filler_info->bpf_filler_id);
+	bpf_tail_call(ctx, &tail_map, filler_info->filler_id);
 	bpf_printk("Can't tail call filler evt=%d, filler=%d\n",
 		   state->tail_ctx.evt_type,
-		   filler_info->bpf_filler_id);
+		   filler_info->filler_id);
 
 cleanup:
 	release_local_state(state);
