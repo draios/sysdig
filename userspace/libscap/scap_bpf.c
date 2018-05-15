@@ -20,7 +20,6 @@
 #include "scap_bpf.h"
 #include "../../driver/driver_config.h"
 #include "../../driver/bpf/types.h"
-#include "../../driver/ppm_fillers.h"
 #include "compat/misc.h"
 #include "compat/bpf.h"
 
@@ -42,6 +41,27 @@ struct bpf_map_data {
 static const int BUF_SIZE_PAGES = 2048;
 
 static const int BPF_LOG_SIZE = 1 << 18;
+
+#define FILLER_NAME_FN(x) #x,
+static const char *g_filler_names[PPM_FILLER_MAX] = {
+	FILLER_LIST_MAPPER(FILLER_NAME_FN)
+};
+#undef FILLER_NAME_FN
+
+static int32_t lookup_filler_id(const char *filler_name)
+{
+	int j;
+
+	for(j = 0; j < sizeof(g_filler_names) / sizeof(g_filler_names[0]); ++j)
+	{
+		if(strcmp(filler_name, g_filler_names[j]) == 0)
+		{
+			return j;
+		}
+	}
+
+	return -1;
+}
 
 static int bpf_map_update_elem(int fd, const void *key, const void *value, uint64_t flags)
 {
@@ -382,20 +402,28 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 
 	handle->m_bpf_prog_fds[handle->m_bpf_prog_cnt++] = fd;
 
-	if(isdigit(*event))
+	if(memcmp(event, "filler/", sizeof("filler/") - 1) == 0)
 	{
-		int prog_id = atoi(event);
+		int prog_id;
+
+		event += sizeof("filler/") - 1;
+		if(*event == 0)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "filler name cannot be empty");
+			return SCAP_FAILURE;
+		}
+
+		prog_id = lookup_filler_id(event);
+		if(prog_id == -1)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid filler name: %s", event);
+			return SCAP_FAILURE;
+		}
 
 		err = bpf_map_update_elem(handle->m_bpf_map_fds[handle->m_bpf_prog_array_map_idx], &prog_id, &fd, BPF_ANY);
 		if(err < 0)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failure populating program array");
-			return SCAP_FAILURE;
-		}
-
-		if(prog_id > BPF_FILLER_ID_MAX)
-		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid filler id: %d\n", prog_id);
 			return SCAP_FAILURE;
 		}
 
@@ -726,11 +754,11 @@ static int32_t populate_fillers_table_map(scap_t *handle)
 		}
 	}
 
-	for(j = 0; j < BPF_FILLER_ID_MAX; ++j)
+	for(j = 0; j < PPM_FILLER_MAX; ++j)
 	{
 		if(!handle->m_bpf_fillers[j])
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Missing filler %d\n", j);
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Missing filler %d (%s)\n", j, g_filler_names[j]);
 			return SCAP_FAILURE;
 		}
 	}

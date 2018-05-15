@@ -1434,9 +1434,12 @@ struct syscall_evt_pair {
 /*
  * Filler table-related definitions
  */
+
 #define PPM_MAX_AUTOFILL_ARGS (1 << 2)
 
 struct event_filler_arguments;
+
+#include "ppm_fillers.h"
 
 struct ppm_autofill_arg {
 #define AF_ID_RETVAL -1
@@ -1454,7 +1457,7 @@ typedef int (*filler_callback) (struct event_filler_arguments *args);
 
 struct ppm_event_entry {
 	filler_callback filler_callback;
-	uint16_t bpf_filler_id;
+	enum ppm_filler_id filler_id;
 	uint16_t n_autofill_args;
 	enum autofill_paramtype paramtype;
 	struct ppm_autofill_arg autofill_args[PPM_MAX_AUTOFILL_ARGS];

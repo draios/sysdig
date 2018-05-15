@@ -19,10 +19,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef PPM_FILLERS_H_
 #define PPM_FILLERS_H_
 
-#ifdef __KERNEL__
-#include "ppm.h"
-#endif
-
 /* This is described in syscall(2). Some syscalls take 64-bit arguments. On
  * arches that have 64-bit registers, these arguments are shipped in a register.
  * On 32-bit arches, however, these are split between two consecutive registers,
@@ -40,248 +36,97 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif /* __x86_64__ */
 #endif /* __KERNEL__ */
 
-#define PPM_MS_MGC_MSK 0xffff0000
-#define PPM_MS_MGC_VAL 0xC0ED0000
-
-#ifndef __KERNEL__
-#define CAPTURE_CONTEXT_SWITCHES
-#define CAPTURE_SIGNAL_DELIVERIES
-#define CAPTURE_PAGE_FAULTS
-#endif
-
-#define BPF_FILLER_ID_f_sys_autofill			0
-int f_sys_autofill(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_generic			1
-int f_sys_generic(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_empty			2
-int f_sys_empty(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_single			3
-int f_sys_single(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_single_x			4
-int f_sys_single_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_open_x			5
-int f_sys_open_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_read_x			6
-int f_sys_read_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_write_x			7
-int f_sys_write_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_execve_e			8
-int f_sys_execve_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_proc_startupdate		9
-#define BPF_FILLER_ID_f_proc_startupdate_2		10
-#define BPF_FILLER_ID_f_proc_startupdate_3		11
-int f_proc_startupdate(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_socketpair_x		12
-int f_sys_socketpair_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_connect_x			13
-int f_sys_connect_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_accept4_e			14
-int f_sys_accept4_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_accept_x			15
-int f_sys_accept_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_send_e			16
-int f_sys_send_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_send_x			17
-int f_sys_send_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_sendto_e			18
-int f_sys_sendto_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_sendmsg_e			19
-int f_sys_sendmsg_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_sendmsg_x			20
-int f_sys_sendmsg_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_recv_x			21
-int f_sys_recv_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_recvfrom_x			22
-int f_sys_recvfrom_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_recvmsg_x			23
-#define BPF_FILLER_ID_f_sys_recvmsg_x_2			24
-int f_sys_recvmsg_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_shutdown_e			25
-int f_sys_shutdown_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_pipe_x			26
-int f_sys_pipe_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_eventfd_e			27
-int f_sys_eventfd_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_futex_e			28
-int f_sys_futex_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_lseek_e			29
-int f_sys_lseek_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_llseek_e			30
-int f_sys_llseek_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_socket_bind_x		31
-int f_sys_socket_bind_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_poll_e			32
-int f_sys_poll_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_poll_x			33
-int f_sys_poll_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_openat_e			34
-int f_sys_openat_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_pread64_e			35
-int f_sys_pread64_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_preadv64_e			36
-int f_sys_preadv64_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_writev_e			37
-int f_sys_writev_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_pwrite64_e			38
-int f_sys_pwrite64_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_readv_preadv_x		39
-int f_sys_readv_preadv_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_writev_pwritev_x		40
-int f_sys_writev_pwritev_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_pwritev_e			41
-int f_sys_pwritev_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_nanosleep_e			42
-int f_sys_nanosleep_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_getrlimit_setrlimit_e	43
-int f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_getrlimit_setrlrimit_x	44
-int f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_prlimit_e			45
-int f_sys_prlimit_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_prlimit_x			46
-int f_sys_prlimit_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sched_switch_e			47
-int f_sched_switch_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sched_drop			48
-int f_sched_drop(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_fcntl_e			49
-int f_sys_fcntl_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_ptrace_e			50
-int f_sys_ptrace_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_ptrace_x			51
-int f_sys_ptrace_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_mmap_e			52
-int f_sys_mmap_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_brk_munmap_mmap_x		53
-int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_renameat_x			54
-int f_sys_renameat_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_symlinkat_x			55
-int f_sys_symlinkat_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_procexit_e			56
-int f_sys_procexit_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_sendfile_e			57
-int f_sys_sendfile_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_sendfile_x			58
-int f_sys_sendfile_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_quotactl_e			59
-int f_sys_quotactl_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_quotactl_x			60
-int f_sys_quotactl_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_sysdigevent_e		61
-int f_sys_sysdigevent_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_getresuid_and_gid_x		62
-int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_signaldeliver_e		63
-int f_sys_signaldeliver_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_pagefault_e			64
-int f_sys_pagefault_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_setns_e			65
-int f_sys_setns_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_unshare_e			66
-int f_sys_unshare_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_flock_e			67
-int f_sys_flock_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_cpu_hotplug_e			68
-int f_cpu_hotplug_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_semop_x			69
-int f_sys_semop_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_semget_e			70
-int f_sys_semget_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_semctl_e			71
-int f_sys_semctl_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_ppoll_e			72
-int f_sys_ppoll_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_mount_e			73
-int f_sys_mount_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_access_e			74
-int f_sys_access_e(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_socket_x			75
-#define f_sys_socket_x f_sys_single_x
-
-#define BPF_FILLER_ID_f_sys_bpf_x			76
-int f_sys_bpf_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_unlinkat_x			77
-int f_sys_unlinkat_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_f_sys_mkdirat_x			78
-int f_sys_mkdirat_x(struct event_filler_arguments *args);
-
-#define BPF_FILLER_ID_terminate_filler			79
-
-#define BPF_FILLER_ID_MAX				80
+#define FILLER_LIST_MAPPER(FN)			\
+	FN(sys_autofill)			\
+	FN(sys_generic)				\
+	FN(sys_empty)				\
+	FN(sys_single)				\
+	FN(sys_single_x)			\
+	FN(sys_open_x)				\
+	FN(sys_read_x)				\
+	FN(sys_write_x)				\
+	FN(sys_execve_e)			\
+	FN(proc_startupdate)			\
+	FN(proc_startupdate_2)			\
+	FN(proc_startupdate_3)			\
+	FN(sys_socketpair_x)			\
+	FN(sys_connect_x)			\
+	FN(sys_accept4_e)			\
+	FN(sys_accept_x)			\
+	FN(sys_send_e)				\
+	FN(sys_send_x)				\
+	FN(sys_sendto_e)			\
+	FN(sys_sendmsg_e)			\
+	FN(sys_sendmsg_x)			\
+	FN(sys_recv_x)				\
+	FN(sys_recvfrom_x)			\
+	FN(sys_recvmsg_x)			\
+	FN(sys_recvmsg_x_2)			\
+	FN(sys_shutdown_e)			\
+	FN(sys_pipe_x)				\
+	FN(sys_eventfd_e)			\
+	FN(sys_futex_e)				\
+	FN(sys_lseek_e)				\
+	FN(sys_llseek_e)			\
+	FN(sys_socket_bind_x)			\
+	FN(sys_poll_e)				\
+	FN(sys_poll_x)				\
+	FN(sys_openat_e)			\
+	FN(sys_pread64_e)			\
+	FN(sys_preadv64_e)			\
+	FN(sys_writev_e)			\
+	FN(sys_pwrite64_e)			\
+	FN(sys_readv_preadv_x)			\
+	FN(sys_writev_pwritev_x)		\
+	FN(sys_pwritev_e)			\
+	FN(sys_nanosleep_e)			\
+	FN(sys_getrlimit_setrlimit_e)		\
+	FN(sys_getrlimit_setrlrimit_x)		\
+	FN(sys_prlimit_e)			\
+	FN(sys_prlimit_x)			\
+	FN(sched_switch_e)			\
+	FN(sched_drop)				\
+	FN(sys_fcntl_e)				\
+	FN(sys_ptrace_e)			\
+	FN(sys_ptrace_x)			\
+	FN(sys_mmap_e)				\
+	FN(sys_brk_munmap_mmap_x)		\
+	FN(sys_renameat_x)			\
+	FN(sys_symlinkat_x)			\
+	FN(sys_procexit_e)			\
+	FN(sys_sendfile_e)			\
+	FN(sys_sendfile_x)			\
+	FN(sys_quotactl_e)			\
+	FN(sys_quotactl_x)			\
+	FN(sys_sysdigevent_e)			\
+	FN(sys_getresuid_and_gid_x)		\
+	FN(sys_signaldeliver_e)			\
+	FN(sys_pagefault_e)			\
+	FN(sys_setns_e)				\
+	FN(sys_unshare_e)			\
+	FN(sys_flock_e)				\
+	FN(cpu_hotplug_e)			\
+	FN(sys_semop_x)				\
+	FN(sys_semget_e)			\
+	FN(sys_semctl_e)			\
+	FN(sys_ppoll_e)				\
+	FN(sys_mount_e)				\
+	FN(sys_access_e)			\
+	FN(sys_socket_x)			\
+	FN(sys_bpf_x)				\
+	FN(sys_unlinkat_x)			\
+	FN(sys_mkdirat_x)			\
+	FN(terminate_filler)
+
+#define FILLER_ENUM_FN(x) PPM_FILLER_##x,
+enum ppm_filler_id {
+	FILLER_LIST_MAPPER(FILLER_ENUM_FN)
+	PPM_FILLER_MAX
+};
+#undef FILLER_ENUM_FN
+
+#define FILLER_PROTOTYPE_FN(x) int f_##x(struct event_filler_arguments *args);
+FILLER_LIST_MAPPER(FILLER_PROTOTYPE_FN)
+#undef FILLER_PROTOTYPE_FN
 
 #endif /* PPM_FILLERS_H_ */

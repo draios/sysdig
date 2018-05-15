@@ -8,13 +8,13 @@
 #define FILLER_RAW(x)							\
 static __always_inline int __bpf_##x(struct filler_data *data);		\
 									\
-__bpf_section(TP_NAME __stringify(BPF_FILLER_ID_##x))			\
+__bpf_section(TP_NAME "filler/" #x)					\
 static __always_inline int bpf_##x(void *ctx)				\
 
 #define FILLER(x, is_syscall)						\
 static __always_inline int __bpf_##x(struct filler_data *data);		\
 									\
-__bpf_section(TP_NAME __stringify(BPF_FILLER_ID_##x))			\
+__bpf_section(TP_NAME "filler/" #x)					\
 static __always_inline int bpf_##x(void *ctx)				\
 {									\
 	struct filler_data data;					\
@@ -33,7 +33,7 @@ static __always_inline int bpf_##x(void *ctx)				\
 	if (data.state)							\
 		data.state->tail_ctx.prev_res = res;			\
 									\
-	bpf_tail_call(ctx, &tail_map, BPF_FILLER_ID_terminate_filler);	\
+	bpf_tail_call(ctx, &tail_map, PPM_FILLER_terminate_filler);	\
 	bpf_printk("Can't tail call terminate filler\n");		\
 	return 0;							\
 }									\
@@ -83,12 +83,12 @@ FILLER_RAW(terminate_filler)
 	return 0;
 }
 
-FILLER(f_sys_empty, true)
+FILLER(sys_empty, true)
 {
 	return PPM_SUCCESS;
 }
 
-FILLER(f_sys_single, true)
+FILLER(sys_single, true)
 {
 	unsigned long val;
 	int res;
@@ -99,7 +99,7 @@ FILLER(f_sys_single, true)
 	return res;
 }
 
-FILLER(f_sys_single_x, true)
+FILLER(sys_single_x, true)
 {
 	int res;
 	long retval;
@@ -110,7 +110,7 @@ FILLER(f_sys_single_x, true)
 	return res;
 }
 
-FILLER(f_sys_open_x, true)
+FILLER(sys_open_x, true)
 {
 	unsigned int flags;
 	unsigned int mode;
@@ -153,7 +153,7 @@ FILLER(f_sys_open_x, true)
 	return res;
 }
 
-FILLER(f_sys_read_x, true)
+FILLER(sys_read_x, true)
 {
 	unsigned long bufsize;
 	unsigned long val;
@@ -185,7 +185,7 @@ FILLER(f_sys_read_x, true)
 	return res;
 }
 
-FILLER(f_sys_write_x, true)
+FILLER(sys_write_x, true)
 {
 	unsigned long bufsize;
 	unsigned long val;
@@ -282,7 +282,7 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
 	return __bpf_val_to_ring(data, 0, off - data->state->tail_ctx.curoff, PT_FDLIST, -1, false);
 }
 
-FILLER(f_sys_poll_e, true)
+FILLER(sys_poll_e, true)
 {
 	unsigned long val;
 	int res;
@@ -303,7 +303,7 @@ FILLER(f_sys_poll_e, true)
 	return res;
 }
 
-FILLER(f_sys_poll_x, true)
+FILLER(sys_poll_x, true)
 {
 	long retval;
 	int res;
@@ -422,7 +422,7 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 	return res;
 }
 
-FILLER(f_sys_readv_preadv_x, true)
+FILLER(sys_readv_preadv_x, true)
 {
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
@@ -449,7 +449,7 @@ FILLER(f_sys_readv_preadv_x, true)
 	return res;
 }
 
-FILLER(f_sys_writev_e, true)
+FILLER(sys_writev_e, true)
 {
 	unsigned long iovcnt;
 	unsigned long val;
@@ -474,7 +474,7 @@ FILLER(f_sys_writev_e, true)
 	return res;
 }
 
-FILLER(f_sys_writev_pwritev_x, true)
+FILLER(sys_writev_pwritev_x, true)
 {
 	unsigned long iovcnt;
 	unsigned long val;
@@ -517,7 +517,7 @@ static __always_inline int timespec_parse(struct filler_data *data,
 	return bpf_val_to_ring_type(data, longtime, PT_RELTIME);
 }
 
-FILLER(f_sys_nanosleep_e, true)
+FILLER(sys_nanosleep_e, true)
 {
 	unsigned long val;
 	int res;
@@ -528,7 +528,7 @@ FILLER(f_sys_nanosleep_e, true)
 	return res;
 }
 
-FILLER(f_sys_futex_e, true)
+FILLER(sys_futex_e, true)
 {
 	unsigned long val;
 	int res;
@@ -582,7 +582,7 @@ static __always_inline unsigned long bpf_get_mm_swap(struct mm_struct *mm)
 	return bpf_get_mm_counter(mm, MM_SWAPENTS);
 }
 
-FILLER(f_sys_brk_munmap_mmap_x, true)
+FILLER(sys_brk_munmap_mmap_x, true)
 {
 	struct task_struct *task;
 	unsigned long total_vm = 0;
@@ -630,7 +630,7 @@ FILLER(f_sys_brk_munmap_mmap_x, true)
 	return res;
 }
 
-FILLER(f_sys_mmap_e, true)
+FILLER(sys_mmap_e, true)
 {
 	unsigned long val;
 	int res;
@@ -684,7 +684,7 @@ FILLER(f_sys_mmap_e, true)
 	return res;
 }
 
-FILLER(f_sys_fcntl_e, true)
+FILLER(sys_fcntl_e, true)
 {
 	unsigned long val;
 	long cmd;
@@ -708,7 +708,7 @@ FILLER(f_sys_fcntl_e, true)
 	return res;
 }
 
-FILLER(f_sys_access_e, true)
+FILLER(sys_access_e, true)
 {
 	unsigned long val;
 	int res;
@@ -722,7 +722,7 @@ FILLER(f_sys_access_e, true)
 	return res;
 }
 
-FILLER(f_sys_getrlimit_setrlimit_e, true)
+FILLER(sys_getrlimit_setrlimit_e, true)
 {
 	unsigned long val;
 	int res;
@@ -736,7 +736,7 @@ FILLER(f_sys_getrlimit_setrlimit_e, true)
 	return res;
 }
 
-FILLER(f_sys_getrlimit_setrlrimit_x, true)
+FILLER(sys_getrlimit_setrlrimit_x, true)
 {
 	unsigned long val;
 	long retval;
@@ -785,7 +785,7 @@ FILLER(f_sys_getrlimit_setrlrimit_x, true)
 	return res;
 }
 
-FILLER(f_sys_connect_x, true)
+FILLER(sys_connect_x, true)
 {
 	struct sockaddr *usrsockaddr;
 	unsigned long val;
@@ -843,7 +843,7 @@ FILLER(f_sys_connect_x, true)
 	return res;
 }
 
-FILLER(f_sys_socketpair_x, true)
+FILLER(sys_socketpair_x, true)
 {
 	struct unix_sock *us = NULL;
 	struct sock *speer = NULL;
@@ -909,7 +909,7 @@ static __always_inline int f_sys_send_e_common(struct filler_data *data, int fd)
 	return res;
 }
 
-FILLER(f_sys_send_e, true)
+FILLER(sys_send_e, true)
 {
 	int res;
 	int fd;
@@ -923,7 +923,7 @@ FILLER(f_sys_send_e, true)
 	return res;
 }
 
-FILLER(f_sys_sendto_e, true)
+FILLER(sys_sendto_e, true)
 {
 	struct sockaddr __user *usrsockaddr;
 	unsigned long val;
@@ -980,7 +980,7 @@ FILLER(f_sys_sendto_e, true)
 	return res;
 }
 
-FILLER(f_sys_send_x, true)
+FILLER(sys_send_x, true)
 {
 	unsigned long bufsize;
 	unsigned long val;
@@ -1020,7 +1020,7 @@ FILLER(f_sys_send_x, true)
 	return res;
 }
 
-FILLER(f_sys_execve_e, true)
+FILLER(sys_execve_e, true)
 {
 	unsigned long val;
 	int res;
@@ -1222,7 +1222,7 @@ static __always_inline bool bpf_append_cgroup(struct task_struct *task,
 
 #define ARGS_ENV_SIZE_MAX 4096
 
-FILLER(f_proc_startupdate, true)
+FILLER(proc_startupdate, true)
 {
 	struct task_struct *real_parent;
 	struct signal_struct *signal;
@@ -1445,12 +1445,12 @@ FILLER(f_proc_startupdate, true)
 	if (res != PPM_SUCCESS)
 		return res;
 
-	bpf_tail_call(data->ctx, &tail_map, BPF_FILLER_ID_f_proc_startupdate_2);
+	bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_proc_startupdate_2);
 	bpf_printk("Can't tail call f_proc_startupdate_2 filler\n");
 	return PPM_FAILURE_BUG;
 }
 
-FILLER(f_proc_startupdate_2, true)
+FILLER(proc_startupdate_2, true)
 {
 	struct task_struct *task;
 	int cgroups_len = 0;
@@ -1468,12 +1468,12 @@ FILLER(f_proc_startupdate_2, true)
 	if (res != PPM_SUCCESS)
 		return res;
 
-	bpf_tail_call(data->ctx, &tail_map, BPF_FILLER_ID_f_proc_startupdate_3);
+	bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_proc_startupdate_3);
 	bpf_printk("Can't tail call f_proc_startupdate_3 filler\n");
 	return PPM_FAILURE_BUG;
 }
 
-FILLER(f_proc_startupdate_3, true)
+FILLER(proc_startupdate_3, true)
 {
 	struct task_struct *task;
 	struct mm_struct *mm;
@@ -1618,7 +1618,7 @@ FILLER(f_proc_startupdate_3, true)
 	return res;
 }
 
-FILLER(f_sys_accept4_e, true)
+FILLER(sys_accept4_e, true)
 {
 	int res;
 
@@ -1631,7 +1631,7 @@ FILLER(f_sys_accept4_e, true)
 	return res;
 }
 
-FILLER(f_sys_accept_x, true)
+FILLER(sys_accept_x, true)
 {
 	unsigned long max_ack_backlog = 0;
 	unsigned long ack_backlog = 0;
@@ -1694,7 +1694,7 @@ FILLER(f_sys_accept_x, true)
 	return res;
 }
 
-FILLER(f_sys_setns_e, true)
+FILLER(sys_setns_e, true)
 {
 	unsigned long val;
 	u32 flags;
@@ -1712,7 +1712,7 @@ FILLER(f_sys_setns_e, true)
 	return res;
 }
 
-FILLER(f_sys_unshare_e, true)
+FILLER(sys_unshare_e, true)
 {
 	unsigned long val;
 	u32 flags;
@@ -1725,7 +1725,7 @@ FILLER(f_sys_unshare_e, true)
 	return res;
 }
 
-FILLER(f_sys_generic, true)
+FILLER(sys_generic, true)
 {
 	long *sysdig_id;
 	int native_id;
@@ -1758,7 +1758,7 @@ FILLER(f_sys_generic, true)
 	return res;
 }
 
-FILLER(f_sys_openat_e, true)
+FILLER(sys_openat_e, true)
 {
 	unsigned long flags;
 	unsigned long val;
@@ -1804,7 +1804,7 @@ FILLER(f_sys_openat_e, true)
 	return res;
 }
 
-FILLER(f_sys_sendfile_e, true)
+FILLER(sys_sendfile_e, true)
 {
 	unsigned long val;
 	off_t *offp;
@@ -1845,7 +1845,7 @@ FILLER(f_sys_sendfile_e, true)
 	return res;
 }
 
-FILLER(f_sys_sendfile_x, true)
+FILLER(sys_sendfile_x, true)
 {
 	long retval;
 	off_t *offp;
@@ -1870,7 +1870,7 @@ FILLER(f_sys_sendfile_x, true)
 	return res;
 }
 
-FILLER(f_sys_prlimit_e, true)
+FILLER(sys_prlimit_e, true)
 {
 	unsigned long val;
 	u8 ppm_resource;
@@ -1894,7 +1894,7 @@ FILLER(f_sys_prlimit_e, true)
 	return res;
 }
 
-FILLER(f_sys_prlimit_x, true)
+FILLER(sys_prlimit_x, true)
 {
 	unsigned long val;
 	struct rlimit rl;
@@ -1968,7 +1968,7 @@ FILLER(f_sys_prlimit_x, true)
 	return res;
 }
 
-FILLER(f_sys_pwritev_e, true)
+FILLER(sys_pwritev_e, true)
 {
 	const struct iovec __user *iov;
 	unsigned long iovcnt;
@@ -2000,7 +2000,7 @@ FILLER(f_sys_pwritev_e, true)
 	return res;
 }
 
-FILLER(f_sys_getresuid_and_gid_x, true)
+FILLER(sys_getresuid_and_gid_x, true)
 {
 	long retval;
 	u32 *idp;
@@ -2046,7 +2046,7 @@ FILLER(f_sys_getresuid_and_gid_x, true)
 	return res;
 }
 
-FILLER(f_sys_socket_bind_x, true)
+FILLER(sys_socket_bind_x, true)
 {
 	struct sockaddr *usrsockaddr;
 	unsigned long val;
@@ -2132,7 +2132,7 @@ static __always_inline int f_sys_recv_x_common(struct filler_data *data, long re
 	return res;
 }
 
-FILLER(f_sys_recv_x, true)
+FILLER(sys_recv_x, true)
 {
 	long retval;
 	int res;
@@ -2143,7 +2143,7 @@ FILLER(f_sys_recv_x, true)
 	return res;
 }
 
-FILLER(f_sys_recvfrom_x, true)
+FILLER(sys_recvfrom_x, true)
 {
 	struct sockaddr *usrsockaddr;
 	unsigned long val;
@@ -2209,7 +2209,7 @@ FILLER(f_sys_recvfrom_x, true)
 	return res;
 }
 
-FILLER(f_sys_shutdown_e, true)
+FILLER(sys_shutdown_e, true)
 {
 	unsigned int flags;
 	unsigned long val;
@@ -2233,7 +2233,7 @@ FILLER(f_sys_shutdown_e, true)
 	return res;
 }
 
-FILLER(f_sys_recvmsg_x, true)
+FILLER(sys_recvmsg_x, true)
 {
 	const struct iovec *iov;
 	struct user_msghdr mh;
@@ -2267,12 +2267,12 @@ FILLER(f_sys_recvmsg_x, true)
 	if (res != PPM_SUCCESS)
 		return res;
 
-	bpf_tail_call(data->ctx, &tail_map, BPF_FILLER_ID_f_sys_recvmsg_x_2);
+	bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_sys_recvmsg_x_2);
 	bpf_printk("Can't tail call f_sys_recvmsg_x_2 filler\n");
 	return PPM_FAILURE_BUG;
 }
 
-FILLER(f_sys_recvmsg_x_2, true)
+FILLER(sys_recvmsg_x_2, true)
 {
 	struct sockaddr *usrsockaddr;
 	struct user_msghdr mh;
@@ -2333,7 +2333,7 @@ FILLER(f_sys_recvmsg_x_2, true)
 	return res;
 }
 
-FILLER(f_sys_sendmsg_e, true)
+FILLER(sys_sendmsg_e, true)
 {
 	struct sockaddr *usrsockaddr;
 	const struct iovec *iov;
@@ -2406,7 +2406,7 @@ FILLER(f_sys_sendmsg_e, true)
 	return res;
 }
 
-FILLER(f_sys_sendmsg_x, true)
+FILLER(sys_sendmsg_x, true)
 {
 	const struct iovec *iov;
 	struct user_msghdr mh;
@@ -2439,7 +2439,7 @@ FILLER(f_sys_sendmsg_x, true)
 	return res;
 }
 
-FILLER(f_sys_pipe_x, true)
+FILLER(sys_pipe_x, true)
 {
 	unsigned long ino;
 	unsigned long val;
@@ -2478,7 +2478,7 @@ FILLER(f_sys_pipe_x, true)
 	return res;
 }
 
-FILLER(f_sys_lseek_e, true)
+FILLER(sys_lseek_e, true)
 {
 	unsigned long flags;
 	unsigned long val;
@@ -2510,7 +2510,7 @@ FILLER(f_sys_lseek_e, true)
 	return res;
 }
 
-FILLER(f_sys_llseek_e, true)
+FILLER(sys_llseek_e, true)
 {
 	unsigned long flags;
 	unsigned long val;
@@ -2549,7 +2549,7 @@ FILLER(f_sys_llseek_e, true)
 	return res;
 }
 
-FILLER(f_sys_eventfd_e, true)
+FILLER(sys_eventfd_e, true)
 {
 	unsigned long val;
 	int res;
@@ -2571,7 +2571,7 @@ FILLER(f_sys_eventfd_e, true)
 	return res;
 }
 
-FILLER(f_sys_mount_e, true)
+FILLER(sys_mount_e, true)
 {
 	unsigned long val;
 	int res;
@@ -2589,7 +2589,7 @@ FILLER(f_sys_mount_e, true)
 	return res;
 }
 
-FILLER(f_sys_ppoll_e, true)
+FILLER(sys_ppoll_e, true)
 {
 	unsigned long val;
 	int res;
@@ -2627,7 +2627,7 @@ FILLER(f_sys_ppoll_e, true)
 	return res;
 }
 
-FILLER(f_sys_semop_x, true)
+FILLER(sys_semop_x, true)
 {
 	unsigned long nsops;
 	struct sembuf *ptr;
@@ -2686,7 +2686,7 @@ FILLER(f_sys_semop_x, true)
 	return res;
 }
 
-FILLER(f_sys_socket_x, true)
+FILLER(sys_socket_x, true)
 {
 	long retval;
 	int res;
@@ -2710,7 +2710,7 @@ FILLER(f_sys_socket_x, true)
 	return res;
 }
 
-FILLER(f_sys_flock_e, true)
+FILLER(sys_flock_e, true)
 {
 	unsigned int flags;
 	unsigned long val;
@@ -2728,7 +2728,7 @@ FILLER(f_sys_flock_e, true)
 	return res;
 }
 
-FILLER(f_sys_pread64_e, true)
+FILLER(sys_pread64_e, true)
 {
 #ifndef _64BIT_ARGS_SINGLE_REGISTER
 #error Implement this
@@ -2736,7 +2736,7 @@ FILLER(f_sys_pread64_e, true)
 	return PPM_FAILURE_BUG;
 }
 
-FILLER(f_sys_preadv64_e, true)
+FILLER(sys_preadv64_e, true)
 {
 #ifndef _64BIT_ARGS_SINGLE_REGISTER
 #error Implement this
@@ -2744,7 +2744,7 @@ FILLER(f_sys_preadv64_e, true)
 	return PPM_FAILURE_BUG;
 }
 
-FILLER(f_sys_pwrite64_e, true)
+FILLER(sys_pwrite64_e, true)
 {
 #ifndef _64BIT_ARGS_SINGLE_REGISTER
 #error Implement this
@@ -2752,7 +2752,7 @@ FILLER(f_sys_pwrite64_e, true)
 	return PPM_FAILURE_BUG;
 }
 
-FILLER(f_sys_renameat_x, true)
+FILLER(sys_renameat_x, true)
 {
 	unsigned long val;
 	long retval;
@@ -2804,7 +2804,7 @@ FILLER(f_sys_renameat_x, true)
 	return res;
 }
 
-FILLER(f_sys_symlinkat_x, true)
+FILLER(sys_symlinkat_x, true)
 {
 	unsigned long val;
 	long retval;
@@ -2844,13 +2844,13 @@ FILLER(f_sys_symlinkat_x, true)
 	return res;
 }
 
-FILLER(f_sys_sysdigevent_e, false)
+FILLER(sys_sysdigevent_e, false)
 {
 	bpf_printk("f_sys_sysdigevent_e should never be called\n");
 	return PPM_FAILURE_BUG;
 }
 
-FILLER(f_cpu_hotplug_e, false)
+FILLER(cpu_hotplug_e, false)
 {
 	int res;
 
@@ -2867,7 +2867,7 @@ FILLER(f_cpu_hotplug_e, false)
 	return res;
 }
 
-FILLER(f_sched_drop, false)
+FILLER(sched_drop, false)
 {
 	int res;
 
@@ -2879,7 +2879,7 @@ FILLER(f_sched_drop, false)
 	return res;
 }
 
-FILLER(f_sys_procexit_e, false)
+FILLER(sys_procexit_e, false)
 {
 	struct task_struct *task;
 	unsigned int flags;
@@ -2900,7 +2900,7 @@ FILLER(f_sys_procexit_e, false)
 	return res;
 }
 
-FILLER(f_sched_switch_e, false)
+FILLER(sched_switch_e, false)
 {
 	struct sched_switch_args *ctx;
 	struct task_struct *task;
@@ -2981,7 +2981,7 @@ FILLER(f_sched_switch_e, false)
 	return res;
 }
 
-FILLER(f_sys_pagefault_e, false)
+FILLER(sys_pagefault_e, false)
 {
 	struct page_fault_args *ctx;
 	unsigned long error_code;
@@ -3017,7 +3017,7 @@ FILLER(f_sys_pagefault_e, false)
 	return res;
 }
 
-FILLER(f_sys_signaldeliver_e, false)
+FILLER(sys_signaldeliver_e, false)
 {
 	struct signal_deliver_args *ctx;
 	pid_t spid = 0;
@@ -3071,7 +3071,7 @@ FILLER(f_sys_signaldeliver_e, false)
 	return res;
 }
 
-FILLER(f_sys_quotactl_e, true)
+FILLER(sys_quotactl_e, true)
 {
 	unsigned long val;
 	int res;
@@ -3126,7 +3126,7 @@ FILLER(f_sys_quotactl_e, true)
 	return res;
 }
 
-FILLER(f_sys_quotactl_x, true)
+FILLER(sys_quotactl_x, true)
 {
 	struct if_dqinfo dqinfo = {0};
 	struct if_dqblk dqblk = {0};
@@ -3302,7 +3302,7 @@ FILLER(f_sys_quotactl_x, true)
 	return res;
 }
 
-FILLER(f_sys_semget_e, true)
+FILLER(sys_semget_e, true)
 {
 	unsigned long val;
 	int res;
@@ -3332,7 +3332,7 @@ FILLER(f_sys_semget_e, true)
 	return res;
 }
 
-FILLER(f_sys_semctl_e, true)
+FILLER(sys_semctl_e, true)
 {
 	unsigned long val;
 	int res;
@@ -3374,7 +3374,7 @@ FILLER(f_sys_semctl_e, true)
 	return res;
 }
 
-FILLER(f_sys_ptrace_e, true)
+FILLER(sys_ptrace_e, true)
 {
 	unsigned long val;
 	int res;
@@ -3453,7 +3453,7 @@ static __always_inline int bpf_parse_ptrace_data(struct filler_data *data, u16 r
 	return bpf_val_to_ring_dyn(data, dst, type, idx);
 }
 
-FILLER(f_sys_ptrace_x, true)
+FILLER(sys_ptrace_x, true)
 {
 	unsigned long val;
 	u16 request;
@@ -3490,7 +3490,7 @@ FILLER(f_sys_ptrace_x, true)
 	return res;
 }
 
-FILLER(f_sys_bpf_x, true)
+FILLER(sys_bpf_x, true)
 {
 	unsigned long cmd;
 	s64 retval;
@@ -3510,7 +3510,7 @@ FILLER(f_sys_bpf_x, true)
 	return res;
 }
 
-FILLER(f_sys_unlinkat_x, true)
+FILLER(sys_unlinkat_x, true)
 {
 	unsigned long val;
 	long retval;
@@ -3549,7 +3549,7 @@ FILLER(f_sys_unlinkat_x, true)
 	return res;
 }
 
-FILLER(f_sys_mkdirat_x, true)
+FILLER(sys_mkdirat_x, true)
 {
 	unsigned long val;
 	long retval;
@@ -3588,7 +3588,7 @@ FILLER(f_sys_mkdirat_x, true)
 	return res;
 }
 
-FILLER(f_sys_autofill, true)
+FILLER(sys_autofill, true)
 {
 	const struct ppm_event_entry *evinfo;
 	int res;

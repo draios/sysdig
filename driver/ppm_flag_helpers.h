@@ -23,6 +23,11 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/futex.h>
 #include <linux/ptrace.h>
 
+#include "ppm.h"
+
+#define PPM_MS_MGC_MSK 0xffff0000
+#define PPM_MS_MGC_VAL 0xC0ED0000
+
 static __always_inline uint32_t open_flags_to_scap(unsigned long flags)
 {
 	uint32_t res = 0;
