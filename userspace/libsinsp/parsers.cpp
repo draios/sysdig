@@ -1146,6 +1146,11 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		tinfo->m_vpgid = ptinfo->m_vpgid;
 
 		tinfo->m_tty = ptinfo->m_tty;
+
+		if(!(flags & PPM_CL_CLONE_THREAD))
+		{
+			tinfo->m_env = ptinfo->m_env;
+		}
 	}
 	else
 	{
@@ -1181,6 +1186,10 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			tinfo->m_sid = ptinfo->m_sid;
 			tinfo->m_vpgid = ptinfo->m_vpgid;
 			tinfo->m_tty = ptinfo->m_tty;
+			if(!(flags & PPM_CL_CLONE_THREAD))
+			{
+				tinfo->m_env = ptinfo->m_env;
+			}
 		}
 		else
 		{
