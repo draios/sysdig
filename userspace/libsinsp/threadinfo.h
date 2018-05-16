@@ -230,8 +230,11 @@ public:
 	string m_exe; ///< argv[0] (e.g. "sshd: user@pts/4")
 	string m_exepath; ///< full executable path
 	vector<string> m_args; ///< Command line arguments (e.g. "-d1")
+	string m_args_str; // m_args combined, separated by '\0', capped to SCAP_MAX_ARGS_SIZE
 	vector<string> m_env; ///< Environment variables
+	string m_env_str; //  m_env combined, separated by '\0', capped to SCAP_MAX_ENV_SIZE
 	vector<pair<string, string>> m_cgroups; ///< subsystem-cgroup pairs
+	string m_cgroups_str; // m_cgroups combined, separated by '\0', cappped to SCAP_MAX_CGROUPS_SIZE
 	string m_container_id; ///< heuristic-based container id
 	uint32_t m_flags; ///< The thread flags. See the PPM_CL_* declarations in ppm_events_public.h.
 	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open
