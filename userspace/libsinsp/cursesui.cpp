@@ -145,13 +145,13 @@ void json_spy_renderer::process_event_spy(sinsp_evt* evt, int32_t next_res)
 
 		if(!tinfo->m_container_id.empty())
 		{
-			sinsp_container_info container_info;
-			bool found = m_inspector->m_container_manager.get_container(tinfo->m_container_id, &container_info);
-			if(found)
+			const sinsp_container_info *container_info =
+				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			if(container_info)
 			{
-				if(!container_info.m_name.empty())
+				if(!container_info->m_name.empty())
 				{
-					line["c"] = container_info.m_name;
+					line["c"] = container_info->m_name;
 				}
 			}
 		}

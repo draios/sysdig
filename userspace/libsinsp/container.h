@@ -79,7 +79,7 @@ public:
 			}
 		}
 
-		std::string to_string()
+		std::string to_string() const
 		{
 			return m_source + ":" +
 				m_dest + ":" +
@@ -118,9 +118,9 @@ public:
 
 	const vector<string>& get_env() const { return m_env; }
 
-	container_mount_info *mount_by_idx(uint32_t idx);
-	container_mount_info *mount_by_source(std::string &source);
-	container_mount_info *mount_by_dest(std::string &dest);
+	const container_mount_info *mount_by_idx(uint32_t idx) const;
+	const container_mount_info *mount_by_source(std::string &source) const;
+	const container_mount_info *mount_by_dest(std::string &dest) const;
 
 	string m_id;
 	sinsp_container_type m_type;
@@ -152,7 +152,7 @@ public:
 	const unordered_map<string, sinsp_container_info>* get_containers();
 	bool remove_inactive_containers();
 	void add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread);
-	bool get_container(const string& id, sinsp_container_info* container_info) const;
+	const sinsp_container_info* get_container(const string& id) const;
 	bool resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	void dump_containers(scap_dumper_t* dumper);
 	string get_container_name(sinsp_threadinfo* tinfo);
@@ -167,7 +167,6 @@ private:
 	bool parse_docker(sinsp_container_info* container);
 	string get_docker_env(const Json::Value &env_vars, const string &mti);
 	bool parse_rkt(sinsp_container_info* container, const string& podid, const string& appname);
-	sinsp_container_info* get_container(const string& id);
 
 	sinsp* m_inspector;
 	unordered_map<string, sinsp_container_info> m_containers;

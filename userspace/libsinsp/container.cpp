@@ -44,7 +44,7 @@ void sinsp_container_info::parse_json_mounts(const Json::Value &mnt_obj, vector<
 	}
 }
 
-sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_idx(uint32_t idx)
+const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_idx(uint32_t idx) const
 {
 	if (idx >= m_mounts.size())
 	{
@@ -54,7 +54,7 @@ sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_idx(u
 	return &(m_mounts[idx]);
 }
 
-sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_source(std::string &source)
+const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_source(std::string &source) const
 {
 	// note: linear search
 	for (auto &mntinfo :m_mounts)
@@ -68,7 +68,7 @@ sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_sourc
 	return NULL;
 }
 
-sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_dest(std::string &dest)
+const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_dest(std::string &dest) const
 {
 	// note: linear search
 	for (auto &mntinfo :m_mounts)
@@ -138,21 +138,9 @@ bool sinsp_container_manager::remove_inactive_containers()
 	return res;
 }
 
-bool sinsp_container_manager::get_container(const string& container_id, sinsp_container_info* container_info) const
+const sinsp_container_info* sinsp_container_manager::get_container(const string& container_id) const
 {
 	unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.find(container_id);
-	if(it != m_containers.end())
-	{
-		*container_info = it->second;
-		return true;
-	}
-
-	return false;
-}
-
-sinsp_container_info* sinsp_container_manager::get_container(const string& container_id)
-{
-	unordered_map<string, sinsp_container_info>::iterator it = m_containers.find(container_id);
 	if(it != m_containers.end())
 	{
 		return &it->second;
@@ -791,13 +779,21 @@ bool sinsp_container_manager::parse_docker(sinsp_container_info* container)
 		string net_mode = hconfig_obj["NetworkMode"].asString();
 		if(strncmp(net_mode.c_str(), "container:", strlen("container:")) == 0)
 		{
-			sinsp_container_info pcnt;
-			pcnt.m_id = net_mode.substr(net_mode.find(":") + 1);
-			if(!get_container(pcnt.m_id, &pcnt))
+			std::string container_id = net_mode.substr(net_mode.find(":") + 1);
+			uint32_t container_ip;
+			const sinsp_container_info *container_info = get_container(container_id);
+			if(container_info)
 			{
-				parse_docker(&pcnt);
+				container_ip = container_info->m_container_ip;
 			}
-			container->m_container_ip = pcnt.m_container_ip;
+			else
+			{
+				sinsp_container_info pcnt;
+				pcnt.m_id = container_id;
+				parse_docker(&pcnt);
+				container_ip = pcnt.m_container_ip;
+			}
+			container->m_container_ip = container_ip;
 		}
 	}
 	else
@@ -1011,19 +1007,20 @@ string sinsp_container_manager::get_container_name(sinsp_threadinfo* tinfo)
 	}
 	else
 	{
-		sinsp_container_info container_info;
-		bool found = get_container(tinfo->m_container_id, &container_info);
-		if(!found)
+
+		const sinsp_container_info *container_info =
+			get_container(tinfo->m_container_id);
+		if(!container_info)
 		{
 			return NULL;
 		}
 
-		if(container_info.m_name.empty())
+		if(container_info->m_name.empty())
 		{
 			return NULL;
 		}
 
-		res = container_info.m_name;
+		res = container_info->m_name;
 	}
 
 	return res;
