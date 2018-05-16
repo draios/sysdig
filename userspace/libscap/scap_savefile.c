@@ -18,6 +18,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef _WIN32
 #include <unistd.h>
+#include <sys/uio.h>
+#else
+struct iovec {
+	void  *iov_base;    /* Starting address */
+	size_t iov_len;     /* Number of bytes to transfer */
+};
 #endif
 
 #include <stdio.h>
@@ -56,6 +62,24 @@ int scap_dump_write(scap_dumper_t *d, void* buf, unsigned len)
 			return -1;
 		}
 	}
+}
+
+int scap_dump_writev(scap_dumper_t *d, const struct iovec *iov, int iovcnt)
+{
+	unsigned totlen = 0;
+	int i;
+
+	for (i = 0; i < iovcnt; i++)
+	{
+		if(scap_dump_write(d, iov[i].iov_base, iov[i].iov_len) < 0)
+		{
+			return -1;
+		}
+
+		totlen += iov[i].iov_len;
+	}
+
+	return totlen;
 }
 
 int32_t compr(uint8_t* dest, uint64_t* destlen, const uint8_t* source, uint64_t sourcelen, int level)
@@ -269,22 +293,66 @@ int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t t
 //
 int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo)
 {
+
+	struct iovec args = {tinfo->args, tinfo->args_len};
+	struct iovec env = {tinfo->env, tinfo->env_len};
+	struct iovec cgroups = {tinfo->cgroups, tinfo->cgroups_len};
+
+	return scap_write_proclist_entry_bufs(handle, d, tinfo,
+					      tinfo->comm,
+					      tinfo->exe,
+					      tinfo->exepath,
+					      &args, 1,
+					      &env, 1,
+					      tinfo->cwd,
+					      &cgroups, 1,
+					      tinfo->root);
+}
+
+static uint16_t iov_size(const struct iovec *iov, uint32_t iovcnt)
+{
+	uint16_t len = 0;
+	uint32_t i;
+
+	for (i = 0; i < iovcnt; i++)
+	{
+		len += iov[i].iov_len;
+	}
+
+	return len;
+}
+
+int32_t scap_write_proclist_entry_bufs(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo,
+				       const char *comm,
+				       const char *exe,
+				       const char *exepath,
+				       const struct iovec *args, int argscnt,
+				       const struct iovec *envs, int envscnt,
+				       const char *cwd,
+				       const struct iovec *cgroups, int cgroupscnt,
+				       const char *root)
+{
 	uint16_t commlen;
 	uint16_t exelen;
 	uint16_t exepathlen;
-	uint16_t argslen;
 	uint16_t cwdlen;
 	uint16_t rootlen;
+	uint16_t argslen;
+	uint16_t envlen;
+	uint16_t cgroupslen;
 
 	//
 	// Second pass of the table to dump it
 	//
-	commlen = (uint16_t)strnlen(tinfo->comm, SCAP_MAX_PATH_SIZE);
-	exelen = (uint16_t)strnlen(tinfo->exe, SCAP_MAX_PATH_SIZE);
-	exepathlen = (uint16_t)strnlen(tinfo->exepath, SCAP_MAX_PATH_SIZE);
-	argslen = tinfo->args_len;
-	cwdlen = (uint16_t)strnlen(tinfo->cwd, SCAP_MAX_PATH_SIZE);
-	rootlen = (uint16_t)strnlen(tinfo->root, SCAP_MAX_PATH_SIZE);
+	commlen = (uint16_t)strnlen(comm, SCAP_MAX_PATH_SIZE);
+	exelen = (uint16_t)strnlen(exe, SCAP_MAX_PATH_SIZE);
+	exepathlen = (uint16_t)strnlen(exepath, SCAP_MAX_PATH_SIZE);
+	cwdlen = (uint16_t)strnlen(cwd, SCAP_MAX_PATH_SIZE);
+	rootlen = (uint16_t)strnlen(root, SCAP_MAX_PATH_SIZE);
+
+	argslen = iov_size(args, argscnt);
+	envlen = iov_size(envs, envscnt);
+	cgroupslen = iov_size(cgroups, cgroupscnt);
 
 	if(scap_dump_write(d, &(tinfo->tid), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		    scap_dump_write(d, &(tinfo->pid), sizeof(uint64_t)) != sizeof(uint64_t) ||
@@ -292,15 +360,15 @@ int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_
 		    scap_dump_write(d, &(tinfo->sid), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		    scap_dump_write(d, &(tinfo->vpgid), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		    scap_dump_write(d, &commlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
-		    scap_dump_write(d, tinfo->comm, commlen) != commlen ||
+                    scap_dump_write(d, (char *) comm, commlen) != commlen ||
 		    scap_dump_write(d, &exelen, sizeof(uint16_t)) != sizeof(uint16_t) ||
-		    scap_dump_write(d, tinfo->exe, exelen) != exelen ||
-			scap_dump_write(d, &exepathlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
-			scap_dump_write(d, tinfo->exepath, exepathlen) != exepathlen ||
+                    scap_dump_write(d, (char *) exe, exelen) != exelen ||
+                    scap_dump_write(d, &exepathlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
+                    scap_dump_write(d, (char *) exepath, exepathlen) != exepathlen ||
 		    scap_dump_write(d, &argslen, sizeof(uint16_t)) != sizeof(uint16_t) ||
-		    scap_dump_write(d, tinfo->args, argslen) != argslen ||
+                    scap_dump_writev(d, args, argscnt) != argslen ||
 		    scap_dump_write(d, &cwdlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
-		    scap_dump_write(d, tinfo->cwd, cwdlen) != cwdlen ||
+                    scap_dump_write(d, (char *) cwd, cwdlen) != cwdlen ||
 		    scap_dump_write(d, &(tinfo->fdlimit), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		    scap_dump_write(d, &(tinfo->flags), sizeof(uint32_t)) != sizeof(uint32_t) ||
 		    scap_dump_write(d, &(tinfo->uid), sizeof(uint32_t)) != sizeof(uint32_t) ||
@@ -310,14 +378,14 @@ int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_
 		    scap_dump_write(d, &(tinfo->vmswap_kb), sizeof(uint32_t)) != sizeof(uint32_t) ||
 		    scap_dump_write(d, &(tinfo->pfmajor), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		    scap_dump_write(d, &(tinfo->pfminor), sizeof(uint64_t)) != sizeof(uint64_t) ||
-		    scap_dump_write(d, &(tinfo->env_len), sizeof(uint16_t)) != sizeof(uint16_t) ||
-		    scap_dump_write(d, tinfo->env, tinfo->env_len) != tinfo->env_len ||
+		    scap_dump_write(d, &envlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
+                    scap_dump_writev(d, envs, envscnt) != envlen ||
 		    scap_dump_write(d, &(tinfo->vtid), sizeof(int64_t)) != sizeof(int64_t) ||
 		    scap_dump_write(d, &(tinfo->vpid), sizeof(int64_t)) != sizeof(int64_t) ||
-		    scap_dump_write(d, &(tinfo->cgroups_len), sizeof(uint16_t)) != sizeof(uint16_t) ||
-		    scap_dump_write(d, tinfo->cgroups, tinfo->cgroups_len) != tinfo->cgroups_len ||
+		    scap_dump_write(d, &(cgroupslen), sizeof(uint16_t)) != sizeof(uint16_t) ||
+                    scap_dump_writev(d, cgroups, cgroupscnt) != cgroupslen ||
 		    scap_dump_write(d, &rootlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
-		    scap_dump_write(d, tinfo->root, rootlen) != rootlen)
+                    scap_dump_write(d, (char *) root, rootlen) != rootlen)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (2)");
 		return SCAP_FAILURE;

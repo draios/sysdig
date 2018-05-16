@@ -1496,7 +1496,16 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 
 		thread_to_scap(tinfo, sctinfo);
 
-		if(scap_write_proclist_entry(m_inspector->m_h, dumper, sctinfo) != SCAP_SUCCESS)
+		// Note: for all array-based fields we take values directly from the threadinfo
+		if(scap_write_proclist_entry_bufs(m_inspector->m_h, dumper, sctinfo,
+						  tinfo.m_comm.c_str(),
+						  tinfo.m_exe.c_str(),
+						  tinfo.m_exepath.c_str(),
+						  tinfo.m_args_str.data(), tinfo.m_args_str.size(),
+						  tinfo.m_env_str.data(), tinfo.m_env_str.size(),
+						  (tinfo.m_cwd == "" ? "/" : tinfo.m_cwd.c_str()),
+						  tinfo.m_cgroups_str.data(), tinfo.m_cgroups_str.size(),
+						  tinfo.m_root.c_str()) != SCAP_SUCCESS)
 		{
 			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 		}
@@ -1524,6 +1533,9 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 
 		sinsp_threadinfo& tinfo = it->second;
 
+		// Note: as scap_fd_add/scap_write_proc_fds do not use
+		// any of the array-based fields like comm, etc. a
+		// shallow copy is safe
 		thread_to_scap(tinfo, sctinfo);
 
 		if(tinfo.is_main_thread())
