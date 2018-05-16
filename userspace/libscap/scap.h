@@ -209,14 +209,20 @@ typedef struct scap_threadinfo
 	uint64_t ptid; ///< The id of the thread that created this thread.
 	uint64_t sid; ///< The session id of the process containing this thread.
 	uint64_t vpgid; ///< The process group of this thread, as seen from its current pid namespace
-	char comm[SCAP_MAX_PATH_SIZE+1]; ///< Command name (e.g. "top")
-	char exe[SCAP_MAX_PATH_SIZE+1]; ///< argv[0] (e.g. "sshd: user@pts/4")
-	char exepath[SCAP_MAX_PATH_SIZE+1]; ///< full executable path
-	char args[SCAP_MAX_ARGS_SIZE+1]; ///< Command line arguments (e.g. "-d1")
+	char comm_buf[SCAP_MAX_PATH_SIZE+1]; ///< Command name (e.g. "top")
+	char *comm;
+	char exe_buf[SCAP_MAX_PATH_SIZE+1]; ///< argv[0] (e.g. "sshd: user@pts/4")
+	char *exe;
+	char exepath_buf[SCAP_MAX_PATH_SIZE+1]; ///< full executable path
+	char *exepath;
+	char args_buf[SCAP_MAX_ARGS_SIZE+1]; ///< Command line arguments (e.g. "-d1")
+	char *args;
 	uint16_t args_len; ///< Command line arguments length
-	char env[SCAP_MAX_ENV_SIZE+1]; ///< Environment
+	char env_buf[SCAP_MAX_ENV_SIZE+1]; ///< Environment
+	char *env;
 	uint16_t env_len; ///< Environment length
-	char cwd[SCAP_MAX_PATH_SIZE+1]; ///< The current working directory
+	char cwd_buf[SCAP_MAX_PATH_SIZE+1]; ///< The current working directory
+	char *cwd;
 	int64_t fdlimit; ///< The maximum number of files this thread is allowed to open
 	uint32_t flags; ///< the process flags.
 	uint32_t uid; ///< user id
@@ -228,9 +234,11 @@ typedef struct scap_threadinfo
 	uint64_t pfminor; ///< number of minor page faults since start
 	int64_t vtid;
 	int64_t vpid;
-	char cgroups[SCAP_MAX_CGROUPS_SIZE];
+	char cgroups_buf[SCAP_MAX_CGROUPS_SIZE];
+	char *cgroups;
 	uint16_t cgroups_len;
-	char root[SCAP_MAX_PATH_SIZE+1];
+	char root_buf[SCAP_MAX_PATH_SIZE+1];
+	char *root;
 	int filtered_out; ///< nonzero if this entry should not be saved to file
 	scap_fdinfo* fdlist; ///< The fd table for this process
 	uint64_t clone_ts;
@@ -936,6 +944,7 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 int32_t scap_getpid_global(scap_t* handle, int64_t* pid);
 
 struct scap_threadinfo *scap_proc_alloc(scap_t* handle);
+void scap_proc_init(struct scap_threadinfo *tinfo);
 void scap_proc_free(scap_t* handle, struct scap_threadinfo* procinfo);
 int32_t scap_stop_dropping_mode(scap_t* handle);
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);

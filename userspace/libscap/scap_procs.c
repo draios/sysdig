@@ -46,7 +46,7 @@ int32_t scap_proc_fill_cwd(char* procdirname, struct scap_threadinfo* tinfo)
 
 	snprintf(filename, sizeof(filename), "%scwd", procdirname);
 
-	target_res = readlink(filename, tinfo->cwd, sizeof(tinfo->cwd) - 1);
+	target_res = readlink(filename, tinfo->cwd, sizeof(tinfo->cwd_buf) - 1);
 	if(target_res <= 0)
 	{
 		return SCAP_FAILURE;
@@ -468,7 +468,7 @@ int32_t scap_proc_fill_root(struct scap_threadinfo* tinfo, const char* procdirna
 {
 	char root_path[SCAP_MAX_PATH_SIZE];
 	snprintf(root_path, sizeof(root_path), "%sroot", procdirname);
-	if ( readlink(root_path, tinfo->root, sizeof(tinfo->root)) > 0)
+	if ( readlink(root_path, tinfo->root, sizeof(tinfo->root_buf)) > 0)
 	{
 		return SCAP_SUCCESS;
 	}
@@ -579,7 +579,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 	//
 	// Gathers the exepath
 	//
-	snprintf(tinfo->exepath, sizeof(tinfo->exepath), "%s", target_name);
+	snprintf(tinfo->exepath, sizeof(tinfo->exepath_buf), "%s", target_name);
 
 	//
 	// Gather the command name
@@ -1136,6 +1136,19 @@ void scap_refresh_proc_table(scap_t* handle)
 }
 #endif // HAS_CAPTURE
 
+void scap_proc_init(scap_threadinfo *tinfo)
+{
+	// Connect all the _buf arrays and their corresponding pointers
+	tinfo->comm = tinfo->comm_buf;
+	tinfo->exe = tinfo->exe_buf;
+	tinfo->exepath = tinfo->exepath_buf;
+	tinfo->args = tinfo->args_buf;
+	tinfo->env = tinfo->env_buf;
+	tinfo->cwd = tinfo->cwd_buf;
+	tinfo->cgroups = tinfo->cgroups_buf;
+	tinfo->root = tinfo->root_buf;
+}
+
 struct scap_threadinfo *scap_proc_alloc(scap_t *handle)
 {
 	struct scap_threadinfo *tinfo = (struct scap_threadinfo*) calloc(1, sizeof(scap_threadinfo));
@@ -1144,6 +1157,8 @@ struct scap_threadinfo *scap_proc_alloc(scap_t *handle)
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "process table allocation error (1)");
 		return NULL;
 	}
+
+	scap_proc_init(tinfo);
 
 	return tinfo;
 }

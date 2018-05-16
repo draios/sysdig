@@ -1500,6 +1500,9 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 			// Structure copy
 			*ntinfo = tinfo;
 
+			// Connect the buffers with the pointers
+			scap_proc_init(ntinfo);
+
 			HASH_ADD_INT64(handle->m_proclist, tid, ntinfo);
 			if(uth_status != SCAP_SUCCESS)
 			{

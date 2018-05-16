@@ -239,6 +239,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		handle->m_userlist = NULL;
 	}
 
+	scap_proc_init(&handle->m_fake_kernel_proc);
 	handle->m_fake_kernel_proc.tid = -1;
 	handle->m_fake_kernel_proc.pid = -1;
 	handle->m_fake_kernel_proc.flags = 0;
