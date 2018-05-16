@@ -932,125 +932,136 @@ sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 }
 #endif
 
-inline void scpy(char* dst, const char* src, uint32_t maxlen)
+size_t sinsp_threadinfo::args_len() const
 {
-	if(maxlen == 0)
-	{
-		return;
-	}
-
-	while(true)
-	{
-		if(maxlen == 1)
-		{
-			*dst = 0;
-			return;
-		}
-
-		if(*src == 0)
-		{
-			*dst = 0;
-			return;
-		}
-
-		*(dst++) = *(src++);
-		maxlen--;
-	}
+	return strvec_len(m_args);
 }
 
-void sinsp_threadinfo::args_to_scap(scap_threadinfo* sctinfo)
+size_t sinsp_threadinfo::env_len() const
+{
+	return strvec_len(m_env);
+}
+
+size_t sinsp_threadinfo::cgroups_len() const
+{
+	size_t totlen = 0;
+
+	for(auto &cgroup : m_cgroups)
+	{
+		totlen += cgroup.first.size() + 1 + cgroup.second.size();
+		totlen++; // Trailing NULL
+	}
+
+	return totlen;
+}
+
+void sinsp_threadinfo::args_to_iovec(struct iovec **iov, int *iovcnt,
+				     std::string &rem) const
+{
+	return strvec_to_iovec(m_args,
+			       iov, iovcnt,
+			       rem);
+}
+
+void sinsp_threadinfo::env_to_iovec(struct iovec **iov, int *iovcnt,
+				    std::string &rem) const
+{
+	return strvec_to_iovec(m_env,
+			       iov, iovcnt,
+			       rem);
+}
+
+// Set the provided iovec to the string in str, if it will fit. If it
+// won't, copy the portion that will fit to rem and set the iovec to
+// rem. Updates alen with the new total length and possibly sets rem
+// to any truncated string.
+void sinsp_threadinfo::add_to_iovec(const string &str,
+				    const bool include_trailing_null,
+				    struct iovec &iov,
+				    uint32_t &alen,
+				    std::string &rem) const
+{
+	uint32_t len = str.size() + (include_trailing_null ? 1 : 0);
+	const char *buf = str.c_str();
+
+	if(len > alen)
+	{
+		// The entire string won't fit. Use rem to hold a
+		// truncated copy
+		rem = str.substr(0, alen-1);
+		buf = rem.c_str();
+		len = alen;
+	}
+
+	iov.iov_base = (void *) buf;
+	iov.iov_len = len;
+
+	alen -= len;
+}
+
+// iov will be allocated and must be freed. rem is used to hold a
+// possibly truncated final argument.
+void sinsp_threadinfo::cgroups_to_iovec(struct iovec **iov, int *iovcnt,
+				       std::string &rem) const
 {
 	uint32_t alen = SCAP_MAX_ARGS_SIZE;
-	uint32_t tlen = 0;
-	char* dst = sctinfo->args;
+	static const string eq = "=";
 
-	for(auto it = m_args.begin(); it != m_args.end(); ++it)
+	// We allocate an iovec big enough to hold all the cgroups and
+	// intermediate '=' signs. Based on alen, we might not use all
+	// of the iovec.
+	*iov = (struct iovec *) malloc((3 * m_cgroups.size()) * sizeof(struct iovec));
+
+	*iovcnt = 0;
+
+	for(auto it = m_cgroups.begin(); it != m_cgroups.end() && alen > 0; ++it)
 	{
-		uint32_t len = it->size() + 1;
-
-		scpy(dst + tlen, it->c_str(), alen);
-
-		if(len >= alen) 
+		add_to_iovec(it->first, false, (*iov)[(*iovcnt)++], alen, rem);
+		if(alen > 0)
 		{
-			//
-			// We saturated the args buffer. Null terminate it and return
-			//
-			sctinfo->args[SCAP_MAX_ARGS_SIZE - 1] = 0;
-			sctinfo->args_len = SCAP_MAX_ARGS_SIZE;
-			return;
+			add_to_iovec(eq, false, (*iov)[(*iovcnt)++], alen, rem);
 		}
-		else
+
+		if(alen > 0)
 		{
-			tlen += len;
-			alen -= len;
+			add_to_iovec(it->second, true, (*iov)[(*iovcnt)++], alen, rem);
 		}
 	}
-
-	sctinfo->args_len = tlen;
 }
 
-void sinsp_threadinfo::env_to_scap(scap_threadinfo* sctinfo)
+size_t sinsp_threadinfo::strvec_len(const vector<string> &strs) const
 {
-	uint32_t alen = SCAP_MAX_ENV_SIZE;
-	uint32_t tlen = 0;
-	char* dst = sctinfo->env;
+	size_t totlen = 0;
 
-	for(auto it = m_env.begin(); it != m_env.end(); ++it)
+	for(auto &str : strs)
 	{
-		uint32_t len = it->size() + 1;
-
-		scpy(dst + tlen, it->c_str(), alen);
-
-		if(len >= alen) 
-		{
-			//
-			// We saturated the args buffer. Null terminate it and return
-			//
-			sctinfo->env[SCAP_MAX_ENV_SIZE - 1] = 0;
-			sctinfo->env_len = SCAP_MAX_ENV_SIZE;
-			return;
-		}
-		else
-		{
-			tlen += len;
-			alen -= len;
-		}
+		totlen += str.size();
+		totlen++; // Trailing NULL
 	}
 
-	sctinfo->env_len = tlen;
+	return totlen;
 }
 
-void sinsp_threadinfo::cgroups_to_scap(scap_threadinfo* sctinfo)
+// iov will be allocated and must be freed. rem is used to hold a
+// possibly truncated final argument.
+void sinsp_threadinfo::strvec_to_iovec(const vector<string> &strs,
+				       struct iovec **iov, int *iovcnt,
+				       std::string &rem) const
 {
-	uint32_t alen = SCAP_MAX_CGROUPS_SIZE;
-	uint32_t tlen = 0;
-	char* dst = sctinfo->cgroups;
+	uint32_t alen = SCAP_MAX_ARGS_SIZE;
 
-	for(auto it = m_cgroups.begin(); it != m_cgroups.end(); ++it)
+	// We allocate an iovec big enough to hold all the entries in
+	// strs. Based on alen, we might not use all of the iovec.
+	*iov = (struct iovec *) malloc(strs.size() * sizeof(struct iovec));
+
+	*iovcnt = 0;
+
+	for(auto it = strs.begin(); it != strs.end() && alen > 0; ++it)
 	{
-		string a = it->first + "=" + it->second;
-		uint32_t len = a.size() + 1;
-
-		scpy(dst + tlen, a.c_str(), alen);
-
-		if(len >= alen) 
-		{
-			//
-			// We saturated the args buffer. Null terminate it and return
-			//
-			sctinfo->cgroups[SCAP_MAX_CGROUPS_SIZE - 1] = 0;
-			sctinfo->cgroups_len = SCAP_MAX_CGROUPS_SIZE;
-			return;
-		}
-		else
-		{
-			tlen += len;
-			alen -= len;
-		}
+		add_to_iovec(*it, true, (*iov)[(*iovcnt)++], alen, rem);
 	}
-
-	sctinfo->cgroups_len = tlen;
 }
+
 
 void sinsp_threadinfo::fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src)
 {
@@ -1386,24 +1397,23 @@ void sinsp_thread_manager::free_dump_fdinfos(vector<scap_fdinfo*>* fdinfos_to_fr
 	fdinfos_to_free->clear();
 }
 
+// NOTE: This does *not* populate any array-based fields (comm, exe,
+// exepath, args, env, cwd, cgroups, root)
 void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, 	scap_threadinfo* sctinfo)
 {
 	//
 	// Fill in the thread data
 	//
+
+	// NOTE: This is doing a shallow copy of the strings from
+	// tinfo, and is valid only as long as tinfo is valid.
+
 	sctinfo->tid = tinfo.m_tid;
 	sctinfo->pid = tinfo.m_pid;
 	sctinfo->ptid = tinfo.m_ptid;
 	sctinfo->sid = tinfo.m_sid;
 	sctinfo->vpgid = tinfo.m_vpgid;
 
-	strncpy(sctinfo->comm, tinfo.m_comm.c_str(), SCAP_MAX_PATH_SIZE);
-	strncpy(sctinfo->exe, tinfo.m_exe.c_str(), SCAP_MAX_PATH_SIZE);
-	strncpy(sctinfo->exepath, tinfo.m_exepath.c_str(), SCAP_MAX_PATH_SIZE);
-	tinfo.args_to_scap(sctinfo);
-	tinfo.env_to_scap(sctinfo);
-	string tcwd = (tinfo.m_cwd == "")? "/": tinfo.m_cwd;
-	strncpy(sctinfo->cwd, tcwd.c_str(), SCAP_MAX_PATH_SIZE);
 	sctinfo->flags = tinfo.m_flags ;
 	sctinfo->fdlimit = tinfo.m_fdlimit;
 	sctinfo->uid = tinfo.m_uid;
@@ -1416,8 +1426,6 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, 	scap_threadi
 	sctinfo->vtid = tinfo.m_vtid;
 	sctinfo->vpid = tinfo.m_vpid;
 	sctinfo->fdlist = NULL;
-	tinfo.cgroups_to_scap(sctinfo);
-	strncpy(sctinfo->root, tinfo.m_root.c_str(), SCAP_MAX_PATH_SIZE);
 	sctinfo->filtered_out = false;
 }
 
@@ -1430,20 +1438,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 
 	for(auto it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
 	{
-		scap_threadinfo *sctinfo;
-
-		if((sctinfo = scap_proc_alloc(m_inspector->m_h)) == NULL)
-		{
-			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
-		}
-
 		sinsp_threadinfo& tinfo = it->second;
-
-		tinfo.args_to_scap(sctinfo);
-		tinfo.env_to_scap(sctinfo);
-		tinfo.cgroups_to_scap(sctinfo);
-
-		string tcwd = (tinfo.m_cwd == "")? "/": tinfo.m_cwd;
 
 		uint32_t il = (uint32_t)
 			(sizeof(uint64_t) +	// tid
@@ -1454,8 +1449,9 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			2 + MIN(tinfo.m_comm.size(), SCAP_MAX_PATH_SIZE) +
 			2 + MIN(tinfo.m_exe.size(), SCAP_MAX_PATH_SIZE) +
 			2 + MIN(tinfo.m_exepath.size(), SCAP_MAX_PATH_SIZE) +
-			2 + sctinfo->args_len +
-			2 + MIN(tcwd.size(), SCAP_MAX_PATH_SIZE) +
+                        2 + MIN(tinfo.args_len(), SCAP_MAX_ARGS_SIZE) +
+                        // 1 is sizeof("/")
+                        2 + MIN((tinfo.m_cwd == "")? 1 : tinfo.m_cwd.size(), SCAP_MAX_PATH_SIZE) +
 			sizeof(uint64_t) +	// fdlimit
 			sizeof(uint32_t) +	// uid
 			sizeof(uint32_t) +	// gid
@@ -1464,16 +1460,14 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			sizeof(uint32_t) +  // vmswap_kb
 			sizeof(uint64_t) +  // pfmajor
 			sizeof(uint64_t) +  // pfminor
-			2 + sctinfo->env_len +
+                        2 + MIN(tinfo.env_len(), SCAP_MAX_ENV_SIZE) +
 			sizeof(int64_t) +  // vtid
 			sizeof(int64_t) +  // vpid
-			2 + sctinfo->cgroups_len +
+                        2 + MIN(tinfo.cgroups_len(), SCAP_MAX_CGROUPS_SIZE) +
 			sizeof(uint32_t) +
 			2 + MIN(tinfo.m_root.size(), SCAP_MAX_PATH_SIZE));
 
 		totlen += il;
-
-		scap_proc_free(m_inspector->m_h, sctinfo);
 	}
 
 	//
@@ -1487,6 +1481,9 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 	for(auto it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
 	{
 		scap_threadinfo *sctinfo;
+		struct iovec *args_iov, *envs_iov, *cgroups_iov;
+		int argscnt, envscnt, cgroupscnt;
+		string argsrem, envsrem, cgroupsrem;
 
 		if((sctinfo = scap_proc_alloc(m_inspector->m_h)) == NULL)
 		{
@@ -1495,20 +1492,26 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		sinsp_threadinfo& tinfo = it->second;
 
 		thread_to_scap(tinfo, sctinfo);
+		tinfo.args_to_iovec(&args_iov, &argscnt, argsrem);
+		tinfo.env_to_iovec(&envs_iov, &envscnt, envsrem);
+		tinfo.cgroups_to_iovec(&cgroups_iov, &cgroupscnt, cgroupsrem);
 
-		// Note: for all array-based fields we take values directly from the threadinfo
 		if(scap_write_proclist_entry_bufs(m_inspector->m_h, dumper, sctinfo,
 						  tinfo.m_comm.c_str(),
 						  tinfo.m_exe.c_str(),
 						  tinfo.m_exepath.c_str(),
-						  tinfo.m_args_str.data(), tinfo.m_args_str.size(),
-						  tinfo.m_env_str.data(), tinfo.m_env_str.size(),
+						  args_iov, argscnt,
+						  envs_iov, envscnt,
 						  (tinfo.m_cwd == "" ? "/" : tinfo.m_cwd.c_str()),
-						  tinfo.m_cgroups_str.data(), tinfo.m_cgroups_str.size(),
+						  cgroups_iov, cgroupscnt,
 						  tinfo.m_root.c_str()) != SCAP_SUCCESS)
 		{
 			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 		}
+
+		free(args_iov);
+		free(envs_iov);
+		free(cgroups_iov);
 
 		scap_proc_free(m_inspector->m_h, sctinfo);
 	}
@@ -1563,7 +1566,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 				tinfo.fd_to_scap(scfdinfo, &it->second);
 
 				//
-				// Add the new fd to the scap table
+				// Add the new fd to the scap table.
 				//
 				if(scap_fd_add(sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
 				{

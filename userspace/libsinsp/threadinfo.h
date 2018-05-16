@@ -22,6 +22,15 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define VISIBILITY_PRIVATE private:
 #endif
 
+#ifdef _WIN32
+struct iovec {
+	void  *iov_base;    /* Starting address */
+	size_t iov_len;     /* Number of bytes to transfer */
+};
+#else
+#include <sys/uio.h>
+#endif
+
 #include <functional>
 
 class sinsp_delays_info;
@@ -267,6 +276,19 @@ public:
 
 	thread_analyzer_info* m_ainfo;
 
+	size_t args_len() const;
+	size_t env_len() const;
+	size_t cgroups_len() const;
+
+	void args_to_iovec(struct iovec **iov, int *iovcnt,
+			   std::string &rem) const;
+
+	void env_to_iovec(struct iovec **iov, int *iovcnt,
+			  std::string &rem) const;
+
+	void cgroups_to_iovec(struct iovec **iov, int *iovcnt,
+			      std::string &rem) const;
+
 #ifdef HAS_FILTERING
 	//
 	// State for filtering
@@ -327,9 +349,18 @@ VISIBILITY_PRIVATE
 	void allocate_private_state();
 	void compute_program_hash();
 	sinsp_threadinfo* lookup_thread();
-	inline void args_to_scap(scap_threadinfo* sctinfo);
-	inline void env_to_scap(scap_threadinfo* sctinfo);
-	inline void cgroups_to_scap(scap_threadinfo* sctinfo);
+
+	size_t strvec_len(const vector<string> &strs) const;
+	void strvec_to_iovec(const vector<string> &strs,
+			     struct iovec **iov, int *iovcnt,
+			     std::string &rem) const;
+
+	void add_to_iovec(const string &str,
+			  const bool include_trailing_null,
+			  struct iovec &iov,
+			  uint32_t &alen,
+			  std::string &rem) const;
+
 	void fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src);
 
 	//  void push_fdop(sinsp_fdop* op);
