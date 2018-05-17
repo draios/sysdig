@@ -160,6 +160,11 @@ public:
 	bool set_mesos_task_id(sinsp_container_info* container, sinsp_threadinfo* tinfo);
 	string get_mesos_task_id(const string& container_id);
 
+	typedef std::function<void(const sinsp_container_info&, sinsp_threadinfo *)> new_container_cb;
+	typedef std::function<void(const sinsp_container_info&)> remove_container_cb;
+	void subscribe_on_new_container(new_container_cb callback);
+	void subscribe_on_remove_container(remove_container_cb callback);
+
 private:
 	string container_to_json(const sinsp_container_info& container_info);
 	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);
@@ -171,4 +176,6 @@ private:
 	sinsp* m_inspector;
 	unordered_map<string, sinsp_container_info> m_containers;
 	uint64_t m_last_flush_time_ns;
+	list<new_container_cb> m_new_callbacks;
+	list<remove_container_cb> m_remove_callbacks;
 };
