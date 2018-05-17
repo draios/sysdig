@@ -712,11 +712,7 @@ captureinfo do_inspect(sinsp* inspector,
 					}
 				}
 
-				cout << line;
-				if(!json)
-				{
-					cout << endl;
-				}
+				cout << line << endl;
 			}
 		}
 
