@@ -122,9 +122,9 @@ bool sinsp_container_manager::remove_inactive_containers()
 		{
 			if(containers_in_use.find(it->first) == containers_in_use.end())
 			{
-				if(m_inspector->m_parser->m_fd_listener)
+				for(const auto &remove_cb : m_remove_callbacks)
 				{
-					m_inspector->m_parser->m_fd_listener->on_remove_container(m_containers[it->first]);
+					remove_cb(m_containers[it->first]);
 				}
 				m_containers.erase(it++);
 			}
@@ -976,9 +976,9 @@ void sinsp_container_manager::add_container(const sinsp_container_info& containe
 {
 	m_containers[container_info.m_id] = container_info;
 
-	if(m_inspector->m_parser->m_fd_listener)
+	for(const auto &new_cb : m_new_callbacks)
 	{
-		m_inspector->m_parser->m_fd_listener->on_new_container(container_info, thread_info);
+		new_cb(m_containers[container_info.m_id], thread_info);
 	}
 }
 
@@ -1024,4 +1024,14 @@ string sinsp_container_manager::get_container_name(sinsp_threadinfo* tinfo)
 	}
 
 	return res;
+}
+
+void sinsp_container_manager::subscribe_on_new_container(new_container_cb callback)
+{
+	m_new_callbacks.emplace_back(callback);
+}
+
+void sinsp_container_manager::subscribe_on_remove_container(remove_container_cb callback)
+{
+	m_remove_callbacks.emplace_back(callback);
 }
