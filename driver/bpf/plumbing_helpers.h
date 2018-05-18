@@ -68,6 +68,8 @@ static __always_inline void delete_args(void)
 }
 #endif
 
+/* Can be called just from an exit event
+ */
 static __always_inline long bpf_syscall_get_retval(void *ctx)
 {
 	struct sys_exit_args *args = (struct sys_exit_args *)ctx;
@@ -75,6 +77,9 @@ static __always_inline long bpf_syscall_get_retval(void *ctx)
 	return args->ret;
 }
 
+/* Can be called from both enter and exit event, id is at the same
+ * offset in both struct sys_enter_args and struct sys_exit_args
+ */
 static __always_inline long bpf_syscall_get_nr(void *ctx)
 {
 	struct sys_enter_args *args = (struct sys_enter_args *)ctx;
@@ -111,9 +116,8 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 {
 	unsigned long arg;
 
-	struct sys_enter_args *args = (struct sys_enter_args *)ctx;
-
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+	struct sys_enter_args *args = (struct sys_enter_args *)ctx;
 	struct pt_regs *regs = (struct pt_regs *)args->regs;
 
 	switch (idx) {
@@ -139,7 +143,12 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 		arg = 0;
 	}
 #else
-	arg = bpf_syscall_get_argument_from_args(args->args, idx);
+	unsigned long *args = unstash_args();
+
+	if (args)
+		arg = bpf_syscall_get_argument_from_args(args, idx);
+	else
+		arg = 0;
 #endif
 
 	return arg;

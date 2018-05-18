@@ -484,7 +484,7 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 		if(ioctl(efd, PERF_EVENT_IOC_SET_BPF, fd))
 		{
 			close(efd);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "PERF_EVENT_IOC_SET_BPF");
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "PERF_EVENT_IOC_SET_BPF: %s", strerror(errno));
 			return SCAP_FAILURE;
 		}
 	}
