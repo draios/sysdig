@@ -395,6 +395,9 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 				if (to_read > SCRATCH_SIZE_HALF)
 					return PPM_FAILURE_BUFFER_FULL;
 
+				if (off > SCRATCH_SIZE_HALF)
+					return PPM_FAILURE_BUFFER_FULL;
+
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 				if (to_read)
 					if (bpf_probe_read(&data->buf[off & SCRATCH_SIZE_HALF],
@@ -1126,10 +1129,10 @@ static __always_inline pid_t bpf_task_pgrp_vnr(struct task_struct *task)
 
 #define MAX_CGROUP_PATHS 6
 
-static __always_inline bool __bpf_append_cgroup(struct css_set *cgroups,
-						int subsys_id,
-						char *buf,
-						int *len)
+static __always_inline int __bpf_append_cgroup(struct css_set *cgroups,
+					       int subsys_id,
+					       char *buf,
+					       int *len)
 {
 	struct cgroup_subsys_state *css = _READ(cgroups->subsys[subsys_id]);
 	struct cgroup_subsys *ss = _READ(css->ss);
@@ -1138,16 +1141,24 @@ static __always_inline bool __bpf_append_cgroup(struct css_set *cgroups,
 	struct kernfs_node *kn = _READ(cgroup->kn);
 	char *cgroup_path[MAX_CGROUP_PATHS];
 	bool prev_empty = false;
+	int off = *len;
 
-	int res = bpf_probe_read_str(&buf[(*len) & SCRATCH_SIZE_HALF],
+	if (off > SCRATCH_SIZE_HALF)
+		return PPM_FAILURE_BUFFER_FULL;
+
+	int res = bpf_probe_read_str(&buf[off & SCRATCH_SIZE_HALF],
 				     SCRATCH_SIZE_HALF,
 				     subsys_name);
 	if (res < 0)
-		return false;
+		return PPM_FAILURE_INVALID_USER_MEMORY;
 
-	(*len) += res - 1;
-	buf[(*len) & SCRATCH_SIZE_HALF] = '=';
-	++(*len);
+	off += res - 1;
+
+	if (off > SCRATCH_SIZE_HALF)
+		return PPM_FAILURE_BUFFER_FULL;
+
+	buf[off & SCRATCH_SIZE_HALF] = '=';
+	++off;
 
 	#pragma unroll MAX_CGROUP_PATHS
 	for (int k = 0; k < MAX_CGROUP_PATHS; ++k) {
@@ -1163,64 +1174,120 @@ static __always_inline bool __bpf_append_cgroup(struct css_set *cgroups,
 	for (int k = MAX_CGROUP_PATHS - 1; k >= 0 ; --k) {
 		if (cgroup_path[k]) {
 			if (!prev_empty) {
-				buf[(*len) & SCRATCH_SIZE_HALF] = '/';
-				++(*len);
+				if (off > SCRATCH_SIZE_HALF)
+					return PPM_FAILURE_BUFFER_FULL;
+
+				buf[off & SCRATCH_SIZE_HALF] = '/';
+				++off;
 			}
 
 			prev_empty = false;
 
-			res = bpf_probe_read_str(&buf[(*len) & SCRATCH_SIZE_HALF],
+			if (off > SCRATCH_SIZE_HALF)
+				return PPM_FAILURE_BUFFER_FULL;
+
+			res = bpf_probe_read_str(&buf[off & SCRATCH_SIZE_HALF],
 						 SCRATCH_SIZE_HALF,
 						 cgroup_path[k]);
 			if (res > 1)
-				(*len) += res - 1;
+				off += res - 1;
 			else if (res == 1)
 				prev_empty = true;
 			else
-				return false;
+				return PPM_FAILURE_INVALID_USER_MEMORY;
 		}
 	}
 
-	buf[(*len) & SCRATCH_SIZE_HALF] = 0;
-	++(*len);
+	if (off > SCRATCH_SIZE_HALF)
+		return PPM_FAILURE_BUFFER_FULL;
 
-	return true;
+	buf[off & SCRATCH_SIZE_HALF] = 0;
+	++off;
+	*len = off;
+
+	return PPM_SUCCESS;
 }
 
-static __always_inline bool bpf_append_cgroup(struct task_struct *task,
-					      char *buf, int *len)
+static __always_inline int bpf_append_cgroup(struct task_struct *task,
+					     char *buf,
+					     int *len)
 {
 	struct css_set *cgroups = _READ(task->cgroups);
+	int res;
 
 #if IS_ENABLED(CONFIG_CPUSETS)
-	if (!__bpf_append_cgroup(cgroups, cpuset_cgrp_id, buf, len))
-		return false;
+	res = __bpf_append_cgroup(cgroups, cpuset_cgrp_id, buf, len);
+	if (res != PPM_SUCCESS)
+		return res;
 #endif
 
 #if IS_ENABLED(CONFIG_CGROUP_SCHED)
-	if (!__bpf_append_cgroup(cgroups, cpu_cgrp_id, buf, len))
-		return false;
+	res = __bpf_append_cgroup(cgroups, cpu_cgrp_id, buf, len);
+	if (res != PPM_SUCCESS)
+		return res;
 #endif
 
 #if IS_ENABLED(CONFIG_CGROUP_CPUACCT)
-	if (!__bpf_append_cgroup(cgroups, cpuacct_cgrp_id, buf, len))
-		return false;
+	res = __bpf_append_cgroup(cgroups, cpuacct_cgrp_id, buf, len);
+	if (res != PPM_SUCCESS)
+		return res;
 #endif
 
 #if IS_ENABLED(CONFIG_BLK_CGROUP)
-	if (!__bpf_append_cgroup(cgroups, io_cgrp_id, buf, len))
-		return false;
+	res = __bpf_append_cgroup(cgroups, io_cgrp_id, buf, len);
+	if (res != PPM_SUCCESS)
+		return res;
 #endif
 
 #if IS_ENABLED(CONFIG_MEMCG)
-	if (!__bpf_append_cgroup(cgroups, memory_cgrp_id, buf, len))
-		return false;
+	res = __bpf_append_cgroup(cgroups, memory_cgrp_id, buf, len);
+	if (res != PPM_SUCCESS)
+		return res;
 #endif
 
-	return true;
+	return PPM_SUCCESS;
 }
 
 #define ARGS_ENV_SIZE_MAX 4096
+#define FAILED_ARGS_ENV_ITEMS_MAX 16
+
+static __always_inline int bpf_accumulate_argv_or_env(struct filler_data *data,
+						      char **argv,
+						      long *args_len)
+{
+	char *arg;
+	int off;
+	int len;
+	int j;
+
+	*args_len = 0;
+	off = data->state->tail_ctx.curoff;
+
+	#pragma unroll
+	for (j = 0; j < FAILED_ARGS_ENV_ITEMS_MAX; ++j) {
+		arg = _READ(argv[j]);
+		if (!arg)
+			break;
+
+		if (off > SCRATCH_SIZE_HALF)
+			return PPM_FAILURE_BUFFER_FULL;
+
+		len = bpf_probe_read_str(&data->buf[off & SCRATCH_SIZE_HALF], SCRATCH_SIZE_HALF, arg);
+		if (len < 0)
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+
+		*args_len += len;
+		off += len;
+
+		if (*args_len > ARGS_ENV_SIZE_MAX) {
+			*args_len = ARGS_ENV_SIZE_MAX;
+			data->buf[(data->state->tail_ctx.curoff + *args_len - 1) & SCRATCH_SIZE_MAX] = 0;
+			break;
+		}
+	}
+
+	return PPM_SUCCESS;
+}
 
 FILLER(proc_startupdate, true)
 {
@@ -1310,8 +1377,15 @@ FILLER(proc_startupdate, true)
 					data->buf[(data->state->tail_ctx.curoff + args_len - 1) & SCRATCH_SIZE_MAX] = 0;
 			}
 		} else {
-			/* Deal with this! */
-			args_len = 0;
+			unsigned long val;
+			char **argv;
+
+			val = bpf_syscall_get_argument(data, 1);
+			argv = (char **)val;
+
+			res = bpf_accumulate_argv_or_env(data, argv, &args_len);
+			if (res != PPM_SUCCESS)
+				args_len = 0;
 		}
 
 		if (args_len == 0) {
@@ -1461,8 +1535,9 @@ FILLER(proc_startupdate_2, true)
 	/*
 	 * cgroups
 	 */
-	if (!bpf_append_cgroup(task, data->tmp_scratch, &cgroups_len))
-		return PPM_FAILURE_INVALID_USER_MEMORY;
+	res = bpf_append_cgroup(task, data->tmp_scratch, &cgroups_len);
+	if (res != PPM_SUCCESS)
+		return res;
 
 	res = __bpf_val_to_ring(data, (unsigned long)data->tmp_scratch, cgroups_len, PT_BYTEBUF, -1, false);
 	if (res != PPM_SUCCESS)
@@ -1591,8 +1666,15 @@ FILLER(proc_startupdate_3, true)
 					data->buf[(data->state->tail_ctx.curoff + env_len - 1) & SCRATCH_SIZE_MAX] = 0;
 			}
 		} else {
-			/* Deal with this! */
-			env_len = 0;
+			unsigned long val;
+			char **envp;
+
+			val = bpf_syscall_get_argument(data, 2);
+			envp = (char **)val;
+
+			res = bpf_accumulate_argv_or_env(data, envp, &env_len);
+			if (res != PPM_SUCCESS)
+				env_len = 0;
 		}
 
 		data->curarg_already_on_frame = true;
