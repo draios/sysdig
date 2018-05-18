@@ -315,12 +315,17 @@ static __always_inline bool drop_event(void *ctx,
 	if (!settings->dropping_mode)
 		return false;
 
-	if (evt_type == PPME_SYSCALL_CLOSE_X) {
+	switch (evt_type) {
+	case PPME_SYSCALL_CLOSE_X:
+	case PPME_SOCKET_BIND_X: {
 		long ret = bpf_syscall_get_retval(ctx);
 
 		if (ret < 0)
 			return true;
-	} else if (evt_type == PPME_SYSCALL_CLOSE_E) {
+
+		break;
+	}
+	case PPME_SYSCALL_CLOSE_E: {
 		struct sys_enter_args *args;
 		struct files_struct *files;
 		struct task_struct *task;
@@ -335,15 +340,15 @@ static __always_inline bool drop_event(void *ctx,
 
 		task = (struct task_struct *)bpf_get_current_task();
 		if (!task)
-			return false;
+			break;
 
 		files = _READ(task->files);
 		if (!files)
-			return false;
+			break;
 
 		fdt = _READ(files->fdt);
 		if (!fdt)
-			return false;
+			break;
 
 		max_fds = _READ(fdt->max_fds);
 		if (close_fd >= max_fds)
@@ -351,10 +356,24 @@ static __always_inline bool drop_event(void *ctx,
 
 		open_fds = _READ(fdt->open_fds);
 		if (!open_fds)
-			return false;
+			break;
 
 		if (!bpf_test_bit(close_fd, open_fds))
 			return true;
+
+		break;
+	}
+	case PPME_SYSCALL_FCNTL_E:
+	case PPME_SYSCALL_FCNTL_X: {
+		long cmd = bpf_syscall_get_argument_from_ctx(ctx, 1);
+
+		if (cmd != F_DUPFD && cmd != F_DUPFD_CLOEXEC)
+			return true;
+
+		break;
+	}
+	default:
+		break;
 	}
 
 	if (drop_flags & UF_NEVER_DROP)
