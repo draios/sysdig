@@ -1301,6 +1301,7 @@ FILLER(proc_startupdate, true)
 	struct mm_struct *mm;
 	long total_rss;
 	char empty = 0;
+	long args_len;
 	long retval;
 	pid_t tgid;
 	long swap;
@@ -1320,84 +1321,62 @@ FILLER(proc_startupdate, true)
 	if (!mm)
 		return PPM_FAILURE_BUG;
 
-	if (retval < 0 &&
-	    data->state->tail_ctx.evt_type != PPME_SYSCALL_EXECVE_19_X) {
-		/* The call failed, but this syscall has no exe, args
-		 * anyway, so I report empty ones
-		 */
-
+	if (retval >= 0) {
 		/*
-		 * exe
+		 * The call succeeded. Get exe, args from the current
+		 * process; put one \0-separated exe-args string into
+		 * str_storage
 		 */
-		res = bpf_val_to_ring_type(data, (unsigned long)&empty, PT_CHARBUF);
-		if (res != PPM_SUCCESS)
-			return res;
+		unsigned long arg_start;
+		unsigned long arg_end;
 
-		/*
-		 * Args
-		 */
-		res = bpf_val_to_ring_type(data, 0, PT_BYTEBUF);
-		if (res != PPM_SUCCESS)
-			return res;
-	} else {
-		long args_len;
-		int exe_len;
+		arg_end = _READ(mm->arg_end);
+		if (!arg_end)
+			return PPM_FAILURE_BUG;
 
-		if (retval >= 0) {
-			/*
-			 * The call succeeded. Get exe, args from the current
-			 * process; put one \0-separated exe-args string into
-			 * str_storage
-			 */
-			unsigned long arg_start;
-			unsigned long arg_end;
+		arg_start = _READ(mm->arg_start);
+		args_len = arg_end - arg_start;
 
-			arg_end = _READ(mm->arg_end);
-			if (!arg_end)
-				return PPM_FAILURE_BUG;
-
-			arg_start = _READ(mm->arg_start);
-			args_len = arg_end - arg_start;
-
-			if (args_len) {
-				if (args_len > ARGS_ENV_SIZE_MAX)
-					args_len = ARGS_ENV_SIZE_MAX;
+		if (args_len) {
+			if (args_len > ARGS_ENV_SIZE_MAX)
+				args_len = ARGS_ENV_SIZE_MAX;
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
-				if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
-						   ((args_len - 1) & SCRATCH_SIZE_HALF) + 1,
-						   (void *)arg_start))
+			if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+						((args_len - 1) & SCRATCH_SIZE_HALF) + 1,
+						(void *)arg_start))
 #else
-				if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
-						   args_len & SCRATCH_SIZE_HALF,
-						   (void *)arg_start))
+			if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+						args_len & SCRATCH_SIZE_HALF,
+						(void *)arg_start))
 #endif
-					args_len = 0;
-				else
-					data->buf[(data->state->tail_ctx.curoff + args_len - 1) & SCRATCH_SIZE_MAX] = 0;
-			}
-		} else {
-			unsigned long val;
-			char **argv;
-
-			val = bpf_syscall_get_argument(data, 1);
-			argv = (char **)val;
-
-			res = bpf_accumulate_argv_or_env(data, argv, &args_len);
-			if (res != PPM_SUCCESS)
 				args_len = 0;
+			else
+				data->buf[(data->state->tail_ctx.curoff + args_len - 1) & SCRATCH_SIZE_MAX] = 0;
 		}
+	} else if (data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVE_19_X) {
+		unsigned long val;
+		char **argv;
 
-		if (args_len == 0) {
-			exe_len = 0;
-		} else {
-			exe_len = bpf_probe_read_str(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
-						     SCRATCH_SIZE_HALF,
-						     &data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]);
+		val = bpf_syscall_get_argument(data, 1);
+		argv = (char **)val;
 
-			if (exe_len < 0)
-				return PPM_FAILURE_INVALID_USER_MEMORY;
-		}
+		res = bpf_accumulate_argv_or_env(data, argv, &args_len);
+		if (res != PPM_SUCCESS)
+			args_len = 0;
+	} else {
+		args_len = 0;
+	}
+
+	if (args_len) {
+		int exe_len;
+
+		exe_len = bpf_probe_read_str(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+						SCRATCH_SIZE_HALF,
+						&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]);
+
+		if (exe_len < 0)
+			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		/*
 		 * exe
@@ -1412,6 +1391,20 @@ FILLER(proc_startupdate, true)
 		 */
 		data->curarg_already_on_frame = true;
 		res = __bpf_val_to_ring(data, 0, args_len - exe_len, PT_BYTEBUF, -1, false);
+		if (res != PPM_SUCCESS)
+			return res;
+	} else {
+		/*
+		 * exe
+		 */
+		res = bpf_val_to_ring_type(data, (unsigned long)&empty, PT_CHARBUF);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		/*
+		 * Args
+		 */
+		res = bpf_val_to_ring_type(data, 0, PT_BYTEBUF);
 		if (res != PPM_SUCCESS)
 			return res;
 	}
