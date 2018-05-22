@@ -733,7 +733,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 		// Check if there's at least an fd that matches the filter.
 		// If not, skip this thread
 		//
-		sinsp_fdtable* fdtable = it->second.get_fd_table();
+		sinsp_fdtable* fdtable = it->second->get_fd_table();
 
 		if(filter != NULL)
 		{
@@ -741,7 +741,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 
 			for(fdit = fdtable->m_table.begin(); fdit != fdtable->m_table.end(); ++fdit)
 			{
-				tevt.m_tinfo = &(it->second);
+				tevt.m_tinfo = it->second.get();
 				tevt.m_fdinfo = &(fdit->second);
 				tscapevt.tid = it->first;
 				int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;
@@ -767,54 +767,54 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 		//
 		lua_newtable(ls);
 		lua_pushliteral(ls, "tid");
-		lua_pushnumber(ls, (uint32_t)it->second.m_tid);
+		lua_pushnumber(ls, (uint32_t)it->second->m_tid);
 		lua_settable(ls, -3);
 		lua_pushliteral(ls, "pid");
-		lua_pushnumber(ls, (uint32_t)it->second.m_pid);
+		lua_pushnumber(ls, (uint32_t)it->second->m_pid);
 		lua_settable(ls, -3);
 		if(!barebone)
 		{
 			lua_pushliteral(ls, "ptid");
-			lua_pushnumber(ls, (uint32_t)it->second.m_ptid);
+			lua_pushnumber(ls, (uint32_t)it->second->m_ptid);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "comm");
-			lua_pushstring(ls, it->second.m_comm.c_str());
+			lua_pushstring(ls, it->second->m_comm.c_str());
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "exe");
-			lua_pushstring(ls, it->second.m_exe.c_str());
+			lua_pushstring(ls, it->second->m_exe.c_str());
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "flags");
-			lua_pushnumber(ls, (uint32_t)it->second.m_flags);
+			lua_pushnumber(ls, (uint32_t)it->second->m_flags);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "fdlimit");
-			lua_pushnumber(ls, (uint32_t)it->second.m_fdlimit);
+			lua_pushnumber(ls, (uint32_t)it->second->m_fdlimit);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "uid");
-			lua_pushnumber(ls, (uint32_t)it->second.m_uid);
+			lua_pushnumber(ls, (uint32_t)it->second->m_uid);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "gid");
-			lua_pushnumber(ls, (uint32_t)it->second.m_gid);
+			lua_pushnumber(ls, (uint32_t)it->second->m_gid);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "nchilds");
-			lua_pushnumber(ls, (uint32_t)it->second.m_nchilds);
+			lua_pushnumber(ls, (uint32_t)it->second->m_nchilds);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "vmsize_kb");
-			lua_pushnumber(ls, (uint32_t)it->second.m_vmsize_kb);
+			lua_pushnumber(ls, (uint32_t)it->second->m_vmsize_kb);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "vmrss_kb");
-			lua_pushnumber(ls, (uint32_t)it->second.m_vmrss_kb);
+			lua_pushnumber(ls, (uint32_t)it->second->m_vmrss_kb);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "vmswap_kb");
-			lua_pushnumber(ls, (uint32_t)it->second.m_vmswap_kb);
+			lua_pushnumber(ls, (uint32_t)it->second->m_vmswap_kb);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "pfmajor");
-			lua_pushnumber(ls, (uint32_t)it->second.m_pfmajor);
+			lua_pushnumber(ls, (uint32_t)it->second->m_pfmajor);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "pfminor");
-			lua_pushnumber(ls, (uint32_t)it->second.m_pfminor);
+			lua_pushnumber(ls, (uint32_t)it->second->m_pfminor);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "clone_ts");
-			lua_pushstring(ls, to_string((long long int)it->second.m_clone_ts).c_str());
+			lua_pushstring(ls, to_string((long long int)it->second->m_clone_ts).c_str());
 			lua_settable(ls, -3);
 
 			//
@@ -826,13 +826,13 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 			const unordered_map<uint32_t, scap_userinfo*>* userlist = ch->m_inspector->get_userlist();
 			ASSERT(userlist->size() != 0);
 
-			if(it->second.m_uid == 0xffffffff)
+			if(it->second->m_uid == 0xffffffff)
 			{
 				username = "<NA>";
 			}
 			else
 			{
-				uit = userlist->find(it->second.m_uid);
+				uit = userlist->find(it->second->m_uid);
 				if(uit == userlist->end())
 				{
 					username = "<NA>";
@@ -853,7 +853,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 			//
 			lua_pushstring(ls, "args");
 
-			vector<string>* args = &(it->second.m_args);
+			vector<string>* args = &(it->second->m_args);
 			lua_newtable(ls);
 			for(j = 0; j < args->size(); j++)
 			{
@@ -868,7 +868,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 			//
 			lua_pushstring(ls, "env");
 
-			const auto& env = it->second.get_env();
+			const auto& env = it->second->get_env();
 			lua_newtable(ls);
 			for(j = 0; j < env.size(); j++)
 			{
@@ -889,7 +889,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 		{
 			for(fdit = fdtable->m_table.begin(); fdit != fdtable->m_table.end(); ++fdit)
 			{
-				tevt.m_tinfo = &(it->second);
+				tevt.m_tinfo = it->second.get();
 				tevt.m_fdinfo = &(fdit->second);
 				tscapevt.tid = it->first;
 				int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;

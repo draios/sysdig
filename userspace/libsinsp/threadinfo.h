@@ -398,7 +398,7 @@ VISIBILITY_PRIVATE
 
 /*@}*/
 
-typedef unordered_map<int64_t, sinsp_threadinfo> threadinfo_map_t;
+typedef unordered_map<int64_t, std::unique_ptr<sinsp_threadinfo>> threadinfo_map_t;
 typedef threadinfo_map_t::iterator threadinfo_map_iterator_t;
 
 
@@ -438,7 +438,7 @@ public:
 	void clear();
 
 	void set_listener(sinsp_threadtable_listener* listener);
-	void add_thread(sinsp_threadinfo& threadinfo, bool from_scap_proctable);
+	void add_thread(sinsp_threadinfo* threadinfo, bool from_scap_proctable);
 	void remove_thread(int64_t tid, bool force);
 	// Returns true if the table is actually scanned
 	// NOTE: this is implemented in sinsp.cpp so we can inline it from there

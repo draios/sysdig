@@ -112,9 +112,9 @@ bool sinsp_container_manager::remove_inactive_containers()
 
 		for(threadinfo_map_iterator_t it = threadtable->begin(); it != threadtable->end(); ++it)
 		{
-			if(!it->second.m_container_id.empty())
+			if(!it->second->m_container_id.empty())
 			{
-				containers_in_use.insert(it->second.m_container_id);
+				containers_in_use.insert(it->second->m_container_id);
 			}
 		}
 
