@@ -18,6 +18,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+#if !defined(_WIN32) && !defined(CYGWING_AGENT)
+#include <curl/curl.h>
+#include <curl/easy.h>
+#include <curl/multi.h>
+#endif
+
 enum sinsp_container_type
 {
 	CT_DOCKER = 0,
@@ -128,6 +134,9 @@ public:
 	string m_name;
 	string m_image;
 	string m_imageid;
+	string m_imagerepo;
+	string m_imagetag;
+	string m_imagedigest;
 	uint32_t m_container_ip;
 	bool m_privileged;
 	vector<container_mount_info> m_mounts;
@@ -152,20 +161,23 @@ typedef std::function<bool(sinsp_container_manager* manager, sinsp_threadinfo* t
 class sinsp_container_engine_docker
 {
 public:
+	sinsp_container_engine_docker();
+	virtual ~sinsp_container_engine_docker();
+
 	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 protected:
-	sinsp_docker_response get_docker(const sinsp_container_manager* manager, const string& api_version, const string& container_id, string& json);
+#ifndef CYGWING_AGENT
+	size_t curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json);
+#endif
+	sinsp_docker_response get_docker(const sinsp_container_manager* manager, const string& url, string &json);
 	bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
 
-	inline sinsp_docker_response json_resp_ok(const string& json) const
-	{
-		if(strncmp(json.c_str(), "HTTP/1.0 200 OK", sizeof("HTTP/1.0 200 OK") -1))
-		{
-			return sinsp_docker_response::RESP_BAD_REQUEST;
-		}
-
-		return sinsp_docker_response::RESP_OK;
-	}
+	string m_unix_socket_path;
+	string m_api_version;
+#ifndef CYGWING_AGENT
+	CURLM *m_curlm;
+	CURL *m_curl;
+#endif
 };
 
 #ifndef CYGWING_AGENT
@@ -208,6 +220,7 @@ class sinsp_container_manager
 {
 public:
 	sinsp_container_manager(sinsp* inspector);
+	virtual ~sinsp_container_manager();
 
 	const unordered_map<string, sinsp_container_info>* get_containers();
 	bool remove_inactive_containers();
