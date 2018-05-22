@@ -4299,6 +4299,21 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		{
 			container_info.m_imageid = imageid.asString();
 		}
+		const Json::Value& imagerepo = container["imagerepo"];
+		if(!imagerepo.isNull() && imagerepo.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_imagerepo = imagerepo.asString();
+		}
+		const Json::Value& imagetag = container["imagetag"];
+		if(!imagetag.isNull() && imagetag.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_imagetag = imagetag.asString();
+		}
+		const Json::Value& imagedigest = container["imagedigest"];
+		if(!imagedigest.isNull() && imagedigest.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_imagedigest = imagedigest.asString();
+		}
 		const Json::Value& privileged = container["privileged"];
 		if(!privileged.isNull() && privileged.isConvertibleTo(Json::booleanValue))
 		{
