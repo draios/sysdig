@@ -5465,7 +5465,10 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "container.mount.dest", "the mount destination, specified by number (e.g. container.mount.dest[0]) or mount source (container.mount.dest[/lib/modules]). The pathname can be a glob."},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "container.mount.mode", "the mount mode, specified by number (e.g. container.mount.mode[0]) or mount source (container.mount.mode[/usr/local]). The pathname can be a glob."},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "container.mount.rdwr", "the mount rdwr value, specified by number (e.g. container.mount.rdwr[0]) or mount source (container.mount.rdwr[/usr/local]). The pathname can be a glob."},
-	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "container.mount.propagation", "the mount propagation value, specified by number (e.g. container.mount.propagation[0]) or mount source (container.mount.propagation[/usr/local]). The pathname can be a glob."}
+	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "container.mount.propagation", "the mount propagation value, specified by number (e.g. container.mount.propagation[0]) or mount source (container.mount.propagation[/usr/local]). The pathname can be a glob."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.repository", "the container image repository (e.g. sysdig/sysdig)."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.tag", "the container image tag (e.g. stable, latest)."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.digest", "the container image registry digest (e.g. sha256:d977378f890d445c15e51795296e4e5062f109ce6da83e0a355fc4ad8699d27)."}
 };
 
 sinsp_filter_check_container::sinsp_filter_check_container()
@@ -5639,6 +5642,9 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 
 		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_CONTAINER_IMAGE_ID:
+	case TYPE_CONTAINER_IMAGE_REPOSITORY:
+	case TYPE_CONTAINER_IMAGE_TAG:
+	case TYPE_CONTAINER_IMAGE_DIGEST:
 		if(tinfo->m_container_id.empty())
 		{
 			return NULL;
@@ -5652,12 +5658,31 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 				return NULL;
 			}
 
-			if(container_info->m_imageid.empty())
+			const string *field;
+			switch(m_field_id)
+			{
+			case TYPE_CONTAINER_IMAGE_ID:
+				field = &container_info->m_imageid;
+				break;
+			case TYPE_CONTAINER_IMAGE_REPOSITORY:
+				field = &container_info->m_imagerepo;
+				break;
+			case TYPE_CONTAINER_IMAGE_TAG:
+				field = &container_info->m_imagetag;
+				break;
+			case TYPE_CONTAINER_IMAGE_DIGEST:
+				field = &container_info->m_imagedigest;
+				break;
+			default:
+				break;
+			}
+
+			if(field->empty())
 			{
 				return NULL;
 			}
 
-			m_tstr = container_info->m_imageid;
+			m_tstr = *field;
 		}
 
 		RETURN_EXTRACT_STRING(m_tstr);
