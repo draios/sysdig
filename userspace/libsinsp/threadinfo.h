@@ -398,8 +398,56 @@ VISIBILITY_PRIVATE
 
 /*@}*/
 
-typedef unordered_map<int64_t, std::unique_ptr<sinsp_threadinfo>> threadinfo_map_t;
-typedef threadinfo_map_t::iterator threadinfo_map_iterator_t;
+class threadinfo_map_t
+{
+public:
+	typedef std::function<bool(sinsp_threadinfo&)> visitor_t;
+
+	inline void put(sinsp_threadinfo* tinfo)
+	{
+		m_threads[tinfo->m_tid] = std::unique_ptr<sinsp_threadinfo>(tinfo);
+	}
+
+	inline sinsp_threadinfo* get(uint64_t tid)
+	{
+		auto it = m_threads.find(tid);
+		if (it == m_threads.end())
+		{
+			return  nullptr;
+		}
+		return it->second.get();
+	}
+
+	inline void erase(uint64_t tid)
+	{
+		m_threads.erase(tid);
+	}
+
+	inline void clear()
+	{
+		m_threads.clear();
+	}
+
+	bool loop(visitor_t callback)
+	{
+		for (auto& it : m_threads)
+		{
+			if (!callback(*it.second.get()))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	inline size_t size() const
+	{
+		return m_threads.size();
+	}
+
+protected:
+	unordered_map<int64_t, std::unique_ptr<sinsp_threadinfo>> m_threads;
+};
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -465,9 +513,8 @@ public:
 	set<uint16_t> m_server_ports;
 
 private:
-	void remove_thread(threadinfo_map_iterator_t it, bool force);
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
-	inline void clear_thread_pointers(threadinfo_map_iterator_t it);
+	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
 	void free_dump_fdinfos(vector<scap_fdinfo*>* fdinfos_to_free);
 	void thread_to_scap(sinsp_threadinfo& tinfo, scap_threadinfo* sctinfo);
 

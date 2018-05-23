@@ -110,13 +110,13 @@ bool sinsp_container_manager::remove_inactive_containers()
 
 		threadinfo_map_t* threadtable = m_inspector->m_thread_manager->get_threads();
 
-		for(threadinfo_map_iterator_t it = threadtable->begin(); it != threadtable->end(); ++it)
-		{
-			if(!it->second->m_container_id.empty())
+		threadtable->loop([&] (const sinsp_threadinfo& tinfo) {
+			if(!tinfo.m_container_id.empty())
 			{
-				containers_in_use.insert(it->second->m_container_id);
+				containers_in_use.insert(tinfo.m_container_id);
 			}
-		}
+			return true;
+		});
 
 		for(unordered_map<string, sinsp_container_info>::iterator it = m_containers.begin(); it != m_containers.end();)
 		{
