@@ -398,7 +398,7 @@ VISIBILITY_PRIVATE
 
 /*@}*/
 
-class threadinfo_map_t
+class map_threadinfo_map_t
 {
 public:
 	typedef std::function<bool(sinsp_threadinfo&)> visitor_t;
@@ -448,6 +448,142 @@ public:
 protected:
 	unordered_map<int64_t, std::unique_ptr<sinsp_threadinfo>> m_threads;
 };
+
+
+template<size_t N>
+class array_threadinfo_map_t
+{
+public:
+	array_threadinfo_map_t()
+	{
+		clear();
+	}
+
+	typedef std::function<bool(sinsp_threadinfo&)> visitor_t;
+
+	inline void put(sinsp_threadinfo* tinfo)
+	{
+		if (tinfo->m_tid < 0 || (size_t)tinfo->m_tid >= N) abort();
+		if (!m_threads[tinfo->m_tid])
+		{
+			++m_nelts;
+		}
+		m_threads[tinfo->m_tid].reset(tinfo);
+	}
+
+	inline sinsp_threadinfo* get(uint64_t tid)
+	{
+		if (tid < 0 || tid >= N) abort();
+		return m_threads[tid].get();
+	}
+
+	inline void erase(uint64_t tid)
+	{
+		if (m_threads[tid])
+		{
+			--m_nelts;
+		}
+		m_threads[tid].reset(nullptr);
+	}
+
+	inline void clear()
+	{
+		m_nelts = 0;
+		for (auto& it : m_threads) {
+			it.reset(nullptr);
+		}
+	}
+
+	bool loop(visitor_t callback)
+	{
+		for (auto& it : m_threads)
+		{
+			if (!it)
+			{
+				continue;
+			}
+
+			if (!callback(*(it.get())))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	inline size_t size() const
+	{
+		return m_nelts;
+	}
+
+protected:
+	std::array<std::unique_ptr<sinsp_threadinfo>, N> m_threads;
+	size_t m_nelts;
+};
+
+
+template<size_t N>
+class combined_threadinfo_map_t {
+public:
+	typedef std::function<bool(sinsp_threadinfo&)> visitor_t;
+
+	inline void put(sinsp_threadinfo* tinfo)
+	{
+		if (use_array(tinfo->m_tid)) {
+			m_array.put(tinfo);
+		} else {
+			m_map.put(tinfo);
+		}
+	}
+
+	inline sinsp_threadinfo* get(uint64_t tid)
+	{
+		if (use_array(tid)) {
+			return m_array.get(tid);
+		} else {
+			return m_map.get(tid);
+		}
+	}
+
+	inline void erase(uint64_t tid)
+	{
+		if (use_array(tid)) {
+			m_array.erase(tid);
+		} else {
+			m_map.erase(tid);
+		}
+	}
+
+	inline void clear()
+	{
+		m_array.clear();
+		m_map.clear();
+	}
+
+	bool loop(visitor_t callback)
+	{
+		return m_array.loop(callback) &&
+			m_map.loop(callback);
+	}
+
+	inline size_t size() const
+	{
+		return m_array.size() + m_map.size();
+	}
+
+protected:
+	inline bool use_array(uint64_t tid) const
+	{
+		return tid < N;
+	}
+
+	array_threadinfo_map_t<N> m_array;
+	map_threadinfo_map_t m_map;
+};
+
+
+typedef combined_threadinfo_map_t<65536> threadinfo_map_t;
+//typedef map_threadinfo_map_t threadinfo_map_t;
 
 
 ///////////////////////////////////////////////////////////////////////////////
