@@ -31,6 +31,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #include <regex>
+#include <algorithm>
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -2141,6 +2142,50 @@ void sinsp_evttype_filter::ruleset_filters::add_filter(filter_wrapper *wrap)
 	}
 }
 
+void sinsp_evttype_filter::ruleset_filters::remove_filter(filter_wrapper *wrap)
+{
+	for(uint32_t etype = 0; etype < PPM_EVENT_MAX; etype++)
+	{
+		if(wrap->evttypes[etype])
+		{
+			if(m_filter_by_evttype[etype])
+			{
+				m_filter_by_evttype[etype]->erase(std::remove(m_filter_by_evttype[etype]->begin(),
+									      m_filter_by_evttype[etype]->end(),
+									      wrap),
+								  m_filter_by_evttype[etype]->end());
+
+				if(m_filter_by_evttype[etype]->size() == 0)
+				{
+					delete m_filter_by_evttype[etype];
+					m_filter_by_evttype[etype] = NULL;
+				}
+			}
+		}
+	}
+
+	for(uint32_t syscall = 0; syscall < PPM_SC_MAX; syscall++)
+	{
+		if(wrap->syscalls[syscall])
+		{
+			if(m_filter_by_syscall[syscall])
+			{
+				m_filter_by_syscall[syscall]->erase(std::remove(m_filter_by_syscall[syscall]->begin(),
+										m_filter_by_syscall[syscall]->end(),
+										wrap),
+								    m_filter_by_syscall[syscall]->end());
+
+				if(m_filter_by_syscall[syscall]->size() == 0)
+				{
+					delete m_filter_by_syscall[syscall];
+					m_filter_by_syscall[syscall] = NULL;
+				}
+			}
+		}
+	}
+}
+
+
 bool sinsp_evttype_filter::ruleset_filters::run(sinsp_evt *evt)
 {
 	list<filter_wrapper *> *filters;
@@ -2259,10 +2304,13 @@ void sinsp_evttype_filter::enable(const string &pattern, bool enabled, uint16_t 
 	{
 		if (regex_match(val.first, re))
 		{
-			// XXX/mstemm how to handle enabled
 			if(enabled)
 			{
 				m_rulesets[ruleset]->add_filter(val.second);
+			}
+			else
+			{
+				m_rulesets[ruleset]->remove_filter(val.second);
 			}
 		}
 	}
@@ -2279,7 +2327,14 @@ void sinsp_evttype_filter::enable_tags(const set<string> &tags, bool enabled, ui
 	{
 		for(const auto &wrap : m_filter_by_tag[tag])
 		{
-			m_rulesets[ruleset]->add_filter(wrap);
+			if(enabled)
+			{
+				m_rulesets[ruleset]->add_filter(wrap);
+			}
+			else
+			{
+				m_rulesets[ruleset]->remove_filter(wrap);
+			}
 		}
 	}
 }

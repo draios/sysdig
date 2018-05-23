@@ -232,6 +232,7 @@ private:
 		virtual ~ruleset_filters();
 
 		void add_filter(filter_wrapper *wrap);
+		void remove_filter(filter_wrapper *wrap);
 
 		bool run(sinsp_evt *evt);
 
