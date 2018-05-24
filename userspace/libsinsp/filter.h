@@ -214,11 +214,7 @@ public:
 
 private:
 
-	class filter_wrapper {
-	public:
-		filter_wrapper();
-		virtual ~filter_wrapper();
-
+	struct filter_wrapper {
 		sinsp_filter *filter;
 
 		// Indexes from event type to enabled/disabled.
@@ -226,59 +222,42 @@ private:
 
 		// Indexes from syscall code to enabled/disabled.
 		std::vector<bool> syscalls;
-
-		// Indexes from ruleset to enabled/disabled. Unlike
-		// m_filter_by_evttype, this is managed as a vector as we're
-		// expecting ruleset ids that are small and grouped in the range
-		// 0..k, as compared to all possible event types.
-		std::vector<bool> enabled;
-
-		// An ordering number, used to ensure that filters are
-		// always run in the order that they were added to
-		// this object. Specifically, this is used between the
-		// catchall list and the per-eventtype/per-syscallnum
-		// lists.
-		uint64_t order;
 	};
 
-	bool check_filter(filter_wrapper *wrap,
-			  sinsp_evt *evt,
-			  uint16_t ruleset);
+	// A group of filters all having the same ruleset
+	class ruleset_filters {
+	public:
+		ruleset_filters();
 
-	bool check_filters(sinsp_evt *evt,
-			   uint16_t ruleset,
-			   std::list<filter_wrapper *> &la,
-			   std::list<filter_wrapper *> &lb);
+		virtual ~ruleset_filters();
 
-        // Solely used for code sharing in evttypes_for_ruleset/syscalls_for_ruleset
-	void check_filter_wrappers(std::vector<bool> &evttypes_syscalls,
-				   uint32_t idx,
-				   std::list<filter_wrapper *> &filters,
-				   uint16_t ruleset);
+		void add_filter(filter_wrapper *wrap);
+		void remove_filter(filter_wrapper *wrap);
 
-	// Maps from event type to filter. There can be multiple
-	// filters per event type.
-	std::list<filter_wrapper *> *m_filter_by_evttype[PPM_EVENT_MAX];
+		bool run(sinsp_evt *evt);
 
-	// Maps from syscall number to filter. There can be multiple
-	// filters per syscall number
-	std::list<filter_wrapper *> *m_filter_by_syscall[PPM_SC_MAX];
+		void evttypes_for_ruleset(std::vector<bool> &evttypes);
 
-	// It's possible to add an event type filter with an empty
-	// list of event types/syscall numbers, meaning it should run
-	// for all event types/syscalls.
-	std::list<filter_wrapper *> m_catchall_filters;
+		void syscalls_for_ruleset(std::vector<bool> &syscalls);
+
+	private:
+		// Maps from event type to filter. There can be multiple
+		// filters per event type.
+		std::list<filter_wrapper *> *m_filter_by_evttype[PPM_EVENT_MAX];
+
+		// Maps from syscall number to filter. There can be multiple
+		// filters per syscall number
+		std::list<filter_wrapper *> *m_filter_by_syscall[PPM_SC_MAX];
+	};
+
+	std::vector<ruleset_filters *> m_rulesets;
 
 	// Maps from tag to list of filters having that tag.
 	std::map<std::string, std::list<filter_wrapper *>> m_filter_by_tag;
 
-	// This holds all the filters in
-	// m_filter_by_evttype/m_catchall_evttype_filters, so they can
+	// This holds all the filters passed to add(), so they can
 	// be cleaned up.
-
 	map<std::string,filter_wrapper *> m_filters;
-
-	uint64_t m_cur_order;
 };
 
 /*@}*/
