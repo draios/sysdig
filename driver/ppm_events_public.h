@@ -1437,6 +1437,16 @@ struct syscall_evt_pair {
 
 #define PPM_MAX_AUTOFILL_ARGS (1 << 2)
 
+/*
+ * Max size of a parameter in the kernel module is u16, so no point
+ * in going beyond 0xffff. However, in BPF the limit is more stringent
+ * because the entire perf event must fit in u16, so make this
+ * a more conservative 65k so we have some room for the other
+ * parameters in the event. It shouldn't cause issues since typically
+ * snaplen is much lower than this.
+ */
+#define PPM_MAX_ARG_SIZE 65000
+
 struct event_filler_arguments;
 
 #include "ppm_fillers.h"

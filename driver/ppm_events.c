@@ -419,6 +419,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 	const struct ppm_param_info *param_info;
 	int len = -1;
 	u16 *psize = (u16 *)(args->buffer + args->curarg * sizeof(u16));
+	u32 max_arg_size = args->arg_data_size;
 
 	if (unlikely(args->curarg >= args->nargs)) {
 		pr_err("(%u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u tid:%u\n",
@@ -436,6 +437,9 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 	if (unlikely(args->arg_data_size == 0))
 		return PPM_FAILURE_BUFFER_FULL;
 
+	if (max_arg_size > PPM_MAX_ARG_SIZE)
+		max_arg_size = PPM_MAX_ARG_SIZE;
+
 	param_info = &(g_event_info[args->event_type].params[args->curarg]);
 	if (param_info->type == PT_DYN && param_info->info != NULL) {
 		const struct ppm_param_info *dyn_params;
@@ -448,7 +452,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 		dyn_params = (const struct ppm_param_info *)param_info->info;
 
 		param_info = &dyn_params[dyn_idx];
-		if (likely(args->arg_data_size >= sizeof(u8)))	{
+		if (likely(max_arg_size >= sizeof(u8)))	{
 			*(u8 *)(args->buffer + args->arg_data_offset) = dyn_idx;
 			len = sizeof(u8);
 		} else {
@@ -456,6 +460,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 		}
 		args->arg_data_offset += len;
 		args->arg_data_size -= len;
+		max_arg_size -= len;
 		*psize = (u16)len;
 	} else {
 		*psize = 0;
@@ -467,17 +472,17 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 		if (likely(val != 0)) {
 			if (fromuser) {
 				len = ppm_strncpy_from_user(args->buffer + args->arg_data_offset,
-					(const char __user *)(unsigned long)val, args->arg_data_size);
+					(const char __user *)(unsigned long)val, max_arg_size);
 
 				if (unlikely(len < 0))
 					return PPM_FAILURE_INVALID_USER_MEMORY;
 			} else {
 				len = strlcpy(args->buffer + args->arg_data_offset,
 								(const char *)(unsigned long)val,
-								args->arg_data_size);
+								max_arg_size);
 
-				if (++len > args->arg_data_size)
-					len = args->arg_data_size;
+				if (++len > max_arg_size)
+					len = max_arg_size;
 			}
 
 			/*
@@ -490,10 +495,10 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 			 */
 			len = strlcpy(args->buffer + args->arg_data_offset,
 				"(NULL)",
-				args->arg_data_size);
+				max_arg_size);
 
-			if (++len > args->arg_data_size)
-				len = args->arg_data_size;
+			if (++len > max_arg_size)
+				len = max_arg_size;
 		}
 
 		break;
@@ -509,7 +514,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 				if (dpi_lookahead_size > val_len)
 					dpi_lookahead_size = val_len;
 
-				if (unlikely(dpi_lookahead_size >= args->arg_data_size))
+				if (unlikely(dpi_lookahead_size >= max_arg_size))
 					return PPM_FAILURE_BUFFER_FULL;
 
 				len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset,
@@ -535,8 +540,8 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 							val_len = sl;
 					}
 
-					if (unlikely((val_len) >= args->arg_data_size))
-						val_len = args->arg_data_size;
+					if (unlikely((val_len) >= max_arg_size))
+						val_len = max_arg_size;
 
 					if (val_len > dpi_lookahead_size) {
 						len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset + dpi_lookahead_size,
@@ -557,7 +562,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 						val_len = sl;
 				}
 
-				if (unlikely(val_len >= args->arg_data_size))
+				if (unlikely(val_len >= max_arg_size))
 					return PPM_FAILURE_BUFFER_FULL;
 
 				memcpy(args->buffer + args->arg_data_offset,
@@ -577,7 +582,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
 		if (likely(val != 0)) {
-			if (unlikely(val_len >= args->arg_data_size))
+			if (unlikely(val_len >= max_arg_size))
 				return PPM_FAILURE_BUFFER_FULL;
 
 			if (fromuser) {
@@ -606,7 +611,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 	case PT_FLAGS8:
 	case PT_UINT8:
 	case PT_SIGTYPE:
-		if (likely(args->arg_data_size >= sizeof(u8)))	{
+		if (likely(max_arg_size >= sizeof(u8)))	{
 			*(u8 *)(args->buffer + args->arg_data_offset) = (u8)val;
 			len = sizeof(u8);
 		} else {
@@ -617,7 +622,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 	case PT_FLAGS16:
 	case PT_UINT16:
 	case PT_SYSCALLID:
-		if (likely(args->arg_data_size >= sizeof(u16))) {
+		if (likely(max_arg_size >= sizeof(u16))) {
 			*(u16 *)(args->buffer + args->arg_data_offset) = (u16)val;
 			len = sizeof(u16);
 		} else {
@@ -630,7 +635,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 	case PT_UID:
 	case PT_GID:
 	case PT_SIGSET:
-		if (likely(args->arg_data_size >= sizeof(u32))) {
+		if (likely(max_arg_size >= sizeof(u32))) {
 			*(u32 *)(args->buffer + args->arg_data_offset) = (u32)val;
 			len = sizeof(u32);
 		} else {
@@ -641,7 +646,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 	case PT_RELTIME:
 	case PT_ABSTIME:
 	case PT_UINT64:
-		if (likely(args->arg_data_size >= sizeof(u64))) {
+		if (likely(max_arg_size >= sizeof(u64))) {
 			*(u64 *)(args->buffer + args->arg_data_offset) = (u64)val;
 			len = sizeof(u64);
 		} else {
@@ -650,7 +655,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 
 		break;
 	case PT_INT8:
-		if (likely(args->arg_data_size >= sizeof(s8))) {
+		if (likely(max_arg_size >= sizeof(s8))) {
 			*(s8 *)(args->buffer + args->arg_data_offset) = (s8)(long)val;
 			len = sizeof(s8);
 		} else {
@@ -659,7 +664,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 
 		break;
 	case PT_INT16:
-		if (likely(args->arg_data_size >= sizeof(s16))) {
+		if (likely(max_arg_size >= sizeof(s16))) {
 			*(s16 *)(args->buffer + args->arg_data_offset) = (s16)(long)val;
 			len = sizeof(s16);
 		} else {
@@ -668,7 +673,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 
 		break;
 	case PT_INT32:
-		if (likely(args->arg_data_size >= sizeof(s32))) {
+		if (likely(max_arg_size >= sizeof(s32))) {
 			*(s32 *)(args->buffer + args->arg_data_offset) = (s32)(long)val;
 			len = sizeof(s32);
 		} else {
@@ -680,7 +685,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 	case PT_ERRNO:
 	case PT_FD:
 	case PT_PID:
-		if (likely(args->arg_data_size >= sizeof(s64))) {
+		if (likely(max_arg_size >= sizeof(s64))) {
 			*(s64 *)(args->buffer + args->arg_data_offset) = (s64)(long)val;
 			len = sizeof(s64);
 		} else {
@@ -697,8 +702,8 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 		return PPM_FAILURE_BUG;
 	}
 
-	ASSERT(len <= 65535);
-	ASSERT(len <= args->arg_data_size);
+	ASSERT(len <= PPM_MAX_ARG_SIZE);
+	ASSERT(len <= max_arg_size);
 
 	*psize += (u16)len;
 	args->curarg++;
