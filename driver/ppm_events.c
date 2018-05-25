@@ -414,7 +414,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
  * - fromuser is ignored for numeric types
  * - dyn_idx is ignored for everything other than PT_DYN
  */
-int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, bool fromuser, u8 dyn_idx)
+int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, bool fromuser, u8 dyn_idx)
 {
 	const struct ppm_param_info *param_info;
 	int len = -1;
