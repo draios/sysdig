@@ -382,9 +382,12 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 
 			#pragma unroll
 			for (j = 0; j < MAX_IOVCNT; ++j) {
-				unsigned int to_read;
+				volatile unsigned int to_read;
 
 				if (j == iovcnt)
+					break;
+
+				if (off > SCRATCH_SIZE_HALF)
 					break;
 
 				if (iov[j].iov_len <= remaining)
@@ -393,10 +396,7 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 					to_read = remaining;
 
 				if (to_read > SCRATCH_SIZE_HALF)
-					return PPM_FAILURE_BUFFER_FULL;
-
-				if (off > SCRATCH_SIZE_HALF)
-					return PPM_FAILURE_BUFFER_FULL;
+					to_read = SCRATCH_SIZE_HALF;
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 				if (to_read)

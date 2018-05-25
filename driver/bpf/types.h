@@ -134,17 +134,32 @@ struct filler_data {
 	int fd;
 };
 
-enum scratch_type {
-	SCRATCH_TYPE_FRAME,
-	SCRATCH_TYPE_TMP,
-	SCRATCH_TYPE_MAX
+struct perf_event_header {
+	__u32 type;
+	__u16 misc;
+	__u16 size;
 };
 
-#endif /* __KERNEL__ */
+struct perf_event_sample {
+	struct perf_event_header header;
+	__u32 size;
+	char data[];
+};
 
-#define SCRATCH_SIZE (1 << 15)
+/*
+ * Unfortunately the entire perf event length must fit in u16
+ */
+#define PERF_EVENT_MAX_SIZE (0xffff - sizeof(struct perf_event_sample))
+
+/*
+ * Due to the way the verifier works with accessing variable memory,
+ * the scratch size needs to be at least 2^N > PERF_EVENT_MAX_SIZE * 2
+ */
+#define SCRATCH_SIZE (1 << 18)
 #define SCRATCH_SIZE_MAX (SCRATCH_SIZE - 1)
 #define SCRATCH_SIZE_HALF (SCRATCH_SIZE_MAX >> 1)
+
+#endif /* __KERNEL__ */
 
 struct bpf_map_def {
 	unsigned int type;
@@ -163,11 +178,12 @@ enum sysdig_map_types {
 	SYSDIG_SYSCALL_TABLE = 3,
 	SYSDIG_EVENT_INFO_TABLE = 4,
 	SYSDIG_FILLERS_TABLE = 5,
-	SYSDIG_SCRATCH_MAP = 6,
-	SYSDIG_SETTINGS_MAP = 7,
-	SYSDIG_LOCAL_STATE_MAP = 8,
+	SYSDIG_FRAME_SCRATCH_MAP = 6,
+	SYSDIG_TMP_SCRATCH_MAP = 7,
+	SYSDIG_SETTINGS_MAP = 8,
+	SYSDIG_LOCAL_STATE_MAP = 9,
 #ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
-	SYSDIG_STASH_MAP = 9,
+	SYSDIG_STASH_MAP = 10,
 #endif
 };
 
@@ -199,7 +215,7 @@ struct sysdig_bpf_per_cpu_state {
 	unsigned long long n_drops_buffer;
 	unsigned long long n_drops_pf;
 	unsigned long long n_drops_bug;
-	int hotplug_cpu;
+	unsigned int hotplug_cpu;
 	bool in_use;
 } __attribute__((packed));
 
