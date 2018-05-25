@@ -42,9 +42,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 12, 0)) && defined(CONFIG_X86)
 #define CAPTURE_PAGE_FAULTS
 #endif
-#define RW_SNAPLEN 80
 #define RW_SNAPLEN_EVENT 4096
-#define RW_MAX_SNAPLEN (256 * 1024 * 1024)
 #define DPI_LOOKAHEAD_SIZE 16
 #define PPM_NULL_RDEV MKDEV(1, 3)
 #define PPM_PORT_MYSQL 3306

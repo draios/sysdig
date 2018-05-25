@@ -262,16 +262,19 @@ static int32_t load_maps(scap_t *handle, struct bpf_map_data *maps, int nr_maps)
 
 	for(j = 0; j < nr_maps; ++j)
 	{
-		if(j == SYSDIG_PERF_MAP || j == SYSDIG_LOCAL_STATE_MAP)
+		if(j == SYSDIG_PERF_MAP ||
+		   j == SYSDIG_LOCAL_STATE_MAP ||
+		   j == SYSDIG_FRAME_SCRATCH_MAP ||
+		   j == SYSDIG_TMP_SCRATCH_MAP)
 		{
 			maps[j].def.max_entries = handle->m_ncpus;
 		}
 
 		handle->m_bpf_map_fds[j] = bpf_map_create(maps[j].def.type,
-						maps[j].def.key_size,
-						maps[j].def.value_size,
-						maps[j].def.max_entries,
-						maps[j].def.map_flags);
+							  maps[j].def.key_size,
+							  maps[j].def.value_size,
+							  maps[j].def.max_entries,
+							  maps[j].def.map_flags);
 
 		maps[j].fd = handle->m_bpf_map_fds[j];
 
@@ -838,9 +841,9 @@ int32_t scap_bpf_set_snaplen(scap_t* handle, uint32_t snaplen)
 	struct sysdig_bpf_settings settings;
 	int k = 0;
 
-	if(snaplen > SCRATCH_SIZE_HALF)
+	if(snaplen > RW_MAX_SNAPLEN)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "snaplen can't exceed %d\n", SCRATCH_SIZE_HALF);
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "snaplen can't exceed %d\n", RW_MAX_SNAPLEN);
 		return SCAP_FAILURE;
 	}
 
@@ -1171,7 +1174,7 @@ static int32_t set_default_settings(scap_t *handle)
 	}
 
 	settings.socket_file_ops = NULL;
-	settings.snaplen = 80;
+	settings.snaplen = RW_SNAPLEN;
 	settings.sampling_ratio = 1;
 	settings.capture_enabled = false;
 	settings.do_dynamic_snaplen = false;
