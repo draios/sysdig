@@ -164,24 +164,22 @@ static __always_inline unsigned long bpf_syscall_get_argument(struct filler_data
 #endif
 }
 
-static __always_inline char *get_frame_scratch_area(void)
+static __always_inline char *get_frame_scratch_area(unsigned int cpu)
 {
 	char *scratchp;
-	int id = SCRATCH_TYPE_FRAME;
 
-	scratchp = bpf_map_lookup_elem(&scratch_map, &id);
+	scratchp = bpf_map_lookup_elem(&frame_scratch_map, &cpu);
 	if (!scratchp)
 		bpf_printk("frame scratch NULL\n");
 
 	return scratchp;
 }
 
-static __always_inline char *get_tmp_scratch_area(void)
+static __always_inline char *get_tmp_scratch_area(unsigned int cpu)
 {
 	char *scratchp;
-	int id = SCRATCH_TYPE_TMP;
 
-	scratchp = bpf_map_lookup_elem(&scratch_map, &id);
+	scratchp = bpf_map_lookup_elem(&tmp_scratch_map, &cpu);
 	if (!scratchp)
 		bpf_printk("tmp scratch NULL\n");
 
@@ -233,7 +231,7 @@ static __always_inline struct sysdig_bpf_settings *get_bpf_settings(void)
 	return settings;
 }
 
-static __always_inline struct sysdig_bpf_per_cpu_state *get_local_state(int cpu)
+static __always_inline struct sysdig_bpf_per_cpu_state *get_local_state(unsigned int cpu)
 {
 	struct sysdig_bpf_per_cpu_state *state;
 
@@ -270,21 +268,25 @@ static __always_inline int init_filler_data(void *ctx,
 					    struct filler_data *data,
 					    bool is_syscall)
 {
+	unsigned int cpu;
+
 	data->ctx = ctx;
 
 	data->settings = get_bpf_settings();
 	if (!data->settings)
 		return PPM_FAILURE_BUG;
 
-	data->buf = get_frame_scratch_area();
+	cpu = bpf_get_smp_processor_id();
+
+	data->buf = get_frame_scratch_area(cpu);
 	if (!data->buf)
 		return PPM_FAILURE_BUG;
 
-	data->state = get_local_state(bpf_get_smp_processor_id());
+	data->state = get_local_state(cpu);
 	if (!data->state)
 		return PPM_FAILURE_BUG;
 
-	data->tmp_scratch = get_tmp_scratch_area();
+	data->tmp_scratch = get_tmp_scratch_area(cpu);
 	if (!data->tmp_scratch)
 		return PPM_FAILURE_BUG;
 
@@ -433,7 +435,7 @@ static __always_inline void call_filler(void *ctx,
 	struct sysdig_bpf_per_cpu_state *state;
 	unsigned long long pid;
 	unsigned long long ts;
-	int cpu;
+	unsigned int cpu;
 
 	cpu = bpf_get_smp_processor_id();
 

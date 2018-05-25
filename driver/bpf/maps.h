@@ -45,11 +45,18 @@ struct bpf_map_def __bpf_section("maps") fillers_table = {
 	.max_entries = PPM_EVENT_MAX,
 };
 
-struct bpf_map_def __bpf_section("maps") scratch_map = {
-	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
+struct bpf_map_def __bpf_section("maps") frame_scratch_map = {
+	.type = BPF_MAP_TYPE_ARRAY,
 	.key_size = sizeof(u32),
 	.value_size = SCRATCH_SIZE,
-	.max_entries = SCRATCH_TYPE_MAX,
+	.max_entries = 0,
+};
+
+struct bpf_map_def __bpf_section("maps") tmp_scratch_map = {
+	.type = BPF_MAP_TYPE_ARRAY,
+	.key_size = sizeof(u32),
+	.value_size = SCRATCH_SIZE,
+	.max_entries = 0,
 };
 
 struct bpf_map_def __bpf_section("maps") settings_map = {

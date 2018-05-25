@@ -40,7 +40,7 @@ static __always_inline int push_evt_frame(void *ctx,
 		return PPM_FAILURE_BUG;
 	}
 
-	if (data->state->tail_ctx.len > SCRATCH_SIZE_MAX)
+	if (data->state->tail_ctx.len > PERF_EVENT_MAX_SIZE)
 		return PPM_FAILURE_BUFFER_FULL;
 
 	fixup_evt_len(data->buf, data->state->tail_ctx.len);

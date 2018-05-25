@@ -703,7 +703,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 			int res;
 
 			res = bpf_probe_read_str(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
-						 SCRATCH_SIZE_HALF,
+						 PPM_MAX_ARG_SIZE,
 						 (const void *)val);
 			if (res < 0)
 				return PPM_FAILURE_INVALID_USER_MEMORY;
@@ -746,8 +746,8 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 					len = sl;
 			}
 
-			if (len > SCRATCH_SIZE_HALF)
-				len = SCRATCH_SIZE_HALF;
+			if (len > PPM_MAX_ARG_SIZE)
+				len = PPM_MAX_ARG_SIZE;
 
 			if (!data->curarg_already_on_frame) {
 				volatile unsigned long read_size = len;
@@ -833,6 +833,9 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 		return PPM_FAILURE_BUG;
 	}
 	}
+
+	if (len_dyn + len > PPM_MAX_ARG_SIZE)
+		return PPM_FAILURE_BUFFER_FULL;
 
 	fixup_evt_arg_len(data->buf, data->state->tail_ctx.curarg, len_dyn + len);
 	data->state->tail_ctx.curoff += len;
