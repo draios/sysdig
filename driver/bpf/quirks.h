@@ -20,11 +20,4 @@
 #define BPF_SUPPORTS_RAW_TRACEPOINTS
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)
-#include <linux/compiler.h>
-
-#undef asm_volatile_goto
-#define asm_volatile_goto(...)
-#endif
-
 #endif
