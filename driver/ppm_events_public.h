@@ -1490,4 +1490,7 @@ struct ppm_event_entry {
 #define PPM_FAILURE_BUG -3
 #define PPM_SKIP_EVENT -4
 
+#define RW_SNAPLEN 80
+#define RW_MAX_SNAPLEN PPM_MAX_ARG_SIZE
+
 #endif /* EVENTS_PUBLIC_H_ */
