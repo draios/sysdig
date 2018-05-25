@@ -678,7 +678,6 @@ bool sinsp_utils::concatenate_paths(char* target,
 {
 	if(targetlen < (len1 + len2 + 1))
 	{
-		ASSERT(false);
 		strcpy(target, "/PATH_TOO_LONG");
 		return false;
 	}
