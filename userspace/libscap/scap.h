@@ -52,6 +52,8 @@ extern "C" {
 typedef struct scap scap_t;
 typedef struct ppm_evt_hdr scap_evt;
 
+struct iovec;
+
 //
 // Core types
 //
@@ -959,6 +961,18 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 int32_t scap_write_proclist_header(scap_t *handle, scap_dumper_t *d, uint32_t totlen);
 int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t totlen);
 int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo);
+// Variant of scap_write_proclist_entry where array-backed information
+// about the thread is provided separate from the scap_threadinfo
+// struct.
+int32_t scap_write_proclist_entry_bufs(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo,
+				       const char *comm,
+				       const char *exe,
+				       const char *exepath,
+				       const struct iovec *args, int argscnt,
+				       const struct iovec *envs, int envscnt,
+				       const char *cwd,
+				       const struct iovec *cgroups, int cgroupscnt,
+				       const char *root);
 int32_t scap_enable_simpledriver_mode(scap_t* handle);
 int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret);
 #ifdef CYGWING_AGENT
