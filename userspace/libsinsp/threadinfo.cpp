@@ -159,26 +159,35 @@ void sinsp_threadinfo::fix_sockets_coming_from_proc()
 #define STR_AS_NUM_PERL 0x6c726570
 #define STR_AS_NUM_NODE 0x65646f6e
 
+#define MAX_PROG_HASH_LEN 1024
+
 void sinsp_threadinfo::compute_program_hash()
 {
-	string phs = m_exe;
-
-	phs += m_container_id;
+	auto curr_hash = std::hash<std::string>()(m_exe);
+	hash_combine(curr_hash, m_container_id);
+	auto rem_len = MAX_PROG_HASH_LEN - (m_exe.size() + m_container_id.size());
 
 	//
 	// By default, the falco hash is just exe+container
 	//
-	m_program_hash_falco = std::hash<std::string>()(phs);
+	m_program_hash_falco = curr_hash;
 
 	//
 	// The program hash includes the arguments as well
 	//
-	for(auto arg = m_args.begin(); arg != m_args.end(); ++arg)
+	for (auto arg = m_args.begin(); arg != m_args.end() && rem_len > 0; ++arg)
 	{
-		phs += *arg;
-	}
+		if (arg->size() >= rem_len)
+		{
+			auto partial_str = arg->substr(0, rem_len);
+			hash_combine(curr_hash, partial_str);
+			break;
+		}
 
-	m_program_hash = std::hash<std::string>()(phs);
+		hash_combine(curr_hash, *arg);
+		rem_len -= arg->size();
+	}
+	m_program_hash = curr_hash;
 
 	//
 	// For some specific processes (essentially the scripting languages)
