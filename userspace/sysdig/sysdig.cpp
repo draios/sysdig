@@ -765,6 +765,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool page_faults = false;
 	bool bpf = false;
 	string bpf_probe;
+	uint32_t dropall_pid = 0;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -843,10 +844,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "G:"
                                         "hi:jk:K:lLm:M:n:Pp:qRr:Ss:t:Tv"
                                         "W:"
+					"Z:"
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
+			case 'Z':
+				dropall_pid = atoi(optarg);
+				break;
 			case 'A':
 				if(event_buffer_format != sinsp_evt::PF_NORMAL)
 				{
@@ -1403,6 +1408,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				try
 				{
 					inspector->open("");
+					if(dropall_pid != 0)
+					{
+						fprintf(stderr, "FOO=%lu\n", dropall_pid);
+						inspector->dropall_pid(dropall_pid);
+					}
 				}
 				catch(sinsp_exception e)
 				{

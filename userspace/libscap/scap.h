@@ -516,6 +516,8 @@ scap_t* scap_open_live(char *error, int32_t *rc);
 */
 scap_t* scap_open_offline(const char* fname, char *error, int32_t *rc);
 
+int32_t scap_dropall_pid(scap_t *handle, uint32_t pid);
+
 /*!
   \brief Start an event capture from an already opened file descriptor.
 

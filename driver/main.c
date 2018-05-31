@@ -214,6 +214,8 @@ static bool verbose = 1;
 static bool verbose = 0;
 #endif
 
+static pid_t g_dropall_pid = 0;
+
 static unsigned int max_consumers = 5;
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
@@ -639,6 +641,8 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	int ret;
 	struct task_struct *consumer_id = filp->private_data;
 	struct ppm_consumer_t *consumer = NULL;
+
+	pr_info("Got ioctl %u %lu\n", cmd, arg);
 
 	if (cmd == PPM_IOCTL_GET_PROCLIST) {
 		struct ppm_proclist_info *proclist_info = NULL;
@@ -1066,6 +1070,14 @@ cleanup_ioctl_procinfo:
 		goto cleanup_ioctl;
 #endif
 	}
+	case PPM_IOCTL_DROPALL_PID:
+	{
+		pr_info("Ignoring all events from pid: %lu\n", arg);
+
+		g_dropall_pid = arg;
+		ret = 0;
+		goto cleanup_ioctl;
+	}
 	default:
 		ret = -ENOTTY;
 		goto cleanup_ioctl;
@@ -1451,6 +1463,11 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 			     struct pt_regs *regs)
 {
 	int maybe_ret = 0;
+
+	if (current->pid == g_dropall_pid)
+	{
+		return 1;
+	}
 
 	if (consumer->dropping_mode) {
 		maybe_ret = drop_nostate_event(event_type, regs);

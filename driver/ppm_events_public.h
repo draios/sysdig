@@ -1359,6 +1359,12 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_SET_SIMPLE_MODE _IO(PPM_IOCTL_MAGIC, 18)
 #define PPM_IOCTL_ENABLE_PAGE_FAULTS _IO(PPM_IOCTL_MAGIC, 19)
 #define PPM_IOCTL_GET_N_TRACEPOINT_HIT _IO(PPM_IOCTL_MAGIC, 20)
+#define PPM_IOCTL_DROPALL_PID _IO(PPM_IOCTL_MAGIC, 21)
+#if 0
+#define STRING2(x) #x
+#define STRING(x) STRING2(x)
+#pragma message STRING(PPM_IOCTL_DROPALL_PID)
+#endif
 #endif // CYGWING_AGENT
 
 extern const struct ppm_name_value socket_families[];

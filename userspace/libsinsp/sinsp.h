@@ -257,6 +257,11 @@ public:
 	*/
 	void open(uint32_t timeout_ms = SCAP_TIMEOUT_MS);
 
+	inline void dropall_pid(uint32_t pid)
+	{
+		scap_dropall_pid(m_h, pid);
+	}
+
 	/*!
 	  \brief Start an event capture from a trace file.
 

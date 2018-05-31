@@ -1102,6 +1102,10 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 
 	if(res == SCAP_SUCCESS)
 	{
+		if((*pevent)->tid == 17053 && false)
+		{
+			return SCAP_TIMEOUT;
+		}
 		handle->m_evtcnt++;
 	}
 
@@ -1195,6 +1199,23 @@ int32_t scap_stop_capture(scap_t* handle)
 
 	return SCAP_SUCCESS;
 #endif // HAS_CAPTURE
+}
+
+int32_t scap_dropall_pid(scap_t *handle, uint32_t pid)
+{
+	uint32_t j;
+
+	for(j = 0; j < handle->m_ndevs; j++)
+	{
+		if(ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_DROPALL_PID, pid))
+		{
+			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_dropall_pid failed for device %" PRIu32, j);
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
+	}
+
+	return SCAP_SUCCESS;
 }
 
 //
