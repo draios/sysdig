@@ -817,6 +817,49 @@ bool sinsp_utils::find_env(std::string &out, const vector<std::string> &env, con
 	return find_first_env(out, env, keys);
 }
 
+void sinsp_utils::split_container_image(const std::string &image, std::string &repo, std::string &tag, std::string &digest)
+{
+	auto split = [](const std::string &src, std::string &part1, std::string &part2, const std::string sep)
+	{
+		size_t pos = src.find(sep);
+		if(pos != std::string::npos)
+		{
+			part1 = src.substr(0, pos);
+			part2 = src.substr(pos+1);
+			return true;
+		}
+		return false;
+	};
+
+	std::string rem, rem2, repo1, repo2;
+
+	if(!split(image, rem, digest, "@"))
+	{
+		rem = image;
+	}
+
+	if(split(rem, repo1, rem2, "/") && repo1.find(":") != std::string::npos)
+	{
+		if(!split(rem2, repo2, tag, ":"))
+		{
+			repo2 = rem2;
+		}
+		repo = repo1 + "/" + repo2;
+	}
+	else
+	{
+		if(!split(rem, repo, tag, ":"))
+		{
+			repo = rem;
+		}
+	}
+
+	if(tag.empty())
+	{
+		tag = "latest";
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Time utility functions.
 ///////////////////////////////////////////////////////////////////////////////

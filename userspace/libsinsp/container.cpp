@@ -175,52 +175,10 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 		container->m_imageid = imgstr.substr(cpos + 1);
 	}
 
-	auto split_container_image = [](const string &image, string &repo, string &tag, string &digest)
-	{
-		auto split = [](const string &src, string &part1, string &part2, const string sep)
-		{
-			size_t pos = src.find(sep);
-			if(pos != string::npos)
-			{
-				part1 = src.substr(0, pos);
-				part2 = src.substr(pos+1);
-				return true;
-			}
-			return false;
-		};
-
-		string rem, rem2, repo1, repo2;
-
-		if(!split(image, rem, digest, "@"))
-		{
-			rem = image;
-		}
-
-		if(split(rem, repo1, rem2, "/") && repo1.find(":") != string::npos)
-		{
-			if(!split(rem2, repo2, tag, ":"))
-			{
-				repo2 = rem2;
-			}
-			repo = repo1 + "/" + repo2;
-		}
-		else
-		{
-			if(!split(rem, repo, tag, ":"))
-			{
-				repo = rem;
-			}
-		}
-
-		if(tag.empty())
-		{
-			tag = "latest";
-		}
-	};
-	split_container_image(container->m_image,
-			      container->m_imagerepo,
-			      container->m_imagetag,
-			      container->m_imagedigest);
+	sinsp_utils::split_container_image(container->m_image,
+					   container->m_imagerepo,
+					   container->m_imagetag,
+					   container->m_imagedigest);
 
 	if(container->m_imagedigest.empty())
 	{
