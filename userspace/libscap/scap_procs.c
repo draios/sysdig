@@ -610,6 +610,12 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 		fclose(f);
 	}
 
+	bool suppressed;
+	if ((res = scap_update_suppressed(handle, tinfo->comm, tid, 0, &suppressed)) != SCAP_SUCCESS)
+	{
+		return res;
+	}
+
 	//
 	// Gather the command line
 	//
@@ -1220,4 +1226,143 @@ void scap_proc_print_table(scap_t* handle)
 	}
 
 	printf("*******************************************\n");
+}
+
+
+int32_t scap_update_suppressed(scap_t *handle,
+			       const char *comm,
+			       uint64_t tid, uint64_t ptid,
+			       bool *suppressed)
+{
+	uint32_t i;
+	scap_tid *stid;
+
+	*suppressed = false;
+
+	HASH_FIND_INT64(handle->m_suppressed_tids, &ptid, stid);
+
+	if(stid != NULL)
+	{
+		*suppressed = true;
+	}
+	else
+	{
+		for(i=0; i < handle->m_num_suppressed_comms; i++)
+		{
+			if(strcmp(handle->m_suppressed_comms[i], comm) == 0)
+			{
+				*suppressed = true;
+				break;
+			}
+		}
+	}
+
+	// Also check to see if the tid is already in the set of
+	// suppressed tids.
+
+	HASH_FIND_INT64(handle->m_suppressed_tids, &tid, stid);
+
+	if(*suppressed && stid == NULL)
+	{
+		stid = (scap_tid *) malloc(sizeof(scap_tid));
+		stid->tid = tid;
+		int32_t uth_status = SCAP_SUCCESS;
+
+		HASH_ADD_INT64(handle->m_suppressed_tids, tid, stid);
+
+		if(uth_status != SCAP_SUCCESS)
+		{
+			return SCAP_FAILURE;
+		}
+		*suppressed = true;
+	}
+	else if (!*suppressed && stid != NULL)
+	{
+		HASH_DEL(handle->m_suppressed_tids, stid);
+		free(stid);
+		*suppressed = false;
+	}
+
+	return SCAP_SUCCESS;
+}
+
+int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent, bool *suppressed)
+{
+	const struct ppm_event_info* info = &(g_event_info[pevent->type]);
+	uint16_t *lens;
+	char *valptr;
+	uint32_t j;
+	int32_t res = SCAP_SUCCESS;
+	const char *comm;
+	uint64_t *ptid;
+	scap_tid *stid;
+
+	*suppressed = false;
+
+	// For events that can create a new tid (fork, vfork, clone),
+	// we need to check the comm, which might also update the set
+	// of suppressed tids.
+
+	switch(pevent->type)
+	{
+	case PPME_SYSCALL_CLONE_20_X:
+	case PPME_SYSCALL_FORK_20_X:
+	case PPME_SYSCALL_VFORK_20_X:
+	case PPME_SYSCALL_EXECVE_19_X:
+
+		lens = (uint16_t *)((char *)pevent + sizeof(struct ppm_evt_hdr));
+		valptr = (char *)lens + info->nparams * sizeof(uint16_t);
+
+		// For all of these events, the comm is argument 14,
+		// so we need to walk the list of params that far to
+		// find the comm.
+		for(j = 0; j < 13; j++)
+		{
+			if(j == 5)
+			{
+				ptid = (uint64_t *) valptr;
+			}
+
+			valptr += lens[j];
+		}
+
+		comm = valptr;
+
+		if((res = scap_update_suppressed(handle,
+						 comm,
+						 pevent->tid, *ptid,
+						 suppressed)) != SCAP_SUCCESS)
+		{
+			return res;
+		}
+
+		break;
+
+	default:
+
+		HASH_FIND_INT64(handle->m_suppressed_tids, &(pevent->tid), stid);
+
+		// When threads exit they are always removed and no longer suppressed.
+		if(pevent->type == PPME_PROCEXIT_1_E)
+		{
+			if(stid != NULL)
+			{
+				HASH_DEL(handle->m_suppressed_tids, stid);
+				free(stid);
+				*suppressed = true;
+			}
+			else
+			{
+				*suppressed = false;
+			}
+		}
+		else
+		{
+			*suppressed = (stid != NULL);
+		}
+
+		break;
+	}
+
+	return SCAP_SUCCESS;
 }

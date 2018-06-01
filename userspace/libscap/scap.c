@@ -58,12 +58,32 @@ const char* scap_getlasterr(scap_t* handle)
 	return handle->m_lasterr;
 }
 
+static int32_t copy_comms(scap_t *handle, const char **suppressed_comms)
+{
+	if(suppressed_comms)
+	{
+		uint32_t i;
+		const char *comm;
+		for(i = 0, comm = suppressed_comms[i]; comm && i < SCAP_MAX_SUPPRESSED_COMMS; i++, comm = suppressed_comms[i])
+		{
+			int32_t res;
+			if((res = scap_suppress_events_comm(handle, comm)) != SCAP_SUCCESS)
+			{
+				return res;
+			}
+		}
+	}
+
+	return SCAP_SUCCESS;
+}
+
 #if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 scap_t* scap_open_live_int(char *error, int32_t *rc,
 			   proc_entry_callback proc_callback,
 			   void* proc_callback_context,
 			   bool import_users,
-			   const char *bpf_probe)
+			   const char *bpf_probe,
+			   const char **suppressed_comms)
 {
 	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	*rc = SCAP_NOT_SUPPORTED;
@@ -94,7 +114,8 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			   proc_entry_callback proc_callback,
 			   void* proc_callback_context,
 			   bool import_users,
-			   const char *bpf_probe)
+			   const char *bpf_probe,
+			   const char **suppressed_comms)
 {
 	uint32_t j;
 	char filename[SCAP_MAX_PATH_SIZE];
@@ -247,6 +268,18 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	handle->m_fake_kernel_proc.args[0] = 0;
 	handle->refresh_proc_table_when_saving = true;
 
+	handle->m_suppressed_comms = NULL;
+	handle->m_num_suppressed_comms = 0;
+	handle->m_suppressed_tids = NULL;
+	handle->m_num_suppressed_evts = 0;
+
+	if ((*rc = copy_comms(handle, suppressed_comms)) != SCAP_SUCCESS)
+	{
+		scap_close(handle);
+		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
+		return NULL;
+	}
+
 	//
 	// Open and initialize all the devices
 	//
@@ -398,7 +431,8 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 			      proc_entry_callback proc_callback,
 			      void* proc_callback_context,
 			      bool import_users,
-			      uint64_t start_offset)
+			      uint64_t start_offset,
+			      const char **suppressed_comms)
 {
 	scap_t* handle = NULL;
 
@@ -483,6 +517,18 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 	snprintf(handle->m_fake_kernel_proc.exe, SCAP_MAX_PATH_SIZE, "kernel");
 	handle->m_fake_kernel_proc.args[0] = 0;
 
+	handle->m_suppressed_comms = NULL;
+	handle->m_num_suppressed_comms = 0;
+	handle->m_suppressed_tids = NULL;
+	handle->m_num_suppressed_evts = 0;
+
+	if ((*rc = copy_comms(handle, suppressed_comms)) != SCAP_SUCCESS)
+	{
+		scap_close(handle);
+		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
+		return NULL;
+	}
+
 	return handle;
 }
 
@@ -496,7 +542,7 @@ scap_t* scap_open_offline(const char* fname, char *error, int32_t* rc)
 		return NULL;
 	}
 
-	return scap_open_offline_int(gzfile, error, rc, NULL, NULL, true, 0);
+	return scap_open_offline_int(gzfile, error, rc, NULL, NULL, true, 0, NULL);
 }
 
 scap_t* scap_open_offline_fd(int fd, char *error, int32_t *rc)
@@ -509,12 +555,12 @@ scap_t* scap_open_offline_fd(int fd, char *error, int32_t *rc)
 		return NULL;
 	}
 
-	return scap_open_offline_int(gzfile, error, rc, NULL, NULL, true, 0);
+	return scap_open_offline_int(gzfile, error, rc, NULL, NULL, true, 0, NULL);
 }
 
 scap_t* scap_open_live(char *error, int32_t *rc)
 {
-	return scap_open_live_int(error, rc, NULL, NULL, true, NULL);
+	return scap_open_live_int(error, rc, NULL, NULL, true, NULL, NULL);
 }
 
 scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
@@ -659,14 +705,16 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 
 		return scap_open_offline_int(gzfile, error, rc,
 					     args.proc_callback, args.proc_callback_context,
-					     args.import_users, args.start_offset);
+					     args.import_users, args.start_offset,
+					     args.suppressed_comms);
 	}
 	case SCAP_MODE_LIVE:
 #ifndef CYGWING_AGENT
 		return scap_open_live_int(error, rc, args.proc_callback,
 					  args.proc_callback_context,
 					  args.import_users,
-					  args.bpf_probe);
+					  args.bpf_probe,
+					  args.suppressed_comms);
 #else
 		snprintf(error,	SCAP_LASTERR_SIZE, "scap_open: live mode currently not supported on windows. Use nodriver mode instead.");
 		*rc = SCAP_NOT_SUPPORTED;
@@ -763,6 +811,30 @@ void scap_close(scap_t* handle)
 	{
 		free(handle->m_driver_procinfo);
 		handle->m_driver_procinfo = NULL;
+	}
+
+	if(handle->m_suppressed_comms)
+	{
+		uint32_t i;
+		for(i=0; i < handle->m_num_suppressed_comms; i++)
+		{
+			free(handle->m_suppressed_comms[i]);
+		}
+		free(handle->m_suppressed_comms);
+		handle->m_suppressed_comms = NULL;
+	}
+
+	if(handle->m_suppressed_tids)
+	{
+		struct scap_tid *tid;
+		struct scap_tid *ttid;
+		HASH_ITER(hh, handle->m_suppressed_tids, tid, ttid)
+		{
+			HASH_DEL(handle->m_suppressed_tids, tid);
+			free(tid);
+		}
+
+		handle->m_suppressed_tids = NULL;
 	}
 
 	//
@@ -1102,7 +1174,24 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 
 	if(res == SCAP_SUCCESS)
 	{
-		handle->m_evtcnt++;
+		bool suppressed;
+
+		// Check to see if the event should be suppressed due
+		// to coming from a supressed tid
+		if((res = scap_check_suppressed(handle, *pevent, &suppressed)) != SCAP_SUCCESS)
+		{
+			return res;
+		}
+
+		if(suppressed)
+		{
+			handle->m_num_suppressed_evts++;
+			return SCAP_TIMEOUT;
+		}
+		else
+		{
+			handle->m_evtcnt++;
+		}
 	}
 
 	return res;
@@ -1129,6 +1218,8 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	stats->n_drops_pf = 0;
 	stats->n_drops_bug = 0;
 	stats->n_preemptions = 0;
+	stats->n_suppressed = handle->m_num_suppressed_evts;
+	stats->n_tids_suppressed = HASH_COUNT(handle->m_suppressed_tids);
 
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 	if(handle->m_bpf)
@@ -1859,4 +1950,38 @@ wh_t* scap_get_wmi_handle(scap_t* handle)
 const char *scap_get_bpf_probe_from_env()
 {
 	return getenv(SYSDIG_BPF_PROBE_ENV);
+}
+
+int32_t scap_suppress_events_comm(scap_t *handle, const char *comm)
+{
+	// If the comm is already present in the list, do nothing
+	uint32_t i;
+	for(i=0; i<handle->m_num_suppressed_comms; i++)
+	{
+		if(strcmp(handle->m_suppressed_comms[i], comm) == 0)
+		{
+			return SCAP_SUCCESS;
+		}
+	}
+
+	if(handle->m_num_suppressed_comms >= SCAP_MAX_SUPPRESSED_COMMS)
+	{
+		return SCAP_FAILURE;
+	}
+
+	handle->m_num_suppressed_comms++;
+	handle->m_suppressed_comms = (char **) realloc(handle->m_suppressed_comms,
+						       handle->m_num_suppressed_comms * sizeof(char *));
+
+	handle->m_suppressed_comms[handle->m_num_suppressed_comms-1] = strdup(comm);
+
+	return SCAP_SUCCESS;
+}
+
+bool scap_check_suppressed_tid(scap_t *handle, int64_t tid)
+{
+	scap_tid *stid;
+	HASH_FIND_INT64(handle->m_suppressed_tids, &tid, stid);
+
+	return (stid != NULL);
 }
