@@ -878,7 +878,6 @@ int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_
 bool check_scap_next_wait(scap_t* handle)
 {
 	uint32_t j;
-	bool res = true;
 
 	for(j = 0; j < handle->m_ndevs; j++)
 	{
@@ -902,25 +901,11 @@ bool check_scap_next_wait(scap_t* handle)
 
 		if(read_size > 20000)
 		{
-			handle->m_n_consecutive_waits = 0;
-			res = false;
+			return false;
 		}
 	}
 
-	if(res == false)
-	{
-		return false;
-	}
-
-	if(handle->m_n_consecutive_waits >= MAX_N_CONSECUTIVE_WAITS)
-	{
-		handle->m_n_consecutive_waits = 0;
-		return false;
-	}
-	else
-	{
-		return true;
-	}
+	return handle->m_n_consecutive_waits < MAX_N_CONSECUTIVE_WAITS;
 }
 
 int32_t refill_read_buffers(scap_t* handle)
@@ -932,6 +917,10 @@ int32_t refill_read_buffers(scap_t* handle)
 	{
 		usleep(BUFFER_EMPTY_WAIT_TIME_MS * 1000);
 		handle->m_n_consecutive_waits++;
+	}
+	else
+	{
+		handle->m_n_consecutive_waits = 0;
 	}
 
 	//
