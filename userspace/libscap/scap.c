@@ -899,7 +899,7 @@ bool check_scap_next_wait(scap_t* handle)
 			get_buf_pointers(handle->m_devs[j].m_bufinfo, &thead, &ttail, &read_size);
 		}
 
-		if(read_size > 20000)
+		if(read_size > 0)
 		{
 			return false;
 		}
