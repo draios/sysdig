@@ -863,7 +863,7 @@ private:
 	void import_user_list();
 	void add_protodecoders();
 
-	void add_thread(const sinsp_threadinfo& ptinfo);
+	void add_thread(const sinsp_threadinfo* ptinfo);
 	void remove_thread(int64_t tid, bool force);
 	//
 	// Note: lookup_only should be used when the query for the thread is made
@@ -873,8 +873,6 @@ private:
 	//
 	inline sinsp_threadinfo* find_thread(int64_t tid, bool lookup_only)
 	{
-		threadinfo_map_iterator_t it;
-
 		//
 		// Try looking up in our simple cache
 		//
@@ -890,9 +888,9 @@ private:
 		//
 		// Caching failed, do a real lookup
 		//
-		it = m_thread_manager->m_threadtable.find(tid);
+		sinsp_threadinfo* tinfo = m_thread_manager->m_threadtable.get(tid);
 
-		if(it != m_thread_manager->m_threadtable.end())
+		if(tinfo != nullptr)
 		{
 	#ifdef GATHER_INTERNAL_STATS
 			m_thread_manager->m_non_cached_lookups->increment();
@@ -900,10 +898,10 @@ private:
 			if(!lookup_only)
 			{
 				m_thread_manager->m_last_tid = tid;
-				m_thread_manager->m_last_tinfo = &(it->second);
+				m_thread_manager->m_last_tinfo = tinfo;
 				m_thread_manager->m_last_tinfo->m_lastaccess_ts = m_lastevent_ts;
 			}
-			return &(it->second);
+			return tinfo;
 		}
 		else
 		{

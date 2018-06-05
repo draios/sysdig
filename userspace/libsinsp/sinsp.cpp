@@ -793,12 +793,12 @@ void sinsp::on_new_entry_from_proc(void* context,
 	//
 	if(fdinfo == NULL)
 	{
-		sinsp_threadinfo newti(this);
-		newti.init(tinfo);
+		sinsp_threadinfo* newti = new sinsp_threadinfo(this);
+		newti->init(tinfo);
 		if(is_nodriver())
 		{
 			auto sinsp_tinfo = find_thread(tid, true);
-			if(sinsp_tinfo == nullptr || newti.m_clone_ts > sinsp_tinfo->m_clone_ts)
+			if(sinsp_tinfo == nullptr || newti->m_clone_ts > sinsp_tinfo->m_clone_ts)
 			{
 				m_thread_manager->add_thread(newti, true);
 			}
@@ -814,8 +814,8 @@ void sinsp::on_new_entry_from_proc(void* context,
 
 		if(sinsp_tinfo == NULL)
 		{
-			sinsp_threadinfo newti(this);
-			newti.init(tinfo);
+			sinsp_threadinfo* newti = new sinsp_threadinfo(this);
+			newti->init(tinfo);
 
 			m_thread_manager->add_thread(newti, true);
 
@@ -854,8 +854,8 @@ void sinsp::import_thread_table()
 	//
 	HASH_ITER(hh, table, pi, tpi)
 	{
-		sinsp_threadinfo newti(this);
-		newti.init(pi);
+		sinsp_threadinfo* newti = new sinsp_threadinfo(this);
+		newti->init(pi);
 		m_thread_manager->add_thread(newti, true);
 	}
 }
@@ -1417,7 +1417,7 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 		}
 
 		scap_threadinfo* scap_proc = NULL;
-		sinsp_threadinfo newti(this);
+		sinsp_threadinfo* newti = new sinsp_threadinfo(this);
 
 		m_n_proc_lookups++;
 
@@ -1458,7 +1458,7 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 
 		if(scap_proc)
 		{
-			newti.init(scap_proc);
+			newti->init(scap_proc);
 			scap_proc_free(m_h, scap_proc);
 		}
 		else
@@ -1466,30 +1466,27 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 			//
 			// Add a fake entry to avoid a continuous lookup
 			//
-			newti.m_tid = tid;
-			newti.m_pid = tid;
-			newti.m_ptid = -1;
-			newti.m_comm = "<NA>";
-			newti.m_exe = "<NA>";
-			newti.m_uid = 0xffffffff;
-			newti.m_gid = 0xffffffff;
-			newti.m_nchilds = 0;
+			newti->m_tid = tid;
+			newti->m_pid = tid;
+			newti->m_ptid = -1;
+			newti->m_comm = "<NA>";
+			newti->m_exe = "<NA>";
+			newti->m_uid = 0xffffffff;
+			newti->m_gid = 0xffffffff;
+			newti->m_nchilds = 0;
 		}
 
 		//
 		// Since this thread is created out of thin air, we need to
 		// properly set its reference count, by scanning the table
 		//
-		threadinfo_map_t* pttable = &m_thread_manager->m_threadtable;
-		threadinfo_map_iterator_t it;
-
-		for(it = pttable->begin(); it != pttable->end(); ++it)
-		{
-			if(it->second.m_pid == tid)
+		m_thread_manager->m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
+			if(tinfo.m_pid == tid)
 			{
-				newti.m_nchilds++;
+				newti->m_nchilds++;
 			}
-		}
+			return true;
+		});
 
 		//
 		// Done. Add the new thread to the list.
@@ -1506,9 +1503,9 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid)
 	return get_thread(tid, false, true);
 }
 
-void sinsp::add_thread(const sinsp_threadinfo& ptinfo)
+void sinsp::add_thread(const sinsp_threadinfo* ptinfo)
 {
-	m_thread_manager->add_thread((sinsp_threadinfo&)ptinfo, false);
+	m_thread_manager->add_thread((sinsp_threadinfo*)ptinfo, false);
 }
 
 void sinsp::remove_thread(int64_t tid, bool force)
@@ -2310,6 +2307,8 @@ bool sinsp_thread_manager::remove_inactive_threads()
 	if(m_inspector->m_lastevent_ts >
 		m_last_flush_time_ns + m_inspector->m_inactive_thread_scan_time_ns)
 	{
+		std::unordered_map<uint64_t, bool> to_delete;
+
 		res = true;
 
 		m_last_flush_time_ns = m_inspector->m_lastevent_ts;
@@ -2319,13 +2318,12 @@ bool sinsp_thread_manager::remove_inactive_threads()
 		//
 		// Go through the table and remove dead entries.
 		//
-		for(threadinfo_map_iterator_t it = m_threadtable.begin(); it != m_threadtable.end();)
-		{
-			bool closed = (it->second.m_flags & PPM_CL_CLOSED) != 0;
+		m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
+			bool closed = (tinfo.m_flags & PPM_CL_CLOSED) != 0;
 
 			if(closed ||
-				((m_inspector->m_lastevent_ts > it->second.m_lastaccess_ts + m_inspector->m_thread_timeout_ns) &&
-					!scap_is_thread_alive(m_inspector->m_h, it->second.m_pid, it->first, it->second.m_comm.c_str()))
+				((m_inspector->m_lastevent_ts > tinfo.m_lastaccess_ts + m_inspector->m_thread_timeout_ns) &&
+					!scap_is_thread_alive(m_inspector->m_h, tinfo.m_pid, tinfo.m_tid, tinfo.m_comm.c_str()))
 					)
 			{
 				//
@@ -2337,12 +2335,14 @@ bool sinsp_thread_manager::remove_inactive_threads()
 #ifdef GATHER_INTERNAL_STATS
 				m_removed_threads->increment();
 #endif
-				remove_thread(it++, closed);
+				to_delete[tinfo.m_tid] = closed;
 			}
-			else
-			{
-				++it;
-			}
+			return true;
+		});
+
+		for (auto& it : to_delete)
+		{
+			remove_thread(it.first, it.second);
 		}
 
 		//

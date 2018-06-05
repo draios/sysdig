@@ -526,21 +526,21 @@ void sinsp_table::process_proctable(sinsp_evt* evt)
 	tevt.m_pevt = &tscapevt;
 	tevt.m_fdinfo = NULL;
 
-	for(auto it = threadtable->begin(); it != threadtable->end(); ++it)
-	{
-		tevt.m_tinfo = &it->second;
+	threadtable->loop([&] (sinsp_threadinfo& tinfo) {
+		tevt.m_tinfo = &tinfo;
 		tscapevt.tid = tevt.m_tinfo->m_tid;
 
 		if(m_filter)
 		{
 			if(!m_filter->run(&tevt))
 			{
-				continue;
+				return true;
 			}
 		}
 
 		process_event(&tevt);
-	}
+		return true;
+	});
 }
 
 void sinsp_table::flush(sinsp_evt* evt)
