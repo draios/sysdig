@@ -194,8 +194,8 @@ repos = {
     ]
 }
 
-# Build static list, 2017.09 is last Amazon Linux AMI release https://aws.amazon.com/amazon-linux-2/faqs/
-amazon_linux_builder = [('latest', 'updates'), ('latest', 'main'), ('2017.03', 'updates'), ('2017.03', 'main')]
+# Build static list, check here for the last Amazon Linux AMI release: https://aws.amazon.com/amazon-linux-2/faqs/
+amazon_linux_builder = [('latest', 'updates'), ('latest', 'main'), ('2017.03', 'updates'), ('2017.03', 'main'), ('2017.09', 'updates'), ('2017.09', 'main'), ('2018.03', 'updates'), ('2018.03', 'main')]
 amazon_repos = []
 for repo_release, release_type in amazon_linux_builder:
     amazon_repos.append({
