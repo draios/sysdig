@@ -508,6 +508,7 @@ public:
 	   of failure.
 	*/
 	sinsp_threadinfo* get_thread(int64_t tid, bool query_os_if_not_found, bool lookup_only);
+	threadinfo_map_t::ptr_t get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only);
 
 	/*!
 	  \brief Return the table with all the machine users.
@@ -871,26 +872,31 @@ private:
 	//       just for lookup reason. In that case, m_lastaccess_ts is not updated
 	//       and m_last_tinfo is not set.
 	//
-	inline sinsp_threadinfo* find_thread(int64_t tid, bool lookup_only)
+	inline threadinfo_map_t::ptr_t find_thread(int64_t tid, bool lookup_only)
 	{
+		threadinfo_map_t::ptr_t thr;
 		//
 		// Try looking up in our simple cache
 		//
-		if(m_thread_manager->m_last_tinfo && tid == m_thread_manager->m_last_tid)
+		if(tid == m_thread_manager->m_last_tid)
 		{
+			thr = m_thread_manager->m_last_tinfo.lock();
+			if (thr)
+			{
 	#ifdef GATHER_INTERNAL_STATS
-			m_thread_manager->m_cached_lookups->increment();
+				m_thread_manager->m_cached_lookups->increment();
 	#endif
-			m_thread_manager->m_last_tinfo->m_lastaccess_ts = m_lastevent_ts;
-			return m_thread_manager->m_last_tinfo;
+				thr->m_lastaccess_ts = m_lastevent_ts;
+				return thr;
+			}
 		}
 
 		//
 		// Caching failed, do a real lookup
 		//
-		sinsp_threadinfo* tinfo = m_thread_manager->m_threadtable.get(tid);
+		thr = m_thread_manager->m_threadtable.get_ref(tid);
 
-		if(tinfo != nullptr)
+		if(thr)
 		{
 	#ifdef GATHER_INTERNAL_STATS
 			m_thread_manager->m_non_cached_lookups->increment();
@@ -898,10 +904,10 @@ private:
 			if(!lookup_only)
 			{
 				m_thread_manager->m_last_tid = tid;
-				m_thread_manager->m_last_tinfo = tinfo;
-				m_thread_manager->m_last_tinfo->m_lastaccess_ts = m_lastevent_ts;
+				m_thread_manager->m_last_tinfo = thr;
+				thr->m_lastaccess_ts = m_lastevent_ts;
 			}
-			return tinfo;
+			return thr;
 		}
 		else
 		{
