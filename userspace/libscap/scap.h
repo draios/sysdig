@@ -91,6 +91,8 @@ typedef struct scap_stats
 	uint64_t n_drops_pf; ///< Number of dropped events caused by invalid memory access.
 	uint64_t n_drops_bug; ///< Number of dropped events caused by an invalid condition in the kernel instrumentation.
 	uint64_t n_preemptions; ///< Number of preemptions.
+	uint64_t n_suppressed; ///< Number of events skipped due to the tid being in a set of suppressed tids
+	uint64_t n_tids_suppressed; ///< Number of threads currently being suppressed
 }scap_stats;
 
 /*!
@@ -108,6 +110,7 @@ typedef struct evt_param_info
 #define SCAP_MAX_ARGS_SIZE 4096
 #define SCAP_MAX_ENV_SIZE 4096
 #define SCAP_MAX_CGROUPS_SIZE 4096
+#define SCAP_MAX_SUPPRESSED_COMMS 32
 
 /*!
   \brief File Descriptor type
@@ -266,6 +269,10 @@ typedef struct scap_open_args
 	bool import_users; ///< true if the user list should be created when opening the capture.
 	uint64_t start_offset; ///< Used to start reading a capture file from an arbitrary offset. This is leveraged when opening merged files.
 	const char *bpf_probe; ///< The name of the BPF probe to open. If NULL, the kernel driver will be used.
+	const char *suppressed_comms[SCAP_MAX_SUPPRESSED_COMMS]; ///< A list of processes (comm) for which no
+	                                                         // events should be returned, with a trailing NULL value.
+	                                                         // You can provide additional comm
+	                                                         // values via scap_suppress_events_comm().
 }scap_open_args;
 
 
@@ -906,6 +913,23 @@ struct ppm_proclist_info* scap_get_threadlist(scap_t* handle);
 
 const char *scap_get_bpf_probe_from_env();
 
+/*!
+  \brief stop returning events for all subsequently spawned
+  processes with the provided comm, as well as their children.
+  This includes fork()/clone()ed processes that might later
+  exec to a different comm.
+
+  returns SCAP_FAILURE if there are already MAX_SUPPRESSED_COMMS comm
+  values, SCAP_SUCCESS otherwise.
+*/
+
+int32_t scap_suppress_events_comm(scap_t* handle, const char *comm);
+
+/*!
+  \brief return whether the provided tid is currently being suppressed.
+*/
+
+bool scap_check_suppressed_tid(scap_t *handle, int64_t tid);
 
 /*@}*/
 

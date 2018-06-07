@@ -845,6 +845,12 @@ public:
 		return ! (flags & sinsp::falco_skip_flags());
 	}
 
+	// Add comm to the list of comms for which the inspector
+	// should not return events.
+	bool suppress_events_comm(const std::string &comm);
+
+	bool check_suppressed(int64_t tid);
+
 VISIBILITY_PRIVATE
 
         static inline ppm_event_flags falco_skip_flags()
@@ -865,6 +871,7 @@ private:
 
 	void add_thread(const sinsp_threadinfo* ptinfo);
 	void remove_thread(int64_t tid, bool force);
+
 	//
 	// Note: lookup_only should be used when the query for the thread is made
 	//       not as a consequence of an event for that thread arriving, but
@@ -932,6 +939,8 @@ private:
 	{
 		scap_fseek(m_h, filepos);
 	}
+
+	void add_suppressed_comms(scap_open_args &oargs);
 
 	scap_t* m_h;
 	uint32_t m_nevts;
@@ -1126,6 +1135,10 @@ public:
 #if defined(HAS_CAPTURE)
 	int64_t m_sysdig_pid;
 #endif
+
+	// Any thread with a comm in this set will not have its events
+	// returned in sinsp::next()
+	std::set<std::string> m_suppressed_comms;
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;

@@ -212,6 +212,8 @@ static void usage()
 "                    emitted by sysdig to be flushed, which generates higher CPU\n"
 "                    usage but is useful when piping sysdig's output into another\n"
 "                    process or into a script.\n"
+" -U, --suppress-comm\n"
+"                    Ignore all events from processes having the provided comm.\n"
 " -v, --verbose      Verbose output.\n"
 "                    This flag will cause the full content of text and binary\n"
 "                    buffers to be printed on screen, instead of being truncated\n"
@@ -765,6 +767,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool page_faults = false;
 	bool bpf = false;
 	string bpf_probe;
+	std::set<std::string> suppress_comms;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -809,6 +812,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"readfile", required_argument, 0, 'r' },
 		{"snaplen", required_argument, 0, 's' },
 		{"summary", no_argument, 0, 'S' },
+		{"suppress-comm", required_argument, 0, 'U' },
 		{"timetype", required_argument, 0, 't' },
 		{"force-tracers-capture", required_argument, 0, 'T'},
 		{"unbuffered", no_argument, 0, 0 },
@@ -841,7 +845,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "C:"
                                         "dDEe:F"
                                         "G:"
-                                        "hi:jk:K:lLm:M:n:Pp:qRr:Ss:t:Tv"
+                                        "hi:jk:K:lLm:M:n:Pp:qRr:Ss:t:TU:v"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
@@ -1130,6 +1134,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			case 'T':
 				force_tracers_capture = true;
 				break;
+
+			case 'U':
+				suppress_comms.insert(string(optarg));
+				break;
 			case 'v':
 				verbose = true;
 				break;
@@ -1366,6 +1374,21 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			}
 #endif
 
+			// Suppress any comms specified via -U. We
+			// need to do this *before* opening the
+			// inspector, as that reads the process list.
+			for(auto &comm : suppress_comms)
+			{
+				if (!inspector->suppress_events_comm(comm.c_str()))
+				{
+					fprintf(stderr, "Could not add %s to the set of suppressed comms--did you specify more than %d values?\n",
+						comm.c_str(),
+						SCAP_MAX_SUPPRESSED_COMMS);
+					res.m_res = EXIT_FAILURE;
+					goto exit;
+				}
+			}
+
 			//
 			// Launch the capture
 			//
@@ -1560,9 +1583,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 			if(verbose)
 			{
-				fprintf(stderr, "Driver Events:%" PRIu64 "\nDriver Drops:%" PRIu64 "\n",
+				fprintf(stderr, "Driver Events:%" PRIu64 "\nDriver Drops:%" PRIu64 "\nSuppressed by Comm:%" PRIu64 "\n",
 					cstats.n_evts,
-					cstats.n_drops);
+					cstats.n_drops,
+					cstats.n_suppressed);
 
 				fprintf(stderr, "Elapsed time: %.3lf, Captured Events: %" PRIu64 ", %.2lf eps\n",
 					duration,

@@ -441,6 +441,8 @@ void sinsp::open(uint32_t timeout_ms)
 	}
 	oargs.import_users = m_import_users;
 
+	add_suppressed_comms(oargs);
+
 	if(m_bpf)
 	{
 		oargs.bpf_probe = m_bpf_probe.c_str();
@@ -449,6 +451,8 @@ void sinsp::open(uint32_t timeout_ms)
 	{
 		oargs.bpf_probe = NULL;
 	}
+
+	add_suppressed_comms(oargs);
 
 	int32_t scap_rc;
 	m_h = scap_open(oargs, error, &scap_rc);
@@ -626,6 +630,8 @@ void sinsp::open_int()
 	{
 		oargs.start_offset = 0;
 	}
+
+	add_suppressed_comms(oargs);
 
 	int32_t scap_rc;
 	m_h = scap_open(oargs, error, &scap_rc);
@@ -1511,6 +1517,46 @@ void sinsp::add_thread(const sinsp_threadinfo* ptinfo)
 void sinsp::remove_thread(int64_t tid, bool force)
 {
 	m_thread_manager->remove_thread(tid, force);
+}
+
+bool sinsp::suppress_events_comm(const std::string &comm)
+{
+	if(m_suppressed_comms.size() >= SCAP_MAX_SUPPRESSED_COMMS)
+	{
+		return false;
+	}
+
+	m_suppressed_comms.insert(comm);
+
+	if(m_h)
+	{
+		if (scap_suppress_events_comm(m_h, comm.c_str()) != SCAP_SUCCESS)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool sinsp::check_suppressed(int64_t tid)
+{
+	return scap_check_suppressed_tid(m_h, tid);
+}
+
+void sinsp::add_suppressed_comms(scap_open_args &oargs)
+{
+	uint32_t i = 0;
+
+	// Note--using direct pointers to values in
+	// m_suppressed_comms. This is ok given that a scap_open()
+	// will immediately follow after which the args won't be used.
+	for(auto &comm : m_suppressed_comms)
+	{
+		oargs.suppressed_comms[i++] = comm.c_str();
+	}
+
+	oargs.suppressed_comms[i++] = NULL;
 }
 
 void sinsp::set_snaplen(uint32_t snaplen)

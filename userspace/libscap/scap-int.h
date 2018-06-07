@@ -92,6 +92,14 @@ typedef struct scap_device
 	};
 }scap_device;
 
+
+typedef struct scap_tid
+{
+	uint64_t tid;
+
+	UT_hash_handle hh; ///< makes this structure hashable
+} scap_tid;
+
 //
 // The open instance handle
 //
@@ -137,6 +145,17 @@ struct scap
 		int m_bpf_map_fds[BPF_MAPS_MAX];
 		int m_bpf_prog_array_map_idx;
 	};
+
+	// The set of process names that are suppressed
+	char **m_suppressed_comms;
+	uint32_t m_num_suppressed_comms;
+
+	// The active set of threads that are suppressed
+	scap_tid *m_suppressed_tids;
+
+	// The number of events that were skipped due to the comm
+	// matching an entry in m_suppressed_comms.
+	uint64_t m_num_suppressed_evts;
 };
 
 typedef enum ppm_dumper_type
@@ -240,6 +259,30 @@ int32_t scap_fd_post_process_unix_sockets(scap_t* handle, scap_fdinfo* sockets);
 int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdirname);
 
 bool scap_alloc_proclist_info(scap_t* handle, uint32_t n_entries);
+
+// Determine whether or not the provided event should be suppressed,
+// based on its event type and parameters. May update the set of
+// suppressed tids as a side-effect.
+//
+// Returns SCAP_FAILURE if we tried to add the tid to the suppressed
+// tid set, but it could *not* be added, SCAP_SUCCESS otherwise.
+int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent,
+			      bool *suppressed);
+
+// Possibly add or remove the provided comm, tid combination to the
+// set of suppressed processes. If the ptid is currently in the
+// suppressed set, the tid will always be added to the suppressed
+// set. Otherwise, the tid will be added if the comm matches an entry
+// in suppressed_comms.
+//
+// Sets *suppressed to whether, after this check, the tid is suppressed.
+//
+// Returns SCAP_FAILURE if we tried to add the tid to the suppressed
+// tid set, but it could *not* be added, SCAP_SUCCESS otherwise.
+int32_t scap_update_suppressed(scap_t *handle,
+			       const char *comm,
+			       uint64_t tid, uint64_t ptid,
+			       bool *suppressed);
 
 //
 // ASSERT implementation
