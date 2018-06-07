@@ -468,6 +468,7 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 #ifdef CYGWING_AGENT
 	handle->m_whh = NULL;
 #endif
+	handle->m_bpf = false;
 
 	handle->m_file_evt_buf = (char*)malloc(FILE_READ_BUF_SIZE);
 	if(!handle->m_file_evt_buf)
