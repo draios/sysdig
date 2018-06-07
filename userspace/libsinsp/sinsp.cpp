@@ -816,9 +816,9 @@ void sinsp::on_new_entry_from_proc(void* context,
 	}
 	else
 	{
-		sinsp_threadinfo* sinsp_tinfo = find_thread(tid, true);
+		auto sinsp_tinfo = find_thread(tid, true);
 
-		if(sinsp_tinfo == NULL)
+		if(!sinsp_tinfo)
 		{
 			sinsp_threadinfo* newti = new sinsp_threadinfo(this);
 			newti->init(tinfo);
@@ -826,7 +826,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 			m_thread_manager->add_thread(newti, true);
 
 			sinsp_tinfo = find_thread(tid, true);
-			if(sinsp_tinfo == NULL)
+			if(!sinsp_tinfo)
 			{
 				ASSERT(false);
 				return;
@@ -1398,14 +1398,21 @@ uint64_t sinsp::get_num_events()
 
 sinsp_threadinfo* sinsp::find_thread_test(int64_t tid, bool lookup_only)
 {
-	return find_thread(tid, lookup_only);
+	// TODO: we pay the refcount manipulation price here
+	return &*find_thread(tid, lookup_only);
 }
 
 sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, bool lookup_only)
 {
-	sinsp_threadinfo* sinsp_proc = find_thread(tid, lookup_only);
+	// TODO: we pay the refcount manipulation price here
+	return &*get_thread_ref(tid, query_os_if_not_found, lookup_only);
+}
 
-	if(sinsp_proc == NULL && query_os_if_not_found &&
+threadinfo_map_t::ptr_t sinsp::get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only)
+{
+	auto sinsp_proc = find_thread(tid, lookup_only);
+
+	if(!sinsp_proc && query_os_if_not_found &&
 	   (m_thread_manager->m_threadtable.size() < m_max_thread_table_size
 #if defined(HAS_CAPTURE)
 		   || tid == m_sysdig_pid
@@ -2376,7 +2383,7 @@ bool sinsp_thread_manager::remove_inactive_threads()
 				// Reset the cache
 				//
 				m_last_tid = 0;
-				m_last_tinfo = NULL;
+				m_last_tinfo.reset();
 
 #ifdef GATHER_INTERNAL_STATS
 				m_removed_threads->increment();

@@ -117,7 +117,8 @@ public:
 #ifndef _WIN32
 	inline sinsp_threadinfo* get_main_thread()
 	{
-		if(m_main_thread == NULL)
+		auto main_thread = m_main_thread.lock();
+		if(!main_thread)
 		{
 			//
 			// Is this a child thread?
@@ -138,17 +139,17 @@ public:
 				//
 				// Yes, this is a child thread. Find the process root thread.
 				//
-				sinsp_threadinfo* ptinfo = lookup_thread();
-				if(NULL == ptinfo)
+				auto ptinfo = lookup_thread();
+				if (!ptinfo)
 				{
 					return NULL;
 				}
-
 				m_main_thread = ptinfo;
+				return &*ptinfo;
 			}
 		}
 
-		return m_main_thread;
+		return &*main_thread;
 	}
 #else
 	sinsp_threadinfo* get_main_thread();
@@ -348,7 +349,7 @@ VISIBILITY_PRIVATE
 	}
 	void allocate_private_state();
 	void compute_program_hash();
-	sinsp_threadinfo* lookup_thread();
+	shared_ptr<sinsp_threadinfo> lookup_thread();
 
 	size_t strvec_len(const vector<string> &strs) const;
 	void strvec_to_iovec(const vector<string> &strs,
@@ -373,7 +374,7 @@ VISIBILITY_PRIVATE
 	//
 	sinsp_fdtable m_fdtable; // The fd table of this thread
 	string m_cwd; // current working directory
-	sinsp_threadinfo* m_main_thread;
+	weak_ptr<sinsp_threadinfo> m_main_thread;
 	uint8_t* m_lastevent_data; // Used by some event parsers to store the last enter event
 	vector<void*> m_private_state;
 
@@ -402,10 +403,11 @@ class threadinfo_map_t
 {
 public:
 	typedef std::function<bool(sinsp_threadinfo&)> visitor_t;
+	typedef std::shared_ptr<sinsp_threadinfo> ptr_t;
 
 	inline void put(sinsp_threadinfo* tinfo)
 	{
-		m_threads[tinfo->m_tid] = std::unique_ptr<sinsp_threadinfo>(tinfo);
+		m_threads[tinfo->m_tid] = ptr_t(tinfo);
 	}
 
 	inline sinsp_threadinfo* get(uint64_t tid)
@@ -416,6 +418,16 @@ public:
 			return  nullptr;
 		}
 		return it->second.get();
+	}
+
+	inline ptr_t get_ref(uint64_t tid)
+	{
+		auto it = m_threads.find(tid);
+		if (it == m_threads.end())
+		{
+			return  nullptr;
+		}
+		return it->second;
 	}
 
 	inline void erase(uint64_t tid)
@@ -446,7 +458,7 @@ public:
 	}
 
 protected:
-	unordered_map<int64_t, std::unique_ptr<sinsp_threadinfo>> m_threads;
+	unordered_map<int64_t, ptr_t> m_threads;
 };
 
 
@@ -521,7 +533,7 @@ private:
 	sinsp* m_inspector;
 	threadinfo_map_t m_threadtable;
 	int64_t m_last_tid;
-	sinsp_threadinfo* m_last_tinfo;
+	std::weak_ptr<sinsp_threadinfo> m_last_tinfo;
 	uint64_t m_last_flush_time_ns;
 	uint32_t m_n_drops;
 

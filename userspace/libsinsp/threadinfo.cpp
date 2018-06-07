@@ -77,7 +77,7 @@ void sinsp_threadinfo::init()
 	m_pfminor = 0;
 	m_vtid = -1;
 	m_vpid = -1;
-	m_main_thread = NULL;
+	m_main_thread.reset();
 	m_lastevent_fd = 0;
 #ifdef HAS_FILTERING
 	m_last_latency_entertime = 0;
@@ -894,9 +894,9 @@ void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
 	}
 }
 
-sinsp_threadinfo* sinsp_threadinfo::lookup_thread()
+shared_ptr<sinsp_threadinfo> sinsp_threadinfo::lookup_thread()
 {
-	return m_inspector->get_thread(m_pid, true, true);
+	return m_inspector->get_thread_ref(m_pid, true, true);
 }
 
 //
@@ -927,8 +927,8 @@ sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 			//
 			// Yes, this is a child thread. Find the process root thread.
 			//
-			sinsp_threadinfo* ptinfo = lookup_thread();
-			if (NULL == ptinfo)
+			auto ptinfo = lookup_thread();
+			if (!ptinfo)
 			{
 				return NULL;
 			}
@@ -937,7 +937,7 @@ sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 		}
 	}
 
-	return m_main_thread;
+	return &*m_main_thread;
 }
 #endif
 
@@ -1144,7 +1144,7 @@ void sinsp_thread_manager::clear()
 {
 	m_threadtable.clear();
 	m_last_tid = 0;
-	m_last_tinfo = NULL;
+	m_last_tinfo.reset();
 	m_last_flush_time_ns = 0;
 	m_n_drops = 0;
 
@@ -1190,7 +1190,7 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo* threadinfo, bool from_sc
 	m_added_threads->increment();
 #endif
 
-	m_last_tinfo = NULL;
+	m_last_tinfo.reset();
 
 	if (m_threadtable.size() >= m_inspector->m_max_thread_table_size
 #if defined(HAS_CAPTURE)
@@ -1295,7 +1295,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 		// Reset the cache
 		//
 		m_last_tid = 0;
-		m_last_tinfo = NULL;
+		m_last_tinfo.reset();
 
 #ifdef GATHER_INTERNAL_STATS
 		m_removed_threads->increment();
@@ -1326,7 +1326,7 @@ void sinsp_thread_manager::fix_sockets_coming_from_proc()
 
 void sinsp_thread_manager::clear_thread_pointers(sinsp_threadinfo& tinfo)
 {
-	tinfo.m_main_thread = NULL;
+	tinfo.m_main_thread.reset();
 
 	sinsp_fdtable* fdt = tinfo.get_fd_table();
 	if(fdt != NULL)
@@ -1347,7 +1347,7 @@ void sinsp_thread_manager::clear_thread_pointers(threadinfo_map_iterator_t it)
 
 void sinsp_thread_manager::reset_child_dependencies()
 {
-	m_last_tinfo = NULL;
+	m_last_tinfo.reset();
 	m_last_tid = 0;
 
 	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
