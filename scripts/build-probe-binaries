@@ -523,7 +523,8 @@ if [ -z "$KERNEL_TYPE" ]; then
 	#
 	echo Building Debian
 	DIR=$(dirname $(readlink -f $0))
-	URLS="$($DIR/kernel-crawler.py Debian)"
+	# URLS="$($DIR/kernel-crawler.py Debian)"
+	URLS=""
 
 	for URL in $URLS
 	do
