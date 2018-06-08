@@ -87,8 +87,6 @@ sinsp_container_engine_docker::sinsp_container_engine_docker() :
 	m_api_version("/v1.24")
 {
 #ifndef CYGWING_AGENT
-	curl_global_init(CURL_GLOBAL_DEFAULT);
-
 	m_curlm = curl_multi_init();
 	if(m_curlm)
 	{
@@ -104,16 +102,14 @@ sinsp_container_engine_docker::sinsp_container_engine_docker() :
 		curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, curl_write_callback);
 	}
 #endif
-}	
-	
-sinsp_container_engine_docker::~sinsp_container_engine_docker()
+}
+
+sinsp_container_engine_dockerr::~sinsp_container_engine_docker()
 {
 #ifndef CYGWING_AGENT
 	curl_easy_cleanup(m_curl);
 
 	curl_multi_cleanup(m_curlm);
-
-	curl_global_cleanup();
 #endif
 }
 

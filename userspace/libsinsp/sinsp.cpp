@@ -38,6 +38,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef CYGWING_AGENT
 #include "k8s_api_handler.h"
+#include <curl/curl.h>
 #endif
 
 #ifdef HAS_ANALYZER
@@ -60,6 +61,10 @@ sinsp::sinsp() :
 	m_evt(this),
 	m_container_manager(this)
 {
+#ifndef CYGWING_AGENT
+	// used by mesos and container_manager
+	curl_global_init(CURL_GLOBAL_DEFAULT);
+#endif
 	m_h = NULL;
 	m_parser = NULL;
 	m_dumper = NULL;
@@ -203,6 +208,8 @@ sinsp::~sinsp()
 	delete m_k8s_api_cert;
 
 	delete m_mesos_client;
+
+	curl_global_cleanup();
 #endif
 }
 
