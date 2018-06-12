@@ -1293,8 +1293,8 @@ int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent, bool *suppressed
 	char *valptr;
 	uint32_t j;
 	int32_t res = SCAP_SUCCESS;
-	const char *comm;
-	uint64_t *ptid;
+	const char *comm = NULL;
+	uint64_t *ptid = NULL;
 	scap_tid *stid;
 
 	*suppressed = false;
@@ -1313,6 +1313,12 @@ int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent, bool *suppressed
 		lens = (uint16_t *)((char *)pevent + sizeof(struct ppm_evt_hdr));
 		valptr = (char *)lens + info->nparams * sizeof(uint16_t);
 
+		if(info->nparams < 14)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not find process comm in event argument list");
+			return SCAP_FAILURE;
+		}
+
 		// For all of these events, the comm is argument 14,
 		// so we need to walk the list of params that far to
 		// find the comm.
@@ -1324,6 +1330,12 @@ int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent, bool *suppressed
 			}
 
 			valptr += lens[j];
+		}
+
+		if(ptid == NULL)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not find ptid in event argument list");
+			return SCAP_FAILURE;
 		}
 
 		comm = valptr;
