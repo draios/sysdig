@@ -82,7 +82,7 @@ const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by
 	return NULL;
 }
 
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 CURLM *sinsp_container_engine_docker::m_curlm = NULL;
 CURL *sinsp_container_engine_docker::m_curl = NULL;
 #endif
@@ -91,7 +91,7 @@ sinsp_container_engine_docker::sinsp_container_engine_docker() :
 	m_unix_socket_path(string(scap_get_host_root()) + "/var/run/docker.sock"),
 	m_api_version("/v1.24")
 {
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	if(!m_curlm)
 	{
 		m_curl = curl_easy_init();
@@ -115,14 +115,14 @@ sinsp_container_engine_docker::sinsp_container_engine_docker() :
 
 void sinsp_container_engine_docker::cleanup()
 {
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	curl_easy_cleanup(m_curl);
 
 	curl_multi_cleanup(m_curlm);
 #endif
 }
 
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 size_t sinsp_container_engine_docker::curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json)
 {
 	const std::size_t total = size * nmemb;
@@ -461,6 +461,7 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 
 sinsp_docker_response sinsp_container_engine_docker::get_docker(const sinsp_container_manager* manager, const string& url, string &json)
 {
+#ifdef HAS_CAPTURE
 	if(curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str()) != CURLE_OK)
 	{
 		ASSERT(false);
@@ -508,6 +509,9 @@ sinsp_docker_response sinsp_container_engine_docker::get_docker(const sinsp_cont
 	}
 
 	return sinsp_docker_response::RESP_OK;
+#else
+	return sinsp_docker_response::RESP_ERROR;
+#endif
 }
 
 bool sinsp_container_engine_lxc::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)

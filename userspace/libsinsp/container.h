@@ -18,7 +18,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
-#if !defined(_WIN32) && !defined(CYGWING_AGENT)
+#if !defined(_WIN32) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <curl/multi.h>
@@ -167,7 +167,7 @@ public:
 	static void cleanup();
 
 protected:
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	static size_t curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json);
 #endif
 	sinsp_docker_response get_docker(const sinsp_container_manager* manager, const string& url, string &json);
@@ -175,7 +175,7 @@ protected:
 
 	string m_unix_socket_path;
 	string m_api_version;
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	static CURLM *m_curlm;
 	static CURL *m_curl;
 #endif
