@@ -82,29 +82,38 @@ const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by
 	return NULL;
 }
 
+#ifndef CYGWING_AGENT
+CURLM *sinsp_container_engine_docker::m_curlm = NULL;
+CURL *sinsp_container_engine_docker::m_curl = NULL;
+#endif
+
 sinsp_container_engine_docker::sinsp_container_engine_docker() :
 	m_unix_socket_path(string(scap_get_host_root()) + "/var/run/docker.sock"),
 	m_api_version("/v1.24")
 {
 #ifndef CYGWING_AGENT
-	m_curlm = curl_multi_init();
-	if(m_curlm)
+	if(!m_curlm)
 	{
-		curl_multi_setopt(m_curlm, CURLMOPT_PIPELINING, CURLPIPE_HTTP1|CURLPIPE_MULTIPLEX);
-	}
+		m_curl = curl_easy_init();
+		m_curlm = curl_multi_init();
 
-	m_curl = curl_easy_init();
-	if(m_curl)
-	{
-		curl_easy_setopt(m_curl, CURLOPT_UNIX_SOCKET_PATH, m_unix_socket_path.c_str());
-		curl_easy_setopt(m_curl, CURLOPT_HTTPGET, 1);
-		curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
-		curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, curl_write_callback);
+		if(m_curlm)
+		{
+			curl_multi_setopt(m_curlm, CURLMOPT_PIPELINING, CURLPIPE_HTTP1|CURLPIPE_MULTIPLEX);
+		}
+
+		if(m_curl)
+		{
+			curl_easy_setopt(m_curl, CURLOPT_UNIX_SOCKET_PATH, m_unix_socket_path.c_str());
+			curl_easy_setopt(m_curl, CURLOPT_HTTPGET, 1);
+			curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
+			curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, curl_write_callback);
+		}
 	}
 #endif
 }
 
-sinsp_container_engine_dockerr::~sinsp_container_engine_docker()
+void sinsp_container_engine_docker::cleanup()
 {
 #ifndef CYGWING_AGENT
 	curl_easy_cleanup(m_curl);
@@ -973,6 +982,11 @@ sinsp_container_manager::sinsp_container_manager(sinsp* inspector) :
 	m_inspector(inspector),
 	m_last_flush_time_ns(0)
 {
+}
+
+sinsp_container_manager::~sinsp_container_manager()
+{
+	sinsp_container_engine_docker::cleanup();
 }
 
 bool sinsp_container_manager::remove_inactive_containers()

@@ -162,12 +162,13 @@ class sinsp_container_engine_docker
 {
 public:
 	sinsp_container_engine_docker();
-	virtual ~sinsp_container_engine_docker();
 
 	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+	static void cleanup();
+
 protected:
 #ifndef CYGWING_AGENT
-	size_t curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json);
+	static size_t curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json);
 #endif
 	sinsp_docker_response get_docker(const sinsp_container_manager* manager, const string& url, string &json);
 	bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
@@ -175,8 +176,8 @@ protected:
 	string m_unix_socket_path;
 	string m_api_version;
 #ifndef CYGWING_AGENT
-	CURLM *m_curlm;
-	CURL *m_curl;
+	static CURLM *m_curlm;
+	static CURL *m_curl;
 #endif
 };
 
