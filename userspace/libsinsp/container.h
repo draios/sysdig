@@ -243,6 +243,7 @@ public:
 	void subscribe_on_new_container(new_container_cb callback);
 	void subscribe_on_remove_container(remove_container_cb callback);
 
+	void cleanup();
 private:
 	string container_to_json(const sinsp_container_info& container_info);
 	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);

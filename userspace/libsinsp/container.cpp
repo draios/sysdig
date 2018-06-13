@@ -117,8 +117,9 @@ void sinsp_container_engine_docker::cleanup()
 {
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	curl_easy_cleanup(m_curl);
-
+	m_curl = NULL;
 	curl_multi_cleanup(m_curlm);
+	m_curlm = NULL;
 #endif
 }
 
@@ -990,7 +991,6 @@ sinsp_container_manager::sinsp_container_manager(sinsp* inspector) :
 
 sinsp_container_manager::~sinsp_container_manager()
 {
-	sinsp_container_engine_docker::cleanup();
 }
 
 bool sinsp_container_manager::remove_inactive_containers()
@@ -1235,4 +1235,9 @@ void sinsp_container_manager::subscribe_on_new_container(new_container_cb callba
 void sinsp_container_manager::subscribe_on_remove_container(remove_container_cb callback)
 {
 	m_remove_callbacks.emplace_back(callback);
+}
+
+void sinsp_container_manager::cleanup()
+{
+	sinsp_container_engine_docker::cleanup();
 }

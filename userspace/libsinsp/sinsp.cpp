@@ -204,6 +204,8 @@ sinsp::~sinsp()
 		delete[] m_meinfo.m_piscapevt;
 	}
 
+	m_container_manager.cleanup();
+
 #ifndef CYGWING_AGENT
 	delete m_k8s_client;
 	delete m_k8s_api_server;
