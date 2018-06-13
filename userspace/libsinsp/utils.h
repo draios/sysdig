@@ -110,7 +110,13 @@ public:
 	static bool find_first_env(std::string &out, const std::vector<std::string> &env, const std::vector<std::string> &keys);
 	static bool find_env(std::string &out, const std::vector<std::string> &env, const std::string &key);
 
-	static void split_container_image(const std::string &image, std::string &repo, std::string &tag, std::string &digest);
+	static void split_container_image(const std::string &image,
+					  std::string &hostname,
+					  std::string &port,
+					  std::string &name,
+					  std::string &tag,
+					  std::string &digest,
+					  bool split_repo = true);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

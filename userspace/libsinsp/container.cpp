@@ -181,10 +181,18 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 		container->m_imageid = imgstr.substr(cpos + 1);
 	}
 
+	string hostname, port;
 	sinsp_utils::split_container_image(container->m_image,
+					   hostname,
+					   port,
 					   container->m_imagerepo,
 					   container->m_imagetag,
-					   container->m_imagedigest);
+					   container->m_imagedigest,
+					   false);
+	if(container->m_imagetag.empty())
+	{
+		container->m_imagetag = "latest";
+	}
 
 	if(container->m_imagedigest.empty())
 	{

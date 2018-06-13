@@ -817,7 +817,13 @@ bool sinsp_utils::find_env(std::string &out, const vector<std::string> &env, con
 	return find_first_env(out, env, keys);
 }
 
-void sinsp_utils::split_container_image(const std::string &image, std::string &repo, std::string &tag, std::string &digest)
+void sinsp_utils::split_container_image(const std::string &image,
+					std::string &hostname,
+					std::string &port,
+					std::string &name,
+					std::string &tag,
+					std::string &digest,
+					bool split_repo)
 {
 	auto split = [](const std::string &src, std::string &part1, std::string &part2, const std::string sep)
 	{
@@ -831,32 +837,47 @@ void sinsp_utils::split_container_image(const std::string &image, std::string &r
 		return false;
 	};
 
-	std::string rem, rem2, repo1, repo2;
+	std::string hostport, rem, rem2, repo;
 
-	if(!split(image, rem, digest, "@"))
-	{
-		rem = image;
-	}
+	hostname = port = name = tag = digest = "";
 
-	if(split(rem, repo1, rem2, "/") && repo1.find(":") != std::string::npos)
+	if(split(image, hostport, rem, "/"))
 	{
-		if(!split(rem2, repo2, tag, ":"))
+		repo = hostport + "/";
+		if(!split(hostport, hostname, port, ":"))
 		{
-			repo2 = rem2;
+			hostname = hostport;
+			port = "";
 		}
-		repo = repo1 + "/" + repo2;
 	}
 	else
 	{
-		if(!split(rem, repo, tag, ":"))
+		hostname = "";
+		port = "";
+		rem = image;
+	}
+
+	if(split(rem, rem2, digest, "@"))
+	{
+		if(!split(rem2, name, tag, ":"))
 		{
-			repo = rem;
+			name = rem2;
+			tag = "";
+		}
+	}
+	else
+	{
+		digest = "";
+		if(!split(rem, name, tag, ":"))
+		{
+			name = rem;
+			tag = "";
 		}
 	}
 
-	if(tag.empty())
+	if(!split_repo)
 	{
-		tag = "latest";
+		name = repo + name;
 	}
 }
 
