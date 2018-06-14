@@ -365,12 +365,6 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 			continue;
 		}
 
-		// transient cgroup
-		if(strncmp(subsys_list, "name=", sizeof("name=") - 1) == 0)
-		{
-			continue;
-		}
-
 		// cgroup
 		cgroup = strtok_r(NULL, ":", &scratch);
 		if(cgroup == NULL)
@@ -393,7 +387,7 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 				return SCAP_SUCCESS;
 			}
 
-			snprintf(tinfo->cgroups + tinfo->cgroups_len, SCAP_MAX_CGROUPS_SIZE - tinfo->cgroups_len, "%s=%s", token, cgroup);
+			snprintf(tinfo->cgroups + tinfo->cgroups_len, SCAP_MAX_CGROUPS_SIZE - tinfo->cgroups_len, "%s:%s", token, cgroup);
 			tinfo->cgroups_len += strlen(cgroup) + 1 + strlen(token) + 1;
 		}
 	}
