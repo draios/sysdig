@@ -593,7 +593,7 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 	while(offset < len)
 	{
 		const char* str = cgroups + offset;
-		const char* sep = strchr(str, '=');
+		const char* sep = strchr(str, ':');
 		if(sep == NULL)
 		{
 			ASSERT(false);
