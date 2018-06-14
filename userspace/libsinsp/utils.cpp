@@ -817,6 +817,70 @@ bool sinsp_utils::find_env(std::string &out, const vector<std::string> &env, con
 	return find_first_env(out, env, keys);
 }
 
+void sinsp_utils::split_container_image(const std::string &image,
+					std::string &hostname,
+					std::string &port,
+					std::string &name,
+					std::string &tag,
+					std::string &digest,
+					bool split_repo)
+{
+	auto split = [](const std::string &src, std::string &part1, std::string &part2, const std::string sep)
+	{
+		size_t pos = src.find(sep);
+		if(pos != std::string::npos)
+		{
+			part1 = src.substr(0, pos);
+			part2 = src.substr(pos+1);
+			return true;
+		}
+		return false;
+	};
+
+	std::string hostport, rem, rem2, repo;
+
+	hostname = port = name = tag = digest = "";
+
+	if(split(image, hostport, rem, "/"))
+	{
+		repo = hostport + "/";
+		if(!split(hostport, hostname, port, ":"))
+		{
+			hostname = hostport;
+			port = "";
+		}
+	}
+	else
+	{
+		hostname = "";
+		port = "";
+		rem = image;
+	}
+
+	if(split(rem, rem2, digest, "@"))
+	{
+		if(!split(rem2, name, tag, ":"))
+		{
+			name = rem2;
+			tag = "";
+		}
+	}
+	else
+	{
+		digest = "";
+		if(!split(rem, name, tag, ":"))
+		{
+			name = rem;
+			tag = "";
+		}
+	}
+
+	if(!split_repo)
+	{
+		name = repo + name;
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Time utility functions.
 ///////////////////////////////////////////////////////////////////////////////
