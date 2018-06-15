@@ -51,7 +51,7 @@ typedef struct _block_header
 // Must be increased every time we change the capture format
 // (e.g. most of the changes in the event table, like adding
 // a syscall)
-#define CURRENT_MINOR_VERSION	1
+#define CURRENT_MINOR_VERSION	2
 
 typedef struct _section_header_block
 {
@@ -96,6 +96,8 @@ typedef struct _section_header_block
 #define PL_BLOCK_TYPE_V7		0x213
 
 #define PL_BLOCK_TYPE_V8		0x214
+
+#define PL_BLOCK_TYPE_V9		0x215
 
 ///////////////////////////////////////////////////////////////////////////////
 // FD LIST BLOCK

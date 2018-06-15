@@ -1429,13 +1429,16 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, 	scap_threadi
 void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 {
 	//
-	// First pass of the table to calculate the length
+	// First pass of the table to calculate the lengths
 	//
 	uint32_t totlen = 0;
 
+	vector<uint32_t> lengths;
+
 	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
 		uint32_t il = (uint32_t)
-			(sizeof(uint64_t) +	// tid
+			(sizeof(uint32_t) +     // len
+			sizeof(uint64_t) +	// tid
 			sizeof(uint64_t) +	// pid
 			sizeof(uint64_t) +	// ptid
 			sizeof(uint64_t) +	// sid
@@ -1461,6 +1464,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
                         2 + MIN(tinfo.cgroups_len(), SCAP_MAX_CGROUPS_SIZE) +
 			2 + MIN(tinfo.m_root.size(), SCAP_MAX_PATH_SIZE));
 
+		lengths.push_back(il);
 		totlen += il;
 		return true;
 	});
@@ -1473,6 +1477,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 	}
 
+	uint32_t idx = 0;
 	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
 		scap_threadinfo *sctinfo;
 		struct iovec *args_iov, *envs_iov, *cgroups_iov;
@@ -1489,7 +1494,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		tinfo.env_to_iovec(&envs_iov, &envscnt, envsrem);
 		tinfo.cgroups_to_iovec(&cgroups_iov, &cgroupscnt, cgroupsrem);
 
-		if(scap_write_proclist_entry_bufs(m_inspector->m_h, dumper, sctinfo,
+		if(scap_write_proclist_entry_bufs(m_inspector->m_h, dumper, sctinfo, lengths[idx++],
 						  tinfo.m_comm.c_str(),
 						  tinfo.m_exe.c_str(),
 						  tinfo.m_exepath.c_str(),
