@@ -1128,27 +1128,27 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 	int32_t uth_status = SCAP_SUCCESS;
 	struct scap_threadinfo *ntinfo;
 
-	tinfo.fdlist = NULL;
-	tinfo.flags = 0;
-	tinfo.vmsize_kb = 0;
-	tinfo.vmrss_kb = 0;
-	tinfo.vmswap_kb = 0;
-	tinfo.pfmajor = 0;
-	tinfo.pfminor = 0;
-	tinfo.env_len = 0;
-	tinfo.vtid = -1;
-	tinfo.vpid = -1;
-	tinfo.cgroups_len = 0;
-	tinfo.filtered_out = 0;
-	tinfo.root[0] = 0;
-	tinfo.sid = -1;
-	tinfo.vpgid = -1;
-	tinfo.clone_ts = 0;
-	tinfo.tty = 0;
-	tinfo.exepath[0] = 0;
-
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
 	{
+		tinfo.fdlist = NULL;
+		tinfo.flags = 0;
+		tinfo.vmsize_kb = 0;
+		tinfo.vmrss_kb = 0;
+		tinfo.vmswap_kb = 0;
+		tinfo.pfmajor = 0;
+		tinfo.pfminor = 0;
+		tinfo.env_len = 0;
+		tinfo.vtid = -1;
+		tinfo.vpid = -1;
+		tinfo.cgroups_len = 0;
+		tinfo.filtered_out = 0;
+		tinfo.root[0] = 0;
+		tinfo.sid = -1;
+		tinfo.vpgid = -1;
+		tinfo.clone_ts = 0;
+		tinfo.tty = 0;
+		tinfo.exepath[0] = 0;
+
 		//
 		// tid
 		//
