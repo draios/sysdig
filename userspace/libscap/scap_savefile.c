@@ -2735,6 +2735,15 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 		*pevent = (struct ppm_evt_hdr *)(handle->m_file_evt_buf + sizeof(uint16_t));
 	}
 
+	if((*pevent)->type >= PPM_EVENT_MAX)
+	{
+		//
+		// We're reading a capture that contains new syscalls.
+		// We can't do anything else that skips them.
+		//
+		return scap_next_offline(handle, pevent, pcpuid);
+	}
+
 	if(bh.block_type != EV_BLOCK_TYPE_V2 && bh.block_type != EVF_BLOCK_TYPE_V2)
 	{
 		//
