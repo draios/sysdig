@@ -1447,6 +1447,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
                         // 1 is sizeof("/")
                         2 + MIN((tinfo.m_cwd == "")? 1 : tinfo.m_cwd.size(), SCAP_MAX_PATH_SIZE) +
 			sizeof(uint64_t) +	// fdlimit
+			sizeof(uint32_t) +	// flags
 			sizeof(uint32_t) +	// uid
 			sizeof(uint32_t) +	// gid
 			sizeof(uint32_t) +  // vmsize_kb
@@ -1458,7 +1459,6 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			sizeof(int64_t) +  // vtid
 			sizeof(int64_t) +  // vpid
                         2 + MIN(tinfo.cgroups_len(), SCAP_MAX_CGROUPS_SIZE) +
-			sizeof(uint32_t) +
 			2 + MIN(tinfo.m_root.size(), SCAP_MAX_PATH_SIZE));
 
 		totlen += il;

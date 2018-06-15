@@ -422,6 +422,7 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 				2 + tinfo->args_len +
 				2 + strnlen(tinfo->cwd, SCAP_MAX_PATH_SIZE) +
 				sizeof(uint64_t) +	// fdlimit
+				sizeof(uint32_t) +      // flags
 				sizeof(uint32_t) +	// uid
 				sizeof(uint32_t) +	// gid
 				sizeof(uint32_t) +  // vmsize_kb
@@ -433,7 +434,6 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 				sizeof(int64_t) +  // vtid
 				sizeof(int64_t) +  // vpid
 				2 + tinfo->cgroups_len +
-				sizeof(uint32_t) +
 				2 + strnlen(tinfo->root, SCAP_MAX_PATH_SIZE));
 
 			totlen += il;
