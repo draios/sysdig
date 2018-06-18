@@ -2404,12 +2404,18 @@ int f_sys_mount_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_openat_e(struct event_filler_arguments *args)
+int f_sys_openat_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	unsigned long flags;
 	unsigned long modes;
 	int res;
+	int64_t retval;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
 
 	/*
 	 * dirfd

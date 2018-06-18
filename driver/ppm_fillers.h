@@ -71,7 +71,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 	FN(sys_socket_bind_x)			\
 	FN(sys_poll_e)				\
 	FN(sys_poll_x)				\
-	FN(sys_openat_e)			\
 	FN(sys_pread64_e)			\
 	FN(sys_preadv64_e)			\
 	FN(sys_writev_e)			\
@@ -116,6 +115,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 	FN(sys_bpf_x)				\
 	FN(sys_unlinkat_x)			\
 	FN(sys_mkdirat_x)			\
+	FN(sys_openat_x)			\
 	FN(terminate_filler)
 
 #define FILLER_ENUM_FN(x) PPM_FILLER_##x,

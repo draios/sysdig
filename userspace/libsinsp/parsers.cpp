@@ -314,6 +314,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_OPEN_X:
 	case PPME_SYSCALL_CREAT_X:
 	case PPME_SYSCALL_OPENAT_X:
+	case PPME_SYSCALL_OPENAT_2_X:
 		parse_open_openat_creat_exit(evt);
 		break;
 	case PPME_SYSCALL_SELECT_E:
@@ -1952,6 +1953,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	sinsp_fdinfo_t fdi;
 	sinsp_evt *enter_evt = &m_tmp_evt;
 	string sdir;
+	uint16_t etype = evt->get_type();
 
 	ASSERT(evt->m_tinfo);
 	if(evt->m_tinfo == nullptr)
@@ -1959,12 +1961,16 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		return;
 	}
 
-	//
-	// Load the enter event so we can access its arguments
-	//
-	if(!retrieve_enter_event(enter_evt, evt))
+
+	if(etype != PPME_SYSCALL_OPENAT_2_X)
 	{
-		return;
+		//
+		// Load the enter event so we can access its arguments
+		//
+		if(!retrieve_enter_event(enter_evt, evt))
+		{
+			return;
+		}
 	}
 
 	//
@@ -1977,7 +1983,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	//
 	// Parse the parameters, based on the event type
 	//
-	if(evt->get_type() == PPME_SYSCALL_OPEN_X)
+	if(etype == PPME_SYSCALL_OPEN_X)
 	{
 		parinfo = evt->get_param(1);
 		name = parinfo->m_val;
@@ -1989,7 +1995,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 
 		sdir = evt->m_tinfo->get_cwd();
 	}
-	else if(evt->get_type() == PPME_SYSCALL_CREAT_X)
+	else if(etype == PPME_SYSCALL_CREAT_X)
 	{
 		parinfo = evt->get_param(1);
 		name = parinfo->m_val;
@@ -1999,7 +2005,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 
 		sdir = evt->m_tinfo->get_cwd();
 	}
-	else if(evt->get_type() == PPME_SYSCALL_OPENAT_X)
+	else if(etype == PPME_SYSCALL_OPENAT_X)
 	{
 		parinfo = enter_evt->get_param(1);
 		name = parinfo->m_val;
@@ -2010,6 +2016,22 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		flags = *(uint32_t *)parinfo->m_val;
 
 		parinfo = enter_evt->get_param(0);
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		int64_t dirfd = *(int64_t *)parinfo->m_val;
+
+		parse_openat_dir(evt, name, dirfd, &sdir);
+	}
+	else if(etype == PPME_SYSCALL_OPENAT_2_X)
+	{
+		parinfo = evt->get_param(2);
+		name = parinfo->m_val;
+		namelen = parinfo->m_len;
+
+		parinfo = evt->get_param(3);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		flags = *(uint32_t *)parinfo->m_val;
+
+		parinfo = evt->get_param(1);
 		ASSERT(parinfo->m_len == sizeof(int64_t));
 		int64_t dirfd = *(int64_t *)parinfo->m_val;
 

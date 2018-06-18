@@ -1833,12 +1833,18 @@ FILLER(sys_generic, true)
 	return res;
 }
 
-FILLER(sys_openat_e, true)
+FILLER(sys_openat_x, true)
 {
 	unsigned long flags;
 	unsigned long val;
 	unsigned long mode;
+	long retval;
 	int res;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
 
 	/*
 	 * dirfd

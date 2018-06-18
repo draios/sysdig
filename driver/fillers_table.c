@@ -102,8 +102,6 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_CHDIR_X] = {FILLER_REF(sys_autofill), 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_SYSCALL_FCHDIR_E] = {FILLER_REF(sys_single)},
 	[PPME_SYSCALL_FCHDIR_X] = {FILLER_REF(sys_single_x)},
-	[PPME_SYSCALL_OPENAT_E] = {FILLER_REF(sys_openat_e)},
-	[PPME_SYSCALL_OPENAT_X] = {FILLER_REF(sys_single_x)},
 	[PPME_SYSCALL_LINK_E] = {FILLER_REF(sys_autofill), 2, APT_REG, {{0}, {1} } },
 	[PPME_SYSCALL_LINK_X] = {FILLER_REF(sys_single_x)},
 	[PPME_SYSCALL_LINKAT_E] = {FILLER_REF(sys_autofill), 4, APT_REG, {{0}, {1}, {2}, {3} } },
@@ -276,5 +274,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_UNLINKAT_2_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_UNLINKAT_2_X] = {FILLER_REF(sys_unlinkat_x)},
 	[PPME_SYSCALL_MKDIRAT_E] = {FILLER_REF(sys_empty)},
-	[PPME_SYSCALL_MKDIRAT_X] = {FILLER_REF(sys_mkdirat_x)}
+	[PPME_SYSCALL_MKDIRAT_X] = {FILLER_REF(sys_mkdirat_x)},
+	[PPME_SYSCALL_OPENAT_2_E] = {FILLER_REF(sys_empty)},
+	[PPME_SYSCALL_OPENAT_2_X] = {FILLER_REF(sys_openat_x)}
 };
