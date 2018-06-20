@@ -18,6 +18,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include <functional>
+
 #if !defined(_WIN32) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 #include <curl/curl.h>
 #include <curl/easy.h>
