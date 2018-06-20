@@ -710,6 +710,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 			tscapevt.ts = ch->m_inspector->m_lastevent_ts;
 			tscapevt.type = PPME_SYSCALL_READ_X;
 			tscapevt.len = 0;
+			tscapevt.nparams = 0;
 
 			tevt.m_inspector = ch->m_inspector;
 			tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);

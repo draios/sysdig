@@ -1666,6 +1666,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		hdr->ts = timespec_to_ns(ts);
 		hdr->tid = current->pid;
 		hdr->type = event_type;
+		hdr->nparams = args.nargs;
 
 		/*
 		 * Populate the parameters for the filler callback

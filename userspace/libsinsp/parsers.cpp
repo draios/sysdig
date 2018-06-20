@@ -1737,6 +1737,17 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		ASSERT(false);
 	}
 
+	// From scap version 1.2, event types of existent
+	// events are no longer changed.
+	// sinsp_evt::get_num_params() can instead be used
+	// to identify the version of the event.
+	// For example:
+	//
+	// if(evt->get_num_params() > 17)
+	// {
+	//   ...
+	// }
+
 	//
 	// execve starts with a clean fd list, so we get rid of the fd list that clone
 	// copied from the parent
@@ -3138,6 +3149,7 @@ uint32_t sinsp_parser::parse_tracer(sinsp_evt *evt, int64_t retval)
 	uint8_t* fakeevt_storage = (uint8_t*)m_fake_userevt;
 	m_fake_userevt->ts = evt->m_pevt->ts;
 	m_fake_userevt->tid = evt->m_pevt->tid;
+	m_fake_userevt->nparams = 3;
 
 	if(p->m_res == sinsp_tracerparser::RES_OK)
 	{

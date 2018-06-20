@@ -8,6 +8,7 @@ static __always_inline void write_evt_hdr(struct filler_data *data)
 	evt_hdr->ts = data->state->tail_ctx.ts;
 	evt_hdr->tid = bpf_get_current_pid_tgid() & 0xffffffff;
 	evt_hdr->type = data->state->tail_ctx.evt_type;
+	evt_hdr->nparams = data->evt->nparams;
 
 	data->state->tail_ctx.curoff = sizeof(struct ppm_evt_hdr) +
 				       sizeof(u16) * data->evt->nparams;

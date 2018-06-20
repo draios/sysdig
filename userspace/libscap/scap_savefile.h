@@ -114,6 +114,7 @@ typedef struct _section_header_block
 #define EV_BLOCK_TYPE_INT		0x8010ABCD	// This is the unofficial number used before the
 											// library release. We'll keep him for a while for
 											// backward compatibility
+#define EV_BLOCK_TYPE_V2		0x216
 
 ///////////////////////////////////////////////////////////////////////////////
 // INTERFACE LIST BLOCK
@@ -134,7 +135,9 @@ typedef struct _section_header_block
 ///////////////////////////////////////////////////////////////////////////////
 // EVENT BLOCK WITH FLAGS
 ///////////////////////////////////////////////////////////////////////////////
-#define EVF_BLOCK_TYPE	0x208
+#define EVF_BLOCK_TYPE		0x208
+
+#define EVF_BLOCK_TYPE_V2	0x217
 
 #if defined __sun
 #pragma pack()

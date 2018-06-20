@@ -1140,6 +1140,7 @@ static int32_t scap_next_nodriver(scap_t* handle, OUT scap_evt** pevent, OUT uin
 	evt.len = 0;
 	evt.tid = -1;
 	evt.type = PPME_SYSDIGEVENT_X;
+	evt.nparams = 0;
 
 	usleep(100000);
 

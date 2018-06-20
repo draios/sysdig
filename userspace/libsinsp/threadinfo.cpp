@@ -438,6 +438,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	tscapevt.ts = 0;
 	tscapevt.type = PPME_SYSCALL_READ_X;
 	tscapevt.len = 0;
+	tscapevt.nparams = 0;
 
 	tevt.m_inspector = m_inspector;
 	tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);

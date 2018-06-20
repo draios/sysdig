@@ -1067,7 +1067,7 @@ int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid,
 		//
 		// Write the section header
 		//
-		bh.block_type = EV_BLOCK_TYPE;
+		bh.block_type = EV_BLOCK_TYPE_V2;
 		bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + sizeof(cpuid) + e->len + 4);
 		bt = bh.block_total_length;
 
@@ -1086,7 +1086,7 @@ int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid,
 		//
 		// Write the section header
 		//
-		bh.block_type = EVF_BLOCK_TYPE;
+		bh.block_type = EVF_BLOCK_TYPE_V2;
 		bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + sizeof(cpuid) + sizeof(flags) + e->len + 4);
 		bt = bh.block_total_length;
 
@@ -2435,7 +2435,9 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 			break;
 		case EV_BLOCK_TYPE:
 		case EV_BLOCK_TYPE_INT:
+		case EV_BLOCK_TYPE_V2:
 		case EVF_BLOCK_TYPE:
+		case EVF_BLOCK_TYPE_V2:
 			found_ev = 1;
 
 			//
@@ -2534,6 +2536,7 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 	block_header bh;
 	size_t readsize;
 	uint32_t readlen;
+	size_t hdr_len;
 	gzFile f = handle->m_file;
 
 	ASSERT(f != NULL);
@@ -2567,15 +2570,23 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 	}
 
 	if(bh.block_type != EV_BLOCK_TYPE &&
+		bh.block_type != EV_BLOCK_TYPE_V2 &&
 		bh.block_type != EV_BLOCK_TYPE_INT &&
-		bh.block_type != EVF_BLOCK_TYPE)
+		bh.block_type != EVF_BLOCK_TYPE &&
+		bh.block_type != EVF_BLOCK_TYPE_V2)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unexpected block type %u", (uint32_t)bh.block_type);
 		handle->m_unexpected_block_readsize = readsize;
 		return SCAP_UNEXPECTED_BLOCK;
 	}
 
-	if(bh.block_total_length < sizeof(bh) + sizeof(struct ppm_evt_hdr) + 4)
+	hdr_len = sizeof(struct ppm_evt_hdr);
+	if(bh.block_type != EV_BLOCK_TYPE_V2 && bh.block_type != EVF_BLOCK_TYPE_V2)
+	{
+		hdr_len -= 4;
+	}
+
+	if(bh.block_total_length < sizeof(bh) + hdr_len + 4)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "block length too short %u", (uint32_t)bh.block_total_length);
 		return SCAP_FAILURE;
@@ -2600,7 +2611,7 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 	//
 	*pcpuid = *(uint16_t *)handle->m_file_evt_buf;
 
-	if(bh.block_type == EVF_BLOCK_TYPE)
+	if(bh.block_type == EVF_BLOCK_TYPE || bh.block_type == EVF_BLOCK_TYPE_V2)
 	{
 		handle->m_last_evt_dump_flags = *(uint32_t*)(handle->m_file_evt_buf + sizeof(uint16_t));
 		*pevent = (struct ppm_evt_hdr *)(handle->m_file_evt_buf + sizeof(uint16_t) + sizeof(uint32_t));
@@ -2609,6 +2620,61 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 	{
 		handle->m_last_evt_dump_flags = 0;
 		*pevent = (struct ppm_evt_hdr *)(handle->m_file_evt_buf + sizeof(uint16_t));
+	}
+
+	if(bh.block_type != EV_BLOCK_TYPE_V2 && bh.block_type != EVF_BLOCK_TYPE_V2)
+	{
+		//
+		// We're reading a old capture which events don't have nparams in the header.
+		// Convert it to the current version.
+		//
+		if((readlen + sizeof(uint32_t)) > FILE_READ_BUF_SIZE)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "cannot convert v1 event block to v2 (%lu greater than read buffer size %u)",
+				 readlen + sizeof(uint32_t),
+				 FILE_READ_BUF_SIZE);
+			return SCAP_FAILURE;
+		}
+	        size_t offset =
+#ifdef PPM_ENABLE_SENTINEL
+			sizeof(uint32_t) + // sentinel
+#endif
+			sizeof(uint64_t) + // ts
+			sizeof(uint64_t) + // tid
+			sizeof(uint32_t) + // len
+			sizeof(uint16_t);  // type
+
+		memmove((char *)*pevent + offset + sizeof(uint32_t),
+			(char *)*pevent + offset,
+			readlen - ((char *)*pevent - handle->m_file_evt_buf) - offset);
+		(*pevent)->len += sizeof(uint32_t);
+
+		//
+		// The number of parameters needs to be calculated based on the block len.
+		// Use the current number of parameters as starting point and decrease it
+		// until size matches.
+		//
+		char *end = (char *)*pevent + (*pevent)->len;
+		uint16_t *lens = (uint16_t *)((char *)*pevent + sizeof(struct ppm_evt_hdr));
+		uint32_t nparams;
+		for(nparams = g_event_info[(*pevent)->type].nparams; nparams >= 0; nparams--)
+		{
+			char *valptr = (char *)lens + nparams * sizeof(uint16_t);
+			if(valptr > end)
+			{
+				break;
+			}
+			uint32_t i;
+			for(i = 0; i < nparams; i++)
+			{
+				valptr += lens[i];
+			}
+			if(valptr == end)
+			{
+				break;
+			}
+		}
+		(*pevent)->nparams = nparams;
 	}
 
 	return SCAP_SUCCESS;

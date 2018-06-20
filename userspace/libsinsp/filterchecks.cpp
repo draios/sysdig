@@ -3326,7 +3326,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			if(m_argid != -1)
 			{
-				if(m_argid >= (int32_t)evt->m_info->nparams)
+				if(m_argid >= (int32_t)evt->get_num_params())
 				{
 					return NULL;
 				}

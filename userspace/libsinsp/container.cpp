@@ -1193,6 +1193,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 	scapevt->tid = 0;
 	scapevt->len = (uint32_t)totlen;
 	scapevt->type = PPME_CONTAINER_JSON_E;
+	scapevt->nparams = 1;
 
 	uint16_t* lens = (uint16_t*)((char *)scapevt + sizeof(struct ppm_evt_hdr));
 	char* valptr = (char*)lens + sizeof(uint16_t);
