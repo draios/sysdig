@@ -125,10 +125,10 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_RMDIR_X */{"rmdir", EC_FILE, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_OPENAT_E */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE | EF_OLD_VERSION, 4, {{"dirfd", PT_FD, PF_DEC}, {"name", PT_CHARBUF, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_OCT} } },
 	/* PPME_SYSCALL_OPENAT_X */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE | EF_OLD_VERSION, 1, {{"fd", PT_FD, PF_DEC} } },
-	/* PPME_SYSCALL_LINK_E */{"link", EC_FILE, EF_NONE, 2, {{"oldpath", PT_FSPATH, PF_NA}, {"newpath", PT_FSPATH, PF_NA} } },
-	/* PPME_SYSCALL_LINK_X */{"link", EC_FILE, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
-	/* PPME_SYSCALL_LINKAT_E */{"linkat", EC_FILE, EF_NONE, 4, {{"olddir", PT_FD, PF_DEC}, {"oldpath", PT_CHARBUF, PF_NA}, {"newdir", PT_FD, PF_DEC}, {"newpath", PT_CHARBUF, PF_NA} } },
-	/* PPME_SYSCALL_LINKAT_X */{"linkat", EC_FILE, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
+	/* PPME_SYSCALL_LINK_E */{"link", EC_FILE, EF_OLD_VERSION, 2, {{"oldpath", PT_FSPATH, PF_NA}, {"newpath", PT_FSPATH, PF_NA} } },
+	/* PPME_SYSCALL_LINK_X */{"link", EC_FILE, EF_OLD_VERSION, 1, {{"res", PT_ERRNO, PF_DEC} } },
+	/* PPME_SYSCALL_LINKAT_E */{"linkat", EC_FILE, EF_OLD_VERSION, 4, {{"olddir", PT_FD, PF_DEC}, {"oldpath", PT_CHARBUF, PF_NA}, {"newdir", PT_FD, PF_DEC}, {"newpath", PT_CHARBUF, PF_NA} } },
+	/* PPME_SYSCALL_LINKAT_X */{"linkat", EC_FILE, EF_OLD_VERSION, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_UNLINK_E */{"unlink", EC_FILE, EF_OLD_VERSION, 1, {{"path", PT_FSPATH, PF_NA} } },
 	/* PPME_SYSCALL_UNLINK_X */{"unlink", EC_FILE, EF_OLD_VERSION, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_UNLINKAT_E */{"unlinkat", EC_FILE, EF_OLD_VERSION, 2, {{"dirfd", PT_FD, PF_DEC}, {"name", PT_CHARBUF, PF_NA} } },
@@ -328,5 +328,9 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_MKDIRAT_E */{"mkdirat", EC_FILE, EF_NONE, 0},
 	/* PPME_SYSCALL_MKDIRAT_X */{"mkdirat", EC_FILE, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"path", PT_FSPATH, PF_NA}, {"mode", PT_UINT32, PF_HEX} } },
 	/* PPME_SYSCALL_OPENAT_2_E */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 0},
-	/* PPME_SYSCALL_OPENAT_2_X */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 5, {{"fd", PT_FD, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"name", PT_CHARBUF, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_OCT} } }
+	/* PPME_SYSCALL_OPENAT_2_X */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 5, {{"fd", PT_FD, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"name", PT_CHARBUF, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_OCT} } },
+	/* PPME_SYSCALL_LINK_2_E */{"link", EC_FILE, EF_NONE, 0},
+	/* PPME_SYSCALL_LINK_2_X */{"link", EC_FILE, EF_NONE, 3, {{"res", PT_ERRNO, PF_DEC}, {"oldpath", PT_FSPATH, PF_NA}, {"newpath", PT_FSPATH, PF_NA} } },
+	/* PPME_SYSCALL_LINKAT_2_E */{"linkat", EC_FILE, EF_NONE, 0},
+	/* PPME_SYSCALL_LINKAT_2_X */{"linkat", EC_FILE, EF_NONE, 6, {{"res", PT_ERRNO, PF_DEC}, {"olddir", PT_FD, PF_DEC}, {"oldpath", PT_CHARBUF, PF_NA}, {"newdir", PT_FD, PF_DEC}, {"newpath", PT_CHARBUF, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, linkat_flags} } }
 };

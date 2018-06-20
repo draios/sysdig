@@ -265,6 +265,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_AT_REMOVEDIR 0x200
 
 /*
+ * linkat() flags
+ */
+#define PPM_AT_SYMLINK_FOLLOW	0x400
+#define PPM_AT_EMPTY_PATH       0x1000
+
+/*
  * rlimit resources
  */
 #define PPM_RLIMIT_CPU 0 /* CPU time in sec */
@@ -852,7 +858,11 @@ enum ppm_event_type {
 	PPME_SYSCALL_MKDIRAT_X = 305,
 	PPME_SYSCALL_OPENAT_2_E = 306,
 	PPME_SYSCALL_OPENAT_2_X = 307,
-	PPM_EVENT_MAX = 308
+	PPME_SYSCALL_LINK_2_E = 308,
+	PPME_SYSCALL_LINK_2_X = 309,
+	PPME_SYSCALL_LINKAT_2_E = 310,
+	PPME_SYSCALL_LINKAT_2_X = 311,
+	PPM_EVENT_MAX = 312
 };
 /*@}*/
 
@@ -1389,6 +1399,7 @@ extern const struct ppm_name_value semctl_commands[];
 extern const struct ppm_name_value access_flags[];
 extern const struct ppm_name_value pf_flags[];
 extern const struct ppm_name_value unlinkat_flags[];
+extern const struct ppm_name_value linkat_flags[];
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
 extern const struct ppm_param_info bpf_dynamic_param[];

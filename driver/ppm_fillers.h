@@ -116,6 +116,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 	FN(sys_unlinkat_x)			\
 	FN(sys_mkdirat_x)			\
 	FN(sys_openat_x)			\
+	FN(sys_linkat_x)			\
 	FN(terminate_filler)
 
 #define FILLER_ENUM_FN(x) PPM_FILLER_##x,

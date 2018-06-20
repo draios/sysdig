@@ -2726,7 +2726,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 		dirfdarg = "dirfd";
 		patharg = "name";
 	}
-	else if(etype == PPME_SYSCALL_LINKAT_E)
+	else if(etype == PPME_SYSCALL_LINKAT_E || etype == PPME_SYSCALL_LINKAT_2_X)
 	{
 		if(m_argid == 0 || m_argid == 1)
 		{

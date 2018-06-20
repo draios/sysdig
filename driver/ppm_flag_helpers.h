@@ -1024,4 +1024,17 @@ static __always_inline u32 unlinkat_flags_to_scap(unsigned long flags)
 	return res;
 }
 
+static __always_inline u32 linkat_flags_to_scap(unsigned long flags)
+{
+	u32 res = 0;
+
+	if (flags & AT_SYMLINK_FOLLOW)
+		res |= PPM_AT_SYMLINK_FOLLOW;
+
+	if (flags & AT_EMPTY_PATH)
+		res |= PPM_AT_EMPTY_PATH;
+
+	return res;
+}
+
 #endif /* PPM_FLAG_HELPERS_H_ */
