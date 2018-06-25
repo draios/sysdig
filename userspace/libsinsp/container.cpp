@@ -506,7 +506,7 @@ sinsp_docker_response sinsp_container_engine_docker::get_docker(const sinsp_cont
 		return sinsp_docker_response::RESP_ERROR;
 	}
 
-	int http_code = 0;
+	long http_code = 0;
 	if(curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &http_code) != CURLE_OK)
 	{
 		ASSERT(false);
