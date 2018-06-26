@@ -21,6 +21,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "scap.h"
 #include "scap-int.h"
+#include "scap_savefile.h"
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
@@ -168,7 +169,11 @@ int32_t scap_fd_info_to_string(scap_fdinfo *fdi, OUT char *str, uint32_t stlen)
 //
 uint32_t scap_fd_info_len(scap_fdinfo *fdi)
 {
-	uint32_t res = sizeof(fdi->ino) + 1 + sizeof(fdi->fd);
+	//
+	// NB: new fields must be appended
+	//
+
+	uint32_t res = sizeof(uint32_t) + sizeof(fdi->ino) + 1 + sizeof(fdi->fd);
 
 	switch(fdi->type)
 	{
@@ -231,12 +236,13 @@ int scap_dump_write(scap_dumper_t *d, void* buf, unsigned len);
 //
 // Write the given fd info to disk
 //
-int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dumper_t *d)
+int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dumper_t *d, uint32_t len)
 {
 
 	uint8_t type = (uint8_t)fdi->type;
 	uint16_t stlen;
-	if(scap_dump_write(d, &(fdi->fd), sizeof(uint64_t)) != sizeof(uint64_t) ||
+	if(scap_dump_write(d, &(len), sizeof(uint32_t)) != sizeof(uint32_t) ||
+	        scap_dump_write(d, &(fdi->fd), sizeof(uint64_t)) != sizeof(uint64_t) ||
 	        scap_dump_write(d, &(fdi->ino), sizeof(uint64_t)) != sizeof(uint64_t) ||
 	        scap_dump_write(d, &(type), sizeof(uint8_t)) != sizeof(uint8_t))
 	{
@@ -383,18 +389,31 @@ uint32_t scap_fd_read_fname_from_disk(scap_t* handle, char* fname,OUT size_t* nb
 // Populate the given fd by reading the info from disk
 // Returns the number of read bytes.
 //
-uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t *nbytes, gzFile f)
+uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t *nbytes, uint32_t block_type, gzFile f)
 {
 	uint8_t type;
+	uint32_t toread;
+	int fseekres;
+	uint32_t sub_len = 0;
 	uint32_t res = SCAP_SUCCESS;
 	*nbytes = 0;
 
-	if(scap_fd_read_prop_from_disk(handle, &(fdi->fd), sizeof(fdi->fd), nbytes, f) ||
+	if((block_type == FDL_BLOCK_TYPE_V2 && scap_fd_read_prop_from_disk(handle, &sub_len, sizeof(uint32_t), nbytes, f)) ||
+	        scap_fd_read_prop_from_disk(handle, &(fdi->fd), sizeof(fdi->fd), nbytes, f) ||
 	        scap_fd_read_prop_from_disk(handle, &(fdi->ino), sizeof(fdi->ino), nbytes, f) ||
 	        scap_fd_read_prop_from_disk(handle, &type, sizeof(uint8_t), nbytes, f))
 	{
 		return SCAP_FAILURE;
 	}
+
+	// If new parameters are added, sub_len can be used to
+	// see if they are available in the current capture.
+	// For example, for a 32bit parameter:
+	//
+	// if(sub_len && (*nbytes + sizeof(uint32_t)) <= sub_len)
+	// {
+	//    ...
+	// }
 
 	fdi->type = (scap_fd_type)type;
 
@@ -491,6 +510,20 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file, wrong fd type %u", (uint32_t)fdi->type);
 		return SCAP_FAILURE;
 	}
+
+	if(sub_len && *nbytes != sub_len)
+	{
+		toread = sub_len - *nbytes;
+		fseekres = (int)gzseek(f, (long)toread, SEEK_CUR);
+		if(fseekres == -1)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't skip %u bytes.",
+				 (unsigned int)toread);
+			return SCAP_FAILURE;
+		}
+		*nbytes = sub_len;
+	}
+
 	return res;
 }
 

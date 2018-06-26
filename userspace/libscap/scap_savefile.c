@@ -137,25 +137,45 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 	block_header bh;
 	uint32_t bt;
 	uint32_t totlen = MEMBER_SIZE(scap_threadinfo, tid);  // This includes the tid
+	uint32_t nfds = 0;
+	uint32_t idx = 0;
 	struct scap_fdinfo *fdi;
 	struct scap_fdinfo *tfdi;
 
 	//
-	// First pass of the table to calculate the length
+	// First pass of the table to calculate the size
+	//
+	HASH_ITER(hh, tinfo->fdlist, fdi, tfdi)
+	{
+		nfds++;
+	}
+
+	uint32_t* lengths = calloc(nfds, sizeof(uint32_t));
+	if(lengths == NULL)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_write_proc_fds memory allocation failure");
+		return SCAP_FAILURE;
+	}
+
+	//
+	// Second pass of the table to calculate the lengths
 	//
 	HASH_ITER(hh, tinfo->fdlist, fdi, tfdi)
 	{
 		if(fdi->type != SCAP_FD_UNINITIALIZED &&
 		   fdi->type != SCAP_FD_UNKNOWN)
 		{
-			totlen += scap_fd_info_len(fdi);
+			uint32_t fl = scap_fd_info_len(fdi);
+			lengths[idx++] = fl;
+			totlen += fl;
 		}
 	}
+	idx = 0;
 
 	//
 	// Create the block
 	//
-	bh.block_type = FDL_BLOCK_TYPE;
+	bh.block_type = FDL_BLOCK_TYPE_V2;
 	bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + totlen + 4);
 
 	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh))
@@ -174,18 +194,20 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 	}
 
 	//
-	// Second pass pass of the table to dump it
+	// Third pass of the table to dump it
 	//
 	HASH_ITER(hh, tinfo->fdlist, fdi, tfdi)
 	{
 		if(fdi->type != SCAP_FD_UNINITIALIZED)
 		{
-			if(scap_fd_write_to_disk(handle, fdi, d) != SCAP_SUCCESS)
+			if(scap_fd_write_to_disk(handle, fdi, d, lengths[idx++]) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
 		}
 	}
+
+	free(lengths);
 
 	//
 	// Add the padding
@@ -2225,7 +2247,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 //
 // Parse a process list block
 //
-static int32_t scap_read_fdlist(scap_t *handle, gzFile f, uint32_t block_length)
+static int32_t scap_read_fdlist(scap_t *handle, gzFile f, uint32_t block_length, uint32_t block_type)
 {
 	size_t readsize;
 	size_t totreadsize = 0;
@@ -2265,7 +2287,7 @@ static int32_t scap_read_fdlist(scap_t *handle, gzFile f, uint32_t block_length)
 
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
 	{
-		if(scap_fd_read_from_disk(handle, &fdi, &readsize, f) != SCAP_SUCCESS)
+		if(scap_fd_read_from_disk(handle, &fdi, &readsize, block_type, f) != SCAP_SUCCESS)
 		{
 			return SCAP_FAILURE;
 		}
@@ -2426,9 +2448,10 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 			break;
 		case FDL_BLOCK_TYPE:
 		case FDL_BLOCK_TYPE_INT:
+		case FDL_BLOCK_TYPE_V2:
 			found_fdl = 1;
 
-			if(scap_read_fdlist(handle, f, bh.block_total_length - sizeof(block_header) - 4) != SCAP_SUCCESS)
+			if(scap_read_fdlist(handle, f, bh.block_total_length - sizeof(block_header) - 4, bh.block_type) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}

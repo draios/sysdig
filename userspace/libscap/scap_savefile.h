@@ -106,6 +106,7 @@ typedef struct _section_header_block
 #define FDL_BLOCK_TYPE_INT		0x8001ABCD	// This is the unofficial number used before the
 											// library release. We'll keep him for a while for
 											// backward compatibility
+#define FDL_BLOCK_TYPE_V2		0x218
 
 ///////////////////////////////////////////////////////////////////////////////
 // EVENT BLOCK
