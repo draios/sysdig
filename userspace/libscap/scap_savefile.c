@@ -559,8 +559,9 @@ static int32_t scap_write_iflist(scap_t *handle, scap_dumper_t* d)
 	//
 	// Create the block
 	//
-	bh.block_type = IL_BLOCK_TYPE;
-	bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + handle->m_addrlist->totlen + 4);
+	bh.block_type = IL_BLOCK_TYPE_V2;
+	bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + (handle->m_addrlist->n_v4_addrs + handle->m_addrlist->n_v6_addrs)*sizeof(uint32_t) +
+							 handle->m_addrlist->totlen + 4);
 
 	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh))
 	{
@@ -577,13 +578,13 @@ static int32_t scap_write_iflist(scap_t *handle, scap_dumper_t* d)
 
 		entrylen = sizeof(scap_ifinfo_ipv4) + entry->ifnamelen - SCAP_MAX_PATH_SIZE;
 
-		if(scap_dump_write(d, entry, entrylen) != entrylen)
+		if(scap_dump_write(d, &entrylen, sizeof(uint32_t)) != sizeof(uint32_t) || scap_dump_write(d, entry, entrylen) != entrylen)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF2)");
 			return SCAP_FAILURE;
 		}
 
-		totlen += entrylen;
+		totlen += sizeof(uint32_t) + entrylen;
 	}
 
 	//
@@ -595,13 +596,13 @@ static int32_t scap_write_iflist(scap_t *handle, scap_dumper_t* d)
 
 		entrylen = sizeof(scap_ifinfo_ipv6) + entry->ifnamelen - SCAP_MAX_PATH_SIZE;
 
-		if(scap_dump_write(d, entry, entrylen) != entrylen)
+		if(scap_dump_write(d, &entrylen, sizeof(uint32_t)) != sizeof(uint32_t) || scap_dump_write(d, entry, entrylen) != entrylen)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF2)");
 			return SCAP_FAILURE;
 		}
 
-		totlen += entrylen;
+		totlen += sizeof(uint32_t) + entrylen;
 	}
 
 	//
@@ -1711,7 +1712,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 //
 // Parse an interface list block
 //
-static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length)
+static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length, uint32_t block_type)
 {
 	int32_t res = SCAP_SUCCESS;
 	size_t readsize;
@@ -1764,36 +1765,45 @@ static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length)
 			break;
 		}
 
-		iftype = *(uint16_t *)pif;
-		ifnamlen = *(uint16_t *)(pif + 2);
+		if(block_type != IL_BLOCK_TYPE_V2)
+		{
+			iftype = *(uint16_t *)pif;
+			ifnamlen = *(uint16_t *)(pif + 2);
 
-		if(iftype == SCAP_II_IPV4)
-		{
-			entrysize = sizeof(scap_ifinfo_ipv4) + ifnamlen - SCAP_MAX_PATH_SIZE;
-		}
-		else if(iftype == SCAP_II_IPV6)
-		{
-			entrysize = sizeof(scap_ifinfo_ipv6) + ifnamlen - SCAP_MAX_PATH_SIZE;
-		}
-		else if(iftype == SCAP_II_IPV4_NOLINKSPEED)
-		{
-			entrysize = sizeof(scap_ifinfo_ipv4_nolinkspeed) + ifnamlen - SCAP_MAX_PATH_SIZE;
-		}
-		else if(iftype == SCAP_II_IPV6_NOLINKSPEED)
-		{
-			entrysize = sizeof(scap_ifinfo_ipv6_nolinkspeed) + ifnamlen - SCAP_MAX_PATH_SIZE;
+			if(iftype == SCAP_II_IPV4)
+			{
+				entrysize = sizeof(scap_ifinfo_ipv4) + ifnamlen - SCAP_MAX_PATH_SIZE;
+			}
+			else if(iftype == SCAP_II_IPV6)
+			{
+				entrysize = sizeof(scap_ifinfo_ipv6) + ifnamlen - SCAP_MAX_PATH_SIZE;
+			}
+			else if(iftype == SCAP_II_IPV4_NOLINKSPEED)
+			{
+				entrysize = sizeof(scap_ifinfo_ipv4_nolinkspeed) + ifnamlen - SCAP_MAX_PATH_SIZE;
+			}
+			else if(iftype == SCAP_II_IPV6_NOLINKSPEED)
+			{
+				entrysize = sizeof(scap_ifinfo_ipv6_nolinkspeed) + ifnamlen - SCAP_MAX_PATH_SIZE;
+			}
+			else
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(1)");
+				ASSERT(false);
+				res = SCAP_FAILURE;
+				goto scap_read_iflist_error;
+			}
 		}
 		else
 		{
-			ASSERT(false);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(1)");
-			res = SCAP_FAILURE;
-			goto scap_read_iflist_error;
+			entrysize = *(uint32_t *)pif + sizeof(uint32_t);
+			iftype = *(uint16_t *)(pif + 4);
+			ifnamlen = *(uint16_t *)(pif + 4 + 2);
 		}
 
 		if(toread < entrysize)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(2)");
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(2) toread=%u, entrysize=%u", toread, entrysize);
 			res = SCAP_FAILURE;
 			goto scap_read_iflist_error;
 		}
@@ -1879,10 +1889,18 @@ static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length)
 	while(true)
 	{
 		toread = (int32_t)block_length - (int32_t)totreadsize;
+		entrysize = 0;
 
 		if(toread < 4)
 		{
 			break;
+		}
+
+		if(block_type == IL_BLOCK_TYPE_V2)
+		{
+			entrysize = *(uint32_t *)pif;
+			totreadsize += sizeof(uint32_t);
+			pif += sizeof(uint32_t);
 		}
 
 		iftype = *(uint16_t *)pif;
@@ -1895,25 +1913,33 @@ static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length)
 			goto scap_read_iflist_error;
 		}
 
+		// If new parameters are added, entrysize can be used to
+		// see if they are available in the current capture.
+		// For example, for a 32bit parameter:
+		//
+		// if(entrysize && (ifsize + sizeof(uint32_t)) <= entrysize)
+		// {
+		//    ifsize += sizeof(uint32_t);
+		//    ...
+		// }
+
+		uint32_t ifsize;
 		if(iftype == SCAP_II_IPV4)
 		{
-			entrysize = sizeof(scap_ifinfo_ipv4) + ifnamlen - SCAP_MAX_PATH_SIZE;
+			ifsize = sizeof(scap_ifinfo_ipv4) + ifnamlen - SCAP_MAX_PATH_SIZE;
 
-			if(toread < entrysize)
+			if(toread < ifsize)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(1)");
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(3)");
 				res = SCAP_FAILURE;
 				goto scap_read_iflist_error;
 			}
 
 			// Copy the entry
-			memcpy(handle->m_addrlist->v4list + ifcnt4, pif, entrysize);
+			memcpy(handle->m_addrlist->v4list + ifcnt4, pif, ifsize);
 
 			// Make sure the name string is NULL-terminated
-			*((char *)(handle->m_addrlist->v4list + ifcnt4) + entrysize) = 0;
-
-			pif += entrysize;
-			totreadsize += entrysize;
+			*((char *)(handle->m_addrlist->v4list + ifcnt4) + ifsize) = 0;
 
 			ifcnt4++;
 		}
@@ -1922,11 +1948,11 @@ static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length)
 			scap_ifinfo_ipv4_nolinkspeed* src;
 			scap_ifinfo_ipv4* dst;
 
-			entrysize = sizeof(scap_ifinfo_ipv4_nolinkspeed) + ifnamlen - SCAP_MAX_PATH_SIZE;
+			ifsize = sizeof(scap_ifinfo_ipv4_nolinkspeed) + ifnamlen - SCAP_MAX_PATH_SIZE;
 
-			if(toread < entrysize)
+			if(toread < ifsize)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(1)");
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(4)");
 				res = SCAP_FAILURE;
 				goto scap_read_iflist_error;
 			}
@@ -1946,30 +1972,24 @@ static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length)
 			// Make sure the name string is NULL-terminated
 			*((char *)(dst->ifname + MIN(dst->ifnamelen, SCAP_MAX_PATH_SIZE - 1))) = 0;
 
-			pif += entrysize;
-			totreadsize += entrysize;
-
 			ifcnt4++;
 		}
 		else if(iftype == SCAP_II_IPV6)
 		{
-			entrysize = sizeof(scap_ifinfo_ipv6) + ifnamlen - SCAP_MAX_PATH_SIZE;
+			ifsize = sizeof(scap_ifinfo_ipv6) + ifnamlen - SCAP_MAX_PATH_SIZE;
 
-			if(toread < entrysize)
+			if(toread < ifsize)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(1)");
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(5)");
 				res = SCAP_FAILURE;
 				goto scap_read_iflist_error;
 			}
 
 			// Copy the entry
-			memcpy(handle->m_addrlist->v6list + ifcnt6, pif, entrysize);
+			memcpy(handle->m_addrlist->v6list + ifcnt6, pif, ifsize);
 
 			// Make sure the name string is NULL-terminated
-			*((char *)(handle->m_addrlist->v6list + ifcnt6) + entrysize) = 0;
-
-			pif += entrysize;
-			totreadsize += entrysize;
+			*((char *)(handle->m_addrlist->v6list + ifcnt6) + ifsize) = 0;
 
 			ifcnt6++;
 		}
@@ -1977,11 +1997,11 @@ static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length)
 		{
 			scap_ifinfo_ipv6_nolinkspeed* src;
 			scap_ifinfo_ipv6* dst;
-			entrysize = sizeof(scap_ifinfo_ipv6_nolinkspeed) + ifnamlen - SCAP_MAX_PATH_SIZE;
+			ifsize = sizeof(scap_ifinfo_ipv6_nolinkspeed) + ifnamlen - SCAP_MAX_PATH_SIZE;
 
-			if(toread < entrysize)
+			if(toread < ifsize)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(1)");
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(6)");
 				res = SCAP_FAILURE;
 				goto scap_read_iflist_error;
 			}
@@ -2001,9 +2021,6 @@ static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length)
 			// Make sure the name string is NULL-terminated
 			*((char *)(dst->ifname + MIN(dst->ifnamelen, SCAP_MAX_PATH_SIZE - 1))) = 0;
 
-			pif += entrysize;
-			totreadsize += entrysize;
-
 			ifcnt6++;
 		}
 		else
@@ -2013,6 +2030,11 @@ static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length)
 			res = SCAP_FAILURE;
 			goto scap_read_iflist_error;
 		}
+
+		entrysize = entrysize ? entrysize : ifsize;
+
+		pif += entrysize;
+		totreadsize += entrysize;
 	}
 
 	//
@@ -2478,9 +2500,10 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 			}
 		case IL_BLOCK_TYPE:
 		case IL_BLOCK_TYPE_INT:
+		case IL_BLOCK_TYPE_V2:
 			found_il = 1;
 
-			if(scap_read_iflist(handle, f, bh.block_total_length - sizeof(block_header) - 4) != SCAP_SUCCESS)
+			if(scap_read_iflist(handle, f, bh.block_total_length - sizeof(block_header) - 4, bh.block_type) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}

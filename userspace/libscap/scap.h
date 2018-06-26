@@ -323,6 +323,7 @@ typedef enum scap_ifinfo_type
 */
 typedef struct scap_ifinfo_ipv4
 {
+	// NB: new fields must be appended
 	uint16_t type; ///< Interface type
 	uint16_t ifnamelen;
 	uint32_t addr; ///< Interface address
@@ -350,6 +351,7 @@ typedef struct scap_ifinfo_ipv4_nolinkspeed
 */
 typedef struct scap_ifinfo_ipv6
 {
+	// NB: new fields must be appended
 	uint16_t type;
 	uint16_t ifnamelen;
 	char addr[SCAP_IPV6_ADDR_LEN]; ///< Interface address
