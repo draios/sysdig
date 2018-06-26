@@ -174,6 +174,20 @@ int32_t dpi_lookahead_init(void)
 	return PPM_SUCCESS;
 }
 
+static int sock_getname(struct socket *sock, struct sockaddr *sockaddr, int peer)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)
+	int ret;
+	ret = sock->ops->getname(sock, sockaddr, peer);
+	if (ret > 0)
+		ret = 0;
+	return ret;
+#else
+	int sockaddr_len;
+	return sock->ops->getname(sock, sockaddr, &sockaddr_len, peer);
+#endif
+}
+
 inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 lookahead_size)
 {
 	u32 res = args->consumer->snaplen;
@@ -182,7 +196,6 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 	sa_family_t family;
 	struct sockaddr_storage sock_address;
 	struct sockaddr_storage peer_address;
-	int sock_address_len;
 	int peer_address_len;
 	u16 sport, dport;
 
@@ -233,7 +246,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 	if (sock) {
 
 		if (sock->sk) {
-			err = sock->ops->getname(sock, (struct sockaddr *)&sock_address, &sock_address_len, 0);
+			err = sock_getname(sock, (struct sockaddr *)&sock_address, 0);
 
 			if (err == 0) {
 				if(args->event_type == PPME_SOCKET_SENDTO_X)
@@ -254,7 +267,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 						/*
 						 * Suppose is a connected socket, fall back to fd
 						 */
-						err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+						err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
 					} else {
 						/*
 						 * Get the address len
@@ -274,7 +287,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 							/*
 							 * This case should be very rare, fallback again to sock
 							 */
-							err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+							err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
 						}
 					}
 				} else if (args->event_type == PPME_SOCKET_SENDMSG_X) {
@@ -327,9 +340,9 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 						/*
 						 * Suppose it is a connected socket, fall back to fd
 						 */
-						err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+						err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
 				} else
-					err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+					err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
 
 				if (err == 0) {
 					family = sock->sk->sk_family;
@@ -863,8 +876,6 @@ u16 fd_to_socktuple(int fd,
 	char *dest;
 	struct sockaddr_storage sock_address;
 	struct sockaddr_storage peer_address;
-	int sock_address_len;
-	int peer_address_len;
 
 	/*
 	 * Get the socket from the fd
@@ -882,7 +893,7 @@ u16 fd_to_socktuple(int fd,
 		return 0;
 	}
 
-	err = sock->ops->getname(sock, (struct sockaddr *)&sock_address, &sock_address_len, 0);
+	err = sock_getname(sock, (struct sockaddr *)&sock_address, 0);
 	ASSERT(err == 0);
 
 	family = sock->sk->sk_family;
@@ -893,7 +904,7 @@ u16 fd_to_socktuple(int fd,
 	switch (family) {
 	case AF_INET:
 		if (!use_userdata) {
-			err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+			err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
 			if (err == 0) {
 				if (is_inbound) {
 					sip = ((struct sockaddr_in *) &peer_address)->sin_addr.s_addr;
@@ -945,7 +956,7 @@ u16 fd_to_socktuple(int fd,
 		break;
 	case AF_INET6:
 		if (!use_userdata) {
-			err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+			err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
 			ASSERT(err == 0);
 
 			if (is_inbound) {
@@ -1020,7 +1031,7 @@ u16 fd_to_socktuple(int fd,
 			if (is_inbound) {
 				us_name = ((struct sockaddr_un *) &sock_address)->sun_path;
 			} else {
-				err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+				err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
 				ASSERT(err == 0);
 
 				us_name = ((struct sockaddr_un *) &peer_address)->sun_path;
