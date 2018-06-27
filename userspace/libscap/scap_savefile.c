@@ -651,8 +651,15 @@ static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
 		return SCAP_FAILURE;
 	}
 
+	uint32_t* lengths = calloc(handle->m_userlist->nusers + handle->m_userlist->ngroups, sizeof(uint32_t));
+	if(lengths == NULL)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_write_userlist memory allocation failure (1)");
+		return SCAP_FAILURE;
+	}
+
 	//
-	// Calculate the block length
+	// Calculate the lengths
 	//
 	for(j = 0; j < handle->m_userlist->nusers; j++)
 	{
@@ -662,8 +669,11 @@ static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
 		homedirlen = (uint16_t)strnlen(info->homedir, SCAP_MAX_PATH_SIZE);
 		shelllen = (uint16_t)strnlen(info->shell, SCAP_MAX_PATH_SIZE);
 
-		totlen += sizeof(type) + sizeof(info->uid) + sizeof(info->gid) + sizeof(uint16_t) +
+		// NB: new fields must be appended
+		size_t ul = sizeof(uint32_t) + sizeof(type) + sizeof(info->uid) + sizeof(info->gid) + sizeof(uint16_t) +
 			namelen + sizeof(uint16_t) + homedirlen + sizeof(uint16_t) + shelllen;
+		totlen += ul;
+		lengths[j] = ul;
 	}
 
 	for(j = 0; j < handle->m_userlist->ngroups; j++)
@@ -672,13 +682,16 @@ static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
 
 		namelen = (uint16_t)strnlen(info->name, MAX_CREDENTIALS_STR_LEN);
 
-		totlen += sizeof(type) + sizeof(info->gid) + sizeof(uint16_t) + namelen;
+		// NB: new fields must be appended
+		uint32_t gl = sizeof(uint32_t) + sizeof(type) + sizeof(info->gid) + sizeof(uint16_t) + namelen;
+		totlen += gl;
+		lengths[handle->m_userlist->nusers + j] = gl;
 	}
 
 	//
 	// Create the block
 	//
-	bh.block_type = UL_BLOCK_TYPE;
+	bh.block_type = UL_BLOCK_TYPE_V2;
 	bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + totlen + 4);
 
 	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh))
@@ -699,7 +712,8 @@ static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
 		homedirlen = (uint16_t)strnlen(info->homedir, SCAP_MAX_PATH_SIZE);
 		shelllen = (uint16_t)strnlen(info->shell, SCAP_MAX_PATH_SIZE);
 
-		if(scap_dump_write(d, &(type), sizeof(type)) != sizeof(type) ||
+		if(scap_dump_write(d, &(lengths[j]), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		    scap_dump_write(d, &(type), sizeof(type)) != sizeof(type) ||
 			scap_dump_write(d, &(info->uid), sizeof(info->uid)) != sizeof(info->uid) ||
 		    scap_dump_write(d, &(info->gid), sizeof(info->gid)) != sizeof(info->gid) ||
 		    scap_dump_write(d, &namelen, sizeof(uint16_t)) != sizeof(uint16_t) ||
@@ -724,7 +738,8 @@ static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
 
 		namelen = (uint16_t)strnlen(info->name, MAX_CREDENTIALS_STR_LEN);
 
-		if(scap_dump_write(d, &(type), sizeof(type)) != sizeof(type) ||
+		if(scap_dump_write(d, &(lengths[handle->m_userlist->nusers + j]), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		    scap_dump_write(d, &(type), sizeof(type)) != sizeof(type) ||
 			scap_dump_write(d, &(info->gid), sizeof(info->gid)) != sizeof(info->gid) ||
 		    scap_dump_write(d, &namelen, sizeof(uint16_t)) != sizeof(uint16_t) ||
 		    scap_dump_write(d, info->name, namelen) != namelen)
@@ -733,6 +748,8 @@ static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
 			return SCAP_FAILURE;
 		}
 	}
+
+	free(lengths);
 
 	//
 	// Blocks need to be 4-byte padded
@@ -2059,14 +2076,17 @@ scap_read_iflist_error:
 //
 // Parse a user list block
 //
-static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_length)
+static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_length, uint32_t block_type)
 {
 	size_t readsize;
 	size_t totreadsize = 0;
+	size_t subreadsize = 0;
 	size_t padding_len;
 	uint32_t padding;
 	uint8_t type;
 	uint16_t stlen;
+	uint32_t toread;
+	int fseekres;
 
 	//
 	// If the list of users was already allocated for this handle (for example because this is
@@ -2099,13 +2119,25 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 	//
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
 	{
+		uint32_t sub_len = 0;
+		if(block_type == UL_BLOCK_TYPE_V2)
+		{
+			//
+			// len
+			//
+			readsize = gzread(f, &(sub_len), sizeof(uint32_t));
+			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+
+			subreadsize += readsize;
+		}
+
 		//
 		// type
 		//
 		readsize = gzread(f, &(type), sizeof(type));
 		CHECK_READ_SIZE(readsize, sizeof(type));
 
-		totreadsize += readsize;
+		subreadsize += readsize;
 
 		if(type == USERBLOCK_TYPE_USER)
 		{
@@ -2127,7 +2159,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 			readsize = gzread(f, &(puser->uid), sizeof(uint32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
 
-			totreadsize += readsize;
+			subreadsize += readsize;
 
 			//
 			// gid
@@ -2135,7 +2167,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 			readsize = gzread(f, &(puser->gid), sizeof(uint32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
 
-			totreadsize += readsize;
+			subreadsize += readsize;
 
 			//
 			// name
@@ -2149,7 +2181,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 				return SCAP_FAILURE;
 			}
 
-			totreadsize += readsize;
+			subreadsize += readsize;
 
 			readsize = gzread(f, puser->name, stlen);
 			CHECK_READ_SIZE(readsize, stlen);
@@ -2157,7 +2189,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 			// the string is not null-terminated on file
 			puser->name[stlen] = 0;
 
-			totreadsize += readsize;
+			subreadsize += readsize;
 
 			//
 			// homedir
@@ -2171,7 +2203,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 				return SCAP_FAILURE;
 			}
 
-			totreadsize += readsize;
+			subreadsize += readsize;
 
 			readsize = gzread(f, puser->homedir, stlen);
 			CHECK_READ_SIZE(readsize, stlen);
@@ -2179,7 +2211,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 			// the string is not null-terminated on file
 			puser->homedir[stlen] = 0;
 
-			totreadsize += readsize;
+			subreadsize += readsize;
 
 			//
 			// shell
@@ -2193,7 +2225,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 				return SCAP_FAILURE;
 			}
 
-			totreadsize += readsize;
+			subreadsize += readsize;
 
 			readsize = gzread(f, puser->shell, stlen);
 			CHECK_READ_SIZE(readsize, stlen);
@@ -2201,7 +2233,16 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 			// the string is not null-terminated on file
 			puser->shell[stlen] = 0;
 
-			totreadsize += readsize;
+			subreadsize += readsize;
+
+			// If new parameters are added, sub_len can be used to
+			// see if they are available in the current capture.
+			// For example, for a 32bit parameter:
+			//
+			// if(sub_len && (subreadsize + sizeof(uint32_t)) <= sub_len)
+			// {
+			//    ...
+			// }
 		}
 		else
 		{
@@ -2223,7 +2264,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 			readsize = gzread(f, &(pgroup->gid), sizeof(uint32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
 
-			totreadsize += readsize;
+			subreadsize += readsize;
 
 			//
 			// name
@@ -2237,7 +2278,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 				return SCAP_FAILURE;
 			}
 
-			totreadsize += readsize;
+			subreadsize += readsize;
 
 			readsize = gzread(f, pgroup->name, stlen);
 			CHECK_READ_SIZE(readsize, stlen);
@@ -2245,8 +2286,33 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 			// the string is not null-terminated on file
 			pgroup->name[stlen] = 0;
 
-			totreadsize += readsize;
+			subreadsize += readsize;
+
+			// If new parameters are added, sub_len can be used to
+			// see if they are available in the current capture.
+			// For example, for a 32bit parameter:
+			//
+			// if(sub_len && (subreadsize + sizeof(uint32_t)) <= sub_len)
+			// {
+			//    ...
+			// }
 		}
+
+		if(sub_len && subreadsize != sub_len)
+		{
+			toread = sub_len - subreadsize;
+			fseekres = (int)gzseek(f, (long)toread, SEEK_CUR);
+			if(fseekres == -1)
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't skip %u bytes.",
+				         (unsigned int)toread);
+				return SCAP_FAILURE;
+			}
+			subreadsize = sub_len;
+		}
+
+		totreadsize += subreadsize;
+		subreadsize = 0;
 	}
 
 	//
@@ -2510,9 +2576,10 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 			break;
 		case UL_BLOCK_TYPE:
 		case UL_BLOCK_TYPE_INT:
+		case UL_BLOCK_TYPE_V2:
 			found_ul = 1;
 
-			if(scap_read_userlist(handle, f, bh.block_total_length - sizeof(block_header) - 4) != SCAP_SUCCESS)
+			if(scap_read_userlist(handle, f, bh.block_total_length - sizeof(block_header) - 4, bh.block_type) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}

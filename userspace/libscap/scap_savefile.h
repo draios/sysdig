@@ -61,6 +61,13 @@ typedef struct _section_header_block
 	uint64_t section_length;
 }section_header_block;
 
+// NB:
+// Starting from scap version 1.2, block versions will no longer be changed.
+// New block fields must be appended and, instead of using the version, the
+// lengths of the sub blocks will be used to differentiate between versions.
+// For more infomation, look at the comments inside the various scap_read_*
+// functions.
+
 ///////////////////////////////////////////////////////////////////////////////
 // MACHINE INFO BLOCK
 ///////////////////////////////////////////////////////////////////////////////
@@ -133,6 +140,7 @@ typedef struct _section_header_block
 #define UL_BLOCK_TYPE_INT		0x8012ABCD	// This is the unofficial number used before the
 											// library release. We'll keep him for a while for
 											// backward compatibility
+#define UL_BLOCK_TYPE_V2		0x220
 
 ///////////////////////////////////////////////////////////////////////////////
 // EVENT BLOCK WITH FLAGS
