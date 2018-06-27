@@ -1087,14 +1087,14 @@ sinsp_container_info* sinsp_container_manager::get_container(const string& conta
 	return nullptr;
 }
 
-bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+bool sinsp_container_manager::resolve_container(sinsp_threadinfo *tinfo, bool query_os_for_missing_info, resolve_container_context ctx)
 {
 	ASSERT(tinfo);
 	bool matches = false;
 
 	if (m_inspector->m_parser->m_fd_listener)
 	{
-		matches = m_inspector->m_parser->m_fd_listener->on_resolve_container(this, tinfo, query_os_for_missing_info);
+		matches = m_inspector->m_parser->m_fd_listener->on_resolve_container(this, tinfo, query_os_for_missing_info, ctx);
 	}
 
 #ifdef CYGWING_AGENT

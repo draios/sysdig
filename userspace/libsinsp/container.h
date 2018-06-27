@@ -223,6 +223,15 @@ protected:
 
 #endif
 
+enum class resolve_container_context {
+	chroot_exit,
+	clone_exit,
+	execve_exit,
+	get_thread_ref,
+	import_thread_table,
+	on_new_entry_from_proc,
+};
+
 class sinsp_container_manager
 {
 public:
@@ -236,7 +245,7 @@ public:
 	void notify_new_container(const sinsp_container_info& container_info);
 	template<typename E> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	template<typename E1, typename E2, typename... Args> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
-	bool resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+	bool resolve_container(sinsp_threadinfo *tinfo, bool query_os_for_missing_info, resolve_container_context ctx);
 	void dump_containers(scap_dumper_t* dumper);
 	string get_container_name(sinsp_threadinfo* tinfo);
 

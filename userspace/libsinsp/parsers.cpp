@@ -1452,7 +1452,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		case PPME_SYSCALL_CLONE_20_X:
 			parinfo = evt->get_param(14);
 			tinfo->set_cgroups(parinfo->m_val, parinfo->m_len);
-			m_inspector->m_container_manager.resolve_container(tinfo, m_inspector->is_live());
+            m_inspector->m_container_manager.resolve_container(tinfo, m_inspector->is_live(), resolve_container_context::clone_exit);
 			break;
 	}
 
@@ -1657,7 +1657,8 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		// 2. docker-runc changes cgroup hierarchy of it
 		// 3. vpid=1 execve to the real process the user wants to run inside the container
 		//
-		m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->is_live());
+            m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->is_live(),
+                                                               resolve_container_context::execve_exit);
 		break;
 	default:
 		ASSERT(false);
@@ -4495,7 +4496,7 @@ void sinsp_parser::parse_chroot_exit(sinsp_evt *evt)
 		}
 		// Root change, let's detect if we are on a container
 		ASSERT(m_inspector);
-		m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->is_live());
+        m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->is_live(), resolve_container_context::chroot_exit);
 	}
 }
 

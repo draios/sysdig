@@ -382,7 +382,7 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 	}
 }
 
-void sinsp_threadinfo::init(scap_threadinfo* pi)
+void sinsp_threadinfo::init(scap_threadinfo *pi, resolve_container_context resolve_ctx)
 {
 	scap_fdinfo *fdi;
 	scap_fdinfo *tfdi;
@@ -424,7 +424,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	set_cgroups(pi->cgroups, pi->cgroups_len);
 	m_root = pi->root;
 	ASSERT(m_inspector);
-	m_inspector->m_container_manager.resolve_container(this, !m_inspector->is_capture());
+	m_inspector->m_container_manager.resolve_container(this, !m_inspector->is_capture(), resolve_ctx);
 	//
 	// Prepare for filtering
 	//

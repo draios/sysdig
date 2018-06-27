@@ -812,7 +812,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 	if(fdinfo == NULL)
 	{
 		sinsp_threadinfo* newti = new sinsp_threadinfo(this);
-		newti->init(tinfo);
+		newti->init(tinfo, resolve_container_context::on_new_entry_from_proc);
 		if(is_nodriver())
 		{
 			auto sinsp_tinfo = find_thread(tid, true);
@@ -833,7 +833,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 		if(!sinsp_tinfo)
 		{
 			sinsp_threadinfo* newti = new sinsp_threadinfo(this);
-			newti->init(tinfo);
+			newti->init(tinfo, resolve_container_context::on_new_entry_from_proc);
 
 			m_thread_manager->add_thread(newti, true);
 
@@ -873,7 +873,7 @@ void sinsp::import_thread_table()
 	HASH_ITER(hh, table, pi, tpi)
 	{
 		sinsp_threadinfo* newti = new sinsp_threadinfo(this);
-		newti->init(pi);
+		newti->init(pi, resolve_container_context::import_thread_table);
 		m_thread_manager->add_thread(newti, true);
 	}
 }
@@ -1483,7 +1483,7 @@ threadinfo_map_t::ptr_t sinsp::get_thread_ref(int64_t tid, bool query_os_if_not_
 
 		if(scap_proc)
 		{
-			newti->init(scap_proc);
+			newti->init(scap_proc, resolve_container_context::get_thread_ref);
 			scap_proc_free(m_h, scap_proc);
 		}
 		else
