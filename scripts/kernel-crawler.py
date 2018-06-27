@@ -109,7 +109,8 @@ repos = {
             "subdirs" : [
                 "Everything/x86_64/os/Packages/k/"
             ],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href"
+            "page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href",
+            "exclude_patterns": ["4.17."]
         },
 
         {
@@ -118,7 +119,8 @@ repos = {
             "subdirs" : [
                 "x86_64/Packages/k/"
             ],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href"
+            "page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href",
+            "exclude_patterns": ["4.17."]
         },
 
         {
@@ -127,7 +129,8 @@ repos = {
             "subdirs" : [
                 "Everything/x86_64/Packages/k/"
             ],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href"
+            "page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href",
+            "exclude_patterns": ["4.17."]
         },
 
         # {
@@ -136,7 +139,8 @@ repos = {
         # 	"subdirs" : [
         # 		"x86_64/os/Packages/k/"
         # 	],
-        # 	"page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href"
+        # 	"page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href",
+        # 	"exclude_patterns": ["4.17."]
         # }
     ],
 
