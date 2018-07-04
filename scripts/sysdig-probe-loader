@@ -205,18 +205,24 @@ if [ -z "${SYSDIG_REPOSITORY}" ]; then
 fi
 
 if [ "${SCRIPT_NAME}" = "sysdig-probe-loader" ]; then
-	SYSDIG_VERSION=$(sysdig --version | cut -d' ' -f3)
+        if [ -z "$SYSDIG_VERSION" ]; then
+	    SYSDIG_VERSION=$(sysdig --version | cut -d' ' -f3)
+	fi
 	PROBE_NAME="sysdig-probe"
 	BPF_PROBE_NAME="sysdig-probe-bpf"
 	PACKAGE_NAME="sysdig"
 elif [ "${SCRIPT_NAME}" = "sysdigcloud-probe-loader" ]; then
 	EXEPATH=$(dirname "$(readlink -f "${0}")")
-	SYSDIG_VERSION=$("${EXEPATH}"/dragent --version)
+        if [ -z "$SYSDIG_VERSION" ]; then
+	    SYSDIG_VERSION=$("${EXEPATH}"/dragent --version)
+	fi
 	PROBE_NAME="sysdigcloud-probe"
 	BPF_PROBE_NAME="sysdigcloud-probe-bpf"
 	PACKAGE_NAME="draios-agent"
 elif [ "${SCRIPT_NAME}" = "falco-probe-loader" ]; then
-	SYSDIG_VERSION=$(falco --version | cut -d' ' -f3)
+        if [ -z "$SYSDIG_VERSION" ]; then
+	    SYSDIG_VERSION=$(falco --version | cut -d' ' -f3)
+	fi
 	PROBE_NAME="falco-probe"
 	BPF_PROBE_NAME="falco-probe-bpf"
 	PACKAGE_NAME="falco"
