@@ -120,6 +120,9 @@ public:
 		m_cpu_shares(1024),
 		m_cpu_quota(0),
 		m_cpu_period(100000)
+#ifdef HAS_ANALYZER
+		,m_metadata_deadline(0)
+#endif
 	{
 	}
 
@@ -153,6 +156,7 @@ public:
 	int64_t m_cpu_period;
 #ifdef HAS_ANALYZER
 	string m_sysdig_agent_conf;
+	uint64_t m_metadata_deadline;
 #endif
 };
 
