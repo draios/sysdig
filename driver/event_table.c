@@ -318,7 +318,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_SETPGID_E */{"setpgid", EC_PROCESS, EF_MODIFIES_STATE, 2, {{"pid", PT_PID, PF_DEC}, {"pgid", PT_PID, PF_DEC} } },
 	/* PPME_SYSCALL_SETPGID_X */{"setpgid", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"res", PT_PID, PF_DEC} } },
 	/* PPME_SYSCALL_BPF_E */{"bpf", EC_OTHER, EF_CREATES_FD, 1, {{"cmd", PT_INT64, PF_DEC} } },
-	/* PPME_SYSCALL_BPF_X */{"bpf", EC_OTHER, EF_CREATES_FD, 1, {{"res_or_fd", PT_DYN, PF_DEC, bpf_dynamic_param, PPM_BPF_IDX_MAX} }},
+	/* PPME_SYSCALL_BPF_X */{"bpf", EC_OTHER, EF_CREATES_FD, 1, {{"res_or_fd", PT_DYN, PF_DEC, bpf_dynamic_param, PPM_BPF_IDX_MAX} } },
 	/* PPME_SYSCALL_SECCOMP_E */{"seccomp", EC_OTHER, EF_NONE, 1, {{"op", PT_UINT64, PF_DEC}, {"flags", PT_UINT64, PF_HEX} } },
 	/* PPME_SYSCALL_SECCOMP_X */{"seccomp", EC_OTHER, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_UNLINK_2_E */{"unlink", EC_FILE, EF_NONE, 0},
@@ -333,7 +333,8 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_LINK_2_X */{"link", EC_FILE, EF_NONE, 3, {{"res", PT_ERRNO, PF_DEC}, {"oldpath", PT_FSPATH, PF_NA}, {"newpath", PT_FSPATH, PF_NA} } },
 	/* PPME_SYSCALL_LINKAT_2_E */{"linkat", EC_FILE, EF_NONE, 0},
 	/* PPME_SYSCALL_LINKAT_2_X */{"linkat", EC_FILE, EF_NONE, 6, {{"res", PT_ERRNO, PF_DEC}, {"olddir", PT_FD, PF_DEC}, {"oldpath", PT_CHARBUF, PF_NA}, {"newdir", PT_FD, PF_DEC}, {"newpath", PT_CHARBUF, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, linkat_flags} } }
-	// NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
-	//     New event types are allowed only for new syscalls or new internal events.
-	//     The number of parameters can be used to differentiate between event versions.
+	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
+	 *     New event types are allowed only for new syscalls or new internal events.
+	 *     The number of parameters can be used to differentiate between event versions.
+	 */
 };
