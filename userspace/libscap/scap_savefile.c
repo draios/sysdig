@@ -2782,7 +2782,7 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 			char *valptr = (char *)lens + nparams * sizeof(uint16_t);
 			if(valptr > end)
 			{
-				break;
+				continue;
 			}
 			uint32_t i;
 			for(i = 0; i < nparams; i++)
