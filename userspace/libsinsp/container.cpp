@@ -189,12 +189,7 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 					   container->m_imagetag,
 					   container->m_imagedigest,
 					   false);
-	if(container->m_imagetag.empty())
-	{
-		container->m_imagetag = "latest";
-	}
-
-	if(container->m_imagedigest.empty())
+	if(container->m_imagedigest.empty() || container->m_imagetag.empty())
 	{
 		string img_json;
 #ifndef CYGWING_AGENT
@@ -218,8 +213,24 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 						}
 					}
 				}
+				for(const auto& rtag : img_root["RepoTags"])
+				{
+					if(rtag.isString())
+					{
+						string repotag = rtag.asString();
+						if(repotag.find(container->m_imagerepo) != string::npos)
+						{
+							container->m_imagetag = repotag.substr(repotag.find(":")+1);
+							break;
+						}
+					}
+				}
 			}
 		}
+	}
+	if(container->m_imagetag.empty())
+	{
+		container->m_imagetag = "latest";
 	}
 
 	container->m_name = root["Name"].asString();
