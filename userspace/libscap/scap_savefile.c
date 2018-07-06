@@ -2661,154 +2661,163 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 	ASSERT(f != NULL);
 
 	//
-	// Read the block header
+	// We may have to repeat the whole process
+	// if the capture contains new syscalls
 	//
-	readsize = gzread(f, &bh, sizeof(bh));
-
-	if(readsize != sizeof(bh))
+	while(true)
 	{
-		int err_no = 0;
-		const char* err_str = gzerror(f, &err_no);
-		if(err_no)
+		//
+		// Read the block header
+		//
+		readsize = gzread(f, &bh, sizeof(bh));
+
+		if(readsize != sizeof(bh))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading file: %s, ernum=%d", err_str, err_no);
+			int err_no = 0;
+			const char* err_str = gzerror(f, &err_no);
+			if(err_no)
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading file: %s, ernum=%d", err_str, err_no);
+				return SCAP_FAILURE;
+			}
+
+			if(readsize == 0)
+			{
+				//
+				// We read exactly 0 bytes. This indicates a correct end of file.
+				//
+				return SCAP_EOF;
+			}
+			else
+			{
+				CHECK_READ_SIZE(readsize, sizeof(bh));
+			}
+		}
+
+		if(bh.block_type != EV_BLOCK_TYPE &&
+		   bh.block_type != EV_BLOCK_TYPE_V2 &&
+		   bh.block_type != EV_BLOCK_TYPE_INT &&
+		   bh.block_type != EVF_BLOCK_TYPE &&
+		   bh.block_type != EVF_BLOCK_TYPE_V2)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unexpected block type %u", (uint32_t)bh.block_type);
+			handle->m_unexpected_block_readsize = readsize;
+			return SCAP_UNEXPECTED_BLOCK;
+		}
+
+		hdr_len = sizeof(struct ppm_evt_hdr);
+		if(bh.block_type != EV_BLOCK_TYPE_V2 && bh.block_type != EVF_BLOCK_TYPE_V2)
+		{
+			hdr_len -= 4;
+		}
+
+		if(bh.block_total_length < sizeof(bh) + hdr_len + 4)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "block length too short %u", (uint32_t)bh.block_total_length);
 			return SCAP_FAILURE;
 		}
 
-		if(readsize == 0)
-		{
-			//
-			// We read exactly 0 bytes. This indicates a correct end of file.
-			//
-			return SCAP_EOF;
-		}
-		else
-		{
-			CHECK_READ_SIZE(readsize, sizeof(bh));
-		}
-	}
-
-	if(bh.block_type != EV_BLOCK_TYPE &&
-		bh.block_type != EV_BLOCK_TYPE_V2 &&
-		bh.block_type != EV_BLOCK_TYPE_INT &&
-		bh.block_type != EVF_BLOCK_TYPE &&
-		bh.block_type != EVF_BLOCK_TYPE_V2)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unexpected block type %u", (uint32_t)bh.block_type);
-		handle->m_unexpected_block_readsize = readsize;
-		return SCAP_UNEXPECTED_BLOCK;
-	}
-
-	hdr_len = sizeof(struct ppm_evt_hdr);
-	if(bh.block_type != EV_BLOCK_TYPE_V2 && bh.block_type != EVF_BLOCK_TYPE_V2)
-	{
-		hdr_len -= 4;
-	}
-
-	if(bh.block_total_length < sizeof(bh) + hdr_len + 4)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "block length too short %u", (uint32_t)bh.block_total_length);
-		return SCAP_FAILURE;
-	}
-
-	//
-	// Read the event
-	//
-	readlen = bh.block_total_length - sizeof(bh);
-	if (readlen > FILE_READ_BUF_SIZE) {
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "event block length %u greater than read buffer size %u",
-			 readlen,
-			 FILE_READ_BUF_SIZE);
-		return SCAP_FAILURE;
-	}
-
-	readsize = gzread(f, handle->m_file_evt_buf, readlen);
-	CHECK_READ_SIZE(readsize, readlen);
-
-	//
-	// EVF_BLOCK_TYPE has 32 bits of flags
-	//
-	*pcpuid = *(uint16_t *)handle->m_file_evt_buf;
-
-	if(bh.block_type == EVF_BLOCK_TYPE || bh.block_type == EVF_BLOCK_TYPE_V2)
-	{
-		handle->m_last_evt_dump_flags = *(uint32_t*)(handle->m_file_evt_buf + sizeof(uint16_t));
-		*pevent = (struct ppm_evt_hdr *)(handle->m_file_evt_buf + sizeof(uint16_t) + sizeof(uint32_t));
-	}
-	else
-	{
-		handle->m_last_evt_dump_flags = 0;
-		*pevent = (struct ppm_evt_hdr *)(handle->m_file_evt_buf + sizeof(uint16_t));
-	}
-
-	if((*pevent)->type >= PPM_EVENT_MAX)
-	{
 		//
-		// We're reading a capture that contains new syscalls.
-		// We can't do anything else that skips them.
+		// Read the event
 		//
-		return scap_next_offline(handle, pevent, pcpuid);
-	}
-
-	if(bh.block_type != EV_BLOCK_TYPE_V2 && bh.block_type != EVF_BLOCK_TYPE_V2)
-	{
-		//
-		// We're reading a old capture which events don't have nparams in the header.
-		// Convert it to the current version.
-		//
-		if((readlen + sizeof(uint32_t)) > FILE_READ_BUF_SIZE)
-		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "cannot convert v1 event block to v2 (%lu greater than read buffer size %u)",
-				 readlen + sizeof(uint32_t),
+		readlen = bh.block_total_length - sizeof(bh);
+		if (readlen > FILE_READ_BUF_SIZE) {
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "event block length %u greater than read buffer size %u",
+				 readlen,
 				 FILE_READ_BUF_SIZE);
 			return SCAP_FAILURE;
 		}
-	        size_t offset =
-#ifdef PPM_ENABLE_SENTINEL
-			sizeof(uint32_t) + // sentinel
-#endif
-			sizeof(uint64_t) + // ts
-			sizeof(uint64_t) + // tid
-			sizeof(uint32_t) + // len
-			sizeof(uint16_t);  // type
 
-		memmove((char *)*pevent + offset + sizeof(uint32_t),
-			(char *)*pevent + offset,
-			readlen - ((char *)*pevent - handle->m_file_evt_buf) - offset);
-		(*pevent)->len += sizeof(uint32_t);
+		readsize = gzread(f, handle->m_file_evt_buf, readlen);
+		CHECK_READ_SIZE(readsize, readlen);
 
 		//
-		// The number of parameters needs to be calculated based on the block len.
-		// Use the current number of parameters as starting point and decrease it
-		// until size matches.
+		// EVF_BLOCK_TYPE has 32 bits of flags
 		//
-		char *end = (char *)*pevent + (*pevent)->len;
-		uint16_t *lens = (uint16_t *)((char *)*pevent + sizeof(struct ppm_evt_hdr));
-		uint32_t nparams;
-		for(nparams = g_event_info[(*pevent)->type].nparams; nparams >= 0; nparams--)
+		*pcpuid = *(uint16_t *)handle->m_file_evt_buf;
+
+		if(bh.block_type == EVF_BLOCK_TYPE || bh.block_type == EVF_BLOCK_TYPE_V2)
 		{
-			char *valptr = (char *)lens + nparams * sizeof(uint16_t);
-			if(valptr > end)
+			handle->m_last_evt_dump_flags = *(uint32_t*)(handle->m_file_evt_buf + sizeof(uint16_t));
+			*pevent = (struct ppm_evt_hdr *)(handle->m_file_evt_buf + sizeof(uint16_t) + sizeof(uint32_t));
+		}
+		else
+		{
+			handle->m_last_evt_dump_flags = 0;
+			*pevent = (struct ppm_evt_hdr *)(handle->m_file_evt_buf + sizeof(uint16_t));
+		}
+
+		if((*pevent)->type >= PPM_EVENT_MAX)
+		{
+			//
+			// We're reading a capture that contains new syscalls.
+			// We can't do anything else that skips them.
+			//
+			continue;
+		}
+
+		if(bh.block_type != EV_BLOCK_TYPE_V2 && bh.block_type != EVF_BLOCK_TYPE_V2)
+		{
+			//
+			// We're reading a old capture which events don't have nparams in the header.
+			// Convert it to the current version.
+			//
+			if((readlen + sizeof(uint32_t)) > FILE_READ_BUF_SIZE)
 			{
-				continue;
-			}
-			uint32_t i;
-			for(i = 0; i < nparams; i++)
-			{
-				valptr += lens[i];
-			}
-			if(valptr < end)
-			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "cannot convert v1 event block to v2 (corrupted trace file - can't calculate nparams).");
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "cannot convert v1 event block to v2 (%lu greater than read buffer size %u)",
+					 readlen + sizeof(uint32_t),
+					 FILE_READ_BUF_SIZE);
 				return SCAP_FAILURE;
 			}
-			ASSERT(valptr >= end);
-			if(valptr == end)
+			size_t offset =
+#ifdef PPM_ENABLE_SENTINEL
+				sizeof(uint32_t) + // sentinel
+#endif
+				sizeof(uint64_t) + // ts
+				sizeof(uint64_t) + // tid
+				sizeof(uint32_t) + // len
+				sizeof(uint16_t);  // type
+
+			memmove((char *)*pevent + offset + sizeof(uint32_t),
+				(char *)*pevent + offset,
+				readlen - ((char *)*pevent - handle->m_file_evt_buf) - offset);
+			(*pevent)->len += sizeof(uint32_t);
+
+			//
+			// The number of parameters needs to be calculated based on the block len.
+			// Use the current number of parameters as starting point and decrease it
+			// until size matches.
+			//
+			char *end = (char *)*pevent + (*pevent)->len;
+			uint16_t *lens = (uint16_t *)((char *)*pevent + sizeof(struct ppm_evt_hdr));
+			uint32_t nparams;
+			for(nparams = g_event_info[(*pevent)->type].nparams; nparams >= 0; nparams--)
 			{
-				break;
+				char *valptr = (char *)lens + nparams * sizeof(uint16_t);
+				if(valptr > end)
+				{
+					continue;
+				}
+				uint32_t i;
+				for(i = 0; i < nparams; i++)
+				{
+					valptr += lens[i];
+				}
+				if(valptr < end)
+				{
+					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "cannot convert v1 event block to v2 (corrupted trace file - can't calculate nparams).");
+					return SCAP_FAILURE;
+				}
+				ASSERT(valptr >= end);
+				if(valptr == end)
+				{
+					break;
+				}
 			}
+			(*pevent)->nparams = nparams;
 		}
-		(*pevent)->nparams = nparams;
+
+		break;
 	}
 
 	return SCAP_SUCCESS;
