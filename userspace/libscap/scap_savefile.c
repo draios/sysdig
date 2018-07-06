@@ -180,6 +180,7 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 
 	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh))
 	{
+		free(lengths);
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fd1)");
 		return SCAP_FAILURE;
 	}
@@ -189,6 +190,7 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 	//
 	if(scap_dump_write(d, &tinfo->tid, sizeof(tinfo->tid)) != sizeof(tinfo->tid))
 	{
+		free(lengths);
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fd2)");
 		return SCAP_FAILURE;
 	}
@@ -202,6 +204,7 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 		{
 			if(scap_fd_write_to_disk(handle, fdi, d, lengths[idx++]) != SCAP_SUCCESS)
 			{
+				free(lengths);
 				return SCAP_FAILURE;
 			}
 		}
