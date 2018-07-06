@@ -2789,6 +2789,12 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 			{
 				valptr += lens[i];
 			}
+			if(valptr < end)
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "cannot convert v1 event block to v2 (corrupted trace file - can't calculate nparams).");
+				return SCAP_FAILURE;
+			}
+			ASSERT(valptr >= end);
 			if(valptr == end)
 			{
 				break;
