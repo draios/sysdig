@@ -1031,8 +1031,10 @@ static __always_inline u32 linkat_flags_to_scap(unsigned long flags)
 	if (flags & AT_SYMLINK_FOLLOW)
 		res |= PPM_AT_SYMLINK_FOLLOW;
 
+#ifdef AT_EMPTY_PATH
 	if (flags & AT_EMPTY_PATH)
 		res |= PPM_AT_EMPTY_PATH;
+#endif
 
 	return res;
 }
