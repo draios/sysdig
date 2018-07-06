@@ -1715,7 +1715,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 	if(totreadsize > block_length)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_read_proclist read more %lu than a block %u", totreadsize, block_length);
-		//ASSERT(false);
+		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 	padding_len = block_length - totreadsize;
