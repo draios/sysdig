@@ -701,6 +701,7 @@ static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
 
 	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh))
 	{
+		free(lengths);
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF1)");
 		return SCAP_FAILURE;
 	}
@@ -728,6 +729,7 @@ static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
 		    scap_dump_write(d, &shelllen, sizeof(uint16_t)) != sizeof(uint16_t) ||
 		    scap_dump_write(d, info->shell, shelllen) != shelllen)
 		{
+			free(lengths);
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (U1)");
 			return SCAP_FAILURE;
 		}
@@ -749,6 +751,7 @@ static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
 		    scap_dump_write(d, &namelen, sizeof(uint16_t)) != sizeof(uint16_t) ||
 		    scap_dump_write(d, info->name, namelen) != namelen)
 		{
+			free(lengths);
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (U2)");
 			return SCAP_FAILURE;
 		}
