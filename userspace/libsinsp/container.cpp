@@ -181,21 +181,20 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 		container->m_imageid = imgstr.substr(cpos + 1);
 	}
 
-	bool no_name = strncmp(container->m_image.c_str(), container->m_imageid.c_str(),
-			       MIN(container->m_image.length(), container->m_imageid.length())) == 0;
-	if(!no_name)
+	string hostname, port;
+	sinsp_utils::split_container_image(container->m_image,
+					   hostname,
+					   port,
+					   container->m_imagerepo,
+					   container->m_imagetag,
+					   container->m_imagedigest,
+					   false);
+	if(container->m_imagetag.empty())
 	{
-		string hostname, port;
-		sinsp_utils::split_container_image(container->m_image,
-						   hostname,
-						   port,
-						   container->m_imagerepo,
-						   container->m_imagetag,
-						   container->m_imagedigest,
-						   false);
+		container->m_imagetag = "latest";
 	}
 
-	if(no_name || container->m_imagedigest.empty() || container->m_imagetag.empty())
+	if(container->m_imagedigest.empty())
 	{
 		string img_json;
 #ifndef CYGWING_AGENT
@@ -212,10 +211,6 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 					if(rdig.isString())
 					{
 						string repodigest = rdig.asString();
-						if(container->m_imagerepo.empty())
-						{
-							container->m_imagerepo = repodigest.substr(0, repodigest.find("@"));
-						}
 						if(repodigest.find(container->m_imagerepo) != string::npos)
 						{
 							container->m_imagedigest = repodigest.substr(repodigest.find("@")+1);
@@ -223,28 +218,8 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 						}
 					}
 				}
-				for(const auto& rtag : img_root["RepoTags"])
-				{
-					if(rtag.isString())
-					{
-						string repotag = rtag.asString();
-						if(container->m_imagerepo.empty())
-						{
-							container->m_imagerepo = repotag.substr(0, repotag.find(":"));
-						}
-						if(repotag.find(container->m_imagerepo) != string::npos)
-						{
-							container->m_imagetag = repotag.substr(repotag.find(":")+1);
-							break;
-						}
-					}
-				}
 			}
 		}
-	}
-	if(container->m_imagetag.empty())
-	{
-		container->m_imagetag = "latest";
 	}
 
 	container->m_name = root["Name"].asString();
