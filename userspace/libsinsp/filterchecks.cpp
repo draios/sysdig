@@ -6514,7 +6514,7 @@ uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	}
 }
 
-#ifndef HAS_ANALYZER
+#ifndef CYGWING_AGENT
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_k8s implementation
@@ -6648,6 +6648,45 @@ int32_t sinsp_filter_check_k8s::extract_arg(const string& fldname, const string&
 	return parsed_len;
 }
 
+#ifdef HAS_ANALYZER
+
+// When using the analyzer, the necessary state is not collected, so
+// these methods all return no info.
+
+const k8s_pod_t* sinsp_filter_check_k8s::find_pod_for_thread(const sinsp_threadinfo* tinfo)
+{
+	return NULL;
+}
+
+const k8s_ns_t* sinsp_filter_check_k8s::find_ns_by_name(const string& ns_name)
+{
+	return NULL;
+}
+
+const k8s_rc_t* sinsp_filter_check_k8s::find_rc_by_pod(const k8s_pod_t* pod)
+{
+	return NULL;
+}
+
+const k8s_rs_t* sinsp_filter_check_k8s::find_rs_by_pod(const k8s_pod_t* pod)
+{
+	return NULL;
+}
+
+vector<const k8s_service_t*> sinsp_filter_check_k8s::find_svc_by_pod(const k8s_pod_t* pod)
+{
+
+	vector<const k8s_service_t *> empty;
+
+	return empty;
+}
+
+const k8s_deployment_t* sinsp_filter_check_k8s::find_deployment_by_pod(const k8s_pod_t* pod)
+{
+	return NULL;
+}
+
+#else
 const k8s_pod_t* sinsp_filter_check_k8s::find_pod_for_thread(const sinsp_threadinfo* tinfo)
 {
 	if(tinfo->m_container_id.empty())
@@ -6729,6 +6768,7 @@ const k8s_deployment_t* sinsp_filter_check_k8s::find_deployment_by_pod(const k8s
 
 	return NULL;
 }
+#endif
 
 void sinsp_filter_check_k8s::concatenate_labels(const k8s_pair_list& labels, string* s)
 {
@@ -7060,7 +7100,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 	return NULL;
 }
 
-#endif // HAS_ANALYZER
+#endif // CYGWING_AGENT
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_mesos implementation
