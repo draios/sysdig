@@ -851,7 +851,7 @@ static scap_dumper_t *scap_dump_open_gzfile(scap_t *handle, gzFile gzfile, const
 //
 // Open a "savefile" for writing.
 //
-scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mode compress)
+scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mode compress, bool skip_proc_scan)
 {
 	gzFile f = NULL;
 	int fd = -1;
@@ -902,7 +902,7 @@ scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mod
 		return NULL;
 	}
 
-	return scap_dump_open_gzfile(handle, f, fname, false);
+	return scap_dump_open_gzfile(handle, f, fname, skip_proc_scan);
 }
 
 //

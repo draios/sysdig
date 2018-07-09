@@ -660,7 +660,7 @@ int64_t scap_get_readfile_offset(scap_t* handle);
 
   \return Dump handle that can be used to identify this specific dump instance.
 */
-scap_dumper_t* scap_dump_open(scap_t *handle, const char *fname, compression_mode compress);
+scap_dumper_t* scap_dump_open(scap_t *handle, const char *fname, compression_mode compress, bool skip_proc_scan);
 
 /*!
   \brief Open a trace file for writing, using the provided fd.

@@ -741,11 +741,11 @@ void sinsp::autodump_start(const string& dump_filename, bool compress)
 
 	if(compress)
 	{
-		m_dumper = scap_dump_open(m_h, dump_filename.c_str(), SCAP_COMPRESSION_GZIP);
+		m_dumper = scap_dump_open(m_h, dump_filename.c_str(), SCAP_COMPRESSION_GZIP, false);
 	}
 	else
 	{
-		m_dumper = scap_dump_open(m_h, dump_filename.c_str(), SCAP_COMPRESSION_NONE);
+		m_dumper = scap_dump_open(m_h, dump_filename.c_str(), SCAP_COMPRESSION_NONE, false);
 	}
 
 	m_is_dumping = true;
