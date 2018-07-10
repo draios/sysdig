@@ -583,7 +583,14 @@ static int32_t scap_write_iflist(scap_t *handle, scap_dumper_t* d)
 
 		entrylen = sizeof(scap_ifinfo_ipv4) + entry->ifnamelen - SCAP_MAX_PATH_SIZE;
 
-		if(scap_dump_write(d, &entrylen, sizeof(uint32_t)) != sizeof(uint32_t) || scap_dump_write(d, entry, entrylen) != entrylen)
+		if(scap_dump_write(d, &entrylen, sizeof(uint32_t)) != sizeof(uint32_t) ||
+		   scap_dump_write(d, &(entry->type), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		   scap_dump_write(d, &(entry->ifnamelen), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		   scap_dump_write(d, &(entry->addr), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		   scap_dump_write(d, &(entry->netmask), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		   scap_dump_write(d, &(entry->bcast), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		   scap_dump_write(d, &(entry->linkspeed), sizeof(uint64_t)) != sizeof(uint64_t) ||
+		   scap_dump_write(d, &(entry->ifname), entry->ifnamelen) != entry->ifnamelen)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF2)");
 			return SCAP_FAILURE;
@@ -601,7 +608,14 @@ static int32_t scap_write_iflist(scap_t *handle, scap_dumper_t* d)
 
 		entrylen = sizeof(scap_ifinfo_ipv6) + entry->ifnamelen - SCAP_MAX_PATH_SIZE;
 
-		if(scap_dump_write(d, &entrylen, sizeof(uint32_t)) != sizeof(uint32_t) || scap_dump_write(d, entry, entrylen) != entrylen)
+		if(scap_dump_write(d, &entrylen, sizeof(uint32_t)) != sizeof(uint32_t) ||
+		   scap_dump_write(d, &(entry->type), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		   scap_dump_write(d, &(entry->ifnamelen), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		   scap_dump_write(d, &(entry->addr), SCAP_IPV6_ADDR_LEN) != SCAP_IPV6_ADDR_LEN ||
+		   scap_dump_write(d, &(entry->netmask), SCAP_IPV6_ADDR_LEN) != SCAP_IPV6_ADDR_LEN ||
+		   scap_dump_write(d, &(entry->bcast), SCAP_IPV6_ADDR_LEN) != SCAP_IPV6_ADDR_LEN ||
+		   scap_dump_write(d, &(entry->linkspeed), sizeof(uint64_t)) != sizeof(uint64_t) ||
+		   scap_dump_write(d, &(entry->ifname), entry->ifnamelen) != entry->ifnamelen)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF2)");
 			return SCAP_FAILURE;
@@ -1957,7 +1971,13 @@ static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length,
 		uint32_t ifsize;
 		if(iftype == SCAP_II_IPV4)
 		{
-			ifsize = sizeof(scap_ifinfo_ipv4) + ifnamlen - SCAP_MAX_PATH_SIZE;
+			ifsize = sizeof(uint16_t) + // type
+				sizeof(uint16_t) +  // ifnamelen
+				sizeof(uint32_t) +  // addr
+				sizeof(uint32_t) +  // netmask
+				sizeof(uint32_t) +  // bcast
+				sizeof(uint64_t) +  // linkspeed
+			        ifnamlen;
 
 			if(toread < ifsize)
 			{
@@ -1967,7 +1987,9 @@ static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length,
 			}
 
 			// Copy the entry
-			memcpy(handle->m_addrlist->v4list + ifcnt4, pif, ifsize);
+			memcpy(handle->m_addrlist->v4list + ifcnt4, pif, ifsize - ifnamlen);
+
+			memcpy(handle->m_addrlist->v4list[ifcnt4].ifname, pif + ifsize - ifnamlen, ifnamlen);
 
 			// Make sure the name string is NULL-terminated
 			*((char *)(handle->m_addrlist->v4list + ifcnt4) + ifsize) = 0;
@@ -2007,7 +2029,13 @@ static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length,
 		}
 		else if(iftype == SCAP_II_IPV6)
 		{
-			ifsize = sizeof(scap_ifinfo_ipv6) + ifnamlen - SCAP_MAX_PATH_SIZE;
+			ifsize = sizeof(uint16_t) +  // type
+				sizeof(uint16_t) +   // ifnamelen
+				SCAP_IPV6_ADDR_LEN + // addr
+				SCAP_IPV6_ADDR_LEN + // netmask
+				SCAP_IPV6_ADDR_LEN + // bcast
+				sizeof(uint64_t) +   // linkspeed
+				ifnamlen;
 
 			if(toread < ifsize)
 			{
@@ -2017,7 +2045,9 @@ static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length,
 			}
 
 			// Copy the entry
-			memcpy(handle->m_addrlist->v6list + ifcnt6, pif, ifsize);
+			memcpy(handle->m_addrlist->v6list + ifcnt6, pif, ifsize - ifnamlen);
+
+			memcpy(handle->m_addrlist->v6list[ifcnt6].ifname, pif + ifsize - ifnamlen, ifnamlen);
 
 			// Make sure the name string is NULL-terminated
 			*((char *)(handle->m_addrlist->v6list + ifcnt6) + ifsize) = 0;
