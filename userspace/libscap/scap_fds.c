@@ -513,6 +513,12 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 
 	if(sub_len && *nbytes != sub_len)
 	{
+		if(*nbytes > sub_len)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Had read %lu bytes, but fdlist entry have length %u.",
+				 *nbytes, sub_len);
+			return SCAP_FAILURE;
+		}
 		toread = sub_len - *nbytes;
 		fseekres = (int)gzseek(f, (long)toread, SEEK_CUR);
 		if(fseekres == -1)

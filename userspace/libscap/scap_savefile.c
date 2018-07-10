@@ -1702,6 +1702,12 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 		if(sub_len && subreadsize != sub_len)
 		{
+			if(subreadsize > sub_len)
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Had read %lu bytes, but proclist entry have length %u.",
+					 subreadsize, sub_len);
+				return SCAP_FAILURE;
+			}
 			toread = sub_len - subreadsize;
 			fseekres = (int)gzseek(f, (long)toread, SEEK_CUR);
 			if(fseekres == -1)
@@ -2308,6 +2314,12 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 		if(sub_len && subreadsize != sub_len)
 		{
+			if(subreadsize > sub_len)
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Had read %lu bytes, but userlist entry have length %u.",
+					 subreadsize, sub_len);
+				return SCAP_FAILURE;
+			}
 			toread = sub_len - subreadsize;
 			fseekres = (int)gzseek(f, (long)toread, SEEK_CUR);
 			if(fseekres == -1)
