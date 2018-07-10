@@ -2783,6 +2783,7 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 			char *end = (char *)*pevent + (*pevent)->len;
 			uint16_t *lens = (uint16_t *)((char *)*pevent + sizeof(struct ppm_evt_hdr));
 			uint32_t nparams;
+			bool done = false;
 			for(nparams = g_event_info[(*pevent)->type].nparams; nparams >= 0; nparams--)
 			{
 				char *valptr = (char *)lens + nparams * sizeof(uint16_t);
@@ -2803,8 +2804,14 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 				ASSERT(valptr >= end);
 				if(valptr == end)
 				{
+					done = true;
 					break;
 				}
+			}
+			if(!done)
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "cannot convert v1 event block to v2 (corrupted trace file - can't calculate nparams) (2).");
+				return SCAP_FAILURE;
 			}
 			(*pevent)->nparams = nparams;
 		}
