@@ -1876,6 +1876,7 @@ void schedule_more_evts(sinsp* inspector, void* data, T* client, ppm_event_type 
 	}
 
 	state->m_piscapevt->len = tot_len;
+	state->m_piscapevt->nparams = 1;
 	uint16_t* plen = (uint16_t*)((char *)state->m_piscapevt + sizeof(struct ppm_evt_hdr));
 	plen[0] = (uint16_t)payload.size() + 1;
 	uint8_t* edata = (uint8_t*)plen + sizeof(uint16_t);
