@@ -2769,18 +2769,10 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 					 FILE_READ_BUF_SIZE);
 				return SCAP_FAILURE;
 			}
-			size_t offset =
-#ifdef PPM_ENABLE_SENTINEL
-				sizeof(uint32_t) + // sentinel
-#endif
-				sizeof(uint64_t) + // ts
-				sizeof(uint64_t) + // tid
-				sizeof(uint32_t) + // len
-				sizeof(uint16_t);  // type
 
-			memmove((char *)*pevent + offset + sizeof(uint32_t),
-				(char *)*pevent + offset,
-				readlen - ((char *)*pevent - handle->m_file_evt_buf) - offset);
+			memmove((char *)*pevent + sizeof(struct ppm_evt_hdr),
+				(char *)*pevent + sizeof(struct ppm_evt_hdr) - sizeof(uint32_t),
+				readlen - ((char *)*pevent - handle->m_file_evt_buf) - (sizeof(struct ppm_evt_hdr) - sizeof(uint32_t)));
 			(*pevent)->len += sizeof(uint32_t);
 
 			//
