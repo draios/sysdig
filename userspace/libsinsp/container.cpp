@@ -150,6 +150,7 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 	switch(resp) {
 		case sinsp_docker_response::RESP_BAD_REQUEST:
 			m_api_version = "";
+			json = "";
 #ifndef CYGWING_AGENT
 			resp = get_docker(manager, "http://localhost/containers/" + container->m_id + "/json", json);
 #else
