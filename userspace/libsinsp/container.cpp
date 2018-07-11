@@ -206,7 +206,7 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 	{
 		string img_json;
 #ifndef CYGWING_AGENT
-		if(get_docker(manager, "http://localhost/" + m_api_version + "/images/" + container->m_imageid + "/json?digests=1", img_json) == sinsp_docker_response::RESP_OK)
+		if(get_docker(manager, "http://localhost" + m_api_version + "/images/" + container->m_imageid + "/json?digests=1", img_json) == sinsp_docker_response::RESP_OK)
 #else
 		if(get_docker(manager, "GET /v1.30/images/" + container->m_imageid + "/json?digests=1 HTTP/1.1\r\nHost: docker \r\n\r\n", img_json) == sinsp_docker_response::RESP_OK)
 #endif
