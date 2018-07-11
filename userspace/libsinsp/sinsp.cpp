@@ -1578,6 +1578,11 @@ void sinsp::add_suppressed_comms(scap_open_args &oargs)
 	oargs.suppressed_comms[i++] = NULL;
 }
 
+void sinsp::set_query_docker_image_info(bool query_image_info)
+{
+	m_container_manager.set_query_docker_image_info(query_image_info);
+}
+
 void sinsp::set_snaplen(uint32_t snaplen)
 {
 	//

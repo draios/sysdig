@@ -852,6 +852,8 @@ public:
 
 	bool check_suppressed(int64_t tid);
 
+	void set_query_docker_image_info(bool query_image_info);
+
 VISIBILITY_PRIVATE
 
         static inline ppm_event_flags falco_skip_flags()

@@ -87,6 +87,8 @@ CURLM *sinsp_container_engine_docker::m_curlm = NULL;
 CURL *sinsp_container_engine_docker::m_curl = NULL;
 #endif
 
+bool sinsp_container_engine_docker::m_query_image_info = true;
+
 sinsp_container_engine_docker::sinsp_container_engine_docker() :
 	m_unix_socket_path(string(scap_get_host_root()) + "/var/run/docker.sock"),
 	m_api_version("/v1.24")
@@ -121,6 +123,11 @@ void sinsp_container_engine_docker::cleanup()
 	curl_multi_cleanup(m_curlm);
 	m_curlm = NULL;
 #endif
+}
+
+void sinsp_container_engine_docker::set_query_image_info(bool query_image_info)
+{
+	m_query_image_info = query_image_info;
 }
 
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
@@ -183,7 +190,7 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 
 	bool no_name = strncmp(container->m_image.c_str(), container->m_imageid.c_str(),
 			       MIN(container->m_image.length(), container->m_imageid.length())) == 0;
-	if(!no_name)
+	if(!no_name || !m_query_image_info)
 	{
 		string hostname, port;
 		sinsp_utils::split_container_image(container->m_image,
@@ -195,7 +202,7 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 						   false);
 	}
 
-	if(no_name || container->m_imagedigest.empty() || container->m_imagetag.empty())
+	if(m_query_image_info && (no_name || container->m_imagedigest.empty() || container->m_imagetag.empty()))
 	{
 		string img_json;
 #ifndef CYGWING_AGENT
@@ -1273,4 +1280,9 @@ void sinsp_container_manager::subscribe_on_remove_container(remove_container_cb 
 void sinsp_container_manager::cleanup()
 {
 	sinsp_container_engine_docker::cleanup();
+}
+
+void sinsp_container_manager::set_query_docker_image_info(bool query_image_info)
+{
+	sinsp_container_engine_docker::set_query_image_info(query_image_info);
 }

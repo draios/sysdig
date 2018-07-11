@@ -167,7 +167,7 @@ public:
 
 	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	static void cleanup();
-
+	static void set_query_image_info(bool query_image_info);
 protected:
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	static size_t curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json);
@@ -177,6 +177,7 @@ protected:
 
 	string m_unix_socket_path;
 	string m_api_version;
+	static bool m_query_image_info;
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	static CURLM *m_curlm;
 	static CURL *m_curl;
@@ -246,6 +247,8 @@ public:
 	void subscribe_on_remove_container(remove_container_cb callback);
 
 	void cleanup();
+
+	void set_query_docker_image_info(bool query_image_info);
 private:
 	string container_to_json(const sinsp_container_info& container_info);
 	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);
