@@ -145,9 +145,9 @@ repos = {
     ],
 
     #
-    # Atomic repo is hard-coded to get the 4.17.x and 4.18.x (excluding rc) for now.
+    # Fedora Atomic repo is hard-coded to get the 4.17.x and 4.18.x (excluding rc) for now.
     #
-    "Atomic" : [
+    "Fedora-Atomic" : [
         {
             "root" : "https://kojipkgs.fedoraproject.org/packages/kernel/",
             "version_discovery_pattern": "/html/body//a[regex:test(@href, '^4\.1[78].*/$')]/@href",
@@ -281,10 +281,10 @@ def process_al_distro(al_distro_name, current_repo):
         return False
 
 #
-# Atomic needs 2 levels of discovery(for version, and build id, respectively)
+# Fedora Atomic needs 2 levels of discovery(for version, and build id, respectively)
 #
 def process_atomic_distro(current_repos):
-    for repo in current_repos["Atomic"]:
+    for repo in current_repos["Fedora-Atomic"]:
         try:
             root = urllib2.urlopen(repo["root"],timeout=URL_TIMEOUT).read()
         except:
@@ -344,7 +344,7 @@ for repo in repos[distro]:
                     al2_repo_count += 1
         except:
             continue
-    elif distro == "Atomic":
+    elif distro == "Fedora-Atomic":
         try:
             process_atomic_distro(repos)
         except:
