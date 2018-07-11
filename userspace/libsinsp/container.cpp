@@ -189,8 +189,9 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 		container->m_imageid = imgstr.substr(cpos + 1);
 	}
 
-	bool no_name = strncmp(container->m_image.c_str(), container->m_imageid.c_str(),
-			       MIN(container->m_image.length(), container->m_imageid.length())) == 0;
+	bool no_name = !container->m_imageid.empty() &&
+		strncmp(container->m_image.c_str(), container->m_imageid.c_str(),
+			MIN(container->m_image.length(), container->m_imageid.length())) == 0;
 	if(!no_name || !m_query_image_info)
 	{
 		string hostname, port;
@@ -203,7 +204,8 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 						   false);
 	}
 
-	if(m_query_image_info && (no_name || container->m_imagedigest.empty() || container->m_imagetag.empty()))
+	if(m_query_image_info && !container->m_imageid.empty() &&
+	   (no_name || container->m_imagedigest.empty() || (!container->m_imagedigest.empty() && container->m_imagetag.empty())))
 	{
 		string img_json;
 #ifndef CYGWING_AGENT
