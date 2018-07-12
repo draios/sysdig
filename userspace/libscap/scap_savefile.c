@@ -137,20 +137,11 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 	block_header bh;
 	uint32_t bt;
 	uint32_t totlen = MEMBER_SIZE(scap_threadinfo, tid);  // This includes the tid
-	uint32_t nfds = 0;
 	uint32_t idx = 0;
 	struct scap_fdinfo *fdi;
 	struct scap_fdinfo *tfdi;
 
-	//
-	// First pass of the table to calculate the size
-	//
-	HASH_ITER(hh, tinfo->fdlist, fdi, tfdi)
-	{
-		nfds++;
-	}
-
-	uint32_t* lengths = calloc(nfds, sizeof(uint32_t));
+	uint32_t* lengths = calloc(HASH_COUNT(tinfo->fdlist), sizeof(uint32_t));
 	if(lengths == NULL)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_write_proc_fds memory allocation failure");
@@ -158,7 +149,7 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 	}
 
 	//
-	// Second pass of the table to calculate the lengths
+	// First pass of the table to calculate the lengths
 	//
 	HASH_ITER(hh, tinfo->fdlist, fdi, tfdi)
 	{
@@ -196,7 +187,7 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 	}
 
 	//
-	// Third pass of the table to dump it
+	// Second pass of the table to dump it
 	//
 	HASH_ITER(hh, tinfo->fdlist, fdi, tfdi)
 	{
@@ -422,20 +413,11 @@ int32_t scap_write_proclist_entry_bufs(scap_t *handle, scap_dumper_t *d, struct 
 static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 {
 	uint32_t totlen = 0;
-	uint32_t nprocs = 0;
 	uint32_t idx = 0;
 	struct scap_threadinfo *tinfo;
 	struct scap_threadinfo *ttinfo;
 
-	//
-	// First pass of the table to calculate the size
-	//
-	HASH_ITER(hh, handle->m_proclist, tinfo, ttinfo)
-	{
-		nprocs++;
-	}
-
-	uint32_t* lengths = calloc(nprocs, sizeof(uint32_t));
+	uint32_t* lengths = calloc(HASH_COUNT(handle->m_proclist), sizeof(uint32_t));
 	if(lengths == NULL)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_write_proclist memory allocation failure");
@@ -443,7 +425,7 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 	}
 
 	//
-	// Second pass of the table to calculate the lengths
+	// First pass of the table to calculate the lengths
 	//
 	HASH_ITER(hh, handle->m_proclist, tinfo, ttinfo)
 	{
@@ -492,7 +474,7 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 	}
 
 	//
-	// Third pass of the table to dump it
+	// Second pass of the table to dump it
 	//
 	HASH_ITER(hh, handle->m_proclist, tinfo, ttinfo)
 	{
