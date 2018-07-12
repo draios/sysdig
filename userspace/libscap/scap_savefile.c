@@ -1189,16 +1189,16 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 	size_t subreadsize = 0;
 	size_t totreadsize = 0;
 	size_t padding_len;
-	struct scap_threadinfo tinfo;
 	uint16_t stlen;
 	uint32_t padding;
 	int32_t uth_status = SCAP_SUCCESS;
-	struct scap_threadinfo *ntinfo;
 	uint32_t toread;
 	int fseekres;
 
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
 	{
+		struct scap_threadinfo tinfo;
+
 		tinfo.fdlist = NULL;
 		tinfo.flags = 0;
 		tinfo.vmsize_kb = 0;
@@ -1673,7 +1673,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 			//
 			// All parsed. Allocate the new entry and copy the temp one into into it.
 			//
-			ntinfo = (scap_threadinfo *)malloc(sizeof(scap_threadinfo));
+			struct scap_threadinfo *ntinfo = (scap_threadinfo *)malloc(sizeof(scap_threadinfo));
 			if(ntinfo == NULL)
 			{
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "process table allocation error (fd1)");
