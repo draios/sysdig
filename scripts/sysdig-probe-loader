@@ -21,9 +21,9 @@ get_kernel_config() {
 	elif [ ! -z "${SYSDIG_HOST_ROOT}" ] && [ -f "${SYSDIG_HOST_ROOT}/usr/lib/ostree-boot/config-${KERNEL_RELEASE}" ]; then
 		echo "Found kernel config at ${SYSDIG_HOST_ROOT}/usr/lib/ostree-boot/config-${KERNEL_RELEASE}"
 		HASH=$(md5sum "${SYSDIG_HOST_ROOT}/usr/lib/ostree-boot/config-${KERNEL_RELEASE}" | cut -d' ' -f1)
-	elif [ -f /usr/lib/modules/${KERNEL_RELEASE}/config ]; then
-		echo "Found kernel config at /usr/lib/modules/${KERNEL_RELEASE}/config"
-		HASH=$(md5sum "/usr/lib/modules/${KERNEL_RELEASE}/config" | cut -d' ' -f1)
+	elif [ -f /lib/modules/${KERNEL_RELEASE}/config ]; then
+		echo "Found kernel config at /lib/modules/${KERNEL_RELEASE}/config"
+		HASH=$(md5sum "/lib/modules/${KERNEL_RELEASE}/config" | cut -d' ' -f1)
 	fi
 
 	if [ -z "${HASH}" ]; then
