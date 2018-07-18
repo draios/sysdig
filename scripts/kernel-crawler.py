@@ -144,6 +144,21 @@ repos = {
         # }
     ],
 
+    #
+    # Fedora Atomic repo is hard-coded to get the 4.17.x and 4.18.x (excluding rc) for now.
+    #
+    "Fedora-Atomic" : [
+        {
+            "root" : "https://kojipkgs.fedoraproject.org/packages/kernel/",
+            "version_discovery_pattern": "/html/body//a[regex:test(@href, '^4\.1[78].*/$')]/@href",
+            "build_discovery_pattern": "/html/body//a[regex:test(@href, '^[0-9]+\.[^r].*/$')]/@href",
+            "subdirs" : [
+                "x86_64/"
+            ],
+            "page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href",
+         },
+    ],
+
     "CoreOS" : [
         {
             "root" : "http://alpha.release.core-os.net/",
@@ -265,6 +280,33 @@ def process_al_distro(al_distro_name, current_repo):
     else:
         return False
 
+#
+# Fedora Atomic needs 2 levels of discovery(for version, and build id, respectively)
+#
+def process_atomic_distro(current_repos):
+    for repo in current_repos["Fedora-Atomic"]:
+        try:
+            root = urllib2.urlopen(repo["root"],timeout=URL_TIMEOUT).read()
+        except:
+            continue
+        versions = html.fromstring(root).xpath(repo["version_discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+        for version in versions:
+            version_url=repo["root"] + version
+            try:
+                version_page=urllib2.urlopen(version_url,timeout=URL_TIMEOUT).read()
+            except:
+                continue
+            builds = html.fromstring(version_page).xpath(repo["build_discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+            for build in builds:
+                for subdir in repo["subdirs"]:
+                    source = version_url + build + subdir
+                    try:
+                        page = urllib2.urlopen(source,timeout=URL_TIMEOUT).read()
+                    except:
+                        continue
+                    rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+                    exclude_patterns(repo, rpms, source, urls)
+
 
 #
 # In our design you are not supposed to modify the code. The whole script is
@@ -300,6 +342,11 @@ for repo in repos[distro]:
             if al2_repo_count < 2:
                 if process_al_distro(distro, repo):
                     al2_repo_count += 1
+        except:
+            continue
+    elif distro == "Fedora-Atomic":
+        try:
+            process_atomic_distro(repos)
         except:
             continue
     else:
