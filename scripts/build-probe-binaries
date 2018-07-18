@@ -15,14 +15,14 @@ set -euo pipefail
 PROBE_NAME=$1
 PROBE_VERSION=$2
 REPOSITORY_NAME=$3
-KERNEL_TYPE=
+EXTRA_BUILD_INSTRU=
 BASEDIR=$(pwd)
 ARCH=$(uname -m)
 URL_TIMEOUT=300
 RETRY=10
 
 if [ $# -eq 4 ]; then
-	KERNEL_TYPE=$4
+	EXTRA_BUILD_INSTRU=$4
 fi
 
 if [ ! -d $BASEDIR/output ]; then
@@ -38,14 +38,14 @@ fi
 function update_code_for {
 	repo=$1
 	if [ ! -d $repo ]; then
-		git clone git@github.com:draios/$repo.git
+		git clone https://github.com/draios/$repo.git
 	fi
 
 	cd $repo
 	git checkout master
 	# The UEK builder container doesn't have git credentials
 	# It relies on the non-UEK builds doing the pull earlier
-	if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
+	if [[ ! "$EXTRA_BUILD_INSTRU" =~ "UEK" ]]; then
 		git pull
 	fi
 
@@ -104,6 +104,13 @@ function build_probe {
 	fi
 
 	cd $BASEDIR
+}
+
+function build_for_fedoro_atomic_in_container {
+	echo "Creating Fedora-Atomic builder"
+	docker build -t fedora-builder:latest -f ../sysdig/scripts/Dockerfiles/Dockerfile.fedora --pull ../sysdig/scripts
+	docker run -i --rm --name fedora-atomic-build -v $BASEDIR:/build/probe fedora-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME Fedora-Atomic
+	echo "Done with building Fedora Atomic modules ($PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME) in container"
 }
 
 function coreos_build_old {
@@ -444,7 +451,7 @@ function debian_build {
 	cd ${BASEDIR}
 }
 
-if [ -z "$KERNEL_TYPE" ]; then
+if [ -z "$EXTRA_BUILD_INSTRU" ]; then
 	#
 	# Ubuntu build
 	#
@@ -483,6 +490,12 @@ if [ -z "$KERNEL_TYPE" ]; then
 	do
 		rhel_build $URL
 	done
+
+	#
+	# Fedora Atomic build
+	#
+	echo "Building Fedora Atomic in container"
+	build_for_fedoro_atomic_in_container
 
 	#
 	# CoreOS build
@@ -607,8 +620,18 @@ if [ -z "$KERNEL_TYPE" ]; then
 	#fi
 
 	echo "Success."
+elif [ "CONTAINER-Fedora-Atomic" = "$EXTRA_BUILD_INSTRU" ]; then
+	build_for_fedoro_atomic_in_container
+elif [ "Fedora-Atomic" = "$EXTRA_BUILD_INSTRU" ]; then
+	echo Building Fedora Atomic kernel modules in container
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py Fedora-Atomic)"
 
-elif [ "OL6-UEK" = "$KERNEL_TYPE" ]; then
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
+elif [ "OL6-UEK" = "$EXTRA_BUILD_INSTRU" ]; then
 	# This should only run in the ol6-builder container context
 	echo Building Oracle Linux 6 UEK
 	DIR=$(dirname $(readlink -f $0))
@@ -618,7 +641,7 @@ elif [ "OL6-UEK" = "$KERNEL_TYPE" ]; then
 	do
 		rhel_build $URL
 	done
-elif [ "OL7-UEK" = "$KERNEL_TYPE" ]; then
+elif [ "OL7-UEK" = "$EXTRA_BUILD_INSTRU" ]; then
 	# This should only run in the ol7-builder container context
 	echo Building Oracle Linux 7 UEK
 	DIR=$(dirname $(readlink -f $0))
