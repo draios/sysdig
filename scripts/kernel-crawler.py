@@ -4,6 +4,7 @@
 # Date: August 17th, 2015
 
 import bz2
+import re
 import sqlite3
 import sys
 import tempfile
@@ -143,7 +144,8 @@ repos = {
             "subdirs" : [
                 ""
             ],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current|[1][0-9]{3}')]/@href"
+            "page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current|[1][0-9]{3}')]/@href",
+            "exclude_patterns": ["^15\d\d\."]
         },
 
         {
@@ -220,7 +222,7 @@ repos['AmazonLinux2'] = amazon_linux2
 
 def exclude_patterns(repo, packages, base_url, urls):
     for rpm in packages:
-        if "exclude_patterns" in repo and any(x in rpm for x in repo["exclude_patterns"]):
+        if "exclude_patterns" in repo and any(re.search(x, rpm) for x in repo["exclude_patterns"]):
             continue
         else:
             urls.add(base_url + str(urllib2.unquote(rpm)))
