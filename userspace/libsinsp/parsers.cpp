@@ -154,6 +154,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 			etype != PPME_DROP_X &&
 			etype != PPME_SYSDIGEVENT_E &&
 			etype != PPME_PROCINFO_E &&
+			etype != PPME_CPU_HOTPLUG_E &&
 			m_inspector->m_sysdig_pid)
 		{
 			evt->m_filtered_out = true;
@@ -162,27 +163,27 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	}
 #endif
 
-		if (m_drop_event_flags)
+	if(m_drop_event_flags)
+	{
+		enum ppm_event_flags flags;
+		uint16_t etype = evt->m_pevt->type;
+		if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
 		{
-			enum ppm_event_flags flags;
-			uint16_t etype = evt->m_pevt->type;
-			if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
-			{
-				sinsp_evt_param *parinfo = evt->get_param(0);
-				uint16_t evid = *(uint16_t *)parinfo->m_val;
-				flags = g_infotables.m_syscall_info_table[evid].flags;
-			}
-			else
-			{
-				flags = evt->get_info_flags();
-			}
-
-			if (flags & m_drop_event_flags)
-			{
-				evt->m_filtered_out = true;
-				return;
-			}
+			sinsp_evt_param *parinfo = evt->get_param(0);
+			uint16_t evid = *(uint16_t *)parinfo->m_val;
+			flags = g_infotables.m_syscall_info_table[evid].flags;
 		}
+		else
+		{
+			flags = evt->get_info_flags();
+		}
+
+		if (flags & m_drop_event_flags)
+		{
+			evt->m_filtered_out = true;
+			return;
+		}
+	}
 
 	//
 	// Filtering
@@ -675,8 +676,13 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		// Error detection logic
 		//
 		if(evt->m_info->nparams != 0 &&
-			((evt->m_info->params[0].name[0] == 'r' && evt->m_info->params[0].name[1] == 'e' && evt->m_info->params[0].name[2] == 's') ||
-			(evt->m_info->params[0].name[0] == 'f' && evt->m_info->params[0].name[1] == 'd')))
+			((evt->m_info->params[0].name[0] == 'r' &&
+			  evt->m_info->params[0].name[1] == 'e' &&
+			  evt->m_info->params[0].name[2] == 's' &&
+			  evt->m_info->params[0].name[3] == '\0') ||
+			 (evt->m_info->params[0].name[0] == 'f' &&
+			  evt->m_info->params[0].name[1] == 'd' &&
+			  evt->m_info->params[0].name[2] == '\0')))
 		{
 			sinsp_evt_param *parinfo;
 
@@ -1108,38 +1114,43 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	// XXX this should absolutely not do a malloc, but get the item from a
 	// preallocated list
 	//
-	sinsp_threadinfo tinfo(m_inspector);
+	sinsp_threadinfo* tinfo = new sinsp_threadinfo(m_inspector);
 
 	//
 	// Set the tid and parent tid
 	//
-	tinfo.m_tid = childtid;
-	tinfo.m_ptid = tid;
+	tinfo->m_tid = childtid;
+	tinfo->m_ptid = tid;
 
 	if(valid_parent)
 	{
 		// Copy the command name from the parent
-		tinfo.m_comm = ptinfo->m_comm;
+		tinfo->m_comm = ptinfo->m_comm;
 
 		// Copy the full executable name from the parent
-		tinfo.m_exe = ptinfo->m_exe;
+		tinfo->m_exe = ptinfo->m_exe;
 
 		// Copy the full executable path from the parent
-		tinfo.m_exepath = ptinfo->m_exepath;
+		tinfo->m_exepath = ptinfo->m_exepath;
 
 		// Copy the command arguments from the parent
-		tinfo.m_args = ptinfo->m_args;
+		tinfo->m_args = ptinfo->m_args;
 
 		// Copy the root from the parent
-		tinfo.m_root = ptinfo->m_root;
+		tinfo->m_root = ptinfo->m_root;
 
 		// Copy the session id from the parent
-		tinfo.m_sid = ptinfo->m_sid;
+		tinfo->m_sid = ptinfo->m_sid;
 
 		// Copy the process group id from the parent
-		tinfo.m_vpgid = ptinfo->m_vpgid;
+		tinfo->m_vpgid = ptinfo->m_vpgid;
 
-		tinfo.m_tty = ptinfo->m_tty;
+		tinfo->m_tty = ptinfo->m_tty;
+
+		if(!(flags & PPM_CL_CLONE_THREAD))
+		{
+			tinfo->m_env = ptinfo->m_env;
+		}
 	}
 	else
 	{
@@ -1167,14 +1178,18 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			//
 			// Parent found in proc, use its data
 			//
-			tinfo.m_comm = ptinfo->m_comm;
-			tinfo.m_exe = ptinfo->m_exe;
-			tinfo.m_exepath = ptinfo->m_exepath;
-			tinfo.m_args = ptinfo->m_args;
-			tinfo.m_root = ptinfo->m_root;
-			tinfo.m_sid = ptinfo->m_sid;
-			tinfo.m_vpgid = ptinfo->m_vpgid;
-			tinfo.m_tty = ptinfo->m_tty;
+			tinfo->m_comm = ptinfo->m_comm;
+			tinfo->m_exe = ptinfo->m_exe;
+			tinfo->m_exepath = ptinfo->m_exepath;
+			tinfo->m_args = ptinfo->m_args;
+			tinfo->m_root = ptinfo->m_root;
+			tinfo->m_sid = ptinfo->m_sid;
+			tinfo->m_vpgid = ptinfo->m_vpgid;
+			tinfo->m_tty = ptinfo->m_tty;
+			if(!(flags & PPM_CL_CLONE_THREAD))
+			{
+				tinfo->m_env = ptinfo->m_env;
+			}
 		}
 		else
 		{
@@ -1183,7 +1198,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			// (The session id will remain unset)
 			//
 			parinfo = evt->get_param(1);
-			tinfo.m_exe = (char*)parinfo->m_val;
+			tinfo->m_exe = (char*)parinfo->m_val;
 
 			switch(etype)
 			{
@@ -1191,7 +1206,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			case PPME_SYSCALL_CLONE_16_X:
 			case PPME_SYSCALL_FORK_X:
 			case PPME_SYSCALL_VFORK_X:
-				tinfo.m_comm = tinfo.m_exe;
+				tinfo->m_comm = tinfo->m_exe;
 				break;
 			case PPME_SYSCALL_CLONE_17_X:
 			case PPME_SYSCALL_CLONE_20_X:
@@ -1200,21 +1215,21 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			case PPME_SYSCALL_VFORK_17_X:
 			case PPME_SYSCALL_VFORK_20_X:
 				parinfo = evt->get_param(13);
-				tinfo.m_comm = parinfo->m_val;
+				tinfo->m_comm = parinfo->m_val;
 				break;
 			default:
 				ASSERT(false);
 			}
 
 			parinfo = evt->get_param(2);
-			tinfo.set_args(parinfo->m_val, parinfo->m_len);
+			tinfo->set_args(parinfo->m_val, parinfo->m_len);
 
 			//
 			// Also, propagate the same values to the parent
 			//
-			ptinfo->m_comm = tinfo.m_comm;
-			ptinfo->m_exe = tinfo.m_exe;
-			ptinfo->m_exepath = tinfo.m_exepath;
+			ptinfo->m_comm = tinfo->m_comm;
+			ptinfo->m_exe = tinfo->m_exe;
+			ptinfo->m_exepath = tinfo->m_exepath;
 			ptinfo->set_args(parinfo->m_val, parinfo->m_len);
 		}
 	}
@@ -1222,22 +1237,22 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	// Copy the pid
 	parinfo = evt->get_param(4);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
-	tinfo.m_pid = *(int64_t *)parinfo->m_val;
+	tinfo->m_pid = *(int64_t *)parinfo->m_val;
 
 	// Get the flags, and check if this is a thread or a new thread
-	tinfo.m_flags = flags;
+	tinfo->m_flags = flags;
 
 	//
 	// If clone()'s PPM_CL_CLONE_THREAD is not set it means that a new
 	// thread was created. In that case, we set the pid to the one of the CHILD thread that
 	// is going to be created.
 	//
-	if(!(tinfo.m_flags & PPM_CL_CLONE_THREAD))
+	if(!(tinfo->m_flags & PPM_CL_CLONE_THREAD))
 	{
-		tinfo.m_pid = childtid;
+		tinfo->m_pid = childtid;
 	}
 
-	if(!(tinfo.m_flags & PPM_CL_CLONE_THREAD))
+	if(!(tinfo->m_flags & PPM_CL_CLONE_THREAD))
 	{
 		//
 		// Copy the fd list
@@ -1246,12 +1261,12 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		// The right thing to do is looking at PPM_CL_CLONE_FILES, but there are
 		// syscalls like open and pipe2 that can override PPM_CL_CLONE_FILES with the O_CLOEXEC flag
 		//
-		tinfo.m_fdtable = *(ptinfo->get_fd_table());
+		tinfo->m_fdtable = *(ptinfo->get_fd_table());
 
 		//
 		// Track down that those are cloned fds
 		//
-		for(auto fdit = tinfo.m_fdtable.m_table.begin(); fdit != tinfo.m_fdtable.m_table.end(); ++fdit)
+		for(auto fdit = tinfo->m_fdtable.m_table.begin(); fdit != tinfo->m_fdtable.m_table.end(); ++fdit)
 		{
 			fdit->second.set_is_cloned();
 		}
@@ -1260,26 +1275,26 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		// It's important to reset the cache of the child thread, to prevent it from
 		// referring to an element in the parent's table.
 		//
-		tinfo.m_fdtable.reset_cache();
+		tinfo->m_fdtable.reset_cache();
 
 		//
 		// Not a thread, copy cwd
 		//
-		tinfo.m_cwd = ptinfo->get_cwd();
+		tinfo->m_cwd = ptinfo->get_cwd();
 	}
-	//if((tinfo.m_flags & (PPM_CL_CLONE_FILES)))
+	//if((tinfo->m_flags & (PPM_CL_CLONE_FILES)))
 	//{
-	//    tinfo.m_fdtable = ptinfo.m_fdtable;
+	//    tinfo->m_fdtable = ptinfo.m_fdtable;
 	//}
 
 	if(is_inverted_clone)
 	{
-		tinfo.m_flags |= PPM_CL_CLONE_INVERTED;
+		tinfo->m_flags |= PPM_CL_CLONE_INVERTED;
 	}
 
 	// Copy the command name
 	parinfo = evt->get_param(1);
-	tinfo.m_exe = (char*)parinfo->m_val;
+	tinfo->m_exe = (char*)parinfo->m_val;
 
 	switch(etype)
 	{
@@ -1287,7 +1302,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_CLONE_16_X:
 	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_VFORK_X:
-		tinfo.m_comm = tinfo.m_exe;
+		tinfo->m_comm = tinfo->m_exe;
 		break;
 	case PPME_SYSCALL_CLONE_17_X:
 	case PPME_SYSCALL_CLONE_20_X:
@@ -1296,7 +1311,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_VFORK_17_X:
 	case PPME_SYSCALL_VFORK_20_X:
 		parinfo = evt->get_param(13);
-		tinfo.m_comm = parinfo->m_val;
+		tinfo->m_comm = parinfo->m_val;
 		break;
 	default:
 		ASSERT(false);
@@ -1304,12 +1319,12 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 
 	// Get the command arguments
 	parinfo = evt->get_param(2);
-	tinfo.set_args(parinfo->m_val, parinfo->m_len);
+	tinfo->set_args(parinfo->m_val, parinfo->m_len);
 
 	// Copy the fdlimit
 	parinfo = evt->get_param(7);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
-	tinfo.m_fdlimit = *(int64_t *)parinfo->m_val;
+	tinfo->m_fdlimit = *(int64_t *)parinfo->m_val;
 
 	switch(etype)
 	{
@@ -1327,27 +1342,27 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		// Get the pgflt_maj
 		parinfo = evt->get_param(8);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
-		tinfo.m_pfmajor = *(uint64_t *)parinfo->m_val;
+		tinfo->m_pfmajor = *(uint64_t *)parinfo->m_val;
 
 		// Get the pgflt_min
 		parinfo = evt->get_param(9);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
-		tinfo.m_pfminor = *(uint64_t *)parinfo->m_val;
+		tinfo->m_pfminor = *(uint64_t *)parinfo->m_val;
 
 		// Get the vm_size
 		parinfo = evt->get_param(10);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
-		tinfo.m_vmsize_kb = *(uint32_t *)parinfo->m_val;
+		tinfo->m_vmsize_kb = *(uint32_t *)parinfo->m_val;
 
 		// Get the vm_rss
 		parinfo = evt->get_param(11);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
-		tinfo.m_vmrss_kb = *(uint32_t *)parinfo->m_val;
+		tinfo->m_vmrss_kb = *(uint32_t *)parinfo->m_val;
 
 		// Get the vm_swap
 		parinfo = evt->get_param(12);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
-		tinfo.m_vmswap_kb = *(uint32_t *)parinfo->m_val;
+		tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
 		break;
 	default:
 		ASSERT(false);
@@ -1378,7 +1393,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		ASSERT(false);
 	}
 	ASSERT(parinfo->m_len == sizeof(int32_t));
-	tinfo.m_uid = *(int32_t *)parinfo->m_val;
+	tinfo->m_uid = *(int32_t *)parinfo->m_val;
 
 	// Copy the gid
 	switch(etype)
@@ -1405,7 +1420,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		ASSERT(false);
 	}
 	ASSERT(parinfo->m_len == sizeof(int32_t));
-	tinfo.m_gid = *(int32_t *)parinfo->m_val;
+	tinfo->m_gid = *(int32_t *)parinfo->m_val;
 
 	//
 	// If we're in a container, vtid and vpid are
@@ -1418,13 +1433,13 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	//
 	if(in_container)
 	{
-		tinfo.m_vtid = vtid;
-		tinfo.m_vpid = vpid;
+		tinfo->m_vtid = vtid;
+		tinfo->m_vpid = vpid;
 	}
 	else
 	{
-		tinfo.m_vtid = tinfo.m_tid;
-		tinfo.m_vpid = tinfo.m_pid;
+		tinfo->m_vtid = tinfo->m_tid;
+		tinfo->m_vpid = tinfo->m_pid;
 	}
 
 	//
@@ -1436,15 +1451,15 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		case PPME_SYSCALL_VFORK_20_X:
 		case PPME_SYSCALL_CLONE_20_X:
 			parinfo = evt->get_param(14);
-			tinfo.set_cgroups(parinfo->m_val, parinfo->m_len);
-			m_inspector->m_container_manager.resolve_container(&tinfo, m_inspector->is_live());
+			tinfo->set_cgroups(parinfo->m_val, parinfo->m_len);
+			m_inspector->m_container_manager.resolve_container(tinfo, m_inspector->is_live());
 			break;
 	}
 
 	//
 	// Initialize the thread clone time
 	//
-	tinfo.m_clone_ts = evt->get_ts();
+	tinfo->m_clone_ts = evt->get_ts();
 
 	//
 	// Add the new thread to the table
@@ -1456,7 +1471,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	//
 	if(m_fd_listener)
 	{
-		m_fd_listener->on_clone(evt, &tinfo);
+		m_fd_listener->on_clone(evt, tinfo);
 	}
 
 	//
@@ -1468,12 +1483,12 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	{
 		reset(evt);
 #ifdef HAS_ANALYZER
-		m_inspector->m_tid_collisions.push_back(tinfo.m_tid);
+		m_inspector->m_tid_collisions.push_back(tinfo->m_tid);
 #endif
 #ifdef _DEBUG
 		g_logger.format(sinsp_logger::SEV_INFO,
 			"tid collision for %" PRIu64 "(%s)",
-			tinfo.m_tid, tinfo.m_comm.c_str());
+			tinfo->m_tid, tinfo->m_comm.c_str());
 #endif
 	}
 
@@ -1555,7 +1570,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	{
 		parinfo = evt->get_param(5);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
-		evt->m_tinfo->m_ptid = *(uint64_t *)parinfo->m_val;	
+		evt->m_tinfo->m_ptid = *(uint64_t *)parinfo->m_val;
 	}
 
 	// Get the fdlimit
@@ -1720,7 +1735,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	default:
 		ASSERT(false);
 	}
-	
+
 	//
 	// execve starts with a clean fd list, so we get rid of the fd list that clone
 	// copied from the parent
@@ -3890,7 +3905,7 @@ void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt *evt)
 	{
 		return;
 	}
-	
+
 	//
 	// Extract the return value
 	//
@@ -4284,6 +4299,21 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		{
 			container_info.m_imageid = imageid.asString();
 		}
+		const Json::Value& imagerepo = container["imagerepo"];
+		if(!imagerepo.isNull() && imagerepo.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_imagerepo = imagerepo.asString();
+		}
+		const Json::Value& imagetag = container["imagetag"];
+		if(!imagetag.isNull() && imagetag.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_imagetag = imagetag.asString();
+		}
+		const Json::Value& imagedigest = container["imagedigest"];
+		if(!imagedigest.isNull() && imagedigest.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_imagedigest = imagedigest.asString();
+		}
 		const Json::Value& privileged = container["privileged"];
 		if(!privileged.isNull() && privileged.isConvertibleTo(Json::booleanValue))
 		{
@@ -4348,12 +4378,11 @@ void sinsp_parser::parse_container_evt(sinsp_evt *evt)
 
 void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt *evt)
 {
-#ifdef HAS_ANALYZER
 	if(m_inspector->is_live())
 	{
-		throw sinsp_exception("CPUs configuration change detected. Aborting.");
+		throw sinsp_exception("CPU " + evt->get_param_value_str("cpu") +
+				      " configuration change detected. Aborting.");
 	}
-#endif
 }
 
 uint8_t* sinsp_parser::reserve_event_buffer()

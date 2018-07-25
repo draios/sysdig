@@ -4,6 +4,7 @@
 # Date: August 17th, 2015
 
 import bz2
+import re
 import sqlite3
 import sys
 import tempfile
@@ -73,32 +74,28 @@ repos = {
             "root" : "https://mirrors.kernel.org/ubuntu/pool/main/l/",
             "discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
             "subdirs" : [""],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9].*-generic.*amd64.deb$')]/@href",
-            "exclude_patterns": ["4.15.0-14"]
+            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9].*-generic.*amd64.deb$')]/@href"
         },
 
         {
             "root" : "https://mirrors.kernel.org/ubuntu/pool/main/l/",
             "discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
             "subdirs" : [""],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-headers-[3-9].*_all.deb$')]/@href",
-            "exclude_patterns": ["4.15.0-14"]
+            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-headers-[3-9].*_all.deb$')]/@href"
         },
 
         {
             "root" : "http://security.ubuntu.com/ubuntu/pool/main/l/",
             "discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
             "subdirs" : [""],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9].*-generic.*amd64.deb$')]/@href",
-            "exclude_patterns": ["4.15.0-14"]
+            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|headers)-[3-9].*-generic.*amd64.deb$')]/@href"
         },
 
         {
             "root" : "http://security.ubuntu.com/ubuntu/pool/main/l/",
             "discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
             "subdirs" : [""],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-headers-[3-9].*_all.deb$')]/@href",
-            "exclude_patterns": ["4.15.0-14"]
+            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-headers-[3-9].*_all.deb$')]/@href"
         }
     ],
 
@@ -116,7 +113,16 @@ repos = {
             "root" : "https://mirrors.kernel.org/fedora/updates/",
             "discovery_pattern": "/html/body//a[regex:test(@href, '^2[2-9]/$')]/@href",
             "subdirs" : [
-                "x86_64/k/"
+                "x86_64/Packages/k/"
+            ],
+            "page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href"
+        },
+
+        {
+            "root" : "https://mirrors.kernel.org/fedora/updates/",
+            "discovery_pattern": "/html/body//a[regex:test(@href, '^2[2-9]/$')]/@href",
+            "subdirs" : [
+                "Everything/x86_64/Packages/k/"
             ],
             "page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href"
         },
@@ -131,15 +137,31 @@ repos = {
         # }
     ],
 
+    #
+    # Fedora Atomic repo is hard-coded to get the 4.17.x and 4.18.x (excluding rc) for now.
+    #
+    "Fedora-Atomic" : [
+        {
+            "root" : "https://kojipkgs.fedoraproject.org/packages/kernel/",
+            "version_discovery_pattern": "/html/body//a[regex:test(@href, '^4\.1[78].*/$')]/@href",
+            "build_discovery_pattern": "/html/body//a[regex:test(@href, '^[0-9]+\.[^r].*/$')]/@href",
+            "subdirs" : [
+                "x86_64/"
+            ],
+            "page_pattern" : "/html/body//a[regex:test(@href, '^kernel-(core|devel)-[0-9].*\.rpm$')]/@href",
+         },
+    ],
+
     "CoreOS" : [
-        # {
-        #     "root" : "http://alpha.release.core-os.net/",
-        #     "discovery_pattern": "/html/body//a[regex:test(@href, 'amd64-usr')]/@href",
-        #     "subdirs" : [
-        #         ""
-        #     ],
-        #     "page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current|[1][0-9]{3}')]/@href"
-        # },
+        {
+            "root" : "http://alpha.release.core-os.net/",
+            "discovery_pattern": "/html/body//a[regex:test(@href, 'amd64-usr')]/@href",
+            "subdirs" : [
+                ""
+            ],
+            "page_pattern" : "/html/body//a[regex:test(@href, '^[5-9][0-9][0-9]|current|[1][0-9]{3}')]/@href",
+            "exclude_patterns": ["^15\d\d\."]
+        },
 
         {
             "root" : "http://beta.release.core-os.net/",
@@ -185,8 +207,8 @@ repos = {
     ]
 }
 
-# Build static list, 2017.09 is last Amazon Linux AMI release https://aws.amazon.com/amazon-linux-2/faqs/
-amazon_linux_builder = [('latest', 'updates'), ('latest', 'main'), ('2017.03', 'updates'), ('2017.03', 'main')]
+# Build static list, check here for the last Amazon Linux AMI release: https://aws.amazon.com/amazon-linux-2/faqs/
+amazon_linux_builder = [('latest', 'updates'), ('latest', 'main'), ('2017.03', 'updates'), ('2017.03', 'main'), ('2017.09', 'updates'), ('2017.09', 'main'), ('2018.03', 'updates'), ('2018.03', 'main')]
 amazon_repos = []
 for repo_release, release_type in amazon_linux_builder:
     amazon_repos.append({
@@ -215,7 +237,7 @@ repos['AmazonLinux2'] = amazon_linux2
 
 def exclude_patterns(repo, packages, base_url, urls):
     for rpm in packages:
-        if "exclude_patterns" in repo and any(x in rpm for x in repo["exclude_patterns"]):
+        if "exclude_patterns" in repo and any(re.search(x, rpm) for x in repo["exclude_patterns"]):
             continue
         else:
             urls.add(base_url + str(urllib2.unquote(rpm)))
@@ -252,6 +274,33 @@ def process_al_distro(al_distro_name, current_repo):
     else:
         return False
 
+#
+# Fedora Atomic needs 2 levels of discovery(for version, and build id, respectively)
+#
+def process_atomic_distro(current_repos):
+    for repo in current_repos["Fedora-Atomic"]:
+        try:
+            root = urllib2.urlopen(repo["root"],timeout=URL_TIMEOUT).read()
+        except:
+            continue
+        versions = html.fromstring(root).xpath(repo["version_discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+        for version in versions:
+            version_url=repo["root"] + version
+            try:
+                version_page=urllib2.urlopen(version_url,timeout=URL_TIMEOUT).read()
+            except:
+                continue
+            builds = html.fromstring(version_page).xpath(repo["build_discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+            for build in builds:
+                for subdir in repo["subdirs"]:
+                    source = version_url + build + subdir
+                    try:
+                        page = urllib2.urlopen(source,timeout=URL_TIMEOUT).read()
+                    except:
+                        continue
+                    rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+                    exclude_patterns(repo, rpms, source, urls)
+
 
 #
 # In our design you are not supposed to modify the code. The whole script is
@@ -287,6 +336,11 @@ for repo in repos[distro]:
             if al2_repo_count < 2:
                 if process_al_distro(distro, repo):
                     al2_repo_count += 1
+        except:
+            continue
+    elif distro == "Fedora-Atomic":
+        try:
+            process_atomic_distro(repos)
         except:
             continue
     else:

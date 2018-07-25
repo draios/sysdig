@@ -284,8 +284,7 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEXASCII
 	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONBASE64)
 	{
-		(*res) = "\n";
-		(*res) += m_writer.write(m_root);
+		(*res) = m_writer.write(m_root);
 		(*res) = res->substr(0, res->size() - 1);
 	}
 

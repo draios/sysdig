@@ -178,9 +178,6 @@ mesos::mesos(const std::string& state_uri,
 
 mesos::~mesos()
 {
-#ifdef HAS_CAPTURE
-	curl_global_cleanup();
-#endif // HAS_CAPTURE
 }
 
 void mesos::init()
@@ -188,7 +185,6 @@ void mesos::init()
 #ifdef HAS_CAPTURE
 	if(!m_mesos_uri.empty())
 	{
-		curl_global_init(CURL_GLOBAL_DEFAULT);
 		m_collector.remove_all();
 		if((m_state_http) && (!m_state_http.unique()))
 		{

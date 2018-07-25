@@ -755,7 +755,10 @@ public:
 		TYPE_CONTAINER_MOUNT_DEST,
 		TYPE_CONTAINER_MOUNT_MODE,
 		TYPE_CONTAINER_MOUNT_RDWR,
-		TYPE_CONTAINER_MOUNT_PROPAGATION
+		TYPE_CONTAINER_MOUNT_PROPAGATION,
+		TYPE_CONTAINER_IMAGE_REPOSITORY,
+		TYPE_CONTAINER_IMAGE_TAG,
+		TYPE_CONTAINER_IMAGE_DIGEST,
 	};
 
 	sinsp_filter_check_container();
@@ -858,7 +861,7 @@ private:
 	char m_addrbuff[100];
 };
 
-#ifndef HAS_ANALYZER
+#ifndef CYGWING_AGENT
 
 class sinsp_filter_check_k8s : public sinsp_filter_check
 {
@@ -911,7 +914,7 @@ private:
 	string m_tstr;
 };
 
-#endif // HAS_ANALYZER
+#endif // CYGWING_AGENT
 
 #ifndef CYGWING_AGENT
 class sinsp_filter_check_mesos : public sinsp_filter_check

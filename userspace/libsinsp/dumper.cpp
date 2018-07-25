@@ -61,11 +61,11 @@ void sinsp_dumper::open(const string& filename, bool compress, bool threads_from
 	{
 		if(compress)
 		{
-			m_dumper = scap_dump_open(m_inspector->m_h, filename.c_str(), SCAP_COMPRESSION_GZIP);
+			m_dumper = scap_dump_open(m_inspector->m_h, filename.c_str(), SCAP_COMPRESSION_GZIP, threads_from_sinsp);
 		}
 		else
 		{
-			m_dumper = scap_dump_open(m_inspector->m_h, filename.c_str(), SCAP_COMPRESSION_NONE);
+			m_dumper = scap_dump_open(m_inspector->m_h, filename.c_str(), SCAP_COMPRESSION_NONE, threads_from_sinsp);
 		}
 	}
 
@@ -93,11 +93,11 @@ void sinsp_dumper::fdopen(int fd, bool compress, bool threads_from_sinsp)
 
 	if(compress)
 	{
-		m_dumper = scap_dump_open_fd(m_inspector->m_h, fd, SCAP_COMPRESSION_GZIP, true);
+		m_dumper = scap_dump_open_fd(m_inspector->m_h, fd, SCAP_COMPRESSION_GZIP, threads_from_sinsp);
 	}
 	else
 	{
-		m_dumper = scap_dump_open_fd(m_inspector->m_h, fd, SCAP_COMPRESSION_NONE, true);
+		m_dumper = scap_dump_open_fd(m_inspector->m_h, fd, SCAP_COMPRESSION_NONE, threads_from_sinsp);
 	}
 
 	if(m_dumper == NULL)

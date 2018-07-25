@@ -25,12 +25,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifdef __KERNEL__
 #include <linux/types.h>
+#else
+#include "../userspace/common/sysdig_types.h"
 #endif
 
 /*
  * Limits
  */
-#define PPM_MAX_EVENT_PARAMS 20	/* Max number of parameters an event can have */
+#define PPM_MAX_EVENT_PARAMS (1 << 5)	/* Max number of parameters an event can have */
 #define PPM_MAX_PATH_SIZE 256	/* Max size that an event parameter can have in the circular buffer, in bytes */
 #define PPM_MAX_NAME_LEN 32
 
@@ -1173,7 +1175,10 @@ enum ppm_syscall_code {
 	PPM_SC_FINIT_MODULE = 314,
 	PPM_SC_BPF = 315,
 	PPM_SC_SECCOMP = 316,
-	PPM_SC_MAX = 317,
+	PPM_SC_SIGALTSTACK = 317,
+	PPM_SC_GETRANDOM = 318,
+	PPM_SC_FADVISE64 = 319,
+	PPM_SC_MAX = 320,
 };
 
 /*
@@ -1290,7 +1295,7 @@ struct ppm_param_info {
 	const void *info; /**< If this is a flags parameter, it points to an array of ppm_name_value,
 			       else if this is a dynamic parameter it points to an array of ppm_param_info */
 	uint8_t ninfo; /**< Number of entry in the info array. */
-};
+} __attribute__((packed));
 
 /*!
   \brief Event information.
@@ -1302,9 +1307,8 @@ struct ppm_event_info {
 	enum ppm_event_category category; /**< Event category, e.g. 'file', 'net', etc. */
 	enum ppm_event_flags flags; /**< flags for this event. */
 	uint32_t nparams; /**< Number of parameter in the params array. */
-	/* XXX this 16 limit comes out of my ass. Determine something that makes sense or use a dynamic array. */
 	struct ppm_param_info params[PPM_MAX_EVENT_PARAMS]; /**< parameters descriptions. */
-};
+} __attribute__((packed));
 
 #if defined _MSC_VER
 #pragma pack(push)
@@ -1410,5 +1414,83 @@ struct ppm_proclist_info {
 	int64_t max_entries;
 	struct ppm_proc_info entries[0];
 };
+
+enum syscall_flags {
+	UF_NONE = 0,
+	UF_USED = (1 << 0),
+	UF_NEVER_DROP = (1 << 1),
+	UF_ALWAYS_DROP = (1 << 2),
+	UF_SIMPLEDRIVER_KEEP = (1 << 3),
+};
+
+struct syscall_evt_pair {
+	int flags;
+	enum ppm_event_type enter_event_type;
+	enum ppm_event_type exit_event_type;
+} __attribute__((packed));
+
+#define SYSCALL_TABLE_SIZE 512
+
+/*
+ * Filler table-related definitions
+ */
+
+#define PPM_MAX_AUTOFILL_ARGS (1 << 2)
+
+/*
+ * Max size of a parameter in the kernel module is u16, so no point
+ * in going beyond 0xffff. However, in BPF the limit is more stringent
+ * because the entire perf event must fit in u16, so make this
+ * a more conservative 65k so we have some room for the other
+ * parameters in the event. It shouldn't cause issues since typically
+ * snaplen is much lower than this.
+ */
+#define PPM_MAX_ARG_SIZE 65000
+
+struct event_filler_arguments;
+
+#include "ppm_fillers.h"
+
+struct ppm_autofill_arg {
+#define AF_ID_RETVAL -1
+#define AF_ID_USEDEFAULT -2
+	int16_t id;
+	long default_val;
+} __attribute__((packed));
+
+enum autofill_paramtype {
+	APT_REG,
+	APT_SOCK,
+};
+
+typedef int (*filler_callback) (struct event_filler_arguments *args);
+
+struct ppm_event_entry {
+	filler_callback filler_callback;
+	enum ppm_filler_id filler_id;
+	uint16_t n_autofill_args;
+	enum autofill_paramtype paramtype;
+	struct ppm_autofill_arg autofill_args[PPM_MAX_AUTOFILL_ARGS];
+} __attribute__((packed));
+
+/*
+ * parse_readv_writev_bufs flags
+ */
+#define PRB_FLAG_PUSH_SIZE	1
+#define PRB_FLAG_PUSH_DATA	2
+#define PRB_FLAG_PUSH_ALL	(PRB_FLAG_PUSH_SIZE | PRB_FLAG_PUSH_DATA)
+#define PRB_FLAG_IS_WRITE	4
+
+/*
+ * Return codes
+ */
+#define PPM_SUCCESS 0
+#define PPM_FAILURE_BUFFER_FULL -1
+#define PPM_FAILURE_INVALID_USER_MEMORY -2
+#define PPM_FAILURE_BUG -3
+#define PPM_SKIP_EVENT -4
+
+#define RW_SNAPLEN 80
+#define RW_MAX_SNAPLEN PPM_MAX_ARG_SIZE
 
 #endif /* EVENTS_PUBLIC_H_ */

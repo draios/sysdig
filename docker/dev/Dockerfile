@@ -18,6 +18,8 @@ RUN apt-get update \
  && apt-get upgrade -y \
  && apt-get install -y --no-install-recommends \
 	bash-completion \
+	bc \
+	clang-7 \
 	curl \
 	gnupg2 \
 	ca-certificates \
@@ -27,12 +29,18 @@ RUN apt-get update \
 	libelf-dev \
 	libelf1 \
 	less \
+	llvm-7 \
 	procps \
  && rm -rf /var/lib/apt/lists/*
 
 # Since our base Debian image ships with GCC 7 which breaks older kernels, revert the
 # default to gcc-5.
 RUN rm -rf /usr/bin/gcc && ln -s /usr/bin/gcc-5 /usr/bin/gcc
+
+RUN rm -rf /usr/bin/clang \
+ && rm -rf /usr/bin/llc \
+ && ln -s /usr/bin/clang-7 /usr/bin/clang \
+ && ln -s /usr/bin/llc-7 /usr/bin/llc
 
 RUN curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public | apt-key add - \
  && curl -s -o /etc/apt/sources.list.d/draios.list http://download.draios.com/$SYSDIG_REPOSITORY/deb/draios.list \
@@ -41,7 +49,11 @@ RUN curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public |
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
-RUN ln -s $SYSDIG_HOST_ROOT/lib/modules /lib/modules
+# Some base images have an empty /lib/modules by default
+# If it's not empty, docker build will fail instead of
+# silently overwriting the existing directory
+RUN rm -df /lib/modules \
+ && ln -s $SYSDIG_HOST_ROOT/lib/modules /lib/modules
 
 COPY ./docker-entrypoint.sh /
 

@@ -52,6 +52,8 @@ extern "C" {
 typedef struct scap scap_t;
 typedef struct ppm_evt_hdr scap_evt;
 
+struct iovec;
+
 //
 // Core types
 //
@@ -86,7 +88,11 @@ typedef struct scap_stats
 	uint64_t n_evts; ///< Total number of events that were received by the driver.
 	uint64_t n_drops; ///< Number of dropped events.
 	uint64_t n_drops_buffer; ///< Number of dropped events caused by full buffer.
+	uint64_t n_drops_pf; ///< Number of dropped events caused by invalid memory access.
+	uint64_t n_drops_bug; ///< Number of dropped events caused by an invalid condition in the kernel instrumentation.
 	uint64_t n_preemptions; ///< Number of preemptions.
+	uint64_t n_suppressed; ///< Number of events skipped due to the tid being in a set of suppressed tids
+	uint64_t n_tids_suppressed; ///< Number of threads currently being suppressed
 }scap_stats;
 
 /*!
@@ -104,6 +110,7 @@ typedef struct evt_param_info
 #define SCAP_MAX_ARGS_SIZE 4096
 #define SCAP_MAX_ENV_SIZE 4096
 #define SCAP_MAX_CGROUPS_SIZE 4096
+#define SCAP_MAX_SUPPRESSED_COMMS 32
 
 /*!
   \brief File Descriptor type
@@ -261,6 +268,11 @@ typedef struct scap_open_args
 	void* proc_callback_context; ///< Opaque pointer that will be included in the calls to proc_callback. Ignored if proc_callback is NULL.
 	bool import_users; ///< true if the user list should be created when opening the capture.
 	uint64_t start_offset; ///< Used to start reading a capture file from an arbitrary offset. This is leveraged when opening merged files.
+	const char *bpf_probe; ///< The name of the BPF probe to open. If NULL, the kernel driver will be used.
+	const char *suppressed_comms[SCAP_MAX_SUPPRESSED_COMMS]; ///< A list of processes (comm) for which no
+	                                                         // events should be returned, with a trailing NULL value.
+	                                                         // You can provide additional comm
+	                                                         // values via scap_suppress_events_comm().
 }scap_open_args;
 
 
@@ -562,7 +574,7 @@ scap_os_platform scap_get_os_platform(scap_t* handle);
 /*!
   \brief Return a string with the last error that happened on the given capture.
 */
-char* scap_getlasterr(scap_t* handle);
+const char* scap_getlasterr(scap_t* handle);
 
 /*!
   \brief Get the next event from the from the given capture instance
@@ -648,7 +660,7 @@ int64_t scap_get_readfile_offset(scap_t* handle);
 
   \return Dump handle that can be used to identify this specific dump instance.
 */
-scap_dumper_t* scap_dump_open(scap_t *handle, const char *fname, compression_mode compress);
+scap_dumper_t* scap_dump_open(scap_t *handle, const char *fname, compression_mode compress, bool skip_proc_scan);
 
 /*!
   \brief Open a trace file for writing, using the provided fd.
@@ -895,10 +907,29 @@ int32_t scap_unset_eventmask(scap_t* handle, uint32_t event_id);
 const char* scap_get_host_root();
 
 /*!
-  \brief Get the process list by querying the sysdig kernel module.
+  \brief Get the process list.
 */
-struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle);
+struct ppm_proclist_info* scap_get_threadlist(scap_t* handle);
 
+const char *scap_get_bpf_probe_from_env();
+
+/*!
+  \brief stop returning events for all subsequently spawned
+  processes with the provided comm, as well as their children.
+  This includes fork()/clone()ed processes that might later
+  exec to a different comm.
+
+  returns SCAP_FAILURE if there are already MAX_SUPPRESSED_COMMS comm
+  values, SCAP_SUCCESS otherwise.
+*/
+
+int32_t scap_suppress_events_comm(scap_t* handle, const char *comm);
+
+/*!
+  \brief return whether the provided tid is currently being suppressed.
+*/
+
+bool scap_check_suppressed_tid(scap_t *handle, int64_t tid);
 
 /*@}*/
 
@@ -913,7 +944,7 @@ struct ppm_proclist_info* scap_get_threadlist_from_driver(scap_t* handle);
 uint32_t scap_get_ndevs(scap_t* handle);
 
 // Retrieve a buffer of events from one of the cpus
-extern int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, bool blocking, OUT char** buf, OUT uint32_t* len);
+extern int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_t* len);
 
 #ifdef PPM_ENABLE_SENTINEL
 // Get the sentinel at the beginning of the event
@@ -954,6 +985,18 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 int32_t scap_write_proclist_header(scap_t *handle, scap_dumper_t *d, uint32_t totlen);
 int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t totlen);
 int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo);
+// Variant of scap_write_proclist_entry where array-backed information
+// about the thread is provided separate from the scap_threadinfo
+// struct.
+int32_t scap_write_proclist_entry_bufs(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo,
+				       const char *comm,
+				       const char *exe,
+				       const char *exepath,
+				       const struct iovec *args, int argscnt,
+				       const struct iovec *envs, int envscnt,
+				       const char *cwd,
+				       const struct iovec *cgroups, int cgroupscnt,
+				       const char *root);
 int32_t scap_enable_simpledriver_mode(scap_t* handle);
 int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret);
 #ifdef CYGWING_AGENT

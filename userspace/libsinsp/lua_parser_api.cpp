@@ -65,6 +65,10 @@ cmpop string_to_cmpop(const char* str)
 	{
 		return CO_EXISTS;
 	}
+	else if(strcmp(str, "glob") == 0)
+	{
+		return CO_GLOB;
+	}
 	else
 	{
 		throw sinsp_exception("filter error: invalid comparison operator: " + string(str));
