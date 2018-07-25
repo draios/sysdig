@@ -55,7 +55,7 @@ static const char *SYSDIG_BPF_PROBE_ENV = "SYSDIG_BPF_PROBE";
 
 const char* scap_getlasterr(scap_t* handle)
 {
-	return handle->m_lasterr;
+	return handle ? handle->m_lasterr : "null scap handle";
 }
 
 static int32_t copy_comms(scap_t *handle, const char **suppressed_comms)
@@ -1573,6 +1573,11 @@ int64_t scap_get_readfile_offset(scap_t* handle)
 #ifndef CYGWING_AGENT
 static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event_id)
 {
+	if (handle == NULL)
+	{
+		return SCAP_FAILURE;
+	}
+
 	//
 	// Not supported on files
 	//
@@ -1613,7 +1618,9 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 	{
 		if(ioctl(handle->m_devs[0].m_fd, op, event_id))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) failed", __FUNCTION__, op);
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE,
+				 "%s(%d) failed for event type %d",
+				 __FUNCTION__, op, event_id);
 			ASSERT(false);
 			return SCAP_FAILURE;
 		}

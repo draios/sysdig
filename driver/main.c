@@ -55,7 +55,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/fdtable.h>
 #endif
 #include <net/sock.h>
-#include <asm/asm-offsets.h>	/* For NR_syscalls */
 #include <asm/unistd.h>
 
 #include "driver_config.h"
@@ -905,7 +904,7 @@ cleanup_ioctl_procinfo:
 
 		vpr_info("PPM_IOCTL_MASK_SET_EVENT (%u), consumer %p\n", syscall_to_set, consumer_id);
 
-		if (syscall_to_set > PPM_EVENT_MAX) {
+		if (syscall_to_set >= PPM_EVENT_MAX) {
 			pr_err("invalid syscall %u\n", syscall_to_set);
 			ret = -EINVAL;
 			goto cleanup_ioctl;
@@ -922,7 +921,7 @@ cleanup_ioctl_procinfo:
 
 		vpr_info("PPM_IOCTL_MASK_UNSET_EVENT (%u), consumer %p\n", syscall_to_unset, consumer_id);
 
-		if (syscall_to_unset > NR_syscalls) {
+		if (syscall_to_unset >= PPM_EVENT_MAX) {
 			pr_err("invalid syscall %u\n", syscall_to_unset);
 			ret = -EINVAL;
 			goto cleanup_ioctl;
