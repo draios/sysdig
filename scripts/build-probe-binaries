@@ -15,14 +15,19 @@ set -euo pipefail
 PROBE_NAME=$1
 PROBE_VERSION=$2
 REPOSITORY_NAME=$3
-EXTRA_BUILD_INSTRU=
+KERNEL_TYPE=
+BUILD_TYPE="process"
 BASEDIR=$(pwd)
 ARCH=$(uname -m)
 URL_TIMEOUT=300
 RETRY=10
 
-if [ $# -eq 4 ]; then
-	EXTRA_BUILD_INSTRU=$4
+if [ $# -ge 4 ]; then
+	KERNEL_TYPE=$4
+fi
+
+if [ $# -ge 5 ]; then
+	BUILD_TYPE=$5
 fi
 
 if [ ! -d $BASEDIR/output ]; then
@@ -45,7 +50,7 @@ function update_code_for {
 	git checkout master
 	# The UEK builder container doesn't have git credentials
 	# It relies on the non-UEK builds doing the pull earlier
-	if [[ ! "$EXTRA_BUILD_INSTRU" =~ "UEK" ]]; then
+	if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
 		git pull
 	fi
 
@@ -451,7 +456,7 @@ function debian_build {
 	cd ${BASEDIR}
 }
 
-if [ -z "$EXTRA_BUILD_INSTRU" ]; then
+if [ -z "$KERNEL_TYPE" ]; then
 	#
 	# Ubuntu build
 	#
@@ -619,18 +624,20 @@ if [ -z "$EXTRA_BUILD_INSTRU" ]; then
 	#fi
 
 	echo "Success."
-elif [ "CONTAINER-Fedora-Atomic" = "$EXTRA_BUILD_INSTRU" ]; then
-	build_for_fedoro_atomic_in_container
-elif [ "Fedora-Atomic" = "$EXTRA_BUILD_INSTRU" ]; then
-	echo Building Fedora Atomic kernel modules in container
-	DIR=$(dirname $(readlink -f $0))
-	URLS="$($DIR/kernel-crawler.py Fedora-Atomic)"
+elif [ "Fedora-Atomic" = "$KERNEL_TYPE" ]; then
+	if [ "container" = "$BUILD_TYPE" ]; then
+		build_for_fedoro_atomic_in_container
+	else
+		echo Building Fedora Atomic kernel modules in container
+		DIR=$(dirname $(readlink -f $0))
+		URLS="$($DIR/kernel-crawler.py Fedora-Atomic)"
 
-	for URL in $URLS
-	do
-		rhel_build $URL
-	done
-elif [ "OL6-UEK" = "$EXTRA_BUILD_INSTRU" ]; then
+		for URL in $URLS
+		do
+			rhel_build $URL
+		done
+	fi
+elif [ "OL6-UEK" = "$KERNEL_TYPE" ]; then
 	# This should only run in the ol6-builder container context
 	echo Building Oracle Linux 6 UEK
 	DIR=$(dirname $(readlink -f $0))
@@ -640,7 +647,7 @@ elif [ "OL6-UEK" = "$EXTRA_BUILD_INSTRU" ]; then
 	do
 		rhel_build $URL
 	done
-elif [ "OL7-UEK" = "$EXTRA_BUILD_INSTRU" ]; then
+elif [ "OL7-UEK" = "$KERNEL_TYPE" ]; then
 	# This should only run in the ol7-builder container context
 	echo Building Oracle Linux 7 UEK
 	DIR=$(dirname $(readlink -f $0))
