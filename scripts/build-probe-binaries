@@ -494,7 +494,6 @@ if [ -z "$EXTRA_BUILD_INSTRU" ]; then
 	#
 	# Fedora Atomic build
 	#
-	echo "Building Fedora Atomic in container"
 	build_for_fedoro_atomic_in_container
 
 	#
