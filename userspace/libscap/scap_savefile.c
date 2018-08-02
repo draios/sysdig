@@ -1870,7 +1870,7 @@ static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length,
 	handle->m_addrlist->n_v6_addrs = 0;
 	handle->m_addrlist->v4list = NULL;
 	handle->m_addrlist->v6list = NULL;
-	handle->m_addrlist->totlen = block_length;
+	handle->m_addrlist->totlen = block_length - (ifcnt4 + ifcnt6) * sizeof(uint32_t);
 
 	if(ifcnt4 != 0)
 	{
