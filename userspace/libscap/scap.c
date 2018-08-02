@@ -493,6 +493,8 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 	handle->m_whh = NULL;
 #endif
 	handle->m_bpf = false;
+	handle->m_suppressed_comms = NULL;
+	handle->m_suppressed_tids = NULL;
 
 	handle->m_file_evt_buf = (char*)malloc(FILE_READ_BUF_SIZE);
 	if(!handle->m_file_evt_buf)
@@ -542,9 +544,7 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 	snprintf(handle->m_fake_kernel_proc.exe, SCAP_MAX_PATH_SIZE, "kernel");
 	handle->m_fake_kernel_proc.args[0] = 0;
 
-	handle->m_suppressed_comms = NULL;
 	handle->m_num_suppressed_comms = 0;
-	handle->m_suppressed_tids = NULL;
 	handle->m_num_suppressed_evts = 0;
 
 	if ((*rc = copy_comms(handle, suppressed_comms)) != SCAP_SUCCESS)
