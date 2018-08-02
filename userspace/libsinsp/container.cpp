@@ -1086,15 +1086,15 @@ bool sinsp_container_manager::remove_inactive_containers()
 	return res;
 }
 
-const sinsp_container_info* sinsp_container_manager::get_container(const string& container_id) const
+sinsp_container_info* sinsp_container_manager::get_container(const string& container_id)
 {
-	unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.find(container_id);
+	auto it = m_containers.find(container_id);
 	if(it != m_containers.end())
 	{
 		return &it->second;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)

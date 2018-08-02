@@ -516,8 +516,20 @@ void sinsp_threadinfo::set_args(const char* args, size_t len)
 
 void sinsp_threadinfo::set_env(const char* env, size_t len)
 {
-	m_env.clear();
+	if (len == SCAP_MAX_ENV_SIZE && m_inspector->is_live())
+	{
+		// the environment is possibly truncated, try to read from /proc
+		// this may fail for short-lived processes
+		if (set_env_from_proc())
+		{
+			g_logger.format(sinsp_logger::SEV_DEBUG, "Large environment for process %lu [%s], loaded from /proc", m_pid, m_comm.c_str());
+			return;
+		} else {
+			g_logger.format(sinsp_logger::SEV_INFO, "Failed to load environment for process %lu [%s] from /proc, using first %d bytes", m_pid, m_comm.c_str(), SCAP_MAX_ENV_SIZE);
+		}
+	}
 
+	m_env.clear();
 	size_t offset = 0;
 	while(offset < len)
 	{
@@ -539,6 +551,29 @@ void sinsp_threadinfo::set_env(const char* env, size_t len)
 
 		offset += m_env.back().length() + 1;
 	}
+}
+
+bool sinsp_threadinfo::set_env_from_proc() {
+	string environ_path = string(scap_get_host_root()) + "/proc/" + to_string(m_pid) + "/environ";
+
+	ifstream environ(environ_path);
+	if (!environ)
+	{
+		// failed to read the environment from /proc, work with what we have
+		return false;
+	}
+
+	m_env.clear();
+	while (environ) {
+		string env;
+		getline(environ, env, '\0');
+		if (!env.empty())
+		{
+			m_env.emplace_back(env);
+		}
+	}
+
+	return true;
 }
 
 const vector<string>& sinsp_threadinfo::get_env()
