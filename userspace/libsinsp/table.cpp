@@ -517,6 +517,7 @@ void sinsp_table::process_proctable(sinsp_evt* evt)
 	//
 	tscapevt.type = PPME_SYSDIGEVENT_X;
 	tscapevt.len = 0;
+	tscapevt.nparams = 0;
 
 	tevt.m_inspector = m_inspector;
 	tevt.m_info = &(g_infotables.m_event_info[PPME_SYSDIGEVENT_X]);

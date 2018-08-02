@@ -323,6 +323,7 @@ typedef enum scap_ifinfo_type
 */
 typedef struct scap_ifinfo_ipv4
 {
+	// NB: new fields must be appended
 	uint16_t type; ///< Interface type
 	uint16_t ifnamelen;
 	uint32_t addr; ///< Interface address
@@ -350,6 +351,7 @@ typedef struct scap_ifinfo_ipv4_nolinkspeed
 */
 typedef struct scap_ifinfo_ipv6
 {
+	// NB: new fields must be appended
 	uint16_t type;
 	uint16_t ifnamelen;
 	char addr[SCAP_IPV6_ADDR_LEN]; ///< Interface address
@@ -984,11 +986,11 @@ uint8_t* scap_get_memorydumper_curpos(scap_dumper_t *d);
 int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_dumper_t *d);
 int32_t scap_write_proclist_header(scap_t *handle, scap_dumper_t *d, uint32_t totlen);
 int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t totlen);
-int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo);
+int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo, uint32_t len);
 // Variant of scap_write_proclist_entry where array-backed information
 // about the thread is provided separate from the scap_threadinfo
 // struct.
-int32_t scap_write_proclist_entry_bufs(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo,
+int32_t scap_write_proclist_entry_bufs(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo, uint32_t len,
 				       const char *comm,
 				       const char *exe,
 				       const char *exepath,

@@ -374,9 +374,14 @@ private:
 		uint32_t nparams;
 		sinsp_evt_param par;
 
-		nparams = m_info->nparams;
+		// If we're reading a capture created with a newer version, it may contain
+		// new parameters. If instead we're reading an older version, the current
+		// event table entry may contain new parameters.
+		// Use the minimum between the two values.
+		nparams = m_info->nparams < m_pevt->nparams ? m_info->nparams : m_pevt->nparams;
 		uint16_t *lens = (uint16_t *)((char *)m_pevt + sizeof(struct ppm_evt_hdr));
-		char *valptr = (char *)lens + nparams * sizeof(uint16_t);
+		// The offset in the block is instead always based on the capture value.
+		char *valptr = (char *)lens + m_pevt->nparams * sizeof(uint16_t);
 		m_params.clear();
 
 		for(j = 0; j < nparams; j++)

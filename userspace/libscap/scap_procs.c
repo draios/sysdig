@@ -1282,7 +1282,6 @@ int32_t scap_update_suppressed(scap_t *handle,
 
 int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent, bool *suppressed)
 {
-	const struct ppm_event_info* info = &(g_event_info[pevent->type]);
 	uint16_t *lens;
 	char *valptr;
 	uint32_t j;
@@ -1305,9 +1304,9 @@ int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent, bool *suppressed
 	case PPME_SYSCALL_EXECVE_19_X:
 
 		lens = (uint16_t *)((char *)pevent + sizeof(struct ppm_evt_hdr));
-		valptr = (char *)lens + info->nparams * sizeof(uint16_t);
+		valptr = (char *)lens + pevent->nparams * sizeof(uint16_t);
 
-		if(info->nparams < 14)
+		if(pevent->nparams < 14)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not find process comm in event argument list");
 			return SCAP_FAILURE;

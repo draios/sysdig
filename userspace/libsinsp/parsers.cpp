@@ -314,6 +314,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_OPEN_X:
 	case PPME_SYSCALL_CREAT_X:
 	case PPME_SYSCALL_OPENAT_X:
+	case PPME_SYSCALL_OPENAT_2_X:
 		parse_open_openat_creat_exit(evt);
 		break;
 	case PPME_SYSCALL_SELECT_E:
@@ -1736,6 +1737,17 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		ASSERT(false);
 	}
 
+	// From scap version 1.2, event types of existent
+	// events are no longer changed.
+	// sinsp_evt::get_num_params() can instead be used
+	// to identify the version of the event.
+	// For example:
+	//
+	// if(evt->get_num_params() > 17)
+	// {
+	//   ...
+	// }
+
 	//
 	// execve starts with a clean fd list, so we get rid of the fd list that clone
 	// copied from the parent
@@ -1864,6 +1876,7 @@ void schedule_more_evts(sinsp* inspector, void* data, T* client, ppm_event_type 
 	}
 
 	state->m_piscapevt->len = tot_len;
+	state->m_piscapevt->nparams = 1;
 	uint16_t* plen = (uint16_t*)((char *)state->m_piscapevt + sizeof(struct ppm_evt_hdr));
 	plen[0] = (uint16_t)payload.size() + 1;
 	uint8_t* edata = (uint8_t*)plen + sizeof(uint16_t);
@@ -1952,6 +1965,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	sinsp_fdinfo_t fdi;
 	sinsp_evt *enter_evt = &m_tmp_evt;
 	string sdir;
+	uint16_t etype = evt->get_type();
 
 	ASSERT(evt->m_tinfo);
 	if(evt->m_tinfo == nullptr)
@@ -1959,12 +1973,16 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		return;
 	}
 
-	//
-	// Load the enter event so we can access its arguments
-	//
-	if(!retrieve_enter_event(enter_evt, evt))
+
+	if(etype != PPME_SYSCALL_OPENAT_2_X)
 	{
-		return;
+		//
+		// Load the enter event so we can access its arguments
+		//
+		if(!retrieve_enter_event(enter_evt, evt))
+		{
+			return;
+		}
 	}
 
 	//
@@ -1977,7 +1995,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	//
 	// Parse the parameters, based on the event type
 	//
-	if(evt->get_type() == PPME_SYSCALL_OPEN_X)
+	if(etype == PPME_SYSCALL_OPEN_X)
 	{
 		parinfo = evt->get_param(1);
 		name = parinfo->m_val;
@@ -1989,7 +2007,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 
 		sdir = evt->m_tinfo->get_cwd();
 	}
-	else if(evt->get_type() == PPME_SYSCALL_CREAT_X)
+	else if(etype == PPME_SYSCALL_CREAT_X)
 	{
 		parinfo = evt->get_param(1);
 		name = parinfo->m_val;
@@ -1999,7 +2017,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 
 		sdir = evt->m_tinfo->get_cwd();
 	}
-	else if(evt->get_type() == PPME_SYSCALL_OPENAT_X)
+	else if(etype == PPME_SYSCALL_OPENAT_X)
 	{
 		parinfo = enter_evt->get_param(1);
 		name = parinfo->m_val;
@@ -2010,6 +2028,22 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		flags = *(uint32_t *)parinfo->m_val;
 
 		parinfo = enter_evt->get_param(0);
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		int64_t dirfd = *(int64_t *)parinfo->m_val;
+
+		parse_openat_dir(evt, name, dirfd, &sdir);
+	}
+	else if(etype == PPME_SYSCALL_OPENAT_2_X)
+	{
+		parinfo = evt->get_param(2);
+		name = parinfo->m_val;
+		namelen = parinfo->m_len;
+
+		parinfo = evt->get_param(3);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		flags = *(uint32_t *)parinfo->m_val;
+
+		parinfo = evt->get_param(1);
 		ASSERT(parinfo->m_len == sizeof(int64_t));
 		int64_t dirfd = *(int64_t *)parinfo->m_val;
 
@@ -3116,6 +3150,7 @@ uint32_t sinsp_parser::parse_tracer(sinsp_evt *evt, int64_t retval)
 	uint8_t* fakeevt_storage = (uint8_t*)m_fake_userevt;
 	m_fake_userevt->ts = evt->m_pevt->ts;
 	m_fake_userevt->tid = evt->m_pevt->tid;
+	m_fake_userevt->nparams = 3;
 
 	if(p->m_res == sinsp_tracerparser::RES_OK)
 	{

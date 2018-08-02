@@ -136,6 +136,7 @@ sinsp::sinsp() :
 	m_meinfo.m_piscapevt = (scap_evt*)new char[evlen];
 	m_meinfo.m_piscapevt->type = PPME_PROCINFO_E;
 	m_meinfo.m_piscapevt->len = evlen;
+	m_meinfo.m_piscapevt->nparams = 2;
 	uint16_t* lens = (uint16_t*)((char *)m_meinfo.m_piscapevt + sizeof(struct ppm_evt_hdr));
 	lens[0] = 8;
 	lens[1] = 8;
