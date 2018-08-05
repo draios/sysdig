@@ -18,13 +18,22 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include <functional>
+
+#if !defined(_WIN32) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
+#include <curl/curl.h>
+#include <curl/easy.h>
+#include <curl/multi.h>
+#endif
+
 enum sinsp_container_type
 {
 	CT_DOCKER = 0,
 	CT_LXC = 1,
 	CT_LIBVIRT_LXC = 2,
 	CT_MESOS = 3,
-	CT_RKT = 4
+	CT_RKT = 4,
+	CT_CUSTOM = 5
 };
 
 enum sinsp_docker_response
@@ -79,7 +88,7 @@ public:
 			}
 		}
 
-		std::string to_string()
+		std::string to_string() const
 		{
 			return m_source + ":" +
 				m_dest + ":" +
@@ -118,15 +127,18 @@ public:
 
 	const vector<string>& get_env() const { return m_env; }
 
-	container_mount_info *mount_by_idx(uint32_t idx);
-	container_mount_info *mount_by_source(std::string &source);
-	container_mount_info *mount_by_dest(std::string &dest);
+	const container_mount_info *mount_by_idx(uint32_t idx) const;
+	const container_mount_info *mount_by_source(std::string &source) const;
+	const container_mount_info *mount_by_dest(std::string &dest) const;
 
 	string m_id;
 	sinsp_container_type m_type;
 	string m_name;
 	string m_image;
 	string m_imageid;
+	string m_imagerepo;
+	string m_imagetag;
+	string m_imagedigest;
 	uint32_t m_container_ip;
 	bool m_privileged;
 	vector<container_mount_info> m_mounts;
@@ -144,32 +156,122 @@ public:
 #endif
 };
 
+class sinsp_container_manager;
+
+typedef std::function<bool(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)> sinsp_container_engine;
+
+class sinsp_container_engine_docker
+{
+public:
+	sinsp_container_engine_docker();
+
+	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+	static void cleanup();
+	static void set_query_image_info(bool query_image_info);
+protected:
+#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
+	static size_t curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json);
+#endif
+	sinsp_docker_response get_docker(const sinsp_container_manager* manager, const string& url, string &json);
+	bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
+
+	string m_unix_socket_path;
+	string m_api_version;
+	static bool m_query_image_info;
+#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
+	static CURLM *m_curlm;
+	static CURL *m_curl;
+#endif
+};
+
+#ifndef CYGWING_AGENT
+class sinsp_container_engine_lxc
+{
+public:
+	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+};
+
+class sinsp_container_engine_libvirt_lxc
+{
+public:
+	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+protected:
+	bool match(sinsp_threadinfo* tinfo, sinsp_container_info* container_info);
+};
+
+class sinsp_container_engine_mesos
+{
+public:
+	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+	static bool set_mesos_task_id(sinsp_container_info* container, sinsp_threadinfo* tinfo);
+protected:
+	bool match(sinsp_threadinfo* tinfo, sinsp_container_info* container_info);
+	static string get_env_mesos_task_id(sinsp_threadinfo* tinfo);
+};
+
+class sinsp_container_engine_rkt
+{
+public:
+	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+protected:
+	bool match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp_container_info* container_info, string& rkt_podid, string& rkt_appname, bool query_os_for_missing_info);
+	bool parse_rkt(sinsp_container_info* container, const string& podid, const string& appname);
+};
+
+#endif
+
 class sinsp_container_manager
 {
 public:
 	sinsp_container_manager(sinsp* inspector);
+	virtual ~sinsp_container_manager();
 
 	const unordered_map<string, sinsp_container_info>* get_containers();
 	bool remove_inactive_containers();
 	void add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread);
-	bool get_container(const string& id, sinsp_container_info* container_info) const;
+	const sinsp_container_info* get_container(const string& id) const;
+	void notify_new_container(const sinsp_container_info& container_info);
+	template<typename E> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+	template<typename E1, typename E2, typename... Args> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	bool resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	void dump_containers(scap_dumper_t* dumper);
 	string get_container_name(sinsp_threadinfo* tinfo);
-	string get_env_mesos_task_id(sinsp_threadinfo* tinfo);
-	bool set_mesos_task_id(sinsp_container_info* container, sinsp_threadinfo* tinfo);
-	string get_mesos_task_id(const string& container_id);
 
+	bool container_exists(const string& container_id) const {
+		return m_containers.find(container_id) != m_containers.end();
+	}
+
+	typedef std::function<void(const sinsp_container_info&, sinsp_threadinfo *)> new_container_cb;
+	typedef std::function<void(const sinsp_container_info&)> remove_container_cb;
+	void subscribe_on_new_container(new_container_cb callback);
+	void subscribe_on_remove_container(remove_container_cb callback);
+
+	void cleanup();
+
+	void set_query_docker_image_info(bool query_image_info);
 private:
 	string container_to_json(const sinsp_container_info& container_info);
 	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);
-	sinsp_docker_response get_docker(const string& api_version, const string& container_id, string& json);
-	bool parse_docker(sinsp_container_info* container);
 	string get_docker_env(const Json::Value &env_vars, const string &mti);
-	bool parse_rkt(sinsp_container_info* container, const string& podid, const string& appname);
-	sinsp_container_info* get_container(const string& id);
 
 	sinsp* m_inspector;
 	unordered_map<string, sinsp_container_info> m_containers;
 	uint64_t m_last_flush_time_ns;
+	list<new_container_cb> m_new_callbacks;
+	list<remove_container_cb> m_remove_callbacks;
 };
+
+template<typename E> bool sinsp_container_manager::resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+{
+	E engine;
+	return engine.resolve(this, tinfo, query_os_for_missing_info);
+}
+
+template<typename E1, typename E2, typename... Args> bool sinsp_container_manager::resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+{
+	if (resolve_container_impl<E1>(tinfo, query_os_for_missing_info))
+	{
+		return true;
+	}
+	return resolve_container_impl<E2, Args...>(tinfo, query_os_for_missing_info);
+}

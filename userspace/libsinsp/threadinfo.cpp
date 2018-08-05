@@ -77,7 +77,7 @@ void sinsp_threadinfo::init()
 	m_pfminor = 0;
 	m_vtid = -1;
 	m_vpid = -1;
-	m_main_thread = NULL;
+	m_main_thread.reset();
 	m_lastevent_fd = 0;
 #ifdef HAS_FILTERING
 	m_last_latency_entertime = 0;
@@ -160,26 +160,35 @@ void sinsp_threadinfo::fix_sockets_coming_from_proc()
 #define STR_AS_NUM_PERL 0x6c726570
 #define STR_AS_NUM_NODE 0x65646f6e
 
+#define MAX_PROG_HASH_LEN 1024
+
 void sinsp_threadinfo::compute_program_hash()
 {
-	string phs = m_exe;
-
-	phs += m_container_id;
+	auto curr_hash = std::hash<std::string>()(m_exe);
+	hash_combine(curr_hash, m_container_id);
+	auto rem_len = MAX_PROG_HASH_LEN - (m_exe.size() + m_container_id.size());
 
 	//
 	// By default, the falco hash is just exe+container
 	//
-	m_program_hash_falco = std::hash<std::string>()(phs);
+	m_program_hash_falco = curr_hash;
 
 	//
 	// The program hash includes the arguments as well
 	//
-	for(auto arg = m_args.begin(); arg != m_args.end(); ++arg)
+	for (auto arg = m_args.begin(); arg != m_args.end() && rem_len > 0; ++arg)
 	{
-		phs += *arg;
-	}
+		if (arg->size() >= rem_len)
+		{
+			auto partial_str = arg->substr(0, rem_len);
+			hash_combine(curr_hash, partial_str);
+			break;
+		}
 
-	m_program_hash = std::hash<std::string>()(phs);
+		hash_combine(curr_hash, *arg);
+		rem_len -= arg->size();
+	}
+	m_program_hash = curr_hash;
 
 	//
 	// For some specific processes (essentially the scripting languages)
@@ -314,6 +323,16 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 	case SCAP_FD_FILE_V2:
 		newfdi->m_openflags = fdi->info.regularinfo.open_flags;
 		newfdi->m_name = fdi->info.regularinfo.fname;
+
+		if(newfdi->m_name == USER_EVT_DEVICE_NAME)
+		{
+			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE;
+		}
+		else
+		{
+			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD;
+		}
+
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:
@@ -421,6 +440,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	tscapevt.ts = 0;
 	tscapevt.type = PPME_SYSCALL_READ_X;
 	tscapevt.len = 0;
+	tscapevt.nparams = 0;
 
 	tevt.m_inspector = m_inspector;
 	tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
@@ -576,7 +596,7 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 	while(offset < len)
 	{
 		const char* str = cgroups + offset;
-		const char* sep = strchr(str, '=');
+		const char* sep = strrchr(str, '=');
 		if(sep == NULL)
 		{
 			ASSERT(false);
@@ -877,9 +897,9 @@ void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
 	}
 }
 
-sinsp_threadinfo* sinsp_threadinfo::lookup_thread()
+shared_ptr<sinsp_threadinfo> sinsp_threadinfo::lookup_thread()
 {
-	return m_inspector->get_thread(m_pid, true, true);
+	return m_inspector->get_thread_ref(m_pid, true, true);
 }
 
 //
@@ -910,8 +930,8 @@ sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 			//
 			// Yes, this is a child thread. Find the process root thread.
 			//
-			sinsp_threadinfo* ptinfo = lookup_thread();
-			if (NULL == ptinfo)
+			auto ptinfo = lookup_thread();
+			if (!ptinfo)
 			{
 				return NULL;
 			}
@@ -920,129 +940,140 @@ sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 		}
 	}
 
-	return m_main_thread;
+	return &*m_main_thread;
 }
 #endif
 
-inline void scpy(char* dst, const char* src, uint32_t maxlen)
+size_t sinsp_threadinfo::args_len() const
 {
-	if(maxlen == 0)
-	{
-		return;
-	}
-
-	while(true)
-	{
-		if(maxlen == 1)
-		{
-			*dst = 0;
-			return;
-		}
-
-		if(*src == 0)
-		{
-			*dst = 0;
-			return;
-		}
-
-		*(dst++) = *(src++);
-		maxlen--;
-	}
+	return strvec_len(m_args);
 }
 
-void sinsp_threadinfo::args_to_scap(scap_threadinfo* sctinfo)
+size_t sinsp_threadinfo::env_len() const
+{
+	return strvec_len(m_env);
+}
+
+size_t sinsp_threadinfo::cgroups_len() const
+{
+	size_t totlen = 0;
+
+	for(auto &cgroup : m_cgroups)
+	{
+		totlen += cgroup.first.size() + 1 + cgroup.second.size();
+		totlen++; // Trailing NULL
+	}
+
+	return totlen;
+}
+
+void sinsp_threadinfo::args_to_iovec(struct iovec **iov, int *iovcnt,
+				     std::string &rem) const
+{
+	return strvec_to_iovec(m_args,
+			       iov, iovcnt,
+			       rem);
+}
+
+void sinsp_threadinfo::env_to_iovec(struct iovec **iov, int *iovcnt,
+				    std::string &rem) const
+{
+	return strvec_to_iovec(m_env,
+			       iov, iovcnt,
+			       rem);
+}
+
+// Set the provided iovec to the string in str, if it will fit. If it
+// won't, copy the portion that will fit to rem and set the iovec to
+// rem. Updates alen with the new total length and possibly sets rem
+// to any truncated string.
+void sinsp_threadinfo::add_to_iovec(const string &str,
+				    const bool include_trailing_null,
+				    struct iovec &iov,
+				    uint32_t &alen,
+				    std::string &rem) const
+{
+	uint32_t len = str.size() + (include_trailing_null ? 1 : 0);
+	const char *buf = str.c_str();
+
+	if(len > alen)
+	{
+		// The entire string won't fit. Use rem to hold a
+		// truncated copy
+		rem = str.substr(0, alen-1);
+		buf = rem.c_str();
+		len = alen;
+	}
+
+	iov.iov_base = (void *) buf;
+	iov.iov_len = len;
+
+	alen -= len;
+}
+
+// iov will be allocated and must be freed. rem is used to hold a
+// possibly truncated final argument.
+void sinsp_threadinfo::cgroups_to_iovec(struct iovec **iov, int *iovcnt,
+				       std::string &rem) const
 {
 	uint32_t alen = SCAP_MAX_ARGS_SIZE;
-	uint32_t tlen = 0;
-	char* dst = sctinfo->args;
+	static const string eq = "=";
 
-	for(auto it = m_args.begin(); it != m_args.end(); ++it)
+	// We allocate an iovec big enough to hold all the cgroups and
+	// intermediate '=' signs. Based on alen, we might not use all
+	// of the iovec.
+	*iov = (struct iovec *) malloc((3 * m_cgroups.size()) * sizeof(struct iovec));
+
+	*iovcnt = 0;
+
+	for(auto it = m_cgroups.begin(); it != m_cgroups.end() && alen > 0; ++it)
 	{
-		uint32_t len = it->size() + 1;
-
-		scpy(dst + tlen, it->c_str(), alen);
-
-		if(len >= alen) 
+		add_to_iovec(it->first, false, (*iov)[(*iovcnt)++], alen, rem);
+		if(alen > 0)
 		{
-			//
-			// We saturated the args buffer. Null terminate it and return
-			//
-			sctinfo->args[SCAP_MAX_ARGS_SIZE - 1] = 0;
-			sctinfo->args_len = SCAP_MAX_ARGS_SIZE;
-			return;
+			add_to_iovec(eq, false, (*iov)[(*iovcnt)++], alen, rem);
 		}
-		else
+
+		if(alen > 0)
 		{
-			tlen += len;
-			alen -= len;
+			add_to_iovec(it->second, true, (*iov)[(*iovcnt)++], alen, rem);
 		}
 	}
-
-	sctinfo->args_len = tlen;
 }
 
-void sinsp_threadinfo::env_to_scap(scap_threadinfo* sctinfo)
+size_t sinsp_threadinfo::strvec_len(const vector<string> &strs) const
 {
-	uint32_t alen = SCAP_MAX_ENV_SIZE;
-	uint32_t tlen = 0;
-	char* dst = sctinfo->env;
+	size_t totlen = 0;
 
-	for(auto it = m_env.begin(); it != m_env.end(); ++it)
+	for(auto &str : strs)
 	{
-		uint32_t len = it->size() + 1;
-
-		scpy(dst + tlen, it->c_str(), alen);
-
-		if(len >= alen) 
-		{
-			//
-			// We saturated the args buffer. Null terminate it and return
-			//
-			sctinfo->env[SCAP_MAX_ENV_SIZE - 1] = 0;
-			sctinfo->env_len = SCAP_MAX_ENV_SIZE;
-			return;
-		}
-		else
-		{
-			tlen += len;
-			alen -= len;
-		}
+		totlen += str.size();
+		totlen++; // Trailing NULL
 	}
 
-	sctinfo->env_len = tlen;
+	return totlen;
 }
 
-void sinsp_threadinfo::cgroups_to_scap(scap_threadinfo* sctinfo)
+// iov will be allocated and must be freed. rem is used to hold a
+// possibly truncated final argument.
+void sinsp_threadinfo::strvec_to_iovec(const vector<string> &strs,
+				       struct iovec **iov, int *iovcnt,
+				       std::string &rem) const
 {
-	uint32_t alen = SCAP_MAX_CGROUPS_SIZE;
-	uint32_t tlen = 0;
-	char* dst = sctinfo->cgroups;
+	uint32_t alen = SCAP_MAX_ARGS_SIZE;
 
-	for(auto it = m_cgroups.begin(); it != m_cgroups.end(); ++it)
+	// We allocate an iovec big enough to hold all the entries in
+	// strs. Based on alen, we might not use all of the iovec.
+	*iov = (struct iovec *) malloc(strs.size() * sizeof(struct iovec));
+
+	*iovcnt = 0;
+
+	for(auto it = strs.begin(); it != strs.end() && alen > 0; ++it)
 	{
-		string a = it->first + "=" + it->second;
-		uint32_t len = a.size() + 1;
-
-		scpy(dst + tlen, a.c_str(), alen);
-
-		if(len >= alen) 
-		{
-			//
-			// We saturated the args buffer. Null terminate it and return
-			//
-			sctinfo->cgroups[SCAP_MAX_CGROUPS_SIZE - 1] = 0;
-			sctinfo->cgroups_len = SCAP_MAX_CGROUPS_SIZE;
-			return;
-		}
-		else
-		{
-			tlen += len;
-			alen -= len;
-		}
+		add_to_iovec(*it, true, (*iov)[(*iovcnt)++], alen, rem);
 	}
-
-	sctinfo->cgroups_len = tlen;
 }
+
 
 void sinsp_threadinfo::fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src)
 {
@@ -1116,7 +1147,7 @@ void sinsp_thread_manager::clear()
 {
 	m_threadtable.clear();
 	m_last_tid = 0;
-	m_last_tinfo = NULL;
+	m_last_tinfo.reset();
 	m_last_flush_time_ns = 0;
 	m_n_drops = 0;
 
@@ -1156,17 +1187,17 @@ void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* thr
 	}
 }
 
-void sinsp_thread_manager::add_thread(sinsp_threadinfo& threadinfo, bool from_scap_proctable)
+void sinsp_thread_manager::add_thread(sinsp_threadinfo* threadinfo, bool from_scap_proctable)
 {
 #ifdef GATHER_INTERNAL_STATS
 	m_added_threads->increment();
 #endif
 
-	m_last_tinfo = NULL;
+	m_last_tinfo.reset();
 
 	if (m_threadtable.size() >= m_inspector->m_max_thread_table_size
 #if defined(HAS_CAPTURE)
-		&& threadinfo.m_pid != m_inspector->m_sysdig_pid
+		&& threadinfo->m_pid != m_inspector->m_sysdig_pid
 #endif
 		)
 	{
@@ -1176,31 +1207,25 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo& threadinfo, bool from_sc
 
 	if(!from_scap_proctable)
 	{
-		increment_mainthread_childcount(&threadinfo);
+		increment_mainthread_childcount(threadinfo);
 	}
 
-	threadinfo.compute_program_hash();
-
-	sinsp_threadinfo& newentry = (m_threadtable[threadinfo.m_tid] = threadinfo);
-
-	newentry.allocate_private_state();
+	threadinfo->compute_program_hash();
+	threadinfo->allocate_private_state();
+	m_threadtable.put(threadinfo);
 
 	if(m_listener)
 	{
-		m_listener->on_thread_created(&newentry);
+		m_listener->on_thread_created(threadinfo);
 	}
 }
 
 void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 {
-	remove_thread(m_threadtable.find(tid), force);
-}
-
-void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool force)
-{
 	uint64_t nchilds;
+	sinsp_threadinfo* tinfo = m_threadtable.get(tid);
 
-	if(it == m_threadtable.end())
+	if(tinfo == nullptr)
 	{
 		//
 		// Looks like there's no thread to remove.
@@ -1213,16 +1238,16 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 #endif
 		return;
 	}
-	else if((nchilds = it->second.m_nchilds) == 0 || force)
+	else if((nchilds = tinfo->m_nchilds) == 0 || force)
 	{
 		//
 		// Decrement the refcount of the main thread/program because
 		// this reference is gone
 		//
-		if(it->second.m_flags & PPM_CL_CLONE_THREAD)
+		if(tinfo->m_flags & PPM_CL_CLONE_THREAD)
 		{
-			ASSERT(it->second.m_pid != it->second.m_tid);
-			sinsp_threadinfo* main_thread = m_inspector->get_thread(it->second.m_pid, false, true);
+			ASSERT(tinfo->m_pid != tinfo->m_tid);
+			sinsp_threadinfo* main_thread = m_inspector->get_thread(tinfo->m_pid, false, true);
 			if(main_thread)
 			{
 				if(main_thread->m_nchilds > 0)
@@ -1243,15 +1268,15 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 		//
 		// If this is the main thread of a process, erase all the FDs that the process owns
 		//
-		if(it->second.m_pid == it->second.m_tid)
+		if(tinfo->m_pid == tinfo->m_tid)
 		{
-			unordered_map<int64_t, sinsp_fdinfo_t>* fdtable = &(it->second.get_fd_table()->m_table);
+			unordered_map<int64_t, sinsp_fdinfo_t>* fdtable = &(tinfo->get_fd_table()->m_table);
 			unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 
 			erase_fd_params eparams;
 			eparams.m_remove_from_table = false;
 			eparams.m_inspector = m_inspector;
-			eparams.m_tinfo = &(it->second);
+			eparams.m_tinfo = tinfo;
 			eparams.m_ts = m_inspector->m_lastevent_ts;
 
 			for(fdit = fdtable->begin(); fdit != fdtable->end(); ++fdit)
@@ -1273,13 +1298,13 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 		// Reset the cache
 		//
 		m_last_tid = 0;
-		m_last_tinfo = NULL;
+		m_last_tinfo.reset();
 
 #ifdef GATHER_INTERNAL_STATS
 		m_removed_threads->increment();
 #endif
 
-		m_threadtable.erase(it);
+		m_threadtable.erase(tid);
 
 		//
 		// If the thread has a nonzero refcount, it means that we are forcing the removal
@@ -1296,19 +1321,17 @@ void sinsp_thread_manager::remove_thread(threadinfo_map_iterator_t it, bool forc
 
 void sinsp_thread_manager::fix_sockets_coming_from_proc()
 {
-	threadinfo_map_iterator_t it;
-
-	for(it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
-	{
-		it->second.fix_sockets_coming_from_proc();
-	}
+	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
+		tinfo.fix_sockets_coming_from_proc();
+		return true;
+	});
 }
 
-void sinsp_thread_manager::clear_thread_pointers(threadinfo_map_iterator_t it)
+void sinsp_thread_manager::clear_thread_pointers(sinsp_threadinfo& tinfo)
 {
-	it->second.m_main_thread = NULL;
+	tinfo.m_main_thread.reset();
 
-	sinsp_fdtable* fdt = it->second.get_fd_table();
+	sinsp_fdtable* fdt = tinfo.get_fd_table();
 	if(fdt != NULL)
 	{
 		fdt->reset_cache();
@@ -1327,26 +1350,22 @@ void sinsp_thread_manager::clear_thread_pointers(threadinfo_map_iterator_t it)
 
 void sinsp_thread_manager::reset_child_dependencies()
 {
-	threadinfo_map_iterator_t it;
-
-	m_last_tinfo = NULL;
+	m_last_tinfo.reset();
 	m_last_tid = 0;
 
-	for(it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
-	{
-		it->second.m_nchilds = 0;
-		clear_thread_pointers(it);
-	}
+	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
+		tinfo.m_nchilds = 0;
+		clear_thread_pointers(tinfo);
+		return true;
+	});
 }
 
 void sinsp_thread_manager::create_child_dependencies()
 {
-	threadinfo_map_iterator_t it;
-
-	for(it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
-	{
-		increment_mainthread_childcount(&it->second);
-	}
+	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
+		increment_mainthread_childcount(&tinfo);
+		return true;
+	});
 }
 
 void sinsp_thread_manager::recreate_child_dependencies()
@@ -1378,24 +1397,23 @@ void sinsp_thread_manager::free_dump_fdinfos(vector<scap_fdinfo*>* fdinfos_to_fr
 	fdinfos_to_free->clear();
 }
 
+// NOTE: This does *not* populate any array-based fields (comm, exe,
+// exepath, args, env, cwd, cgroups, root)
 void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, 	scap_threadinfo* sctinfo)
 {
 	//
 	// Fill in the thread data
 	//
+
+	// NOTE: This is doing a shallow copy of the strings from
+	// tinfo, and is valid only as long as tinfo is valid.
+
 	sctinfo->tid = tinfo.m_tid;
 	sctinfo->pid = tinfo.m_pid;
 	sctinfo->ptid = tinfo.m_ptid;
 	sctinfo->sid = tinfo.m_sid;
 	sctinfo->vpgid = tinfo.m_vpgid;
 
-	strncpy(sctinfo->comm, tinfo.m_comm.c_str(), SCAP_MAX_PATH_SIZE);
-	strncpy(sctinfo->exe, tinfo.m_exe.c_str(), SCAP_MAX_PATH_SIZE);
-	strncpy(sctinfo->exepath, tinfo.m_exepath.c_str(), SCAP_MAX_PATH_SIZE);
-	tinfo.args_to_scap(sctinfo);
-	tinfo.env_to_scap(sctinfo);
-	string tcwd = (tinfo.m_cwd == "")? "/": tinfo.m_cwd;
-	strncpy(sctinfo->cwd, tcwd.c_str(), SCAP_MAX_PATH_SIZE);
 	sctinfo->flags = tinfo.m_flags ;
 	sctinfo->fdlimit = tinfo.m_fdlimit;
 	sctinfo->uid = tinfo.m_uid;
@@ -1408,37 +1426,22 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, 	scap_threadi
 	sctinfo->vtid = tinfo.m_vtid;
 	sctinfo->vpid = tinfo.m_vpid;
 	sctinfo->fdlist = NULL;
-	tinfo.cgroups_to_scap(sctinfo);
-	strncpy(sctinfo->root, tinfo.m_root.c_str(), SCAP_MAX_PATH_SIZE);
 	sctinfo->filtered_out = false;
 }
 
 void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 {
 	//
-	// First pass of the table to calculate the length
+	// First pass of the table to calculate the lengths
 	//
 	uint32_t totlen = 0;
 
-	for(auto it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
-	{
-		scap_threadinfo *sctinfo;
+	vector<uint32_t> lengths;
 
-		if((sctinfo = scap_proc_alloc(m_inspector->m_h)) == NULL)
-		{
-			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
-		}
-
-		sinsp_threadinfo& tinfo = it->second;
-
-		tinfo.args_to_scap(sctinfo);
-		tinfo.env_to_scap(sctinfo);
-		tinfo.cgroups_to_scap(sctinfo);
-
-		string tcwd = (tinfo.m_cwd == "")? "/": tinfo.m_cwd;
-
+	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
 		uint32_t il = (uint32_t)
-			(sizeof(uint64_t) +	// tid
+			(sizeof(uint32_t) +     // len
+			sizeof(uint64_t) +	// tid
 			sizeof(uint64_t) +	// pid
 			sizeof(uint64_t) +	// ptid
 			sizeof(uint64_t) +	// sid
@@ -1446,9 +1449,11 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			2 + MIN(tinfo.m_comm.size(), SCAP_MAX_PATH_SIZE) +
 			2 + MIN(tinfo.m_exe.size(), SCAP_MAX_PATH_SIZE) +
 			2 + MIN(tinfo.m_exepath.size(), SCAP_MAX_PATH_SIZE) +
-			2 + sctinfo->args_len +
-			2 + MIN(tcwd.size(), SCAP_MAX_PATH_SIZE) +
+                        2 + MIN(tinfo.args_len(), SCAP_MAX_ARGS_SIZE) +
+                        // 1 is sizeof("/")
+                        2 + MIN((tinfo.m_cwd == "")? 1 : tinfo.m_cwd.size(), SCAP_MAX_PATH_SIZE) +
 			sizeof(uint64_t) +	// fdlimit
+			sizeof(uint32_t) +	// flags
 			sizeof(uint32_t) +	// uid
 			sizeof(uint32_t) +	// gid
 			sizeof(uint32_t) +  // vmsize_kb
@@ -1456,17 +1461,16 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			sizeof(uint32_t) +  // vmswap_kb
 			sizeof(uint64_t) +  // pfmajor
 			sizeof(uint64_t) +  // pfminor
-			2 + sctinfo->env_len +
+                        2 + MIN(tinfo.env_len(), SCAP_MAX_ENV_SIZE) +
 			sizeof(int64_t) +  // vtid
 			sizeof(int64_t) +  // vpid
-			2 + sctinfo->cgroups_len +
-			sizeof(uint32_t) +
+                        2 + MIN(tinfo.cgroups_len(), SCAP_MAX_CGROUPS_SIZE) +
 			2 + MIN(tinfo.m_root.size(), SCAP_MAX_PATH_SIZE));
 
+		lengths.push_back(il);
 		totlen += il;
-
-		scap_proc_free(m_inspector->m_h, sctinfo);
-	}
+		return true;
+	});
 
 	//
 	// Second pass of the table to dump the Threads
@@ -1476,25 +1480,43 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 	}
 
-	for(auto it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
-	{
+	uint32_t idx = 0;
+	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
 		scap_threadinfo *sctinfo;
+		struct iovec *args_iov, *envs_iov, *cgroups_iov;
+		int argscnt, envscnt, cgroupscnt;
+		string argsrem, envsrem, cgroupsrem;
 
 		if((sctinfo = scap_proc_alloc(m_inspector->m_h)) == NULL)
 		{
 			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 		}
-		sinsp_threadinfo& tinfo = it->second;
 
 		thread_to_scap(tinfo, sctinfo);
+		tinfo.args_to_iovec(&args_iov, &argscnt, argsrem);
+		tinfo.env_to_iovec(&envs_iov, &envscnt, envsrem);
+		tinfo.cgroups_to_iovec(&cgroups_iov, &cgroupscnt, cgroupsrem);
 
-		if(scap_write_proclist_entry(m_inspector->m_h, dumper, sctinfo) != SCAP_SUCCESS)
+		if(scap_write_proclist_entry_bufs(m_inspector->m_h, dumper, sctinfo, lengths[idx++],
+						  tinfo.m_comm.c_str(),
+						  tinfo.m_exe.c_str(),
+						  tinfo.m_exepath.c_str(),
+						  args_iov, argscnt,
+						  envs_iov, envscnt,
+						  (tinfo.m_cwd == "" ? "/" : tinfo.m_cwd.c_str()),
+						  cgroups_iov, cgroupscnt,
+						  tinfo.m_root.c_str()) != SCAP_SUCCESS)
 		{
 			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 		}
 
+		free(args_iov);
+		free(envs_iov);
+		free(cgroups_iov);
+
 		scap_proc_free(m_inspector->m_h, sctinfo);
-	}
+		return true;
+	});
 
 	if(scap_write_proclist_trailer(m_inspector->m_h, dumper, totlen) != SCAP_SUCCESS)
 	{
@@ -1505,8 +1527,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 	// Third pass of the table to dump the FDs
 	//
 
-	for(auto it = m_threadtable.begin(); it != m_threadtable.end(); ++it)
-	{
+	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
 		scap_threadinfo *sctinfo;
 
 		if((sctinfo = scap_proc_alloc(m_inspector->m_h)) == NULL)
@@ -1514,8 +1535,9 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 		}
 
-		sinsp_threadinfo& tinfo = it->second;
-
+		// Note: as scap_fd_add/scap_write_proc_fds do not use
+		// any of the array-based fields like comm, etc. a
+		// shallow copy is safe
 		thread_to_scap(tinfo, sctinfo);
 
 		if(tinfo.is_main_thread())
@@ -1543,7 +1565,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 				tinfo.fd_to_scap(scfdinfo, &it->second);
 
 				//
-				// Add the new fd to the scap table
+				// Add the new fd to the scap table.
 				//
 				if(scap_fd_add(sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
 				{
@@ -1563,5 +1585,6 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		}
 
 		scap_proc_free(m_inspector->m_h, sctinfo);
-	}
+		return true;
+	});
 }

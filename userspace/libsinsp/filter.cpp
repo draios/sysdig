@@ -31,6 +31,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #include <regex>
+#include <algorithm>
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -78,10 +79,8 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 	add_filter_check(new sinsp_filter_check_container());
 	add_filter_check(new sinsp_filter_check_utils());
 	add_filter_check(new sinsp_filter_check_fdlist());
-#ifndef HAS_ANALYZER
-	add_filter_check(new sinsp_filter_check_k8s());
-#endif // HAS_ANALYZER
 #ifndef CYGWING_AGENT
+	add_filter_check(new sinsp_filter_check_k8s());
 	add_filter_check(new sinsp_filter_check_mesos());
 #endif
 	add_filter_check(new sinsp_filter_check_tracer());
@@ -341,6 +340,7 @@ bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2)
 	switch(op)
 	{
 	case CO_EQ:
+	case CO_IN:
 	{
 		return ((operand1 & operand2->m_netmask) == (operand2->m_ip & operand2->m_netmask));
 	}
@@ -1133,32 +1133,58 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 {
 	if (op == CO_IN || op == CO_PMATCH)
 	{
-		// For raw strings, the length may not be set. So we do a strlen to find it.
-		if(type == PT_CHARBUF && op1_len == 0)
+		// Certain filterchecks can't be done as a set
+		// membership test/group match. For these, just loop over the
+		// values and see if any value is equal.
+		switch(type)
 		{
-			op1_len = strlen((char *) operand1);
-		}
-
-		filter_value_t item((uint8_t *) operand1, op1_len);
-
-		if (op == CO_IN)
-		{
-			if(op1_len >= m_val_storages_min_size &&
-			   op1_len <= m_val_storages_max_size &&
-			   m_val_storages_members.find(item) != m_val_storages_members.end())
+		case PT_IPV4NET:
+		case PT_SOCKADDR:
+		case PT_SOCKTUPLE:
+		case PT_FDLIST:
+		case PT_FSPATH:
+		case PT_SIGSET:
+			for (uint16_t i=0; i < m_val_storages.size(); i++)
 			{
-				return true;
+				if (::flt_compare(CO_EQ,
+						  type,
+						  operand1,
+						  filter_value_p(i)))
+				{
+					return true;
+				}
 			}
-		}
-		else
-		{
-			if (m_val_storages_paths.match(item))
+			return false;
+			break;
+		default:
+			// For raw strings, the length may not be set. So we do a strlen to find it.
+			if(type == PT_CHARBUF && op1_len == 0)
 			{
-				return true;
+				op1_len = strlen((char *) operand1);
 			}
-		}
 
-		return false;
+			filter_value_t item((uint8_t *) operand1, op1_len);
+
+			if (op == CO_IN)
+			{
+				if(op1_len >= m_val_storages_min_size &&
+				   op1_len <= m_val_storages_max_size &&
+				   m_val_storages_members.find(item) != m_val_storages_members.end())
+				{
+					return true;
+				}
+			}
+			else
+			{
+				if (m_val_storages_paths.match(item))
+				{
+					return true;
+				}
+			}
+
+			return false;
+			break;
+		}
 	}
 	else
 	{
@@ -2041,10 +2067,30 @@ sinsp_filter* sinsp_filter_compiler::compile_()
 
 sinsp_evttype_filter::sinsp_evttype_filter()
 {
-	memset(m_filter_by_evttype, 0, PPM_EVENT_MAX * sizeof(list<sinsp_filter *> *));
 }
 
 sinsp_evttype_filter::~sinsp_evttype_filter()
+{
+	for(const auto &val : m_filters)
+	{
+		delete val.second->filter;
+		delete val.second;
+	}
+
+	for(auto &ruleset : m_rulesets)
+	{
+		delete ruleset;
+	}
+	m_filters.clear();
+}
+
+sinsp_evttype_filter::ruleset_filters::ruleset_filters()
+{
+	memset(m_filter_by_evttype, 0, PPM_EVENT_MAX * sizeof(list<filter_wrapper *> *));
+	memset(m_filter_by_syscall, 0, PPM_SC_MAX * sizeof(list<filter_wrapper *> *));
+}
+
+sinsp_evttype_filter::ruleset_filters::~ruleset_filters()
 {
 	for(int i = 0; i < PPM_EVENT_MAX; i++)
 	{
@@ -2055,60 +2101,178 @@ sinsp_evttype_filter::~sinsp_evttype_filter()
 		}
 	}
 
-	m_catchall_evttype_filters.clear();
-
-	for(const auto &val : m_evttype_filters)
+	for(int i = 0; i < PPM_SC_MAX; i++)
 	{
-		delete val.second->filter;
-		delete val.second;
+		if(m_filter_by_syscall[i])
+		{
+			delete m_filter_by_syscall[i];
+			m_filter_by_syscall[i] = NULL;
+		}
 	}
-	m_evttype_filters.clear();
 }
 
-sinsp_evttype_filter::filter_wrapper::filter_wrapper()
-	: enabled{true}
+void sinsp_evttype_filter::ruleset_filters::add_filter(filter_wrapper *wrap)
 {
+	for(uint32_t etype = 0; etype < PPM_EVENT_MAX; etype++)
+	{
+		if(wrap->evttypes[etype])
+		{
+			if(!m_filter_by_evttype[etype])
+			{
+				m_filter_by_evttype[etype] = new std::list<filter_wrapper *>();
+			}
+
+			m_filter_by_evttype[etype]->push_back(wrap);
+		}
+	}
+
+	for(uint32_t syscall = 0; syscall < PPM_SC_MAX; syscall++)
+	{
+		if(wrap->syscalls[syscall])
+		{
+			if(!m_filter_by_syscall[syscall])
+			{
+				m_filter_by_syscall[syscall] = new std::list<filter_wrapper *>();
+			}
+
+			m_filter_by_syscall[syscall]->push_back(wrap);
+		}
+	}
 }
 
-sinsp_evttype_filter::filter_wrapper::~filter_wrapper()
+void sinsp_evttype_filter::ruleset_filters::remove_filter(filter_wrapper *wrap)
 {
+	for(uint32_t etype = 0; etype < PPM_EVENT_MAX; etype++)
+	{
+		if(wrap->evttypes[etype])
+		{
+			if(m_filter_by_evttype[etype])
+			{
+				m_filter_by_evttype[etype]->erase(std::remove(m_filter_by_evttype[etype]->begin(),
+									      m_filter_by_evttype[etype]->end(),
+									      wrap),
+								  m_filter_by_evttype[etype]->end());
+
+				if(m_filter_by_evttype[etype]->size() == 0)
+				{
+					delete m_filter_by_evttype[etype];
+					m_filter_by_evttype[etype] = NULL;
+				}
+			}
+		}
+	}
+
+	for(uint32_t syscall = 0; syscall < PPM_SC_MAX; syscall++)
+	{
+		if(wrap->syscalls[syscall])
+		{
+			if(m_filter_by_syscall[syscall])
+			{
+				m_filter_by_syscall[syscall]->erase(std::remove(m_filter_by_syscall[syscall]->begin(),
+										m_filter_by_syscall[syscall]->end(),
+										wrap),
+								    m_filter_by_syscall[syscall]->end());
+
+				if(m_filter_by_syscall[syscall]->size() == 0)
+				{
+					delete m_filter_by_syscall[syscall];
+					m_filter_by_syscall[syscall] = NULL;
+				}
+			}
+		}
+	}
 }
+
+
+bool sinsp_evttype_filter::ruleset_filters::run(sinsp_evt *evt)
+{
+	list<filter_wrapper *> *filters;
+
+ 	uint16_t etype = evt->m_pevt->type;
+
+	if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
+	{
+		sinsp_evt_param *parinfo = evt->get_param(0);
+		ASSERT(parinfo->m_len == sizeof(uint16_t));
+		uint16_t evid = *(uint16_t *)parinfo->m_val;
+
+		filters = m_filter_by_syscall[evid];
+	}
+	else
+	{
+		filters = m_filter_by_evttype[etype];
+	}
+
+	if (!filters) {
+		return false;
+	}
+
+	for (auto &wrap : *filters)
+	{
+		if(wrap->filter->run(evt))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void sinsp_evttype_filter::ruleset_filters::evttypes_for_ruleset(std::vector<bool> &evttypes)
+{
+	evttypes.assign(PPM_EVENT_MAX+1, false);
+
+	for(uint32_t etype = 0; etype < PPM_EVENT_MAX; etype++)
+	{
+		list<filter_wrapper *> *filters = m_filter_by_evttype[etype];
+		if(filters)
+		{
+			evttypes[etype] = true;
+		}
+	}
+}
+
+void sinsp_evttype_filter::ruleset_filters::syscalls_for_ruleset(std::vector<bool> &syscalls)
+{
+	syscalls.assign(PPM_SC_MAX+1, false);
+
+	for(uint32_t evid = 0; evid < PPM_SC_MAX; evid++)
+	{
+		list<filter_wrapper *> *filters = m_filter_by_syscall[evid];
+		if(filters)
+		{
+			syscalls[evid] = true;
+		}
+	}
+}
+
 
 void sinsp_evttype_filter::add(string &name,
 			       set<uint32_t> &evttypes,
+			       set<uint32_t> &syscalls,
 			       set<string> &tags,
 			       sinsp_filter *filter)
 {
 	filter_wrapper *wrap = new filter_wrapper();
 	wrap->filter = filter;
 
-	wrap->evttypes.assign(PPM_EVENT_MAX+1, false);
+	// If no evttypes or syscalls are specified, the filter is
+	// enabled for all evttypes/syscalls.
+	bool def = ((evttypes.size() == 0 && syscalls.size() == 0) ? true : false);
+
+	wrap->evttypes.assign(PPM_EVENT_MAX+1, def);
 	for(auto &evttype : evttypes)
 	{
 		wrap->evttypes[evttype] = true;
 	}
 
-	m_evttype_filters.insert(pair<string,filter_wrapper *>(name, wrap));
-
-	if(evttypes.size() == 0)
+	wrap->syscalls.assign(PPM_SC_MAX+1, def);
+	for(auto &syscall : syscalls)
 	{
-		m_catchall_evttype_filters.push_back(wrap);
+		wrap->syscalls[syscall] = true;
 	}
-	else
-	{
 
-		for(const auto &evttype: evttypes)
-		{
-			list<filter_wrapper *> *filters = m_filter_by_evttype[evttype];
-			if(filters == NULL)
-			{
-				filters = new list<filter_wrapper*>();
-				m_filter_by_evttype[evttype] = filters;
-			}
-
-			filters->push_back(wrap);
-		}
-	}
+	m_filters.insert(pair<string,filter_wrapper *>(name, wrap));
 
 	for(const auto &tag: tags)
 	{
@@ -2129,104 +2293,68 @@ void sinsp_evttype_filter::enable(const string &pattern, bool enabled, uint16_t 
 {
 	regex re(pattern);
 
-	for(const auto &val : m_evttype_filters)
+	while (m_rulesets.size() < (size_t) ruleset + 1)
+	{
+		m_rulesets.push_back(new ruleset_filters());
+	}
+
+	for(const auto &val : m_filters)
 	{
 		if (regex_match(val.first, re))
 		{
-			if(val.second->enabled.size() < (size_t) (ruleset + 1))
+			if(enabled)
 			{
-				val.second->enabled.resize(ruleset + 1);
+				m_rulesets[ruleset]->add_filter(val.second);
 			}
-			val.second->enabled[ruleset] = enabled;
+			else
+			{
+				m_rulesets[ruleset]->remove_filter(val.second);
+			}
 		}
 	}
 }
 
 void sinsp_evttype_filter::enable_tags(const set<string> &tags, bool enabled, uint16_t ruleset)
 {
+	while (m_rulesets.size() < (size_t) ruleset + 1)
+	{
+		m_rulesets.push_back(new ruleset_filters());
+	}
+
 	for(const auto &tag : tags)
 	{
 		for(const auto &wrap : m_filter_by_tag[tag])
 		{
-			if(wrap->enabled.size() < (size_t) (ruleset + 1))
+			if(enabled)
 			{
-				wrap->enabled.resize(ruleset + 1);
+				m_rulesets[ruleset]->add_filter(wrap);
 			}
-			wrap->enabled[ruleset] = enabled;
+			else
+			{
+				m_rulesets[ruleset]->remove_filter(wrap);
+			}
 		}
 	}
 }
 
 bool sinsp_evttype_filter::run(sinsp_evt *evt, uint16_t ruleset)
 {
-	//
-	// First run any catchall event type filters (ones that did not
-	// explicitly specify any event type.
-	//
-	for(filter_wrapper *wrap : m_catchall_evttype_filters)
+	if(m_rulesets.size() < (size_t) ruleset + 1)
 	{
-		if(wrap->enabled.size() >= (size_t) (ruleset + 1) &&
-		   wrap->enabled[ruleset] &&
-		   wrap->filter->run(evt))
-		{
-			return true;
-		}
+		return false;
 	}
 
-        list<filter_wrapper *> *filters = m_filter_by_evttype[evt->m_pevt->type];
-
-	if(filters)
-	{
-		for(filter_wrapper *wrap : *filters)
-		{
-			if(wrap->enabled.size() >= (size_t) (ruleset + 1) &&
-			   wrap->enabled[ruleset] &&
-			   wrap->filter->run(evt))
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
-
-// Solely used for code sharing in evttypes_for_rulset
-void sinsp_evttype_filter::check_filter_wrappers(std::vector<bool> &evttypes,
-						 uint32_t etype,
-						 std::list<filter_wrapper *> &filters,
-						 uint16_t ruleset)
-{
-	for(filter_wrapper *wrap : filters)
-	{
-		if(wrap->enabled.size() >= (size_t) (ruleset + 1) &&
-		   wrap->enabled[ruleset])
-		{
-			evttypes[etype] = true;
-			break;
-		}
-	}
+	return m_rulesets[ruleset]->run(evt);
 }
 
 void sinsp_evttype_filter::evttypes_for_ruleset(std::vector<bool> &evttypes, uint16_t ruleset)
 {
-	evttypes.assign(PPM_EVENT_MAX+1, false);
-
-	for(uint32_t etype = 0; etype < PPM_EVENT_MAX; etype++)
-	{
-		// Catchall filters (ones that don't explicitly refer
-		// to a type) must run for all event types.
-		check_filter_wrappers(evttypes, etype, m_catchall_evttype_filters, ruleset);
-
-		if(!evttypes[etype])
-		{
-			list<filter_wrapper *> *filters = m_filter_by_evttype[etype];
-			if(filters)
-			{
-				check_filter_wrappers(evttypes, etype, *filters, ruleset);
-			}
-		}
-	}
+	return m_rulesets[ruleset]->evttypes_for_ruleset(evttypes);
 }
+
+void sinsp_evttype_filter::syscalls_for_ruleset(std::vector<bool> &syscalls, uint16_t ruleset)
+{
+	return m_rulesets[ruleset]->syscalls_for_ruleset(syscalls);
+}
+
 #endif // HAS_FILTERING

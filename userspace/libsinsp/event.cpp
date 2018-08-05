@@ -738,7 +738,6 @@ char* sinsp_evt::render_fd(int64_t fd, const char** resolved_str, sinsp_evt::par
 
 Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_str, sinsp_evt::param_fmt fmt)
 {
-	ASSERT(id < m_info->nparams);
 	const ppm_param_info* param_info;
 	char* payload;
 	uint16_t payload_len;
@@ -752,6 +751,8 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 		load_params();
 		m_flags |= (uint32_t)sinsp_evt::SINSP_EF_PARAMS_LOADED;
 	}
+
+	ASSERT(id < get_num_params());
 
 	//
 	// Reset the resolved string
@@ -1374,7 +1375,6 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	char* payload;
 	uint32_t j;
 	uint16_t payload_len;
-	ASSERT(id < m_info->nparams);
 
 	//
 	// Make sure the params are actually loaded
@@ -1384,6 +1384,8 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		load_params();
 		m_flags |= (uint32_t)sinsp_evt::SINSP_EF_PARAMS_LOADED;
 	}
+
+	ASSERT(id < get_num_params());
 
 	//
 	// Reset the resolved string
@@ -2474,3 +2476,19 @@ scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop)
 	return (scap_dump_flags)dflags;
 }
 #endif
+
+bool sinsp_evt::falco_consider()
+{
+	uint16_t etype = get_type();
+
+	if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
+	{
+		sinsp_evt_param *parinfo = get_param(0);
+		ASSERT(parinfo->m_len == sizeof(uint16_t));
+		uint16_t scid = *(uint16_t *)parinfo->m_val;
+
+		return sinsp::falco_consider_syscallid(scid);
+	}
+
+	return sinsp::falco_consider_evtnum(etype);
+}

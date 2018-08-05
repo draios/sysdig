@@ -391,6 +391,7 @@ public:
 
 	void add_evttype_filter(std::string &name,
 				std::set<uint32_t> &evttypes,
+				std::set<uint32_t> &syscalls,
 				std::set<std::string> &tags,
 				sinsp_filter* filter);
 
@@ -507,6 +508,7 @@ public:
 	   of failure.
 	*/
 	sinsp_threadinfo* get_thread(int64_t tid, bool query_os_if_not_found, bool lookup_only);
+	threadinfo_map_t::ptr_t get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only);
 
 	/*!
 	  \brief Return the table with all the machine users.
@@ -552,7 +554,7 @@ public:
 	void get_capture_stats(scap_stats* stats);
 
 	void set_max_thread_table_size(uint32_t value);
-	
+
 #ifdef GATHER_INTERNAL_STATS
 	sinsp_stats get_stats();
 #endif
@@ -831,6 +833,7 @@ public:
 	}
 	void set_simpledriver_mode();
 	vector<long> get_n_tracepoint_hit();
+	void set_bpf_probe(const string& bpf_probe);
 
 	static unsigned num_possible_cpus();
 #ifdef CYGWING_AGENT
@@ -839,8 +842,35 @@ public:
 		return scap_get_wmi_handle(m_h);
 	}
 #endif
+
+	static inline bool falco_consider_evtnum(uint16_t etype)
+	{
+		enum ppm_event_flags flags = g_infotables.m_event_info[etype].flags;
+
+		return ! (flags & sinsp::falco_skip_flags());
+	}
+
+	static inline bool falco_consider_syscallid(uint16_t scid)
+	{
+		enum ppm_event_flags flags = g_infotables.m_syscall_info_table[scid].flags;
+
+		return ! (flags & sinsp::falco_skip_flags());
+	}
+
+	// Add comm to the list of comms for which the inspector
+	// should not return events.
+	bool suppress_events_comm(const std::string &comm);
+
+	bool check_suppressed(int64_t tid);
+
+	void set_query_docker_image_info(bool query_image_info);
+
 VISIBILITY_PRIVATE
 
+        static inline ppm_event_flags falco_skip_flags()
+        {
+		return (ppm_event_flags) (EF_SKIPPARSERESET | EF_UNUSED | EF_DROP_FALCO);
+        }
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
 private:
@@ -853,36 +883,40 @@ private:
 	void import_user_list();
 	void add_protodecoders();
 
-	void add_thread(const sinsp_threadinfo& ptinfo);
+	void add_thread(const sinsp_threadinfo* ptinfo);
 	void remove_thread(int64_t tid, bool force);
+
 	//
 	// Note: lookup_only should be used when the query for the thread is made
 	//       not as a consequence of an event for that thread arriving, but
 	//       just for lookup reason. In that case, m_lastaccess_ts is not updated
 	//       and m_last_tinfo is not set.
 	//
-	inline sinsp_threadinfo* find_thread(int64_t tid, bool lookup_only)
+	inline threadinfo_map_t::ptr_t find_thread(int64_t tid, bool lookup_only)
 	{
-		threadinfo_map_iterator_t it;
-
+		threadinfo_map_t::ptr_t thr;
 		//
 		// Try looking up in our simple cache
 		//
-		if(m_thread_manager->m_last_tinfo && tid == m_thread_manager->m_last_tid)
+		if(tid == m_thread_manager->m_last_tid)
 		{
+			thr = m_thread_manager->m_last_tinfo.lock();
+			if (thr)
+			{
 	#ifdef GATHER_INTERNAL_STATS
-			m_thread_manager->m_cached_lookups->increment();
+				m_thread_manager->m_cached_lookups->increment();
 	#endif
-			m_thread_manager->m_last_tinfo->m_lastaccess_ts = m_lastevent_ts;
-			return m_thread_manager->m_last_tinfo;
+				thr->m_lastaccess_ts = m_lastevent_ts;
+				return thr;
+			}
 		}
 
 		//
 		// Caching failed, do a real lookup
 		//
-		it = m_thread_manager->m_threadtable.find(tid);
+		thr = m_thread_manager->m_threadtable.get_ref(tid);
 
-		if(it != m_thread_manager->m_threadtable.end())
+		if(thr)
 		{
 	#ifdef GATHER_INTERNAL_STATS
 			m_thread_manager->m_non_cached_lookups->increment();
@@ -890,10 +924,10 @@ private:
 			if(!lookup_only)
 			{
 				m_thread_manager->m_last_tid = tid;
-				m_thread_manager->m_last_tinfo = &(it->second);
-				m_thread_manager->m_last_tinfo->m_lastaccess_ts = m_lastevent_ts;
+				m_thread_manager->m_last_tinfo = thr;
+				thr->m_lastaccess_ts = m_lastevent_ts;
 			}
-			return &(it->second);
+			return thr;
 		}
 		else
 		{
@@ -925,6 +959,8 @@ private:
 		scap_fseek(m_h, filepos);
 	}
 
+	void add_suppressed_comms(scap_open_args &oargs);
+
 	scap_t* m_h;
 	uint32_t m_nevts;
 	int64_t m_filesize;
@@ -935,6 +971,8 @@ private:
 	// <m_input_fd>". Otherwise, reading from m_input_filename.
 	int m_input_fd;
 	string m_input_filename;
+	bool m_bpf;
+	string m_bpf_probe;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;
 	bool m_isinternal_events_enabled;
@@ -1023,10 +1061,10 @@ public:
 #ifdef GATHER_INTERNAL_STATS
 	sinsp_stats m_stats;
 #endif
-	uint32_t m_n_proc_lookups;
+	int32_t m_n_proc_lookups;
 	uint64_t m_n_proc_lookups_duration_ns;
-	uint32_t m_max_n_proc_lookups;
-	uint32_t m_max_n_proc_socket_lookups;
+	int32_t m_max_n_proc_lookups = -1;
+	int32_t m_max_n_proc_socket_lookups = -1;
 #ifdef HAS_ANALYZER
 	vector<uint64_t> m_tid_collisions;
 #endif
@@ -1110,11 +1148,16 @@ public:
 	uint64_t m_next_flush_time_ns;
 	uint64_t m_last_procrequest_tod;
 	sinsp_proc_metainfo m_meinfo;
+	uint64_t m_next_stats_print_time_ns;
 
 	static unsigned int m_num_possible_cpus;
 #if defined(HAS_CAPTURE)
 	int64_t m_sysdig_pid;
 #endif
+
+	// Any thread with a comm in this set will not have its events
+	// returned in sinsp::next()
+	std::set<std::string> m_suppressed_comms;
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;

@@ -37,6 +37,8 @@ typedef struct ipv4serverinfo ipv4serverinfo;
 typedef struct ipv6serverinfo ipv6serverinfo;
 class filter_check_info;
 
+extern sinsp_evttables g_infotables;
+
 ///////////////////////////////////////////////////////////////////////////////
 // Initializer class.
 // An instance of this class is created when the library is loaded.
@@ -107,6 +109,14 @@ public:
 
 	static bool find_first_env(std::string &out, const std::vector<std::string> &env, const std::vector<std::string> &keys);
 	static bool find_env(std::string &out, const std::vector<std::string> &env, const std::string &key);
+
+	static void split_container_image(const std::string &image,
+					  std::string &hostname,
+					  std::string &port,
+					  std::string &name,
+					  std::string &tag,
+					  std::string &digest,
+					  bool split_repo = true);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -355,3 +365,14 @@ struct ci_compare
 bool set_socket_blocking(int sock, bool block);
 
 unsigned int read_num_possible_cpus(void);
+
+///////////////////////////////////////////////////////////////////////////////
+// hashing helpers
+///////////////////////////////////////////////////////////////////////////////
+
+// http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n3876.pdf
+template <typename T>
+inline void hash_combine(std::size_t &seed, const T& val)
+{
+	seed ^= std::hash<T>()(val) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+}

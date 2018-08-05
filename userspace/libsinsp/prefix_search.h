@@ -183,6 +183,7 @@ void path_prefix_map<Value>::add_search_path_components(const path_prefix_map_ut
 			// can drop the existing subtree. For example, we can
 			// drop /usr/lib when adding /usr.
 			delete(it->second.first);
+			delete(it->second.second);
 			m_dirs.erase(*cur);
 			m_dirs[*cur] = std::pair<path_prefix_map*,Value*>(NULL, new Value(v));
 		}

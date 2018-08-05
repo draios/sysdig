@@ -533,8 +533,10 @@ if [ -z "$KERNEL_TYPE" ]; then
 	# because they are still in use by some GCE customers but the headers
 	# are no longer available from the mirror. We pass the URL but nothing
 	# needs to be downloaded because we already have it cached on the builder.
-	debian_build https://mirrors.kernel.org/debian/pool/main/l/linux/linux-headers-3.16.0-4-amd64_3.16.36-1+deb8u2_amd64.deb
-	debian_build https://mirrors.kernel.org/debian/pool/main/l/linux/linux-headers-3.16.0-4-amd64_3.16.39-1+deb8u2_amd64.deb
+	#
+	# These are no longer available, so disabling for now.
+	#debian_build https://mirrors.kernel.org/debian/pool/main/l/linux/linux-headers-3.16.0-4-amd64_3.16.36-1+deb8u2_amd64.deb
+	#debian_build https://mirrors.kernel.org/debian/pool/main/l/linux/linux-headers-3.16.0-4-amd64_3.16.39-1+deb8u2_amd64.deb
 
 	#
 	# Oracle RHCK build
