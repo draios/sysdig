@@ -1251,6 +1251,191 @@ int f_sys_socketpair_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+static int parse_sockopt(struct event_filler_arguments *args, int level, int optname, const void __user *optval, int optlen)
+{
+	union {
+		uint32_t val32;
+		uint64_t val64;
+		struct timeval tv;
+	} u;
+
+	if (level == SOL_SOCKET) {
+		switch (optname) {
+			case SO_ERROR:
+				if (unlikely(ppm_copy_from_user(&u.val32, optval, sizeof(u.val32))))
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+				return val_to_ring(args, -(int)u.val32, 0, false, PPM_SOCKOPT_IDX_ERRNO);
+
+			case SO_RCVTIMEO:
+			case SO_SNDTIMEO:
+				if (unlikely(ppm_copy_from_user(&u.tv, optval, sizeof(u.tv))))
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+				return val_to_ring(args, u.tv.tv_sec * 1000000000 + u.tv.tv_usec * 1000, 0, false, PPM_SOCKOPT_IDX_TIMEVAL);
+
+#ifdef SO_COOKIE
+			case SO_COOKIE:
+				if (unlikely(ppm_copy_from_user(&u.val64, optval, sizeof(u.val64))))
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+				return val_to_ring(args, u.val64, 0, false, PPM_SOCKOPT_IDX_UINT64);
+#endif
+
+			case SO_DEBUG:
+			case SO_REUSEADDR:
+			case SO_TYPE:
+			case SO_DONTROUTE:
+			case SO_BROADCAST:
+			case SO_SNDBUF:
+			case SO_RCVBUF:
+			case SO_SNDBUFFORCE:
+			case SO_RCVBUFFORCE:
+			case SO_KEEPALIVE:
+			case SO_OOBINLINE:
+			case SO_NO_CHECK:
+			case SO_PRIORITY:
+			case SO_BSDCOMPAT:
+			case SO_REUSEPORT:
+			case SO_PASSCRED:
+			case SO_RCVLOWAT:
+			case SO_SNDLOWAT:
+			case SO_SECURITY_AUTHENTICATION:
+			case SO_SECURITY_ENCRYPTION_TRANSPORT:
+			case SO_SECURITY_ENCRYPTION_NETWORK:
+			case SO_BINDTODEVICE:
+			case SO_DETACH_FILTER:
+			case SO_TIMESTAMP:
+			case SO_ACCEPTCONN:
+			case SO_PEERSEC:
+			case SO_PASSSEC:
+			case SO_TIMESTAMPNS:
+			case SO_MARK:
+			case SO_TIMESTAMPING:
+			case SO_PROTOCOL:
+			case SO_DOMAIN:
+			case SO_RXQ_OVFL:
+#ifdef SO_WIFI_STATUS
+			case SO_WIFI_STATUS:
+#endif
+#ifdef SO_PEEK_OFF
+			case SO_PEEK_OFF:
+#endif
+#ifdef SO_NOFCS
+			case SO_NOFCS:
+#endif
+#ifdef SO_LOCK_FILTER
+			case SO_LOCK_FILTER:
+#endif
+#ifdef SO_SELECT_ERR_QUEUE
+			case SO_SELECT_ERR_QUEUE:
+#endif
+			case SO_BUSY_POLL:
+#ifdef SO_MAX_PACING_RATE
+			case SO_MAX_PACING_RATE:
+#endif
+			case SO_BPF_EXTENSIONS:
+#ifdef SO_INCOMING_CPU
+			case SO_INCOMING_CPU:
+#endif
+				if (unlikely(ppm_copy_from_user(&u.val32, optval, sizeof(u.val32))))
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+				return val_to_ring(args, u.val32, 0, false, PPM_SOCKOPT_IDX_UINT32);
+
+			default:
+				return val_to_ring(args, (unsigned long)optval, optlen, true, PPM_SOCKOPT_IDX_UNKNOWN);
+		}
+	} else {
+		return val_to_ring(args, (unsigned long)optval, optlen, true, PPM_SOCKOPT_IDX_UNKNOWN);
+	}
+}
+
+int f_sys_setsockopt_x(struct event_filler_arguments *args)
+{
+	int res;
+	int64_t retval;
+	unsigned long val[5];
+
+	syscall_get_arguments(current, args->regs, 0, 5, val);
+	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+
+	/* retval */
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/* fd */
+	res = val_to_ring(args, val[0], 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/* level */
+	res = val_to_ring(args, sockopt_level_to_scap(val[1]), 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/* optname */
+	res = val_to_ring(args, sockopt_optname_to_scap(val[1], val[2]), 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/* optval */
+	res = parse_sockopt(args, val[1], val[2], (const void __user*)val[3], val[4]);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/* optlen */
+	res = val_to_ring(args, val[4], 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+
+}
+
+int f_sys_getsockopt_x(struct event_filler_arguments *args)
+{
+	int res;
+	int64_t retval;
+	uint32_t optlen;
+	unsigned long val[5];
+
+	syscall_get_arguments(current, args->regs, 0, 5, val);
+	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+
+	/* retval */
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/* fd */
+	res = val_to_ring(args, val[0], 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/* level */
+	res = val_to_ring(args, sockopt_level_to_scap(val[1]), 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/* optname */
+	res = val_to_ring(args, sockopt_optname_to_scap(val[1], val[2]), 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	if (unlikely(ppm_copy_from_user(&optlen, (const void __user*)val[4], sizeof(optlen))))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	/* optval */
+	res = parse_sockopt(args, val[1], val[2], (const void __user*)val[3], optlen);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/* optlen */
+	res = val_to_ring(args, optlen, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
 int f_sys_accept4_e(struct event_filler_arguments *args)
 {
 	int res;
