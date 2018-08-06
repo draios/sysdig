@@ -117,6 +117,11 @@ public:
 					  std::string &tag,
 					  std::string &digest,
 					  bool split_repo = true);
+
+	static void parse_suppressed_types(const std::vector<std::string> &supp_strs,
+					   std::vector<uint16_t> *supp_ids);
+
+	static const char* event_name_by_id(uint16_t id);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
