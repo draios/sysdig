@@ -145,24 +145,29 @@ else()
 endif()
 
 #
-# JsonCpp
+# nlohmann-json
 #
-option(USE_BUNDLED_JSONCPP "Enable building of the bundled jsoncpp" ${USE_BUNDLED_DEPS})
+option(USE_BUNDLED_NJSON "Enable building of the bundled nlohmann-json" ${USE_BUNDLED_DEPS})
 
-set(JSONCPP_SRC "${PROJECT_SOURCE_DIR}/userspace/libsinsp/third-party/jsoncpp")
-
-if(NOT USE_BUNDLED_JSONCPP)
-	find_path(JSONCPP_INCLUDE json/json.h PATH_SUFFIXES jsoncpp)
-	find_library(JSONCPP_LIB NAMES jsoncpp)
-	if(JSONCPP_INCLUDE AND JSONCPP_LIB)
-		message(STATUS "Found jsoncpp: include: ${JSONCPP_INCLUDE}, lib: ${JSONCPP_LIB}")
+if(NOT USE_BUNDLED_NJSON)
+	find_path(NJSON_INCLUDE json.hpp PATH_SUFFIXES nlohmann)
+	if(NJSON_INCLUDE)
+		message(STATUS "Found nlohmann-json: include: ${NJSON_INCLUDE}")
 	else()
-		message(FATAL_ERROR "Couldn't find system jsoncpp")
+		message(FATAL_ERROR "Couldn't find system nlohmann-json")
 	endif()
 else()
-	set(JSONCPP_INCLUDE "${JSONCPP_SRC}")
-	set(JSONCPP_LIB_SRC "${JSONCPP_SRC}/jsoncpp.cpp")
-	message(STATUS "Using bundled jsoncpp in '${JSONCPP_SRC}'")
+	# No distinction needed for windows. The implementation is
+	# solely in json.hpp.
+	set(NJSON_SRC "${PROJECT_BINARY_DIR}/njson-prefix/src/njson")
+	message(STATUS "Using bundled nlohmann-json in '${NJSON_SRC}'")
+	set(NJSON_INCLUDE "${NJSON_SRC}/single_include")
+	ExternalProject_Add(njson
+		URL "http://download.draios.com/dependencies/njson-3.1.2.tar.gz"
+		URL_MD5 "557651b017c36ad596ba3b577ba1b539"
+		CONFIGURE_COMMAND ""
+		BUILD_COMMAND ""
+		INSTALL_COMMAND "")
 endif()
 
 #
