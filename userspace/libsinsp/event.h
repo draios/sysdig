@@ -434,6 +434,10 @@ VISIBILITY_PRIVATE
 #endif
 	const struct ppm_event_info* m_event_info_table;
 
+	// In cases where you want the event to hold arbitrary json
+	// data.
+	Json::Value m_json_val;
+
 	friend class sinsp;
 	friend class sinsp_parser;
 	friend class sinsp_threadinfo;

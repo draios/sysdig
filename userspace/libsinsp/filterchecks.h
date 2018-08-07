@@ -956,4 +956,25 @@ private:
 };
 #endif // CYGWING_AGENT
 
+class sinsp_filter_check_json : public sinsp_filter_check
+{
+public:
+	enum check_type
+	{
+		TYPE_JSON_VALUE = 0,
+	};
+
+	sinsp_filter_check_json();
+	sinsp_filter_check* allocate_new();
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
+	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
+
+private:
+
+	int32_t extract_arg(const string& val, size_t basename);
+
+	string m_argstr;
+	string m_tstr;
+};
+
 #endif // HAS_FILTERING

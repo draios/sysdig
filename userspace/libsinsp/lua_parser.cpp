@@ -44,7 +44,7 @@ void lua_parser::reset()
 	m_last_boolop = BO_NONE;
 	m_nest_level = 0;
 
-	m_filter = new sinsp_filter(m_inspector);
+	m_filter = new sinsp_filter();
 }
 
 sinsp_filter* lua_parser::get_filter(bool reset_filter)

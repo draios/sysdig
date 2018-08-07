@@ -7418,4 +7418,69 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 }
 #endif // CYGWING_AGENT
 
+const filtercheck_field_info sinsp_filter_check_json_fields[] =
+{
+	{PT_CHARBUF, EPF_NONE, PF_NA, "json.value", "A JsonPointer expression that extracts a field of the associated Json Value, in brackets (e.g. json.value[/auditId])"},
+};
+
+sinsp_filter_check_json::sinsp_filter_check_json()
+{
+	m_info.m_name = "json";
+	m_info.m_fields = sinsp_filter_check_json_fields;
+
+	m_info.m_nfields = sizeof(sinsp_filter_check_json_fields) / sizeof(sinsp_filter_check_json_fields[0]);
+	m_info.m_flags = 0;
+}
+
+sinsp_filter_check* sinsp_filter_check_json::allocate_new()
+{
+	return (sinsp_filter_check*) new sinsp_filter_check_json();
+}
+
+int32_t sinsp_filter_check_json::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
+{
+	string val(str);
+	int32_t res = 0;
+
+	size_t basepos = sizeof("json.value");
+
+	if(val.find("json.value") == 0)
+	{
+		m_field_id = TYPE_JSON_VALUE;
+		m_field = &m_info.m_fields[m_field_id];
+
+		res = extract_arg(val, basepos-1);
+	}
+	else
+	{
+		res = sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
+	}
+
+	return res;
+}
+
+int32_t sinsp_filter_check_json::extract_arg(const string& val, size_t basepos)
+{
+	size_t start = val.find_first_of('[', basepos);
+	if(start == string::npos)
+	{
+		throw sinsp_exception("filter syntax error: " + val);
+	}
+
+	size_t end = val.find_first_of(']', start);
+	if(end == string::npos)
+	{
+		throw sinsp_exception("filter syntax error: " + val);
+	}
+
+	m_argstr = val.substr(start + 1, end-start-1);
+
+	return end+1;
+}
+
+uint8_t* sinsp_filter_check_json::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+{
+	// xxx apply m_argstr as jsonpointer to evt->m_json_evt
+}
+
 #endif // HAS_FILTERING

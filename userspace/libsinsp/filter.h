@@ -75,7 +75,7 @@ public:
 	  \param inspector Pointer to the inspector instance that will generate the
 	   events to be filtered.
 	*/
-	sinsp_filter(sinsp* inspector);
+	sinsp_filter();
 
 	~sinsp_filter();
 
@@ -94,8 +94,6 @@ private:
 
 	void parse_check(sinsp_filter_expression* parent_expr, boolop op);
 
-
-	sinsp* m_inspector;
 
 	sinsp_filter_expression* m_curexpr;
 	sinsp_filter_expression* m_filter;

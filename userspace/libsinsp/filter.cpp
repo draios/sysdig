@@ -1343,9 +1343,8 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_filter::sinsp_filter(sinsp* inspector)
+sinsp_filter::sinsp_filter()
 {
-	m_inspector = inspector;
 	m_filter = new sinsp_filter_expression();
 	m_curexpr = m_filter;
 
@@ -1398,7 +1397,7 @@ sinsp_filter_compiler::sinsp_filter_compiler(sinsp* inspector, const string& flt
 	m_scanpos = -1;
 	m_scansize = 0;
 	m_state = ST_NEED_EXPRESSION;
-	m_filter = new sinsp_filter(m_inspector);
+	m_filter = new sinsp_filter();
 	m_last_boolop = BO_NONE;
 	m_nest_level = 0;
 	m_fltstr = fltstr;
