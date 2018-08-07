@@ -29,7 +29,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/ioctl.h>
 #endif
 #include <third-party/tinydir.h>
-#include <json/json.h>
+#include <nlohmann/json.h>
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -51,6 +51,8 @@ extern "C" {
 #include "lauxlib.h"
 }
 #endif
+
+using json = nlohmann::json;
 
 extern vector<chiseldir_info>* g_chisel_dirs;
 extern sinsp_filter_check_list g_filterlist;

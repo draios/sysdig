@@ -28,6 +28,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "filterchecks.h"
 #include "table.h"
 
+using json = nlohmann::json;
+
 extern sinsp_filter_check_list g_filterlist;
 extern sinsp_evttables g_infotables;
 

@@ -32,6 +32,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "../libscap/scap.h"
 
+using json = nlohmann::json;
+
 extern sinsp_evttables g_infotables;
 
 #define SET_NUMERIC_FORMAT(resfmt, fmt, ostr, ustr, xstr) do {	\

@@ -49,6 +49,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 bool should_drop(sinsp_evt *evt);
 #endif
 
+using json = nlohmann::json;
+
 extern sinsp_protodecoder_list g_decoderlist;
 extern sinsp_evttables g_infotables;
 

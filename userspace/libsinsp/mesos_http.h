@@ -8,7 +8,7 @@
 
 #include "curl/curl.h"
 #include "uri.h"
-#include "json/json.h"
+#include "nlohmann/json.h"
 #include <iostream>
 #include <string>
 #include <memory>
@@ -222,7 +222,7 @@ inline const mesos_http::marathon_uri_t& mesos_http::get_marathon_uris() const
 
 #else // !HAS_CAPTURE
 
-#include "json/json.h"
+#include "nlohmann/json.h"
 #include <memory>
 
 class mesos_http

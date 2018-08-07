@@ -8,7 +8,7 @@
 
 #include "http_parser.h"
 #include "uri.h"
-#include "json/json.h"
+#include "nlohmann/json.h"
 #define BUFFERSIZE 512 // b64 needs this macro
 #include "b64/encode.h"
 #include "sinsp.h"

@@ -30,6 +30,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "dragent_win_hal_public.h"
 #endif
 
+using json = nlohmann::json;
+
 void sinsp_container_info::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_container_info::container_mount_info> &mounts)
 {
 	if(!mnt_obj.isNull() && mnt_obj.isArray())

@@ -26,6 +26,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "mesos_auth.h"
 #include "json_error_log.h"
 
+using json = nlohmann::json;
+
 using namespace std;
 
 mesos_auth::mesos_auth(const uri::credentials_t& dcos_enterprise_credentials,

@@ -7,6 +7,8 @@
 #include "sinsp.h"
 #include "sinsp_int.h"
 
+using json = nlohmann::json;
+
 // filters normalize state and event JSONs, so they can be processed generically:
 // event is turned into a single-entry array, state is turned into an array of ADDED events
 

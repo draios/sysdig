@@ -13,6 +13,7 @@
 #include <sstream>
 #include <iostream>
 
+using json = nlohmann::json;
 
 k8s_dispatcher::k8s_dispatcher(k8s_component::type t, k8s_state_t& state,
 							   filter_ptr_t event_filter):

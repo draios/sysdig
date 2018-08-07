@@ -38,6 +38,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "ctext.h"
 #include "cursesui.h"
 
+using json = nlohmann::json;
+
 extern int32_t g_csysdig_screen_w;
 extern bool g_filterchecks_force_raw_times;
 

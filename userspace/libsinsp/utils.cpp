@@ -57,6 +57,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PATH_MAX 4096
 #endif
 
+using json = nlohmann::json;
+
 #ifdef HAS_CHISELS
 const chiseldir_info g_chisel_dirs_array[] =
 {

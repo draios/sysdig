@@ -59,6 +59,7 @@ void *memmem(const void *haystack, size_t haystacklen, const void *needle, size_
 #include <netdb.h>
 #endif
 
+using json = nlohmann::json;
 
 extern sinsp_filter_check_list g_filterlist;
 

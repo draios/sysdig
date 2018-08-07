@@ -19,6 +19,8 @@
 #include <stdexcept>
 #include <unistd.h>
 
+using json = nlohmann::json;
+
 marathon_http::marathon_http(mesos& m, const uri& url, bool discover_marathon, int timeout_ms, const string& token):
 	mesos_http(m, url, false, discover_marathon, timeout_ms, token)
 {

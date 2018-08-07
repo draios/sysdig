@@ -9,6 +9,8 @@
 #include "docker.h"
 #include "user_event.h"
 
+using json = nlohmann::json;
+
 const std::string docker::DOCKER_SOCKET_FILE = "/var/run/docker.sock";
 
 docker::docker(std::string url,

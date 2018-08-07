@@ -17,7 +17,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
-#include <json/json.h>
+#include <nlohmann/json.h>
 
 class sinsp_filter_check;
 

@@ -4,6 +4,8 @@
 
 #include "k8s_api_error.h"
 
+using json = nlohmann::json;
+
 k8s_api_error::k8s_api_error(const msg_data& data, const Json::Value& err):
 	m_data(data),
 	m_status(get_string(err, "status")),

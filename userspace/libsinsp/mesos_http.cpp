@@ -21,6 +21,8 @@
 #include <sys/ioctl.h>
 #include <cstring>
 
+using json = nlohmann::json;
+
 mesos_http::mesos_http(mesos& m, const uri& url,
 					bool discover_mesos_lead_master,
 					bool discover_marathon,

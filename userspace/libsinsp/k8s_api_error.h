@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "json/json.h"
+#include "nlohmann/json.h"
 #include "k8s_component.h"
 
 class k8s_api_error

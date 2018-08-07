@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "json/json.h"
+#include "nlohmann/json.h"
 #include "k8s_handler.h"
 
 class k8s_api_handler : public k8s_handler

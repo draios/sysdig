@@ -31,6 +31,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "tracers.h"
 #include "value_parser.h"
 
+using json = nlohmann::json;
+
 extern sinsp_evttables g_infotables;
 int32_t g_csysdig_screen_w = -1;
 bool g_filterchecks_force_raw_times = false;

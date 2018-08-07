@@ -10,6 +10,8 @@
 #include <sstream>
 #include <iostream>
 
+using json = nlohmann::json;
+
 //
 // container
 //

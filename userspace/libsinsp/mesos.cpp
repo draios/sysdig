@@ -9,6 +9,8 @@
 #include "sinsp_int.h"
 #include "json_error_log.h"
 
+using json = nlohmann::json;
+
 const mesos_component::component_map mesos::m_components =
 {
 	{ mesos_component::MESOS_FRAMEWORK, "framework" },

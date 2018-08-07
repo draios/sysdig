@@ -7,6 +7,8 @@
 #include "sinsp.h"
 #include "sinsp_int.h"
 
+using json = nlohmann::json;
+
 // to match regular K8s API message format,
 // error is wrapped into a single-entry array
 std::string k8s_handler::ERROR_FILTER =

@@ -14,6 +14,8 @@
 #include <algorithm>
 #include <iostream>
 
+using json = nlohmann::json;
+
 k8s_component::type_map k8s::m_components;
 
 k8s::k8s(const std::string& uri, bool is_captured,

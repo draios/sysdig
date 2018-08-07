@@ -10,6 +10,8 @@
 #include <iostream>
 #include <memory>
 
+using json = nlohmann::json;
+
 //
 // state
 //
