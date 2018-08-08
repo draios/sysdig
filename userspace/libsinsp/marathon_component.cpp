@@ -187,10 +187,10 @@ std::string marathon_app::get_group_id(const std::string& app_id)
 	return group_id;
 }
 
-void marathon_app::set_labels(const Json::Value& labels)
+void marathon_app::set_labels(const json& labels)
 {
 	m_labels.clear();
-	Json::Value::Members members = labels.getMemberNames();
+	json::Members members = labels.getMemberNames();
 	for(const auto& member : members)
 	{
 		if(labels[member].is_primitive())

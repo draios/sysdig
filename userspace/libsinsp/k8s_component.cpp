@@ -92,19 +92,19 @@ k8s_component::~k8s_component()
 {
 }
 
-k8s_pair_list k8s_component::extract_object(const Json::Value& object, const std::string& name)
+k8s_pair_list k8s_component::extract_object(const json& object, const std::string& name)
 {
 	k8s_pair_list entry_list;
-	if(!object.isNull())
+	if(!object.is_null())
 	{
-		const Json::Value& entries = object[name];
-		if(!entries.isNull())
+		const json& entries = object[name];
+		if(!entries.is_null())
 		{
-			Json::Value::Members members = entries.getMemberNames();
+			json::Members members = entries.getMemberNames();
 			for (auto& member : members)
 			{
-				const Json::Value& val = entries[member];
-				if(!val.isNull() && val.isString())
+				const json& val = entries[member];
+				if(!val.is_null() && val.is_string())
 				{
 					entry_list.emplace_back(k8s_pair_t(member, val.asString()));
 				}
@@ -409,25 +409,25 @@ k8s_node_t::k8s_node_t(const std::string& name, const std::string& uid, const st
 {
 }
 
-k8s_node_t::host_ip_list k8s_node_t::extract_addresses(const Json::Value& status)
+k8s_node_t::host_ip_list k8s_node_t::extract_addresses(const json& status)
 {
 	host_ip_list address_list;
-	if(!status.isNull())
+	if(!status.is_null())
 	{
-		const Json::Value& addresses = status["addresses"];
-		if(!addresses.isNull() && addresses.isArray())
+		const json& addresses = status["addresses"];
+		if(!addresses.is_null() && addresses.is_array())
 		{
 			for (auto& address : addresses)
 			{
-				if(address.isObject())
+				if(address.is_object())
 				{
-					Json::Value::Members addr_names_list = address.getMemberNames();
+					json::Members addr_names_list = address.getMemberNames();
 					for (auto& entry : addr_names_list)
 					{
 						if(entry == "address")
 						{
-							const Json::Value& ip = address[entry];
-							if(!ip.isNull())
+							const json& ip = address[entry];
+							if(!ip.is_null())
 							{
 								address_list.emplace(ip.asString());
 							}
@@ -460,12 +460,12 @@ k8s_replicas_t::k8s_replicas_t(int spec_replicas, int stat_replicas):
 {
 }
 
-int k8s_replicas_t::get_count(const Json::Value& item, const std::string& replica_name)
+int k8s_replicas_t::get_count(const json& item, const std::string& replica_name)
 {
-	if(!item.isNull())
+	if(!item.is_null())
 	{
-		const Json::Value& replicas = item[replica_name];
-		if(!replicas.isNull() && replicas.is_primitive())
+		const json& replicas = item[replica_name];
+		if(!replicas.is_null() && replicas.is_primitive())
 		{
 			return replicas;
 		}
@@ -477,24 +477,24 @@ int k8s_replicas_t::get_count(const Json::Value& item, const std::string& replic
 					 sinsp_logger::SEV_DEBUG);
 
 		std::string name;
-		const Json::Value& tpl = item["template"];
-		if(!tpl.isNull())
+		const json& tpl = item["template"];
+		if(!tpl.is_null())
 		{
-			const Json::Value& md = tpl["metadata"];
-			if(!md.isNull())
+			const json& md = tpl["metadata"];
+			if(!md.is_null())
 			{
-				const Json::Value& lbl = md["labels"];
-				if(!lbl.isNull())
+				const json& lbl = md["labels"];
+				if(!lbl.is_null())
 				{
-					const Json::Value& n = lbl["name"];
-					if(!n.isNull() && n.isString())
+					const json& n = lbl["name"];
+					if(!n.is_null() && n.is_string())
 					{
 						name = n.asString();
 					}
 					else
 					{
-						const Json::Value& n = lbl["app"];
-						if(!n.isNull() && n.isString())
+						const json& n = lbl["app"];
+						if(!n.is_null() && n.is_string())
 						{
 							name = n.asString();
 						}
@@ -511,7 +511,7 @@ int k8s_replicas_t::get_count(const Json::Value& item, const std::string& replic
 	return k8s_replicas_t::UNKNOWN_REPLICAS;
 }
 
-void k8s_replicas_t::set_replicas(k8s_replicas_t& replicas, const Json::Value& item)
+void k8s_replicas_t::set_replicas(k8s_replicas_t& replicas, const json& item)
 {
 	int replica_count = k8s_replicas_t::get_count(item["spec"], "replicas");
 	if(replica_count != k8s_replicas_t::UNKNOWN_REPLICAS)
@@ -770,7 +770,7 @@ void k8s_event_t::post_process(k8s_state_t& state)
 	}
 }
 
-bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
+bool k8s_event_t::update(const json& item, k8s_state_t& state)
 {
 #ifndef _WIN32
 	time_t      epoch_time_evt_s = 0;
@@ -781,12 +781,12 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	event_scope scope;
 	tag_map_t   tags;
 
-	const Json::Value& obj = item["involvedObject"];
+	const json& obj = item["involvedObject"];
 	if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
 	{
 		g_logger.log("K8s EVENT: \n" + json_as_string(item), sinsp_logger::SEV_TRACE);
 	}
-	if(!obj.isNull())
+	if(!obj.is_null())
 	{
 		std::string sev = get_json_string(item, "type");
 		// currently, only "Normal" and "Warning"
@@ -902,7 +902,7 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	return true;
 }
 
-void k8s_event_t::make_scope_impl(const Json::Value& obj, std::string comp, event_scope& scope, bool ns)
+void k8s_event_t::make_scope_impl(const json& obj, std::string comp, event_scope& scope, bool ns)
 {
 	if(ns)
 	{
@@ -931,7 +931,7 @@ void k8s_event_t::make_scope_impl(const Json::Value& obj, std::string comp, even
 	}
 }
 
-void k8s_event_t::make_scope(const Json::Value& obj, event_scope& scope)
+void k8s_event_t::make_scope(const json& obj, event_scope& scope)
 {
 	if(ci_compare::is_equal(get_json_string(obj, "kind"), "Pod"))
 	{

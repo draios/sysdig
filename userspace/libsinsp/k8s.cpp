@@ -171,13 +171,13 @@ void k8s::watch()
 
 void k8s::simulate_watch_event(const std::string& json, int version)
 {
-	Json::Value root;
+	json root;
 	Json::Reader reader;
 	k8s_component::type component_type = k8s_component::K8S_COMPONENT_COUNT;
 	if(reader.parse(json, root, false))
 	{
-		const Json::Value& kind = root["kind"];
-		if(!kind.isNull() && kind.isString())
+		const json& kind = root["kind"];
+		if(!kind.is_null() && kind.is_string())
 		{
 			std::string type = kind.asString();
 			if(type == "Namespace")                  { component_type = k8s_component::K8S_NAMESPACES;             }

@@ -1502,11 +1502,11 @@ bool sinsp_numparser::tryparsed32_fast(const char* str, uint32_t strlen, int32_t
 // JSON helpers
 ///////////////////////////////////////////////////////////////////////////////
 
-std::string get_json_string(const Json::Value& obj, const std::string& name)
+std::string get_json_string(const json& obj, const std::string& name)
 {
 	std::string ret;
-	const Json::Value& json_val = obj[name];
-	if(!json_val.isNull() && json_val.is_primitive())
+	const json& json_val = obj[name];
+	if(!json_val.is_null() && json_val.is_primitive())
 	{
 		ret = json_val;
 	}

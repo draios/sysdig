@@ -90,43 +90,43 @@ k8s_service_handler::~k8s_service_handler()
 {
 }
 
-void k8s_service_handler::extract_services_data(const Json::Value& json, k8s_service_t& service, const k8s_pods& pods)
+void k8s_service_handler::extract_services_data(const json& json, k8s_service_t& service, const k8s_pods& pods)
 {
-	if(!json.isNull())
+	if(!json.is_null())
 	{
-		const Json::Value& cluster_ip = json["clusterIP"];
-		if(!cluster_ip.isNull())
+		const json& cluster_ip = json["clusterIP"];
+		if(!cluster_ip.is_null())
 		{
 			service.set_cluster_ip(cluster_ip.asString());
 		}
 
 		k8s_service_t::port_list pl;
-		const Json::Value& ports = json["ports"];
-		if(!ports.isNull() && ports.isArray())
+		const json& ports = json["ports"];
+		if(!ports.is_null() && ports.is_array())
 		{
 			for (auto& port : ports)
 			{
 				k8s_service_t::net_port p;
-				const Json::Value& json_port = port["port"];
-				if(!json_port.isNull())
+				const json& json_port = port["port"];
+				if(!json_port.is_null())
 				{
 					p.m_port = json_port.asUInt();
 				}
 
-				const Json::Value& json_protocol = port["protocol"];
-				if(!json_protocol.isNull())
+				const json& json_protocol = port["protocol"];
+				if(!json_protocol.is_null())
 				{
 					p.m_protocol = json_protocol.asString();
 				}
 
-				const Json::Value& json_target_port = port["targetPort"];
-				if(!json_target_port.isNull())
+				const json& json_target_port = port["targetPort"];
+				if(!json_target_port.is_null())
 				{
-					if(json_target_port.isIntegral())
+					if(json_target_port.is_integral())
 					{
 						p.m_target_port = json_target_port.asUInt();
 					}
-					else if(json_target_port.isString())
+					else if(json_target_port.is_string())
 					{
 						std::string port_name = json_target_port.asString();
 						std::vector<const k8s_pod_t*> pod_subset = service.get_selected_pods(pods);
@@ -161,8 +161,8 @@ void k8s_service_handler::extract_services_data(const Json::Value& json, k8s_ser
 					}
 				}
 
-				const Json::Value& json_node_port = port["nodePort"];
-				if(!json_node_port.isNull())
+				const json& json_node_port = port["nodePort"];
+				if(!json_node_port.is_null())
 				{
 					p.m_node_port = json_node_port.asUInt();
 				}
@@ -186,7 +186,7 @@ void k8s_service_handler::extract_services_data(const Json::Value& json, k8s_ser
 	}
 }
 
-bool k8s_service_handler::handle_component(const Json::Value& json, const msg_data* data)
+bool k8s_service_handler::handle_component(const json& json, const msg_data* data)
 {
 	if(data)
 	{

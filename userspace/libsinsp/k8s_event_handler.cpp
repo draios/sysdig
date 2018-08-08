@@ -82,7 +82,7 @@ k8s_event_handler::~k8s_event_handler()
 {
 }
 
-bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data* data)
+bool k8s_event_handler::handle_component(const json& json, const msg_data* data)
 {
 	if(m_event_filter)
 	{
@@ -94,8 +94,8 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 				   (data->m_reason == k8s_component::COMPONENT_MODIFIED))
 				{
 					g_logger.log("K8s EVENT: handling event.", sinsp_logger::SEV_TRACE);
-					const Json::Value& involved_object = json["involvedObject"];
-					if(!involved_object.isNull())
+					const json& involved_object = json["involvedObject"];
+					if(!involved_object.is_null())
 					{
 						bool is_aggregate = (get_json_string(json , "message").find("events with common reason combined") != std::string::npos);
 						time_t last_ts = get_epoch_utc_seconds(get_json_string(json , "lastTimestamp"));
@@ -106,12 +106,12 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 							!is_aggregate && // not an aggregated cached event
 							((now_ts - last_ts) < 10)) // event not older than 10 seconds
 						{
-							const Json::Value& kind = involved_object["kind"];
-							const Json::Value& event_reason = json["reason"];
+							const json& kind = involved_object["kind"];
+							const json& event_reason = json["reason"];
 							g_logger.log("K8s EVENT: involved object and event reason found:" + kind.asString() + '/' + event_reason.asString(),
 										 sinsp_logger::SEV_TRACE);
-							if(!kind.isNull() && kind.is_primitive() &&
-							   !event_reason.isNull() && event_reason.is_primitive())
+							if(!kind.is_null() && kind.is_primitive() &&
+							   !event_reason.is_null() && event_reason.is_primitive())
 							{
 								bool is_allowed = m_event_filter->allows_all();
 								std::string type = kind;
@@ -215,7 +215,7 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 	return true;
 }
 
-void k8s_event_handler::handle_json(Json::Value&& root)
+void k8s_event_handler::handle_json(json&& root)
 {
 	/*if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
 	{
@@ -226,19 +226,19 @@ void k8s_event_handler::handle_json(Json::Value&& root)
 	{
 		throw sinsp_exception("k8s_handler (" + get_id() + "), state is null for " + get_url() + ").");
 	}
-	const Json::Value& type = root["type"];
-	if(!type.isNull())
+	const json& type = root["type"];
+	if(!type.is_null())
 	{
 		if(type.is_primitive())
 		{
-			const Json::Value& kind = root["kind"];
-			if(!kind.isNull())
+			const json& kind = root["kind"];
+			if(!kind.is_null())
 			{
 				if(kind.is_primitive())
 				{
 					std::string t = type;
 					std::string k = kind;
-					for(const Json::Value& item : root["items"])
+					for(const json& item : root["items"])
 					{
 						msg_data data = get_msg_data(t, k, item);
 						std::string reason_type = data.get_reason_desc();

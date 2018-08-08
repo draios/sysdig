@@ -59,7 +59,7 @@ bool marathon_http::refresh_data()
 
 	try
 	{
-		Json::Value root;
+		json root;
 		Json::Reader reader;
 		if(reader.parse(os.str(), root, false))
 		{

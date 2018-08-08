@@ -439,7 +439,7 @@ void k8s_handler::collect_data()
 #endif // HAS_CAPTURE
 }
 
-k8s_handler::msg_data k8s_handler::get_msg_data(const std::string& type, const std::string& kind, const Json::Value& json)
+k8s_handler::msg_data k8s_handler::get_msg_data(const std::string& type, const std::string& kind, const json& json)
 {
 	msg_data data;
 	if(!type.empty())
@@ -457,18 +457,18 @@ k8s_handler::msg_data k8s_handler::get_msg_data(const std::string& type, const s
 
 	data.m_kind = kind;
 
-	Json::Value name = json["name"];
-	if(!name.isNull())
+	json name = json["name"];
+	if(!name.is_null())
 	{
 		data.m_name = name.asString();
 	}
-	Json::Value uid = json["uid"];
-	if(!uid.isNull())
+	json uid = json["uid"];
+	if(!uid.is_null())
 	{
 		data.m_uid = uid.asString();
 	}
-	Json::Value nspace = json["namespace"];
-	if(!nspace.isNull())
+	json nspace = json["namespace"];
+	if(!nspace.is_null())
 	{
 		data.m_namespace = nspace.asString();
 	}
@@ -476,7 +476,7 @@ k8s_handler::msg_data k8s_handler::get_msg_data(const std::string& type, const s
 	return data;
 }
 
-void k8s_handler::handle_json(Json::Value&& root)
+void k8s_handler::handle_json(json&& root)
 {
 	/*if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
 	{
@@ -491,19 +491,19 @@ void k8s_handler::handle_json(Json::Value&& root)
 		throw sinsp_exception("k8s_handler (" + m_id + "), state is null.");
 #endif // HAS_CAPTURE
 	}
-	const Json::Value& type = root["type"];
-	if(!type.isNull())
+	const json& type = root["type"];
+	if(!type.is_null())
 	{
 		if(type.is_primitive())
 		{
-			const Json::Value& kind = root["kind"];
-			if(!kind.isNull())
+			const json& kind = root["kind"];
+			if(!kind.is_null())
 			{
 				if(kind.is_primitive())
 				{
 					std::string t = type;
 					std::string k = kind;
-					for(const Json::Value& item : root["items"])
+					for(const json& item : root["items"])
 					{
 						msg_data data = get_msg_data(t, k, item);
 						/*
@@ -520,7 +520,7 @@ void k8s_handler::handle_json(Json::Value&& root)
 											" \"details\": \"{}\","
 											" \"code\": 404"
 											"}";
-							Json::Value i;
+							json i;
 							Json::Reader().parse(j, i);
 							data.m_reason = k8s_component::COMPONENT_ERROR;
 							handle_error(data, i);
@@ -728,16 +728,16 @@ void k8s_handler::set_event_json(json_ptr_t json, const std::string&)
 #endif // HAS_CAPTURE
 }
 
-k8s_pair_list k8s_handler::extract_object(const Json::Value& object)
+k8s_pair_list k8s_handler::extract_object(const json& object)
 {
 	k8s_pair_list entry_list;
-	if(!object.isNull() && object.isObject())
+	if(!object.is_null() && object.is_object())
 	{
-		Json::Value::Members members = object.getMemberNames();
+		json::Members members = object.getMemberNames();
 		for (auto& member : members)
 		{
-			const Json::Value& val = object[member];
-			if(!val.isNull() && val.isString())
+			const json& val = object[member];
+			if(!val.is_null() && val.is_string())
 			{
 				entry_list.emplace_back(k8s_pair_t(member, val.asString()));
 			}
@@ -764,7 +764,7 @@ std::string k8s_handler::name() const
 	return n;
 }
 
-void k8s_handler::handle_error(const msg_data& data, const Json::Value& root, bool log)
+void k8s_handler::handle_error(const msg_data& data, const json& root, bool log)
 {
 	if(log)
 	{
@@ -772,13 +772,13 @@ void k8s_handler::handle_error(const msg_data& data, const Json::Value& root, bo
 	}
 }
 
-void k8s_handler::log_error(const msg_data& data, const Json::Value& json)
+void k8s_handler::log_error(const msg_data& data, const json& json)
 {
 #ifdef HAS_CAPTURE
 	std::string unk_err = "Unknown.";
 	std::ostringstream os;;
 	os << "K8S server reported " << name() << " error for [" + uri(m_url).to_string(false) + m_path + "]: ";
-	if(!json.isNull())
+	if(!json.is_null())
 	{
 		os << std::endl << json.toStyledString();
 		unk_err.clear();

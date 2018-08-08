@@ -551,7 +551,7 @@ void sinsp_filter_check::set_inspector(sinsp* inspector)
 	m_inspector = inspector;
 }
 
-Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len)
+json sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len)
 {
 	ASSERT(rawval != NULL);
 	ASSERT(finfo != NULL);
@@ -614,7 +614,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			if(finfo->m_print_format == PF_DEC ||
 			   finfo->m_print_format == PF_ID)
 			{
-		 		return (Json::Value::Int64)*(int64_t *)rawval;
+		 		return (json::Int64)*(int64_t *)rawval;
 			}
 			else
 			{
@@ -680,7 +680,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			if(finfo->m_print_format == PF_DEC ||
 			   finfo->m_print_format == PF_ID)
 			{
-				return (Json::Value::UInt64)*(uint64_t *)rawval;
+				return (json::UInt64)*(uint64_t *)rawval;
 			}
 			else if(
 				finfo->m_print_format == PF_10_PADDED_DEC ||
@@ -701,7 +701,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			return Json::nullValue;
 
 		case PT_BOOL:
-			return Json::Value((bool)(*(uint32_t*)rawval != 0));
+			return json((bool)(*(uint32_t*)rawval != 0));
 
 		case PT_CHARBUF:
 		case PT_FSPATH:
@@ -998,10 +998,10 @@ char* sinsp_filter_check::tostring(sinsp_evt* evt)
 	return rawval_to_string(rawval, m_field, len);
 }
 
-Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
+json sinsp_filter_check::tojson(sinsp_evt* evt)
 {
 	uint32_t len;
-	Json::Value jsonval = extract_as_js(evt, &len);
+	json jsonval = extract_as_js(evt, &len);
 
 	if(jsonval == Json::nullValue)
 	{

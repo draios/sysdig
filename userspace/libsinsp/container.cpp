@@ -32,13 +32,13 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 using json = nlohmann::json;
 
-void sinsp_container_info::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_container_info::container_mount_info> &mounts)
+void sinsp_container_info::parse_json_mounts(const json &mnt_obj, vector<sinsp_container_info::container_mount_info> &mounts)
 {
-	if(!mnt_obj.isNull() && mnt_obj.isArray())
+	if(!mnt_obj.is_null() && mnt_obj.is_array())
 	{
 		for(uint32_t i=0; i<mnt_obj.size(); i++)
 		{
-			const Json::Value &mount = mnt_obj[i];
+			const json &mount = mnt_obj[i];
 			mounts.emplace_back(mount["Source"], mount["Destination"],
 					    mount["Mode"], mount["RW"],
 					    mount["Propagation"]);
@@ -171,7 +171,7 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 			break;
 	}
 
-	Json::Value root;
+	json root;
 	Json::Reader reader;
 	bool parsingSuccessful = reader.parse(json, root);
 	if(!parsingSuccessful)
@@ -180,7 +180,7 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 		return false;
 	}
 
-	const Json::Value& config_obj = root["Config"];
+	const json& config_obj = root["Config"];
 
 	container->m_image = config_obj["Image"].asString();
 
@@ -216,12 +216,12 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 		if(get_docker(manager, "GET /v1.30/images/" + container->m_imageid + "/json?digests=1 HTTP/1.1\r\nHost: docker \r\n\r\n", img_json) == sinsp_docker_response::RESP_OK)
 #endif
 		{
-			Json::Value img_root;
+			json img_root;
 			if(reader.parse(img_json, img_root))
 			{
 				for(const auto& rdig : img_root["RepoDigests"])
 				{
-					if(rdig.isString())
+					if(rdig.is_string())
 					{
 						string repodigest = rdig.asString();
 						if(container->m_imagerepo.empty())
@@ -237,7 +237,7 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 				}
 				for(const auto& rtag : img_root["RepoTags"])
 				{
-					if(rtag.isString())
+					if(rtag.is_string())
 					{
 						string repotag = rtag.asString();
 						if(container->m_imagerepo.empty())
@@ -266,12 +266,12 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 		container->m_name = container->m_name.substr(1);
 	}
 
-	const Json::Value& net_obj = root["NetworkSettings"];
+	const json& net_obj = root["NetworkSettings"];
 
 	string ip = net_obj["IPAddress"].asString();
 	if(ip.empty())
 	{
-		const Json::Value& hconfig_obj = root["HostConfig"];
+		const json& hconfig_obj = root["HostConfig"];
 		string net_mode = hconfig_obj["NetworkMode"].asString();
 		if(strncmp(net_mode.c_str(), "container:", strlen("container:")) == 0)
 		{
@@ -312,8 +312,8 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 
 		uint16_t container_port = atoi(it->c_str());
 
-		const Json::Value& v = net_obj["Ports"][*it];
-		if(v.isArray())
+		const json& v = net_obj["Ports"][*it];
+		if(v.is_array())
 		{
 			for(uint32_t j = 0; j < v.size(); ++j)
 			{
@@ -343,11 +343,11 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 		container->m_labels[*it] = val;
 	}
 
-	const Json::Value& env_vars = config_obj["Env"];
+	const json& env_vars = config_obj["Env"];
 
 	for(const auto& env_var : env_vars)
 	{
-		if(env_var.isString())
+		if(env_var.is_string())
 		{
 			container->m_env.emplace_back(env_var.asString());
 		}
@@ -372,8 +372,8 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 	{
 		container->m_cpu_period = cpu_period;
 	}
-	const Json::Value &privileged = host_config_obj["Privileged"];
-	if(!privileged.isNull() && privileged.isBool())
+	const json &privileged = host_config_obj["Privileged"];
+	if(!privileged.is_null() && privileged.is_bool())
 	{
 		container->m_privileged = privileged.asBool();
 	}
@@ -961,7 +961,7 @@ bool sinsp_container_engine_rkt::parse_rkt(sinsp_container_info *container, cons
 {
 	bool ret = false;
 	Json::Reader reader;
-	Json::Value jroot;
+	json jroot;
 
 	char image_manifest_path[SCAP_MAX_PATH_SIZE];
 	snprintf(image_manifest_path, sizeof(image_manifest_path), "%s/var/lib/rkt/pods/run/%s/appsinfo/%s/manifest", scap_get_host_root(), podid.c_str(), appname.c_str());
@@ -1132,8 +1132,8 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 
 string sinsp_container_manager::container_to_json(const sinsp_container_info& container_info)
 {
-	Json::Value obj;
-	Json::Value& container = obj["container"];
+	json obj;
+	json& container = obj["container"];
 	container["id"] = container_info.m_id;
 	container["type"] = container_info.m_type;
 	container["name"] = container_info.m_name;
@@ -1144,11 +1144,11 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["imagedigest"] = container_info.m_imagedigest;
 	container["privileged"] = container_info.m_privileged;
 
-	Json::Value mounts = Json::arrayValue;
+	json mounts = Json::arrayValue;
 
 	for (auto &mntinfo : container_info.m_mounts)
 	{
-		Json::Value mount;
+		json mount;
 
 		mount["Source"] = mntinfo.m_source;
 		mount["Destination"] = mntinfo.m_dest;

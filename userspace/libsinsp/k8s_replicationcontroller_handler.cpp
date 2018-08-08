@@ -90,7 +90,7 @@ k8s_replicationcontroller_handler::~k8s_replicationcontroller_handler()
 {
 }
 
-bool k8s_replicationcontroller_handler::handle_component(const Json::Value& json, const msg_data* data)
+bool k8s_replicationcontroller_handler::handle_component(const json& json, const msg_data* data)
 {
 	if(data)
 	{
@@ -108,10 +108,10 @@ bool k8s_replicationcontroller_handler::handle_component(const Json::Value& json
 					rc.set_labels(std::move(entries));
 				}
 				handle_selectors(rc, json["selector"]);
-				const Json::Value& spec = json["specReplicas"];
-				const Json::Value& stat = json["statReplicas"];
-				if(!spec.isNull() && spec.is_primitive() &&
-				   !stat.isNull() && stat.is_primitive())
+				const json& spec = json["specReplicas"];
+				const json& stat = json["statReplicas"];
+				if(!spec.is_null() && spec.is_primitive() &&
+				   !stat.is_null() && stat.is_primitive())
 				{
 					rc.set_replicas(spec, stat);
 				}

@@ -667,8 +667,8 @@ void sinsp_table::print_json(vector<sinsp_sample_row>* sample_data, uint64_t tim
 
 	for(k = m_json_first_row; k <= m_json_last_row; k++)
 	{
-		Json::Value root;
-		Json::Value jd;
+		json root;
+		json jd;
 		auto row = sample_data->at(k);
 		
 		for(uint32_t j = 0; j < m_n_fields - 1; j++)

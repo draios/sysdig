@@ -4306,60 +4306,60 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 	std::string json(parinfo->m_val, parinfo->m_len);
 	g_logger.log(json, sinsp_logger::SEV_DEBUG);
 	ASSERT(m_inspector);
-	Json::Value root;
+	json root;
 	if(Json::Reader().parse(json, root))
 	{
 		sinsp_container_info container_info;
-		const Json::Value& container = root["container"];
-		const Json::Value& id = container["id"];
-		if(!id.isNull() && id.is_primitive())
+		const json& container = root["container"];
+		const json& id = container["id"];
+		if(!id.is_null() && id.is_primitive())
 		{
 			container_info.m_id = id;
 		}
-		const Json::Value& type = container["type"];
-		if(!type.isNull() && type.is_primitive())
+		const json& type = container["type"];
+		if(!type.is_null() && type.is_primitive())
 		{
 			container_info.m_type = static_cast<sinsp_container_type>(type);
 		}
-		const Json::Value& name = container["name"];
-		if(!name.isNull() && name.is_primitive())
+		const json& name = container["name"];
+		if(!name.is_null() && name.is_primitive())
 		{
 			container_info.m_name = name;
 		}
-		const Json::Value& image = container["image"];
-		if(!image.isNull() && image.is_primitive())
+		const json& image = container["image"];
+		if(!image.is_null() && image.is_primitive())
 		{
 			container_info.m_image = image;
 		}
-		const Json::Value& imageid = container["imageid"];
-		if(!imageid.isNull() && imageid.is_primitive())
+		const json& imageid = container["imageid"];
+		if(!imageid.is_null() && imageid.is_primitive())
 		{
 			container_info.m_imageid = imageid;
 		}
-		const Json::Value& imagerepo = container["imagerepo"];
-		if(!imagerepo.isNull() && imagerepo.is_primitive())
+		const json& imagerepo = container["imagerepo"];
+		if(!imagerepo.is_null() && imagerepo.is_primitive())
 		{
 			container_info.m_imagerepo = imagerepo;
 		}
-		const Json::Value& imagetag = container["imagetag"];
-		if(!imagetag.isNull() && imagetag.is_primitive())
+		const json& imagetag = container["imagetag"];
+		if(!imagetag.is_null() && imagetag.is_primitive())
 		{
 			container_info.m_imagetag = imagetag;
 		}
-		const Json::Value& imagedigest = container["imagedigest"];
-		if(!imagedigest.isNull() && imagedigest.is_primitive())
+		const json& imagedigest = container["imagedigest"];
+		if(!imagedigest.is_null() && imagedigest.is_primitive())
 		{
 			container_info.m_imagedigest = imagedigest;
 		}
-		const Json::Value& privileged = container["privileged"];
-		if(!privileged.isNull() && privileged.is_primitive())
+		const json& privileged = container["privileged"];
+		if(!privileged.is_null() && privileged.is_primitive())
 		{
 			container_info.m_privileged = privileged;
 		}
 
 		sinsp_container_info::parse_json_mounts(container["Mounts"], container_info.m_mounts);
-		const Json::Value& contip = container["ip"];
-		if(!contip.isNull() && contip.is_primitive())
+		const json& contip = container["ip"];
+		if(!contip.is_null() && contip.is_primitive())
 		{
 			uint32_t ip;
 
@@ -4370,8 +4370,8 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 
 			container_info.m_container_ip = ntohl(ip);
 		}
-		const Json::Value& mesos_task_id = container["mesos_task_id"];
-		if(!mesos_task_id.isNull() && mesos_task_id.is_primitive())
+		const json& mesos_task_id = container["mesos_task_id"];
+		if(!mesos_task_id.is_null() && mesos_task_id.is_primitive())
 		{
 			container_info.m_mesos_task_id = mesos_task_id;
 		}
@@ -4442,11 +4442,11 @@ int sinsp_parser::get_k8s_version(const std::string& json)
 	if(m_k8s_capture_version == k8s_state_t::CAPTURE_VERSION_NONE)
 	{
 		g_logger.log(json, sinsp_logger::SEV_DEBUG);
-		Json::Value root;
+		json root;
 		if(Json::Reader().parse(json, root))
 		{
-			const Json::Value& items = root["items"]; // new
-			if(!items.isNull())
+			const json& items = root["items"]; // new
+			if(!items.is_null())
 			{
 				g_logger.log("K8s capture version " + std::to_string(k8s_state_t::CAPTURE_VERSION_2) + " detected.",
 							 sinsp_logger::SEV_DEBUG);
@@ -4454,8 +4454,8 @@ int sinsp_parser::get_k8s_version(const std::string& json)
 				return m_k8s_capture_version;
 			}
 
-			const Json::Value& object = root["object"]; // old
-			if(!object.isNull())
+			const json& object = root["object"]; // old
+			if(!object.is_null())
 			{
 				g_logger.log("K8s capture version " + std::to_string(k8s_state_t::CAPTURE_VERSION_2) + " detected.",
 							 sinsp_logger::SEV_DEBUG);

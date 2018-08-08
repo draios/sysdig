@@ -6,7 +6,7 @@
 
 using json = nlohmann::json;
 
-k8s_api_error::k8s_api_error(const msg_data& data, const Json::Value& err):
+k8s_api_error::k8s_api_error(const msg_data& data, const json& err):
 	m_data(data),
 	m_status(get_string(err, "status")),
 	m_message(get_string(err, "message")),
@@ -20,12 +20,12 @@ k8s_api_error::~k8s_api_error()
 {
 }
 
-std::string k8s_api_error::get_string(const Json::Value& obj, const std::string& name)
+std::string k8s_api_error::get_string(const json& obj, const std::string& name)
 {
 	return val.value(name, "");
 }
 
-int k8s_api_error::get_int(const Json::Value& obj, const std::string& name)
+int k8s_api_error::get_int(const json& obj, const std::string& name)
 {
 	return val.value(name, 0);
 }

@@ -232,7 +232,7 @@ void docker::set_event_json(json_ptr_t json, const std::string&)
 }
 
 #ifdef HAS_CAPTURE
-void docker::emit_event(Json::Value& root, std::string type, std::string status, bool send_to_backend)
+void docker::emit_event(json& root, std::string type, std::string status, bool send_to_backend)
 {
 	if(send_to_backend)
 	{
@@ -272,7 +272,7 @@ void docker::emit_event(Json::Value& root, std::string type, std::string status,
 		std::cout << Json::FastWriter().write(root) << std::endl;
 	}
 
-	Json::Value no_value = Json::nullValue;
+	json no_value = Json::nullValue;
 	std::string image;
 	try
 	{
@@ -321,9 +321,9 @@ void docker::emit_event(Json::Value& root, std::string type, std::string status,
 	{
 		status.insert(0, "Event: ", 7);
 	}
-	if(!actor.isNull() && actor.isObject())
+	if(!actor.is_null() && actor.is_object())
 	{
-		if(!attrib.isNull() && attrib.isObject())
+		if(!attrib.is_null() && attrib.is_object())
 		{
 			if(!image.empty())
 			{
@@ -391,7 +391,7 @@ void docker::emit_event(Json::Value& root, std::string type, std::string status,
 	g_logger.log(std::move(evt), (severity_t)sinsp_logger::SEV_EVT_MDUMP);
 }
 
-void docker::handle_event(Json::Value&& root)
+void docker::handle_event(json&& root)
 {
 	if(m_event_filter && (m_event_counter < sinsp_user_event::max_events_per_cycle()))
 	{

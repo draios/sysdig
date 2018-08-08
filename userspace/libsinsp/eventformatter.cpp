@@ -223,7 +223,7 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 		   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEXASCII
 		   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONBASE64)
 		{
-			Json::Value json_value = m_tokens[j].second->tojson(evt);
+			json json_value = m_tokens[j].second->tojson(evt);
 
 			if(retval == false)
 			{

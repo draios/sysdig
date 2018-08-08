@@ -38,12 +38,12 @@ k8s_api_handler::~k8s_api_handler()
 {
 }
 
-bool k8s_api_handler::handle_component(const Json::Value& json, const msg_data* data)
+bool k8s_api_handler::handle_component(const json& json, const msg_data* data)
 {
 	m_error = false;
-	if(!json.isNull())
+	if(!json.is_null())
 	{
-		if(json.isArray())
+		if(json.is_array())
 		{
 			for(const auto& version : json)
 			{
@@ -82,7 +82,7 @@ bool k8s_api_handler::handle_component(const Json::Value& json, const msg_data* 
 	return true;
 }
 
-void k8s_api_handler::handle_json(Json::Value&& root)
+void k8s_api_handler::handle_json(json&& root)
 {
 	if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
 	{

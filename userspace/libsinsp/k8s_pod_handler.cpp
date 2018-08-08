@@ -89,30 +89,30 @@ k8s_pod_handler::~k8s_pod_handler()
 {
 }
 
-std::vector<std::string> k8s_pod_handler::extract_pod_container_ids(const Json::Value& item)
+std::vector<std::string> k8s_pod_handler::extract_pod_container_ids(const json& item)
 {
 	std::vector<std::string> container_list;
 
-	const Json::Value& containers = item["containerStatuses"];
-	if(!containers.isNull())
+	const json& containers = item["containerStatuses"];
+	if(!containers.is_null())
 	{
 		for (auto& container : containers)
 		{
-			const Json::Value& container_id = container["containerID"];
-			if(!container_id.isNull())
+			const json& container_id = container["containerID"];
+			if(!container_id.is_null())
 			{
 				container_list.emplace_back(container_id.asString());
 			}
 		}
 	}
 
-	const Json::Value& initContainers = item["initContainerStatuses"];
-	if(!initContainers.isNull())
+	const json& initContainers = item["initContainerStatuses"];
+	if(!initContainers.is_null())
 	{
 		for (auto& container : initContainers)
 		{
-			const Json::Value& container_id = container["containerID"];
-			if(!container_id.isNull())
+			const json& container_id = container["containerID"];
+			if(!container_id.is_null())
 			{
 				container_list.emplace_back(container_id.asString());
 			}
@@ -122,33 +122,33 @@ std::vector<std::string> k8s_pod_handler::extract_pod_container_ids(const Json::
 	return container_list;
 }
 
-k8s_container::list k8s_pod_handler::extract_pod_containers(const Json::Value& item)
+k8s_container::list k8s_pod_handler::extract_pod_containers(const json& item)
 {
 	k8s_container::list ext_containers;
 	// Not looking for init containers here because this appears
 	// to only be used by the k8s_service_handler for named port
 	// resolution. Init containers can't have service ports.
-	const Json::Value& containers = item["containers"];
-	if(!containers.isNull())
+	const json& containers = item["containers"];
+	if(!containers.is_null())
 	{
 		for (auto& container : containers)
 		{
 			std::string cont_name;
-			const Json::Value& name = container["name"];
-			if(!name.isNull()) { cont_name = name.asString(); }
+			const json& name = container["name"];
+			if(!name.is_null()) { cont_name = name.asString(); }
 			else { return ext_containers; }
 			k8s_container::port_list cont_ports;
-			const Json::Value& ports = container["ports"];
+			const json& ports = container["ports"];
 			for(const auto& port : ports)
 			{
 				k8s_container::port cont_port;
-				const Json::Value& name = port["name"];
-				if(!name.isNull())
+				const json& name = port["name"];
+				if(!name.is_null())
 				{
 					cont_port.set_name(name.asString());
 				}
-				const Json::Value& cport = port["containerPort"];
-				if(!cport.isNull())
+				const json& cport = port["containerPort"];
+				if(!cport.is_null())
 				{
 					cont_port.set_port(cport.asUInt());
 				}
@@ -157,14 +157,14 @@ k8s_container::list k8s_pod_handler::extract_pod_containers(const Json::Value& i
 					g_logger.log("Port not found, setting value to 0", sinsp_logger::SEV_WARNING);
 					cont_port.set_port(0);
 				}
-				const Json::Value& protocol = port["protocol"];
-				if(!protocol.isNull())
+				const json& protocol = port["protocol"];
+				if(!protocol.is_null())
 				{
 					cont_port.set_protocol(protocol.asString());
 				}
 				else
 				{
-					std::string port_name = name.isNull() ? "[NO NAME]" : name.asString();
+					std::string port_name = name.is_null() ? "[NO NAME]" : name.asString();
 					g_logger.log("Protocol not found for port: " + port_name, sinsp_logger::SEV_WARNING);
 				}
 				cont_ports.push_back(cont_port);
@@ -175,10 +175,10 @@ k8s_container::list k8s_pod_handler::extract_pod_containers(const Json::Value& i
 	return ext_containers;
 }
 
-void k8s_pod_handler::extract_pod_data(const Json::Value& item, k8s_pod_t& pod)
+void k8s_pod_handler::extract_pod_data(const json& item, k8s_pod_t& pod)
 {
-	const Json::Value& node_name = item["nodeName"];
-	if(!node_name.isNull())
+	const json& node_name = item["nodeName"];
+	if(!node_name.is_null())
 	{
 		std::string nn = node_name.asString();
 		if(!nn.empty())
@@ -186,8 +186,8 @@ void k8s_pod_handler::extract_pod_data(const Json::Value& item, k8s_pod_t& pod)
 			pod.set_node_name(nn);
 		}
 	}
-	const Json::Value& host_ip = item["hostIP"];
-	if(!host_ip.isNull())
+	const json& host_ip = item["hostIP"];
+	if(!host_ip.is_null())
 	{
 		std::string hip = host_ip.asString();
 		if(!hip.empty())
@@ -195,8 +195,8 @@ void k8s_pod_handler::extract_pod_data(const Json::Value& item, k8s_pod_t& pod)
 			pod.set_host_ip(hip);
 		}
 	}
-	const Json::Value& pod_ip = item["podIP"];
-	if(!pod_ip.isNull())
+	const json& pod_ip = item["podIP"];
+	if(!pod_ip.is_null())
 	{
 		std::string pip = pod_ip.asString();
 		if(!pip.empty())
@@ -206,16 +206,16 @@ void k8s_pod_handler::extract_pod_data(const Json::Value& item, k8s_pod_t& pod)
 	}
 }
 
-size_t k8s_pod_handler::extract_pod_restart_count(const Json::Value& item)
+size_t k8s_pod_handler::extract_pod_restart_count(const json& item)
 {
 	size_t restart_count = 0;
-	const Json::Value& container_statuses = item["containerStatuses"];
-	if(!container_statuses.isNull())
+	const json& container_statuses = item["containerStatuses"];
+	if(!container_statuses.is_null())
 	{
 		for (auto& status : container_statuses)
 		{
-			const Json::Value& rc = status["restartCount"];
-			if(!rc.isNull() && rc.isInt())
+			const json& rc = status["restartCount"];
+			if(!rc.is_null() && rc.isInt())
 			{
 				restart_count += rc.asInt();
 			}
@@ -224,7 +224,7 @@ size_t k8s_pod_handler::extract_pod_restart_count(const Json::Value& item)
 	return restart_count;
 }
 
-bool k8s_pod_handler::handle_component(const Json::Value& json, const msg_data* data)
+bool k8s_pod_handler::handle_component(const json& json, const msg_data* data)
 {
 	if(data)
 	{

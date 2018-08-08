@@ -91,7 +91,7 @@ k8s_daemonset_handler::~k8s_daemonset_handler()
 {
 }
 
-bool k8s_daemonset_handler::handle_component(const Json::Value& json, const msg_data* data)
+bool k8s_daemonset_handler::handle_component(const json& json, const msg_data* data)
 {
 	if(data)
 	{
@@ -109,10 +109,10 @@ bool k8s_daemonset_handler::handle_component(const Json::Value& json, const msg_
 					ds.set_labels(std::move(entries));
 				}
 				handle_selectors(ds, json["selector"]);
-				const Json::Value& desired = json["desiredScheduled"];
-				const Json::Value& current = json["currentScheduled"];
-				if(!desired.isNull() && desired.is_primitive() &&
-				   !current.isNull() && current.is_primitive())
+				const json& desired = json["desiredScheduled"];
+				const json& current = json["currentScheduled"];
+				if(!desired.is_null() && desired.is_primitive() &&
+				   !current.is_null() && current.is_primitive())
 				{
 					ds.set_scheduled(desired, current);
 				}

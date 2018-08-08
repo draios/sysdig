@@ -63,7 +63,7 @@ void mesos_auth::authenticate()
 	{
 		sinsp_curl auth_request(m_auth_uri, "", "");
 		Json::FastWriter json_writer;
-		Json::Value auth_obj;
+		json auth_obj;
 		auth_obj["uid"] = m_dcos_enterprise_credentials.first;
 		auth_obj["password"] = m_dcos_enterprise_credentials.second;
 		auth_request.add_header("Content-Type: application/json");
@@ -75,7 +75,7 @@ void mesos_auth::authenticate()
 		if(auth_request.get_response_code() == 200)
 		{
 			Json::Reader json_reader;
-			Json::Value response_obj;
+			json response_obj;
 			auto parse_ok = json_reader.parse(response, response_obj, false);
 			if(parse_ok && response_obj.isMember("token"))
 			{

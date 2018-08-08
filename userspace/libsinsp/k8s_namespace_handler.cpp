@@ -72,7 +72,7 @@ k8s_namespace_handler::~k8s_namespace_handler()
 {
 }
 
-bool k8s_namespace_handler::handle_component(const Json::Value& json, const msg_data* data)
+bool k8s_namespace_handler::handle_component(const json& json, const msg_data* data)
 {
 	if(data)
 	{

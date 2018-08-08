@@ -96,19 +96,19 @@ void mesos_http::set_token(const string& token)
 	m_request = make_request(m_url, m_curl_version);
 }
 
-Json::Value mesos_http::get_state_frameworks()
+json mesos_http::get_state_frameworks()
 {
-	Json::Value frameworks;
+	json frameworks;
 	std::ostringstream os;
 	CURLcode res = get_data(m_url.to_string(), os);
 	if(res == CURLE_OK)
 	{
-		Json::Value root;
+		json root;
 		Json::Reader reader;
 		if(reader.parse(os.str(), root))
 		{
 			frameworks = root["frameworks"];
-			if(frameworks.isNull() || !frameworks.isArray())
+			if(frameworks.is_null() || !frameworks.is_array())
 			{
 				throw sinsp_exception("mesos_http: Unexpected condition while detecting Mesos master: frameworks entry not found.");
 			}
@@ -149,12 +149,12 @@ void mesos_http::discover_mesos_leader()
 				discover_mesos_leader();
 				return;
 			}
-			Json::Value root;
+			json root;
 			Json::Reader reader;
 			if(reader.parse(os.str(), root))
 			{
-				const Json::Value& frameworks = root["frameworks"];
-				if(frameworks.isNull() || !frameworks.isArray())
+				const json& frameworks = root["frameworks"];
+				if(frameworks.is_null() || !frameworks.is_array())
 				{
 					throw sinsp_exception("mesos_http: Unexpected condition while detecting Mesos master: frameworks entry not found.");
 				}
@@ -171,8 +171,8 @@ void mesos_http::discover_mesos_leader()
 				}
 				else // autodiscovery is enabled, find where is the master
 				{
-					const Json::Value& leader = root["leader"];
-					if(!leader.isNull() && leader.isString())
+					const json& leader = root["leader"];
+					if(!leader.is_null() && leader.is_string())
 					{
 						std::string leader_address = leader.asString();
 						std::string::size_type pos = leader_address.find('@');
@@ -226,17 +226,17 @@ void mesos_http::discover_mesos_leader()
 	}
 }
 
-std::string mesos_http::get_framework_url(const Json::Value& framework)
+std::string mesos_http::get_framework_url(const json& framework)
 {
-	const Json::Value& fw_name = framework["name"];
+	const json& fw_name = framework["name"];
 	bool is_marathon = false;
-	if(!fw_name.isNull() && fw_name.is_primitive())
+	if(!fw_name.is_null() && fw_name.is_primitive())
 	{
 		is_marathon = mesos_framework::is_root_marathon(fw_name);
 	}
 	bool has_creds = !m_mesos.m_marathon_credentials.first.empty();
-	Json::Value fw_url = framework["webui_url"];
-	if(!fw_url.isNull() && fw_url.isString() && !fw_url.asString().empty())
+	json fw_url = framework["webui_url"];
+	if(!fw_url.is_null() && fw_url.is_string() && !fw_url.asString().empty())
 	{
 		uri url(fw_url.asString());
 		if(is_marathon && has_creds)
@@ -248,7 +248,7 @@ std::string mesos_http::get_framework_url(const Json::Value& framework)
 	else
 	{
 		fw_url = framework["hostname"];
-		if(!fw_url.isNull() && fw_url.isString() && !fw_url.asString().empty())
+		if(!fw_url.is_null() && fw_url.is_string() && !fw_url.asString().empty())
 		{
 			uri url(std::string("http://").append(fw_url.asString()).append(":8080"));
 			if(is_marathon && has_creds)
@@ -261,44 +261,44 @@ std::string mesos_http::get_framework_url(const Json::Value& framework)
 	return "";
 }
 
-bool mesos_http::is_framework_active(const Json::Value& framework)
+bool mesos_http::is_framework_active(const json& framework)
 {
-	Json::Value active = framework["active"];
-	if(!active.isNull() && active.isBool() && active.asBool())
+	json active = framework["active"];
+	if(!active.is_null() && active.is_bool() && active.asBool())
 	{
 		return true;
 	}
 	return false;
 }
 
-void mesos_http::discover_framework_uris(const Json::Value& frameworks)
+void mesos_http::discover_framework_uris(const json& frameworks)
 {
 	m_marathon_uris.clear();
-	if(frameworks.isNull())
+	if(frameworks.is_null())
 	{
 		throw sinsp_exception("mesos_http: Unexpected condition while inspecting Marathon framework: frameworks entry not found.");
 	}
-	if(frameworks.isArray())
+	if(frameworks.is_array())
 	{
 		g_logger.log("Discovered " + std::to_string(frameworks.size()) + " frameworks.", sinsp_logger::SEV_DEBUG);
 		for(const auto& framework : frameworks)
 		{
-			const Json::Value& id = framework["id"];
-			if(id.isNull() || !id.isString())
+			const json& id = framework["id"];
+			if(id.is_null() || !id.is_string())
 			{
 				throw sinsp_exception("mesos_http: Unexpected condition while detecting Marathon framework: ID entry not found.");
 			}
 			else
 			{
-				const Json::Value& active = framework["active"];
-				const Json::Value& fw_name = framework["name"];
+				const json& active = framework["active"];
+				const json& fw_name = framework["name"];
 				std::string name;
-				if(!fw_name.isNull() && fw_name.isString())
+				if(!fw_name.is_null() && fw_name.is_string())
 				{
 					name = fw_name.asString();
 				}
 				g_logger.log("Examining " + name + " [" + id.asString() + "] framework.", sinsp_logger::SEV_DEBUG);
-				if(!active.isNull() && active.isBool() && active.asBool())
+				if(!active.is_null() && active.is_bool() && active.asBool())
 				{
 					std::string framework_url = get_framework_url(framework);
 					if(!framework_url.empty())
@@ -449,7 +449,7 @@ bool mesos_http::get_all_data(callback_func_t parse)
 			}
 		}
 		Json::Reader reader;
-		json_ptr_t root(new Json::Value());
+		json_ptr_t root(new json());
 		if(reader.parse(os.str(), *root))
 		{
 			(m_mesos.*parse)(root, m_framework_id);
@@ -770,13 +770,13 @@ std::string mesos_http::make_uri(const std::string& path)
 	return target_uri;
 }
 
-Json::Value mesos_http::get_task_labels(const std::string& task_id)
+json mesos_http::get_task_labels(const std::string& task_id)
 {
 	std::ostringstream os;
 	std::string uri = make_uri("/master/tasks");
 	CURLcode res = get_data(uri, os);
 
-	Json::Value labels;
+	json labels;
 	if(res != CURLE_OK)
 	{
 		std::string errstr = curl_easy_strerror(res);
@@ -787,31 +787,31 @@ Json::Value mesos_http::get_task_labels(const std::string& task_id)
 
 	try
 	{
-		Json::Value root;
+		json root;
 		Json::Reader reader;
 		if(reader.parse(os.str(), root, false))
 		{
-			Json::Value tasks = root["tasks"];
-			if(!tasks.isNull())
+			json tasks = root["tasks"];
+			if(!tasks.is_null())
 			{
 				for(const auto& task : tasks)
 				{
-					Json::Value id = task["id"];
-					if(!id.isNull() && id.isString() && id.asString() == task_id)
+					json id = task["id"];
+					if(!id.is_null() && id.is_string() && id.asString() == task_id)
 					{
-						Json::Value statuses = task["statuses"];
-						if(!statuses.isNull())
+						json statuses = task["statuses"];
+						if(!statuses.is_null())
 						{
 							double tstamp = 0.0;
 							for(const auto& status : statuses)
 							{
 								// only task with most recent status
 								// "TASK_RUNNING" considered
-								Json::Value ts = status["timestamp"];
-								if(!ts.isNull() && ts.isNumeric() && ts.asDouble() > tstamp)
+								json ts = status["timestamp"];
+								if(!ts.is_null() && ts.isNumeric() && ts.asDouble() > tstamp)
 								{
-									Json::Value st = status["state"];
-									if(!st.isNull() && st.isString())
+									json st = status["state"];
+									if(!st.is_null() && st.is_string())
 									{
 										if(st.asString() == "TASK_RUNNING")
 										{

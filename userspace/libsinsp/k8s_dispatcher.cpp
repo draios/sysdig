@@ -90,11 +90,11 @@ bool k8s_dispatcher::is_ready(const std::string& msg)
 	return msg[msg.size() - 1] == '\n';
 }
 
-k8s_dispatcher::msg_data k8s_dispatcher::get_msg_data(Json::Value& root)
+k8s_dispatcher::msg_data k8s_dispatcher::get_msg_data(json& root)
 {
 	msg_data data;
-	Json::Value evtype = root["type"];
-	if(!evtype.isNull() && evtype.isString())
+	json evtype = root["type"];
+	if(!evtype.is_null() && evtype.is_string())
 	{
 		const std::string& et = evtype.asString();
 		if(!et.empty())
@@ -109,38 +109,38 @@ k8s_dispatcher::msg_data k8s_dispatcher::get_msg_data(Json::Value& root)
 			return msg_data();
 		}
 	}
-	Json::Value object = root["object"];
+	json object = root["object"];
 
 	// +++ for capture
-	Json::Value kind = object["kind"];
-	if(!kind.isNull() && kind.isString() && root["kind"].isNull())
+	json kind = object["kind"];
+	if(!kind.is_null() && kind.is_string() && root["kind"].isNull())
 	{
 		root["kind"] = kind.asString();
 	}
-	Json::Value api_version = object["apiVersion"];
-	if(!api_version.isNull() && api_version.isString() && root["apiVersion"].isNull())
+	json api_version = object["apiVersion"];
+	if(!api_version.is_null() && api_version.is_string() && root["apiVersion"].isNull())
 	{
 		root["apiVersion"] = api_version.asString();
 	}
 	// --- for capture
 
-	if(!object.isNull() && object.isObject())
+	if(!object.is_null() && object.is_object())
 	{
-		Json::Value meta = object["metadata"];
-		if(!meta.isNull() && meta.isObject())
+		json meta = object["metadata"];
+		if(!meta.is_null() && meta.is_object())
 		{
-			Json::Value name = meta["name"];
-			if(!name.isNull())
+			json name = meta["name"];
+			if(!name.is_null())
 			{
 				data.m_name = name.asString();
 			}
-			Json::Value uid = meta["uid"];
-			if(!uid.isNull())
+			json uid = meta["uid"];
+			if(!uid.is_null())
 			{
 				data.m_uid = uid.asString();
 			}
-			Json::Value nspace = meta["namespace"];
-			if(!nspace.isNull())
+			json nspace = meta["namespace"];
+			if(!nspace.is_null())
 			{
 				data.m_namespace = nspace.asString();
 			}
@@ -149,15 +149,15 @@ k8s_dispatcher::msg_data k8s_dispatcher::get_msg_data(Json::Value& root)
 	return data;
 }
 
-void k8s_dispatcher::log_error(const Json::Value& root, const std::string& comp)
+void k8s_dispatcher::log_error(const json& root, const std::string& comp)
 {
 	std::string unk_err = "Unknown.";
 	std::ostringstream os;
 	os << "K8S server reported " << comp << " error: ";
-	if(!root.isNull())
+	if(!root.is_null())
 	{
-		Json::Value object = root["object"];
-		if(!object.isNull())
+		json object = root["object"];
+		if(!object.is_null())
 		{
 			os << object.toStyledString();
 			unk_err.clear();
@@ -167,7 +167,7 @@ void k8s_dispatcher::log_error(const Json::Value& root, const std::string& comp)
 	g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
 }
 
-void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
+void k8s_dispatcher::handle_node(const json& root, const msg_data& data)
 {
 	if(data.m_reason == COMPONENT_ADDED)
 	{
@@ -178,11 +178,11 @@ void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 			g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
 		}
 		k8s_node_t& node = m_state.get_component<k8s_nodes, k8s_node_t>(m_state.get_nodes(), data.m_name, data.m_uid);
-		const Json::Value& object = root["object"];
-		if(!object.isNull())
+		const json& object = root["object"];
+		if(!object.is_null())
 		{
-			const Json::Value& status = object["status"];
-			if(!status.isNull())
+			const json& status = object["status"];
+			if(!status.is_null())
 			{
 				k8s_node_t::host_ip_list addresses = k8s_node_t::extract_addresses(status);
 				if(addresses.size() > 0)
@@ -190,8 +190,8 @@ void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 					node.set_host_ips(std::move(addresses));
 				}
 			}
-			Json::Value metadata = object["metadata"];
-			if(!metadata.isNull())
+			json metadata = object["metadata"];
+			if(!metadata.is_null())
 			{
 				k8s_pair_list entries = k8s_component::extract_object(metadata, "labels");
 				if(entries.size() > 0)
@@ -211,11 +211,11 @@ void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 			return;
 		}
 		k8s_node_t& node = m_state.get_component<k8s_nodes, k8s_node_t>(m_state.get_nodes(), data.m_name, data.m_uid);
-		Json::Value object = root["object"];
-		if(!object.isNull())
+		json object = root["object"];
+		if(!object.is_null())
 		{
-			const Json::Value& status = object["status"];
-			if(!status.isNull())
+			const json& status = object["status"];
+			if(!status.is_null())
 			{
 				k8s_node_t::host_ip_list addresses = k8s_node_t::extract_addresses(status);
 				if(addresses.size() > 0)
@@ -223,8 +223,8 @@ void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 					node.set_host_ips(std::move(addresses));
 				}
 			}
-			const Json::Value& metadata = object["metadata"];
-			if(!metadata.isNull())
+			const json& metadata = object["metadata"];
+			if(!metadata.is_null())
 			{
 				k8s_pair_list entries = k8s_component::extract_object(metadata, "labels");
 				if(entries.size() > 0)
@@ -251,7 +251,7 @@ void k8s_dispatcher::handle_node(const Json::Value& root, const msg_data& data)
 	}
 }
 
-void k8s_dispatcher::handle_namespace(const Json::Value& root, const msg_data& data)
+void k8s_dispatcher::handle_namespace(const json& root, const msg_data& data)
 {
 	if(data.m_reason == COMPONENT_ADDED)
 	{
@@ -262,11 +262,11 @@ void k8s_dispatcher::handle_namespace(const Json::Value& root, const msg_data& d
 			g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
 		}
 		k8s_ns_t& ns = m_state.get_component<k8s_namespaces, k8s_ns_t>(m_state.get_namespaces(), data.m_name, data.m_uid);
-		const Json::Value& object = root["object"];
-		if(!object.isNull())
+		const json& object = root["object"];
+		if(!object.is_null())
 		{
-			const Json::Value& metadata = object["metadata"];
-			if(!metadata.isNull())
+			const json& metadata = object["metadata"];
+			if(!metadata.is_null())
 			{
 				k8s_pair_list entries = k8s_component::extract_object(metadata, "labels");
 				if(entries.size() > 0)
@@ -286,11 +286,11 @@ void k8s_dispatcher::handle_namespace(const Json::Value& root, const msg_data& d
 			return;
 		}
 		k8s_ns_t& ns = m_state.get_component<k8s_namespaces, k8s_ns_t>(m_state.get_namespaces(), data.m_name, data.m_uid);
-		const Json::Value& object = root["object"];
-		if(!object.isNull())
+		const json& object = root["object"];
+		if(!object.is_null())
 		{
-			const Json::Value& metadata = object["metadata"];
-			if(!metadata.isNull())
+			const json& metadata = object["metadata"];
+			if(!metadata.is_null())
 			{
 				k8s_pair_list entries = k8s_component::extract_object(metadata, "labels");
 				if(entries.size() > 0)
@@ -317,12 +317,12 @@ void k8s_dispatcher::handle_namespace(const Json::Value& root, const msg_data& d
 	}
 }
 
-bool k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
+bool k8s_dispatcher::handle_pod(const json& root, const msg_data& data)
 {
 	if(data.m_reason == COMPONENT_ADDED)
 	{
-		const Json::Value& object = root["object"];
-		if(!object.isNull())
+		const json& object = root["object"];
+		if(!object.is_null())
 		{
 			if(m_state.has(m_state.get_pods(), data.m_uid))
 			{
@@ -337,8 +337,8 @@ bool k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 	}
 	else if(data.m_reason == COMPONENT_MODIFIED)
 	{
-		const Json::Value& object = root["object"];
-		if(!object.isNull())
+		const json& object = root["object"];
+		if(!object.is_null())
 		{
 			if(!m_state.has(m_state.get_pods(), data.m_uid))
 			{
@@ -381,12 +381,12 @@ bool k8s_dispatcher::handle_pod(const Json::Value& root, const msg_data& data)
 	return true;
 }
 
-void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& data)
+void k8s_dispatcher::handle_service(const json& root, const msg_data& data)
 {
 	if(data.m_reason == COMPONENT_ADDED)
 	{
-		const Json::Value& object = root["object"];
-		if(!object.isNull())
+		const json& object = root["object"];
+		if(!object.is_null())
 		{
 			if(m_state.has(m_state.get_services(), data.m_uid))
 			{
@@ -406,8 +406,8 @@ void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& dat
 	}
 	else if(data.m_reason == COMPONENT_MODIFIED)
 	{
-		const Json::Value& object = root["object"];
-		if(!object.isNull())
+		const json& object = root["object"];
+		if(!object.is_null())
 		{
 			if(!m_state.has(m_state.get_services(), data.m_uid))
 			{
@@ -443,12 +443,12 @@ void k8s_dispatcher::handle_service(const Json::Value& root, const msg_data& dat
 	}
 }
 
-void k8s_dispatcher::handle_deployment(const Json::Value& root, const msg_data& data)
+void k8s_dispatcher::handle_deployment(const json& root, const msg_data& data)
 {
 	if(data.m_reason == COMPONENT_ADDED)
 	{
-		const Json::Value& object = root["object"];
-		if(!object.isNull())
+		const json& object = root["object"];
+		if(!object.is_null())
 		{
 			if(m_state.has(m_state.get_deployments(), data.m_uid))
 			{
@@ -468,8 +468,8 @@ void k8s_dispatcher::handle_deployment(const Json::Value& root, const msg_data& 
 	}
 	else if(data.m_reason == COMPONENT_MODIFIED)
 	{
-		const Json::Value& object = root["object"];
-		if(!object.isNull())
+		const json& object = root["object"];
+		if(!object.is_null())
 		{
 			if(!m_state.has(m_state.get_deployments(), data.m_uid))
 			{
@@ -506,12 +506,12 @@ void k8s_dispatcher::handle_deployment(const Json::Value& root, const msg_data& 
 	}
 }
 
-void k8s_dispatcher::handle_daemonset(const Json::Value& root, const msg_data& data)
+void k8s_dispatcher::handle_daemonset(const json& root, const msg_data& data)
 {
 	if(data.m_reason == COMPONENT_ADDED)
 	{
-		const Json::Value& object = root["object"];
-		if(!object.isNull())
+		const json& object = root["object"];
+		if(!object.is_null())
 		{
 			if(m_state.has(m_state.get_daemonsets(), data.m_uid))
 			{
@@ -527,8 +527,8 @@ void k8s_dispatcher::handle_daemonset(const Json::Value& root, const msg_data& d
 	}
 	else if(data.m_reason == COMPONENT_MODIFIED)
 	{
-		const Json::Value& object = root["object"];
-		if(!object.isNull())
+		const json& object = root["object"];
+		if(!object.is_null())
 		{
 			if(!m_state.has(m_state.get_daemonsets(), data.m_uid))
 			{
@@ -560,16 +560,16 @@ void k8s_dispatcher::handle_daemonset(const Json::Value& root, const msg_data& d
 	}
 }
 
-void k8s_dispatcher::handle_event(const Json::Value& root, const msg_data& data)
+void k8s_dispatcher::handle_event(const json& root, const msg_data& data)
 {
 	if(m_event_filter)
 	{
-		const Json::Value& object = root["object"];
-		if(!object.isNull())
+		const json& object = root["object"];
+		if(!object.is_null())
 		{
 			g_logger.log("K8s EVENT: object found.", sinsp_logger::SEV_TRACE);
-			const Json::Value& involved_object = object["involvedObject"];
-			if(!involved_object.isNull())
+			const json& involved_object = object["involvedObject"];
+			if(!involved_object.is_null())
 			{
 				bool is_aggregate = (get_json_string(object , "message").find("events with common reason combined") != std::string::npos);
 				time_t last_ts = get_epoch_utc_seconds(get_json_string(object , "lastTimestamp"));
@@ -579,11 +579,11 @@ void k8s_dispatcher::handle_event(const Json::Value& root, const msg_data& data)
 					!is_aggregate && // not an aggregated cached event
 					((now_ts - last_ts) < 10)) // event not older than 10 seconds
 				{
-					const Json::Value& kind = involved_object["kind"];
-					const Json::Value& event_reason = object["reason"];
+					const json& kind = involved_object["kind"];
+					const json& event_reason = object["reason"];
 					g_logger.log("K8s EVENT: involved object and event reason found:" + kind.asString() + '/' + event_reason.asString(), sinsp_logger::SEV_TRACE);
-					if(!kind.isNull() && kind.is_primitive() &&
-					   !event_reason.isNull() && event_reason.is_primitive())
+					if(!kind.is_null() && kind.is_primitive() &&
+					   !event_reason.is_null() && event_reason.is_primitive())
 					{
 						bool is_allowed = m_event_filter->allows_all();
 						std::string type = kind;
@@ -640,7 +640,7 @@ void k8s_dispatcher::handle_event(const Json::Value& root, const msg_data& data)
 	}
 }
 
-void k8s_dispatcher::extract_data(Json::Value& root, bool enqueue)
+void k8s_dispatcher::extract_data(json& root, bool enqueue)
 {
 	std::ostringstream os;
 	msg_data data = get_msg_data(root);
@@ -711,7 +711,7 @@ void k8s_dispatcher::extract_data(Json::Value& root, bool enqueue)
 
 void k8s_dispatcher::extract_data(const std::string& json, bool enqueue)
 {
-	Json::Value root;
+	json root;
 	Json::Reader reader;
 	if(reader.parse(json, root, false))
 	{

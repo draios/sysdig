@@ -149,10 +149,10 @@ mesos_framework::~mesos_framework()
 {
 }
 
-bool mesos_framework::is_framework_active(const Json::Value& framework)
+bool mesos_framework::is_framework_active(const json& framework)
 {
-	const Json::Value& active = framework["active"];
-	if(!active.isNull() && active.isBool() && active.asBool())
+	const json& active = framework["active"];
+	if(!active.is_null() && active.is_bool() && active.asBool())
 	{
 		return true;
 	}
@@ -223,29 +223,29 @@ mesos_task& mesos_task::operator=(const mesos_task&& other)
 	return *this;
 }
 
-bool mesos_task::is_task_running(const Json::Value& task)
+bool mesos_task::is_task_running(const json& task)
 {
-	const Json::Value& task_state = task["state"];
-	if(!task_state.isNull() && task_state.isString())
+	const json& task_state = task["state"];
+	if(!task_state.is_null() && task_state.is_string())
 	{
 		return task_state.asString() == "TASK_RUNNING";
 	}
 	return false;
 }
 
-mesos_task::ptr_t mesos_task::make_task(const Json::Value& task)
+mesos_task::ptr_t mesos_task::make_task(const json& task)
 {
 	//g_logger.log(task.toStyledString(), sinsp_logger::SEV_DEBUG);
 	std::string name, uid, sid;
-	Json::Value fid = task["id"];
-	if(!fid.isNull()) { uid = fid.asString(); }
+	json fid = task["id"];
+	if(!fid.is_null()) { uid = fid.asString(); }
 	else
 	{
 		fid = task["taskId"];
-		if(!fid.isNull()) { uid = fid.asString(); }
+		if(!fid.is_null()) { uid = fid.asString(); }
 	}
-	Json::Value fname = task["name"];
-	if(!fname.isNull()) { name = fname.asString(); }
+	json fname = task["name"];
+	if(!fname.is_null()) { name = fname.asString(); }
 	else
 	{
 		std::string::size_type pos = uid.rfind('.');
@@ -257,12 +257,12 @@ mesos_task::ptr_t mesos_task::make_task(const Json::Value& task)
 
 	std::shared_ptr<mesos_task> t(new mesos_task(name, uid));
 
-	Json::Value fsid = task["slave_id"];
-	if(!fsid.isNull()) { sid = fsid.asString(); }
+	json fsid = task["slave_id"];
+	if(!fsid.is_null()) { sid = fsid.asString(); }
 	else
 	{
-		Json::Value fsid = task["slaveId"];
-		if(!fsid.isNull()) { sid = fsid.asString(); }
+		json fsid = task["slaveId"];
+		if(!fsid.is_null()) { sid = fsid.asString(); }
 	}
 
 	if(!sid.empty())
@@ -274,24 +274,24 @@ mesos_task::ptr_t mesos_task::make_task(const Json::Value& task)
 	return t;
 }
 
-void mesos_task::add_labels(mesos_task::ptr_t task, const Json::Value& t_val)
+void mesos_task::add_labels(mesos_task::ptr_t task, const json& t_val)
 {
 	std::ostringstream os;
 	if(task)
 	{
-		Json::Value labels = t_val["labels"];
-		if(!labels.isNull())
+		json labels = t_val["labels"];
+		if(!labels.is_null())
 		{
 			for(const auto& label : labels)
 			{
 				std::string key, val;
-				Json::Value lkey = label["key"];
-				Json::Value lval = label["value"];
-				if(!lkey.isNull())
+				json lkey = label["key"];
+				json lval = label["value"];
+				if(!lkey.is_null())
 				{
 					key = lkey.asString();
 				}
-				if(!lval.isNull())
+				if(!lval.is_null())
 				{
 					val = lval.asString();
 				}

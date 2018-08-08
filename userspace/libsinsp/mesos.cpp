@@ -46,8 +46,8 @@ mesos::mesos(const std::string& mesos_state_json,
 		set_state_json(state_json);
 		if(!marathon_groups_json.empty())
 		{
-			const Json::Value& frameworks = (*state_json)["frameworks"];
-			if(frameworks.isNull() || !frameworks.isArray())
+			const json& frameworks = (*state_json)["frameworks"];
+			if(frameworks.is_null() || !frameworks.is_array())
 			{
 				throw sinsp_exception("Unexpected condition while detecting Mesos master: frameworks entry not found.");
 			}
@@ -55,11 +55,11 @@ mesos::mesos(const std::string& mesos_state_json,
 			std::string framework_id;
 			for(auto framework : frameworks)
 			{
-				const Json::Value& name = framework["name"];
-				if(!name.isNull() && name.is_primitive() &&  mesos_framework::is_root_marathon(name))
+				const json& name = framework["name"];
+				if(!name.is_null() && name.is_primitive() &&  mesos_framework::is_root_marathon(name))
 				{
-					const Json::Value& id = framework["id"];
-					if(!id.isNull() && id.is_primitive())
+					const json& id = framework["id"];
+					if(!id.is_null() && id.is_primitive())
 					{
 						framework_id = id;
 					}
@@ -507,29 +507,29 @@ void mesos::send_data_request(bool collect)
 	if(collect) { collect_data(); }
 }
 
-void mesos::capture_frameworks(const Json::Value& root, Json::Value& capture)
+void mesos::capture_frameworks(const json& root, json& capture)
 {
-	const Json::Value& frameworks = root["frameworks"];
-	if(!frameworks.isNull())
+	const json& frameworks = root["frameworks"];
+	if(!frameworks.is_null())
 	{
-		if(frameworks.isArray())
+		if(frameworks.is_array())
 		{
 			if(frameworks.size())
 			{
 				capture["frameworks"] = Json::arrayValue;
 				for(const auto& framework : frameworks)
 				{
-					Json::Value c_framework;
+					json c_framework;
 					c_framework["active"] = framework["active"];
 					c_framework["id"] = framework["id"];
 					c_framework["name"] = framework["name"];
 					c_framework["hostname"] = framework["hostname"];
 					c_framework["webui_url"] = framework["webui_url"];
 					c_framework["tasks"] = Json::arrayValue;
-					Json::Value& c_tasks = c_framework["tasks"];
+					json& c_tasks = c_framework["tasks"];
 					for(const auto& task : framework["tasks"])
 					{
-						Json::Value& c_task = c_tasks.append(Json::Value());
+						json& c_task = c_tasks.append(json());
 						c_task["id"] = task["id"];
 						c_task["name"] = task["name"];
 						c_task["framework_id"] = task["framework_id"];
@@ -546,15 +546,15 @@ void mesos::capture_frameworks(const Json::Value& root, Json::Value& capture)
 	}
 }
 
-void mesos::capture_slaves(const Json::Value& root, Json::Value& capture)
+void mesos::capture_slaves(const json& root, json& capture)
 {
-	const Json::Value& slaves = root["slaves"];
-	if(!slaves.isNull())
+	const json& slaves = root["slaves"];
+	if(!slaves.is_null())
 	{
 		capture["slaves"] = Json::arrayValue;
 		for(const auto& slave : slaves)
 		{
-			Json::Value c_slave;
+			json c_slave;
 			c_slave["hostname"] = slave["hostname"];
 			c_slave["id"] = slave["id"];
 			capture["slaves"].append(c_slave);
@@ -693,23 +693,23 @@ bool mesos::collect_data()
 #endif // HAS_CAPTURE
 }
 
-void mesos::handle_frameworks(const Json::Value& root)
+void mesos::handle_frameworks(const json& root)
 {
-	const Json::Value& frameworks = root["frameworks"];
-	if(!frameworks.isNull())
+	const json& frameworks = root["frameworks"];
+	if(!frameworks.is_null())
 	{
-		if(frameworks.isArray())
+		if(frameworks.is_array())
 		{
 			if(frameworks.size())
 			{
 				for(const auto& framework : frameworks)
 				{
-					const Json::Value& uid = framework["id"];
-					if(!uid.isNull() && uid.isString())
+					const json& uid = framework["id"];
+					if(!uid.is_null() && uid.is_string())
 					{
-						const Json::Value& fw_name = framework["name"];
+						const json& fw_name = framework["name"];
 						std::string name;
-						if(!fw_name.isNull() && fw_name.isString())
+						if(!fw_name.is_null() && fw_name.is_string())
 						{
 							name = framework["name"].asString();
 						}
@@ -768,10 +768,10 @@ void mesos::handle_frameworks(const Json::Value& root)
 	}
 }
 
-void mesos::handle_slaves(const Json::Value& root)
+void mesos::handle_slaves(const json& root)
 {
-	const Json::Value& slaves = root["slaves"];
-	if(!slaves.isNull())
+	const json& slaves = root["slaves"];
+	if(!slaves.is_null())
 	{
 		for(const auto& slave : slaves)
 		{
@@ -784,16 +784,16 @@ void mesos::handle_slaves(const Json::Value& root)
 	}
 }
 
-void mesos::add_framework(const Json::Value& framework)
+void mesos::add_framework(const json& framework)
 {
 	std::string name, uid;
-	const Json::Value& fname = framework["name"];
-	const Json::Value& fid = framework["id"];
-	if(!fname.isNull())
+	const json& fname = framework["name"];
+	const json& fid = framework["id"];
+	if(!fname.is_null())
 	{
 		name = fname.asString();
 	}
-	if(!fid.isNull())
+	if(!fid.is_null())
 	{
 		uid = fid.asString();
 	}
@@ -807,7 +807,7 @@ void mesos::add_framework(const Json::Value& framework)
 	add_tasks(m_state.get_frameworks().back(), framework);
 }
 
-void mesos::remove_framework(const Json::Value& framework)
+void mesos::remove_framework(const json& framework)
 {
 	m_state.remove_framework(framework);
 }
@@ -828,16 +828,16 @@ void mesos::remove_framework_http(marathon_http_map& http_map, const std::string
 }
 #endif // HAS_CAPTURE
 
-void mesos::add_slave(const Json::Value& slave)
+void mesos::add_slave(const json& slave)
 {
 	std::string name, uid;
-	const Json::Value& sname = slave["hostname"];
-	const Json::Value& sid = slave["id"];
-	if(!sname.isNull())
+	const json& sname = slave["hostname"];
+	const json& sid = slave["id"];
+	if(!sname.is_null())
 	{
 		name = sname.asString();
 	}
-	if(!sid.isNull())
+	if(!sid.is_null())
 	{
 		uid = sid.asString();
 	}
@@ -850,9 +850,9 @@ void mesos::add_slave(const Json::Value& slave)
 	m_state.emplace_slave(mesos_slave(name, uid));
 }
 
-void mesos::add_tasks_impl(mesos_framework& framework, const Json::Value& tasks)
+void mesos::add_tasks_impl(mesos_framework& framework, const json& tasks)
 {
-	if(!tasks.isNull())
+	if(!tasks.is_null())
 	{
 		for(const auto& task : tasks)
 		{
@@ -869,12 +869,12 @@ void mesos::add_tasks_impl(mesos_framework& framework, const Json::Value& tasks)
 				else
 				{
 					std::string name, uid, sid;
-					Json::Value fname = task["name"];
-					if(!fname.isNull()) { name = fname.asString(); }
-					Json::Value fid = task["id"];
-					if(!fid.isNull()) { uid = fid.asString(); }
-					Json::Value fsid = task["slave_id"];
-					if(!fsid.isNull()) { sid = fsid.asString(); }
+					json fname = task["name"];
+					if(!fname.is_null()) { name = fname.asString(); }
+					json fid = task["id"];
+					if(!fid.is_null()) { uid = fid.asString(); }
+					json fsid = task["slave_id"];
+					if(!fsid.is_null()) { sid = fsid.asString(); }
 					os << "Failed to add Mesos task: [" << framework.get_name() << ':' << name << ',' << uid << "], running on slave " << sid;
 					g_logger.log(os.str(), sinsp_logger::SEV_ERROR);
 					g_json_error_log.log(framework.get_name(), os.str(), sinsp_utils::get_current_time_ns(), "add_tasks_impl");
@@ -890,9 +890,9 @@ void mesos::add_tasks_impl(mesos_framework& framework, const Json::Value& tasks)
 	}
 }
 
-void mesos::add_tasks(mesos_framework& framework, const Json::Value& f_val)
+void mesos::add_tasks(mesos_framework& framework, const json& f_val)
 {
-	const Json::Value& tasks = f_val["tasks"];
+	const json& tasks = f_val["tasks"];
 	add_tasks_impl(framework, tasks);
 }
 
@@ -900,14 +900,14 @@ void mesos::check_frameworks(const json_ptr_t& json)
 {
 	if(has_marathon() && json && !json->isNull())
 	{
-		const Json::Value& frameworks = (*json)["frameworks"];
-		if(frameworks.isNull())
+		const json& frameworks = (*json)["frameworks"];
+		if(frameworks.is_null())
 		{
 			throw sinsp_exception("No Mesos frameworks entry found.");
 		}
 		else
 		{
-			if(frameworks.isArray())
+			if(frameworks.is_array())
 			{
 				if(!frameworks.size())
 				{
@@ -938,7 +938,7 @@ void mesos::set_state_json(json_ptr_t json, const std::string&)
 	m_json_error = m_json_error || json_error;
 }
 
-void mesos::parse_state(Json::Value&& root)
+void mesos::parse_state(json&& root)
 {
 	clear_mesos();
 	handle_frameworks(root);
@@ -946,7 +946,7 @@ void mesos::parse_state(Json::Value&& root)
 #ifdef HAS_CAPTURE
 	if(m_state.is_captured())
 	{
-		Json::Value capt;
+		json capt;
 		capture_frameworks(root, capt);
 		capture_slaves(root, capt);
 		m_state.enqueue_capture_event(mesos_state_t::capture::MESOS_STATE, Json::FastWriter().write(capt));
@@ -1008,11 +1008,11 @@ void mesos::set_marathon_apps_json(json_ptr_t json, const std::string& framework
 
 void mesos::simulate_event(const std::string& json)
 {
-	Json::Value root;
+	json root;
 	Json::Reader reader;
 	if(reader.parse(json, root))
 	{
-		Json::Value::Members members = root.getMemberNames();
+		json::Members members = root.getMemberNames();
 		for (auto& member : members)
 		{
 			if(member == "mesos_state")
@@ -1022,8 +1022,8 @@ void mesos::simulate_event(const std::string& json)
 			}
 			else if(member == "marathon_groups")
 			{
-				const Json::Value& frameworkId = root[member]["frameworkId"];
-				if(!frameworkId.isNull() && frameworkId.isString())
+				const json& frameworkId = root[member]["frameworkId"];
+				if(!frameworkId.is_null() && frameworkId.is_string())
 				{
 					m_state.parse_groups(std::move(root[member]), frameworkId.asString());
 				}
@@ -1034,8 +1034,8 @@ void mesos::simulate_event(const std::string& json)
 			}
 			else if(member == "marathon_apps")
 			{
-				const Json::Value& frameworkId = root[member]["frameworkId"];
-				if(!frameworkId.isNull() && frameworkId.isString())
+				const json& frameworkId = root[member]["frameworkId"];
+				if(!frameworkId.is_null() && frameworkId.is_string())
 				{
 					m_state.parse_apps(std::move(root[member]), frameworkId.asString());
 				}

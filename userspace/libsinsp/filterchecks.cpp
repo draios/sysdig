@@ -2854,7 +2854,7 @@ inline uint8_t* sinsp_filter_check_event::extract_buflen(sinsp_evt *evt, OUT uin
 	return NULL;
 }
 
-Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
+json sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
 {
 	switch(m_field_id)
 	{
@@ -2862,7 +2862,7 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	case TYPE_TIME_S:
 	case TYPE_DATETIME:
 	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
-		return (Json::Value::Int64)evt->get_ts();
+		return (json::Int64)evt->get_ts();
 
 	case TYPE_RAWTS:
 	case TYPE_RAWTS_S:
@@ -2876,7 +2876,7 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	case TYPE_DELTA:
 	case TYPE_DELTA_S:
 	case TYPE_DELTA_NS:
-		return (Json::Value::Int64)*(uint64_t*)extract(evt, len);
+		return (json::Int64)*(uint64_t*)extract(evt, len);
 	case TYPE_COUNT:
 		m_u32val = 1;
 		return m_u32val;
@@ -6234,7 +6234,7 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
 	}
 }
 
-Json::Value sinsp_filter_check_reference::tojson(sinsp_evt* evt,
+json sinsp_filter_check_reference::tojson(sinsp_evt* evt,
 	uint32_t str_len,
 	uint64_t time_delta)
 {

@@ -73,7 +73,7 @@ json_spy_renderer::json_spy_renderer(sinsp* inspector,
 {
 	m_inspector = inspector;
 	m_filter = NULL;
-	m_root = Json::Value(Json::arrayValue);
+	m_root = json(Json::arrayValue);
 	m_linecnt = 0;
 
 	m_json_spy_renderer = new spy_text_renderer(inspector, 
@@ -110,7 +110,7 @@ void json_spy_renderer::process_event_spy(sinsp_evt* evt, int32_t next_res)
 
 	if(argstr != NULL)
 	{
-		Json::Value line;
+		json line;
 		m_linecnt++;
 
 		ppm_event_flags eflags = evt->get_info_flags();
@@ -1381,10 +1381,10 @@ string combine_filters(string flt1, string flt2)
 	return res;
 }
 
-Json::Value sinsp_cursesui::generate_json_info_section()
+json sinsp_cursesui::generate_json_info_section()
 {
-	Json::Value jinfo;
-	Json::Value jlegend;
+	json jinfo;
+	json jlegend;
 
 	sinsp_view_info* wi = NULL;
 
@@ -1431,7 +1431,7 @@ Json::Value sinsp_cursesui::generate_json_info_section()
 
 		for(uint32_t j = 1; j < colnames.size(); j++)
 		{
-			Json::Value jcinfo;
+			json jcinfo;
 
 			jcinfo["name"] = colnames[j];
 			jcinfo["size"] = colsizes[j];
@@ -1464,7 +1464,7 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 		printf("\"count\": %" PRIu64 ", ", 
 			m_datatable->m_json_output_lines_count);
 
-		Json::Value root = generate_json_info_section();
+		json root = generate_json_info_section();
 
 		if(m_views.at(m_selected_view)->m_type == sinsp_view_info::T_TABLE)
 		{
@@ -3049,7 +3049,7 @@ bool sinsp_cursesui::handle_stdin_input(bool* res)
 	//
 	// Parse the input
 	//
-	Json::Value root;
+	json root;
 	Json::Reader reader;
 	bool pres = reader.parse(input,
 		root,
@@ -3064,7 +3064,7 @@ bool sinsp_cursesui::handle_stdin_input(bool* res)
 	}
 
 	string astr = root["action"].asString();
-	Json::Value args = root["args"];
+	json args = root["args"];
 
 	sysdig_table_action ta;
 	uint32_t rownum = 0;
