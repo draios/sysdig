@@ -89,7 +89,7 @@ private:
 	bool m_require_all_values;
 	vector<sinsp_filter_check*> m_chks_to_free;
 
-	json m_root;
+	nlohmann::json m_root;
 	Json::FastWriter m_writer;
 };
 

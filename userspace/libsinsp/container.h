@@ -73,9 +73,9 @@ public:
 		{
 		}
 
-		container_mount_info(const json &source, const json &dest,
-				     const json &mode, const json &rw,
-				     const json &propagation)
+		container_mount_info(const nlohmann::json &source, const nlohmann::json &dest,
+				     const nlohmann::json &mode, const nlohmann::json &rw,
+				     const nlohmann::json &propagation)
 		{
 			get_string_value(source, m_source);
 			get_string_value(dest, m_dest);
@@ -97,7 +97,7 @@ public:
 				m_propagation;
 		}
 
-		inline void get_string_value(const json &val, std::string &result)
+		inline void get_string_value(const nlohmann::json &val, std::string &result)
 		{
 			if(!val.is_null() && val.is_string())
 			{
@@ -126,7 +126,7 @@ public:
 	{
 	}
 
-	static void parse_json_mounts(const json &mnt_obj, vector<container_mount_info> &mounts);
+	static void parse_json_mounts(const nlohmann::json &mnt_obj, vector<container_mount_info> &mounts);
 
 	const vector<string>& get_env() const { return m_env; }
 
@@ -256,7 +256,7 @@ public:
 private:
 	string container_to_json(const sinsp_container_info& container_info);
 	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);
-	string get_docker_env(const json &env_vars, const string &mti);
+	string get_docker_env(const nlohmann::json &env_vars, const string &mti);
 
 	sinsp* m_inspector;
 	unordered_map<string, sinsp_container_info> m_containers;

@@ -64,7 +64,7 @@ private:
 
 inline void json_query::set_json(const std::string& json)
 {
-	m_json = json;
+	m_nlohmann::json = json;
 }
 
 inline const std::string& json_query::get_json() const

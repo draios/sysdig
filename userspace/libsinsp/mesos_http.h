@@ -49,7 +49,7 @@ public:
 
 	std::string make_uri(const std::string& path);
 
-	json get_task_labels(const std::string& task_id);
+	nlohmann::json get_task_labels(const std::string& task_id);
 
 	void set_parse_func(callback_func_t parse);
 
@@ -81,7 +81,7 @@ protected:
 
 private:
 	void discover_mesos_leader();
-	json get_state_frameworks();
+	nlohmann::json get_state_frameworks();
 	void discover_framework_uris(const json& frameworks);
 
 	void send_request();

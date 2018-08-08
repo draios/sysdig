@@ -268,7 +268,7 @@ private:
 
 	void update_cache(const k8s_component::type_map::key_type& component);
 	static k8s_component::type component_from_json(const json& item);
-	static json extract_capture_data(const json& item);
+	static nlohmann::json extract_capture_data(const json& item);
 
 	template<typename C>
 	const typename C::mapped_type* get_component(const C& map, const std::string& key)

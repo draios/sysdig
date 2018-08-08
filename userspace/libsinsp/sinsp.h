@@ -1028,7 +1028,7 @@ public:
 	// True if sysdig is ran with -v.
 	// Used by mesos and k8s objects.
 	//
-	bool m_verbose_json = false;
+	bool m_verbose_nlohmann::json = false;
 
 	//
 	// True if the command line argument is set to show container information
