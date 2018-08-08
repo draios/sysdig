@@ -1,4 +1,5 @@
 include_directories("${JSONCPP_INCLUDE}")
+include_directories("${NJSON_INCLUDE}")
 
 if(NOT WIN32)
     if(NOT APPLE)
