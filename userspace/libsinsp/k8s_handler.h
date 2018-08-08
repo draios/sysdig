@@ -21,7 +21,7 @@ public:
 
 	typedef std::shared_ptr<k8s_handler>   ptr_t;
 	typedef std::vector<std::string>       uri_list_t;
-	typedef std::shared_ptr<Json::Value>   json_ptr_t;
+	typedef std::shared_ptr<json>   json_ptr_t;
 	typedef std::shared_ptr<k8s_api_error> api_error_ptr;
 #ifdef HAS_CAPTURE
 	typedef sinsp_ssl::ptr_t                             ssl_ptr_t;
@@ -74,7 +74,7 @@ public:
 	bool is_state_built() const;
 	std::string name() const;
 	api_error_ptr error() const;
-	virtual void handle_json(Json::Value&& root);
+	virtual void handle_json(json&& root);
 
 	unsigned get_max_messages() const;
 	void set_max_messages(unsigned max_msgs);
@@ -82,18 +82,18 @@ public:
 protected:
 	typedef std::unordered_set<std::string> ip_addr_list_t;
 
-	virtual bool handle_component(const Json::Value& json, const msg_data* data = 0) = 0;
-	msg_data get_msg_data(const std::string& evt, const std::string& type, const Json::Value& root);
+	virtual bool handle_component(const json& json, const msg_data* data = 0) = 0;
+	msg_data get_msg_data(const std::string& evt, const std::string& type, const json& root);
 #ifdef HAS_CAPTURE
 	static bool is_ip_address(const std::string& addr);
 #endif // HAS_CAPTURE
 
-	k8s_pair_list extract_object(const Json::Value& object);
+	k8s_pair_list extract_object(const json& object);
 
 	template <typename T>
-	void handle_selectors(T& component, const Json::Value& selector)
+	void handle_selectors(T& component, const json& selector)
 	{
-		if(!selector.isNull())
+		if(!selector.is_null())
 		{
 			component.set_selectors(extract_object(selector));
 		}
@@ -104,8 +104,8 @@ protected:
 	}
 
 	void log_event(const msg_data& data);
-	void handle_error(const msg_data& data, const Json::Value& root, bool log = true);
-	void log_error(const msg_data& data, const Json::Value& root);
+	void handle_error(const msg_data& data, const json& root, bool log = true);
+	void log_error(const msg_data& data, const json& root);
 	void log_not_found(const msg_data& data) const;
 
 	k8s_state_t* m_state = nullptr;
@@ -290,7 +290,7 @@ public:
 	}
 
 private:
-	virtual bool handle_component(const Json::Value& json, const msg_data* data = 0)
+	virtual bool handle_component(const json& json, const msg_data* data = 0)
 	{
 		return false;
 	};

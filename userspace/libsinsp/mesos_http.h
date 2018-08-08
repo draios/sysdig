@@ -22,7 +22,7 @@ class mesos_http
 {
 public:
 	typedef std::shared_ptr<mesos_http> ptr_t;
-	typedef std::shared_ptr<Json::Value> json_ptr_t;
+	typedef std::shared_ptr<json> json_ptr_t;
 	typedef void (mesos::*callback_func_t)(json_ptr_t, const std::string&);
 	typedef std::vector<std::string> marathon_uri_t;
 
@@ -49,7 +49,7 @@ public:
 
 	std::string make_uri(const std::string& path);
 
-	Json::Value get_task_labels(const std::string& task_id);
+	json get_task_labels(const std::string& task_id);
 
 	void set_parse_func(callback_func_t parse);
 
@@ -76,13 +76,13 @@ protected:
 	callback_func_t get_parse_func();
 	std::string make_request(uri url, curl_version_info_data* m_curl_version = 0);
 	static json_ptr_t try_parse(const std::string& json, const std::string &uri);
-	static bool is_framework_active(const Json::Value& framework);
-	std::string get_framework_url(const Json::Value& framework);
+	static bool is_framework_active(const json& framework);
+	std::string get_framework_url(const json& framework);
 
 private:
 	void discover_mesos_leader();
-	Json::Value get_state_frameworks();
-	void discover_framework_uris(const Json::Value& frameworks);
+	json get_state_frameworks();
+	void discover_framework_uris(const json& frameworks);
 
 	void send_request();
 
@@ -161,7 +161,7 @@ inline mesos_http::callback_func_t mesos_http::get_parse_func()
 
 inline mesos_http::json_ptr_t mesos_http::try_parse(const std::string& json, const std::string &uri)
 {
-	json_ptr_t root(new Json::Value());
+	json_ptr_t root(new json());
 	try
 	{
 		if(Json::Reader().parse(json, *root))
@@ -228,10 +228,10 @@ inline const mesos_http::marathon_uri_t& mesos_http::get_marathon_uris() const
 class mesos_http
 {
 public:
-	typedef std::shared_ptr<Json::Value> json_ptr_t;
+	typedef std::shared_ptr<json> json_ptr_t;
 	static json_ptr_t try_parse(const std::string& json, const std::string &uri)
 	{
-		json_ptr_t root(new Json::Value());
+		json_ptr_t root(new json());
 		try
 		{
 			if(Json::Reader().parse(json, *root))

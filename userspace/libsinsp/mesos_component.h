@@ -128,9 +128,9 @@ public:
 		return m_slave_id;
 	}
 
-	static bool is_task_running(const Json::Value& task);
-	static ptr_t make_task(const Json::Value& task);
-	static void add_labels(ptr_t task, const Json::Value& t_val);
+	static bool is_task_running(const json& task);
+	static ptr_t make_task(const json& task);
+	static void add_labels(ptr_t task, const json& t_val);
 
 private:
 	std::string m_marathon_app_id;
@@ -166,7 +166,7 @@ public:
 
 	task_map& get_tasks();
 
-	static bool is_framework_active(const Json::Value& framework);
+	static bool is_framework_active(const json& framework);
 	static bool is_root_marathon(const std::string& name);
 
 private:

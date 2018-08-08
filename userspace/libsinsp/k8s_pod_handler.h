@@ -29,14 +29,14 @@ public:
 
 	~k8s_pod_handler();
 
-	static std::vector<std::string> extract_pod_container_ids(const Json::Value& item);
-	static k8s_container::list extract_pod_containers(const Json::Value& item);
-	static void extract_pod_data(const Json::Value& item, k8s_pod_t& pod);
-	static size_t extract_pod_restart_count(const Json::Value& item);
+	static std::vector<std::string> extract_pod_container_ids(const json& item);
+	static k8s_container::list extract_pod_containers(const json& item);
+	static void extract_pod_data(const json& item, k8s_pod_t& pod);
+	static size_t extract_pod_restart_count(const json& item);
 
 private:
 	static std::string EVENT_FILTER;
 	static std::string STATE_FILTER;
 
-	virtual bool handle_component(const Json::Value& json, const msg_data* data = 0);
+	virtual bool handle_component(const json& json, const msg_data* data = 0);
 };

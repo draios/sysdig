@@ -26,7 +26,7 @@ public:
 #else
 	typedef std::vector<std::string> uri_list_t;
 #endif // HAS_CAPTURE
-	typedef std::shared_ptr<Json::Value> json_ptr_t;
+	typedef std::shared_ptr<json> json_ptr_t;
 	typedef uri::credentials_t credentials_t;
 	typedef std::shared_ptr<uri::credentials_t> uri_creds_ptr_t;
 
@@ -114,8 +114,8 @@ private:
 		}
 		return false;
 	}
-	void capture_frameworks(const Json::Value& root, Json::Value& capture);
-	void capture_slaves(const Json::Value& root, Json::Value& capture);
+	void capture_frameworks(const json& root, json& capture);
+	void capture_slaves(const json& root, json& capture);
 
 	typedef std::unordered_map<std::string, marathon_http::ptr_t> marathon_http_map;
 
@@ -135,24 +135,24 @@ private:
 	void rebuild_mesos_state(bool full = false);
 	void rebuild_marathon_state(bool full = false);
 
-	void handle_frameworks(const Json::Value& root);
-	void add_framework(const Json::Value& framework);
-	void add_tasks(mesos_framework& framework, const Json::Value& f_val);
-	void add_tasks_impl(mesos_framework& framework, const Json::Value& tasks);
-	void handle_slaves(const Json::Value& root);
-	void add_slave(const Json::Value& framework);
+	void handle_frameworks(const json& root);
+	void add_framework(const json& framework);
+	void add_tasks(mesos_framework& framework, const json& f_val);
+	void add_tasks_impl(mesos_framework& framework, const json& tasks);
+	void handle_slaves(const json& root);
+	void add_slave(const json& framework);
 
 	void check_frameworks(const json_ptr_t& json);
 	void set_state_json(json_ptr_t json, const std::string& dummy = "");
-	void parse_state(Json::Value&& root);
+	void parse_state(json&& root);
 	void parse_state(json_ptr_t json, const std::string&);
 	void set_marathon_groups_json(json_ptr_t json, const std::string& framework_id);
 	void parse_groups(json_ptr_t json, const std::string& framework_id);
-	void parse_groups(Json::Value&& json, const std::string& framework_id);
+	void parse_groups(json&& json, const std::string& framework_id);
 	void set_marathon_apps_json(json_ptr_t json, const std::string& framework_id);
 	void parse_apps(json_ptr_t json, const std::string& framework_id);
-	void parse_apps(Json::Value&& json, const std::string& framework_id);
-	void remove_framework(const Json::Value& framework);
+	void parse_apps(json&& json, const std::string& framework_id);
+	void remove_framework(const json& framework);
 
 	mesos_state_t m_state;
 	bool          m_creation_logged = false;
@@ -237,12 +237,12 @@ inline void mesos::parse_groups(json_ptr_t json, const std::string& framework_id
 	m_state.parse_groups(std::move(json), framework_id);
 }
 
-inline void mesos::parse_apps(Json::Value&& json, const std::string& framework_id)
+inline void mesos::parse_apps(json&& json, const std::string& framework_id)
 {
 	m_state.parse_apps(std::move(json), framework_id);
 }
 
-inline void mesos::parse_groups(Json::Value&& json, const std::string& framework_id)
+inline void mesos::parse_groups(json&& json, const std::string& framework_id)
 {
 	m_state.parse_groups(std::move(json), framework_id);
 }

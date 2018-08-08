@@ -73,16 +73,16 @@ public:
 		{
 		}
 
-		container_mount_info(const Json::Value &source, const Json::Value &dest,
-				     const Json::Value &mode, const Json::Value &rw,
-				     const Json::Value &propagation)
+		container_mount_info(const json &source, const json &dest,
+				     const json &mode, const json &rw,
+				     const json &propagation)
 		{
 			get_string_value(source, m_source);
 			get_string_value(dest, m_dest);
 			get_string_value(mode, m_mode);
 			get_string_value(propagation, m_propagation);
 
-			if(!rw.isNull() && rw.isBool())
+			if(!rw.is_null() && rw.is_bool())
 			{
 				m_rdwr = rw.asBool();
 			}
@@ -97,9 +97,9 @@ public:
 				m_propagation;
 		}
 
-		inline void get_string_value(const Json::Value &val, std::string &result)
+		inline void get_string_value(const json &val, std::string &result)
 		{
-			if(!val.isNull() && val.isString())
+			if(!val.is_null() && val.is_string())
 			{
 				result = val.asString();
 			}
@@ -126,7 +126,7 @@ public:
 	{
 	}
 
-	static void parse_json_mounts(const Json::Value &mnt_obj, vector<container_mount_info> &mounts);
+	static void parse_json_mounts(const json &mnt_obj, vector<container_mount_info> &mounts);
 
 	const vector<string>& get_env() const { return m_env; }
 
@@ -256,7 +256,7 @@ public:
 private:
 	string container_to_json(const sinsp_container_info& container_info);
 	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);
-	string get_docker_env(const Json::Value &env_vars, const string &mti);
+	string get_docker_env(const json &env_vars, const string &mti);
 
 	sinsp* m_inspector;
 	unordered_map<string, sinsp_container_info> m_containers;

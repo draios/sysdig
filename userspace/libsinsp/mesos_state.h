@@ -24,7 +24,7 @@
 class mesos_state_t
 {
 public:
-	typedef std::shared_ptr<Json::Value> json_ptr_t;
+	typedef std::shared_ptr<json> json_ptr_t;
 
 #ifdef HAS_CAPTURE
 	struct capture
@@ -95,8 +95,8 @@ public:
 		return m_is_captured;
 	}
 
-	void capture_groups(const Json::Value& root, const std::string& framework_id, Json::Value& capt, bool capture_fw = false);
-	void capture_apps(const Json::Value& root, const std::string& framework_id);
+	void capture_groups(const json& root, const std::string& framework_id, json& capt, bool capture_fw = false);
+	void capture_apps(const json& root, const std::string& framework_id);
 #endif // HAS_CAPTURE
 
 	mesos_state_t(bool is_captured = false, bool verbose = false);
@@ -111,7 +111,7 @@ public:
 	void push_framework(const mesos_framework& framework);
 	void emplace_framework(mesos_framework&& framework);
 	void remove_framework(const std::string& framework_uid);
-	void remove_framework(const Json::Value& framework);
+	void remove_framework(const json& framework);
 	const mesos_framework* get_framework_for_task(const std::string& task_id) const;
 
 	//
@@ -144,7 +144,7 @@ public:
 	//
 	// Marathon apps
 	//
-	void parse_apps(Json::Value&& root, const std::string& framework_id);
+	void parse_apps(json&& root, const std::string& framework_id);
 	void parse_apps(json_ptr_t json, const std::string& framework_id);
 	marathon_app::ptr_t get_app(const std::string& app_id);
 	marathon_group::app_ptr_t add_or_replace_app(const std::string& id,
@@ -157,7 +157,7 @@ public:
 	//
 	// Marathon groups
 	//
-	bool parse_groups(Json::Value&& root, const std::string& framework_id);
+	bool parse_groups(json&& root, const std::string& framework_id);
 	bool parse_groups(json_ptr_t json, const std::string& framework_id);
 	const marathon_groups& get_groups() const;
 	marathon_groups& get_groups();
@@ -176,9 +176,9 @@ public:
 	bool has_data() const;
 
 private:
-	marathon_group::ptr_t add_group(const Json::Value& group, marathon_group::ptr_t to_group, const std::string& framework_id);
-	bool handle_groups(const Json::Value& groups, marathon_group::ptr_t p_groups, const std::string& framework_id);
-	marathon_app::ptr_t add_app(const Json::Value& app, const std::string& framework_id);
+	marathon_group::ptr_t add_group(const json& group, marathon_group::ptr_t to_group, const std::string& framework_id);
+	bool handle_groups(const json& groups, marathon_group::ptr_t p_groups, const std::string& framework_id);
+	marathon_app::ptr_t add_app(const json& app, const std::string& framework_id);
 
 	mesos_frameworks m_frameworks;
 	std::string      m_marathon_uri;
@@ -258,10 +258,10 @@ inline void mesos_state_t::emplace_framework(mesos_framework&& framework)
 	m_frameworks.emplace_back(std::move(framework));
 }
 
-inline void mesos_state_t::remove_framework(const Json::Value& framework)
+inline void mesos_state_t::remove_framework(const json& framework)
 {
-	const Json::Value& id = framework["id"];
-	if(!id.isNull() && id.isString())
+	const json& id = framework["id"];
+	if(!id.is_null() && id.is_string())
 	{
 		remove_framework(id.asString());
 	}

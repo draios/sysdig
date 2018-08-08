@@ -60,7 +60,7 @@ class socket_data_handler
 {
 public:
 	typedef std::shared_ptr<socket_data_handler> ptr_t;
-	typedef std::shared_ptr<Json::Value>         json_ptr_t;
+	typedef std::shared_ptr<json>         json_ptr_t;
 	typedef sinsp_ssl::ptr_t                     ssl_ptr_t;
 	typedef sinsp_bearer_token::ptr_t            bt_ptr_t;
 	typedef void (T::*json_callback_func_t)(json_ptr_t, const std::string&);
@@ -759,7 +759,7 @@ public:
 				return nullptr;
 			}
 		}
-		json_ptr_t root(new Json::Value());
+		json_ptr_t root(new json());
 		try
 		{
 			if(Json::Reader().parse(filtered_json, *root))

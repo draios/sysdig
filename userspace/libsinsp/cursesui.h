@@ -348,7 +348,7 @@ private:
 
 	spy_text_renderer* m_json_spy_renderer;
 	sinsp* m_inspector;
-	Json::Value m_root;
+	json m_root;
 	sinsp_filter* m_filter;
 	uint64_t m_linecnt;
 };
@@ -742,7 +742,7 @@ public:
 	bool m_is_mousedrag_available;
 
 private:
-	Json::Value generate_json_info_section();
+	json generate_json_info_section();
 	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);
 	void restart_capture(bool is_spy_switch);
 	void switch_view(bool is_spy_switch);

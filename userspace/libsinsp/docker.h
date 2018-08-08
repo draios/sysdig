@@ -18,7 +18,7 @@ class docker
 {
 public:
 	typedef std::vector<std::string> uri_list_t;
-	typedef std::shared_ptr<Json::Value> json_ptr_t;
+	typedef std::shared_ptr<json> json_ptr_t;
 	typedef std::set<std::string, ci_compare> event_filter_t;
 	typedef user_event_filter_t::ptr_t event_filter_ptr_t;
 
@@ -100,8 +100,8 @@ private:
 	typedef std::unordered_map<std::string, std::string> name_translation_map_t;
 	typedef std::set<std::string> entity_events_t;
 	const std::string& translate_name(const std::string& event_name);
-	void emit_event(Json::Value& root, std::string type, std::string status, bool send_to_backend);
-	void handle_event(Json::Value&& root);
+	void emit_event(json& root, std::string type, std::string status, bool send_to_backend);
+	void handle_event(json&& root);
 
 	std::string   m_id;
 	long                   m_timeout_ms;

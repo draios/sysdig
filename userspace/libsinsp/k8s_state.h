@@ -61,7 +61,7 @@ public:
 	k8s_pods& get_pods();
 	void push_pod(const k8s_pod_t& pod);
 	void emplace_pod(k8s_pod_t&& pod);
-	void update_pod(k8s_pod_t& pod, const Json::Value& item);
+	void update_pod(k8s_pod_t& pod, const json& item);
 	bool has_pod(k8s_pod_t& pod);
 	const k8s_pod_t::container_id_list& get_pod_container_ids(k8s_pod_t& pod);
 
@@ -119,7 +119,7 @@ public:
 	void clear_events();
 	void push_event(const k8s_event_t& evt);
 	void emplace_event(k8s_event_t&& evt);
-	void update_event(k8s_event_t& evt, const Json::Value& item);
+	void update_event(k8s_event_t& evt, const json& item);
 
 	//
 	// general
@@ -260,15 +260,15 @@ public:
 #ifdef HAS_CAPTURE
 	typedef std::deque<std::string> event_list_t;
 	const event_list_t& get_capture_events() const { return m_capture_events; }
-	void enqueue_capture_event(const Json::Value& item);
+	void enqueue_capture_event(const json& item);
 	std::string dequeue_capture_event();
 #endif // HAS_CAPTURE
 
 private:
 
 	void update_cache(const k8s_component::type_map::key_type& component);
-	static k8s_component::type component_from_json(const Json::Value& item);
-	static Json::Value extract_capture_data(const Json::Value& item);
+	static k8s_component::type component_from_json(const json& item);
+	static json extract_capture_data(const json& item);
 
 	template<typename C>
 	const typename C::mapped_type* get_component(const C& map, const std::string& key)

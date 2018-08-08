@@ -30,8 +30,8 @@ public:
 	bool has(const std::string& version) const;
 
 private:
-	void handle_json(Json::Value&& root);
-	bool handle_component(const Json::Value& json, const msg_data* data = 0);
+	void handle_json(json&& root);
+	bool handle_component(const json& json, const msg_data* data = 0);
 
 
 	api_list_t m_extensions;

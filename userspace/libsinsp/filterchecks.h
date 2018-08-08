@@ -108,7 +108,7 @@ public:
 	// Extract the field as json from the event (by default, fall
 	// back to the regular extract functionality)
 	//
-	virtual Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
+	virtual json extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
 	{
 		return Json::nullValue;
 	}
@@ -127,7 +127,7 @@ public:
 	// Extract the value from the event and convert it into a Json value
 	// or object
 	//
-	virtual Json::Value tojson(sinsp_evt* evt);
+	virtual json tojson(sinsp_evt* evt);
 
 	//
 	// Configure numeric id to be set on events that match this filter
@@ -146,7 +146,7 @@ protected:
 	bool flt_compare(cmpop op, ppm_param_type type, void* operand1, uint32_t op1_len = 0, uint32_t op2_len = 0);
 
 	char* rawval_to_string(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
-	Json::Value rawval_to_json(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
+	json rawval_to_json(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
 	void string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype);
 
 	char m_getpropertystr_storage[1024];
@@ -488,7 +488,7 @@ public:
 	void validate_filter_value(const char* str, uint32_t len);
 	const filtercheck_field_info* get_field_info();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
-	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len);
+	json extract_as_js(sinsp_evt *evt, OUT uint32_t* len);
 	bool compare(sinsp_evt *evt);
 
 	uint64_t m_u64val;
@@ -802,7 +802,7 @@ public:
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 	char* tostring_nice(sinsp_evt* evt, uint32_t str_len, uint64_t time_delta);
-	Json::Value tojson(sinsp_evt* evt, uint32_t str_len, uint64_t time_delta);
+	json tojson(sinsp_evt* evt, uint32_t str_len, uint64_t time_delta);
 
 private:
 	inline char* format_bytes(double val, uint32_t str_len, bool is_int);
