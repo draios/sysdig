@@ -22,22 +22,10 @@ k8s_api_error::~k8s_api_error()
 
 std::string k8s_api_error::get_string(const Json::Value& obj, const std::string& name)
 {
-	std::string value;
-	const Json::Value& val = obj[name];
-	if(!val.isNull() && val.isConvertibleTo(Json::stringValue))
-	{
-		value = val.asString();
-	}
-	return value;
+	return val.value(name, "");
 }
 
 int k8s_api_error::get_int(const Json::Value& obj, const std::string& name)
 {
-	int value = 0;
-	const Json::Value& val = obj[name];
-	if(!val.isNull() && val.isConvertibleTo(Json::intValue))
-	{
-		value = val.asInt();
-	}
-	return value;
+	return val.value(name, 0);
 }

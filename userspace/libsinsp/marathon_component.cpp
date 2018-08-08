@@ -22,7 +22,7 @@ const marathon_component::component_map marathon_component::list =
 	{ marathon_component::MARATHON_APP,   "app"   }
 };
 
-marathon_component::marathon_component(type t, const std::string& id) : 
+marathon_component::marathon_component(type t, const std::string& id) :
 	m_type(t),
 	m_id(id)
 {
@@ -193,9 +193,9 @@ void marathon_app::set_labels(const Json::Value& labels)
 	Json::Value::Members members = labels.getMemberNames();
 	for(const auto& member : members)
 	{
-		if(labels[member].isConvertibleTo(Json::ValueType::stringValue))
+		if(labels[member].is_primitive())
 		{
-			m_labels.push_back({member, labels[member].asString()});
+			m_labels.push_back({member, labels[member]});
 		}
 	}
 }

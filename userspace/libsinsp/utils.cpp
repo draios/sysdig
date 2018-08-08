@@ -1506,9 +1506,9 @@ std::string get_json_string(const Json::Value& obj, const std::string& name)
 {
 	std::string ret;
 	const Json::Value& json_val = obj[name];
-	if(!json_val.isNull() && json_val.isConvertibleTo(Json::stringValue))
+	if(!json_val.isNull() && json_val.is_primitive())
 	{
-		ret = json_val.asString();
+		ret = json_val;
 	}
 	return ret;
 }

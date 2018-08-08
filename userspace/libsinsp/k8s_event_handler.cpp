@@ -110,14 +110,14 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 							const Json::Value& event_reason = json["reason"];
 							g_logger.log("K8s EVENT: involved object and event reason found:" + kind.asString() + '/' + event_reason.asString(),
 										 sinsp_logger::SEV_TRACE);
-							if(!kind.isNull() && kind.isConvertibleTo(Json::stringValue) &&
-								!event_reason.isNull() && event_reason.isConvertibleTo(Json::stringValue))
+							if(!kind.isNull() && kind.is_primitive() &&
+							   !event_reason.isNull() && event_reason.is_primitive())
 							{
 								bool is_allowed = m_event_filter->allows_all();
-								std::string type = kind.asString();
+								std::string type = kind;
 								if(!is_allowed && !type.empty())
 								{
-									std::string reason = event_reason.asString();
+									std::string reason = event_reason;
 									is_allowed = m_event_filter->allows_all(type);
 									if(!is_allowed && !reason.empty())
 									{
@@ -229,15 +229,15 @@ void k8s_event_handler::handle_json(Json::Value&& root)
 	const Json::Value& type = root["type"];
 	if(!type.isNull())
 	{
-		if(type.isConvertibleTo(Json::stringValue))
+		if(type.is_primitive())
 		{
 			const Json::Value& kind = root["kind"];
 			if(!kind.isNull())
 			{
-				if(kind.isConvertibleTo(Json::stringValue))
+				if(kind.is_primitive())
 				{
-					std::string t = type.asString();
-					std::string k = kind.asString();
+					std::string t = type;
+					std::string k = kind;
 					for(const Json::Value& item : root["items"])
 					{
 						msg_data data = get_msg_data(t, k, item);

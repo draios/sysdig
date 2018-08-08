@@ -494,15 +494,15 @@ void k8s_handler::handle_json(Json::Value&& root)
 	const Json::Value& type = root["type"];
 	if(!type.isNull())
 	{
-		if(type.isConvertibleTo(Json::stringValue))
+		if(type.is_primitive())
 		{
 			const Json::Value& kind = root["kind"];
 			if(!kind.isNull())
 			{
-				if(kind.isConvertibleTo(Json::stringValue))
+				if(kind.is_primitive())
 				{
-					std::string t = type.asString();
-					std::string k = kind.asString();
+					std::string t = type;
+					std::string k = kind;
 					for(const Json::Value& item : root["items"])
 					{
 						msg_data data = get_msg_data(t, k, item);

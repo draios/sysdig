@@ -110,10 +110,10 @@ bool k8s_replicationcontroller_handler::handle_component(const Json::Value& json
 				handle_selectors(rc, json["selector"]);
 				const Json::Value& spec = json["specReplicas"];
 				const Json::Value& stat = json["statReplicas"];
-				if(!spec.isNull() && spec.isConvertibleTo(Json::intValue) &&
-				   !stat.isNull() && stat.isConvertibleTo(Json::intValue))
+				if(!spec.isNull() && spec.is_primitive() &&
+				   !stat.isNull() && stat.is_primitive())
 				{
-					rc.set_replicas(spec.asInt(), stat.asInt());
+					rc.set_replicas(spec, stat);
 				}
 			}
 			else if(data->m_reason == k8s_component::COMPONENT_DELETED)

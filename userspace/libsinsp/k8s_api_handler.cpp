@@ -47,9 +47,9 @@ bool k8s_api_handler::handle_component(const Json::Value& json, const msg_data* 
 		{
 			for(const auto& version : json)
 			{
-				if(version.isConvertibleTo(Json::stringValue))
+				if(version.is_primitive())
 				{
-					m_extensions.push_back(version.asString());
+					m_extensions.push_back(version);
 				}
 				else
 				{
@@ -60,9 +60,9 @@ bool k8s_api_handler::handle_component(const Json::Value& json, const msg_data* 
 				}
 			}
 		}
-		else if(json.isConvertibleTo(Json::stringValue))
+		else if(version.is_primitive())
 		{
-			m_extensions.push_back(json.asString());
+			m_extensions.push_back(version);
 		}
 		else
 		{

@@ -230,9 +230,9 @@ std::string mesos_http::get_framework_url(const Json::Value& framework)
 {
 	const Json::Value& fw_name = framework["name"];
 	bool is_marathon = false;
-	if(!fw_name.isNull() && fw_name.isConvertibleTo(Json::stringValue))
+	if(!fw_name.isNull() && fw_name.is_primitive())
 	{
-		is_marathon = mesos_framework::is_root_marathon(fw_name.asString());
+		is_marathon = mesos_framework::is_root_marathon(fw_name);
 	}
 	bool has_creds = !m_mesos.m_marathon_credentials.first.empty();
 	Json::Value fw_url = framework["webui_url"];

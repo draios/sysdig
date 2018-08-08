@@ -200,9 +200,9 @@ public:
 		{
 			for (auto& item : arr)
 			{
-				if(item.isConvertibleTo(Json::stringValue))
+				if(item.is_primitive())
 				{
-					list.emplace(item.asString());
+					list.emplace(item);
 				}
 			}
 		}

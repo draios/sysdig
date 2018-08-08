@@ -263,12 +263,7 @@ void docker::emit_event(Json::Value& root, std::string type, std::string status,
 		severity = it->second;
 	}
 	g_logger.log("Docker EVENT: severity for " + status + '=' + std::to_string(severity - sinsp_logger::SEV_EVT_MIN), sinsp_logger::SEV_DEBUG);
-	uint64_t epoch_time_s = static_cast<uint64_t>(~0);
-	Json::Value t = root["time"];
-	if(!t.isNull() && t.isConvertibleTo(Json::uintValue))
-	{
-		epoch_time_s = t.asUInt64();
-	}
+	uint64_t epoch_time_s = root.value("time", static_cast<uint64_t>(~0));
 	g_logger.log("Docker EVENT: name=" + event_name + ", id=" + id +
 				", status=" + status + ", time=" + std::to_string(epoch_time_s),
 				sinsp_logger::SEV_DEBUG);
@@ -278,14 +273,16 @@ void docker::emit_event(Json::Value& root, std::string type, std::string status,
 	}
 
 	Json::Value no_value = Json::nullValue;
-	const Json::Value& actor = root["Actor"];
-	const Json::Value& attrib = actor.isNull() ? no_value : actor["Attributes"];
-	const Json::Value& img = attrib.isNull() ? no_value : attrib["image"];
 	std::string image;
-	if(!img.isNull() && img.isConvertibleTo(Json::stringValue))
+	try
 	{
-		image = img.asString();
+		image = root.at("/Actor/Attributes/image");
 	}
+	catch (json::parse_error &e)
+	{
+		// Do nothing, image will remain blank.
+	}
+
 	event_scope scope;
 	if(m_machine_id.length())
 	{
@@ -338,10 +335,10 @@ void docker::emit_event(Json::Value& root, std::string type, std::string status,
 			}
 			for(const auto attribute_name : {"name", "exitCode", "signal"})
 			{
-				const Json::Value& name = attrib[attribute_name];
-				if(!name.isNull() && name.isConvertibleTo(Json::stringValue))
+				auto it = attrib.find(attribute_name);
+				if(it != attrib.end() && it->is_primitive())
 				{
-					status.append("; ").append(attribute_name).append(": ").append(name.asString());
+					status.append("; ").append(attribute_name).append(": ").append(*it);
 				}
 			}
 		}

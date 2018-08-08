@@ -56,12 +56,12 @@ mesos::mesos(const std::string& mesos_state_json,
 			for(auto framework : frameworks)
 			{
 				const Json::Value& name = framework["name"];
-				if(!name.isNull() && name.isConvertibleTo(Json::stringValue) &&  mesos_framework::is_root_marathon(name.asString()))
+				if(!name.isNull() && name.is_primitive() &&  mesos_framework::is_root_marathon(name))
 				{
 					const Json::Value& id = framework["id"];
-					if(!id.isNull() && id.isConvertibleTo(Json::stringValue))
+					if(!id.isNull() && id.is_primitive())
 					{
-						framework_id = id.asString();
+						framework_id = id;
 					}
 				}
 			}

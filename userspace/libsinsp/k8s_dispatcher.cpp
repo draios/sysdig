@@ -582,14 +582,14 @@ void k8s_dispatcher::handle_event(const Json::Value& root, const msg_data& data)
 					const Json::Value& kind = involved_object["kind"];
 					const Json::Value& event_reason = object["reason"];
 					g_logger.log("K8s EVENT: involved object and event reason found:" + kind.asString() + '/' + event_reason.asString(), sinsp_logger::SEV_TRACE);
-					if(!kind.isNull() && kind.isConvertibleTo(Json::stringValue) &&
-						!event_reason.isNull() && event_reason.isConvertibleTo(Json::stringValue))
+					if(!kind.isNull() && kind.is_primitive() &&
+					   !event_reason.isNull() && event_reason.is_primitive())
 					{
 						bool is_allowed = m_event_filter->allows_all();
-						std::string type = kind.asString();
+						std::string type = kind;
 						if(!is_allowed && !type.empty())
 						{
-							std::string reason = event_reason.asString();
+							std::string reason = event_reason;
 							is_allowed = m_event_filter->allows_all(type);
 							if(!is_allowed && !reason.empty())
 							{

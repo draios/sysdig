@@ -4312,58 +4312,58 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		sinsp_container_info container_info;
 		const Json::Value& container = root["container"];
 		const Json::Value& id = container["id"];
-		if(!id.isNull() && id.isConvertibleTo(Json::stringValue))
+		if(!id.isNull() && id.is_primitive())
 		{
-			container_info.m_id = id.asString();
+			container_info.m_id = id;
 		}
 		const Json::Value& type = container["type"];
-		if(!type.isNull() && type.isConvertibleTo(Json::uintValue))
+		if(!type.isNull() && type.is_primitive())
 		{
-			container_info.m_type = static_cast<sinsp_container_type>(type.asUInt());
+			container_info.m_type = static_cast<sinsp_container_type>(type);
 		}
 		const Json::Value& name = container["name"];
-		if(!name.isNull() && name.isConvertibleTo(Json::stringValue))
+		if(!name.isNull() && name.is_primitive())
 		{
-			container_info.m_name = name.asString();
+			container_info.m_name = name;
 		}
 		const Json::Value& image = container["image"];
-		if(!image.isNull() && image.isConvertibleTo(Json::stringValue))
+		if(!image.isNull() && image.is_primitive())
 		{
-			container_info.m_image = image.asString();
+			container_info.m_image = image;
 		}
 		const Json::Value& imageid = container["imageid"];
-		if(!imageid.isNull() && imageid.isConvertibleTo(Json::stringValue))
+		if(!imageid.isNull() && imageid.is_primitive())
 		{
-			container_info.m_imageid = imageid.asString();
+			container_info.m_imageid = imageid;
 		}
 		const Json::Value& imagerepo = container["imagerepo"];
-		if(!imagerepo.isNull() && imagerepo.isConvertibleTo(Json::stringValue))
+		if(!imagerepo.isNull() && imagerepo.is_primitive())
 		{
-			container_info.m_imagerepo = imagerepo.asString();
+			container_info.m_imagerepo = imagerepo;
 		}
 		const Json::Value& imagetag = container["imagetag"];
-		if(!imagetag.isNull() && imagetag.isConvertibleTo(Json::stringValue))
+		if(!imagetag.isNull() && imagetag.is_primitive())
 		{
-			container_info.m_imagetag = imagetag.asString();
+			container_info.m_imagetag = imagetag;
 		}
 		const Json::Value& imagedigest = container["imagedigest"];
-		if(!imagedigest.isNull() && imagedigest.isConvertibleTo(Json::stringValue))
+		if(!imagedigest.isNull() && imagedigest.is_primitive())
 		{
-			container_info.m_imagedigest = imagedigest.asString();
+			container_info.m_imagedigest = imagedigest;
 		}
 		const Json::Value& privileged = container["privileged"];
-		if(!privileged.isNull() && privileged.isConvertibleTo(Json::booleanValue))
+		if(!privileged.isNull() && privileged.is_primitive())
 		{
-			container_info.m_privileged = privileged.asBool();
+			container_info.m_privileged = privileged;
 		}
 
 		sinsp_container_info::parse_json_mounts(container["Mounts"], container_info.m_mounts);
 		const Json::Value& contip = container["ip"];
-		if(!contip.isNull() && contip.isConvertibleTo(Json::stringValue))
+		if(!contip.isNull() && contip.is_primitive())
 		{
 			uint32_t ip;
 
-			if(inet_pton(AF_INET, contip.asString().c_str(), &ip) == -1)
+			if(inet_pton(AF_INET, contip.get<std::string>().c_str(), &ip) == -1)
 			{
 				throw sinsp_exception("Invalid 'ip' field while parsing container info: " + json);
 			}
@@ -4371,9 +4371,9 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 			container_info.m_container_ip = ntohl(ip);
 		}
 		const Json::Value& mesos_task_id = container["mesos_task_id"];
-		if(!mesos_task_id.isNull() && mesos_task_id.isConvertibleTo(Json::stringValue))
+		if(!mesos_task_id.isNull() && mesos_task_id.is_primitive())
 		{
-			container_info.m_mesos_task_id = mesos_task_id.asString();
+			container_info.m_mesos_task_id = mesos_task_id;
 		}
 		m_inspector->m_container_manager.add_container(container_info, evt->get_thread_info(true));
 		/*

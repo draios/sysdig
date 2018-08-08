@@ -111,10 +111,10 @@ bool k8s_daemonset_handler::handle_component(const Json::Value& json, const msg_
 				handle_selectors(ds, json["selector"]);
 				const Json::Value& desired = json["desiredScheduled"];
 				const Json::Value& current = json["currentScheduled"];
-				if(!desired.isNull() && desired.isConvertibleTo(Json::intValue) &&
-				   !current.isNull() && current.isConvertibleTo(Json::intValue))
+				if(!desired.isNull() && desired.is_primitive() &&
+				   !current.isNull() && current.is_primitive())
 				{
-					ds.set_scheduled(desired.asInt(), current.asInt());
+					ds.set_scheduled(desired, current);
 				}
 			}
 			else if(data->m_reason == k8s_component::COMPONENT_DELETED)

@@ -465,9 +465,9 @@ int k8s_replicas_t::get_count(const Json::Value& item, const std::string& replic
 	if(!item.isNull())
 	{
 		const Json::Value& replicas = item[replica_name];
-		if(!replicas.isNull() && replicas.isConvertibleTo(Json::intValue))
+		if(!replicas.isNull() && replicas.is_primitive())
 		{
-			return replicas.asInt();
+			return replicas;
 		}
 	}
 
