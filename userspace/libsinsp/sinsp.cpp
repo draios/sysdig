@@ -1500,6 +1500,7 @@ threadinfo_map_t::ptr_t sinsp::get_thread_ref(int64_t tid, bool query_os_if_not_
 			newti->m_uid = 0xffffffff;
 			newti->m_gid = 0xffffffff;
 			newti->m_nchilds = 0;
+			newti->m_loginuid = 0xffffffff;
 		}
 
 		//
@@ -1718,6 +1719,23 @@ const scap_machine_info* sinsp::get_machine_info()
 const unordered_map<uint32_t, scap_userinfo*>* sinsp::get_userlist()
 {
 	return &m_userlist;
+}
+
+scap_userinfo* sinsp::get_user(uint32_t uid)
+{
+	unordered_map<uint32_t, scap_userinfo*>::const_iterator it;
+	if(uid == 0xffffffff)
+	{
+		return NULL;
+	}
+
+	it = m_userlist.find(uid);
+	if(it == m_userlist.end())
+	{
+		return NULL;
+	}
+
+	return it->second;
 }
 
 const unordered_map<uint32_t, scap_groupinfo*>* sinsp::get_grouplist()
