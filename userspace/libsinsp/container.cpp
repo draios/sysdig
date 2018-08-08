@@ -373,9 +373,9 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 		container->m_cpu_period = cpu_period;
 	}
 	const json &privileged = host_config_obj["Privileged"];
-	if(!privileged.is_null() && privileged.is_bool())
+	if(!privileged.is_null() && privileged.is_boolean())
 	{
-		container->m_privileged = privileged.asBool();
+		container->m_privileged = privileged;
 	}
 
 	sinsp_container_info::parse_json_mounts(root["Mounts"], container->m_mounts);

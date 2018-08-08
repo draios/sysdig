@@ -82,9 +82,9 @@ public:
 			get_string_value(mode, m_mode);
 			get_string_value(propagation, m_propagation);
 
-			if(!rw.is_null() && rw.is_bool())
+			if(!rw.is_null() && rw.is_boolean())
 			{
-				m_rdwr = rw.asBool();
+				m_rdwr = rw;
 			}
 		}
 
