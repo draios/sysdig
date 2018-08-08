@@ -291,6 +291,16 @@ public:
 		return (m_flags & FLAGS_SOCKET_CONNECTED) == FLAGS_SOCKET_CONNECTED;
 	}
 
+	inline bool is_socket_pending()
+	{
+		return (m_flags & FLAGS_CONNECTION_PENDING) == FLAGS_CONNECTION_PENDING;
+	}
+
+	inline bool is_socket_failed()
+	{
+		return (m_flags & FLAGS_CONNECTION_FAILED) == FLAGS_CONNECTION_FAILED;
+	}
+
 	inline bool is_cloned()
 	{
 		return (m_flags & FLAGS_IS_CLONED) == FLAGS_IS_CLONED;
@@ -341,6 +351,8 @@ private:
 		FLAGS_IN_BASELINE_OTHER = (1 << 12),
 		FLAGS_SOCKET_CONNECTED = (1 << 13),
 		FLAGS_IS_CLONED = (1 << 14),
+		FLAGS_CONNECTION_PENDING = (1 << 15),
+		FLAGS_CONNECTION_FAILED = (1 << 16),
 	};
 
 	void add_filename(const char* fullpath);
@@ -424,7 +436,20 @@ private:
 
 	inline void set_socket_connected()
 	{
+		m_flags &= ~(FLAGS_CONNECTION_PENDING | FLAGS_CONNECTION_FAILED);
 		m_flags |= FLAGS_SOCKET_CONNECTED;
+	}
+
+	inline void set_socket_pending()
+	{
+		m_flags &= ~(FLAGS_SOCKET_CONNECTED | FLAGS_CONNECTION_FAILED);
+		m_flags |= FLAGS_CONNECTION_PENDING;
+	}
+
+	inline void set_socket_failed()
+	{
+		m_flags &= ~(FLAGS_SOCKET_CONNECTED | FLAGS_CONNECTION_PENDING);
+		m_flags |= FLAGS_CONNECTION_FAILED;
 	}
 
 	inline void set_is_cloned()
