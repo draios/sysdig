@@ -27,7 +27,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <sstream>
 
 #include <scap.h>
-#include "nlohmann/json.h"
+#include "nlohmann/json.hpp"
 
 class sinsp_evttables;
 typedef union _sinsp_sockinfo sinsp_sockinfo;

@@ -10,7 +10,7 @@
 #include "k8s_component.h"
 #include "k8s_state.h"
 #include "k8s_event_data.h"
-#include "nlohmann/json.h"
+#include "nlohmann/json.hpp"
 #include <deque>
 #include <string>
 

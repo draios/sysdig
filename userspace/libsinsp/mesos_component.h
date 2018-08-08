@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "nlohmann/json.h"
+#include "nlohmann/json.hpp"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include <vector>

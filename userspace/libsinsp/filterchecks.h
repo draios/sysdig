@@ -18,7 +18,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 #include <unordered_set>
-#include <nlohmann/json.h>
+#include <nlohmann/json.hpp>
 #include "filter_value.h"
 #include "prefix_search.h"
 #ifndef CYGWING_AGENT

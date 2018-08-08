@@ -7,7 +7,7 @@
 #pragma once
 
 #include "k8s_component.h"
-#include "nlohmann/json.h"
+#include "nlohmann/json.hpp"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include <vector>

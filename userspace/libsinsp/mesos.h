@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "nlohmann/json.h"
+#include "nlohmann/json.hpp"
 #include "mesos_auth.h"
 #include "mesos_common.h"
 #include "mesos_component.h"

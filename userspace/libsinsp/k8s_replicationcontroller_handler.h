@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "nlohmann/json.h"
+#include "nlohmann/json.hpp"
 #include "sinsp_auth.h"
 #include "k8s_handler.h"
 #include "k8s_state.h"

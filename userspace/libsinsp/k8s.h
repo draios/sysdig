@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "nlohmann/json.h"
+#include "nlohmann/json.hpp"
 #include "k8s_component.h"
 #include "k8s_state.h"
 #include "k8s_event_data.h"

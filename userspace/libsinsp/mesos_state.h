@@ -8,7 +8,7 @@
 
 #include "mesos_component.h"
 #include "marathon_component.h"
-#include "nlohmann/json.h"
+#include "nlohmann/json.hpp"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "json_error_log.h"

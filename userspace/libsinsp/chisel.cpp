@@ -28,7 +28,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 #endif
 #include <third-party/tinydir.h>
-#include <nlohmann/json.h>
+#include <nlohmann/json.hpp>
 
 #include "sinsp.h"
 #include "sinsp_int.h"

@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "nlohmann/json.h"
+#include "nlohmann/json.hpp"
 #include "socket_collector.h"
 #include "uri.h"
 #include "user_event.h"

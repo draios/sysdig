@@ -17,7 +17,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #pragma once
-#include <nlohmann/json.h>
+#include <nlohmann/json.hpp>
 
 #ifndef VISIBILITY_PRIVATE
 #define VISIBILITY_PRIVATE private:
