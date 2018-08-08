@@ -257,8 +257,8 @@ namespace Json
 	class Value;
 }
 
-std::string get_json_string(const json& obj, const std::string& name);
-inline std::string json_as_string(const json& json)
+std::string get_json_string(const nlohmann::json& obj, const std::string& name);
+inline std::string json_as_string(const nlohmann::json& json)
 {
 	return Json::FastWriter().write(json);
 }

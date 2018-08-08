@@ -32,5 +32,5 @@ private:
 	static std::string EVENT_FILTER;
 	static std::string STATE_FILTER;
 
-	bool handle_component(const json& json, const msg_data* data = 0);
+	bool handle_component(const nlohmann::json& json, const msg_data* data = 0);
 };

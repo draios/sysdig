@@ -100,7 +100,7 @@ private:
 	typedef std::unordered_map<std::string, std::string> name_translation_map_t;
 	typedef std::set<std::string> entity_events_t;
 	const std::string& translate_name(const std::string& event_name);
-	void emit_event(json& root, std::string type, std::string status, bool send_to_backend);
+	void emit_event(nlohmann::json& root, std::string type, std::string status, bool send_to_backend);
 	void handle_event(json&& root);
 
 	std::string   m_id;

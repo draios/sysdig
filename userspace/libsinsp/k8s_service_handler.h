@@ -29,11 +29,11 @@ public:
 
 	~k8s_service_handler();
 
-	static void extract_services_data(const json& spec, k8s_service_t& service, const k8s_pods& pods);
+	static void extract_services_data(const nlohmann::json& spec, k8s_service_t& service, const k8s_pods& pods);
 private:
 	static std::string EVENT_FILTER;
 	static std::string STATE_FILTER;
 	static std::string NULL_FILTER;
 
-	virtual bool handle_component(const json& json, const msg_data* data = 0);
+	virtual bool handle_component(const nlohmann::json& json, const msg_data* data = 0);
 };

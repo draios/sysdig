@@ -194,7 +194,7 @@ public:
 	virtual std::string get_node_name() const;
 
 	template <typename C>
-	static void extract_string_array(const json& arr, C& list)
+	static void extract_string_array(const nlohmann::json& arr, C& list)
 	{
 		if(!arr.is_null() && arr.is_array())
 		{
@@ -208,7 +208,7 @@ public:
 		}
 	}
 
-	static k8s_pair_list extract_object(const json& object, const std::string& name);
+	static k8s_pair_list extract_object(const nlohmann::json& object, const std::string& name);
 
 	static const std::string& get_name(const component_pair& p);
 
@@ -284,7 +284,7 @@ public:
 
 	virtual std::string get_node_name() const;
 
-	static host_ip_list extract_addresses(const json& status);
+	static host_ip_list extract_addresses(const nlohmann::json& status);
 
 private:
 	host_ip_list m_host_ips;
@@ -362,8 +362,8 @@ public:
 	void set_stat_replicas(int replicas);
 	int get_stat_replicas() const;
 
-	static int get_count(const json& item, const std::string& replica_name = "replicas");
-	static void set_replicas(k8s_replicas_t& replicas, const json& item);
+	static int get_count(const nlohmann::json& item, const std::string& replica_name = "replicas");
+	static void set_replicas(k8s_replicas_t& replicas, const nlohmann::json& item);
 
 protected:
 	int m_spec_replicas = UNKNOWN_REPLICAS;
@@ -391,7 +391,7 @@ public:
 	int get_spec_replicas() const;
 	void set_stat_replicas(int replicas);
 	int get_stat_replicas() const;
-	void set_replicas(const json& item, const std::string& replica_name = "replicas");
+	void set_replicas(const nlohmann::json& item, const std::string& replica_name = "replicas");
 	void set_replicas(int spec, int stat);
 
 protected:
@@ -466,7 +466,7 @@ public:
 	int get_desired_scheduled() const;
 	void set_current_scheduled(int replicas);
 	int get_current_scheduled() const;
-	void set_scheduled(const json& item);
+	void set_scheduled(const nlohmann::json& item);
 	void set_scheduled(int desired, int current);
 
 private:
@@ -489,7 +489,7 @@ public:
 	int get_spec_replicas() const;
 	void set_stat_replicas(int replicas);
 	int get_stat_replicas() const;
-	void set_replicas(const json& item);
+	void set_replicas(const nlohmann::json& item);
 	void set_replicas(int desired, int current);
 
 	std::vector<const k8s_pod_t*> get_selected_pods(const std::vector<k8s_pod_t>& pods) const;
@@ -513,7 +513,7 @@ public:
 
 	k8s_event_t(const std::string& name, const std::string& uid, const std::string& ns);
 
-	bool update(const json& item, k8s_state_t& state);
+	bool update(const nlohmann::json& item, k8s_state_t& state);
 	void post_process(k8s_state_t& state);
 	bool has_pending_events() const;
 
@@ -522,8 +522,8 @@ private:
 	typedef sinsp_logger::event_severity severity_t;
 	typedef std::unordered_map<std::string, std::string> name_translation_map_t;
 
-	void make_scope(const json& obj, event_scope& scope);
-	void make_scope_impl(const json& obj, std::string comp, event_scope& scope, bool ns = true);
+	void make_scope(const nlohmann::json& obj, event_scope& scope);
+	void make_scope_impl(const nlohmann::json& obj, std::string comp, event_scope& scope, bool ns = true);
 
 	name_translation_map_t  m_name_translation;
 	std::map<std::string, json> m_postponed_events;
@@ -938,7 +938,7 @@ inline int k8s_rc_t::get_stat_replicas() const
 	return m_replicas.get_stat_replicas();
 }
 
-inline void k8s_rc_t::set_replicas(const json& item, const std::string& replica_name)
+inline void k8s_rc_t::set_replicas(const nlohmann::json& item, const std::string& replica_name)
 {
 	k8s_replicas_t::set_replicas(m_replicas, item);
 }
@@ -991,7 +991,7 @@ inline int k8s_deployment_t::get_stat_replicas() const
 	return m_replicas.get_stat_replicas();
 }
 
-inline void k8s_deployment_t::set_replicas(const json& item)
+inline void k8s_deployment_t::set_replicas(const nlohmann::json& item)
 {
 	k8s_replicas_t::set_replicas(m_replicas, item);
 }
@@ -1027,7 +1027,7 @@ inline int k8s_daemonset_t::get_current_scheduled() const
 	return m_replicas.get_stat_replicas();
 }
 
-inline void k8s_daemonset_t::set_scheduled(const json& item)
+inline void k8s_daemonset_t::set_scheduled(const nlohmann::json& item)
 {
 	m_replicas.set_spec_replicas(k8s_replicas_t::get_count(item["status"], "desiredNumberScheduled"));
 	m_replicas.set_stat_replicas(k8s_replicas_t::get_count(item["status"], "currentNumberScheduled"));

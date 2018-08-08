@@ -34,5 +34,5 @@ private:
 	static std::string STATE_FILTER;
 	static std::string NULL_FILTER;
 
-	virtual bool handle_component(const json& json, const msg_data* data = 0);
+	virtual bool handle_component(const nlohmann::json& json, const msg_data* data = 0);
 };

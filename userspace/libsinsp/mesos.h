@@ -114,8 +114,8 @@ private:
 		}
 		return false;
 	}
-	void capture_frameworks(const json& root, json& capture);
-	void capture_slaves(const json& root, json& capture);
+	void capture_frameworks(const nlohmann::json& root, nlohmann::json& capture);
+	void capture_slaves(const nlohmann::json& root, nlohmann::json& capture);
 
 	typedef std::unordered_map<std::string, marathon_http::ptr_t> marathon_http_map;
 
@@ -135,12 +135,12 @@ private:
 	void rebuild_mesos_state(bool full = false);
 	void rebuild_marathon_state(bool full = false);
 
-	void handle_frameworks(const json& root);
-	void add_framework(const json& framework);
-	void add_tasks(mesos_framework& framework, const json& f_val);
-	void add_tasks_impl(mesos_framework& framework, const json& tasks);
-	void handle_slaves(const json& root);
-	void add_slave(const json& framework);
+	void handle_frameworks(const nlohmann::json& root);
+	void add_framework(const nlohmann::json& framework);
+	void add_tasks(mesos_framework& framework, const nlohmann::json& f_val);
+	void add_tasks_impl(mesos_framework& framework, const nlohmann::json& tasks);
+	void handle_slaves(const nlohmann::json& root);
+	void add_slave(const nlohmann::json& framework);
 
 	void check_frameworks(const json_ptr_t& json);
 	void set_state_json(json_ptr_t json, const std::string& dummy = "");
@@ -152,7 +152,7 @@ private:
 	void set_marathon_apps_json(json_ptr_t json, const std::string& framework_id);
 	void parse_apps(json_ptr_t json, const std::string& framework_id);
 	void parse_apps(json&& json, const std::string& framework_id);
-	void remove_framework(const json& framework);
+	void remove_framework(const nlohmann::json& framework);
 
 	mesos_state_t m_state;
 	bool          m_creation_logged = false;

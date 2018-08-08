@@ -13,7 +13,7 @@ public:
 	typedef k8s_component::msg_reason msg_reason;
 	typedef k8s_component::msg_data msg_data;
 
-	k8s_api_error(const msg_data& data, const json& err);
+	k8s_api_error(const msg_data& data, const nlohmann::json& err);
 
 	~k8s_api_error();
 
@@ -32,8 +32,8 @@ public:
 	std::string to_string() const;
 
 private:
-	static std::string get_string(const json& obj, const std::string& name);
-	static int get_int(const json& obj, const std::string& name);
+	static std::string get_string(const nlohmann::json& obj, const std::string& name);
+	static int get_int(const nlohmann::json& obj, const std::string& name);
 
 	msg_data    m_data;
 	std::string m_meta;

@@ -82,16 +82,16 @@ public:
 protected:
 	typedef std::unordered_set<std::string> ip_addr_list_t;
 
-	virtual bool handle_component(const json& json, const msg_data* data = 0) = 0;
-	msg_data get_msg_data(const std::string& evt, const std::string& type, const json& root);
+	virtual bool handle_component(const nlohmann::json& json, const msg_data* data = 0) = 0;
+	msg_data get_msg_data(const std::string& evt, const std::string& type, const nlohmann::json& root);
 #ifdef HAS_CAPTURE
 	static bool is_ip_address(const std::string& addr);
 #endif // HAS_CAPTURE
 
-	k8s_pair_list extract_object(const json& object);
+	k8s_pair_list extract_object(const nlohmann::json& object);
 
 	template <typename T>
-	void handle_selectors(T& component, const json& selector)
+	void handle_selectors(T& component, const nlohmann::json& selector)
 	{
 		if(!selector.is_null())
 		{
@@ -104,8 +104,8 @@ protected:
 	}
 
 	void log_event(const msg_data& data);
-	void handle_error(const msg_data& data, const json& root, bool log = true);
-	void log_error(const msg_data& data, const json& root);
+	void handle_error(const msg_data& data, const nlohmann::json& root, bool log = true);
+	void log_error(const msg_data& data, const nlohmann::json& root);
 	void log_not_found(const msg_data& data) const;
 
 	k8s_state_t* m_state = nullptr;
@@ -290,7 +290,7 @@ public:
 	}
 
 private:
-	virtual bool handle_component(const json& json, const msg_data* data = 0)
+	virtual bool handle_component(const nlohmann::json& json, const msg_data* data = 0)
 	{
 		return false;
 	};

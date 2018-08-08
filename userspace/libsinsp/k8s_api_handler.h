@@ -31,7 +31,7 @@ public:
 
 private:
 	void handle_json(json&& root);
-	bool handle_component(const json& json, const msg_data* data = 0);
+	bool handle_component(const nlohmann::json& json, const msg_data* data = 0);
 
 
 	api_list_t m_extensions;

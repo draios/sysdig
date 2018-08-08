@@ -50,11 +50,11 @@ public:
 	void enqueue(k8s_event_data&& data);
 
 	void extract_data(const std::string& json, bool enqueue = false);
-	void extract_data(json& root, bool enqueue = false);
+	void extract_data(nlohmann::json& root, bool enqueue = false);
 
 	// clears the content of labels and fills it with new values, if any
 	template <typename T>
-	static void handle_labels(T& component, const json& metadata, const std::string& name)
+	static void handle_labels(T& component, const nlohmann::json& metadata, const std::string& name)
 	{
 		if(!metadata.is_null())
 		{
@@ -70,14 +70,14 @@ public:
 	// clears the content of selectors and fills it with new values, if any;
 	// the selector location depth in JSON tree is detected and handled accordingly
 	template <typename T>
-	static void handle_selectors(T& component, const json& spec)
+	static void handle_selectors(T& component, const nlohmann::json& spec)
 	{
 		if(!spec.is_null())
 		{
-			const json& selector = spec["selector"];
+			const nlohmann::json& selector = spec["selector"];
 			if(!selector.is_null())
 			{
-				const json& match_labels = selector["matchLabels"];
+				const nlohmann::json& match_labels = selector["matchLabels"];
 				k8s_pair_list selectors = match_labels.is_null() ?
 										  k8s_component::extract_object(spec, "selector") :
 										  k8s_component::extract_object(selector, "matchLabels");
@@ -97,7 +97,7 @@ public:
 private:
 	const std::string& next_msg();
 	
-	msg_data get_msg_data(json& root);
+	msg_data get_msg_data(nlohmann::json& root);
 
 	bool is_valid(const std::string& msg);
 
@@ -107,17 +107,17 @@ private:
 
 	void dispatch();
 
-	void handle_node(const json& root, const msg_data& data);
-	void handle_namespace(const json& root, const msg_data& data);
-	bool handle_pod(const json& root, const msg_data& data);
-	void handle_service(const json& root, const msg_data& data);
-	void handle_deployment(const json& root, const msg_data& data);
-	void handle_daemonset(const json& root, const msg_data& data);
-	void handle_event(const json& root, const msg_data& data);
+	void handle_node(const nlohmann::json& root, const msg_data& data);
+	void handle_namespace(const nlohmann::json& root, const msg_data& data);
+	bool handle_pod(const nlohmann::json& root, const msg_data& data);
+	void handle_service(const nlohmann::json& root, const msg_data& data);
+	void handle_deployment(const nlohmann::json& root, const msg_data& data);
+	void handle_daemonset(const nlohmann::json& root, const msg_data& data);
+	void handle_event(const nlohmann::json& root, const msg_data& data);
 
 	// handler for replication controllers and replica sets
 	template<typename T>
-	void handle_rc(const json& root, const msg_data& data, T& cont, const std::string& comp_name)
+	void handle_rc(const nlohmann::json& root, const msg_data& data, T& cont, const std::string& comp_name)
 	{
 		typedef typename T::value_type comp_t;
 
@@ -130,11 +130,11 @@ private:
 				g_logger.log(os.str(), sinsp_logger::SEV_DEBUG);
 			}
 			comp_t& rc = m_state.get_component<T, comp_t>(cont, data.m_name, data.m_uid, data.m_namespace);
-			const json& object = root["object"];
+			const nlohmann::json& object = root["object"];
 			if(!object.is_null())
 			{
 				handle_labels(rc, object["metadata"], "labels");
-				const json& spec = object["spec"];
+				const nlohmann::json& spec = object["spec"];
 				handle_selectors(rc, spec);
 				rc.set_replicas(object);
 			}
@@ -154,7 +154,7 @@ private:
 				return;
 			}
 			comp_t& rc = m_state.get_component<T, comp_t>(cont, data.m_name, data.m_uid, data.m_namespace);
-			const json& object = root["object"];
+			const nlohmann::json& object = root["object"];
 			if(!object.is_null())
 			{
 				handle_labels(rc, object["metadata"], "labels");
@@ -184,7 +184,7 @@ private:
 		}
 	}
 
-	void log_error(const json& root, const std::string& comp);
+	void log_error(const nlohmann::json& root, const std::string& comp);
 
 	static std::string to_reason_desc(msg_reason reason);
 

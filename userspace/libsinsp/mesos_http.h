@@ -76,13 +76,13 @@ protected:
 	callback_func_t get_parse_func();
 	std::string make_request(uri url, curl_version_info_data* m_curl_version = 0);
 	static json_ptr_t try_parse(const std::string& json, const std::string &uri);
-	static bool is_framework_active(const json& framework);
-	std::string get_framework_url(const json& framework);
+	static bool is_framework_active(const nlohmann::json& framework);
+	std::string get_framework_url(const nlohmann::json& framework);
 
 private:
 	void discover_mesos_leader();
 	nlohmann::json get_state_frameworks();
-	void discover_framework_uris(const json& frameworks);
+	void discover_framework_uris(const nlohmann::json& frameworks);
 
 	void send_request();
 

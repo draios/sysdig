@@ -153,7 +153,7 @@ public:
 	std::string get_group_id() const;
 	static std::string get_group_id(const std::string& app_id);
 
-	void set_labels(const json& labels);
+	void set_labels(const nlohmann::json& labels);
 	const mesos_pair_list& get_labels() const;
 	mesos_pair_t get_label(const std::string& key) const;
 

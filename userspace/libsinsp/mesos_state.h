@@ -95,8 +95,8 @@ public:
 		return m_is_captured;
 	}
 
-	void capture_groups(const json& root, const std::string& framework_id, json& capt, bool capture_fw = false);
-	void capture_apps(const json& root, const std::string& framework_id);
+	void capture_groups(const nlohmann::json& root, const std::string& framework_id, nlohmann::json& capt, bool capture_fw = false);
+	void capture_apps(const nlohmann::json& root, const std::string& framework_id);
 #endif // HAS_CAPTURE
 
 	mesos_state_t(bool is_captured = false, bool verbose = false);
@@ -111,7 +111,7 @@ public:
 	void push_framework(const mesos_framework& framework);
 	void emplace_framework(mesos_framework&& framework);
 	void remove_framework(const std::string& framework_uid);
-	void remove_framework(const json& framework);
+	void remove_framework(const nlohmann::json& framework);
 	const mesos_framework* get_framework_for_task(const std::string& task_id) const;
 
 	//
@@ -176,9 +176,9 @@ public:
 	bool has_data() const;
 
 private:
-	marathon_group::ptr_t add_group(const json& group, marathon_group::ptr_t to_group, const std::string& framework_id);
-	bool handle_groups(const json& groups, marathon_group::ptr_t p_groups, const std::string& framework_id);
-	marathon_app::ptr_t add_app(const json& app, const std::string& framework_id);
+	marathon_group::ptr_t add_group(const nlohmann::json& group, marathon_group::ptr_t to_group, const std::string& framework_id);
+	bool handle_groups(const nlohmann::json& groups, marathon_group::ptr_t p_groups, const std::string& framework_id);
+	marathon_app::ptr_t add_app(const nlohmann::json& app, const std::string& framework_id);
 
 	mesos_frameworks m_frameworks;
 	std::string      m_marathon_uri;
@@ -258,9 +258,9 @@ inline void mesos_state_t::emplace_framework(mesos_framework&& framework)
 	m_frameworks.emplace_back(std::move(framework));
 }
 
-inline void mesos_state_t::remove_framework(const json& framework)
+inline void mesos_state_t::remove_framework(const nlohmann::json& framework)
 {
-	const json& id = framework["id"];
+	const nlohmann::json& id = framework["id"];
 	if(!id.is_null() && id.is_string())
 	{
 		remove_framework(id.asString());
