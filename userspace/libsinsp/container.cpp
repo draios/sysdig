@@ -84,32 +84,25 @@ const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by
 
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 CURLM *sinsp_container_engine_docker::m_curlm = NULL;
-CURL *sinsp_container_engine_docker::m_curl = NULL;
+uint32_t sinsp_container_engine_docker::m_n_polling_attempts = 10;
+unordered_map<string, sinsp_container_engine_docker::docker_request_info> sinsp_container_engine_docker::m_pending_requests;
 #endif
 
+string sinsp_container_engine_docker::m_unix_socket_path;
+string sinsp_container_engine_docker::m_api_version = "/v1.24";
 bool sinsp_container_engine_docker::m_query_image_info = true;
 
-sinsp_container_engine_docker::sinsp_container_engine_docker() :
-	m_unix_socket_path(string(scap_get_host_root()) + "/var/run/docker.sock"),
-	m_api_version("/v1.24")
+sinsp_container_engine_docker::sinsp_container_engine_docker()
 {
+	m_unix_socket_path = string(scap_get_host_root()) + "/var/run/docker.sock";
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	if(!m_curlm)
 	{
-		m_curl = curl_easy_init();
 		m_curlm = curl_multi_init();
 
 		if(m_curlm)
 		{
 			curl_multi_setopt(m_curlm, CURLMOPT_PIPELINING, CURLPIPE_HTTP1|CURLPIPE_MULTIPLEX);
-		}
-
-		if(m_curl)
-		{
-			curl_easy_setopt(m_curl, CURLOPT_UNIX_SOCKET_PATH, m_unix_socket_path.c_str());
-			curl_easy_setopt(m_curl, CURLOPT_HTTPGET, 1);
-			curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
-			curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, curl_write_callback);
 		}
 	}
 #endif
@@ -118,8 +111,6 @@ sinsp_container_engine_docker::sinsp_container_engine_docker() :
 void sinsp_container_engine_docker::cleanup()
 {
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-	curl_easy_cleanup(m_curl);
-	m_curl = NULL;
 	curl_multi_cleanup(m_curlm);
 	m_curlm = NULL;
 #endif
@@ -139,23 +130,162 @@ size_t sinsp_container_engine_docker::curl_write_callback(const char* ptr, size_
 }
 #endif
 
-bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
+void sinsp_container_engine_docker::refresh()
 {
-	string json;
-#ifndef CYGWING_AGENT
-	sinsp_docker_response resp = get_docker(manager, "http://localhost" + m_api_version + "/containers/" + container->m_id + "/json", json);
-#else
-	sinsp_docker_response resp = get_docker(manager, "GET /v1.30/containers/" + container->m_id + "/json HTTP/1.1\r\nHost: docker\r\n\r\n", json);
+#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
+
+	if(m_pending_requests.empty())
+	{
+		return;
+	}
+
+	uint32_t count = 0;
+	while (count < m_n_polling_attempts)
+	{
+		int running_handles;
+		CURLMcode res = curl_multi_perform(m_curlm, &running_handles);
+		if(res != CURLM_OK)
+		{
+			ASSERT(false);
+			return;
+		}
+
+		CURLMsg *m;
+		do
+		{
+			int msgq;
+			m = curl_multi_info_read(m_curlm, &msgq);
+			if(m && (m->msg == CURLMSG_DONE))
+			{
+				CURL *e = m->easy_handle;
+
+				char *url = NULL;
+				if(curl_easy_getinfo(e, CURLINFO_EFFECTIVE_URL, &url) != CURLE_OK)
+				{
+					ASSERT(false);
+					return;
+				}
+
+				if(curl_multi_remove_handle(m_curlm, e) != CURLM_OK)
+				{
+					ASSERT(false);
+					return;
+				}
+
+				docker_request_info *req;
+				if(curl_easy_getinfo(e, CURLINFO_PRIVATE, &req) != CURLE_OK)
+				{
+					ASSERT(false);
+					return;
+				}
+				long http_code = 0;
+				if(curl_easy_getinfo(e, CURLINFO_RESPONSE_CODE, &http_code) != CURLE_OK)
+				{
+					ASSERT(false);
+					return;
+				}
+
+				curl_easy_cleanup(e);
+
+				if(http_code != 200)
+				{
+					if(!m_api_version.empty())
+					{
+						m_api_version.clear();
+						req->url = "http://localhost/containers/" + req->container_info.m_id + "/json";
+						start_docker_request(req);
+					}
+					else
+					{
+						ASSERT(false);
+						return;
+					}
+				}
+				else
+				{
+					Json::Reader reader;
+					bool done = true;
+
+					if(!req->query_images_endpoint && req->id_to_query_for_ip.empty())
+					{
+						if(!reader.parse(req->buf, req->c_root))
+						{
+							ASSERT(false);
+							return;
+						}
+
+						parse_docker(req->manager, &req->container_info, req->tinfo, req->c_root, req->query_images_endpoint, req->id_to_query_for_ip);
+						if(req->query_images_endpoint)
+						{
+							req->url = "http://localhost" + m_api_version + "/images/" + req->container_info.m_imageid + "/json?digests=1";
+							start_docker_request(req);
+							done = false;
+						}
+						else if(!req->id_to_query_for_ip.empty())
+						{
+							req->url = "http://localhost" + m_api_version + "/containers/" + req->id_to_query_for_ip + "/json";
+							start_docker_request(req);
+							done = false;
+						}
+					}
+					else if(req->query_images_endpoint)
+					{
+						if(!reader.parse(req->buf, req->i_root))
+						{
+							ASSERT(false);
+							return;
+						}
+
+						parse_docker_image(req->manager, &req->container_info, req->i_root);
+						req->query_images_endpoint = false;
+						if(!req->id_to_query_for_ip.empty())
+						{
+							req->url = "http://localhost" + m_api_version + "/containers/" + req->id_to_query_for_ip + "/json";
+							start_docker_request(req);
+							done = false;
+						}
+					}
+					else // !req->id_to_query_for_ip.empty()
+					{
+						if(!reader.parse(req->buf, req->c_root))
+						{
+							ASSERT(false);
+							return;
+						}
+						sinsp_container_info container_info;
+						parse_docker(req->manager, &container_info, req->tinfo, req->c_root, req->query_images_endpoint, req->id_to_query_for_ip);
+						req->container_info.m_container_ip = container_info.m_container_ip;
+					}
+
+					if(done)
+					{
+						req->manager->add_container(req->container_info, req->tinfo);
+						req->manager->notify_new_container(req->container_info);
+						m_pending_requests.erase(req->container_info.m_id);
+					}
+				}
+			}
+		} while(m);
+
+		if(m_pending_requests.empty())
+		{
+			return;
+		}
+
+		count++;
+	}
 #endif
+}
+
+bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo, Json::Value &root, bool &query_images_endpoint, string &id_to_query_for_ip)
+{
+#ifdef CYGWING_AGENT
+	sinsp_docker_response resp = get_docker(manager, "http://localhost" + m_api_version + "/containers/" + container->m_id + "/json", json);
 	switch(resp) {
 		case sinsp_docker_response::RESP_BAD_REQUEST:
 			m_api_version = "";
 			json = "";
-#ifndef CYGWING_AGENT
-			resp = get_docker(manager, "http://localhost/containers/" + container->m_id + "/json", json);
-#else
 			resp = get_docker(manager, "GET /containers/" + container->m_id + "/json HTTP/1.1\r\nHost: docker\r\n\r\n", json);
-#endif
 			if (resp == sinsp_docker_response::RESP_OK)
 			{
 				break;
@@ -169,7 +299,6 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 			break;
 	}
 
-	Json::Value root;
 	Json::Reader reader;
 	bool parsingSuccessful = reader.parse(json, root);
 	if(!parsingSuccessful)
@@ -177,6 +306,7 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 		ASSERT(false);
 		return false;
 	}
+#endif
 
 	const Json::Value& config_obj = root["Config"];
 
@@ -204,58 +334,9 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 						   false);
 	}
 
-	if(m_query_image_info && !container->m_imageid.empty() &&
-	   (no_name || container->m_imagedigest.empty() || (!container->m_imagedigest.empty() && container->m_imagetag.empty())))
-	{
-		string img_json;
-#ifndef CYGWING_AGENT
-		if(get_docker(manager, "http://localhost" + m_api_version + "/images/" + container->m_imageid + "/json?digests=1", img_json) == sinsp_docker_response::RESP_OK)
-#else
-		if(get_docker(manager, "GET /v1.30/images/" + container->m_imageid + "/json?digests=1 HTTP/1.1\r\nHost: docker \r\n\r\n", img_json) == sinsp_docker_response::RESP_OK)
-#endif
-		{
-			Json::Value img_root;
-			if(reader.parse(img_json, img_root))
-			{
-				for(const auto& rdig : img_root["RepoDigests"])
-				{
-					if(rdig.isString())
-					{
-						string repodigest = rdig.asString();
-						if(container->m_imagerepo.empty())
-						{
-							container->m_imagerepo = repodigest.substr(0, repodigest.find("@"));
-						}
-						if(repodigest.find(container->m_imagerepo) != string::npos)
-						{
-							container->m_imagedigest = repodigest.substr(repodigest.find("@")+1);
-							break;
-						}
-					}
-				}
-				for(const auto& rtag : img_root["RepoTags"])
-				{
-					if(rtag.isString())
-					{
-						string repotag = rtag.asString();
-						if(container->m_imagerepo.empty())
-						{
-							container->m_imagerepo = repotag.substr(0, repotag.find(":"));
-						}
-						if(repotag.find(container->m_imagerepo) != string::npos)
-						{
-							container->m_imagetag = repotag.substr(repotag.find(":")+1);
-							break;
-						}
-					}
-				}
-			}
-		}
-	}
-	if(container->m_imagetag.empty())
-	{
-		container->m_imagetag = "latest";
-	}
+	// Notify the caller if we need to contact the docker daemon again to get the missing image metadata
+	query_images_endpoint = m_query_image_info && !container->m_imageid.empty() &&
+		(no_name || container->m_imagedigest.empty() || (!container->m_imagedigest.empty() && container->m_imagetag.empty()));
 
 	container->m_name = root["Name"].asString();
 
@@ -273,21 +354,17 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 		string net_mode = hconfig_obj["NetworkMode"].asString();
 		if(strncmp(net_mode.c_str(), "container:", strlen("container:")) == 0)
 		{
-			std::string container_id = net_mode.substr(net_mode.find(":") + 1);
-			uint32_t container_ip;
+			std::string container_id = net_mode.substr(net_mode.find(":") + 1).substr(0, 12);
 			const sinsp_container_info *container_info = manager->get_container(container_id);
 			if(container_info)
 			{
-				container_ip = container_info->m_container_ip;
+				container->m_container_ip = container_info->m_container_ip;
 			}
 			else
 			{
-				sinsp_container_info pcnt;
-				pcnt.m_id = container_id;
-				parse_docker(manager, &pcnt, tinfo);
-				container_ip = pcnt.m_container_ip;
+				// Notify the caller that we need to contact the docker daemon again to get the correct ip
+				id_to_query_for_ip = container_id;
 			}
-			container->m_container_ip = container_ip;
 		}
 	}
 	else
@@ -385,6 +462,61 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 	return true;
 }
 
+bool sinsp_container_engine_docker::parse_docker_image(sinsp_container_manager* manager, sinsp_container_info *container, Json::Value &root)
+{
+#ifdef CYGWING_AGENT
+	string json;
+	if(get_docker(manager, "GET /v1.30/images/" + container->m_imageid + "/json?digests=1 HTTP/1.1\r\nHost: docker \r\n\r\n", json) != sinsp_docker_response::RESP_OK)
+	{
+		return false;
+	}
+	Json::Reader reader;
+	if(!reader.parse(json, root))
+	{
+		return false;
+	}
+#endif
+
+	for(const auto& rdig : root["RepoDigests"])
+	{
+		if(rdig.isString())
+		{
+			string repodigest = rdig.asString();
+			if(container->m_imagerepo.empty())
+			{
+				container->m_imagerepo = repodigest.substr(0, repodigest.find("@"));
+			}
+			if(repodigest.find(container->m_imagerepo) != string::npos)
+			{
+				container->m_imagedigest = repodigest.substr(repodigest.find("@")+1);
+				break;
+			}
+		}
+	}
+	for(const auto& rtag : root["RepoTags"])
+	{
+		if(rtag.isString())
+		{
+			string repotag = rtag.asString();
+			if(container->m_imagerepo.empty())
+			{
+				container->m_imagerepo = repotag.substr(0, repotag.find(":"));
+			}
+			if(repotag.find(container->m_imagerepo) != string::npos)
+			{
+				container->m_imagetag = repotag.substr(repotag.find(":")+1);
+				break;
+			}
+		}
+	}
+
+	if(container->m_imagetag.empty())
+	{
+		container->m_imagetag = "latest";
+	}
+
+	return true;
+}
 
 #ifdef CYGWING_AGENT
 bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
@@ -404,7 +536,21 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 	{
 		if (query_os_for_missing_info)
 		{
-			parse_docker(manager, &container_info, tinfo);
+			Json::Value c_root, i_root;
+			bool query_images_endpoint = false;
+			string id_to_query_for_ip;
+			parse_docker(manager, &container_info, tinfo, c_root, query_images_endpoint, id_to_query_for_ip);
+			if(query_images_endpoint)
+			{
+				parse_docker_image(manager, &container_info, i_root);
+			}
+			if(!id_to_query_for_ip.empty())
+			{
+				sinsp_container_info pcnt;
+				pcnt.m_id = id_to_query_for_ip;
+				parse_docker(manager, &pcnt, tinfo, c_root, query_images_endpoint, id_to_query_for_ip);
+				container_info.m_container_ip = pcnt.m_container_ip;
+			}
 		}
 		manager->add_container(container_info, tinfo);
 		manager->notify_new_container(container_info);
@@ -489,72 +635,90 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 		return false;
 
 	tinfo->m_container_id = container_info.m_id;
-	if (!manager->container_exists(container_info.m_id))
+	if (!manager->container_exists(container_info.m_id) &&
+	    m_pending_requests.find(container_info.m_id) == m_pending_requests.end())
 	{
 #ifndef _WIN32
 		if (query_os_for_missing_info)
 		{
-			parse_docker(manager, &container_info, tinfo);
+			m_pending_requests[container_info.m_id].url = "http://localhost" + m_api_version + "/containers/" + container_info.m_id + "/json";
+			m_pending_requests[container_info.m_id].query_images_endpoint = false;
+			m_pending_requests[container_info.m_id].id_to_query_for_ip.clear();
+			m_pending_requests[container_info.m_id].container_info = container_info;
+			m_pending_requests[container_info.m_id].tinfo = tinfo;
+			m_pending_requests[container_info.m_id].manager = manager;
+			start_docker_request(&m_pending_requests[container_info.m_id]);
+		}
+		else
+		{
+#endif
+			manager->add_container(container_info, tinfo);
+			manager->notify_new_container(container_info);
+#ifndef _WIN32
 		}
 #endif
-		manager->add_container(container_info, tinfo);
-		manager->notify_new_container(container_info);
 	}
+
 	return true;
 }
 
-sinsp_docker_response sinsp_container_engine_docker::get_docker(const sinsp_container_manager* manager, const string& url, string &json)
+bool sinsp_container_engine_docker::start_docker_request(docker_request_info *req)
 {
 #ifdef HAS_CAPTURE
-	if(curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str()) != CURLE_OK)
+	req->buf.clear();
+
+	CURL *curl_h = curl_easy_init();
+	if(!curl_h)
 	{
 		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
+		return false;
 	}
-	if(curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &json) != CURLE_OK)
+
+	if(curl_easy_setopt(curl_h, CURLOPT_UNIX_SOCKET_PATH, m_unix_socket_path.c_str()) != CURLE_OK)
 	{
 		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
+		return false;
 	}
-
-	if(curl_multi_add_handle(m_curlm, m_curl) != CURLM_OK)
+	if(curl_easy_setopt(curl_h, CURLOPT_HTTPGET, 1) != CURLE_OK)
 	{
 		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
+		return false;
 	}
-
-	int still_running;
-	do
-	{
-		CURLMcode res = curl_multi_perform(m_curlm, &still_running);
-		if(res != CURLM_OK)
-		{
-			ASSERT(false);
-			return sinsp_docker_response::RESP_ERROR;
-		}
-	}
-	while(still_running);
-
-	if(curl_multi_remove_handle(m_curlm, m_curl) != CURLM_OK)
+	if(curl_easy_setopt(curl_h, CURLOPT_FOLLOWLOCATION, 1) != CURLE_OK)
 	{
 		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
+		return false;
 	}
-
-	long http_code = 0;
-	if(curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &http_code) != CURLE_OK)
+	if(curl_easy_setopt(curl_h, CURLOPT_WRITEFUNCTION, curl_write_callback) != CURLE_OK)
 	{
 		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
+		return false;
 	}
-	if(http_code != 200)
+	if(curl_easy_setopt(curl_h, CURLOPT_URL, req->url.c_str()) != CURLE_OK)
 	{
-		return sinsp_docker_response::RESP_BAD_REQUEST;
+		ASSERT(false);
+		return false;
+	}
+	if(curl_easy_setopt(curl_h, CURLOPT_WRITEDATA, &req->buf) != CURLE_OK)
+	{
+		ASSERT(false);
+		return false;
+	}
+	if(curl_easy_setopt(curl_h, CURLOPT_PRIVATE, req) != CURLE_OK)
+	{
+		ASSERT(false);
+		return false;
 	}
 
-	return sinsp_docker_response::RESP_OK;
+	if(curl_multi_add_handle(m_curlm, curl_h) != CURLM_OK)
+	{
+		ASSERT(false);
+		return false;
+	}
+
+	return true;
 #else
-	return sinsp_docker_response::RESP_ERROR;
+	return false;
 #endif
 }
 
@@ -1284,6 +1448,11 @@ void sinsp_container_manager::subscribe_on_remove_container(remove_container_cb 
 void sinsp_container_manager::cleanup()
 {
 	sinsp_container_engine_docker::cleanup();
+}
+
+void sinsp_container_manager::refresh()
+{
+	sinsp_container_engine_docker::refresh();
 }
 
 void sinsp_container_manager::set_query_docker_image_info(bool query_image_info)

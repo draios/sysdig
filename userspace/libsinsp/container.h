@@ -171,20 +171,41 @@ public:
 
 	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	static void cleanup();
+	static void refresh();
 	static void set_query_image_info(bool query_image_info);
+
+	struct docker_request_info
+	{
+		string url;
+		string buf;
+		Json::Value c_root;
+		Json::Value i_root;
+		bool query_images_endpoint;
+		string id_to_query_for_ip;
+		sinsp_container_info container_info;
+		sinsp_threadinfo *tinfo;
+		sinsp_container_manager *manager;
+	};
 protected:
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	static size_t curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json);
-#endif
-	sinsp_docker_response get_docker(const sinsp_container_manager* manager, const string& url, string &json);
-	bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
 
-	string m_unix_socket_path;
-	string m_api_version;
+	static bool start_docker_request(docker_request_info *req);
+#endif
+#ifdef CYGWING_AGENT
+	static sinsp_docker_response get_docker(const sinsp_container_manager* manager, const string& url, string &json);
+#endif
+	static bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo,
+				 Json::Value &root, bool &query_images_endpoint, string &id_to_query_for_ip);
+	static bool parse_docker_image(sinsp_container_manager* manager, sinsp_container_info *container, Json::Value &root);
+
+	static string m_unix_socket_path;
+	static string m_api_version;
 	static bool m_query_image_info;
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	static CURLM *m_curlm;
-	static CURL *m_curl;
+	static unordered_map<string, docker_request_info> m_pending_requests;
+	static uint32_t m_n_polling_attempts;
 #endif
 };
 
@@ -251,6 +272,7 @@ public:
 	void subscribe_on_remove_container(remove_container_cb callback);
 
 	void cleanup();
+	void refresh();
 
 	void set_query_docker_image_info(bool query_image_info);
 private:

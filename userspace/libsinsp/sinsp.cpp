@@ -1268,9 +1268,15 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	m_parser->process_event(evt);
 #endif
 
-	// A side-effect of parsing this event may have generated a
-	// meta event. For example, parsing an execve or clone into a
-	// new cgroup may have created a container event.
+	if(!is_capture() && !m_meta_evt_pending)
+	{
+		m_container_manager.refresh();
+	}
+
+	// A side-effect of parsing this event (or refreshing the
+	// container manager) may have generated a meta event. For
+	// example, parsing an execve or clone into a new cgroup
+	// may have created a container event.
 	//
 	// We want that meta event to be returned/written to files
 	// *before* the original system event. So save the system
