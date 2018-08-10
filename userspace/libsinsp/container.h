@@ -174,14 +174,21 @@ public:
 	static void refresh();
 	static void set_query_image_info(bool query_image_info);
 
+	enum request_stage
+	{
+		REQ_S_CONTAINERS = 0,
+		REQ_S_IMAGES_NETPARENT,
+		REQ_S_IMAGES,
+		REQ_S_NETPARENT_CONTAINER,
+		REQ_S_DONE
+	};
+
 	struct docker_request_info
 	{
-		string url;
+		string c_id;
+		string i_id;
 		string buf;
-		Json::Value c_root;
-		Json::Value i_root;
-		bool query_images_endpoint;
-		string id_to_query_for_ip;
+		request_stage stage;
 		sinsp_container_info container_info;
 		sinsp_threadinfo *tinfo;
 		sinsp_container_manager *manager;
