@@ -261,7 +261,7 @@ public:
 	bool remove_inactive_containers();
 	void add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread);
 	sinsp_container_info * get_container(const string &id);
-	void notify_new_container(const sinsp_container_info& container_info);
+	void notify_new_container(const sinsp_container_info& container_info, sinsp_threadinfo *tinfo);
 	template<typename E> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	template<typename E1, typename E2, typename... Args> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	bool resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
@@ -285,7 +285,7 @@ public:
 	sinsp* m_inspector;
 private:
 	string container_to_json(const sinsp_container_info& container_info);
-	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);
+	bool container_to_sinsp_event(const string& json, sinsp_threadinfo *tinfo, sinsp_evt* evt);
 	string get_docker_env(const Json::Value &env_vars, const string &mti);
 
 	unordered_map<string, sinsp_container_info> m_containers;

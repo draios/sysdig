@@ -265,6 +265,8 @@ void sinsp_container_engine_docker::refresh()
 					case REQ_S_NETPARENT_CONTAINER:
 					{
 						sinsp_container_info container_info;
+						// tinfo passed here is not the right one, but that's fine
+						// because we'll just looking for container_info.m_container_ip
 						parse_docker(req->manager, &container_info, tinfo, root, query_images_endpoint, networked_container_id);
 						if(!networked_container_id.empty())
 						{
@@ -287,7 +289,7 @@ void sinsp_container_engine_docker::refresh()
 					{
 						tinfo->m_container_id = req->container_info.m_id;
 						req->manager->add_container(req->container_info, tinfo);
-						req->manager->notify_new_container(req->container_info);
+						req->manager->notify_new_container(req->container_info, tinfo);
 						m_pending_requests.erase(req->container_info.m_id);
 					}
 				}
@@ -582,7 +584,7 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 			}
 		}
 		manager->add_container(container_info, tinfo);
-		manager->notify_new_container(container_info);
+		manager->notify_new_container(container_info, tinfo);
 	}
 }
 
@@ -694,7 +696,7 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 #endif
 			tinfo->m_container_id = container_info.m_id;
 			manager->add_container(container_info, tinfo);
-			manager->notify_new_container(container_info);
+			manager->notify_new_container(container_info, tinfo);
 #if !defined(_WIN32) && defined(HAS_CAPTURE)
 		}
 #endif
@@ -817,7 +819,7 @@ bool sinsp_container_engine_lxc::resolve(sinsp_container_manager* manager, sinsp
 	{
 		container_info.m_name = container_info.m_id;
 		manager->add_container(container_info, tinfo);
-		manager->notify_new_container(container_info);
+		manager->notify_new_container(container_info, tinfo);
 	}
 	return true;
 }
@@ -887,7 +889,7 @@ bool sinsp_container_engine_libvirt_lxc::resolve(sinsp_container_manager* manage
 	{
 		container_info.m_name = container_info.m_id;
 		manager->add_container(container_info, tinfo);
-		manager->notify_new_container(container_info);
+		manager->notify_new_container(container_info, tinfo);
 	}
 	return true;
 }
@@ -933,7 +935,7 @@ bool sinsp_container_engine_mesos::resolve(sinsp_container_manager* manager, sin
 	{
 		container_info.m_name = container_info.m_id;
 		manager->add_container(container_info, tinfo);
-		manager->notify_new_container(container_info);
+		manager->notify_new_container(container_info, tinfo);
 	}
 	return true;
 }
@@ -1172,7 +1174,7 @@ bool sinsp_container_engine_rkt::resolve(sinsp_container_manager* manager, sinsp
 	if (have_rkt)
 	{
 		manager->add_container(container_info, tinfo);
-		manager->notify_new_container(container_info);
+		manager->notify_new_container(container_info, tinfo);
 		return true;
 	}
 	else
@@ -1397,7 +1399,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	return Json::FastWriter().write(obj);
 }
 
-bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp_evt* evt)
+bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp_threadinfo *tinfo, sinsp_evt* evt)
 {
 	// TODO: variable event length
 	size_t evt_len = SP_EVT_BUF_SIZE;
@@ -1416,7 +1418,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 	scap_evt* scapevt = evt->m_pevt;
 
 	scapevt->ts = m_inspector->m_lastevent_ts;
-	scapevt->tid = 0;
+	scapevt->tid = tinfo ? tinfo->m_tid : 0;
 	scapevt->len = (uint32_t)totlen;
 	scapevt->type = PPME_CONTAINER_JSON_E;
 	scapevt->nparams = 1;
@@ -1446,9 +1448,9 @@ void sinsp_container_manager::add_container(const sinsp_container_info& containe
 	}
 }
 
-void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info)
+void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info, sinsp_threadinfo *tinfo)
 {
-	if(container_to_sinsp_event(container_to_json(container_info), &m_inspector->m_meta_evt))
+	if(container_to_sinsp_event(container_to_json(container_info), tinfo, &m_inspector->m_meta_evt))
 	{
 		m_inspector->m_meta_evt_pending = true;
 	}
@@ -1458,7 +1460,7 @@ void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)
 {
 	for(unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.begin(); it != m_containers.end(); ++it)
 	{
-		if(container_to_sinsp_event(container_to_json(it->second), &m_inspector->m_meta_evt))
+		if(container_to_sinsp_event(container_to_json(it->second), NULL, &m_inspector->m_meta_evt))
 		{
 			int32_t res = scap_dump(m_inspector->m_h, dumper, m_inspector->m_meta_evt.m_pevt, m_inspector->m_meta_evt.m_cpuid, 0);
 			if(res != SCAP_SUCCESS)
