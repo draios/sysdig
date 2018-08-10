@@ -189,12 +189,11 @@ public:
 protected:
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	static size_t curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json);
-
-	static bool start_docker_request(docker_request_info *req);
 #endif
 #ifdef CYGWING_AGENT
 	static sinsp_docker_response get_docker(const sinsp_container_manager* manager, const string& url, string &json);
 #endif
+	static bool start_docker_request(docker_request_info *req);
 	static bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo,
 				 Json::Value &root, bool &query_images_endpoint, string &id_to_query_for_ip);
 	static bool parse_docker_image(sinsp_container_manager* manager, sinsp_container_info *container, Json::Value &root);

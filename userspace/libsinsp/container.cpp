@@ -635,11 +635,10 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 		return false;
 
 	tinfo->m_container_id = container_info.m_id;
-	if (!manager->container_exists(container_info.m_id) &&
-	    m_pending_requests.find(container_info.m_id) == m_pending_requests.end())
+	if (!manager->container_exists(container_info.m_id))
 	{
-#ifndef _WIN32
-		if (query_os_for_missing_info)
+#if !defined(_WIN32) && defined(HAS_CAPTURE)
+		if (query_os_for_missing_info && m_pending_requests.find(container_info.m_id) == m_pending_requests.end())
 		{
 			m_pending_requests[container_info.m_id].url = "http://localhost" + m_api_version + "/containers/" + container_info.m_id + "/json";
 			m_pending_requests[container_info.m_id].query_images_endpoint = false;
@@ -654,7 +653,7 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 #endif
 			manager->add_container(container_info, tinfo);
 			manager->notify_new_container(container_info);
-#ifndef _WIN32
+#if !defined(_WIN32) && defined(HAS_CAPTURE)
 		}
 #endif
 	}
