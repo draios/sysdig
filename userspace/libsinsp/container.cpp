@@ -205,12 +205,20 @@ void sinsp_container_engine_docker::refresh()
 						return;
 					}
 
+					sinsp_threadinfo *tinfo = req->manager->m_inspector->m_thread_manager->get_threads()->get(req->pid);
+					if(!tinfo)
+					{
+						// although it should never happen since we refresh req->pid
+						m_pending_requests.erase(req->container_info.m_id);
+						continue;
+					}
+
 					bool query_images_endpoint = false;
 					string networked_container_id;
 					switch(req->stage) {
 					case REQ_S_CONTAINERS:
 					{
-						parse_docker(req->manager, &req->container_info, req->tinfo, root, query_images_endpoint, networked_container_id);
+						parse_docker(req->manager, &req->container_info, tinfo, root, query_images_endpoint, networked_container_id);
 						if(query_images_endpoint)
 						{
 							req->i_id = req->container_info.m_imageid;
@@ -255,7 +263,7 @@ void sinsp_container_engine_docker::refresh()
 					case REQ_S_NETPARENT_CONTAINER:
 					{
 						sinsp_container_info container_info;
-						parse_docker(req->manager, &container_info, req->tinfo, root, query_images_endpoint, networked_container_id);
+						parse_docker(req->manager, &container_info, tinfo, root, query_images_endpoint, networked_container_id);
 						if(!networked_container_id.empty())
 						{
 							req->c_id = networked_container_id;
@@ -275,7 +283,8 @@ void sinsp_container_engine_docker::refresh()
 
 					if(req->stage == REQ_S_DONE)
 					{
-						req->manager->add_container(req->container_info, req->tinfo);
+						tinfo->m_container_id = req->container_info.m_id;
+						req->manager->add_container(req->container_info, tinfo);
 						req->manager->notify_new_container(req->container_info);
 						m_pending_requests.erase(req->container_info.m_id);
 					}
@@ -652,27 +661,41 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 	if (!matches)
 		return false;
 
-	tinfo->m_container_id = container_info.m_id;
 	if (!manager->container_exists(container_info.m_id))
 	{
 #if !defined(_WIN32) && defined(HAS_CAPTURE)
-		if (query_os_for_missing_info && m_pending_requests.find(container_info.m_id) == m_pending_requests.end())
+		if (query_os_for_missing_info)
 		{
-			m_pending_requests[container_info.m_id].stage = REQ_S_CONTAINERS;
-			m_pending_requests[container_info.m_id].c_id = container_info.m_id;
-			m_pending_requests[container_info.m_id].container_info = container_info;
-			m_pending_requests[container_info.m_id].tinfo = tinfo;
-			m_pending_requests[container_info.m_id].manager = manager;
-			start_docker_request(&m_pending_requests[container_info.m_id]);
+			if(m_pending_requests.find(container_info.m_id) == m_pending_requests.end())
+			{
+				m_pending_requests[container_info.m_id].stage = REQ_S_CONTAINERS;
+				m_pending_requests[container_info.m_id].c_id = container_info.m_id;
+				m_pending_requests[container_info.m_id].container_info = container_info;
+				m_pending_requests[container_info.m_id].pid = tinfo->m_pid;
+				m_pending_requests[container_info.m_id].manager = manager;
+				start_docker_request(&m_pending_requests[container_info.m_id]);
+			}
+			else
+			{
+				// Keep the pending metadata retrieval tied to alive container processes
+				// The current one might be already dead, causing the request to fail,
+				// hence in more events without container info
+				m_pending_requests[container_info.m_id].pid = tinfo->m_pid;
+			}
 		}
 		else
 		{
 #endif
+			tinfo->m_container_id = container_info.m_id;
 			manager->add_container(container_info, tinfo);
 			manager->notify_new_container(container_info);
 #if !defined(_WIN32) && defined(HAS_CAPTURE)
 		}
 #endif
+	}
+	else
+	{
+		tinfo->m_container_id = container_info.m_id;
 	}
 
 	return true;

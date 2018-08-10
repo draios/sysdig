@@ -190,7 +190,7 @@ public:
 		string buf;
 		request_stage stage;
 		sinsp_container_info container_info;
-		sinsp_threadinfo *tinfo;
+		uint64_t pid;
 		sinsp_container_manager *manager;
 	};
 protected:
@@ -281,12 +281,13 @@ public:
 	void refresh();
 
 	void set_query_docker_image_info(bool query_image_info);
+
+	sinsp* m_inspector;
 private:
 	string container_to_json(const sinsp_container_info& container_info);
 	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);
 	string get_docker_env(const Json::Value &env_vars, const string &mti);
 
-	sinsp* m_inspector;
 	unordered_map<string, sinsp_container_info> m_containers;
 	uint64_t m_last_flush_time_ns;
 	list<new_container_cb> m_new_callbacks;
