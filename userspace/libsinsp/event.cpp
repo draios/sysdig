@@ -136,7 +136,7 @@ sinsp_threadinfo* sinsp_evt::get_thread_info(bool query_os_if_not_found)
 		return m_tinfo;
 	}
 
-	return m_inspector->get_thread(m_pevt->tid, query_os_if_not_found, false);
+	return m_inspector->get_thread(m_pevt->tid, query_os_if_not_found, get_category() & EC_INTERNAL);
 }
 
 int64_t sinsp_evt::get_fd_num()
