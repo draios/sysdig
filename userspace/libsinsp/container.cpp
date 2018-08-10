@@ -30,6 +30,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "dragent_win_hal_public.h"
 #endif
 
+#define MAX_CONCURRENT_DOCKER_REQUESTS 256
+
 void sinsp_container_info::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_container_info::container_mount_info> &mounts)
 {
 	if(!mnt_obj.isNull() && mnt_obj.isArray())
@@ -668,6 +670,10 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 		{
 			if(m_pending_requests.find(container_info.m_id) == m_pending_requests.end())
 			{
+				if(m_pending_requests.size() > MAX_CONCURRENT_DOCKER_REQUESTS)
+				{
+					return false;
+				}
 				m_pending_requests[container_info.m_id].stage = REQ_S_CONTAINERS;
 				m_pending_requests[container_info.m_id].c_id = container_info.m_id;
 				m_pending_requests[container_info.m_id].container_info = container_info;
