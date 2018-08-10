@@ -468,6 +468,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETSID_X:
 		parse_setsid_exit(evt);
 		break;
+	case PPME_SOCKET_GETSOCKOPT_X:
+		parse_getsockopt_exit(evt);
+		break;
 	default:
 		break;
 	}
@@ -4627,6 +4630,64 @@ void sinsp_parser::parse_setsid_exit(sinsp_evt *evt)
 	{
 		if (evt->get_thread_info()) {
 			evt->get_thread_info()->m_sid = retval;
+		}
+	}
+}
+
+void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	int64_t retval;
+	int64_t err;
+	int64_t fd;
+	int8_t level, optname;
+
+	if (!evt->m_tinfo)
+	{
+		return;
+	}
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(retval < 0)
+	{
+		return;
+	}
+
+	parinfo = evt->get_param(2);
+	level = *(int8_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int8_t));
+
+	parinfo = evt->get_param(3);
+	optname = *(int8_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int8_t));
+
+	if(level == PPM_SOCKOPT_LEVEL_SOL_SOCKET && optname == PPM_SOCKOPT_SO_ERROR)
+	{
+		parinfo = evt->get_param(1);
+		fd = *(int64_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+
+		evt->m_fdinfo = evt->m_tinfo->get_main_thread()->get_fd(fd);
+		if (!evt->m_fdinfo)
+		{
+			return;
+		}
+
+		parinfo = evt->get_param(4);
+		ASSERT(*parinfo->m_val == PPM_SOCKOPT_IDX_ERRNO);
+		ASSERT(parinfo->m_len == sizeof(int64_t) + 1);
+		err = *(int64_t *)(parinfo->m_val + 1); // add 1 byte to skip over PT_DYN param index
+
+		evt->m_errorcode = (int32_t)err;
+		if (m_fd_listener)
+		{
+			m_fd_listener->on_socket_status_changed(evt);
 		}
 	}
 }
