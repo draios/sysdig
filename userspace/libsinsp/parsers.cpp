@@ -2413,15 +2413,12 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(uint64_t));
 	retval = *(int64_t*)parinfo->m_val;
 
-	if(retval < 0)
-	{
-		//
-		// connections that return with a SE_EINPROGRESS are totally legit.
-		//
-		if(retval != -SE_EINPROGRESS)
-		{
-			return;
-		}
+	if (retval == -SE_EINPROGRESS) {
+		evt->m_fdinfo->set_socket_pending();
+	} else if(retval < 0) {
+		evt->m_fdinfo->set_socket_failed();
+	} else {
+		evt->m_fdinfo->set_socket_connected();
 	}
 
 	parinfo = evt->get_param(1);
@@ -2533,11 +2530,6 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 		//
 		evt->m_fdinfo->set_role_client();
 	}
-
-	//
-	// Mark this fd as a connected socket
-	//
-	evt->m_fdinfo->set_socket_connected();
 
 	//
 	// Call the protocol decoder callbacks associated to this event
@@ -3400,6 +3392,10 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 	{
 		uint16_t etype = evt->get_type();
 
+		if (evt->m_fdinfo->m_type == SCAP_FD_IPV4_SOCK) {
+			evt->m_fdinfo->set_socket_connected();
+		}
+
 		if(eflags & EF_READS_FROM_FD)
 		{
 			char *data;
@@ -3582,6 +3578,14 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 				{
 					(*it)->on_write(evt, data, datalen);
 				}
+			}
+		}
+	} else {
+		if (evt->m_fdinfo->m_type == SCAP_FD_IPV4_SOCK) {
+			evt->m_fdinfo->set_socket_failed();
+			if (m_fd_listener)
+			{
+				m_fd_listener->on_socket_status_changed(evt);
 			}
 		}
 	}
@@ -4685,6 +4689,14 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt)
 		err = *(int64_t *)(parinfo->m_val + 1); // add 1 byte to skip over PT_DYN param index
 
 		evt->m_errorcode = (int32_t)err;
+		if (err < 0)
+		{
+			evt->m_fdinfo->set_socket_failed();
+		}
+		else
+		{
+			evt->m_fdinfo->set_socket_connected();
+		}
 		if (m_fd_listener)
 		{
 			m_fd_listener->on_socket_status_changed(evt);
