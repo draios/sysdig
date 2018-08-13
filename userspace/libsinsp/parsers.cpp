@@ -4167,6 +4167,14 @@ void sinsp_parser::parse_context_switch(sinsp_evt* evt)
 			parinfo = evt->get_param(5);
 			main_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
 			ASSERT(parinfo->m_len == sizeof(uint32_t));
+			if(!main_tinfo->m_args.empty())
+			{
+				auto last_arg = *main_tinfo->m_args.rbegin();
+				if(last_arg.find("sdjagent")!=std::string::npos)
+				{
+					g_logger.format(sinsp_logger::SEV_INFO, "SDJAGENT-MEMORY parse_context_switch: pid: %ld, ptid: %ld, rss: %ld", main_tinfo->m_pid, main_tinfo->m_ptid, main_tinfo->m_vmrss_kb);
+				}
+			}
 		}
 	}
 }
