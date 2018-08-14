@@ -2799,6 +2799,13 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 				readlen - ((char *)*pevent - handle->m_file_evt_buf) - (sizeof(struct ppm_evt_hdr) - sizeof(uint32_t)));
 			(*pevent)->len += sizeof(uint32_t);
 
+			// In old captures, the length of PPME_NOTIFICATION_E and PPME_INFRASTRUCTURE_EVENT_E
+			// is not correct. Adjust it, otherwise the following code will never find a match
+			if((*pevent)->type == PPME_NOTIFICATION_E || (*pevent)->type == PPME_INFRASTRUCTURE_EVENT_E)
+			{
+				(*pevent)->len -= 3;
+			}
+
 			//
 			// The number of parameters needs to be calculated based on the block len.
 			// Use the current number of parameters as starting point and decrease it
