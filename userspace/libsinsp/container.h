@@ -190,7 +190,7 @@ public:
 		string buf;
 		request_stage stage;
 		sinsp_container_info container_info;
-		uint64_t pid;
+		int64_t pid;
 		sinsp_container_manager *manager;
 	};
 protected:
@@ -210,8 +210,8 @@ protected:
 	static bool m_query_image_info;
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	static CURLM *m_curlm;
+	static int m_running_handles;
 	static unordered_map<string, docker_request_info> m_pending_requests;
-	static uint32_t m_n_polling_attempts;
 #endif
 };
 

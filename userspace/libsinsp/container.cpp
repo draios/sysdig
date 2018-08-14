@@ -86,7 +86,7 @@ const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by
 
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 CURLM *sinsp_container_engine_docker::m_curlm = NULL;
-uint32_t sinsp_container_engine_docker::m_n_polling_attempts = 10;
+int sinsp_container_engine_docker::m_running_handles = 0;
 unordered_map<string, sinsp_container_engine_docker::docker_request_info> sinsp_container_engine_docker::m_pending_requests;
 #endif
 
@@ -135,181 +135,176 @@ size_t sinsp_container_engine_docker::curl_write_callback(const char* ptr, size_
 void sinsp_container_engine_docker::refresh()
 {
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-
 	if(m_pending_requests.empty())
 	{
 		return;
 	}
 
-	uint32_t count = 0;
-	while (count < m_n_polling_attempts)
+	int prev = m_running_handles;
+	CURLMcode res = curl_multi_perform(m_curlm, &m_running_handles);
+	if(res != CURLM_OK)
 	{
-		int running_handles;
-		CURLMcode res = curl_multi_perform(m_curlm, &running_handles);
-		if(res != CURLM_OK)
-		{
-			ASSERT(false);
-			return;
-		}
+		ASSERT(false);
+		return;
+	}
 
-		CURLMsg *m;
-		do
+	bool ready = prev != m_running_handles;
+	if(!ready)
+	{
+		// nothing to do
+		return;
+	}
+
+	CURLMsg *m;
+	do
+	{
+		int msgq;
+		m = curl_multi_info_read(m_curlm, &msgq);
+		if(m && (m->msg == CURLMSG_DONE))
 		{
-			int msgq;
-			m = curl_multi_info_read(m_curlm, &msgq);
-			if(m && (m->msg == CURLMSG_DONE))
+			CURL *e = m->easy_handle;
+
+			if(curl_multi_remove_handle(m_curlm, e) != CURLM_OK)
 			{
-				CURL *e = m->easy_handle;
+				ASSERT(false);
+				return;
+			}
 
-				if(curl_multi_remove_handle(m_curlm, e) != CURLM_OK)
+			docker_request_info *req;
+			if(curl_easy_getinfo(e, CURLINFO_PRIVATE, &req) != CURLE_OK)
+			{
+				ASSERT(false);
+				return;
+			}
+			long http_code = 0;
+			if(curl_easy_getinfo(e, CURLINFO_RESPONSE_CODE, &http_code) != CURLE_OK)
+			{
+				ASSERT(false);
+				return;
+			}
+
+			curl_easy_cleanup(e);
+
+			if(http_code != 200)
+			{
+				if(!m_api_version.empty())
 				{
+					m_api_version.clear();
+					start_docker_request(req);
+				}
+				else
+				{
+					m_pending_requests.erase(req->container_info.m_id);
+					ASSERT(false);
+					return;
+				}
+			}
+			else
+			{
+				Json::Reader reader;
+				Json::Value root;
+				if(!reader.parse(req->buf, root))
+				{
+					m_pending_requests.erase(req->container_info.m_id);
 					ASSERT(false);
 					return;
 				}
 
-				docker_request_info *req;
-				if(curl_easy_getinfo(e, CURLINFO_PRIVATE, &req) != CURLE_OK)
+				sinsp_threadinfo *tinfo = req->manager->m_inspector->m_thread_manager->get_threads()->get(req->pid);
+				if(!tinfo)
 				{
-					ASSERT(false);
-					return;
-				}
-				long http_code = 0;
-				if(curl_easy_getinfo(e, CURLINFO_RESPONSE_CODE, &http_code) != CURLE_OK)
-				{
-					ASSERT(false);
-					return;
+					// we weren't fast enough, the container is gone
+					m_pending_requests.erase(req->container_info.m_id);
+					continue;
 				}
 
-				curl_easy_cleanup(e);
-
-				if(http_code != 200)
+				bool query_images_endpoint = false;
+				string networked_container_id;
+				switch(req->stage) {
+				case REQ_S_CONTAINERS:
 				{
-					if(!m_api_version.empty())
+					parse_docker(req->manager, &req->container_info, tinfo, root, query_images_endpoint, networked_container_id);
+					if(query_images_endpoint)
 					{
-						m_api_version.clear();
+						req->i_id = req->container_info.m_imageid;
+						if(networked_container_id.empty())
+						{
+							req->stage = REQ_S_IMAGES;
+						}
+						else
+						{
+							req->c_id = networked_container_id;
+							req->stage = REQ_S_IMAGES_NETPARENT;
+						}
+						start_docker_request(req);
+					}
+					else if(!networked_container_id.empty())
+					{
+						req->c_id = networked_container_id;
+						req->stage = REQ_S_NETPARENT_CONTAINER;
 						start_docker_request(req);
 					}
 					else
 					{
-						m_pending_requests.erase(req->container_info.m_id);
-						ASSERT(false);
-						return;
+						req->stage = REQ_S_DONE;
 					}
+					break;
 				}
-				else
+				case REQ_S_IMAGES:
+				case REQ_S_IMAGES_NETPARENT:
 				{
-					Json::Reader reader;
-					Json::Value root;
-					if(!reader.parse(req->buf, root))
+					parse_docker_image(req->manager, &req->container_info, root);
+					if(req->stage == REQ_S_IMAGES_NETPARENT)
 					{
-						m_pending_requests.erase(req->container_info.m_id);
-						ASSERT(false);
-						return;
+						req->stage = REQ_S_NETPARENT_CONTAINER;
+						start_docker_request(req);
 					}
+					else
+					{
+						req->stage = REQ_S_DONE;
+					}
+					break;
+				}
+				case REQ_S_NETPARENT_CONTAINER:
+				{
+					sinsp_container_info container_info;
+					// tinfo passed here is not the right one, but that's fine
+					// because we'll just looking for container_info.m_container_ip
+					parse_docker(req->manager, &container_info, tinfo, root, query_images_endpoint, networked_container_id);
+					if(!networked_container_id.empty())
+					{
+						req->c_id = networked_container_id;
+						start_docker_request(req);
+					}
+					else
+					{
+						req->container_info.m_container_ip = container_info.m_container_ip;
+						req->stage = REQ_S_DONE;
+					}
+					break;
+				}
+				case REQ_S_DONE:
+				default:
+					break;
+				}
 
-					sinsp_threadinfo *tinfo = req->manager->m_inspector->m_thread_manager->get_threads()->get(req->pid);
-					if(!tinfo)
-					{
-						// although it should never happen since we refresh req->pid
-						m_pending_requests.erase(req->container_info.m_id);
-						continue;
-					}
-
-					bool query_images_endpoint = false;
-					string networked_container_id;
-					switch(req->stage) {
-					case REQ_S_CONTAINERS:
-					{
-						parse_docker(req->manager, &req->container_info, tinfo, root, query_images_endpoint, networked_container_id);
-						if(query_images_endpoint)
-						{
-							req->i_id = req->container_info.m_imageid;
-							if(networked_container_id.empty())
-							{
-								req->stage = REQ_S_IMAGES;
-							}
-							else
-							{
-								req->c_id = networked_container_id;
-								req->stage = REQ_S_IMAGES_NETPARENT;
-							}
-							start_docker_request(req);
-						}
-						else if(!networked_container_id.empty())
-						{
-							req->c_id = networked_container_id;
-							req->stage = REQ_S_NETPARENT_CONTAINER;
-							start_docker_request(req);
-						}
-						else
-						{
-							req->stage = REQ_S_DONE;
-						}
-						break;
-					}
-					case REQ_S_IMAGES:
-					case REQ_S_IMAGES_NETPARENT:
-					{
-						parse_docker_image(req->manager, &req->container_info, root);
-						if(req->stage == REQ_S_IMAGES_NETPARENT)
-						{
-							req->stage = REQ_S_NETPARENT_CONTAINER;
-							start_docker_request(req);
-						}
-						else
-						{
-							req->stage = REQ_S_DONE;
-						}
-						break;
-					}
-					case REQ_S_NETPARENT_CONTAINER:
-					{
-						sinsp_container_info container_info;
-						// tinfo passed here is not the right one, but that's fine
-						// because we'll just looking for container_info.m_container_ip
-						parse_docker(req->manager, &container_info, tinfo, root, query_images_endpoint, networked_container_id);
-						if(!networked_container_id.empty())
-						{
-							req->c_id = networked_container_id;
-							start_docker_request(req);
-						}
-						else
-						{
-							req->container_info.m_container_ip = container_info.m_container_ip;
-							req->stage = REQ_S_DONE;
-						}
-						break;
-					}
-					case REQ_S_DONE:
-					default:
-						break;
-					}
-
-					if(req->stage == REQ_S_DONE)
-					{
-						tinfo->m_container_id = req->container_info.m_id;
-						req->manager->add_container(req->container_info, tinfo);
-						req->manager->notify_new_container(req->container_info, tinfo);
-						m_pending_requests.erase(req->container_info.m_id);
-					}
+				if(req->stage == REQ_S_DONE)
+				{
+					tinfo->m_container_id = req->container_info.m_id;
+					req->manager->add_container(req->container_info, tinfo);
+					req->manager->notify_new_container(req->container_info, tinfo);
+					m_pending_requests.erase(req->container_info.m_id);
 				}
 			}
-		} while(m);
-
-		if(m_pending_requests.empty())
-		{
-			return;
 		}
-
-		count++;
-	}
+	} while(m);
 #endif
 }
 
 bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo, Json::Value &root, bool &query_images_endpoint, string &networked_container_id)
 {
 #ifdef CYGWING_AGENT
-	sinsp_docker_response resp = get_docker(manager, "http://localhost" + m_api_version + "/containers/" + container->m_id + "/json", json);
+	sinsp_docker_response resp = get_docker(manager, "GET /v1.30/containers/" + container->m_id + "/json HTTP/1.1\r\nHost: docker\r\n\r\n", json);
 	switch(resp) {
 		case sinsp_docker_response::RESP_BAD_REQUEST:
 			m_api_version = "";
@@ -670,7 +665,8 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 #if !defined(_WIN32) && defined(HAS_CAPTURE)
 		if (query_os_for_missing_info)
 		{
-			if(m_pending_requests.find(container_info.m_id) == m_pending_requests.end())
+			auto pos = m_pending_requests.find(container_info.m_id);
+			if(pos == m_pending_requests.end())
 			{
 				if(m_pending_requests.size() > MAX_CONCURRENT_DOCKER_REQUESTS)
 				{
@@ -685,10 +681,13 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 			}
 			else
 			{
-				// Keep the pending metadata retrieval tied to alive container processes
+				// Keep the pending metadata retrieval tied to alive container init processes
 				// The current one might be already dead, causing the request to fail,
 				// hence in more events without container info
-				m_pending_requests[container_info.m_id].pid = tinfo->m_pid;
+				if(tinfo->m_vpid == 1 && !manager->m_inspector->m_thread_manager->get_threads()->get(pos->second.pid))
+				{
+					pos->second.pid = tinfo->m_pid;
+				}
 			}
 		}
 		else
@@ -711,7 +710,7 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 
 bool sinsp_container_engine_docker::start_docker_request(docker_request_info *req)
 {
-#ifdef HAS_CAPTURE
+#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	req->buf.clear();
 
 	CURL *curl_h = curl_easy_init();
@@ -727,11 +726,6 @@ bool sinsp_container_engine_docker::start_docker_request(docker_request_info *re
 		return false;
 	}
 	if(curl_easy_setopt(curl_h, CURLOPT_HTTPGET, 1) != CURLE_OK)
-	{
-		ASSERT(false);
-		return false;
-	}
-	if(curl_easy_setopt(curl_h, CURLOPT_FOLLOWLOCATION, 1) != CURLE_OK)
 	{
 		ASSERT(false);
 		return false;
@@ -775,6 +769,15 @@ bool sinsp_container_engine_docker::start_docker_request(docker_request_info *re
 	}
 
 	if(curl_multi_add_handle(m_curlm, curl_h) != CURLM_OK)
+	{
+		ASSERT(false);
+		return false;
+	}
+
+	// do an initial multi_perform call to send the request
+	// straight away, if possible
+	CURLMcode res = curl_multi_perform(m_curlm, &m_running_handles);
+	if(res != CURLM_OK)
 	{
 		ASSERT(false);
 		return false;
