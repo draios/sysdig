@@ -24,6 +24,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <curl/multi.h>
+#include "utils.h"
 #endif
 
 enum sinsp_container_type
@@ -278,7 +279,7 @@ public:
 	void subscribe_on_remove_container(remove_container_cb callback);
 
 	void cleanup();
-	void refresh();
+	void refresh(uint64_t ts);
 
 	void set_query_docker_image_info(bool query_image_info);
 
@@ -292,6 +293,7 @@ private:
 	uint64_t m_last_flush_time_ns;
 	list<new_container_cb> m_new_callbacks;
 	list<remove_container_cb> m_remove_callbacks;
+	run_on_interval m_refresh_interval;
 };
 
 template<typename E> bool sinsp_container_manager::resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)

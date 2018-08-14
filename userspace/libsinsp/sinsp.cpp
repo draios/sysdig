@@ -1270,7 +1270,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 	if(!is_capture() && !m_meta_evt_pending)
 	{
-		m_container_manager.refresh();
+		m_container_manager.refresh(ts);
 	}
 
 	// A side-effect of parsing this event (or refreshing the

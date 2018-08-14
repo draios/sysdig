@@ -1259,7 +1259,8 @@ bool sinsp_container_engine_rkt::parse_rkt(sinsp_container_info *container, cons
 
 sinsp_container_manager::sinsp_container_manager(sinsp* inspector) :
 	m_inspector(inspector),
-	m_last_flush_time_ns(0)
+	m_last_flush_time_ns(0),
+	m_refresh_interval(1000000) // 1 ms
 {
 }
 
@@ -1517,9 +1518,11 @@ void sinsp_container_manager::cleanup()
 	sinsp_container_engine_docker::cleanup();
 }
 
-void sinsp_container_manager::refresh()
+void sinsp_container_manager::refresh(uint64_t ts)
 {
-	sinsp_container_engine_docker::refresh();
+	m_refresh_interval.run([this]() {
+		sinsp_container_engine_docker::refresh();
+	}, ts);
 }
 
 void sinsp_container_manager::set_query_docker_image_info(bool query_image_info)
