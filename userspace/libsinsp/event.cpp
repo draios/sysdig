@@ -1705,7 +1705,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			if(payload_len == 1 + 16 + 2)
 			{
 				ipv6serverinfo addr;
-				memcpy(addr.m_ip, payload + 1, 16);
+				addr.m_ip.unpack((uint8_t *) payload+1);
 				addr.m_port = *(uint16_t*)(payload+17);
 				addr.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
 				string straddr = ipv6serveraddr_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);

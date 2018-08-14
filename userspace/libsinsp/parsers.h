@@ -146,13 +146,14 @@ private:
 	inline void add_pipe(sinsp_evt *evt, int64_t tid, int64_t fd, uint64_t ino);
 	// Return false if the update didn't happen (for example because the tuple is NULL)
 	bool update_fd(sinsp_evt *evt, sinsp_evt_param* parinfo);
-	// Return false if the update didn't happen because the tuple is identical to the given address
+
+	// Next 4 return false if the update didn't happen because the tuple is identical to the given address
 	bool set_ipv4_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data);
-	// Return false if the update didn't happen because the tuple is identical to the given address
 	bool set_ipv4_mapped_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data);
-	// Return false if the update didn't happen because the tuple is identical to the given address
+	bool set_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data);
 	bool set_unix_info(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data);
-	void swap_ipv4_addresses(sinsp_fdinfo_t* fdinfo);
+
+	void swap_addresses(sinsp_fdinfo_t* fdinfo);
 	uint8_t* reserve_event_buffer();
 	void free_event_buffer(uint8_t*);
 

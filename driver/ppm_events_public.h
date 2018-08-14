@@ -1276,7 +1276,9 @@ enum ppm_param_type {
 	PT_CHARBUFARRAY = 35,	/* Pointer to an array of strings, exported by the user events decoder. 64bit. For internal use only. */
 	PT_CHARBUF_PAIR_ARRAY = 36,	/* Pointer to an array of string pairs, exported by the user events decoder. 64bit. For internal use only. */
 	PT_IPV4NET = 37, /* An IPv4 network. */
-	PT_MAX = 38 /* array size */
+	PT_IPV6ADDR = 38, /* A 16 byte raw IPv6 address. */
+	PT_IPV6NET = 39, /* An IPv6 network. */
+	PT_MAX = 40 /* array size */
 };
 
 enum ppm_print_format {

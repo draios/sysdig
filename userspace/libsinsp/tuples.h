@@ -18,18 +18,18 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
-/** @defgroup state State management 
+/** @defgroup state State management
  *  @{
  */
 
 /*!
-	\brief An IPv4 tuple. 
+	\brief An IPv4 tuple.
 */
 typedef union _ipv4tuple
 {
-	struct 
+	struct
 	{
-		uint32_t m_sip; ///< Source (i.e. client) address. 
+		uint32_t m_sip; ///< Source (i.e. client) address.
 		uint32_t m_dip; ///< Destination (i.e. server) address.
 		uint16_t m_sport; ///< Source (i.e. client) port.
 		uint16_t m_dport; ///< Destination (i.e. server) port.
@@ -47,15 +47,32 @@ typedef struct ipv4net
 	uint32_t m_netmask; ///< Subnet mask
 }ipv4net;
 
+struct ipv6net;
+
+struct ipv6addr
+{
+	uint32_t m_b[4];
+
+	ipv6addr();
+	virtual ~ipv6addr();
+
+	ipv6addr &operator=(const ipv6addr &other);
+	bool operator==(const ipv6addr &other);
+	bool operator!=(const ipv6addr &other);
+	bool operator==(const ipv6net &other);
+	bool operator!=(const ipv6net &other);
+	void unpack(uint8_t *packed_data);
+};
+
 /*!
-	\brief An IPv6 tuple. 
+	\brief An IPv6 tuple.
 */
 typedef union _ipv6tuple
 {
-	struct
-	{
-		uint32_t m_sip[4]; ///< source (i.e. client) address.
-		uint32_t m_dip[4]; ///< destination (i.e. server) address.
+	struct {
+
+		ipv6addr m_sip; ///< source (i.e. client) address.
+		ipv6addr m_dip; ///< destination (i.e. server) address.
 		uint16_t m_sport; ///< source (i.e. client) port.
 		uint16_t m_dport; ///< destination (i.e. server) port.
 		uint8_t m_l4proto; ///< Layer 4 protocol (e.g. TCP, UDP...)
@@ -64,7 +81,17 @@ typedef union _ipv6tuple
 } ipv6tuple;
 
 /*!
-	\brief An IPv4 server address. 
+	\brief An IPv6 network.
+*/
+
+typedef struct ipv6net
+{
+	ipv6addr m_ip; ///< IP addr
+	ipv6addr m_netmask; ///< Subnet mask
+}ipv6net;
+
+/*!
+	\brief An IPv4 server address.
 */
 typedef struct ipv4serverinfo
 {
@@ -74,17 +101,17 @@ typedef struct ipv4serverinfo
 } ipv4serverinfo;
 
 /*!
-	\brief An IPv6 server address. 
+	\brief An IPv6 server address.
 */
 typedef struct ipv6serverinfo
 {
-	uint32_t m_ip[4];  ///< address
+	ipv6addr m_ip;  ///< address
 	uint16_t m_port;  ///< port
 	uint8_t m_l4proto;  ///< IP protocol
 } ipv6serverinfo;
 
 /*!
-	\brief A unix socket tuple. 
+	\brief A unix socket tuple.
 */
 typedef union _unix_tuple
 {

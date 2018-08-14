@@ -363,6 +363,36 @@ bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2)
 	}
 }
 
+
+bool flt_compare_ipv6net(cmpop op, char *operand1, ipv6net* operand2)
+{
+	ipv6addr ip1;
+	ip1.unpack((uint8_t *) operand1);
+
+	switch(op)
+	{
+	case CO_EQ:
+	case CO_IN:
+		return ip1 == *operand2;
+	case CO_NE:
+		return ip1 != *operand2;
+	case CO_CONTAINS:
+		throw sinsp_exception("'contains' not supported for numeric filters");
+		return false;
+	case CO_ICONTAINS:
+		throw sinsp_exception("'icontains' not supported for numeric filters");
+		return false;
+	case CO_STARTSWITH:
+		throw sinsp_exception("'startswith' not supported for numeric filters");
+		return false;
+	case CO_GLOB:
+		throw sinsp_exception("'glob' not supported for numeric filters");
+		return false;
+	default:
+		throw sinsp_exception("comparison operator not supported for ipv4 networks");
+	}
+}
+
 bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len)
 {
 	//
@@ -403,6 +433,10 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 		return flt_compare_uint64(op, (uint64_t)*(uint32_t*)operand1, (uint64_t)*(uint32_t*)operand2);
 	case PT_IPV4NET:
 		return flt_compare_ipv4net(op, (uint64_t)*(uint32_t*)operand1, (ipv4net*)operand2);
+	case PT_IPV6ADDR:
+		return flt_compare_buffer(op, (char *)operand1, (char *)operand2, sizeof(struct in6_addr), sizeof(struct in6_addr));
+	case PT_IPV6NET:
+		return flt_compare_ipv6net(op, (char *)operand1, (ipv6net*)operand2);
 	case PT_UINT64:
 	case PT_RELTIME:
 	case PT_ABSTIME:
@@ -1139,6 +1173,7 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 		switch(type)
 		{
 		case PT_IPV4NET:
+		case PT_IPV6NET:
 		case PT_SOCKADDR:
 		case PT_SOCKTUPLE:
 		case PT_FDLIST:
