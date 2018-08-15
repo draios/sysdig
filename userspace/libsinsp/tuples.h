@@ -18,6 +18,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include <stdint.h>
+
 /** @defgroup state State management
  *  @{
  */
@@ -49,20 +51,15 @@ typedef struct ipv4net
 
 struct ipv6net;
 
-struct ipv6addr
+typedef union _ipv6addr
 {
 	uint32_t m_b[4];
 
-	ipv6addr();
-	virtual ~ipv6addr();
-
-	ipv6addr &operator=(const ipv6addr &other);
-	bool operator==(const ipv6addr &other);
-	bool operator!=(const ipv6addr &other);
+	bool operator==(const _ipv6addr &other);
+	bool operator!=(const _ipv6addr &other);
 	bool operator==(const ipv6net &other);
 	bool operator!=(const ipv6net &other);
-	void unpack(uint8_t *packed_data);
-};
+}ipv6addr;
 
 /*!
 	\brief An IPv6 tuple.

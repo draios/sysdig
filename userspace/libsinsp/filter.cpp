@@ -367,7 +367,7 @@ bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2)
 bool flt_compare_ipv6net(cmpop op, char *operand1, ipv6net* operand2)
 {
 	ipv6addr ip1;
-	ip1.unpack((uint8_t *) operand1);
+	memcpy((uint8_t *) ip1.m_b, operand1, sizeof(ip1.m_b));
 
 	switch(op)
 	{
@@ -535,6 +535,8 @@ bool flt_compare_avg(cmpop op,
 	case PT_FLAGS32:
 	case PT_BOOL:
 	case PT_IPV4ADDR:
+	case PT_IPV6ADDR:
+		// What does an average mean for ip addresses anyway?
 		u641 = ((uint64_t)*(uint32_t*)operand1) / cnt1;
 		u642 = ((uint64_t)*(uint32_t*)operand2) / cnt2;
 		ASSERT(cnt1 != 0 || u641 == 0);
@@ -584,21 +586,23 @@ void sinsp_filter_check::set_inspector(sinsp* inspector)
 	m_inspector = inspector;
 }
 
-Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len)
+Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
+					       ppm_param_type ptype,
+					       ppm_print_format print_format,
+					       uint32_t len)
 {
 	ASSERT(rawval != NULL);
-	ASSERT(finfo != NULL);
 
-	switch(finfo->m_type)
+	switch(ptype)
 	{
 		case PT_INT8:
-			if(finfo->m_print_format == PF_DEC ||
-			   finfo->m_print_format == PF_ID)
+			if(print_format == PF_DEC ||
+			   print_format == PF_ID)
 			{
 				return *(int8_t *)rawval;
 			}
-			else if(finfo->m_print_format == PF_OCT ||
-				finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_OCT ||
+				print_format == PF_HEX)
 			{
 				return rawval_to_string(rawval, finfo, len);
 			}
@@ -609,13 +613,13 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			}
 
 		case PT_INT16:
-			if(finfo->m_print_format == PF_DEC ||
-			   finfo->m_print_format == PF_ID)
+			if(print_format == PF_DEC ||
+			   print_format == PF_ID)
 			{
 				return *(int16_t *)rawval;
 			}
-			else if(finfo->m_print_format == PF_OCT ||
-				finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_OCT ||
+				print_format == PF_HEX)
 			{
 				return rawval_to_string(rawval, finfo, len);
 			}
@@ -626,13 +630,13 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			}
 
 		case PT_INT32:
-			if(finfo->m_print_format == PF_DEC ||
-			   finfo->m_print_format == PF_ID)
+			if(print_format == PF_DEC ||
+			   print_format == PF_ID)
 			{
 				return *(int32_t *)rawval;
 			}
-			else if(finfo->m_print_format == PF_OCT ||
-				finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_OCT ||
+				print_format == PF_HEX)
 			{
 				return rawval_to_string(rawval, finfo, len);
 			}
@@ -644,8 +648,8 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 
 		case PT_INT64:
 		case PT_PID:
-			if(finfo->m_print_format == PF_DEC ||
-			   finfo->m_print_format == PF_ID)
+			if(print_format == PF_DEC ||
+			   print_format == PF_ID)
 			{
 		 		return (Json::Value::Int64)*(int64_t *)rawval;
 			}
@@ -656,13 +660,13 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 
 		case PT_L4PROTO: // This can be resolved in the future
 		case PT_UINT8:
-			if(finfo->m_print_format == PF_DEC ||
-			   finfo->m_print_format == PF_ID)
+			if(print_format == PF_DEC ||
+			   print_format == PF_ID)
 			{
 				return *(uint8_t *)rawval;
 			}
-			else if(finfo->m_print_format == PF_OCT ||
-				finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_OCT ||
+				print_format == PF_HEX)
 			{
 				return rawval_to_string(rawval, finfo, len);
 			}
@@ -674,13 +678,13 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 
 		case PT_PORT: // This can be resolved in the future
 		case PT_UINT16:
-			if(finfo->m_print_format == PF_DEC ||
-			   finfo->m_print_format == PF_ID)
+			if(print_format == PF_DEC ||
+			   print_format == PF_ID)
 			{
 				return *(uint16_t *)rawval;
 			}
-			else if(finfo->m_print_format == PF_OCT ||
-				finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_OCT ||
+				print_format == PF_HEX)
 			{
 				return rawval_to_string(rawval, finfo, len);
 			}
@@ -691,13 +695,13 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			}
 
 		case PT_UINT32:
-			if(finfo->m_print_format == PF_DEC ||
-			   finfo->m_print_format == PF_ID)
+			if(print_format == PF_DEC ||
+			   print_format == PF_ID)
 			{
 				return *(uint32_t *)rawval;
 			}
-			else if(finfo->m_print_format == PF_OCT ||
-				finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_OCT ||
+				print_format == PF_HEX)
 			{
 				return rawval_to_string(rawval, finfo, len);
 			}
@@ -710,15 +714,15 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 		case PT_UINT64:
 		case PT_RELTIME:
 		case PT_ABSTIME:
-			if(finfo->m_print_format == PF_DEC ||
-			   finfo->m_print_format == PF_ID)
+			if(print_format == PF_DEC ||
+			   print_format == PF_ID)
 			{
 				return (Json::Value::UInt64)*(uint64_t *)rawval;
 			}
 			else if(
-				finfo->m_print_format == PF_10_PADDED_DEC ||
-				finfo->m_print_format == PF_OCT ||
-				finfo->m_print_format == PF_HEX)
+				print_format == PF_10_PADDED_DEC ||
+				print_format == PF_OCT ||
+				print_format == PF_HEX)
 			{
 				return rawval_to_string(rawval, finfo, len);
 			}
@@ -740,34 +744,38 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 		case PT_FSPATH:
 		case PT_BYTEBUF:
 		case PT_IPV4ADDR:
+		case PT_IPV6ADDR:
+	        case PT_IPADDR:
 			return rawval_to_string(rawval, finfo, len);
-
 		default:
 			ASSERT(false);
-			throw sinsp_exception("wrong event type " + to_string((long long) finfo->m_type));
+			throw sinsp_exception("wrong event type " + to_string((long long) ptype));
 	}
 }
 
-char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len)
+char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
+					   ppm_param_type ptype,
+					   ppm_print_format print_format,
+					   uint32_t len)
 {
 	char* prfmt;
 
 	ASSERT(rawval != NULL);
 	ASSERT(finfo != NULL);
 
-	switch(finfo->m_type)
+	switch(ptype)
 	{
 		case PT_INT8:
-			if(finfo->m_print_format == PF_OCT)
+			if(print_format == PF_OCT)
 			{
 				prfmt = (char*)"%" PRIo8;
 			}
-			else if(finfo->m_print_format == PF_DEC ||
-				finfo->m_print_format == PF_ID)
+			else if(print_format == PF_DEC ||
+				print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRId8;
 			}
-			else if(finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIX8;
 			}
@@ -782,16 +790,16 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 					 prfmt, *(int8_t *)rawval);
 			return m_getpropertystr_storage;
 		case PT_INT16:
-			if(finfo->m_print_format == PF_OCT)
+			if(print_format == PF_OCT)
 			{
 				prfmt = (char*)"%" PRIo16;
 			}
-			else if(finfo->m_print_format == PF_DEC ||
-				finfo->m_print_format == PF_ID)
+			else if(print_format == PF_DEC ||
+				print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRId16;
 			}
-			else if(finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIX16;
 			}
@@ -806,16 +814,16 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 					 prfmt, *(int16_t *)rawval);
 			return m_getpropertystr_storage;
 		case PT_INT32:
-			if(finfo->m_print_format == PF_OCT)
+			if(print_format == PF_OCT)
 			{
 				prfmt = (char*)"%" PRIo32;
 			}
-			else if(finfo->m_print_format == PF_DEC ||
-				finfo->m_print_format == PF_ID)
+			else if(print_format == PF_DEC ||
+				print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRId32;
 			}
-			else if(finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIX32;
 			}
@@ -832,20 +840,20 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 		case PT_INT64:
 		case PT_PID:
 		case PT_ERRNO:
-			if(finfo->m_print_format == PF_OCT)
+			if(print_format == PF_OCT)
 			{
 				prfmt = (char*)"%" PRIo64;
 			}
-			else if(finfo->m_print_format == PF_DEC ||
-				finfo->m_print_format == PF_ID)
+			else if(print_format == PF_DEC ||
+				print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRId64;
 			}
-			else if(finfo->m_print_format == PF_10_PADDED_DEC)
+			else if(print_format == PF_10_PADDED_DEC)
 			{
 				prfmt = (char*)"%09" PRId64;
 			}
-			else if(finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIX64;
 			}
@@ -860,16 +868,16 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			return m_getpropertystr_storage;
 		case PT_L4PROTO: // This can be resolved in the future
 		case PT_UINT8:
-			if(finfo->m_print_format == PF_OCT)
+			if(print_format == PF_OCT)
 			{
 				prfmt = (char*)"%" PRIo8;
 			}
-			else if(finfo->m_print_format == PF_DEC ||
-				finfo->m_print_format == PF_ID)
+			else if(print_format == PF_DEC ||
+				print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRIu8;
 			}
-			else if(finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIu8;
 			}
@@ -885,16 +893,16 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			return m_getpropertystr_storage;
 		case PT_PORT: // This can be resolved in the future
 		case PT_UINT16:
-			if(finfo->m_print_format == PF_OCT)
+			if(print_format == PF_OCT)
 			{
 				prfmt = (char*)"%" PRIo16;
 			}
-			else if(finfo->m_print_format == PF_DEC ||
-				finfo->m_print_format == PF_ID)
+			else if(print_format == PF_DEC ||
+				print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRIu16;
 			}
-			else if(finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIu16;
 			}
@@ -909,16 +917,16 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 					 prfmt, *(uint16_t *)rawval);
 			return m_getpropertystr_storage;
 		case PT_UINT32:
-			if(finfo->m_print_format == PF_OCT)
+			if(print_format == PF_OCT)
 			{
 				prfmt = (char*)"%" PRIo32;
 			}
-			else if(finfo->m_print_format == PF_DEC ||
-				finfo->m_print_format == PF_ID)
+			else if(print_format == PF_DEC ||
+				print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRIu32;
 			}
-			else if(finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIu32;
 			}
@@ -935,20 +943,20 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 		case PT_UINT64:
 		case PT_RELTIME:
 		case PT_ABSTIME:
-			if(finfo->m_print_format == PF_OCT)
+			if(print_format == PF_OCT)
 			{
 				prfmt = (char*)"%" PRIo64;
 			}
-			else if(finfo->m_print_format == PF_DEC ||
-				finfo->m_print_format == PF_ID)
+			else if(print_format == PF_DEC ||
+				print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRIu64;
 			}
-			else if(finfo->m_print_format == PF_10_PADDED_DEC)
+			else if(print_format == PF_10_PADDED_DEC)
 			{
 				prfmt = (char*)"%09" PRIu64;
 			}
-			else if(finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIX64;
 			}
@@ -1007,6 +1015,35 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 						rawval[2],
 						rawval[3]);
 			return m_getpropertystr_storage;
+		case PT_IPV6ADDR:
+		{
+			char address[100];
+
+			if(NULL == inet_ntop(AF_INET6, rawval, address, 100))
+			{
+				strcpy(address, "<NA>");
+			}
+
+			strncpy(m_getpropertystr_storage,
+				address,
+				100);
+
+			return m_getpropertystr_storage;
+		}
+	        case PT_IPADDR:
+			if(len == sizeof(struct in_addr))
+			{
+				return rawval_to_string(rawval, PT_IPV4ADDR, len);
+			}
+			else if(len == sizeof(struct in6_addr))
+			{
+				return rawval_to_string(rawval, PT_IPV6ADDR, len);
+			}
+			else
+			{
+				throw sinsp_exception("rawval_to_string called with IP address of incorrect size " + to_string(len));
+			}
+
 		case PT_DOUBLE:
 			snprintf(m_getpropertystr_storage,
 					 sizeof(m_getpropertystr_storage),
@@ -1014,7 +1051,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			return m_getpropertystr_storage;
 		default:
 			ASSERT(false);
-			throw sinsp_exception("wrong event type " + to_string((long long) finfo->m_type));
+			throw sinsp_exception("wrong event type " + to_string((long long) ptype));
 	}
 }
 

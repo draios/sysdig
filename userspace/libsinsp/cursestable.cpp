@@ -94,6 +94,7 @@ curses_table::curses_table(sinsp_cursesui* parent, sinsp* inspector, sinsp_table
 	m_colsizes[PT_SOCKFAMILY] = 8;
 	m_colsizes[PT_BOOL] = 8;
 	m_colsizes[PT_IPV4ADDR] = 8;
+	m_colsizes[PT_IPV6ADDR] = 16;
 	m_colsizes[PT_DYN] = 8;
 	m_colsizes[PT_FLAGS8] = 32;
 	m_colsizes[PT_FLAGS16] = 32;
@@ -127,7 +128,7 @@ curses_table::~curses_table()
 	delete m_converter;
 }
 
-void curses_table::configure(sinsp_table* table, 
+void curses_table::configure(sinsp_table* table,
 	vector<int32_t>* colsizes, vector<string>* colnames)
 {
 	uint32_t j;
@@ -140,9 +141,9 @@ void curses_table::configure(sinsp_table* table,
 	{
 		if(colsizes->size() != 0 && colsizes->size() != legend->size())
 		{
-			throw sinsp_exception("invalid table legend for view " + m_parent->m_views.at(m_parent->m_selected_view)->m_name + 
-				" : column sizes doesn't match (" + 
-				to_string(colsizes->size()) + " column sizes, " + 
+			throw sinsp_exception("invalid table legend for view " + m_parent->m_views.at(m_parent->m_selected_view)->m_name +
+				" : column sizes doesn't match (" +
+				to_string(colsizes->size()) + " column sizes, " +
 				to_string(legend->size()) + " entries in legend)");
 		}
 	}
@@ -151,9 +152,9 @@ void curses_table::configure(sinsp_table* table,
 	{
 		if(colnames->size() != 0 && colnames->size() != legend->size())
 		{
-			throw sinsp_exception("invalid table legend for view " + m_parent->m_views.at(m_parent->m_selected_view)->m_name + 
-				" : column names doesn't match (" + 
-				to_string(colnames->size()) + " column names, " + 
+			throw sinsp_exception("invalid table legend for view " + m_parent->m_views.at(m_parent->m_selected_view)->m_name +
+				" : column names doesn't match (" +
+				to_string(colnames->size()) + " column names, " +
 				to_string(legend->size()) + " entries in legend)");
 		}
 	}
@@ -169,7 +170,7 @@ void curses_table::configure(sinsp_table* table,
 		}
 		else
 		{
-			ci.m_size = colsizes->at(j);		
+			ci.m_size = colsizes->at(j);
 		}
 
 		if(colnames->size() == 0)
@@ -178,12 +179,12 @@ void curses_table::configure(sinsp_table* table,
 		}
 		else
 		{
-			ci.m_name = colnames->at(j);	
+			ci.m_name = colnames->at(j);
 		}
 
 /*
 		int32_t namelen = strlen(ci.m_info.m_name);
-		
+
 		if(ci.m_size < namelen + 1)
 		{
 			ci.m_size = namelen + 1;
@@ -223,7 +224,7 @@ void curses_table::update_data(vector<sinsp_sample_row>* data, bool force_select
 		else
 		{
 			m_selct = selct;
-			
+
 //			if(m_drilled_up)
 			{
 				selection_goto((int32_t)m_data->size(), m_selct);
@@ -247,9 +248,9 @@ void curses_table::print_line_centered(string line, int32_t off)
 
 	if(line.size() < m_parent->m_screenw)
 	{
-		mvwprintw(m_tblwin, 
+		mvwprintw(m_tblwin,
 			m_parent->m_screenh / 2 + off,
-			m_parent->m_screenw / 2 - line.size() / 2, 
+			m_parent->m_screenw / 2 - line.size() / 2,
 			line.c_str());
 	}
 	else
@@ -261,7 +262,7 @@ void curses_table::print_line_centered(string line, int32_t off)
 			string ss = line.substr(spos, spos + m_parent->m_screenw);
 glogf("2, %d %s\n", spos, ss.c_str());
 
-			mvwprintw(m_tblwin, 
+			mvwprintw(m_tblwin,
 				m_parent->m_screenh / 2 + off + j,
 				0,
 				ss.c_str());
@@ -312,7 +313,7 @@ void curses_table::print_wait()
 				wstr = "No Data For This View";
 			}
 		}
-	
+
 		print_line_centered(wstr);
 	}
 }
@@ -321,10 +322,10 @@ void curses_table::print_error(string wstr)
 {
 	wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::FAILED_SEARCH]);
 
-	mvwprintw(m_tblwin, 
+	mvwprintw(m_tblwin,
 		m_parent->m_screenh / 2,
-		m_parent->m_screenw / 2 - wstr.size() / 2, 
-		wstr.c_str());	
+		m_parent->m_screenw / 2 - wstr.size() / 2,
+		wstr.c_str());
 }
 
 void curses_table::render(bool data_changed)
@@ -395,7 +396,7 @@ void curses_table::render(bool data_changed)
 				}
 				else
 				{
-					wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_LIST_HIGHLIGHT]);					
+					wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_LIST_HIGHLIGHT]);
 				}
 			}
 			else
@@ -409,7 +410,7 @@ void curses_table::render(bool data_changed)
 					wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_LIST_FOCUS]);
 				}
 			}
-			
+
 			m_column_startx.push_back(k);
 
 			string coltext = m_legend[j].m_name;
@@ -488,20 +489,20 @@ void curses_table::render(bool data_changed)
 				sinsp_filter_check* extractor = m_table->m_extractors->at(j + 1);
 				uint64_t td = 0;
 
-				if(extractor->m_aggregation == A_TIME_AVG || 
+				if(extractor->m_aggregation == A_TIME_AVG ||
 					extractor->m_merge_aggregation == A_TIME_AVG)
 				{
 					td = m_parent->get_time_delta();
 				}
 
-				m_converter->set_val(m_legend[j].m_info.m_type, 
-					row->at(j).m_val, 
+				m_converter->set_val(m_legend[j].m_info.m_type,
+					row->at(j).m_val,
 					row->at(j).m_len,
 					row->at(j).m_cnt,
 					m_legend[j].m_info.m_print_format);
 
 				uint32_t size = m_legend[j].m_size - 1;
-				
+
 				//
 				// size=0 means "use the whole available space"
 				//
@@ -591,8 +592,8 @@ string curses_table::get_field_val(string fldname)
 		if(le.m_name == fldname)
 		{
 			uint32_t k = j - 1;
-			m_converter->set_val(m_legend[k].m_info.m_type, 
-				row->at(k).m_val, 
+			m_converter->set_val(m_legend[k].m_info.m_type,
+				row->at(k).m_val,
 				row->at(k).m_len,
 				row->at(k).m_cnt,
 				m_legend[k].m_info.m_print_format);
@@ -755,7 +756,7 @@ sysdig_table_action curses_table::handle_input(int ch)
 
 							//
 							// This delay is here just as a lazy way to give the user the
-							// feeling that the row has been clicked 
+							// feeling that the row has been clicked
 							//
 							usleep(200000);
 
@@ -798,9 +799,9 @@ sysdig_table_action curses_table::handle_input(int ch)
 
 	for(uint32_t i = 0; i < vinfo->max_col_sort_hotkeys; i++)
 	{
-		if(vinfo->m_col_sort_hotkeys[i] == ch) 
+		if(vinfo->m_col_sort_hotkeys[i] == ch)
 		{
-			if(i < vinfo->m_columns.size()) 
+			if(i < vinfo->m_columns.size())
 			{
 				m_table->set_sorting_col(i + 1);
 				m_table->sort_sample();
@@ -839,12 +840,12 @@ curses_table::alignment curses_table::get_field_alignment(ppm_param_type type)
 void curses_table::recreate_win(int h)
 {
 	delwin(m_tblwin);
-	
+
 	if(h != 0)
 	{
 		m_h = h;
 	}
-	
+
 	m_tblwin = newwin(m_h, m_w, m_table_y_start, m_table_x_start);
 	render(true);
 }
@@ -857,9 +858,9 @@ void curses_table::goto_row(int32_t row)
 	render(true);
 }
 
-bool curses_table::get_position(OUT int32_t* pos, 
-	OUT int32_t* totlines, 
-	OUT float* percent, 
+bool curses_table::get_position(OUT int32_t* pos,
+	OUT int32_t* totlines,
+	OUT float* percent,
 	OUT bool* truncated)
 {
 	if(m_data == NULL || m_data->size() == 0)

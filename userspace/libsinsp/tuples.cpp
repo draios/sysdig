@@ -18,25 +18,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <tuples.h>
 
-ipv6addr::ipb6addr()
-{
-	m_b[0] = m_b[1] = m_b[2] = m_b[3] = 0;
-}
-
-ipv6addr::~ipv6addr()
-{
-}
-
-ipv6addr &ipv6addr::operator=(const ipv6addr &other)
-{
-	m_b[0] = other.m_b[0];
-	m_b[1] = other.m_b[1];
-	m_b[2] = other.m_b[2];
-	m_b[3] = other.m_b[3];
-
-	return *this;
-}
-
 bool ipv6addr::operator==(const ipv6addr &other)
 {
 	return (m_b[0] == other.m_b[0] &&
@@ -58,15 +39,7 @@ bool ipv6addr::operator==(const ipv6net &other)
 		(m_b[3] & other.m_netmask.m_b[3]) == (other.m_ip.m_b[3] & other.m_netmask.m_b[3]));
 }
 
-bool ipv6addr::operator!==(const ipv6net &other)
+bool ipv6addr::operator!=(const ipv6net &other)
 {
 	return !operator==(other);
-}
-
-void ipv6addr::unpack(uint8_t *packed_data)
-{
-	m_b[0] = *(uint32_t *) (packed_data);
-	m_b[1] = *(uint32_t *) (packed_data+4);
-	m_b[2] = *(uint32_t *) (packed_data+8);
-	m_b[3] = *(uint32_t *) (packed_data+12);
 }

@@ -2986,10 +2986,10 @@ bool sinsp_parser::set_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t*
 	ipv6addr tsip, tdip;
 	uint16_t tsport, tdport;
 
-	tsip.unpack(packed_data + 1);
+	memcpy((uint8_t *) tsip.m_b, packed_data + 1, sizeof(tsip.m_b));
 	tsport = *(uint16_t *)(packed_data + 17);
 
-	tdip.unpack(packed_data + 19);
+	memcpy((uint8_t *) tdip.m_b, packed_data + 19, sizeof(tdip.m_b));
 	tdport = *(uint16_t *)(packed_data + 35);
 
 	if(fdinfo->m_type == SCAP_FD_IPV6_SOCK)
