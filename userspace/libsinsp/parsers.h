@@ -172,6 +172,8 @@ private:
 	scap_evt* m_fake_userevt;
 	string m_tracer_error_string;
 
+	bool m_track_connection_status = false;
+
 	// FD listener callback
 	sinsp_fd_listener* m_fd_listener;
 

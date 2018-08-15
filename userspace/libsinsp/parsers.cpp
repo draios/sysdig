@@ -2413,12 +2413,26 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(uint64_t));
 	retval = *(int64_t*)parinfo->m_val;
 
-	if (retval == -SE_EINPROGRESS) {
-		evt->m_fdinfo->set_socket_pending();
-	} else if(retval < 0) {
-		evt->m_fdinfo->set_socket_failed();
-	} else {
-		evt->m_fdinfo->set_socket_connected();
+	if (m_track_connection_status)
+	{
+		if (retval == -SE_EINPROGRESS) {
+			evt->m_fdinfo->set_socket_pending();
+		} else if(retval < 0) {
+			evt->m_fdinfo->set_socket_failed();
+		} else {
+			evt->m_fdinfo->set_socket_connected();
+		}
+	}
+	else
+	{
+		if (retval < 0 && retval != -SE_EINPROGRESS)
+		{
+			return;
+		}
+		else
+		{
+			evt->m_fdinfo->set_socket_connected();
+		}
 	}
 
 	parinfo = evt->get_param(1);
@@ -3580,7 +3594,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 				}
 			}
 		}
-	} else {
+	} else if (m_track_connection_status) {
 		if (evt->m_fdinfo->m_type == SCAP_FD_IPV4_SOCK) {
 			evt->m_fdinfo->set_socket_failed();
 			if (m_fd_listener)
@@ -4673,6 +4687,11 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt)
 
 	if(level == PPM_SOCKOPT_LEVEL_SOL_SOCKET && optname == PPM_SOCKOPT_SO_ERROR)
 	{
+		if (!m_track_connection_status)
+		{
+			return;
+		}
+
 		parinfo = evt->get_param(1);
 		fd = *(int64_t *)parinfo->m_val;
 		ASSERT(parinfo->m_len == sizeof(int64_t));
