@@ -66,6 +66,42 @@ function update_code_for {
 	cd ..
 }
 
+function build_bpf_probe {
+	MAJOR=$(echo $KERNEL_RELEASE | cut -d. -f1)
+	MINOR=$(echo $KERNEL_RELEASE | cut -d. -f2)
+	if [ $MAJOR -eq 4 ] && [ $MINOR -ge 14 ]; then
+		if [ ! -f $BASEDIR/output/$PROBE_NAME-bpf-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.o ] || [ ! -f $BASEDIR/output/$PROBE_NAME-bpf-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.o ]; then
+			echo Building $PROBE_NAME-bpf-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.o [${FUNCNAME[1]}]
+
+			update_code_for sysdig
+
+			if [ $PROBE_NAME != "sysdig-probe" ]; then
+				update_code_for falco
+			fi
+
+			if [ $PROBE_NAME = "sysdigcloud-probe" ]; then
+				update_code_for agent
+			fi
+
+			cd $PROBE_REPO_NAME
+			mkdir build
+			cd build
+			version_name=-D$(echo $PROBE_REPO_NAME | tr [a-z] [A-Z])_VERSION
+
+			cmake -DBUILD_BPF=ON -DCMAKE_BUILD_TYPE=Release $version_name=$PROBE_VERSION ..
+
+			make bpf
+
+			cp driver/bpf/probe.o $BASEDIR/output/$PROBE_NAME-bpf-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.o
+			cp driver/bpf/probe.o $BASEDIR/output/$PROBE_NAME-bpf-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.o
+		else
+			echo Skipping $PROBE_NAME-bpf-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.o \(already built\)
+		fi
+	fi
+
+	cd $BASEDIR
+}
+
 function build_probe {
 
 	if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] || [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
@@ -104,6 +140,8 @@ function build_probe {
 	fi
 
 	cd $BASEDIR
+
+	build_bpf_probe
 }
 
 function coreos_build_old {
