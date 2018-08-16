@@ -364,18 +364,15 @@ bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2)
 }
 
 
-bool flt_compare_ipv6net(cmpop op, char *operand1, ipv6net* operand2)
+bool flt_compare_ipv6net(cmpop op, ipv6addr *operand1, ipv6addr *operand2)
 {
-	ipv6addr ip1;
-	memcpy((uint8_t *) ip1.m_b, operand1, sizeof(ip1.m_b));
-
 	switch(op)
 	{
 	case CO_EQ:
 	case CO_IN:
-		return ip1 == *operand2;
+		return operand1->in_subnet(*operand2);
 	case CO_NE:
-		return ip1 != *operand2;
+		return !operand1->in_subnet(*operand2);
 	case CO_CONTAINS:
 		throw sinsp_exception("'contains' not supported for numeric filters");
 		return false;
@@ -436,7 +433,33 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 	case PT_IPV6ADDR:
 		return flt_compare_buffer(op, (char *)operand1, (char *)operand2, sizeof(struct in6_addr), sizeof(struct in6_addr));
 	case PT_IPV6NET:
-		return flt_compare_ipv6net(op, (char *)operand1, (ipv6net*)operand2);
+		return flt_compare_ipv6net(op, (ipv6addr *)operand1, (ipv6addr*)operand2);
+	case PT_IPADDR:
+		if(op1_len == sizeof(struct in_addr))
+		{
+			return flt_compare(op, PT_IPV4ADDR, operand1, operand2, op1_len, op2_len);
+		}
+		else if(op1_len == sizeof(struct in6_addr))
+		{
+			return flt_compare(op, PT_IPV6ADDR, operand1, operand2, op1_len, op2_len);
+		}
+		else
+		{
+			throw sinsp_exception("rawval_to_string called with IP address of incorrect size " + to_string(op1_len));
+		}
+	case PT_IPNET:
+		if(op1_len == sizeof(struct in_addr))
+		{
+			return flt_compare(op, PT_IPV4NET, operand1, operand2, op1_len, op2_len);
+		}
+		else if(op1_len == sizeof(struct in6_addr))
+		{
+			return flt_compare(op, PT_IPV6NET, operand1, operand2, op1_len, op2_len);
+		}
+		else
+		{
+			throw sinsp_exception("rawval_to_string called with IP network of incorrect size " + to_string(op1_len));
+		}
 	case PT_UINT64:
 	case PT_RELTIME:
 	case PT_ABSTIME:
@@ -604,7 +627,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			else if(print_format == PF_OCT ||
 				print_format == PF_HEX)
 			{
-				return rawval_to_string(rawval, finfo, len);
+				return rawval_to_string(rawval, ptype, print_format, len);
 			}
 			else
 			{
@@ -621,7 +644,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			else if(print_format == PF_OCT ||
 				print_format == PF_HEX)
 			{
-				return rawval_to_string(rawval, finfo, len);
+				return rawval_to_string(rawval, ptype, print_format, len);
 			}
 			else
 			{
@@ -638,7 +661,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			else if(print_format == PF_OCT ||
 				print_format == PF_HEX)
 			{
-				return rawval_to_string(rawval, finfo, len);
+				return rawval_to_string(rawval, ptype, print_format, len);
 			}
 			else
 			{
@@ -655,7 +678,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			}
 			else
 			{
-				return rawval_to_string(rawval, finfo, len);
+				return rawval_to_string(rawval, ptype, print_format, len);
 			}
 
 		case PT_L4PROTO: // This can be resolved in the future
@@ -668,7 +691,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			else if(print_format == PF_OCT ||
 				print_format == PF_HEX)
 			{
-				return rawval_to_string(rawval, finfo, len);
+				return rawval_to_string(rawval, ptype, print_format, len);
 			}
 			else
 			{
@@ -686,7 +709,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			else if(print_format == PF_OCT ||
 				print_format == PF_HEX)
 			{
-				return rawval_to_string(rawval, finfo, len);
+				return rawval_to_string(rawval, ptype, print_format, len);
 			}
 			else
 			{
@@ -703,7 +726,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			else if(print_format == PF_OCT ||
 				print_format == PF_HEX)
 			{
-				return rawval_to_string(rawval, finfo, len);
+				return rawval_to_string(rawval, ptype, print_format, len);
 			}
 			else
 			{
@@ -724,7 +747,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 				print_format == PF_OCT ||
 				print_format == PF_HEX)
 			{
-				return rawval_to_string(rawval, finfo, len);
+				return rawval_to_string(rawval, ptype, print_format, len);
 			}
 			else
 			{
@@ -746,7 +769,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 		case PT_IPV4ADDR:
 		case PT_IPV6ADDR:
 	        case PT_IPADDR:
-			return rawval_to_string(rawval, finfo, len);
+			return rawval_to_string(rawval, ptype, print_format, len);
 		default:
 			ASSERT(false);
 			throw sinsp_exception("wrong event type " + to_string((long long) ptype));
@@ -1033,11 +1056,11 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 	        case PT_IPADDR:
 			if(len == sizeof(struct in_addr))
 			{
-				return rawval_to_string(rawval, PT_IPV4ADDR, len);
+				return rawval_to_string(rawval, PT_IPV4ADDR, print_format, len);
 			}
 			else if(len == sizeof(struct in6_addr))
 			{
-				return rawval_to_string(rawval, PT_IPV6ADDR, len);
+				return rawval_to_string(rawval, PT_IPV6ADDR, print_format, len);
 			}
 			else
 			{
@@ -1065,7 +1088,7 @@ char* sinsp_filter_check::tostring(sinsp_evt* evt)
 		return NULL;
 	}
 
-	return rawval_to_string(rawval, m_field, len);
+	return rawval_to_string(rawval, m_field->m_type, m_field->m_print_format, len);
 }
 
 Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
@@ -1080,7 +1103,7 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 		{
 			return Json::nullValue;
 		}
-		return rawval_to_json(rawval, m_field, len);
+		return rawval_to_json(rawval, m_field->m_type, m_field->m_print_format, len);
 	}
 
 	return jsonval;

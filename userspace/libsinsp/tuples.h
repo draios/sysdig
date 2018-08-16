@@ -49,17 +49,17 @@ typedef struct ipv4net
 	uint32_t m_netmask; ///< Subnet mask
 }ipv4net;
 
-struct ipv6net;
-
-typedef union _ipv6addr
+typedef struct _ipv6addr
 {
 	uint32_t m_b[4];
 
 	bool operator==(const _ipv6addr &other);
 	bool operator!=(const _ipv6addr &other);
-	bool operator==(const ipv6net &other);
-	bool operator!=(const ipv6net &other);
+	bool in_subnet(const _ipv6addr &other);
+
+	static struct _ipv6addr empty_address;
 }ipv6addr;
+
 
 /*!
 	\brief An IPv6 tuple.
@@ -76,16 +76,6 @@ typedef union _ipv6tuple
 	} m_fields;
 	uint8_t m_all[37]; ///< The fields as a raw array ob bytes. Used for hasing.
 } ipv6tuple;
-
-/*!
-	\brief An IPv6 network.
-*/
-
-typedef struct ipv6net
-{
-	ipv6addr m_ip; ///< IP addr
-	ipv6addr m_netmask; ///< Subnet mask
-}ipv6net;
 
 /*!
 	\brief An IPv4 server address.

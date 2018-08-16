@@ -22,6 +22,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "sinsp_int.h"
 #include "ifinfo.h"
 
+xxx/mstemm add ipv6 tests
 
 uint32_t parse_ipv4_addr(const char *dotted_notation)
 {
@@ -58,8 +59,8 @@ sinsp_ipv4_ifinfo make_ipv4_localhost()
 void convert_to_string(char* dest, uint32_t addr)
 {
 	sprintf(
-		dest, 
-		"%d.%d.%d.%d", 
+		dest,
+		"%d.%d.%d.%d",
 		(addr & 0xFF),
 		((addr & 0xFF00) >> 8),
 		((addr & 0xFF0000) >> 16),

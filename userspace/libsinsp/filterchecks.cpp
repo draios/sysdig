@@ -642,7 +642,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			{
 				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip);
 			}
-			else if(evt_type == SCAP_FD_IP64_SOCK)
+			else if(evt_type == SCAP_FD_IPV6_SOCK)
 			{
 				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip);
 			}
@@ -675,7 +675,18 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				return NULL;
 			}
 
-			if(m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo))
+			bool is_local;
+
+			if(evt_type == SCAP_FD_IPV4_SOCK)
+			{
+				is_local = m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo);
+			}
+		        else
+			{
+				is_local = m_inspector->get_ifaddr_list()->is_ipv6addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, m_tinfo);
+			}
+
+ 	                if(is_local)
 			{
 				if(m_field_id == TYPE_LIP)
 				{
@@ -889,7 +900,18 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				return NULL;
 			}
 
-			if(m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo))
+			bool is_local;
+
+			if(evt_type == SCAP_FD_IPV4_SOCK)
+			{
+				is_local = m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo);
+			}
+		        else
+			{
+				is_local = m_inspector->get_ifaddr_list()->is_ipv6addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, m_tinfo);
+			}
+
+ 	                if(is_local)
 			{
 				if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO)
 				{
@@ -964,7 +986,18 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 
 			int16_t nport = 0;
 
-			if(m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo))
+			bool is_local;
+
+			if(evt_type == SCAP_FD_IPV4_SOCK)
+			{
+				is_local = m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo);
+			}
+		        else
+			{
+				is_local = m_inspector->get_ifaddr_list()->is_ipv6addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, m_tinfo);
+			}
+
+                        if(is_local)
 			{
 				if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO)
 				{
@@ -1273,16 +1306,16 @@ bool sinsp_filter_check_fd::compare_net(sinsp_evt *evt)
 		{
 			if(m_cmpop == CO_EQ || m_cmpop == CO_IN)
 			{
-				if(flt_compare_ipv6net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, (ipv6net*)filter_value_p()) ||
-				   flt_compare_ipv6net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip, (ipv6net*)filter_value_p()))
+				if(flt_compare_ipv6net(m_cmpop, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, (ipv6addr*)filter_value_p()) ||
+				   flt_compare_ipv6net(m_cmpop, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip, (ipv6addr*)filter_value_p()))
 				{
 					return true;
 				}
 			}
 			else if(m_cmpop == CO_NE)
 			{
-				if(flt_compare_ipv6net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, (ipv6net*)filter_value_p()) &&
-				   flt_compare_ipv6net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip, (ipv6net*)filter_value_p()))
+				if(flt_compare_ipv6net(m_cmpop, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, (ipv6addr*)filter_value_p()) &&
+				   flt_compare_ipv6net(m_cmpop, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip, (ipv6addr*)filter_value_p()))
 				{
 					return true;
 				}
@@ -1292,9 +1325,9 @@ bool sinsp_filter_check_fd::compare_net(sinsp_evt *evt)
 				throw sinsp_exception("filter error: IP filter only supports '=' and '!=' operators");
 			}
 		}
-		else if(evt_type == SCAP_FD_IPV4_SERVSOCK)
+		else if(evt_type == SCAP_FD_IPV6_SERVSOCK)
 		{
-			if(flt_compare_ipv6net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip, (ipv4net*)filter_value_p()))
+			if(flt_compare_ipv6net(m_cmpop, &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip, (ipv6addr*)filter_value_p()))
 			{
 				return true;
 			}
@@ -6385,7 +6418,7 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
 	}
 	else
 	{
-		return rawval_to_string(rawval, m_field, len);
+		return rawval_to_string(rawval, m_field->m_type, m_field->m_print_format, len);
 	}
 }
 
@@ -6430,7 +6463,7 @@ Json::Value sinsp_filter_check_reference::tojson(sinsp_evt* evt,
 	}
 	else
 	{
-		return rawval_to_json(rawval, m_field, len);
+		return rawval_to_json(rawval, m_field->m_type, m_field->m_print_format, len);
 	}
 }
 

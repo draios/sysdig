@@ -177,7 +177,7 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, ppm_par
 				lua_pushstring(ls, ch->m_lua_fld_storage);
 				return 1;
 			}
-                case PT_ADDR:
+                case PT_IPADDR:
 		        {
 				if(len == sizeof(struct in_addr))
 				{
@@ -358,7 +358,7 @@ int lua_cbacks::field(lua_State *ls)
 
 	if(rawval != NULL)
 	{
-		return rawval_to_lua_stack(ls, rawval, chk->get_field_info(), vlen);
+		return rawval_to_lua_stack(ls, rawval, chk->get_field_info()->m_type, vlen);
 	}
 	else
 	{
@@ -955,7 +955,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 				{
 					bool include_client;
 					char sipbuf[128], cipbuf[128];
-					uint_8_t *sip, *cip;
+					uint8_t *sip, *cip;
 					uint16_t sport, cport;
 					bool is_server;
 					int af;

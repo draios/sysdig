@@ -68,7 +68,7 @@ int32_t scap_create_iflist(scap_t* handle)
 			// "eql" interface like on EC2
 			continue;
 		}
-		
+
 		if(tempIfAddr->ifa_addr->sa_family == AF_INET)
 		{
 			ifcnt4++;

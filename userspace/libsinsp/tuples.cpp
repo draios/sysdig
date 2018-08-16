@@ -18,6 +18,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <tuples.h>
 
+ipv6addr ipv6addr::empty_address = {0x00000000, 0x00000000, 0x00000000, 0x00000000};
+
 bool ipv6addr::operator==(const ipv6addr &other)
 {
 	return (m_b[0] == other.m_b[0] &&
@@ -31,15 +33,11 @@ bool ipv6addr::operator!=(const ipv6addr &other)
 	return !operator==(other);
 }
 
-bool ipv6addr::operator==(const ipv6net &other)
+bool ipv6addr::in_subnet(const ipv6addr &other)
 {
-	return ((m_b[0] & other.m_netmask.m_b[0]) == (other.m_ip.m_b[0] & other.m_netmask.m_b[0]) &&
-		(m_b[1] & other.m_netmask.m_b[1]) == (other.m_ip.m_b[1] & other.m_netmask.m_b[1]) &&
-		(m_b[2] & other.m_netmask.m_b[2]) == (other.m_ip.m_b[2] & other.m_netmask.m_b[2]) &&
-		(m_b[3] & other.m_netmask.m_b[3]) == (other.m_ip.m_b[3] & other.m_netmask.m_b[3]));
-}
-
-bool ipv6addr::operator!=(const ipv6net &other)
-{
-	return !operator==(other);
+	// They're in the same subnet if the first 64 bits match
+	// (Assumes convention of first 48 bits for network, next 16
+	// bits for subnet).
+	return (m_b[0] == other.m_b[0] &&
+		m_b[1] == other.m_b[1]);
 }

@@ -122,24 +122,34 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 			}
 
 			break;
-		case PT_IPV4ADDR:
+		case PT_IPADDR:
 			if(memchr(str, '.', len) != NULL)
 			{
-				if(inet_pton(AF_INET, str, storage) != 1)
-				{
-					throw sinsp_exception("unrecognized IPv4 address " + string(str));
-				}
-				parsed_len = sizeof(struct in_addr);
+				return string_to_rawval(str, len, storage, max_len, PT_IPV4ADDR);
 			}
 			else
 			{
-				if(inet_pton(AF_INET6, str, storage) != 1)
-				{
-					throw sinsp_exception("unrecognized IPv6 address " + string(str));
-				}
-				parsed_len = sizeof(struct in6_addr);
+				return string_to_rawval(str, len, storage, max_len, PT_IPV6ADDR);
 			}
+
 			break;
+	        case PT_IPV4ADDR:
+			if(inet_pton(AF_INET, str, storage) != 1)
+			{
+				throw sinsp_exception("unrecognized IPv4 address " + string(str));
+			}
+			parsed_len = sizeof(struct in_addr);
+			break;
+	        case PT_IPV6ADDR:
+		{
+			ipv6addr *addr = (ipv6addr*) storage;
+			if(inet_pton(AF_INET6, str, addr->m_b) != 1)
+			{
+				throw sinsp_exception("unrecognized IPv6 address " + string(str));
+			}
+			parsed_len = sizeof(ipv6addr);
+			break;
+		}
 		case PT_IPV4NET:
 		{
 			stringstream ss(str);
