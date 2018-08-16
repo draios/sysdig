@@ -899,6 +899,189 @@ FILLER(sys_socketpair_x, true)
 	return res;
 }
 
+static int __always_inline parse_sockopt(struct filler_data *data, int level, int optname, void *optval, int optlen)
+{
+	union {
+		uint32_t val32;
+		uint64_t val64;
+		struct timeval tv;
+	} u;
+
+	if (level == SOL_SOCKET) {
+		switch (optname) {
+			case SO_ERROR:
+				if (bpf_probe_read(&u.val32, sizeof(u.val32), optval))
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+				return bpf_val_to_ring_dyn(data, -u.val32, PT_ERRNO, PPM_SOCKOPT_IDX_ERRNO);
+
+			case SO_RCVTIMEO:
+			case SO_SNDTIMEO:
+				if (bpf_probe_read(&u.tv, sizeof(u.tv), optval))
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+				return bpf_val_to_ring_dyn(data, u.tv.tv_sec * 1000000000 + u.tv.tv_usec * 1000, PT_RELTIME, PPM_SOCKOPT_IDX_TIMEVAL);
+
+#ifdef SO_COOKIE
+			case SO_COOKIE:
+				if (bpf_probe_read(&u.val64, sizeof(u.val64), optval))
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+				return bpf_val_to_ring_dyn(data, u.val64, PT_UINT64, PPM_SOCKOPT_IDX_UINT64);
+#endif
+
+			case SO_DEBUG:
+			case SO_REUSEADDR:
+			case SO_TYPE:
+			case SO_DONTROUTE:
+			case SO_BROADCAST:
+			case SO_SNDBUF:
+			case SO_RCVBUF:
+			case SO_SNDBUFFORCE:
+			case SO_RCVBUFFORCE:
+			case SO_KEEPALIVE:
+			case SO_OOBINLINE:
+			case SO_NO_CHECK:
+			case SO_PRIORITY:
+			case SO_BSDCOMPAT:
+			case SO_REUSEPORT:
+			case SO_PASSCRED:
+			case SO_RCVLOWAT:
+			case SO_SNDLOWAT:
+			case SO_SECURITY_AUTHENTICATION:
+			case SO_SECURITY_ENCRYPTION_TRANSPORT:
+			case SO_SECURITY_ENCRYPTION_NETWORK:
+			case SO_BINDTODEVICE:
+			case SO_DETACH_FILTER:
+			case SO_TIMESTAMP:
+			case SO_ACCEPTCONN:
+			case SO_PEERSEC:
+			case SO_PASSSEC:
+			case SO_TIMESTAMPNS:
+			case SO_MARK:
+			case SO_TIMESTAMPING:
+			case SO_PROTOCOL:
+			case SO_DOMAIN:
+			case SO_RXQ_OVFL:
+#ifdef SO_WIFI_STATUS
+			case SO_WIFI_STATUS:
+#endif
+#ifdef SO_PEEK_OFF
+			case SO_PEEK_OFF:
+#endif
+#ifdef SO_NOFCS
+			case SO_NOFCS:
+#endif
+#ifdef SO_LOCK_FILTER
+			case SO_LOCK_FILTER:
+#endif
+#ifdef SO_SELECT_ERR_QUEUE
+			case SO_SELECT_ERR_QUEUE:
+#endif
+			case SO_BUSY_POLL:
+#ifdef SO_MAX_PACING_RATE
+			case SO_MAX_PACING_RATE:
+#endif
+			case SO_BPF_EXTENSIONS:
+#ifdef SO_INCOMING_CPU
+			case SO_INCOMING_CPU:
+#endif
+				if (bpf_probe_read(&u.val32, sizeof(u.val32), optval))
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+				return bpf_val_to_ring_dyn(data, u.val32, PT_UINT32, PPM_SOCKOPT_IDX_UINT32);
+
+			default:
+				return __bpf_val_to_ring(data, (unsigned long)optval, optlen, PT_BYTEBUF, PPM_SOCKOPT_IDX_UNKNOWN, false);
+		}
+	} else {
+		return __bpf_val_to_ring(data, (unsigned long)optval, optlen, PT_BYTEBUF, PPM_SOCKOPT_IDX_UNKNOWN, false);
+	}
+}
+
+FILLER(sys_setsockopt_x, true)
+{
+	int res;
+	unsigned long retval, fd, level, optname, optval, optlen;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+
+	/* retval */
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* fd */
+	fd = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring_type(data, fd, PT_FD);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* level */
+	level = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring_type(data, sockopt_level_to_scap(level), PT_FLAGS8);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* optname */
+	optname = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring_type(data, sockopt_optname_to_scap(level, optname), PT_FLAGS8);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* optval */
+	optval = bpf_syscall_get_argument(data, 3);
+	optlen = bpf_syscall_get_argument(data, 4);
+	res = parse_sockopt(data, level, optname, (void*)optval, optlen);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* optlen */
+	res = bpf_val_to_ring_type(data, optlen, PT_UINT32);
+	return res;
+}
+
+FILLER(sys_getsockopt_x, true)
+{
+	int res;
+	unsigned long retval, fd, level, optname, optval, optlen_p, optlen;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+
+	/* retval */
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* fd */
+	fd = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring_type(data, fd, PT_FD);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* level */
+	level = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring_type(data, sockopt_level_to_scap(level), PT_FLAGS8);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* optname */
+	optname = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring_type(data, sockopt_optname_to_scap(level, optname), PT_FLAGS8);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* optval */
+	optval = bpf_syscall_get_argument(data, 3);
+	optlen_p = bpf_syscall_get_argument(data, 4);
+	if (bpf_probe_read(&optlen, sizeof(optlen), (void*)optlen_p))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	res = parse_sockopt(data, level, optname, (void*)optval, optlen);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* optlen */
+	res = bpf_val_to_ring_type(data, optlen, PT_UINT32);
+	return res;
+}
+
 static __always_inline int f_sys_send_e_common(struct filler_data *data, int fd)
 {
 	unsigned long val;
