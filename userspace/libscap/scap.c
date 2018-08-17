@@ -392,25 +392,6 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 
 			++j;
 		}
-
-		char probe_ver[SCAP_PROBE_VERSION_SIZE];
-		int ioctlres = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_PROBE_VERSION, probe_ver);
-		if(ioctlres)
-		{
-			snprintf(error, SCAP_LASTERR_SIZE, "Error calling PPM_IOCTL_GET_PROBE_VERSION");
-			scap_close(handle);
-			*rc = SCAP_FAILURE;
-			return NULL;
-		}
-
-		if(strcmp(PROBE_VERSION, probe_ver))
-		{
-			snprintf(error, SCAP_LASTERR_SIZE, "running probe version is %s, but it should be %s. Load the correct probe.",
-				 probe_ver, PROBE_VERSION);
-			scap_close(handle);
-			*rc = SCAP_FAILURE;
-			return NULL;
-		}
 	}
 
 	for(j = 0; j < handle->m_ndevs; ++j)
