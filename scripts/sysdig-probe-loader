@@ -51,9 +51,22 @@ load_kernel_probe() {
 	fi
 
 	echo "* Unloading ${PROBE_NAME}, if present"
-	rmmod "${PROBE_NAME}"
+	rmmod "${PROBE_NAME}" 2>/dev/null
+	WAIT_TIME=0
+	KMOD_NAME=$(echo "${PROBE_NAME}" | tr "-" "_")
+	while lsmod | grep "${KMOD_NAME}" > /dev/null 2>&1 && [ $WAIT_TIME -lt $MAX_RMMOD_WAIT ]; do
+		if rmmod "${PROBE_NAME}" 2>/dev/null; then
+			echo "* Unloading ${PROBE_NAME} succeeded after ${WAIT_TIME}s"
+			break
+		fi
+		((++WAIT_TIME))
+		if (( $WAIT_TIME % 5 == 0 )); then
+			echo "* ${PROBE_NAME} still loaded, waited ${WAIT_TIME}s (max wait ${MAX_RMMOD_WAIT}s)"
+		fi
+		sleep 1
+	done
 
-	if lsmod | grep "$(echo "${PROBE_NAME}" | tr "-" "_")" > /dev/null 2>&1; then
+	if lsmod | grep "${KMOD_NAME}" > /dev/null 2>&1; then
 		echo "* ${PROBE_NAME} seems to still be loaded, hoping the best"
 		exit 0
 	fi
@@ -211,6 +224,10 @@ ARCH=$(uname -m)
 KERNEL_RELEASE=$(uname -r)
 SCRIPT_NAME=$(basename "${0}")
 SYSDIG_PROBE_URL=${SYSDIG_PROBE_URL:-https://s3.amazonaws.com/download.draios.com}
+MAX_RMMOD_WAIT=60
+if [[ $# -ge 1 ]]; then
+	MAX_RMMOD_WAIT=$1
+fi
 
 if [ -z "${SYSDIG_REPOSITORY}" ]; then
 	SYSDIG_REPOSITORY="stable"
