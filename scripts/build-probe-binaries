@@ -22,6 +22,8 @@ ARCH=$(uname -m)
 URL_TIMEOUT=300
 RETRY=10
 
+SCRIPT_PATH="$(cd $(dirname ${BASH_SOURCE[0]} ) && pwd -P)"
+
 if [ $# -ge 4 ]; then
 	KERNEL_TYPE=$4
 fi
@@ -99,7 +101,9 @@ function build_probe {
 		KO_VERSION=$(/sbin/modinfo driver/$PROBE_NAME.ko | grep vermagic | tr -s " " | cut -d " " -f 2)
 		if [ "$KO_VERSION" != "$KERNEL_RELEASE" ]; then
 			echo "Corrupted probe, KO_VERSION " $KO_VERSION ", KERNEL_RELEASE " $KERNEL_RELEASE
-			exit 1
+			# no stop on error; continue w/ other packages.
+			#exit 1
+			return
 		fi
 
 		cp driver/$PROBE_NAME.ko $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko
@@ -113,7 +117,7 @@ function build_probe {
 
 function build_for_fedoro_atomic_in_container {
 	echo "Creating Fedora-Atomic builder"
-	docker build -t fedora-builder:latest -f ../sysdig/scripts/Dockerfiles/Dockerfile.fedora --pull ../sysdig/scripts
+	docker build -t fedora-builder:latest -f ${SCRIPT_PATH}/Dockerfiles/Dockerfile.fedora --pull ${SCRIPT_PATH}
 	docker run -i --rm --name fedora-atomic-build -v $BASEDIR:/build/probe fedora-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME Fedora-Atomic
 	echo "Done with building Fedora Atomic modules ($PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME) in container"
 }
@@ -131,6 +135,7 @@ function coreos_build_old {
 
 	if [ ! -f config_orig ]; then
 		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} ${VERSION_URL}coreos_developer_container.bin.bz2
+		rm -f coreos_developer_container.bin
 		bunzip2 coreos_developer_container.bin.bz2
 		sudo kpartx -asv coreos_developer_container.bin
 		LOOPDEV=$(sudo kpartx -asv coreos_developer_container.bin | cut -d\  -f 3)
@@ -188,6 +193,7 @@ function coreos_build_new {
 
 	if [ ! -f coreos_developer_container.bin ]; then
 		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} ${VERSION_URL}coreos_developer_container.bin.bz2
+		rm -f coreos_developer_container.bin
 		bunzip2 coreos_developer_container.bin.bz2
 	fi
 
@@ -456,11 +462,7 @@ function debian_build {
 	cd ${BASEDIR}
 }
 
-if [ -z "$KERNEL_TYPE" ]; then
-	#
-	# Ubuntu build
-	#
-
+function Ubuntu_build_routine {
 	echo Building Ubuntu
 	DIR=$(dirname $(readlink -f $0))
 	URLS="$($DIR/kernel-crawler.py Ubuntu)"
@@ -469,11 +471,9 @@ if [ -z "$KERNEL_TYPE" ]; then
 	do
 		ubuntu_build $URL
 	done
+}
 
-	#
-	# RHEL build
-	#
-
+function RHEL_build_routine {
 	echo Building RHEL
 	DIR=$(dirname $(readlink -f $0))
 	URLS="$($DIR/kernel-crawler.py CentOS)"
@@ -482,11 +482,9 @@ if [ -z "$KERNEL_TYPE" ]; then
 	do
 		rhel_build $URL
 	done
+}
 
-	#
-	# Fedora build
-	#
-
+function Fedora_build_routine {
 	echo Building Fedora
 	DIR=$(dirname $(readlink -f $0))
 	URLS="$($DIR/kernel-crawler.py Fedora)"
@@ -495,15 +493,9 @@ if [ -z "$KERNEL_TYPE" ]; then
 	do
 		rhel_build $URL
 	done
+}
 
-	#
-	# Fedora Atomic build
-	#
-	build_for_fedoro_atomic_in_container
-
-	#
-	# CoreOS build
-	#
+function CoreOS_build_routine {
 	echo Building CoreOS
 	DIR=$(dirname $(readlink -f $0))
 	URLS="$($DIR/kernel-crawler.py CoreOS)"
@@ -523,10 +515,9 @@ if [ -z "$KERNEL_TYPE" ]; then
 			coreos_build_old $URL $COREOS_VERSION
 		fi
 	done
+}
 
-	#
-	# boot2docker build
-	#
+function boot2docker_build_routine {
 	echo Building boot2docker
 	DIR=$(dirname $(readlink -f $0))
 	$DIR/boot2docker-kernel-crawler.py | \
@@ -534,10 +525,9 @@ if [ -z "$KERNEL_TYPE" ]; then
 		do
 			boot2docker_build $KERNEL_ARGS
 		done
+}
 
-	#
-	# Debian build
-	#
+function Debian_build_routine {
 	echo Building Debian
 	DIR=$(dirname $(readlink -f $0))
 	URLS="$($DIR/kernel-crawler.py Debian)"
@@ -546,6 +536,73 @@ if [ -z "$KERNEL_TYPE" ]; then
 	do
 		debian_build $URL
 	done
+}
+
+function Oracle_RHCK_build_routine {
+	echo Building Oracle RHCK
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/oracle-kernel-crawler.py Oracle-RHCK)"
+
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
+}
+
+function Oracle_Linux_6_UEK_builder_build_routine {
+	echo "Creating Oracle Linux 6 UEK builder"
+	docker ps -q -f 'name=ol6-build' | xargs --no-run-if-empty docker rm
+	docker build -t ol6-builder:latest -f ${SCRIPT_PATH}/Dockerfile.ol6 --pull ${SCRIPT_PATH}
+	docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi -f
+	docker run -i --rm --name ol6-build -v $BASEDIR:/build/probe ol6-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL6-UEK
+}
+
+function Oracle_Linux_7_UEK_builder_build_routine {
+	echo "Creating Oracle Linux 7 UEK builder"
+	docker ps -q -f 'name=ol7-build' | xargs --no-run-if-empty docker rm
+	docker build -t ol7-builder:latest -f ${SCRIPT_PATH}/Dockerfile.ol7 --pull ${SCRIPT_PATH}
+	docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi -f
+	docker run -i --rm --name ol7-build -v $BASEDIR:/build/probe ol7-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL7-UEK
+}
+
+function AmazonLinux_builder_build_routine {
+	echo Building AmazonLinux
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py AmazonLinux)"
+
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
+}
+
+function AmazonLinux2_builder_build_routine {
+	echo Building AmazonLinux2
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py AmazonLinux2)"
+
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
+}
+
+if [ -z "$KERNEL_TYPE" ]; then
+	Ubuntu_build_routine
+
+	RHEL_build_routine
+
+	Fedora_build_routine
+
+	echo "Building Fedora Atomic in container"
+	build_for_fedoro_atomic_in_container
+
+	CoreOS_build_routine
+
+	boot2docker_build_routine
+
+	Debian_build_routine
+
 	# XXX agent/434 - We need to force a build for certain kernel versions
 	# because they are still in use by some GCE customers but the headers
 	# are no longer available from the mirror. We pass the URL but nothing
@@ -558,14 +615,8 @@ if [ -z "$KERNEL_TYPE" ]; then
 	#
 	# Oracle RHCK build
 	#
-	echo Building Oracle RHCK
-	DIR=$(dirname $(readlink -f $0))
-	URLS="$($DIR/oracle-kernel-crawler.py Oracle-RHCK)"
 
-	for URL in $URLS
-	do
-		rhel_build $URL
-	done
+	Oracle_RHCK_build_routine
 
 	#
 	# The UEK builds needs to happen in a UEK environment, so we launch
@@ -577,44 +628,22 @@ if [ -z "$KERNEL_TYPE" ]; then
 	#
 	# Oracle Linux 6 UEK build
 	#
-	echo "Creating Oracle Linux 6 UEK builder"
-	docker ps -q -f 'name=ol6-build' | xargs --no-run-if-empty docker rm
-	docker build -t ol6-builder:latest -f ../sysdig/scripts/Dockerfile.ol6 --pull ../sysdig/scripts
-	docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi
-	docker run -i --rm --name ol6-build -v $BASEDIR:/build/probe ol6-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL6-UEK
+	Oracle_Linux_6_UEK_builder_build_routine
 
 	#
 	# Oracle Linux 7 UEK build
 	#
-	echo "Creating Oracle Linux 7 UEK builder"
-	docker ps -q -f 'name=ol7-build' | xargs --no-run-if-empty docker rm
-	docker build -t ol7-builder:latest -f ../sysdig/scripts/Dockerfile.ol7 --pull ../sysdig/scripts
-	docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi
-	docker run -i --rm --name ol7-build -v $BASEDIR:/build/probe ol7-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL7-UEK
+	Oracle_Linux_7_UEK_builder_build_routine
 
 	#
 	# AmazonLinux build
 	#
-	echo Building AmazonLinux
-	DIR=$(dirname $(readlink -f $0))
-	URLS="$($DIR/kernel-crawler.py AmazonLinux)"
-
-	for URL in $URLS
-	do
-		rhel_build $URL
-	done
+	AmazonLinux_builder_build_routine
 
 	#
 	# AmazonLinux2 build
 	#
-	echo Building AmazonLinux2
-	DIR=$(dirname $(readlink -f $0))
-	URLS="$($DIR/kernel-crawler.py AmazonLinux2)"
-
-	for URL in $URLS
-	do
-		rhel_build $URL
-	done
+	AmazonLinux2_builder_build_routine
 
 	#
 	# Upload modules
@@ -624,6 +653,28 @@ if [ -z "$KERNEL_TYPE" ]; then
 	#fi
 
 	echo "Success."
+elif [ "Ubuntu" = "$KERNEL_TYPE" ]; then
+	Ubuntu_build_routine
+elif [ "RHEL" = "$KERNEL_TYPE" ]; then
+	RHEL_build_routine
+elif [ "Fedora" = "$KERNEL_TYPE" ]; then
+	Fedora_build_routine
+elif [ "CoreOS" = "$KERNEL_TYPE" ]; then
+	CoreOS_build_routine
+elif [ "boot2docker" = "$KERNEL_TYPE" ]; then
+	boot2docker_build_routine
+elif [ "Debian" = "$KERNEL_TYPE" ]; then
+	Debian_build_routine
+elif [ "Oracle_RHCK" = "$KERNEL_TYPE" ]; then
+	Oracle_RHCK_build_routine
+elif [ "Oracle_Linux_6_UEK" = "$KERNEL_TYPE" ]; then
+	Oracle_Linux_6_UEK_builder_build_routine
+elif [ "Oracle_Linux_7_UEK" = "$KERNEL_TYPE" ]; then
+	Oracle_Linux_7_UEK_builder_build_routine
+elif [ "AmazonLinux" = "$KERNEL_TYPE" ]; then
+	AmazonLinux_builder_build_routine
+elif [ "AmazonLinux2" = "$KERNEL_TYPE" ]; then
+	AmazonLinux2_builder_build_routine
 elif [ "Fedora-Atomic" = "$KERNEL_TYPE" ]; then
 	if [ "container" = "$BUILD_TYPE" ]; then
 		build_for_fedoro_atomic_in_container
@@ -631,11 +682,10 @@ elif [ "Fedora-Atomic" = "$KERNEL_TYPE" ]; then
 		echo Building Fedora Atomic kernel modules in container
 		DIR=$(dirname $(readlink -f $0))
 		URLS="$($DIR/kernel-crawler.py Fedora-Atomic)"
-
 		for URL in $URLS
 		do
 			rhel_build $URL
-		done
+        done
 	fi
 elif [ "OL6-UEK" = "$KERNEL_TYPE" ]; then
 	# This should only run in the ol6-builder container context
