@@ -141,6 +141,7 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 			parsed_len = sizeof(struct in_addr);
 			break;
 	        case PT_IPV6ADDR:
+	        case PT_IPV6NET:
 		{
 			ipv6addr *addr = (ipv6addr*) storage;
 			if(inet_pton(AF_INET6, str, addr->m_b) != 1)
@@ -150,6 +151,17 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 			parsed_len = sizeof(ipv6addr);
 			break;
 		}
+		case PT_IPNET:
+			if(memchr(str, '.', len) != NULL)
+			{
+				return string_to_rawval(str, len, storage, max_len, PT_IPV4NET);
+			}
+			else
+			{
+				return string_to_rawval(str, len, storage, max_len, PT_IPV6NET);
+			}
+
+			break;
 		case PT_IPV4NET:
 		{
 			stringstream ss(str);

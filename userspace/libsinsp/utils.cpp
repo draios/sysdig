@@ -470,9 +470,9 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 								targetbuf_size,
 								"%s:%s->%s:%s",
 								srcstr,
-								port_to_string(sinfo->m_ipv4info.m_fields.m_sport, sinfo->m_ipv6info.m_fields.m_l4proto, resolve).c_str(),
+								port_to_string(sinfo->m_ipv6info.m_fields.m_sport, sinfo->m_ipv6info.m_fields.m_l4proto, resolve).c_str(),
 								dststr,
-								port_to_string(sinfo->m_ipv4info.m_fields.m_dport, sinfo->m_ipv6info.m_fields.m_l4proto, resolve).c_str());
+								port_to_string(sinfo->m_ipv6info.m_fields.m_dport, sinfo->m_ipv6info.m_fields.m_l4proto, resolve).c_str());
 					return true;
 				}
 			}

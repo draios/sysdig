@@ -688,7 +688,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 
  	                if(is_local)
 			{
-				if(m_field_id == TYPE_LIP)
+				if(m_field_id == TYPE_LIP || m_field_id == TYPE_LNET)
 				{
 					if(evt_type == SCAP_FD_IPV4_SOCK)
 					{
@@ -713,7 +713,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			}
 			else
 			{
-				if(m_field_id == TYPE_LIP)
+				if(m_field_id == TYPE_LIP || m_field_id == TYPE_LNET)
 				{
 					if(evt_type == SCAP_FD_IPV4_SOCK)
 					{
