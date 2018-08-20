@@ -436,10 +436,10 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 	}
 	else if(stype == SCAP_FD_IPV6_SOCK)
 	{
-		uint8_t* sip6 = (uint8_t*)sinfo->m_ipv6info.m_fields.m_sip;
-		uint8_t* dip6 = (uint8_t*)sinfo->m_ipv6info.m_fields.m_dip;
-		uint8_t* sip = ((uint8_t*)(sinfo->m_ipv6info.m_fields.m_sip)) + 12;
-		uint8_t* dip = ((uint8_t*)(sinfo->m_ipv6info.m_fields.m_dip)) + 12;
+		uint8_t* sip6 = (uint8_t*)sinfo->m_ipv6info.m_fields.m_sip.m_b;
+		uint8_t* dip6 = (uint8_t*)sinfo->m_ipv6info.m_fields.m_dip.m_b;
+		uint8_t* sip = ((uint8_t*)(sinfo->m_ipv6info.m_fields.m_sip.m_b)) + 12;
+		uint8_t* dip = ((uint8_t*)(sinfo->m_ipv6info.m_fields.m_dip.m_b)) + 12;
 
 		if(sinfo->m_ipv6info.m_fields.m_l4proto == SCAP_L4_TCP ||
 			sinfo->m_ipv6info.m_fields.m_l4proto == SCAP_L4_UDP)
@@ -470,9 +470,9 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 								targetbuf_size,
 								"%s:%s->%s:%s",
 								srcstr,
-								port_to_string(sinfo->m_ipv4info.m_fields.m_sport, sinfo->m_ipv6info.m_fields.m_l4proto, resolve).c_str(),
+								port_to_string(sinfo->m_ipv6info.m_fields.m_sport, sinfo->m_ipv6info.m_fields.m_l4proto, resolve).c_str(),
 								dststr,
-								port_to_string(sinfo->m_ipv4info.m_fields.m_dport, sinfo->m_ipv6info.m_fields.m_l4proto, resolve).c_str());
+								port_to_string(sinfo->m_ipv6info.m_fields.m_dport, sinfo->m_ipv6info.m_fields.m_l4proto, resolve).c_str());
 					return true;
 				}
 			}
@@ -1079,7 +1079,7 @@ string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve)
 	char address[100];
 	char buf[200];
 
-	if(NULL == inet_ntop(AF_INET6, addr->m_ip, address, 100))
+	if(NULL == inet_ntop(AF_INET6, addr->m_ip.m_b, address, 100))
 	{
 		return string();
 	}
@@ -1097,12 +1097,12 @@ string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve)
 	char destination_address[100];
 	char buf[200];
 
-	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_sip, source_address, 100))
+	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_sip.m_b, source_address, 100))
 	{
 		return string();
 	}
 
-	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_dip, destination_address, 100))
+	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_dip.m_b, destination_address, 100))
 	{
 		return string();
 	}
