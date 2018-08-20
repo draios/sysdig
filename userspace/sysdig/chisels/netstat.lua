@@ -45,7 +45,7 @@ end
 require "common"
 local dctable = {}
 local capturing = false
-local filter = "(fd.type=ipv4)"
+local filter = "(fd.type=ipv4 or fd.type=ipv6)"
 local match = false
 
 -- Argument notification callback
