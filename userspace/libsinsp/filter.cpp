@@ -363,6 +363,31 @@ bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2)
 	}
 }
 
+bool flt_compare_ipv6addr(cmpop op, ipv6addr *operand1, ipv6addr *operand2)
+{
+	switch(op)
+	{
+	case CO_EQ:
+	case CO_IN:
+		return *operand1 == *operand2;
+	case CO_NE:
+		return *operand1 != *operand2;
+	case CO_CONTAINS:
+		throw sinsp_exception("'contains' not supported for ipv6 addresses");
+		return false;
+	case CO_ICONTAINS:
+		throw sinsp_exception("'icontains' not supported for ipv6 addresses");
+		return false;
+	case CO_STARTSWITH:
+		throw sinsp_exception("'startswith' not supported for ipv6 addresses");
+		return false;
+	case CO_GLOB:
+		throw sinsp_exception("'glob' not supported for ipv6 addresses");
+		return false;
+	default:
+		throw sinsp_exception("comparison operator not supported for ipv6 addresses");
+	}
+}
 
 bool flt_compare_ipv6net(cmpop op, ipv6addr *operand1, ipv6addr *operand2)
 {
@@ -374,19 +399,19 @@ bool flt_compare_ipv6net(cmpop op, ipv6addr *operand1, ipv6addr *operand2)
 	case CO_NE:
 		return !operand1->in_subnet(*operand2);
 	case CO_CONTAINS:
-		throw sinsp_exception("'contains' not supported for numeric filters");
+		throw sinsp_exception("'contains' not supported for ipv6 networks");
 		return false;
 	case CO_ICONTAINS:
-		throw sinsp_exception("'icontains' not supported for numeric filters");
+		throw sinsp_exception("'icontains' not supported for ipv6 networks");
 		return false;
 	case CO_STARTSWITH:
-		throw sinsp_exception("'startswith' not supported for numeric filters");
+		throw sinsp_exception("'startswith' not supported for ipv6 networks");
 		return false;
 	case CO_GLOB:
-		throw sinsp_exception("'glob' not supported for numeric filters");
+		throw sinsp_exception("'glob' not supported for ipv6 networks");
 		return false;
 	default:
-		throw sinsp_exception("comparison operator not supported for ipv4 networks");
+		throw sinsp_exception("comparison operator not supported for ipv6 networks");
 	}
 }
 
@@ -431,7 +456,7 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 	case PT_IPV4NET:
 		return flt_compare_ipv4net(op, (uint64_t)*(uint32_t*)operand1, (ipv4net*)operand2);
 	case PT_IPV6ADDR:
-		return flt_compare_buffer(op, (char *)operand1, (char *)operand2, sizeof(struct in6_addr), sizeof(struct in6_addr));
+		return flt_compare_ipv6addr(op, (ipv6addr *)operand1, (ipv6addr *)operand2);
 	case PT_IPV6NET:
 		return flt_compare_ipv6net(op, (ipv6addr *)operand1, (ipv6addr*)operand2);
 	case PT_IPADDR:
