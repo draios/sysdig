@@ -1700,6 +1700,28 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				         "INVALID IPv4");
 			}
 		}
+		else if(payload[0] == PPM_AF_INET6)
+		{
+			if(payload_len == 1 + 16 + 2)
+			{
+				ipv6serverinfo addr;
+				memcpy((uint8_t *) addr.m_ip.m_b, (uint8_t *) payload+1, sizeof(addr.m_ip.m_b));
+				addr.m_port = *(uint16_t*)(payload+17);
+				addr.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
+				string straddr = ipv6serveraddr_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
+				snprintf(&m_paramstr_storage[0],
+					   	 m_paramstr_storage.size(),
+					   	 "%s",
+					   	 straddr.c_str());
+			}
+			else
+			{
+				ASSERT(false);
+				snprintf(&m_paramstr_storage[0],
+				         m_paramstr_storage.size(),
+				         "INVALID IPv6");
+			}
+		}
 		else
 		{
 			snprintf(&m_paramstr_storage[0],

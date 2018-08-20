@@ -6228,7 +6228,7 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
 	}
 	else
 	{
-		return rawval_to_string(rawval, m_field, len);
+		return rawval_to_string(rawval, m_field->m_type, m_field->m_print_format, len);
 	}
 }
 
@@ -6273,7 +6273,7 @@ Json::Value sinsp_filter_check_reference::tojson(sinsp_evt* evt,
 	}
 	else
 	{
-		return rawval_to_json(rawval, m_field, len);
+		return rawval_to_json(rawval, m_field->m_type, m_field->m_print_format, len);
 	}
 }
 

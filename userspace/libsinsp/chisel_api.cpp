@@ -62,12 +62,11 @@ void lua_stackdump(lua_State *L);
 ///////////////////////////////////////////////////////////////////////////////
 #ifdef HAS_LUA_CHISELS
 
-uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len)
+uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, ppm_param_type ptype, uint32_t len)
 {
 	ASSERT(rawval != NULL);
-	ASSERT(finfo != NULL);
 
-	switch(finfo->m_type)
+	switch(ptype)
 	{
 		case PT_INT8:
 			lua_pushnumber(ls, *(int8_t*)rawval);
@@ -158,9 +157,46 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, const f
 				lua_pushstring(ls, ch->m_lua_fld_storage);
 				return 1;
 			}
+		case PT_IPV6ADDR:
+			{
+				char address[100];
+				ipv6addr *ip = (ipv6addr *) rawval;
+
+				lua_getglobal(ls, "sichisel");
+				sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+				lua_pop(ls, 1);
+
+				if(NULL == inet_ntop(AF_INET6, ip->m_b, address, 100))
+				{
+					strcpy(address, "<NA>");
+				}
+
+				strncpy(ch->m_lua_fld_storage,
+					address,
+					sizeof(ch->m_lua_fld_storage));
+
+				lua_pushstring(ls, ch->m_lua_fld_storage);
+				return 1;
+			}
+                case PT_IPADDR:
+		        {
+				if(len == sizeof(struct in_addr))
+				{
+					return rawval_to_lua_stack(ls, rawval, PT_IPV4ADDR, len);
+				}
+				else if(len == sizeof(struct in6_addr))
+				{
+					return rawval_to_lua_stack(ls, rawval, PT_IPV6ADDR, len);
+				}
+				else
+				{
+					throw sinsp_exception("rawval_to_lua_stack called with IP address of incorrect size " + to_string(len));
+				}
+			}
+			break;
 		default:
 			ASSERT(false);
-			string err = "wrong event type " + to_string((long long) finfo->m_type);
+			string err = "wrong event type " + to_string((long long) ptype);
 			fprintf(stderr, "%s\n", err.c_str());
 			throw sinsp_exception("chisel error");
 	}
@@ -323,7 +359,7 @@ int lua_cbacks::field(lua_State *ls)
 
 	if(rawval != NULL)
 	{
-		return rawval_to_lua_stack(ls, rawval, chk->get_field_info(), vlen);
+		return rawval_to_lua_stack(ls, rawval, chk->get_field_info()->m_type, vlen);
 	}
 	else
 	{
@@ -671,7 +707,6 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 	sinsp_filter* filter = NULL;
 	sinsp_evt tevt;
 	scap_evt tscapevt;
-	char ipbuf[128];
 
 	//
 	// Get the chisel state
@@ -916,7 +951,8 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 				}
 
 				scap_fd_type evt_type = fdit->second.m_type;
-				if(evt_type == SCAP_FD_IPV4_SOCK || evt_type == SCAP_FD_IPV4_SERVSOCK)
+				if(evt_type == SCAP_FD_IPV4_SOCK || evt_type == SCAP_FD_IPV4_SERVSOCK ||
+				   evt_type == SCAP_FD_IPV6_SOCK || evt_type == SCAP_FD_IPV6_SERVSOCK)
 				{
 					uint8_t* pip4;
 

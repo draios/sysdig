@@ -26,15 +26,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <locale>
 #include <sstream>
 
+#include <tuples.h>
 #include <scap.h>
 #include "json/json.h"
 
 class sinsp_evttables;
 typedef union _sinsp_sockinfo sinsp_sockinfo;
-typedef union _ipv4tuple ipv4tuple;
-typedef union _ipv6tuple ipv6tuple;
-typedef struct ipv4serverinfo ipv4serverinfo;
-typedef struct ipv6serverinfo ipv6serverinfo;
 class filter_check_info;
 
 extern sinsp_evttables g_infotables;
@@ -183,7 +180,7 @@ std::string sinsp_gethostname();
 // each of these functions uses values in network byte order
 
 std::string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve);
-std::string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve);
+std::string ipv6tuple_to_string(ipv6tuple* tuple, bool resolve);
 std::string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve);
 std::string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve);
 
