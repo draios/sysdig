@@ -94,6 +94,7 @@ curses_table::curses_table(sinsp_cursesui* parent, sinsp* inspector, sinsp_table
 	m_colsizes[PT_SOCKFAMILY] = 8;
 	m_colsizes[PT_BOOL] = 8;
 	m_colsizes[PT_IPV4ADDR] = 8;
+	m_colsizes[PT_IPV6ADDR] = 16;
 	m_colsizes[PT_DYN] = 8;
 	m_colsizes[PT_FLAGS8] = 32;
 	m_colsizes[PT_FLAGS16] = 32;
