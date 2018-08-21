@@ -149,6 +149,11 @@ load_bpf_probe() {
 		fi
 	fi
 
+	if [ ! -z "${SYSDIG_HOST_ROOT}" ] && [ -f "${SYSDIG_HOST_ROOT}/etc/VERSION" ]; then
+		MINIKUBE=1
+		MINIKUBE_VERSION="$(cat ${SYSDIG_HOST_ROOT}/etc/VERSION)"
+	fi
+
 	local BPF_PROBE_FILENAME="${BPF_PROBE_NAME}-${SYSDIG_VERSION}-${ARCH}-${KERNEL_RELEASE}-${HASH}.o"
 
 	if [ ! -f "${HOME}/.sysdig/${BPF_PROBE_FILENAME}" ]; then
@@ -179,6 +184,33 @@ load_bpf_probe() {
 			export KERNELDIR=/tmp/kernel
 		fi
 
+		if [ -n "${MINIKUBE}" ]; then
+			echo "* Minikube detected (${MINIKUBE_VERSION}), downloading and setting up kernel headers"
+
+			local -r download_url="http://mirrors.edge.kernel.org/pub/linux/kernel/v4.x/linux-4.15.tar.gz"
+
+			echo "* Downloading ${download_url}"
+
+			mkdir -p /tmp/kernel
+			cd /tmp/kernel
+			if ! curl --create-dirs -s -S -f -O "${download_url}"; then
+				exit 1;
+			fi
+
+			echo "* Extracting kernel sources"
+
+			tar xf linux-4.15.tar.gz
+			zcat /proc/config.gz > linux-4.15/.config
+
+			echo "* Configuring kernel"
+
+			cd linux-4.15
+			make olddefconfig > /dev/null
+			make modules_prepare > /dev/null
+
+			export KERNELDIR=/tmp/kernel/linux-4.15
+		fi
+
 		echo "* Trying to compile BPF probe ${BPF_PROBE_NAME} (${BPF_PROBE_FILENAME})"
 
 		make -C "/usr/src/${PACKAGE_NAME}-${SYSDIG_VERSION}/bpf" > /dev/null
@@ -186,7 +218,7 @@ load_bpf_probe() {
 		mkdir -p ~/.sysdig
 		mv "/usr/src/${PACKAGE_NAME}-${SYSDIG_VERSION}/bpf/probe.o" "${HOME}/.sysdig/${BPF_PROBE_FILENAME}"
 
-		if [ -n "${COS}" ]; then
+		if [ -n "${COS}" ] || [ -n "${MINIKUBE}" ]; then
 			rm -r /tmp/kernel
 		fi
 	fi
