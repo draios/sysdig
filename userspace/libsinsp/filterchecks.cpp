@@ -776,17 +776,17 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				return NULL;
 			}
 
-			string port = "";
+			m_tstr = "";
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
-				port = port_to_string(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
+				m_tstr = port_to_string(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
 			}
 			else if(evt_type == SCAP_FD_IPV6_SOCK)
 			{
-				port = port_to_string(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
+				m_tstr = port_to_string(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
 			}
 
-			RETURN_EXTRACT_STRING(port);
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_SERVERPORT:
 		{
@@ -868,17 +868,17 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				return NULL;
 			}
 
-			string port = "";
+			m_tstr = "";
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
-				port = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
+				m_tstr = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
 			}
 			else if(evt_type == SCAP_FD_IPV6_SOCK)
 			{
-				port = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
+				m_tstr = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
 			}
 
-			RETURN_EXTRACT_STRING(port);
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_LPORT:
 	case TYPE_RPORT:
@@ -1049,9 +1049,8 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				}
 			}
 
-			string port = "";
-			port = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
-			RETURN_EXTRACT_STRING(port);
+			m_tstr = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 
 	case TYPE_L4PROTO:
