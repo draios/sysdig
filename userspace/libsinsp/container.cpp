@@ -240,11 +240,11 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 						string repotag = rtag.asString();
 						if(container->m_imagerepo.empty())
 						{
-							container->m_imagerepo = repotag.substr(0, repotag.find(":"));
+							container->m_imagerepo = repotag.substr(0, repotag.rfind(":"));
 						}
 						if(repotag.find(container->m_imagerepo) != string::npos)
 						{
-							container->m_imagetag = repotag.substr(repotag.find(":")+1);
+							container->m_imagetag = repotag.substr(repotag.rfind(":")+1);
 							break;
 						}
 					}
