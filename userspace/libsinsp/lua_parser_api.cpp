@@ -33,7 +33,7 @@ extern sinsp_filter_check_list g_filterlist;
 
 // It would be nice to expose this up to Lua so that comparison operator
 // parsing/encoding can be done there.
-cmpop string_to_cmpop(const char* str)
+static cmpop string_to_cmpop(const char* str)
 {
 	if(strcmp(str, "=") == 0)
 	{
@@ -131,7 +131,7 @@ int lua_parser_cbacks::nest(lua_State *ls)
 		throw sinsp_exception(err);
 	}
 
-	sinsp_filter* filter = parser->m_filter;
+	gen_event_filter* filter = parser->m_filter;
 
 	filter->push_expression(parser->m_last_boolop);
 	parser->m_nest_level++;
@@ -156,7 +156,7 @@ int lua_parser_cbacks::unnest(lua_State *ls)
 		throw sinsp_exception(err);
 	}
 
-	sinsp_filter* filter = parser->m_filter;
+	gen_event_filter* filter = parser->m_filter;
 
 	filter->pop_expression();
 	parser->m_nest_level--;
@@ -219,13 +219,10 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 	}
 
 	parser->m_have_rel_expr = true;
-	sinsp* inspector = parser->m_inspector;
-	sinsp_filter* filter = parser->m_filter;
+	gen_event_filter* filter = parser->m_filter;
 
 	const char* fld = luaL_checkstring(ls, 1);
-	sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(fld,
-									     inspector,
-									     true);
+	gen_event_filter_check *chk = parser->m_factory->new_filtercheck(fld);
 	if(chk == NULL)
 	{
 		string err = "filter_check called with nonexistent field " + string(fld);

@@ -18,23 +18,24 @@ limitations under the License.
 */
 #pragma once
 
-#include "sinsp.h"
+#include "lua_parser_api.h"
+#include "gen_filter.h"
 
 typedef struct lua_State lua_State;
 
 class lua_parser
 {
 public:
-	lua_parser(sinsp* inspector, lua_State *ls);
+	lua_parser(gen_event_filter_factory *factory, lua_State *ls, const char *lua_global_binding);
 	~lua_parser();
-	sinsp_filter* get_filter(bool reset_filter = false);
+	gen_event_filter* get_filter(bool reset_filter = false);
 
  private:
 
 	void reset();
-	sinsp* m_inspector;
+	gen_event_filter_factory* m_factory;
 
-	sinsp_filter* m_filter;
+	gen_event_filter* m_filter;
 
 	boolop m_last_boolop;
 	bool m_have_rel_expr;
