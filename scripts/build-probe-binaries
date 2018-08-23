@@ -95,7 +95,17 @@ function build_probe {
 		version_name=-D$(echo $PROBE_REPO_NAME | tr [a-z] [A-Z])_VERSION
 
 		cmake -DCMAKE_BUILD_TYPE=Release $version_name=$PROBE_VERSION ..
+
+		set +e
 		make driver
+		if [ $? -ne 0 ]; then
+			echo "Warning: make driver failed for $KERNEL_RELEASE"
+			set -e
+			return
+		else
+			set -e
+		fi
+
 		strip -g driver/$PROBE_NAME.ko
 
 		KO_VERSION=$(/sbin/modinfo driver/$PROBE_NAME.ko | grep vermagic | tr -s " " | cut -d " " -f 2)
