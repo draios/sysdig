@@ -294,8 +294,8 @@ function boot2docker_build {
 		cd ..
 	fi
 
-	HASH=$(md5sum config | cut -d' ' -f1)
-	HASH_ORIG=$(md5sum config-orig | cut -d' ' -f1)
+	HASH=$(md5sum config | cut -d' ' -f1) || return 0
+	HASH_ORIG=$(md5sum config-orig | cut -d' ' -f1) || return 0
 
 	cd $BASEDIR
 
