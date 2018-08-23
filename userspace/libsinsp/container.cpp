@@ -189,9 +189,15 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 		container->m_imageid = imgstr.substr(cpos + 1);
 	}
 
+	// containers can be spawned using just the imageID as image name,
+	// with or without the hash prefix (e.g. sha256:)
 	bool no_name = !container->m_imageid.empty() &&
 		strncmp(container->m_image.c_str(), container->m_imageid.c_str(),
 			MIN(container->m_image.length(), container->m_imageid.length())) == 0;
+	no_name |= !imgstr.empty() &&
+		strncmp(container->m_image.c_str(), imgstr.c_str(),
+			MIN(container->m_image.length(), imgstr.length())) == 0;
+
 	if(!no_name || !m_query_image_info)
 	{
 		string hostname, port;
