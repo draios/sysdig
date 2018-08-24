@@ -19,7 +19,9 @@ pipeline {
                 sh 'echo build dokcer images of various builders ...'
                 sh 'sysdig/scripts/build-builder-containers.sh'
                 sh 'docker images'
-                sh 'docker ps'
+                sh 'docker ps -a'
+                sh 'docker ps -aq -f "name=fedora-atomic-build|amazon-linux-build|ol6-buildol7-build" | xargs --no-run-if-empty docker rm -f'
+                sh 'docker ps -a'
                 sh 'mkdir -p probe/output'
             }
         }
