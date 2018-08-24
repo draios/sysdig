@@ -26,14 +26,14 @@ typedef struct lua_State lua_State;
 class lua_parser
 {
 public:
-	lua_parser(gen_event_filter_factory *factory, lua_State *ls, const char *lua_global_binding);
-	~lua_parser();
+	lua_parser(gen_event_filter_factory &factory, lua_State *ls, const char *lua_library_name);
+	virtual ~lua_parser();
 	gen_event_filter* get_filter(bool reset_filter = false);
 
  private:
 
 	void reset();
-	gen_event_filter_factory* m_factory;
+	gen_event_filter_factory &m_factory;
 
 	gen_event_filter* m_filter;
 
