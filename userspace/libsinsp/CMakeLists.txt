@@ -10,6 +10,7 @@ if(NOT WIN32 AND NOT APPLE)
 	include_directories("${CURSES_INCLUDE_DIR}")
 	include_directories("${JQ_INCLUDE}")
 	include_directories("${OPENSSL_INCLUDE_DIR}")
+	include_directories("${TBB_INCLUDE}")
 endif()
 
 add_library(sinsp STATIC
@@ -102,12 +103,16 @@ if(NOT WIN32)
 	if(USE_BUNDLED_CURL)
 		add_dependencies(sinsp curl)
 	endif()
+	if(USE_BUNDLED_TBB)
+		add_dependencies(sinsp tbb)
+	endif()
 
 	if(NOT APPLE)
 		target_link_libraries(sinsp
 			"${JQ_LIB}"
 			"${B64_LIB}"
 			"${CURL_LIBRARIES}"
+			"${TBB_LIB}"
 			rt
 			anl)
 	endif()
