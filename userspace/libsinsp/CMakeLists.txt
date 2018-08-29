@@ -25,6 +25,7 @@ add_library(sinsp STATIC
 	cursesui.cpp
 	event.cpp
 	eventformatter.cpp
+	dns_manager.cpp
 	docker.cpp
 	dumper.cpp
 	fdinfo.cpp
