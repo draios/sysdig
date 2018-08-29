@@ -45,7 +45,7 @@ fi
 function update_code_for {
 	repo=$1
 	if [ ! -d $repo ]; then
-		git clone https://github.com/draios/$repo.git
+		git clone git@github.com:draios/$repo.git
 	fi
 
 	cd $repo
