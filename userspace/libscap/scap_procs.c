@@ -472,6 +472,34 @@ int32_t scap_proc_fill_root(struct scap_threadinfo* tinfo, const char* procdirna
 	}
 }
 
+int32_t scap_proc_fill_loginuid(struct scap_threadinfo* tinfo, const char* procdirname)
+{
+	uint32_t loginuid;
+	char loginuid_path[SCAP_MAX_PATH_SIZE];
+	char line[512];
+
+	snprintf(loginuid_path, sizeof(loginuid_path), "%sloginuid", procdirname);
+
+	FILE* f = fopen(loginuid_path, "r");
+	if(f == NULL)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	fgets(line, sizeof(line), f);
+	if(sscanf(line, "%" PRId32, &loginuid) == 1)
+	{
+		tinfo->loginuid = loginuid;
+		return SCAP_SUCCESS;
+	}
+	else
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+}
+
 //
 // Add a process to the list by parsing its entry under /proc
 //
@@ -743,6 +771,16 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 	if(SCAP_FAILURE == scap_proc_fill_root(tinfo, dir_name))
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "can't fill root for %s", dir_name);
+		free(tinfo);
+		return SCAP_FAILURE;
+	}
+
+	//
+	// set the loginuid
+	//
+	if(SCAP_FAILURE == scap_proc_fill_loginuid(tinfo, dir_name))
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "can't fill loginuid for %s", dir_name);
 		free(tinfo);
 		return SCAP_FAILURE;
 	}
@@ -1301,7 +1339,7 @@ int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent, bool *suppressed
 	case PPME_SYSCALL_CLONE_20_X:
 	case PPME_SYSCALL_FORK_20_X:
 	case PPME_SYSCALL_VFORK_20_X:
-	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVE_20_X:
 
 		lens = (uint16_t *)((char *)pevent + sizeof(struct ppm_evt_hdr));
 		valptr = (char *)lens + pevent->nparams * sizeof(uint16_t);

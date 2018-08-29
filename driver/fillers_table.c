@@ -255,8 +255,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_RMDIR_2_X] = {FILLER_REF(sys_autofill), 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_SYSCALL_UNSHARE_E] = {FILLER_REF(sys_unshare_e)},
 	[PPME_SYSCALL_UNSHARE_X] = {FILLER_REF(sys_autofill), 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_EXECVE_19_E] = {FILLER_REF(sys_execve_e)},
-	[PPME_SYSCALL_EXECVE_19_X] = {FILLER_REF(proc_startupdate)},
+	[PPME_SYSCALL_EXECVE_20_E] = {FILLER_REF(sys_execve_e)},
+	[PPME_SYSCALL_EXECVE_20_X] = {FILLER_REF(proc_startupdate)},
 #ifdef CAPTURE_PAGE_FAULTS
 	[PPME_PAGE_FAULT_E] = {FILLER_REF(sys_pagefault_e)},
 	[PPME_PAGE_FAULT_X] = {FILLER_REF(sys_empty)},

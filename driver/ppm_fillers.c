@@ -35,6 +35,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/module.h>
 #include <linux/quota.h>
 #include <linux/tty.h>
+#include <linux/audit.h>
 #include <linux/uaccess.h>
 #ifdef CONFIG_CGROUPS
 #include <linux/cgroup.h>
@@ -641,7 +642,7 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 		return res;
 
 	if (unlikely(retval < 0 &&
-		     args->event_type != PPME_SYSCALL_EXECVE_19_X)) {
+		     args->event_type != PPME_SYSCALL_EXECVE_20_X)) {
 
 		/* The call failed, but this syscall has no exe, args
 		 * anyway, so I report empty ones */
@@ -922,7 +923,7 @@ cgroups_error:
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
-	} else if (args->event_type == PPME_SYSCALL_EXECVE_19_X) {
+	} else if (args->event_type == PPME_SYSCALL_EXECVE_20_X) {
 		/*
 		 * execve-only parameters
 		 */
@@ -990,6 +991,20 @@ cgroups_error:
 #endif
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
+
+        /*
+         * loginuid
+         */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
+        val = from_kuid(current_user_ns(), audit_get_loginuid(current));
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+        val = audit_get_loginuid(current);
+#else
+        val = audit_get_loginuid(current->audit_context);
+#endif
+        res = val_to_ring(args, val, 0, false, 0);
+        if (unlikely(res != PPM_SUCCESS))
+            return res;
 	}
 
 	return add_sentinel(args);

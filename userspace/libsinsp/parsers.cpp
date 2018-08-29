@@ -276,6 +276,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_18_E:
 	case PPME_SYSCALL_EXECVE_19_E:
 	case PPME_SYSCALL_SETPGID_E:
+	case PPME_SYSCALL_EXECVE_20_E:
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_WRITE_E:
@@ -343,6 +344,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVE_20_X:
 		parse_execve_exit(evt);
 		break;
 	case PPME_PROCEXIT_E:
@@ -1148,6 +1150,8 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 
 		tinfo->m_tty = ptinfo->m_tty;
 
+		tinfo->m_loginuid = ptinfo->m_loginuid;
+
 		if(!(flags & PPM_CL_CLONE_THREAD))
 		{
 			tinfo->m_env = ptinfo->m_env;
@@ -1187,6 +1191,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			tinfo->m_sid = ptinfo->m_sid;
 			tinfo->m_vpgid = ptinfo->m_vpgid;
 			tinfo->m_tty = ptinfo->m_tty;
+			tinfo->m_loginuid = ptinfo->m_loginuid;
 			if(!(flags & PPM_CL_CLONE_THREAD))
 			{
 				tinfo->m_env = ptinfo->m_env;
@@ -1545,6 +1550,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVE_20_X:
 		// Get the comm
 		parinfo = evt->get_param(13);
 		evt->m_tinfo->m_comm = parinfo->m_val;
@@ -1590,6 +1596,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVE_20_X:
 		// Get the pgflt_maj
 		parinfo = evt->get_param(8);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -1638,6 +1645,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVE_20_X:
 		// Get the environment
 		parinfo = evt->get_param(15);
 		evt->m_tinfo->set_env(parinfo->m_val, parinfo->m_len);
@@ -1675,6 +1683,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVE_20_X:
 		// Get the tty
 		parinfo = evt->get_param(16);
 		ASSERT(parinfo->m_len == sizeof(int32_t));
@@ -1695,6 +1704,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVE_20_X:
 		// Get exepath
 		if (retrieve_enter_event(enter_evt, evt))
 		{
@@ -1728,6 +1738,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_18_X:
 		break;
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVE_20_X:
 		// Get the vpgid
 		parinfo = evt->get_param(17);
 		ASSERT(parinfo->m_len == sizeof(int64_t));
@@ -1747,6 +1758,14 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	// {
 	//   ...
 	// }
+
+	// Get the loginuid
+	if(evt->get_num_params() > 17)
+	{
+		parinfo = evt->get_param(18);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		evt->m_tinfo->m_loginuid = *(uint32_t *) parinfo->m_val;
+	}
 
 	//
 	// execve starts with a clean fd list, so we get rid of the fd list that clone

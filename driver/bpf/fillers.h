@@ -1354,7 +1354,7 @@ FILLER(proc_startupdate, true)
 			else
 				data->buf[(data->state->tail_ctx.curoff + args_len - 1) & SCRATCH_SIZE_MAX] = 0;
 		}
-	} else if (data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVE_19_X) {
+	} else if (data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVE_20_X) {
 		unsigned long val;
 		char **argv;
 
@@ -1567,6 +1567,7 @@ FILLER(proc_startupdate_3, true)
 		kgid_t egid;
 		pid_t vtid;
 		pid_t vpid;
+        kuid_t loginuid;
 
 		/*
 		 * flags
@@ -1622,7 +1623,7 @@ FILLER(proc_startupdate_3, true)
 		vpid = bpf_task_tgid_vnr(task);
 		res = bpf_val_to_ring_type(data, vpid, PT_PID);
 
-	} else if (data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVE_19_X) {
+	} else if (data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVE_20_X) {
 		/*
 		 * execve-only parameters
 		 */
@@ -1688,6 +1689,13 @@ FILLER(proc_startupdate_3, true)
 		 * pgid
 		 */
 		res = bpf_val_to_ring_type(data, bpf_task_pgrp_vnr(task), PT_PID);
+        if (res != PPM_SUCCESS)
+            return res;
+
+        /* TODO: implement user namespace support */
+		res = bpf_val_to_ring_type(data, task->loginuid.val, PT_INT32);
+        if (res != PPM_SUCCESS)
+            return res;
 	}
 
 	return res;

@@ -260,6 +260,7 @@ public:
 	size_t m_program_hash;
 	size_t m_program_hash_falco;
 	int32_t m_tty;
+	int32_t m_loginuid; ///< loginuid (auid)
 
 	//
 	// State for multi-event processing
@@ -334,7 +335,6 @@ VISIBILITY_PRIVATE
 	sinsp_threadinfo* get_cwd_root();
 	void set_args(const char* args, size_t len);
 	void set_env(const char* env, size_t len);
-	bool set_env_from_proc();
 	void set_cgroups(const char* cgroups, size_t len);
 	bool is_lastevent_data_valid();
 	inline void set_lastevent_data_validity(bool isvalid)

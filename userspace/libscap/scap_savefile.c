@@ -398,7 +398,8 @@ int32_t scap_write_proclist_entry_bufs(scap_t *handle, scap_dumper_t *d, struct 
 		    scap_dump_write(d, &(cgroupslen), sizeof(uint16_t)) != sizeof(uint16_t) ||
                     scap_dump_writev(d, cgroups, cgroupscnt) != cgroupslen ||
 		    scap_dump_write(d, &rootlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
-                    scap_dump_write(d, (char *) root, rootlen) != rootlen)
+			scap_dump_write(d, tinfo->root, rootlen) != rootlen ||
+			scap_dump_write(d, &(tinfo->loginuid), sizeof(uint32_t)) != sizeof(uint32_t))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (2)");
 		return SCAP_FAILURE;
@@ -459,7 +460,9 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 				sizeof(int64_t) +  // vtid
 				sizeof(int64_t) +  // vpid
 				2 + tinfo->cgroups_len +
-				2 + strnlen(tinfo->root, SCAP_MAX_PATH_SIZE));
+				sizeof(uint32_t) +
+				2 + strnlen(tinfo->root, SCAP_MAX_PATH_SIZE) +
+				sizeof(int32_t)); // loginuid
 
 			lengths[idx++] = il;
 			totlen += il;
@@ -1217,6 +1220,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		tinfo.clone_ts = 0;
 		tinfo.tty = 0;
 		tinfo.exepath[0] = 0;
+		tinfo.loginuid = -1;
 
 		//
 		// len
@@ -1492,168 +1496,161 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 		subreadsize += readsize;
 
-		switch(block_type)
-		{
-		case PL_BLOCK_TYPE_V1:
-		case PL_BLOCK_TYPE_V1_INT:
-			break;
-		case PL_BLOCK_TYPE_V2:
-		case PL_BLOCK_TYPE_V2_INT:
-		case PL_BLOCK_TYPE_V3:
-		case PL_BLOCK_TYPE_V3_INT:
-		case PL_BLOCK_TYPE_V4:
-		case PL_BLOCK_TYPE_V5:
-		case PL_BLOCK_TYPE_V6:
-		case PL_BLOCK_TYPE_V7:
-		case PL_BLOCK_TYPE_V8:
-		case PL_BLOCK_TYPE_V9:
-			//
-			// vmsize_kb
-			//
-			readsize = gzread(f, &(tinfo.vmsize_kb), sizeof(uint32_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
-
-			subreadsize += readsize;
-
-			//
-			// vmrss_kb
-			//
-			readsize = gzread(f, &(tinfo.vmrss_kb), sizeof(uint32_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
-
-			subreadsize += readsize;
-
-			//
-			// vmswap_kb
-			//
-			readsize = gzread(f, &(tinfo.vmswap_kb), sizeof(uint32_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
-
-			subreadsize += readsize;
-
-			//
-			// pfmajor
-			//
-			readsize = gzread(f, &(tinfo.pfmajor), sizeof(uint64_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
-
-			subreadsize += readsize;
-
-			//
-			// pfminor
-			//
-			readsize = gzread(f, &(tinfo.pfminor), sizeof(uint64_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
-
-			subreadsize += readsize;
-
-			if(block_type == PL_BLOCK_TYPE_V3 ||
-				block_type == PL_BLOCK_TYPE_V3_INT ||
-				block_type == PL_BLOCK_TYPE_V4 ||
-				block_type == PL_BLOCK_TYPE_V5 ||
-				block_type == PL_BLOCK_TYPE_V6 ||
-				block_type == PL_BLOCK_TYPE_V7 ||
-				block_type == PL_BLOCK_TYPE_V8 ||
-				block_type == PL_BLOCK_TYPE_V9)
-			{
+		switch(block_type) {
+			case PL_BLOCK_TYPE_V1:
+			case PL_BLOCK_TYPE_V1_INT:
+				break;
+			case PL_BLOCK_TYPE_V2:
+			case PL_BLOCK_TYPE_V2_INT:
+			case PL_BLOCK_TYPE_V3:
+			case PL_BLOCK_TYPE_V3_INT:
+			case PL_BLOCK_TYPE_V4:
+			case PL_BLOCK_TYPE_V5:
+			case PL_BLOCK_TYPE_V6:
+			case PL_BLOCK_TYPE_V7:
+			case PL_BLOCK_TYPE_V8:
+			case PL_BLOCK_TYPE_V9:
 				//
-				// env
+				// vmsize_kb
 				//
-				readsize = gzread(f, &(stlen), sizeof(uint16_t));
-				CHECK_READ_SIZE(readsize, sizeof(uint16_t));
-
-				if(stlen > SCAP_MAX_ENV_SIZE)
-				{
-					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid envlen %d", stlen);
-					return SCAP_FAILURE;
-				}
+				readsize = gzread(f, &(tinfo.vmsize_kb), sizeof(uint32_t));
+				CHECK_READ_SIZE(readsize, sizeof(uint32_t));
 
 				subreadsize += readsize;
 
-				readsize = gzread(f, tinfo.env, stlen);
-				CHECK_READ_SIZE(readsize, stlen);
-
-				// the string is not null-terminated on file
-				tinfo.env[stlen] = 0;
-				tinfo.env_len = stlen;
+				//
+				// vmrss_kb
+				//
+				readsize = gzread(f, &(tinfo.vmrss_kb), sizeof(uint32_t));
+				CHECK_READ_SIZE(readsize, sizeof(uint32_t));
 
 				subreadsize += readsize;
-			}
 
-			if(block_type == PL_BLOCK_TYPE_V4 ||
-			   block_type == PL_BLOCK_TYPE_V5 ||
-			   block_type == PL_BLOCK_TYPE_V6 ||
-			   block_type == PL_BLOCK_TYPE_V7 ||
-			   block_type == PL_BLOCK_TYPE_V8 ||
-			   block_type == PL_BLOCK_TYPE_V9)
-			{
 				//
-				// vtid
+				// vmswap_kb
 				//
-				readsize = gzread(f, &(tinfo.vtid), sizeof(int64_t));
+				readsize = gzread(f, &(tinfo.vmswap_kb), sizeof(uint32_t));
+				CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+
+				subreadsize += readsize;
+
+				//
+				// pfmajor
+				//
+				readsize = gzread(f, &(tinfo.pfmajor), sizeof(uint64_t));
 				CHECK_READ_SIZE(readsize, sizeof(uint64_t));
 
 				subreadsize += readsize;
 
 				//
-				// vpid
+				// pfminor
 				//
-				readsize = gzread(f, &(tinfo.vpid), sizeof(int64_t));
+				readsize = gzread(f, &(tinfo.pfminor), sizeof(uint64_t));
 				CHECK_READ_SIZE(readsize, sizeof(uint64_t));
 
 				subreadsize += readsize;
 
-				//
-				// cgroups
-				//
-				readsize = gzread(f, &(stlen), sizeof(uint16_t));
-				CHECK_READ_SIZE(readsize, sizeof(uint16_t));
-
-				if(stlen > SCAP_MAX_CGROUPS_SIZE)
-				{
-					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid cgroupslen %d", stlen);
-					return SCAP_FAILURE;
-				}
-				tinfo.cgroups_len = stlen;
-
-				subreadsize += readsize;
-
-				readsize = gzread(f, tinfo.cgroups, stlen);
-				CHECK_READ_SIZE(readsize, stlen);
-
-				subreadsize += readsize;
-
-				if(block_type == PL_BLOCK_TYPE_V5 ||
-				   block_type == PL_BLOCK_TYPE_V6 ||
-				   block_type == PL_BLOCK_TYPE_V7 ||
-				   block_type == PL_BLOCK_TYPE_V8 ||
-				   block_type == PL_BLOCK_TYPE_V9)
-				{
+				if (block_type == PL_BLOCK_TYPE_V3 ||
+					block_type == PL_BLOCK_TYPE_V3_INT ||
+					block_type == PL_BLOCK_TYPE_V4 ||
+					block_type == PL_BLOCK_TYPE_V5 ||
+					block_type == PL_BLOCK_TYPE_V6 ||
+					block_type == PL_BLOCK_TYPE_V7 ||
+					block_type == PL_BLOCK_TYPE_V8 ||
+					block_type == PL_BLOCK_TYPE_V9) {
+					//
+					// env
+					//
 					readsize = gzread(f, &(stlen), sizeof(uint16_t));
 					CHECK_READ_SIZE(readsize, sizeof(uint16_t));
 
-					if(stlen > SCAP_MAX_PATH_SIZE)
-					{
-						snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid rootlen %d", stlen);
+					if (stlen > SCAP_MAX_ENV_SIZE) {
+						snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid envlen %d", stlen);
 						return SCAP_FAILURE;
 					}
 
 					subreadsize += readsize;
 
-					readsize = gzread(f, tinfo.root, stlen);
+					readsize = gzread(f, tinfo.env, stlen);
 					CHECK_READ_SIZE(readsize, stlen);
 
 					// the string is not null-terminated on file
-					tinfo.root[stlen] = 0;
+					tinfo.env[stlen] = 0;
+					tinfo.env_len = stlen;
 
 					subreadsize += readsize;
 				}
-			}
-			break;
-		default:
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted process block type (fd1)");
-			ASSERT(false);
-			return SCAP_FAILURE;
+
+				if (block_type == PL_BLOCK_TYPE_V4 ||
+					block_type == PL_BLOCK_TYPE_V5 ||
+					block_type == PL_BLOCK_TYPE_V6 ||
+					block_type == PL_BLOCK_TYPE_V7 ||
+					block_type == PL_BLOCK_TYPE_V8 ||
+					block_type == PL_BLOCK_TYPE_V9) {
+					//
+					// vtid
+					//
+					readsize = gzread(f, &(tinfo.vtid), sizeof(int64_t));
+					CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+
+					subreadsize += readsize;
+
+					//
+					// vpid
+					//
+					readsize = gzread(f, &(tinfo.vpid), sizeof(int64_t));
+					CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+
+					subreadsize += readsize;
+
+					//
+					// cgroups
+					//
+					readsize = gzread(f, &(stlen), sizeof(uint16_t));
+					CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+
+					if (stlen > SCAP_MAX_CGROUPS_SIZE) {
+						snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid cgroupslen %d", stlen);
+						return SCAP_FAILURE;
+					}
+					tinfo.cgroups_len = stlen;
+
+					subreadsize += readsize;
+
+					readsize = gzread(f, tinfo.cgroups, stlen);
+					CHECK_READ_SIZE(readsize, stlen);
+
+					subreadsize += readsize;
+
+					if (block_type == PL_BLOCK_TYPE_V5 ||
+						block_type == PL_BLOCK_TYPE_V6 ||
+						block_type == PL_BLOCK_TYPE_V7 ||
+						block_type == PL_BLOCK_TYPE_V8 ||
+						block_type == PL_BLOCK_TYPE_V9) {
+						readsize = gzread(f, &(stlen), sizeof(uint16_t));
+						CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+
+						if (stlen > SCAP_MAX_PATH_SIZE) {
+							snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid rootlen %d", stlen);
+							return SCAP_FAILURE;
+						}
+
+						subreadsize += readsize;
+
+						readsize = gzread(f, tinfo.root, stlen);
+						CHECK_READ_SIZE(readsize, stlen);
+
+						// the string is not null-terminated on file
+						tinfo.root[stlen] = 0;
+
+						subreadsize += readsize;
+					}
+				}
+				break;
+			default:
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted process block type (fd1)");
+				ASSERT(false);
+				return SCAP_FAILURE;
 		}
 
 		// If new parameters are added, sub_len can be used to
@@ -1664,6 +1661,16 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		// {
 		//    ...
 		// }
+
+		//
+		// loginuid
+		//
+		if(sub_len && (subreadsize + sizeof(uint32_t)) <= sub_len)
+		{
+			readsize = gzread(f, &(tinfo.loginuid), sizeof(uint32_t));
+			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+			subreadsize += readsize;
+		}
 
 		//
 		// All parsed. Add the entry to the table, or fire the notification callback
@@ -1870,7 +1877,7 @@ static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length,
 	handle->m_addrlist->n_v6_addrs = 0;
 	handle->m_addrlist->v4list = NULL;
 	handle->m_addrlist->v6list = NULL;
-	handle->m_addrlist->totlen = block_length - (ifcnt4 + ifcnt6) * sizeof(uint32_t);
+	handle->m_addrlist->totlen = block_length;
 
 	if(ifcnt4 != 0)
 	{
