@@ -74,6 +74,12 @@ public:
 	static bool sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, char* targetbuf, uint32_t targetbuf_size, bool resolve = false);
 
 	//
+	// Check if string ends with another 
+	//
+	static bool endswith1(const string& str, const string& ending);
+	static bool endswith2(const char* str, const char* ending);
+
+	//
 	// Concatenate two paths and puts the result in "target".
 	// If path2 is relative, the concatenation happens and the result is true.
 	// If path2 is absolute, the concatenation does not happen, target contains path2 and the result is false.
