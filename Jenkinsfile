@@ -68,19 +68,11 @@ pipeline {
                             sh 'mkdir -p probe/boot2docker   && cd probe/boot2docker   && bash -x ../../sysdig/scripts/build-probe-binaries ${PROBE_TYPE} ${TARGET_TAG} stable boot2docker && cp -u output/*${TARGET_TAG}* ../output/ && echo boot2docker finished'
                         }
                     },
-                    "oracle_rhck" 	    : {
+                    "oracle_rhck & uek" 	    : {
                         sshagent(["$SSHAGENT_CRED_ID"]) {
                             sh 'mkdir -p probe/oracle_rhck   && cd probe/oracle_rhck   && bash -x ../../sysdig/scripts/build-probe-binaries ${PROBE_TYPE} ${TARGET_TAG} stable Oracle_RHCK && cp -u output/*${TARGET_TAG}* ../output/ && echo oracle_rhck finished'
-                        }
-                    },
-                    "oracle_linux6_uek" : {
-                        sshagent(["$SSHAGENT_CRED_ID"]) {
-                            sh 'mkdir -p probe/oracle_linux6_uek && cd probe/oracle_linux6_uek && bash -x ../../sysdig/scripts/build-probe-binaries ${PROBE_TYPE} ${TARGET_TAG} stable Oracle_Linux_6_UEK && cp -u output/*${TARGET_TAG}* ../output/ && echo oracle_linux6_uek finished'
-                        }
-                    },
-                    "oracle_linux7_uek" : {
-                        sshagent(["$SSHAGENT_CRED_ID"]) {
-                            sh 'mkdir -p probe/oracle_linux7_uek && cd probe/oracle_linux7_uek && bash -x ../../sysdig/scripts/build-probe-binaries ${PROBE_TYPE} ${TARGET_TAG} stable Oracle_Linux_7_UEK && cp -u output/*${TARGET_TAG}* ../output/ && echo oracle_linux7_uek finished'
+                            sh 'mkdir -p probe/oracle_rhck   && cd probe/oracle_rhck   && bash -x ../../sysdig/scripts/build-probe-binaries ${PROBE_TYPE} ${TARGET_TAG} stable Oracle_Linux_6_UEK && cp -u output/*${TARGET_TAG}* ../output/ && echo oracle_linux6_uek finished'
+                            sh 'mkdir -p probe/oracle_rhck   && cd probe/oracle_rhck   && bash -x ../../sysdig/scripts/build-probe-binaries ${PROBE_TYPE} ${TARGET_TAG} stable Oracle_Linux_7_UEK && cp -u output/*${TARGET_TAG}* ../output/ && echo oracle_linux7_uek finished'
                         }
                     },
                     "amazon_linux" 	    : {
