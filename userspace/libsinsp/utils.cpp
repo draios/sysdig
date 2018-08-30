@@ -906,6 +906,46 @@ const char* sinsp_utils::event_name_by_id(uint16_t id)
 	return g_infotables.m_event_info[id].name;
 }
 
+void sinsp_utils::ts_to_string(uint64_t ts, OUT string* res, bool date, bool ns)
+{
+	struct tm *tm;
+	time_t Time;
+	uint64_t sec = ts / ONE_SECOND_IN_NS;
+	uint64_t nsec = ts % ONE_SECOND_IN_NS;
+	int32_t thiszone = gmt2local(0);
+	int32_t s = (sec + thiszone) % 86400;
+	int32_t bufsize = 0;
+	char buf[256];
+
+	if(date)
+	{
+		Time = (sec + thiszone) - s;
+		tm = gmtime (&Time);
+		if(!tm)
+		{
+			bufsize = sprintf(buf, "<date error> ");
+		}
+		else
+		{
+			bufsize = sprintf(buf, "%04d-%02d-%02d ",
+				   tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday);
+		}
+	}
+
+	if(ns)
+	{
+		sprintf(buf + bufsize, "%02d:%02d:%02d.%09u",
+				s / 3600, (s % 3600) / 60, s % 60, (unsigned)nsec);
+	}
+	else
+	{
+		sprintf(buf + bufsize, "%02d:%02d:%02d",
+				s / 3600, (s % 3600) / 60, s % 60);
+	}
+
+	*res = buf;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Time utility functions.
 ///////////////////////////////////////////////////////////////////////////////

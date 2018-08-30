@@ -126,6 +126,8 @@ public:
 					   std::vector<uint16_t> *supp_ids);
 
 	static const char* event_name_by_id(uint16_t id);
+
+	static void ts_to_string(uint64_t ts, OUT std::string* res, bool date, bool ns);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
