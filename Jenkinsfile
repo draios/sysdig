@@ -52,10 +52,11 @@ pipeline {
                             sh 'mkdir -p probe/debian        && cd probe/debian        && bash -x ../../sysdig/scripts/build-probe-binaries ${PROBE_TYPE} ${TARGET_TAG} stable Debian && cp -u output/*${TARGET_TAG}* ../output/ && echo debian finished'
                         }
                     },
-                    "rhel"   		    : {
+                    "rhel & ol7-ek"   		    : {
                         sshagent(["$SSHAGENT_CRED_ID"]) {
                             sh 'mkdir -p probe/rhel          && cd probe/rhel          && bash -x ../../sysdig/scripts/build-probe-binaries ${PROBE_TYPE} ${TARGET_TAG} stable RHEL && cp -u output/*${TARGET_TAG}* ../output/ && echo rhel finished'
                         }
+                        sh 'mkdir -p probe/rhel   && cd probe/rhel   && bash -x ../../sysdig/scripts/build-probe-binaries ${PROBE_TYPE} ${TARGET_TAG} stable Oracle_Linux_7_UEK && cp -u output/*${TARGET_TAG}* ../output/ && echo oracle_linux7_uek finished'
                     },
                     "fedora" 	        : {
                         sshagent(["$SSHAGENT_CRED_ID"]) {
@@ -72,12 +73,11 @@ pipeline {
                             sh 'mkdir -p probe/boot2docker   && cd probe/boot2docker   && bash -x ../../sysdig/scripts/build-probe-binaries ${PROBE_TYPE} ${TARGET_TAG} stable boot2docker && cp -u output/*${TARGET_TAG}* ../output/ && echo boot2docker finished'
                         }
                     },
-                    "oracle_rhck & uek" 	    : {
+                    "oracle_rhck & ol6-uek" 	    : {
                         sshagent(["$SSHAGENT_CRED_ID"]) {
                             sh 'mkdir -p probe/oracle_rhck   && cd probe/oracle_rhck   && bash -x ../../sysdig/scripts/build-probe-binaries ${PROBE_TYPE} ${TARGET_TAG} stable Oracle_RHCK && cp -u output/*${TARGET_TAG}* ../output/ && echo oracle_rhck finished'
                         }
                         sh 'mkdir -p probe/oracle_rhck   && cd probe/oracle_rhck   && bash -x ../../sysdig/scripts/build-probe-binaries ${PROBE_TYPE} ${TARGET_TAG} stable Oracle_Linux_6_UEK && cp -u output/*${TARGET_TAG}* ../output/ && echo oracle_linux6_uek finished'
-                        sh 'mkdir -p probe/oracle_rhck   && cd probe/oracle_rhck   && bash -x ../../sysdig/scripts/build-probe-binaries ${PROBE_TYPE} ${TARGET_TAG} stable Oracle_Linux_7_UEK && cp -u output/*${TARGET_TAG}* ../output/ && echo oracle_linux7_uek finished'
                     },
                     "amazon_linux" 	    : {
                         sshagent(["$SSHAGENT_CRED_ID"]) {
