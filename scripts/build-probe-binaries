@@ -378,9 +378,9 @@ function rhel_build {
 		#echo Building $KERNEL_RELEASE
 
 		if [ -f boot/config-$KERNEL_RELEASE ]; then
-			HASH=$(md5sum boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
+			HASH=$(md5sum boot/config-$KERNEL_RELEASE | cut -d' ' -f1) || return 0
 		else
-			HASH=$(md5sum lib/modules/$KERNEL_RELEASE/config | cut -d' ' -f1)
+			HASH=$(md5sum lib/modules/$KERNEL_RELEASE/config | cut -d' ' -f1) || return 0
 		fi
 
 		HASH_ORIG=$HASH
