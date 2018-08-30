@@ -26,7 +26,7 @@ pipeline {
                 sh 'sysdig/scripts/build-builder-containers.sh'
                 sh 'docker images'
                 sh 'docker ps -a'
-                sh 'docker ps -aq -f "name=fedora-atomic-build|amazon-linux-build|ol6-buildol7-build" | xargs --no-run-if-empty docker rm -f'
+                sh 'docker ps -aq -f "name=fedora-atomic-build|amazon-linux-build|ol6-build|ol7-build" | xargs --no-run-if-empty docker rm -f'
                 sh 'docker ps -a'
                 sh 'mkdir -p probe/output'
                 sh 'echo ready for probe build: ${PROBE_TYPE}, code tag ${TARGET_TAG}'
