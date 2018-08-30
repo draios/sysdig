@@ -37,6 +37,11 @@ pipeline {
             steps {
                 parallel (
                     "info" : { sh 'echo "git repo branch: ${BRANCH_NAME}" && pwd -P && df -h' },
+                    "fedora-atomic" 	        : {
+                        sshagent(["$SSHAGENT_CRED_ID"]) {
+                            sh 'mkdir -p probe/fedora_atomic && cd probe/fedora_atomic && bash -x ../../sysdig/scripts/build-probe-binaries ${PROBE_TYPE} ${TARGET_TAG} stable Fedora-Atomic && cp -u output/*${TARGET_TAG}* ../output/ && echo fedora-atomic finished'
+                        }
+                    },
                     "ubuntu" 		    : {
                         sshagent(["$SSHAGENT_CRED_ID"]) {
                             sh 'mkdir -p probe/ubuntu        && cd probe/ubuntu        && bash -x ../../sysdig/scripts/build-probe-binaries ${PROBE_TYPE} ${TARGET_TAG} stable Ubuntu && cp -u output/*${TARGET_TAG}* ../output/ && echo ubuntu finished'
@@ -52,10 +57,9 @@ pipeline {
                             sh 'mkdir -p probe/rhel          && cd probe/rhel          && bash -x ../../sysdig/scripts/build-probe-binaries ${PROBE_TYPE} ${TARGET_TAG} stable RHEL && cp -u output/*${TARGET_TAG}* ../output/ && echo rhel finished'
                         }
                     },
-                    "fedora & fedora-atomic" 	        : {
+                    "fedora" 	        : {
                         sshagent(["$SSHAGENT_CRED_ID"]) {
                             sh 'mkdir -p probe/fedora && cd probe/fedora && bash -x ../../sysdig/scripts/build-probe-binaries ${PROBE_TYPE} ${TARGET_TAG} stable Fedora && cp -u output/*${TARGET_TAG}* ../output/ && echo fedora finished'
-                            sh 'mkdir -p probe/fedora && cd probe/fedora && docker run -i --rm --name fedora-atomic-build -v ${PWD}:/build/probe fedora-builder ${PROBE_TYPE} ${TARGET_TAG} stable Fedora-Atomic && cp -u output/*${TARGET_TAG}* ../output/ && echo fedora-atomic finished'
                         }
                     },
                     "coreos" 		    : {
@@ -77,12 +81,12 @@ pipeline {
                     },
                     "amazon_linux" 	    : {
                         sshagent(["$SSHAGENT_CRED_ID"]) {
-                            sh 'mkdir -p probe/amazon_linux  && cd probe/amazon_linux  && docker run -i --rm --name amazon-linux-build -v ${PWD}:/build/probe fedora-builder ${PROBE_TYPE} ${TARGET_TAG} stable AmazonLinux && cp -u output/*${TARGET_TAG}* ../output/ && echo amazon_linux finished'
+                            sh 'mkdir -p probe/amazon_linux  && cd probe/amazon_linux  && bash -x ../../sysdig/scripts/build-probe-binaries ${PROBE_TYPE} ${TARGET_TAG} stable AmazonLinux && cp -u output/*${TARGET_TAG}* ../output/ && echo amazon_linux finished'
                         }
                     },
                     "amazon_linux2" 	: {
                         sshagent(["$SSHAGENT_CRED_ID"]) {
-                            sh 'mkdir -p probe/amazon_linux2 && cd probe/amazon_linux2 && docker run -i --rm --name amazon-linux2-build -v ${PWD}:/build/probe fedora-builder ${PROBE_TYPE} ${TARGET_TAG} stable AmazonLinux2 && cp -u output/*${TARGET_TAG}* ../output/ && echo amazon_linux2 finished'
+                            sh 'mkdir -p probe/amazon_linux2 && cd probe/amazon_linux2 && bash -x ../../sysdig/scripts/build-probe-binaries ${PROBE_TYPE} ${TARGET_TAG} stable AmazonLinux2 && cp -u output/*${TARGET_TAG}* ../output/ && echo amazon_linux2 finished'
                         }
                     },
                 )
