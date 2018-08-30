@@ -1300,15 +1300,15 @@ bool sinsp_utils::endswith1(const string& str, const string& ending)
 	return (0 == str.compare(str.length() - ending.length(), ending.length(), ending));
 }
 
-bool sinsp_utils::endswith2(const char *str, const char *ending)
+
+bool sinsp_utils::endswith2(const char *str, const char *ending, uint32_t lstr, uint32_t lend)
 {
-	string::size_type lstr = strlen(str);
-	string::size_type lend = strlen(ending);
 	if (lstr >= lend)
 	{
 		return (0 == memcmp(ending, str + (lstr - lend), lend));
 	}
-	return false; 
+	return 0; 
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
