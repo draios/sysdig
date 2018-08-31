@@ -76,8 +76,8 @@ public:
 	//
 	// Check if string ends with another 
 	//
-	static bool endswith1(const string& str, const string& ending);
-	static bool endswith2(const char *str, const char *ending, uint32_t lstr, uint32_t lend);
+	static bool endswith(const string& str, const string& ending);
+	static bool endswith(const char *str, const char *ending, uint32_t lstr, uint32_t lend);
 
 	//
 	// Concatenate two paths and puts the result in "target".

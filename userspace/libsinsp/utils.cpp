@@ -1294,22 +1294,25 @@ string replace(const string& str, const string& search, const string& replacemen
 }
 
 
-bool sinsp_utils::endswith1(const string& str, const string& ending)
+bool sinsp_utils::endswith(const string& str, const string& ending)
 {
-	if (ending.size() > str.size()) return false;
-	return (0 == str.compare(str.length() - ending.length(), ending.length(), ending));
+	if (ending.size() <= str.size())
+	{
+		return (0 == str.compare(str.length() - ending.length(), ending.length(), ending));
+	}
+	return false;
 }
 
 
-bool sinsp_utils::endswith2(const char *str, const char *ending, uint32_t lstr, uint32_t lend)
+bool sinsp_utils::endswith(const char *str, const char *ending, uint32_t lstr, uint32_t lend)
 {
 	if (lstr >= lend)
 	{
 		return (0 == memcmp(ending, str + (lstr - lend), lend));
 	}
-	return 0; 
-
+	return 0;
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_numparser implementation

@@ -260,7 +260,7 @@ bool flt_compare_string(cmpop op, char* operand1, char* operand2)
 	case CO_STARTSWITH:
 		return (strncmp(operand1, operand2, strlen(operand2)) == 0);
 	case CO_ENDSWITH: 
-		return (sinsp_utils::endswith1(operand1, operand2));
+		return (sinsp_utils::endswith(operand1, operand2));
 	case CO_GLOB:
 		return sinsp_utils::glob_match(operand2, operand1);
 	case CO_LT:
@@ -293,7 +293,7 @@ bool flt_compare_buffer(cmpop op, char* operand1, char* operand2, uint32_t op1_l
 	case CO_STARTSWITH:
 		return (memcmp(operand1, operand2, op2_len) == 0);
 	case CO_ENDSWITH: 
-		return (sinsp_utils::endswith2(operand1, operand2, op1_len, op2_len));
+		return (sinsp_utils::endswith(operand1, operand2, op1_len, op2_len));
 	case CO_GLOB:
 		throw sinsp_exception("'glob' not supported for buffer filters");
 	case CO_LT:
