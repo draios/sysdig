@@ -1162,7 +1162,7 @@ function build_output(captureDuration)
 			category = 'performance',
 			targetView = 'echo',
 			targetViewTitle = 'HTTP responses',
-			targetViewFilter = 'fd.type=ipv4 and evt.buffer contains "HTTP/"',
+			targetViewFilter = '(fd.type=ipv4 or fd.type=ipv6) and evt.buffer contains "HTTP/"',
 			drillDownKey = 'fd.directory',
 			data = gsummary.sysReqCountHttp
 		}
@@ -1175,7 +1175,7 @@ function build_output(captureDuration)
 			category = 'performance',
 			targetView = 'echo',
 			targetViewTitle = 'HTTP responses',
-			targetViewFilter = 'fd.type=ipv4 and evt.arg.data startswith "HTTP/" and not evt.arg.data contains "200"',
+			targetViewFilter = '(fd.type=ipv4 or fd.type=ipv6) and evt.arg.data startswith "HTTP/" and not evt.arg.data contains "200"',
 			drillDownKey = 'fd.directory',
 			data = gsummary.sysErrCountHttp
 		}
