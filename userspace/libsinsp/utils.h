@@ -73,7 +73,7 @@ public:
 	//
 	// Check if string ends with another 
 	//
-	static bool endswith(const string& str, const string& ending);
+	static bool endswith(const std::string& str, const std::string& ending);
 	static bool endswith(const char *str, const char *ending, uint32_t lstr, uint32_t lend);
 
 	//
