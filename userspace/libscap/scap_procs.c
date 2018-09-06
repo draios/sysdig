@@ -485,6 +485,8 @@ int32_t scap_proc_fill_loginuid(struct scap_threadinfo* tinfo, const char* procd
 		return SCAP_FAILURE;
 	}
 	fgets(line, sizeof(line), f);
+	fclose(f);
+
 	if(sscanf(line, "%" PRId32, &loginuid) == 1)
 	{
 		tinfo->loginuid = loginuid;
