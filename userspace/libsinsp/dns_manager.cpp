@@ -110,7 +110,7 @@ inline sinsp_dns_manager::dns_info sinsp_dns_manager::resolve(const std::string 
 }
 #endif
 
-bool sinsp_dns_manager::match(const char *name, uint32_t *addr, uint64_t ts, bool is_v6)
+bool sinsp_dns_manager::match(const char *name, int af, void *addr, uint64_t ts)
 {
 #ifdef HAS_CAPTURE
 	if(!m_resolver)
@@ -135,21 +135,21 @@ bool sinsp_dns_manager::match(const char *name, uint32_t *addr, uint64_t ts, boo
 
 	m_erase_mutex.unlock();
 
-	if(is_v6)
+	if(af == AF_INET6)
 	{
 		ipv6addr v6;
 		memcpy(v6.m_b, addr, sizeof(ipv6addr));
 		return dinfo.m_v6_addrs.find(v6) != dinfo.m_v6_addrs.end();
 	}
-	else
+	else if(af == AF_INET)
 	{
-		return dinfo.m_v4_addrs.find(*addr) != dinfo.m_v4_addrs.end();
+		return dinfo.m_v4_addrs.find(*(uint32_t *)addr) != dinfo.m_v4_addrs.end();
 	}
 #endif
 	return false;
 }
 
-string sinsp_dns_manager::name_of(uint32_t *addr, bool is_v6)
+string sinsp_dns_manager::name_of(int af, void *addr)
 {
 	string ret;
 
@@ -163,7 +163,7 @@ string sinsp_dns_manager::name_of(uint32_t *addr, bool is_v6)
 			const std::string &name = it.first;
 			sinsp_dns_manager::dns_info &info = it.second;
 
-			if(is_v6)
+			if(af == AF_INET6)
 			{
 				ipv6addr v6;
 				memcpy(v6.m_b, addr, sizeof(ipv6addr));
@@ -173,7 +173,7 @@ string sinsp_dns_manager::name_of(uint32_t *addr, bool is_v6)
 					break;
 				}
 			}
-			else if(info.m_v4_addrs.find(*addr) != info.m_v4_addrs.end())
+			else if(af == AF_INET && info.m_v4_addrs.find(*(uint32_t *)addr) != info.m_v4_addrs.end())
 			{
 				ret = name;
 				break;

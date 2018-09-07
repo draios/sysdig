@@ -39,8 +39,8 @@ class sinsp_dns_manager
 {
 public:
 
-	bool match(const char *name, uint32_t *addr, uint64_t ts, bool is_v6);
-	string name_of(uint32_t *addr, bool is_v6);
+	bool match(const char *name, int af, void *addr, uint64_t ts);
+	string name_of(int af, void *addr);
 
 	void cleanup();
 

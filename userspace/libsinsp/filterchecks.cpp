@@ -602,6 +602,29 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 		return m_tcstr;
 	case TYPE_CNET:
 	case TYPE_CLIENTIP:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			if(m_fdinfo->is_role_none())
+			{
+				return NULL;
+			}
+
+			scap_fd_type evt_type = m_fdinfo->m_type;
+			if(evt_type == SCAP_FD_IPV4_SOCK)
+			{
+				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
+			}
+			else if (evt_type == SCAP_FD_IPV6_SOCK)
+			{
+				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip);
+			}
+		}
+
+		break;
 	case TYPE_CLIENTIP_NAME:
 		{
 			if(m_fdinfo == NULL)
@@ -615,35 +638,52 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			}
 
 			scap_fd_type evt_type = m_fdinfo->m_type;
-			if(m_field_id != TYPE_CLIENTIP_NAME)
+			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
-				if(evt_type == SCAP_FD_IPV4_SOCK)
-				{
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
-				}
-				else if (evt_type == SCAP_FD_IPV6_SOCK)
-				{
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip);
-				}
+				m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
 			}
-			else
+			else if (evt_type == SCAP_FD_IPV6_SOCK)
 			{
-				if(evt_type == SCAP_FD_IPV4_SOCK)
-				{
-					m_tstr = sinsp_dns_manager::get().name_of(&m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, false);
-				}
-				else if (evt_type == SCAP_FD_IPV6_SOCK)
-				{
-					m_tstr = sinsp_dns_manager::get().name_of(&m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b[0], true);
-				}
+				m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b[0]);
+			}
 
-				RETURN_EXTRACT_STRING(m_tstr);
-			}
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 
 		break;
 	case TYPE_SNET:
 	case TYPE_SERVERIP:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			if(m_fdinfo->is_role_none())
+			{
+				return NULL;
+			}
+
+			scap_fd_type evt_type = m_fdinfo->m_type;
+			if(evt_type == SCAP_FD_IPV4_SOCK)
+			{
+				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
+			}
+			else if(evt_type == SCAP_FD_IPV4_SERVSOCK)
+			{
+				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip);
+			}
+			else if(evt_type == SCAP_FD_IPV6_SOCK)
+			{
+				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip);
+			}
+			else if(evt_type == SCAP_FD_IPV6_SERVSOCK)
+			{
+				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip);
+			}
+		}
+
+		break;
 	case TYPE_SERVERIP_NAME:
 		{
 			if(m_fdinfo == NULL)
@@ -657,45 +697,23 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			}
 
 			scap_fd_type evt_type = m_fdinfo->m_type;
-			if(m_field_id != TYPE_SERVERIP_NAME)
+			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
-				if(evt_type == SCAP_FD_IPV4_SOCK)
-				{
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
-				}
-				else if(evt_type == SCAP_FD_IPV4_SERVSOCK)
-				{
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip);
-				}
-				else if(evt_type == SCAP_FD_IPV6_SOCK)
-				{
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip);
-				}
-				else if(evt_type == SCAP_FD_IPV6_SERVSOCK)
-				{
-					RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip);
-				}
+				m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
 			}
-			else
+			else if(evt_type == SCAP_FD_IPV4_SERVSOCK)
 			{
-				if(evt_type == SCAP_FD_IPV4_SOCK)
-				{
-					m_tstr = sinsp_dns_manager::get().name_of(&m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, false);
-				}
-				else if(evt_type == SCAP_FD_IPV4_SERVSOCK)
-				{
-					m_tstr = sinsp_dns_manager::get().name_of(&m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip, false);
-				}
-				else if (evt_type == SCAP_FD_IPV6_SOCK)
-				{
-					m_tstr = sinsp_dns_manager::get().name_of(&m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b[0], true);
-				}
-				else if(evt_type == SCAP_FD_IPV6_SERVSOCK)
-				{
-					m_tstr = sinsp_dns_manager::get().name_of(&m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip.m_b[0], true);
-				}
-				RETURN_EXTRACT_STRING(m_tstr);
+				m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip);
 			}
+			else if (evt_type == SCAP_FD_IPV6_SOCK)
+			{
+				m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b[0]);
+			}
+			else if(evt_type == SCAP_FD_IPV6_SERVSOCK)
+			{
+				m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip.m_b[0]);
+			}
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 
 		break;
@@ -795,22 +813,22 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 					{
 						if(evt_type == SCAP_FD_IPV4_SOCK)
 						{
-							m_tstr = sinsp_dns_manager::get().name_of(&m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, false);
+							m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
 						}
 						else
 						{
-							m_tstr = sinsp_dns_manager::get().name_of(&m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b[0], true);
+							m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b[0]);
 						}
 					}
 					else
 					{
 						if(evt_type == SCAP_FD_IPV4_SOCK)
 						{
-							m_tstr = sinsp_dns_manager::get().name_of(&m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, false);
+							m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
 						}
 						else
 						{
-							m_tstr = sinsp_dns_manager::get().name_of(&m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b[0], true);
+							m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b[0]);
 						}
 					}
 				}
@@ -820,22 +838,22 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 					{
 						if(evt_type == SCAP_FD_IPV4_SOCK)
 						{
-							m_tstr = sinsp_dns_manager::get().name_of(&m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, false);
+							m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
 						}
 						else
 						{
-							m_tstr = sinsp_dns_manager::get().name_of(&m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b[0], true);
+							m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b[0]);
 						}
 					}
 					else
 					{
 						if(evt_type == SCAP_FD_IPV4_SOCK)
 						{
-							m_tstr = sinsp_dns_manager::get().name_of(&m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, false);
+							m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
 						}
 						else
 						{
-							m_tstr = sinsp_dns_manager::get().name_of(&m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b[0], true);
+							m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b[0]);
 						}
 					}
 				}
@@ -1659,7 +1677,7 @@ bool sinsp_filter_check_fd::compare_domain(sinsp_evt *evt)
 		{
 			for (uint16_t i=0; i < m_val_storages.size(); i++)
 			{
-				if(sinsp_dns_manager::get().match((const char *)filter_value_p(i), addr, ts, evt_type == SCAP_FD_IPV6_SOCK))
+				if(sinsp_dns_manager::get().match((const char *)filter_value_p(i), (evt_type == SCAP_FD_IPV6_SOCK)? AF_INET6 : AF_INET, addr, ts))
 				{
 					return true;
 				}
@@ -1669,11 +1687,11 @@ bool sinsp_filter_check_fd::compare_domain(sinsp_evt *evt)
 		}
 		else if(m_cmpop == CO_EQ)
 		{
-			return sinsp_dns_manager::get().match((const char *)filter_value_p(), addr, ts, evt_type == SCAP_FD_IPV6_SOCK);
+			return sinsp_dns_manager::get().match((const char *)filter_value_p(), (evt_type == SCAP_FD_IPV6_SOCK)? AF_INET6 : AF_INET, addr, ts);
 		}
 		else if(m_cmpop == CO_NE)
 		{
-			return !sinsp_dns_manager::get().match((const char *)filter_value_p(), addr, ts, evt_type == SCAP_FD_IPV6_SOCK);
+			return !sinsp_dns_manager::get().match((const char *)filter_value_p(), (evt_type == SCAP_FD_IPV6_SOCK)? AF_INET6 : AF_INET, addr, ts);
 		}
 		else
 		{
