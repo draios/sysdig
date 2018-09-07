@@ -1461,6 +1461,7 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, 	scap_threadi
 	sctinfo->vtid = tinfo.m_vtid;
 	sctinfo->vpid = tinfo.m_vpid;
 	sctinfo->fdlist = NULL;
+	sctinfo->loginuid = tinfo.m_loginuid;
 	sctinfo->filtered_out = false;
 }
 
@@ -1500,7 +1501,8 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			sizeof(int64_t) +  // vtid
 			sizeof(int64_t) +  // vpid
                         2 + MIN(tinfo.cgroups_len(), SCAP_MAX_CGROUPS_SIZE) +
-			2 + MIN(tinfo.m_root.size(), SCAP_MAX_PATH_SIZE));
+			2 + MIN(tinfo.m_root.size(), SCAP_MAX_PATH_SIZE)) +
+			sizeof(uint32_t);  // loginuid
 
 		lengths.push_back(il);
 		totlen += il;
