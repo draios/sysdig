@@ -53,9 +53,10 @@ typedef struct _ipv6addr
 {
 	uint32_t m_b[4];
 
-	bool operator==(const _ipv6addr &other);
-	bool operator!=(const _ipv6addr &other);
-	bool in_subnet(const _ipv6addr &other);
+	bool operator==(const _ipv6addr &other) const;
+	bool operator!=(const _ipv6addr &other) const;
+	bool operator<(const _ipv6addr &other) const;
+	bool in_subnet(const _ipv6addr &other) const;
 
 	static struct _ipv6addr empty_address;
 }ipv6addr;

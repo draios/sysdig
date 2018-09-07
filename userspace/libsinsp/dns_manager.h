@@ -98,7 +98,7 @@ private:
 		uint64_t m_last_resolve_ts;
 		uint64_t m_last_used_ts;
 		std::set<uint32_t> m_v4_addrs;
-		std::set<std::array<uint32_t, 4>> m_v6_addrs;
+		std::set<ipv6addr> m_v6_addrs;
 	};
 
 	static inline dns_info resolve(const std::string &name, uint64_t ts);

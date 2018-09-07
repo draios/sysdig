@@ -99,9 +99,9 @@ inline sinsp_dns_manager::dns_info sinsp_dns_manager::resolve(const std::string 
 			}
 			else // AF_INET6
 			{
-				std::array<uint32_t, 4> v6_ip;
-				memcpy(v6_ip.data(), ((struct sockaddr_in6*)rp->ai_addr)->sin6_addr.s6_addr, 16);
-				dinfo.m_v6_addrs.insert(v6_ip);
+				ipv6addr v6;
+				memcpy(v6.m_b, ((struct sockaddr_in6*)rp->ai_addr)->sin6_addr.s6_addr, sizeof(ipv6addr));
+				dinfo.m_v6_addrs.insert(v6);
 			}
 		}
 		freeaddrinfo(result);
@@ -137,9 +137,9 @@ bool sinsp_dns_manager::match(const char *name, uint32_t *addr, uint64_t ts, boo
 
 	if(is_v6)
 	{
-		std::array<uint32_t, 4> v6_ip;
-		memcpy(v6_ip.data(), addr, 16);
-		return dinfo.m_v6_addrs.find(v6_ip) != dinfo.m_v6_addrs.end();
+		ipv6addr v6;
+		memcpy(v6.m_b, addr, sizeof(ipv6addr));
+		return dinfo.m_v6_addrs.find(v6) != dinfo.m_v6_addrs.end();
 	}
 	else
 	{
@@ -165,9 +165,9 @@ string sinsp_dns_manager::name_of(uint32_t *addr, bool is_v6)
 
 			if(is_v6)
 			{
-				std::array<uint32_t, 4> v6_ip;
-				memcpy(v6_ip.data(), addr, 16);
-				if (info.m_v6_addrs.find(v6_ip) != info.m_v6_addrs.end())
+				ipv6addr v6;
+				memcpy(v6.m_b, addr, sizeof(ipv6addr));
+				if (info.m_v6_addrs.find(v6) != info.m_v6_addrs.end())
 				{
 					ret = name;
 					break;
