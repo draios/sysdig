@@ -44,8 +44,8 @@ void sinsp_dns_resolver::refresh(uint64_t erase_timeout, uint64_t base_refresh_t
 				else if(ts > (info.m_last_resolve_ts + info.m_timeout))
 				{
 					sinsp_dns_manager::dns_info refreshed_info = manager.resolve(name, ts);
-					info.m_timeout = base_refresh_timeout;
-					info.m_last_resolve_ts = ts;
+					refreshed_info.m_timeout = base_refresh_timeout;
+					refreshed_info.m_last_resolve_ts = info.m_last_resolve_ts = ts;
 
 					if(refreshed_info != info)
 					{
