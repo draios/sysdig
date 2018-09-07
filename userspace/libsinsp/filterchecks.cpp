@@ -637,17 +637,21 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				return NULL;
 			}
 
+			m_tstr.clear();
 			scap_fd_type evt_type = m_fdinfo->m_type;
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
-				m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
+				m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, evt->get_ts());
 			}
 			else if (evt_type == SCAP_FD_IPV6_SOCK)
 			{
-				m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b[0]);
+				m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b[0], evt->get_ts());
 			}
 
-			RETURN_EXTRACT_STRING(m_tstr);
+			if(!m_tstr.empty())
+			{
+				RETURN_EXTRACT_STRING(m_tstr);
+			}
 		}
 
 		break;
@@ -696,24 +700,29 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				return NULL;
 			}
 
+			m_tstr.clear();
 			scap_fd_type evt_type = m_fdinfo->m_type;
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
-				m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
+				m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, evt->get_ts());
 			}
 			else if(evt_type == SCAP_FD_IPV4_SERVSOCK)
 			{
-				m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip);
+				m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip, evt->get_ts());
 			}
 			else if (evt_type == SCAP_FD_IPV6_SOCK)
 			{
-				m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b[0]);
+				m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b[0], evt->get_ts());
 			}
 			else if(evt_type == SCAP_FD_IPV6_SERVSOCK)
 			{
-				m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip.m_b[0]);
+				m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip.m_b[0], evt->get_ts());
 			}
-			RETURN_EXTRACT_STRING(m_tstr);
+
+			if(!m_tstr.empty())
+			{
+				RETURN_EXTRACT_STRING(m_tstr);
+			}
 		}
 
 		break;
@@ -807,28 +816,29 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			}
 			else
 			{
+				m_tstr.clear();
 				if(is_local)
 				{
 					if(m_field_id == TYPE_LIP_NAME)
 					{
 						if(evt_type == SCAP_FD_IPV4_SOCK)
 						{
-							m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
+							m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, evt->get_ts());
 						}
 						else
 						{
-							m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b[0]);
+							m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b[0], evt->get_ts());
 						}
 					}
 					else
 					{
 						if(evt_type == SCAP_FD_IPV4_SOCK)
 						{
-							m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
+							m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, evt->get_ts());
 						}
 						else
 						{
-							m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b[0]);
+							m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b[0], evt->get_ts());
 						}
 					}
 				}
@@ -838,26 +848,30 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 					{
 						if(evt_type == SCAP_FD_IPV4_SOCK)
 						{
-							m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip);
+							m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, evt->get_ts());
 						}
 						else
 						{
-							m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b[0]);
+							m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b[0], evt->get_ts());
 						}
 					}
 					else
 					{
 						if(evt_type == SCAP_FD_IPV4_SOCK)
 						{
-							m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip);
+							m_tstr = sinsp_dns_manager::get().name_of(AF_INET, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, evt->get_ts());
 						}
 						else
 						{
-							m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b[0]);
+							m_tstr = sinsp_dns_manager::get().name_of(AF_INET6, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b[0], evt->get_ts());
 						}
 					}
 				}
-				RETURN_EXTRACT_STRING(m_tstr);
+
+				if(!m_tstr.empty())
+				{
+					RETURN_EXTRACT_STRING(m_tstr);
+				}
 			}
 		}
 
@@ -1741,22 +1755,17 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 	//
 	// Some fields are filter only and therefore get a special treatment
 	//
-	switch(m_field_id)
+	if(m_field_id == TYPE_IP)
 	{
-	case TYPE_IP:
 		return compare_ip(evt);
-	case TYPE_PORT:
-	case TYPE_PROTO:
+	}
+	else if(m_field_id == TYPE_PORT || m_field_id == TYPE_PROTO)
+	{
 		return compare_port(evt);
-	case TYPE_NET:
+	}
+	else if(m_field_id == TYPE_NET)
+	{
 		return compare_net(evt);
-	case TYPE_CLIENTIP_NAME:
-	case TYPE_SERVERIP_NAME:
-	case TYPE_LIP_NAME:
-	case TYPE_RIP_NAME:
-		return compare_domain(evt);
-	default:
-		break;
 	}
 
 	//
@@ -1768,6 +1777,17 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 
 	if(extracted_val == NULL)
 	{
+		// optimization for *_NAME fields
+		// the first time we will call compare_domain, the next ones
+		// we will the able to extract and use flt_compare
+		if(m_field_id == TYPE_CLIENTIP_NAME ||
+		   m_field_id == TYPE_SERVERIP_NAME ||
+		   m_field_id == TYPE_LIP_NAME ||
+		   m_field_id == TYPE_RIP_NAME)
+		{
+			return compare_domain(evt);
+		}
+
 		return false;
 	}
 

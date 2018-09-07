@@ -149,7 +149,7 @@ bool sinsp_dns_manager::match(const char *name, int af, void *addr, uint64_t ts)
 	return false;
 }
 
-string sinsp_dns_manager::name_of(int af, void *addr)
+string sinsp_dns_manager::name_of(int af, void *addr, uint64_t ts)
 {
 	string ret;
 
@@ -169,12 +169,14 @@ string sinsp_dns_manager::name_of(int af, void *addr)
 				memcpy(v6.m_b, addr, sizeof(ipv6addr));
 				if (info.m_v6_addrs.find(v6) != info.m_v6_addrs.end())
 				{
+					info.m_last_used_ts = ts;
 					ret = name;
 					break;
 				}
 			}
 			else if(af == AF_INET && info.m_v4_addrs.find(*(uint32_t *)addr) != info.m_v4_addrs.end())
 			{
+				info.m_last_used_ts = ts;
 				ret = name;
 				break;
 			}
