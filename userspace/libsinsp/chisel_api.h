@@ -23,7 +23,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 class lua_cbacks
 {
 public:
-	static uint32_t rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
+	static uint32_t rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, ppm_param_type ptype, uint32_t len);
 
 	static int get_num(lua_State *ls); 
 	static int get_ts(lua_State *ls);

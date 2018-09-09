@@ -28,7 +28,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/tcp.h>
 #include <linux/udp.h>
 #include <linux/file.h>
-#include <linux/futex.h>
 #include <linux/fs_struct.h>
 #include <linux/uaccess.h>
 #include <linux/version.h>
@@ -47,7 +46,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "ppm_events_public.h"
 #include "ppm_events.h"
 #include "ppm.h"
-
+#include "ppm_flag_helpers.h"
 
 /*
  * The kernel patched with grsecurity makes the default access_ok trigger a
@@ -175,6 +174,19 @@ int32_t dpi_lookahead_init(void)
 	return PPM_SUCCESS;
 }
 
+inline int sock_getname(struct socket* sock, struct sockaddr* sock_address, int peer)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)
+	int ret = sock->ops->getname(sock, sock_address, peer);
+	if (ret >= 0)
+		ret = 0;
+	return ret;
+#else
+	int sockaddr_len;
+	return sock->ops->getname(sock, sock_address, &sockaddr_len, peer);
+#endif
+}
+
 inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 lookahead_size)
 {
 	u32 res = args->consumer->snaplen;
@@ -183,8 +195,6 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 	sa_family_t family;
 	struct sockaddr_storage sock_address;
 	struct sockaddr_storage peer_address;
-	int sock_address_len;
-	int peer_address_len;
 	u16 sport, dport;
 
 	if (g_tracers_enabled && args->event_type == PPME_SYSCALL_WRITE_X) {
@@ -234,7 +244,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 	if (sock) {
 
 		if (sock->sk) {
-			err = sock->ops->getname(sock, (struct sockaddr *)&sock_address, &sock_address_len, 0);
+			err = sock_getname(sock, (struct sockaddr *)&sock_address, 0);
 
 			if (err == 0) {
 				if(args->event_type == PPME_SOCKET_SENDTO_X)
@@ -255,7 +265,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 						/*
 						 * Suppose is a connected socket, fall back to fd
 						 */
-						err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+						err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
 					} else {
 						/*
 						 * Get the address len
@@ -266,7 +276,6 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 							val = args->socketcall_args[5];
 
 						if (val != 0) {
-							peer_address_len = val;
 							/*
 							 * Copy the address
 							 */
@@ -275,7 +284,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 							/*
 							 * This case should be very rare, fallback again to sock
 							 */
-							err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+							err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
 						}
 					}
 				} else if (args->event_type == PPME_SOCKET_SENDMSG_X) {
@@ -319,18 +328,17 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 #endif
 
 					if (usrsockaddr != NULL && addrlen != 0) {
-						peer_address_len = addrlen;
 						/*
 						 * Copy the address
 						 */
-						err = addr_to_kernel(usrsockaddr, peer_address_len, (struct sockaddr *)&peer_address);
+						err = addr_to_kernel(usrsockaddr, addrlen, (struct sockaddr *)&peer_address);
 					} else
 						/*
 						 * Suppose it is a connected socket, fall back to fd
 						 */
-						err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+						err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
 				} else
-					err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+					err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
 
 				if (err == 0) {
 					family = sock->sk->sk_family;
@@ -415,11 +423,12 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
  * - fromuser is ignored for numeric types
  * - dyn_idx is ignored for everything other than PT_DYN
  */
-int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, bool fromuser, u8 dyn_idx)
+int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, bool fromuser, u8 dyn_idx)
 {
 	const struct ppm_param_info *param_info;
 	int len = -1;
 	u16 *psize = (u16 *)(args->buffer + args->curarg * sizeof(u16));
+	u32 max_arg_size = args->arg_data_size;
 
 	if (unlikely(args->curarg >= args->nargs)) {
 		pr_err("(%u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u tid:%u\n",
@@ -437,6 +446,9 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 	if (unlikely(args->arg_data_size == 0))
 		return PPM_FAILURE_BUFFER_FULL;
 
+	if (max_arg_size > PPM_MAX_ARG_SIZE)
+		max_arg_size = PPM_MAX_ARG_SIZE;
+
 	param_info = &(g_event_info[args->event_type].params[args->curarg]);
 	if (param_info->type == PT_DYN && param_info->info != NULL) {
 		const struct ppm_param_info *dyn_params;
@@ -449,7 +461,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 		dyn_params = (const struct ppm_param_info *)param_info->info;
 
 		param_info = &dyn_params[dyn_idx];
-		if (likely(args->arg_data_size >= sizeof(u8)))	{
+		if (likely(max_arg_size >= sizeof(u8)))	{
 			*(u8 *)(args->buffer + args->arg_data_offset) = dyn_idx;
 			len = sizeof(u8);
 		} else {
@@ -457,6 +469,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 		}
 		args->arg_data_offset += len;
 		args->arg_data_size -= len;
+		max_arg_size -= len;
 		*psize = (u16)len;
 	} else {
 		*psize = 0;
@@ -468,17 +481,17 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 		if (likely(val != 0)) {
 			if (fromuser) {
 				len = ppm_strncpy_from_user(args->buffer + args->arg_data_offset,
-					(const char __user *)(unsigned long)val, args->arg_data_size);
+					(const char __user *)(unsigned long)val, max_arg_size);
 
 				if (unlikely(len < 0))
 					return PPM_FAILURE_INVALID_USER_MEMORY;
 			} else {
 				len = strlcpy(args->buffer + args->arg_data_offset,
 								(const char *)(unsigned long)val,
-								args->arg_data_size);
+								max_arg_size);
 
-				if (++len > args->arg_data_size)
-					len = args->arg_data_size;
+				if (++len > max_arg_size)
+					len = max_arg_size;
 			}
 
 			/*
@@ -491,10 +504,10 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 			 */
 			len = strlcpy(args->buffer + args->arg_data_offset,
 				"(NULL)",
-				args->arg_data_size);
+				max_arg_size);
 
-			if (++len > args->arg_data_size)
-				len = args->arg_data_size;
+			if (++len > max_arg_size)
+				len = max_arg_size;
 		}
 
 		break;
@@ -505,12 +518,12 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 				 * Copy the lookahead portion of the buffer that we will use DPI-based
 				 * snaplen calculation
 				 */
-				u32 dpi_lookahead_size = DPI_LOOKAHED_SIZE;
+				u32 dpi_lookahead_size = DPI_LOOKAHEAD_SIZE;
 
 				if (dpi_lookahead_size > val_len)
 					dpi_lookahead_size = val_len;
 
-				if (unlikely(dpi_lookahead_size >= args->arg_data_size))
+				if (unlikely(dpi_lookahead_size >= max_arg_size))
 					return PPM_FAILURE_BUFFER_FULL;
 
 				len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset,
@@ -536,8 +549,8 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 							val_len = sl;
 					}
 
-					if (unlikely((val_len) >= args->arg_data_size))
-						val_len = args->arg_data_size;
+					if (unlikely((val_len) >= max_arg_size))
+						val_len = max_arg_size;
 
 					if (val_len > dpi_lookahead_size) {
 						len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset + dpi_lookahead_size,
@@ -558,7 +571,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 						val_len = sl;
 				}
 
-				if (unlikely(val_len >= args->arg_data_size))
+				if (unlikely(val_len >= max_arg_size))
 					return PPM_FAILURE_BUFFER_FULL;
 
 				memcpy(args->buffer + args->arg_data_offset,
@@ -578,7 +591,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
 		if (likely(val != 0)) {
-			if (unlikely(val_len >= args->arg_data_size))
+			if (unlikely(val_len >= max_arg_size))
 				return PPM_FAILURE_BUFFER_FULL;
 
 			if (fromuser) {
@@ -607,7 +620,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 	case PT_FLAGS8:
 	case PT_UINT8:
 	case PT_SIGTYPE:
-		if (likely(args->arg_data_size >= sizeof(u8)))	{
+		if (likely(max_arg_size >= sizeof(u8)))	{
 			*(u8 *)(args->buffer + args->arg_data_offset) = (u8)val;
 			len = sizeof(u8);
 		} else {
@@ -618,7 +631,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 	case PT_FLAGS16:
 	case PT_UINT16:
 	case PT_SYSCALLID:
-		if (likely(args->arg_data_size >= sizeof(u16))) {
+		if (likely(max_arg_size >= sizeof(u16))) {
 			*(u16 *)(args->buffer + args->arg_data_offset) = (u16)val;
 			len = sizeof(u16);
 		} else {
@@ -631,7 +644,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 	case PT_UID:
 	case PT_GID:
 	case PT_SIGSET:
-		if (likely(args->arg_data_size >= sizeof(u32))) {
+		if (likely(max_arg_size >= sizeof(u32))) {
 			*(u32 *)(args->buffer + args->arg_data_offset) = (u32)val;
 			len = sizeof(u32);
 		} else {
@@ -642,7 +655,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 	case PT_RELTIME:
 	case PT_ABSTIME:
 	case PT_UINT64:
-		if (likely(args->arg_data_size >= sizeof(u64))) {
+		if (likely(max_arg_size >= sizeof(u64))) {
 			*(u64 *)(args->buffer + args->arg_data_offset) = (u64)val;
 			len = sizeof(u64);
 		} else {
@@ -651,7 +664,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 
 		break;
 	case PT_INT8:
-		if (likely(args->arg_data_size >= sizeof(s8))) {
+		if (likely(max_arg_size >= sizeof(s8))) {
 			*(s8 *)(args->buffer + args->arg_data_offset) = (s8)(long)val;
 			len = sizeof(s8);
 		} else {
@@ -660,7 +673,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 
 		break;
 	case PT_INT16:
-		if (likely(args->arg_data_size >= sizeof(s16))) {
+		if (likely(max_arg_size >= sizeof(s16))) {
 			*(s16 *)(args->buffer + args->arg_data_offset) = (s16)(long)val;
 			len = sizeof(s16);
 		} else {
@@ -669,7 +682,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 
 		break;
 	case PT_INT32:
-		if (likely(args->arg_data_size >= sizeof(s32))) {
+		if (likely(max_arg_size >= sizeof(s32))) {
 			*(s32 *)(args->buffer + args->arg_data_offset) = (s32)(long)val;
 			len = sizeof(s32);
 		} else {
@@ -681,7 +694,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 	case PT_ERRNO:
 	case PT_FD:
 	case PT_PID:
-		if (likely(args->arg_data_size >= sizeof(s64))) {
+		if (likely(max_arg_size >= sizeof(s64))) {
 			*(s64 *)(args->buffer + args->arg_data_offset) = (s64)(long)val;
 			len = sizeof(s64);
 		} else {
@@ -698,8 +711,8 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 		return PPM_FAILURE_BUG;
 	}
 
-	ASSERT(len <= 65535);
-	ASSERT(len <= args->arg_data_size);
+	ASSERT(len <= PPM_MAX_ARG_SIZE);
+	ASSERT(len <= max_arg_size);
 
 	*psize += (u16)len;
 	args->curarg++;
@@ -707,110 +720,6 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u16 val_len, 
 	args->arg_data_size -= len;
 
 	return PPM_SUCCESS;
-}
-
-static inline u8 socket_family_to_scap(u8 family)
-{
-	if (family == AF_INET)
-		return PPM_AF_INET;
-	else if (family == AF_INET6)
-		return PPM_AF_INET6;
-	else if (family == AF_UNIX)
-		return PPM_AF_UNIX;
-	else if (family == AF_NETLINK)
-		return PPM_AF_NETLINK;
-	else if (family == AF_PACKET)
-		return PPM_AF_PACKET;
-	else if (family == AF_UNSPEC)
-		return PPM_AF_UNSPEC;
-	else if (family == AF_AX25)
-		return PPM_AF_AX25;
-	else if (family == AF_IPX)
-		return PPM_AF_IPX;
-	else if (family == AF_APPLETALK)
-		return PPM_AF_APPLETALK;
-	else if (family == AF_NETROM)
-		return PPM_AF_NETROM;
-	else if (family == AF_BRIDGE)
-		return PPM_AF_BRIDGE;
-	else if (family == AF_ATMPVC)
-		return PPM_AF_ATMPVC;
-	else if (family == AF_X25)
-		return PPM_AF_X25;
-	else if (family == AF_ROSE)
-		return PPM_AF_ROSE;
-	else if (family == AF_DECnet)
-		return PPM_AF_DECnet;
-	else if (family == AF_NETBEUI)
-		return PPM_AF_NETBEUI;
-	else if (family == AF_SECURITY)
-		return PPM_AF_SECURITY;
-	else if (family == AF_KEY)
-		return PPM_AF_KEY;
-	else if (family == AF_ROUTE)
-		return PPM_AF_ROUTE;
-	else if (family == AF_ASH)
-		return PPM_AF_ASH;
-	else if (family == AF_ECONET)
-		return PPM_AF_ECONET;
-	else if (family == AF_ATMSVC)
-		return PPM_AF_ATMSVC;
-#ifdef AF_RDS
-	else if (family == AF_RDS)
-		return PPM_AF_RDS;
-#endif
-	else if (family == AF_SNA)
-		return PPM_AF_SNA;
-	else if (family == AF_IRDA)
-		return PPM_AF_IRDA;
-	else if (family == AF_PPPOX)
-		return PPM_AF_PPPOX;
-	else if (family == AF_WANPIPE)
-		return PPM_AF_WANPIPE;
-	else if (family == AF_LLC)
-		return PPM_AF_LLC;
-#ifdef AF_CAN
-	else if (family == AF_CAN)
-		return PPM_AF_CAN;
-#endif
-	 else if (family == AF_TIPC)
-		return PPM_AF_TIPC;
-	else if (family == AF_BLUETOOTH)
-		return PPM_AF_BLUETOOTH;
-	else if (family == AF_IUCV)
-		return PPM_AF_IUCV;
-#ifdef AF_RXRPC
-	else if (family == AF_RXRPC)
-		return PPM_AF_RXRPC;
-#endif
-#ifdef AF_ISDN
-	else if (family == AF_ISDN)
-		return PPM_AF_ISDN;
-#endif
-#ifdef AF_PHONET
-	else if (family == AF_PHONET)
-		return PPM_AF_PHONET;
-#endif
-#ifdef AF_IEEE802154
-	else if (family == AF_IEEE802154)
-		return PPM_AF_IEEE802154;
-#endif
-#ifdef AF_CAIF
-	else if (family == AF_CAIF)
-		return PPM_AF_CAIF;
-#endif
-#ifdef AF_ALG
-	else if (family == AF_ALG)
-		return PPM_AF_ALG;
-#endif
-#ifdef AF_NFC
-	else if (family == AF_NFC)
-		return PPM_AF_NFC;
-#endif
-	else {
-		ASSERT(false);
-		return PPM_AF_UNSPEC;
-	}
 }
 
 /*
@@ -963,8 +872,6 @@ u16 fd_to_socktuple(int fd,
 	char *dest;
 	struct sockaddr_storage sock_address;
 	struct sockaddr_storage peer_address;
-	int sock_address_len;
-	int peer_address_len;
 
 	/*
 	 * Get the socket from the fd
@@ -982,7 +889,7 @@ u16 fd_to_socktuple(int fd,
 		return 0;
 	}
 
-	err = sock->ops->getname(sock, (struct sockaddr *)&sock_address, &sock_address_len, 0);
+	err = sock_getname(sock, (struct sockaddr *)&sock_address, 0);
 	ASSERT(err == 0);
 
 	family = sock->sk->sk_family;
@@ -993,7 +900,7 @@ u16 fd_to_socktuple(int fd,
 	switch (family) {
 	case AF_INET:
 		if (!use_userdata) {
-			err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+			err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
 			if (err == 0) {
 				if (is_inbound) {
 					sip = ((struct sockaddr_in *) &peer_address)->sin_addr.s_addr;
@@ -1045,7 +952,7 @@ u16 fd_to_socktuple(int fd,
 		break;
 	case AF_INET6:
 		if (!use_userdata) {
-			err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+			err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
 			ASSERT(err == 0);
 
 			if (is_inbound) {
@@ -1120,7 +1027,7 @@ u16 fd_to_socktuple(int fd,
 			if (is_inbound) {
 				us_name = ((struct sockaddr_un *) &sock_address)->sun_path;
 			} else {
-				err = sock->ops->getname(sock, (struct sockaddr *)&peer_address, &peer_address_len, 1);
+				err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
 				ASSERT(err == 0);
 
 				us_name = ((struct sockaddr_un *) &peer_address)->sun_path;
@@ -1454,13 +1361,14 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
  * filler function.
  * The arguments to extract are be specified in g_ppm_events.
  */
-int f_sys_autofill(struct event_filler_arguments *args, const struct ppm_event_entry *evinfo)
+int f_sys_autofill(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
 	u32 j;
 	int64_t retval;
 
+	const struct ppm_event_entry *evinfo = &g_ppm_events[args->event_type];
 	ASSERT(evinfo->n_autofill_args <= PPM_MAX_AUTOFILL_ARGS);
 
 	for (j = 0; j < evinfo->n_autofill_args; j++) {

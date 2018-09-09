@@ -32,6 +32,7 @@ class sinsp_filter_check_reference;
 bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
 bool flt_compare_avg(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len, uint32_t cnt1, uint32_t cnt2);
 bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2);
+bool flt_compare_ipv6net(cmpop op, ipv6addr *operand1, ipv6addr* operand2);
 
 char* flt_to_string(uint8_t* rawval, filtercheck_field_info* finfo);
 int32_t gmt2local(time_t t);
@@ -145,8 +146,11 @@ public:
 protected:
 	bool flt_compare(cmpop op, ppm_param_type type, void* operand1, uint32_t op1_len = 0, uint32_t op2_len = 0);
 
-	char* rawval_to_string(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
-	Json::Value rawval_to_json(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
+	char* rawval_to_string(uint8_t* rawval,
+			       ppm_param_type ptype,
+			       ppm_print_format print_format,
+			       uint32_t len);
+	Json::Value rawval_to_json(uint8_t* rawval, ppm_param_type ptype, ppm_print_format print_format, uint32_t len);
 	void string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype);
 
 	char m_getpropertystr_storage[1024];
@@ -533,6 +537,8 @@ public:
 		TYPE_NAME = 1,
 		TYPE_HOMEDIR = 2,
 		TYPE_SHELL = 3,
+		TYPE_LOGINUID = 4,
+		TYPE_LOGINNAME = 5,
 	};
 
 	sinsp_filter_check_user();
@@ -755,7 +761,10 @@ public:
 		TYPE_CONTAINER_MOUNT_DEST,
 		TYPE_CONTAINER_MOUNT_MODE,
 		TYPE_CONTAINER_MOUNT_RDWR,
-		TYPE_CONTAINER_MOUNT_PROPAGATION
+		TYPE_CONTAINER_MOUNT_PROPAGATION,
+		TYPE_CONTAINER_IMAGE_REPOSITORY,
+		TYPE_CONTAINER_IMAGE_TAG,
+		TYPE_CONTAINER_IMAGE_DIGEST,
 	};
 
 	sinsp_filter_check_container();
@@ -858,7 +867,7 @@ private:
 	char m_addrbuff[100];
 };
 
-#ifndef HAS_ANALYZER
+#ifndef CYGWING_AGENT
 
 class sinsp_filter_check_k8s : public sinsp_filter_check
 {
@@ -911,7 +920,7 @@ private:
 	string m_tstr;
 };
 
-#endif // HAS_ANALYZER
+#endif // CYGWING_AGENT
 
 #ifndef CYGWING_AGENT
 class sinsp_filter_check_mesos : public sinsp_filter_check

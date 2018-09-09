@@ -440,6 +440,12 @@ const struct ppm_name_value unlinkat_flags[] = {
 	{ },
 };
 
+const struct ppm_name_value linkat_flags[] = {
+	{"AT_SYMLINK_FOLLOW", PPM_AT_SYMLINK_FOLLOW},
+	{"AT_EMPTY_PATH", PPM_AT_EMPTY_PATH},
+	{ },
+};
+
 const struct ppm_name_value chown_chmod_flags[] = {
 	{"AT_EMPTY_PATH", PPM_AT_EMPTY_PATH},
 	{"AT_SYMLINK_NOFOLLOW", PPM_AT_SYMLINK_NOFOLLOW},

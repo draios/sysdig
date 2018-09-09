@@ -517,6 +517,7 @@ void sinsp_table::process_proctable(sinsp_evt* evt)
 	//
 	tscapevt.type = PPME_SYSDIGEVENT_X;
 	tscapevt.len = 0;
+	tscapevt.nparams = 0;
 
 	tevt.m_inspector = m_inspector;
 	tevt.m_info = &(g_infotables.m_event_info[PPME_SYSDIGEVENT_X]);
@@ -526,21 +527,21 @@ void sinsp_table::process_proctable(sinsp_evt* evt)
 	tevt.m_pevt = &tscapevt;
 	tevt.m_fdinfo = NULL;
 
-	for(auto it = threadtable->begin(); it != threadtable->end(); ++it)
-	{
-		tevt.m_tinfo = &it->second;
+	threadtable->loop([&] (sinsp_threadinfo& tinfo) {
+		tevt.m_tinfo = &tinfo;
 		tscapevt.tid = tevt.m_tinfo->m_tid;
 
 		if(m_filter)
 		{
 			if(!m_filter->run(&tevt))
 			{
-				continue;
+				return true;
 			}
 		}
 
 		process_event(&tevt);
-	}
+		return true;
+	});
 }
 
 void sinsp_table::flush(sinsp_evt* evt)
@@ -739,6 +740,7 @@ void sinsp_table::filter_sample()
 
 			if(type == PT_CHARBUF || type == PT_BYTEBUF || type == PT_SYSCALLID ||
 				type == PT_PORT || type == PT_L4PROTO || type == PT_SOCKFAMILY || type == PT_IPV4ADDR ||
+			        type == PT_IPV6ADDR ||
 				type == PT_UID || type == PT_GID)
 			{
 				m_printer->set_val(type, 
@@ -785,6 +787,7 @@ sinsp_table_field* sinsp_table::search_in_sample(string text)
 
 			if(type == PT_CHARBUF || type == PT_BYTEBUF || type == PT_SYSCALLID ||
 				type == PT_PORT || type == PT_L4PROTO || type == PT_SOCKFAMILY || type == PT_IPV4ADDR ||
+			        type == PT_IPV6ADDR ||
 				type == PT_UID || type == PT_GID)
 			{
 				m_printer->set_val(type,
@@ -1434,6 +1437,18 @@ uint32_t sinsp_table::get_field_len(uint32_t id)
 		return fld->m_len;
 	case PT_DOUBLE:
 		return sizeof(double);
+	case PT_IPV6ADDR:
+		return sizeof(ipv6addr);
+	case PT_IPADDR:
+	case PT_IPNET:
+		if(fld->m_len == sizeof(struct in_addr))
+		{
+			return 4;
+		}
+		else
+		{
+			return sizeof(ipv6addr);
+		}
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
@@ -1473,6 +1488,7 @@ uint8_t* sinsp_table::get_default_val(filtercheck_field_info* fld)
 			return (uint8_t*)&m_zero_u64;
 	case PT_PORT:
 	case PT_IPV4ADDR:
+	case PT_IPV6ADDR:
 		return NULL;
 	default:
 		ASSERT(false);

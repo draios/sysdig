@@ -72,6 +72,7 @@ add_library(sinsp STATIC
 	prefix_search.cpp
 	protodecoder.cpp
 	threadinfo.cpp
+	tuples.cpp
 	sinsp.cpp
 	stats.cpp
 	table.cpp

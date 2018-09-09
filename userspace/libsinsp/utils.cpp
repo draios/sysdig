@@ -436,10 +436,10 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 	}
 	else if(stype == SCAP_FD_IPV6_SOCK)
 	{
-		uint8_t* sip6 = (uint8_t*)sinfo->m_ipv6info.m_fields.m_sip;
-		uint8_t* dip6 = (uint8_t*)sinfo->m_ipv6info.m_fields.m_dip;
-		uint8_t* sip = ((uint8_t*)(sinfo->m_ipv6info.m_fields.m_sip)) + 12;
-		uint8_t* dip = ((uint8_t*)(sinfo->m_ipv6info.m_fields.m_dip)) + 12;
+		uint8_t* sip6 = (uint8_t*)sinfo->m_ipv6info.m_fields.m_sip.m_b;
+		uint8_t* dip6 = (uint8_t*)sinfo->m_ipv6info.m_fields.m_dip.m_b;
+		uint8_t* sip = ((uint8_t*)(sinfo->m_ipv6info.m_fields.m_sip.m_b)) + 12;
+		uint8_t* dip = ((uint8_t*)(sinfo->m_ipv6info.m_fields.m_dip.m_b)) + 12;
 
 		if(sinfo->m_ipv6info.m_fields.m_l4proto == SCAP_L4_TCP ||
 			sinfo->m_ipv6info.m_fields.m_l4proto == SCAP_L4_UDP)
@@ -470,9 +470,9 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 								targetbuf_size,
 								"%s:%s->%s:%s",
 								srcstr,
-								port_to_string(sinfo->m_ipv4info.m_fields.m_sport, sinfo->m_ipv6info.m_fields.m_l4proto, resolve).c_str(),
+								port_to_string(sinfo->m_ipv6info.m_fields.m_sport, sinfo->m_ipv6info.m_fields.m_l4proto, resolve).c_str(),
 								dststr,
-								port_to_string(sinfo->m_ipv4info.m_fields.m_dport, sinfo->m_ipv6info.m_fields.m_l4proto, resolve).c_str());
+								port_to_string(sinfo->m_ipv6info.m_fields.m_dport, sinfo->m_ipv6info.m_fields.m_l4proto, resolve).c_str());
 					return true;
 				}
 			}
@@ -678,7 +678,6 @@ bool sinsp_utils::concatenate_paths(char* target,
 {
 	if(targetlen < (len1 + len2 + 1))
 	{
-		ASSERT(false);
 		strcpy(target, "/PATH_TOO_LONG");
 		return false;
 	}
@@ -816,6 +815,94 @@ bool sinsp_utils::find_env(std::string &out, const vector<std::string> &env, con
 {
 	const vector<std::string> keys = { key };
 	return find_first_env(out, env, keys);
+}
+
+void sinsp_utils::split_container_image(const std::string &image,
+					std::string &hostname,
+					std::string &port,
+					std::string &name,
+					std::string &tag,
+					std::string &digest,
+					bool split_repo)
+{
+	auto split = [](const std::string &src, std::string &part1, std::string &part2, const std::string sep)
+	{
+		size_t pos = src.find(sep);
+		if(pos != std::string::npos)
+		{
+			part1 = src.substr(0, pos);
+			part2 = src.substr(pos+1);
+			return true;
+		}
+		return false;
+	};
+
+	std::string hostport, rem, rem2, repo;
+
+	hostname = port = name = tag = digest = "";
+
+	if(split(image, hostport, rem, "/"))
+	{
+		repo = hostport + "/";
+		if(!split(hostport, hostname, port, ":"))
+		{
+			hostname = hostport;
+			port = "";
+		}
+	}
+	else
+	{
+		hostname = "";
+		port = "";
+		rem = image;
+	}
+
+	if(split(rem, rem2, digest, "@"))
+	{
+		if(!split(rem2, name, tag, ":"))
+		{
+			name = rem2;
+			tag = "";
+		}
+	}
+	else
+	{
+		digest = "";
+		if(!split(rem, name, tag, ":"))
+		{
+			name = rem;
+			tag = "";
+		}
+	}
+
+	if(!split_repo)
+	{
+		name = repo + name;
+	}
+}
+
+void sinsp_utils::parse_suppressed_types(const std::vector<std::string> &supp_strs,
+					 std::vector<uint16_t> *supp_ids)
+{
+	for (auto ii = 0; ii < PPM_EVENT_MAX; ii++)
+	{
+		auto iter = std::find(supp_strs.begin(), supp_strs.end(),
+				      event_name_by_id(ii));
+		if (iter != supp_strs.end())
+		{
+			supp_ids->push_back(ii);
+		}
+	}
+}
+
+const char* sinsp_utils::event_name_by_id(uint16_t id)
+{
+	if (id >= PPM_EVENT_MAX)
+	{
+		ASSERT(false);
+		return "NA";
+	}
+	return g_infotables.m_event_info[id].name;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -992,7 +1079,7 @@ string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve)
 	char address[100];
 	char buf[200];
 
-	if(NULL == inet_ntop(AF_INET6, addr->m_ip, address, 100))
+	if(NULL == inet_ntop(AF_INET6, addr->m_ip.m_b, address, 100))
 	{
 		return string();
 	}
@@ -1010,12 +1097,12 @@ string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve)
 	char destination_address[100];
 	char buf[200];
 
-	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_sip, source_address, 100))
+	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_sip.m_b, source_address, 100))
 	{
 		return string();
 	}
 
-	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_dip, destination_address, 100))
+	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_dip.m_b, destination_address, 100))
 	{
 		return string();
 	}
@@ -1205,6 +1292,27 @@ string replace(const string& str, const string& search, const string& replacemen
 	replace_in_place(s, search, replacement);
 	return s;
 }
+
+
+bool sinsp_utils::endswith(const string& str, const string& ending)
+{
+	if (ending.size() <= str.size())
+	{
+		return (0 == str.compare(str.length() - ending.length(), ending.length(), ending));
+	}
+	return false;
+}
+
+
+bool sinsp_utils::endswith(const char *str, const char *ending, uint32_t lstr, uint32_t lend)
+{
+	if (lstr >= lend)
+	{
+		return (0 == memcmp(ending, str + (lstr - lend), lend));
+	}
+	return 0;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_numparser implementation

@@ -31,6 +31,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #include <regex>
+#include <algorithm>
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -78,10 +79,8 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 	add_filter_check(new sinsp_filter_check_container());
 	add_filter_check(new sinsp_filter_check_utils());
 	add_filter_check(new sinsp_filter_check_fdlist());
-#ifndef HAS_ANALYZER
-	add_filter_check(new sinsp_filter_check_k8s());
-#endif // HAS_ANALYZER
 #ifndef CYGWING_AGENT
+	add_filter_check(new sinsp_filter_check_k8s());
 	add_filter_check(new sinsp_filter_check_mesos());
 #endif
 	add_filter_check(new sinsp_filter_check_tracer());
@@ -193,6 +192,9 @@ bool flt_compare_uint64(cmpop op, uint64_t operand1, uint64_t operand2)
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for numeric filters");
 		return false;
+	case CO_ENDSWITH:
+		throw sinsp_exception("'endswith' not supported for numeric filters");
+		return false;
 	case CO_GLOB:
 		throw sinsp_exception("'glob' not supported for numeric filters");
 		return false;
@@ -227,6 +229,9 @@ bool flt_compare_int64(cmpop op, int64_t operand1, int64_t operand2)
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for numeric filters");
 		return false;
+        case CO_ENDSWITH:
+                throw sinsp_exception("'endswith' not supported for numeric filters");
+                return false;
 	case CO_GLOB:
 		throw sinsp_exception("'glob' not supported for numeric filters");
 		return false;
@@ -254,6 +259,8 @@ bool flt_compare_string(cmpop op, char* operand1, char* operand2)
 #endif
 	case CO_STARTSWITH:
 		return (strncmp(operand1, operand2, strlen(operand2)) == 0);
+	case CO_ENDSWITH: 
+		return (sinsp_utils::endswith(operand1, operand2));
 	case CO_GLOB:
 		return sinsp_utils::glob_match(operand2, operand1);
 	case CO_LT:
@@ -285,6 +292,8 @@ bool flt_compare_buffer(cmpop op, char* operand1, char* operand2, uint32_t op1_l
 		throw sinsp_exception("'icontains' not supported for buffer filters");
 	case CO_STARTSWITH:
 		return (memcmp(operand1, operand2, op2_len) == 0);
+	case CO_ENDSWITH: 
+		return (sinsp_utils::endswith(operand1, operand2, op1_len, op2_len));
 	case CO_GLOB:
 		throw sinsp_exception("'glob' not supported for buffer filters");
 	case CO_LT:
@@ -327,6 +336,9 @@ bool flt_compare_double(cmpop op, double operand1, double operand2)
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for numeric filters");
 		return false;
+	case CO_ENDSWITH:
+		throw sinsp_exception("'endswith' not supported for numeric filters");
+		return false;
 	case CO_GLOB:
 		throw sinsp_exception("'glob' not supported for numeric filters");
 		return false;
@@ -356,11 +368,66 @@ bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2)
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for numeric filters");
 		return false;
+	case CO_ENDSWITH:
+		throw sinsp_exception("'endswith' not supported for numeric filters");
+		return false;
 	case CO_GLOB:
 		throw sinsp_exception("'glob' not supported for numeric filters");
 		return false;
 	default:
 		throw sinsp_exception("comparison operator not supported for ipv4 networks");
+	}
+}
+
+bool flt_compare_ipv6addr(cmpop op, ipv6addr *operand1, ipv6addr *operand2)
+{
+	switch(op)
+	{
+	case CO_EQ:
+	case CO_IN:
+		return *operand1 == *operand2;
+	case CO_NE:
+		return *operand1 != *operand2;
+	case CO_CONTAINS:
+		throw sinsp_exception("'contains' not supported for ipv6 addresses");
+		return false;
+	case CO_ICONTAINS:
+		throw sinsp_exception("'icontains' not supported for ipv6 addresses");
+		return false;
+	case CO_STARTSWITH:
+		throw sinsp_exception("'startswith' not supported for ipv6 addresses");
+		return false;
+	case CO_GLOB:
+		throw sinsp_exception("'glob' not supported for ipv6 addresses");
+		return false;
+	default:
+		throw sinsp_exception("comparison operator not supported for ipv6 addresses");
+	}
+}
+
+bool flt_compare_ipv6net(cmpop op, ipv6addr *operand1, ipv6addr *operand2)
+{
+	switch(op)
+	{
+	case CO_EQ:
+	case CO_IN:
+		return operand1->in_subnet(*operand2);
+	case CO_NE:
+		return !operand1->in_subnet(*operand2);
+	case CO_CONTAINS:
+		throw sinsp_exception("'contains' not supported for ipv6 networks");
+		return false;
+	case CO_ICONTAINS:
+		throw sinsp_exception("'icontains' not supported for ipv6 networks");
+		return false;
+	case CO_STARTSWITH:
+		throw sinsp_exception("'startswith' not supported for ipv6 networks");
+		return false;
+	case CO_GLOB:
+		throw sinsp_exception("'glob' not supported for ipv6 networks");
+		return false;
+	default:
+		throw sinsp_exception("comparison operator not supported for ipv6 networks");
 	}
 }
 
@@ -404,6 +471,36 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 		return flt_compare_uint64(op, (uint64_t)*(uint32_t*)operand1, (uint64_t)*(uint32_t*)operand2);
 	case PT_IPV4NET:
 		return flt_compare_ipv4net(op, (uint64_t)*(uint32_t*)operand1, (ipv4net*)operand2);
+	case PT_IPV6ADDR:
+		return flt_compare_ipv6addr(op, (ipv6addr *)operand1, (ipv6addr *)operand2);
+	case PT_IPV6NET:
+		return flt_compare_ipv6net(op, (ipv6addr *)operand1, (ipv6addr*)operand2);
+	case PT_IPADDR:
+		if(op1_len == sizeof(struct in_addr))
+		{
+			return flt_compare(op, PT_IPV4ADDR, operand1, operand2, op1_len, op2_len);
+		}
+		else if(op1_len == sizeof(struct in6_addr))
+		{
+			return flt_compare(op, PT_IPV6ADDR, operand1, operand2, op1_len, op2_len);
+		}
+		else
+		{
+			throw sinsp_exception("rawval_to_string called with IP address of incorrect size " + to_string(op1_len));
+		}
+	case PT_IPNET:
+		if(op1_len == sizeof(struct in_addr))
+		{
+			return flt_compare(op, PT_IPV4NET, operand1, operand2, op1_len, op2_len);
+		}
+		else if(op1_len == sizeof(struct in6_addr))
+		{
+			return flt_compare(op, PT_IPV6NET, operand1, operand2, op1_len, op2_len);
+		}
+		else
+		{
+			throw sinsp_exception("rawval_to_string called with IP network of incorrect size " + to_string(op1_len));
+		}
 	case PT_UINT64:
 	case PT_RELTIME:
 	case PT_ABSTIME:
@@ -502,6 +599,8 @@ bool flt_compare_avg(cmpop op,
 	case PT_FLAGS32:
 	case PT_BOOL:
 	case PT_IPV4ADDR:
+	case PT_IPV6ADDR:
+		// What does an average mean for ip addresses anyway?
 		u641 = ((uint64_t)*(uint32_t*)operand1) / cnt1;
 		u642 = ((uint64_t)*(uint32_t*)operand2) / cnt2;
 		ASSERT(cnt1 != 0 || u641 == 0);
@@ -551,23 +650,25 @@ void sinsp_filter_check::set_inspector(sinsp* inspector)
 	m_inspector = inspector;
 }
 
-Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len)
+Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
+					       ppm_param_type ptype,
+					       ppm_print_format print_format,
+					       uint32_t len)
 {
 	ASSERT(rawval != NULL);
-	ASSERT(finfo != NULL);
 
-	switch(finfo->m_type)
+	switch(ptype)
 	{
 		case PT_INT8:
-			if(finfo->m_print_format == PF_DEC ||
-			   finfo->m_print_format == PF_ID)
+			if(print_format == PF_DEC ||
+			   print_format == PF_ID)
 			{
 				return *(int8_t *)rawval;
 			}
-			else if(finfo->m_print_format == PF_OCT ||
-				finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_OCT ||
+				print_format == PF_HEX)
 			{
-				return rawval_to_string(rawval, finfo, len);
+				return rawval_to_string(rawval, ptype, print_format, len);
 			}
 			else
 			{
@@ -576,15 +677,15 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			}
 
 		case PT_INT16:
-			if(finfo->m_print_format == PF_DEC ||
-			   finfo->m_print_format == PF_ID)
+			if(print_format == PF_DEC ||
+			   print_format == PF_ID)
 			{
 				return *(int16_t *)rawval;
 			}
-			else if(finfo->m_print_format == PF_OCT ||
-				finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_OCT ||
+				print_format == PF_HEX)
 			{
-				return rawval_to_string(rawval, finfo, len);
+				return rawval_to_string(rawval, ptype, print_format, len);
 			}
 			else
 			{
@@ -593,15 +694,15 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			}
 
 		case PT_INT32:
-			if(finfo->m_print_format == PF_DEC ||
-			   finfo->m_print_format == PF_ID)
+			if(print_format == PF_DEC ||
+			   print_format == PF_ID)
 			{
 				return *(int32_t *)rawval;
 			}
-			else if(finfo->m_print_format == PF_OCT ||
-				finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_OCT ||
+				print_format == PF_HEX)
 			{
-				return rawval_to_string(rawval, finfo, len);
+				return rawval_to_string(rawval, ptype, print_format, len);
 			}
 			else
 			{
@@ -611,27 +712,27 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 
 		case PT_INT64:
 		case PT_PID:
-			if(finfo->m_print_format == PF_DEC ||
-			   finfo->m_print_format == PF_ID)
+			if(print_format == PF_DEC ||
+			   print_format == PF_ID)
 			{
 		 		return (Json::Value::Int64)*(int64_t *)rawval;
 			}
 			else
 			{
-				return rawval_to_string(rawval, finfo, len);
+				return rawval_to_string(rawval, ptype, print_format, len);
 			}
 
 		case PT_L4PROTO: // This can be resolved in the future
 		case PT_UINT8:
-			if(finfo->m_print_format == PF_DEC ||
-			   finfo->m_print_format == PF_ID)
+			if(print_format == PF_DEC ||
+			   print_format == PF_ID)
 			{
 				return *(uint8_t *)rawval;
 			}
-			else if(finfo->m_print_format == PF_OCT ||
-				finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_OCT ||
+				print_format == PF_HEX)
 			{
-				return rawval_to_string(rawval, finfo, len);
+				return rawval_to_string(rawval, ptype, print_format, len);
 			}
 			else
 			{
@@ -641,15 +742,15 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 
 		case PT_PORT: // This can be resolved in the future
 		case PT_UINT16:
-			if(finfo->m_print_format == PF_DEC ||
-			   finfo->m_print_format == PF_ID)
+			if(print_format == PF_DEC ||
+			   print_format == PF_ID)
 			{
 				return *(uint16_t *)rawval;
 			}
-			else if(finfo->m_print_format == PF_OCT ||
-				finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_OCT ||
+				print_format == PF_HEX)
 			{
-				return rawval_to_string(rawval, finfo, len);
+				return rawval_to_string(rawval, ptype, print_format, len);
 			}
 			else
 			{
@@ -658,15 +759,15 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 			}
 
 		case PT_UINT32:
-			if(finfo->m_print_format == PF_DEC ||
-			   finfo->m_print_format == PF_ID)
+			if(print_format == PF_DEC ||
+			   print_format == PF_ID)
 			{
 				return *(uint32_t *)rawval;
 			}
-			else if(finfo->m_print_format == PF_OCT ||
-				finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_OCT ||
+				print_format == PF_HEX)
 			{
-				return rawval_to_string(rawval, finfo, len);
+				return rawval_to_string(rawval, ptype, print_format, len);
 			}
 			else
 			{
@@ -677,17 +778,17 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 		case PT_UINT64:
 		case PT_RELTIME:
 		case PT_ABSTIME:
-			if(finfo->m_print_format == PF_DEC ||
-			   finfo->m_print_format == PF_ID)
+			if(print_format == PF_DEC ||
+			   print_format == PF_ID)
 			{
 				return (Json::Value::UInt64)*(uint64_t *)rawval;
 			}
 			else if(
-				finfo->m_print_format == PF_10_PADDED_DEC ||
-				finfo->m_print_format == PF_OCT ||
-				finfo->m_print_format == PF_HEX)
+				print_format == PF_10_PADDED_DEC ||
+				print_format == PF_OCT ||
+				print_format == PF_HEX)
 			{
-				return rawval_to_string(rawval, finfo, len);
+				return rawval_to_string(rawval, ptype, print_format, len);
 			}
 			else
 			{
@@ -707,34 +808,37 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval, const filterchec
 		case PT_FSPATH:
 		case PT_BYTEBUF:
 		case PT_IPV4ADDR:
-			return rawval_to_string(rawval, finfo, len);
-
+		case PT_IPV6ADDR:
+	        case PT_IPADDR:
+			return rawval_to_string(rawval, ptype, print_format, len);
 		default:
 			ASSERT(false);
-			throw sinsp_exception("wrong event type " + to_string((long long) finfo->m_type));
+			throw sinsp_exception("wrong event type " + to_string((long long) ptype));
 	}
 }
 
-char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len)
+char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
+					   ppm_param_type ptype,
+					   ppm_print_format print_format,
+					   uint32_t len)
 {
 	char* prfmt;
 
 	ASSERT(rawval != NULL);
-	ASSERT(finfo != NULL);
 
-	switch(finfo->m_type)
+	switch(ptype)
 	{
 		case PT_INT8:
-			if(finfo->m_print_format == PF_OCT)
+			if(print_format == PF_OCT)
 			{
 				prfmt = (char*)"%" PRIo8;
 			}
-			else if(finfo->m_print_format == PF_DEC ||
-				finfo->m_print_format == PF_ID)
+			else if(print_format == PF_DEC ||
+				print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRId8;
 			}
-			else if(finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIX8;
 			}
@@ -749,16 +853,16 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 					 prfmt, *(int8_t *)rawval);
 			return m_getpropertystr_storage;
 		case PT_INT16:
-			if(finfo->m_print_format == PF_OCT)
+			if(print_format == PF_OCT)
 			{
 				prfmt = (char*)"%" PRIo16;
 			}
-			else if(finfo->m_print_format == PF_DEC ||
-				finfo->m_print_format == PF_ID)
+			else if(print_format == PF_DEC ||
+				print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRId16;
 			}
-			else if(finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIX16;
 			}
@@ -773,16 +877,16 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 					 prfmt, *(int16_t *)rawval);
 			return m_getpropertystr_storage;
 		case PT_INT32:
-			if(finfo->m_print_format == PF_OCT)
+			if(print_format == PF_OCT)
 			{
 				prfmt = (char*)"%" PRIo32;
 			}
-			else if(finfo->m_print_format == PF_DEC ||
-				finfo->m_print_format == PF_ID)
+			else if(print_format == PF_DEC ||
+				print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRId32;
 			}
-			else if(finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIX32;
 			}
@@ -799,20 +903,20 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 		case PT_INT64:
 		case PT_PID:
 		case PT_ERRNO:
-			if(finfo->m_print_format == PF_OCT)
+			if(print_format == PF_OCT)
 			{
 				prfmt = (char*)"%" PRIo64;
 			}
-			else if(finfo->m_print_format == PF_DEC ||
-				finfo->m_print_format == PF_ID)
+			else if(print_format == PF_DEC ||
+				print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRId64;
 			}
-			else if(finfo->m_print_format == PF_10_PADDED_DEC)
+			else if(print_format == PF_10_PADDED_DEC)
 			{
 				prfmt = (char*)"%09" PRId64;
 			}
-			else if(finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIX64;
 			}
@@ -827,16 +931,16 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			return m_getpropertystr_storage;
 		case PT_L4PROTO: // This can be resolved in the future
 		case PT_UINT8:
-			if(finfo->m_print_format == PF_OCT)
+			if(print_format == PF_OCT)
 			{
 				prfmt = (char*)"%" PRIo8;
 			}
-			else if(finfo->m_print_format == PF_DEC ||
-				finfo->m_print_format == PF_ID)
+			else if(print_format == PF_DEC ||
+				print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRIu8;
 			}
-			else if(finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIu8;
 			}
@@ -852,16 +956,16 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			return m_getpropertystr_storage;
 		case PT_PORT: // This can be resolved in the future
 		case PT_UINT16:
-			if(finfo->m_print_format == PF_OCT)
+			if(print_format == PF_OCT)
 			{
 				prfmt = (char*)"%" PRIo16;
 			}
-			else if(finfo->m_print_format == PF_DEC ||
-				finfo->m_print_format == PF_ID)
+			else if(print_format == PF_DEC ||
+				print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRIu16;
 			}
-			else if(finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIu16;
 			}
@@ -876,16 +980,16 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 					 prfmt, *(uint16_t *)rawval);
 			return m_getpropertystr_storage;
 		case PT_UINT32:
-			if(finfo->m_print_format == PF_OCT)
+			if(print_format == PF_OCT)
 			{
 				prfmt = (char*)"%" PRIo32;
 			}
-			else if(finfo->m_print_format == PF_DEC ||
-				finfo->m_print_format == PF_ID)
+			else if(print_format == PF_DEC ||
+				print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRIu32;
 			}
-			else if(finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIu32;
 			}
@@ -902,20 +1006,20 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 		case PT_UINT64:
 		case PT_RELTIME:
 		case PT_ABSTIME:
-			if(finfo->m_print_format == PF_OCT)
+			if(print_format == PF_OCT)
 			{
 				prfmt = (char*)"%" PRIo64;
 			}
-			else if(finfo->m_print_format == PF_DEC ||
-				finfo->m_print_format == PF_ID)
+			else if(print_format == PF_DEC ||
+				print_format == PF_ID)
 			{
 				prfmt = (char*)"%" PRIu64;
 			}
-			else if(finfo->m_print_format == PF_10_PADDED_DEC)
+			else if(print_format == PF_10_PADDED_DEC)
 			{
 				prfmt = (char*)"%09" PRIu64;
 			}
-			else if(finfo->m_print_format == PF_HEX)
+			else if(print_format == PF_HEX)
 			{
 				prfmt = (char*)"%" PRIX64;
 			}
@@ -974,6 +1078,35 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 						rawval[2],
 						rawval[3]);
 			return m_getpropertystr_storage;
+		case PT_IPV6ADDR:
+		{
+			char address[100];
+
+			if(NULL == inet_ntop(AF_INET6, rawval, address, 100))
+			{
+				strcpy(address, "<NA>");
+			}
+
+			strncpy(m_getpropertystr_storage,
+				address,
+				100);
+
+			return m_getpropertystr_storage;
+		}
+	        case PT_IPADDR:
+			if(len == sizeof(struct in_addr))
+			{
+				return rawval_to_string(rawval, PT_IPV4ADDR, print_format, len);
+			}
+			else if(len == sizeof(struct in6_addr))
+			{
+				return rawval_to_string(rawval, PT_IPV6ADDR, print_format, len);
+			}
+			else
+			{
+				throw sinsp_exception("rawval_to_string called with IP address of incorrect size " + to_string(len));
+			}
+
 		case PT_DOUBLE:
 			snprintf(m_getpropertystr_storage,
 					 sizeof(m_getpropertystr_storage),
@@ -981,7 +1114,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval, const filtercheck_fi
 			return m_getpropertystr_storage;
 		default:
 			ASSERT(false);
-			throw sinsp_exception("wrong event type " + to_string((long long) finfo->m_type));
+			throw sinsp_exception("wrong event type " + to_string((long long) ptype));
 	}
 }
 
@@ -995,7 +1128,7 @@ char* sinsp_filter_check::tostring(sinsp_evt* evt)
 		return NULL;
 	}
 
-	return rawval_to_string(rawval, m_field, len);
+	return rawval_to_string(rawval, m_field->m_type, m_field->m_print_format, len);
 }
 
 Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
@@ -1010,7 +1143,7 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 		{
 			return Json::nullValue;
 		}
-		return rawval_to_json(rawval, m_field, len);
+		return rawval_to_json(rawval, m_field->m_type, m_field->m_print_format, len);
 	}
 
 	return jsonval;
@@ -1140,6 +1273,7 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 		switch(type)
 		{
 		case PT_IPV4NET:
+		case PT_IPV6NET:
 		case PT_SOCKADDR:
 		case PT_SOCKTUPLE:
 		case PT_FDLIST:
@@ -1698,6 +1832,11 @@ cmpop sinsp_filter_compiler::next_comparison_operator()
 		m_scanpos += 10;
 		return CO_STARTSWITH;
 	}
+	else if(compare_no_consume("endswith"))
+	{
+		m_scanpos += 8;
+		return CO_ENDSWITH;
+	}
 	else if(compare_no_consume("glob"))
 	{
 		m_scanpos += 4;
@@ -2068,10 +2207,30 @@ sinsp_filter* sinsp_filter_compiler::compile_()
 
 sinsp_evttype_filter::sinsp_evttype_filter()
 {
-	memset(m_filter_by_evttype, 0, PPM_EVENT_MAX * sizeof(list<sinsp_filter *> *));
 }
 
 sinsp_evttype_filter::~sinsp_evttype_filter()
+{
+	for(const auto &val : m_filters)
+	{
+		delete val.second->filter;
+		delete val.second;
+	}
+
+	for(auto &ruleset : m_rulesets)
+	{
+		delete ruleset;
+	}
+	m_filters.clear();
+}
+
+sinsp_evttype_filter::ruleset_filters::ruleset_filters()
+{
+	memset(m_filter_by_evttype, 0, PPM_EVENT_MAX * sizeof(list<filter_wrapper *> *));
+	memset(m_filter_by_syscall, 0, PPM_SC_MAX * sizeof(list<filter_wrapper *> *));
+}
+
+sinsp_evttype_filter::ruleset_filters::~ruleset_filters()
 {
 	for(int i = 0; i < PPM_EVENT_MAX; i++)
 	{
@@ -2082,60 +2241,178 @@ sinsp_evttype_filter::~sinsp_evttype_filter()
 		}
 	}
 
-	m_catchall_evttype_filters.clear();
-
-	for(const auto &val : m_evttype_filters)
+	for(int i = 0; i < PPM_SC_MAX; i++)
 	{
-		delete val.second->filter;
-		delete val.second;
+		if(m_filter_by_syscall[i])
+		{
+			delete m_filter_by_syscall[i];
+			m_filter_by_syscall[i] = NULL;
+		}
 	}
-	m_evttype_filters.clear();
 }
 
-sinsp_evttype_filter::filter_wrapper::filter_wrapper()
-	: enabled{true}
+void sinsp_evttype_filter::ruleset_filters::add_filter(filter_wrapper *wrap)
 {
+	for(uint32_t etype = 0; etype < PPM_EVENT_MAX; etype++)
+	{
+		if(wrap->evttypes[etype])
+		{
+			if(!m_filter_by_evttype[etype])
+			{
+				m_filter_by_evttype[etype] = new std::list<filter_wrapper *>();
+			}
+
+			m_filter_by_evttype[etype]->push_back(wrap);
+		}
+	}
+
+	for(uint32_t syscall = 0; syscall < PPM_SC_MAX; syscall++)
+	{
+		if(wrap->syscalls[syscall])
+		{
+			if(!m_filter_by_syscall[syscall])
+			{
+				m_filter_by_syscall[syscall] = new std::list<filter_wrapper *>();
+			}
+
+			m_filter_by_syscall[syscall]->push_back(wrap);
+		}
+	}
 }
 
-sinsp_evttype_filter::filter_wrapper::~filter_wrapper()
+void sinsp_evttype_filter::ruleset_filters::remove_filter(filter_wrapper *wrap)
 {
+	for(uint32_t etype = 0; etype < PPM_EVENT_MAX; etype++)
+	{
+		if(wrap->evttypes[etype])
+		{
+			if(m_filter_by_evttype[etype])
+			{
+				m_filter_by_evttype[etype]->erase(std::remove(m_filter_by_evttype[etype]->begin(),
+									      m_filter_by_evttype[etype]->end(),
+									      wrap),
+								  m_filter_by_evttype[etype]->end());
+
+				if(m_filter_by_evttype[etype]->size() == 0)
+				{
+					delete m_filter_by_evttype[etype];
+					m_filter_by_evttype[etype] = NULL;
+				}
+			}
+		}
+	}
+
+	for(uint32_t syscall = 0; syscall < PPM_SC_MAX; syscall++)
+	{
+		if(wrap->syscalls[syscall])
+		{
+			if(m_filter_by_syscall[syscall])
+			{
+				m_filter_by_syscall[syscall]->erase(std::remove(m_filter_by_syscall[syscall]->begin(),
+										m_filter_by_syscall[syscall]->end(),
+										wrap),
+								    m_filter_by_syscall[syscall]->end());
+
+				if(m_filter_by_syscall[syscall]->size() == 0)
+				{
+					delete m_filter_by_syscall[syscall];
+					m_filter_by_syscall[syscall] = NULL;
+				}
+			}
+		}
+	}
 }
+
+
+bool sinsp_evttype_filter::ruleset_filters::run(sinsp_evt *evt)
+{
+	list<filter_wrapper *> *filters;
+
+ 	uint16_t etype = evt->m_pevt->type;
+
+	if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
+	{
+		sinsp_evt_param *parinfo = evt->get_param(0);
+		ASSERT(parinfo->m_len == sizeof(uint16_t));
+		uint16_t evid = *(uint16_t *)parinfo->m_val;
+
+		filters = m_filter_by_syscall[evid];
+	}
+	else
+	{
+		filters = m_filter_by_evttype[etype];
+	}
+
+	if (!filters) {
+		return false;
+	}
+
+	for (auto &wrap : *filters)
+	{
+		if(wrap->filter->run(evt))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void sinsp_evttype_filter::ruleset_filters::evttypes_for_ruleset(std::vector<bool> &evttypes)
+{
+	evttypes.assign(PPM_EVENT_MAX+1, false);
+
+	for(uint32_t etype = 0; etype < PPM_EVENT_MAX; etype++)
+	{
+		list<filter_wrapper *> *filters = m_filter_by_evttype[etype];
+		if(filters)
+		{
+			evttypes[etype] = true;
+		}
+	}
+}
+
+void sinsp_evttype_filter::ruleset_filters::syscalls_for_ruleset(std::vector<bool> &syscalls)
+{
+	syscalls.assign(PPM_SC_MAX+1, false);
+
+	for(uint32_t evid = 0; evid < PPM_SC_MAX; evid++)
+	{
+		list<filter_wrapper *> *filters = m_filter_by_syscall[evid];
+		if(filters)
+		{
+			syscalls[evid] = true;
+		}
+	}
+}
+
 
 void sinsp_evttype_filter::add(string &name,
 			       set<uint32_t> &evttypes,
+			       set<uint32_t> &syscalls,
 			       set<string> &tags,
 			       sinsp_filter *filter)
 {
 	filter_wrapper *wrap = new filter_wrapper();
 	wrap->filter = filter;
 
-	wrap->evttypes.assign(PPM_EVENT_MAX+1, false);
+	// If no evttypes or syscalls are specified, the filter is
+	// enabled for all evttypes/syscalls.
+	bool def = ((evttypes.size() == 0 && syscalls.size() == 0) ? true : false);
+
+	wrap->evttypes.assign(PPM_EVENT_MAX+1, def);
 	for(auto &evttype : evttypes)
 	{
 		wrap->evttypes[evttype] = true;
 	}
 
-	m_evttype_filters.insert(pair<string,filter_wrapper *>(name, wrap));
-
-	if(evttypes.size() == 0)
+	wrap->syscalls.assign(PPM_SC_MAX+1, def);
+	for(auto &syscall : syscalls)
 	{
-		m_catchall_evttype_filters.push_back(wrap);
+		wrap->syscalls[syscall] = true;
 	}
-	else
-	{
 
-		for(const auto &evttype: evttypes)
-		{
-			list<filter_wrapper *> *filters = m_filter_by_evttype[evttype];
-			if(filters == NULL)
-			{
-				filters = new list<filter_wrapper*>();
-				m_filter_by_evttype[evttype] = filters;
-			}
-
-			filters->push_back(wrap);
-		}
-	}
+	m_filters.insert(pair<string,filter_wrapper *>(name, wrap));
 
 	for(const auto &tag: tags)
 	{
@@ -2156,104 +2433,68 @@ void sinsp_evttype_filter::enable(const string &pattern, bool enabled, uint16_t 
 {
 	regex re(pattern);
 
-	for(const auto &val : m_evttype_filters)
+	while (m_rulesets.size() < (size_t) ruleset + 1)
+	{
+		m_rulesets.push_back(new ruleset_filters());
+	}
+
+	for(const auto &val : m_filters)
 	{
 		if (regex_match(val.first, re))
 		{
-			if(val.second->enabled.size() < (size_t) (ruleset + 1))
+			if(enabled)
 			{
-				val.second->enabled.resize(ruleset + 1);
+				m_rulesets[ruleset]->add_filter(val.second);
 			}
-			val.second->enabled[ruleset] = enabled;
+			else
+			{
+				m_rulesets[ruleset]->remove_filter(val.second);
+			}
 		}
 	}
 }
 
 void sinsp_evttype_filter::enable_tags(const set<string> &tags, bool enabled, uint16_t ruleset)
 {
+	while (m_rulesets.size() < (size_t) ruleset + 1)
+	{
+		m_rulesets.push_back(new ruleset_filters());
+	}
+
 	for(const auto &tag : tags)
 	{
 		for(const auto &wrap : m_filter_by_tag[tag])
 		{
-			if(wrap->enabled.size() < (size_t) (ruleset + 1))
+			if(enabled)
 			{
-				wrap->enabled.resize(ruleset + 1);
+				m_rulesets[ruleset]->add_filter(wrap);
 			}
-			wrap->enabled[ruleset] = enabled;
+			else
+			{
+				m_rulesets[ruleset]->remove_filter(wrap);
+			}
 		}
 	}
 }
 
 bool sinsp_evttype_filter::run(sinsp_evt *evt, uint16_t ruleset)
 {
-	//
-	// First run any catchall event type filters (ones that did not
-	// explicitly specify any event type.
-	//
-	for(filter_wrapper *wrap : m_catchall_evttype_filters)
+	if(m_rulesets.size() < (size_t) ruleset + 1)
 	{
-		if(wrap->enabled.size() >= (size_t) (ruleset + 1) &&
-		   wrap->enabled[ruleset] &&
-		   wrap->filter->run(evt))
-		{
-			return true;
-		}
+		return false;
 	}
 
-        list<filter_wrapper *> *filters = m_filter_by_evttype[evt->m_pevt->type];
-
-	if(filters)
-	{
-		for(filter_wrapper *wrap : *filters)
-		{
-			if(wrap->enabled.size() >= (size_t) (ruleset + 1) &&
-			   wrap->enabled[ruleset] &&
-			   wrap->filter->run(evt))
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
-
-// Solely used for code sharing in evttypes_for_rulset
-void sinsp_evttype_filter::check_filter_wrappers(std::vector<bool> &evttypes,
-						 uint32_t etype,
-						 std::list<filter_wrapper *> &filters,
-						 uint16_t ruleset)
-{
-	for(filter_wrapper *wrap : filters)
-	{
-		if(wrap->enabled.size() >= (size_t) (ruleset + 1) &&
-		   wrap->enabled[ruleset])
-		{
-			evttypes[etype] = true;
-			break;
-		}
-	}
+	return m_rulesets[ruleset]->run(evt);
 }
 
 void sinsp_evttype_filter::evttypes_for_ruleset(std::vector<bool> &evttypes, uint16_t ruleset)
 {
-	evttypes.assign(PPM_EVENT_MAX+1, false);
-
-	for(uint32_t etype = 0; etype < PPM_EVENT_MAX; etype++)
-	{
-		// Catchall filters (ones that don't explicitly refer
-		// to a type) must run for all event types.
-		check_filter_wrappers(evttypes, etype, m_catchall_evttype_filters, ruleset);
-
-		if(!evttypes[etype])
-		{
-			list<filter_wrapper *> *filters = m_filter_by_evttype[etype];
-			if(filters)
-			{
-				check_filter_wrappers(evttypes, etype, *filters, ruleset);
-			}
-		}
-	}
+	return m_rulesets[ruleset]->evttypes_for_ruleset(evttypes);
 }
+
+void sinsp_evttype_filter::syscalls_for_ruleset(std::vector<bool> &syscalls, uint16_t ruleset)
+{
+	return m_rulesets[ruleset]->syscalls_for_ruleset(syscalls);
+}
+
 #endif // HAS_FILTERING

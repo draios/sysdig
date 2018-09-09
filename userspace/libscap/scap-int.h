@@ -62,18 +62,43 @@ typedef struct wh_t wh_t;
 #define PF_CLONING 1
 
 //
+// ebpf defs
+//
+#define BPF_PROGS_MAX 128
+#define BPF_MAPS_MAX 32
+
+//
 // The device descriptor
 //
 typedef struct scap_device
 {
 	int m_fd;
 	char* m_buffer;
-	struct ppm_ring_buffer_info* m_bufinfo;
 	uint32_t m_lastreadsize;
 	char* m_sn_next_event; // Pointer to the next event available for scap_next
 	uint32_t m_sn_len; // Number of bytes available in the buffer pointed by m_sn_next_event
-	uint32_t m_read_size; // Number of bytes currently ready to be read in this CPU's ring buffer
+	union
+	{
+		// Anonymous struct with ppm stuff
+		struct
+		{
+			struct ppm_ring_buffer_info* m_bufinfo;
+		};
+		// Anonymous struct with bpf stuff
+		struct
+		{
+			uint64_t m_evt_lost;
+		};
+	};
 }scap_device;
+
+
+typedef struct scap_tid
+{
+	uint64_t tid;
+
+	UT_hash_handle hh; ///< makes this structure hashable
+} scap_tid;
 
 //
 // The open instance handle
@@ -104,10 +129,33 @@ struct scap
 	bool refresh_proc_table_when_saving;
 	uint32_t m_fd_lookup_limit;
 	uint64_t m_unexpected_block_readsize;
+	uint32_t m_ncpus;
 	// Abstraction layer for windows
 #ifdef CYGWING_AGENT
 	wh_t* m_whh;
 #endif
+	bool m_bpf;
+	// Anonymous struct with bpf stuff
+	struct
+	{
+		int m_bpf_prog_fds[BPF_PROGS_MAX];
+		int m_bpf_prog_cnt;
+		bool m_bpf_fillers[BPF_PROGS_MAX];
+		int m_bpf_event_fd[BPF_PROGS_MAX];
+		int m_bpf_map_fds[BPF_MAPS_MAX];
+		int m_bpf_prog_array_map_idx;
+	};
+
+	// The set of process names that are suppressed
+	char **m_suppressed_comms;
+	uint32_t m_num_suppressed_comms;
+
+	// The active set of threads that are suppressed
+	scap_tid *m_suppressed_tids;
+
+	// The number of events that were skipped due to the comm
+	// matching an entry in m_suppressed_comms.
+	uint64_t m_num_suppressed_evts;
 };
 
 typedef enum ppm_dumper_type
@@ -143,7 +191,7 @@ struct scap_ns_socket_list
 //
 
 // Read the full event buffer for the given processor
-int32_t scap_readbuf(scap_t* handle, uint32_t proc, bool blocking, OUT char** buf, OUT uint32_t* len);
+int32_t scap_readbuf(scap_t* handle, uint32_t proc, OUT char** buf, OUT uint32_t* len);
 // Scan a directory containing process information
 int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid, int tid_to_scan, struct scap_threadinfo** pi, char *error, bool scan_sockets);
 // Remove an entry from the process list by parsing a PPME_PROC_EXIT event
@@ -177,9 +225,9 @@ int32_t scap_fd_info_to_string(scap_fdinfo* fdi, OUT char* str, uint32_t strlen)
 // Calculate the length on disk of an fd entry's info
 uint32_t scap_fd_info_len(scap_fdinfo* fdi);
 // Write the given fd info to disk
-int32_t scap_fd_write_to_disk(scap_t* handle, scap_fdinfo* fdi, scap_dumper_t* dumper);
+int32_t scap_fd_write_to_disk(scap_t* handle, scap_fdinfo* fdi, scap_dumper_t* dumper, uint32_t len);
 // Populate the given fd by reading the info from disk
-uint32_t scap_fd_read_from_disk(scap_t* handle, OUT scap_fdinfo* fdi, OUT size_t* nbytes, gzFile f);
+uint32_t scap_fd_read_from_disk(scap_t* handle, OUT scap_fdinfo* fdi, OUT size_t* nbytes, uint32_t block_type, gzFile f);
 // Parse the headers of a trace file and load the tables
 int32_t scap_read_init(scap_t* handle, gzFile f);
 // Add the file descriptor info pointed by fdi to the fd table for process pi.
@@ -209,6 +257,32 @@ void scap_free_userlist(scap_userlist* uhandle);
 int32_t scap_fd_post_process_unix_sockets(scap_t* handle, scap_fdinfo* sockets);
 
 int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdirname);
+
+bool scap_alloc_proclist_info(scap_t* handle, uint32_t n_entries);
+
+// Determine whether or not the provided event should be suppressed,
+// based on its event type and parameters. May update the set of
+// suppressed tids as a side-effect.
+//
+// Returns SCAP_FAILURE if we tried to add the tid to the suppressed
+// tid set, but it could *not* be added, SCAP_SUCCESS otherwise.
+int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent,
+			      bool *suppressed);
+
+// Possibly add or remove the provided comm, tid combination to the
+// set of suppressed processes. If the ptid is currently in the
+// suppressed set, the tid will always be added to the suppressed
+// set. Otherwise, the tid will be added if the comm matches an entry
+// in suppressed_comms.
+//
+// Sets *suppressed to whether, after this check, the tid is suppressed.
+//
+// Returns SCAP_FAILURE if we tried to add the tid to the suppressed
+// tid set, but it could *not* be added, SCAP_SUCCESS otherwise.
+int32_t scap_update_suppressed(scap_t *handle,
+			       const char *comm,
+			       uint64_t tid, uint64_t ptid,
+			       bool *suppressed);
 
 //
 // ASSERT implementation
@@ -257,6 +331,13 @@ int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdi
 //
 #define SCAP_DRIVER_PROCINFO_INITIAL_SIZE 7
 #define SCAP_DRIVER_PROCINFO_MAX_SIZE 128000
+
+extern const enum ppm_syscall_code g_syscall_code_routing_table[];
+extern const struct syscall_evt_pair g_syscall_table[];
+extern const struct ppm_event_info g_event_info[];
+extern const struct ppm_syscall_desc g_syscall_info_table[];
+extern const struct ppm_event_entry g_ppm_events[];
+extern bool validate_info_table_size();
 
 #ifdef __cplusplus
 }

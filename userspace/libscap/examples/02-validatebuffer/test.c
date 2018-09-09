@@ -34,7 +34,7 @@ size_t g_get_event_size(enum ppm_event_type event_type, uint16_t* lens)
 	int32_t res = 0;
 
 	for(j = 0; j < g_event_info[event_type].nparams; j++)
-	{	
+	{
 		res += lens[j];
 	}
 
@@ -101,7 +101,7 @@ int32_t g_check_integrity(uint32_t* cur_event, char* copy_buffer, int buf_len, O
 #ifdef PPM_ENABLE_SENTINEL
 		sentinel_begin = ((struct ppm_evt_hdr*)(copy_buffer + offset))->sentinel_begin;
 		sentinel_end = *(uint32_t*)(copy_buffer + offset + event_size - sizeof(uint32_t));
-		
+
 		if(sentinel_begin != sentinel_end)
 		{
 			fprintf(stderr, "Error: sentinel begin %d, sentinel end %d, evt_type %u, evt_size %zu, cnt %u, offset %x, remaining %u\n",
@@ -197,7 +197,7 @@ int main()
 		{
 			uint32_t nevents;
 
-			ret = scap_readbuf(h, j, false, &buf, &buflen);
+			ret = scap_readbuf(h, j, &buf, &buflen);
 
 			if(ret != SCAP_SUCCESS)
 			{
@@ -253,7 +253,7 @@ int main()
 			{
 				fprintf(stderr, "%s\n", scap_getlasterr(h));
 				scap_close(h);
-				return -1;				
+				return -1;
 			}
 
 			printf("bps:%" PRIu64 " totbytes:%" PRIu64 " - evts/s:%" PRIu64 " totevs:%" PRIu64 " drops:%" PRIu64 "\n",

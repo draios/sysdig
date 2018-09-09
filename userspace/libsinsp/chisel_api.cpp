@@ -62,12 +62,11 @@ void lua_stackdump(lua_State *L);
 ///////////////////////////////////////////////////////////////////////////////
 #ifdef HAS_LUA_CHISELS
 
-uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len)
+uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, ppm_param_type ptype, uint32_t len)
 {
 	ASSERT(rawval != NULL);
-	ASSERT(finfo != NULL);
 
-	switch(finfo->m_type)
+	switch(ptype)
 	{
 		case PT_INT8:
 			lua_pushnumber(ls, *(int8_t*)rawval);
@@ -158,9 +157,46 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, const f
 				lua_pushstring(ls, ch->m_lua_fld_storage);
 				return 1;
 			}
+		case PT_IPV6ADDR:
+			{
+				char address[100];
+				ipv6addr *ip = (ipv6addr *) rawval;
+
+				lua_getglobal(ls, "sichisel");
+				sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+				lua_pop(ls, 1);
+
+				if(NULL == inet_ntop(AF_INET6, ip->m_b, address, 100))
+				{
+					strcpy(address, "<NA>");
+				}
+
+				strncpy(ch->m_lua_fld_storage,
+					address,
+					sizeof(ch->m_lua_fld_storage));
+
+				lua_pushstring(ls, ch->m_lua_fld_storage);
+				return 1;
+			}
+                case PT_IPADDR:
+		        {
+				if(len == sizeof(struct in_addr))
+				{
+					return rawval_to_lua_stack(ls, rawval, PT_IPV4ADDR, len);
+				}
+				else if(len == sizeof(struct in6_addr))
+				{
+					return rawval_to_lua_stack(ls, rawval, PT_IPV6ADDR, len);
+				}
+				else
+				{
+					throw sinsp_exception("rawval_to_lua_stack called with IP address of incorrect size " + to_string(len));
+				}
+			}
+			break;
 		default:
 			ASSERT(false);
-			string err = "wrong event type " + to_string((long long) finfo->m_type);
+			string err = "wrong event type " + to_string((long long) ptype);
 			fprintf(stderr, "%s\n", err.c_str());
 			throw sinsp_exception("chisel error");
 	}
@@ -323,7 +359,7 @@ int lua_cbacks::field(lua_State *ls)
 
 	if(rawval != NULL)
 	{
-		return rawval_to_lua_stack(ls, rawval, chk->get_field_info(), vlen);
+		return rawval_to_lua_stack(ls, rawval, chk->get_field_info()->m_type, vlen);
 	}
 	else
 	{
@@ -665,14 +701,12 @@ int lua_cbacks::get_machine_info(lua_State *ls)
 
 int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool barebone)
 {
-	threadinfo_map_iterator_t it;
 	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 	uint32_t j;
 	sinsp_filter_compiler* compiler = NULL;
 	sinsp_filter* filter = NULL;
 	sinsp_evt tevt;
 	scap_evt tscapevt;
-	char ipbuf[128];
 
 	//
 	// Get the chisel state
@@ -711,6 +745,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 			tscapevt.ts = ch->m_inspector->m_lastevent_ts;
 			tscapevt.type = PPME_SYSCALL_READ_X;
 			tscapevt.len = 0;
+			tscapevt.nparams = 0;
 
 			tevt.m_inspector = ch->m_inspector;
 			tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
@@ -727,13 +762,12 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 
 	lua_newtable(ls);
 
-	for(it = threadtable->begin(); it != threadtable->end(); ++it)
-	{
+	threadtable->loop([&] (sinsp_threadinfo& tinfo) {
 		//
 		// Check if there's at least an fd that matches the filter.
 		// If not, skip this thread
 		//
-		sinsp_fdtable* fdtable = it->second.get_fd_table();
+		sinsp_fdtable* fdtable = tinfo.get_fd_table();
 
 		if(filter != NULL)
 		{
@@ -741,9 +775,9 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 
 			for(fdit = fdtable->m_table.begin(); fdit != fdtable->m_table.end(); ++fdit)
 			{
-				tevt.m_tinfo = &(it->second);
+				tevt.m_tinfo = &tinfo;
 				tevt.m_fdinfo = &(fdit->second);
-				tscapevt.tid = it->first;
+				tscapevt.tid = tinfo.m_tid;
 				int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;
 				tevt.m_tinfo->m_lastevent_fd = fdit->first;
 
@@ -758,7 +792,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 
 			if(!match)
 			{
-				continue;
+				return true;
 			}
 		}
 
@@ -767,54 +801,54 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 		//
 		lua_newtable(ls);
 		lua_pushliteral(ls, "tid");
-		lua_pushnumber(ls, (uint32_t)it->second.m_tid);
+		lua_pushnumber(ls, (uint32_t)tinfo.m_tid);
 		lua_settable(ls, -3);
 		lua_pushliteral(ls, "pid");
-		lua_pushnumber(ls, (uint32_t)it->second.m_pid);
+		lua_pushnumber(ls, (uint32_t)tinfo.m_pid);
 		lua_settable(ls, -3);
 		if(!barebone)
 		{
 			lua_pushliteral(ls, "ptid");
-			lua_pushnumber(ls, (uint32_t)it->second.m_ptid);
+			lua_pushnumber(ls, (uint32_t)tinfo.m_ptid);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "comm");
-			lua_pushstring(ls, it->second.m_comm.c_str());
+			lua_pushstring(ls, tinfo.m_comm.c_str());
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "exe");
-			lua_pushstring(ls, it->second.m_exe.c_str());
+			lua_pushstring(ls, tinfo.m_exe.c_str());
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "flags");
-			lua_pushnumber(ls, (uint32_t)it->second.m_flags);
+			lua_pushnumber(ls, (uint32_t)tinfo.m_flags);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "fdlimit");
-			lua_pushnumber(ls, (uint32_t)it->second.m_fdlimit);
+			lua_pushnumber(ls, (uint32_t)tinfo.m_fdlimit);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "uid");
-			lua_pushnumber(ls, (uint32_t)it->second.m_uid);
+			lua_pushnumber(ls, (uint32_t)tinfo.m_uid);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "gid");
-			lua_pushnumber(ls, (uint32_t)it->second.m_gid);
+			lua_pushnumber(ls, (uint32_t)tinfo.m_gid);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "nchilds");
-			lua_pushnumber(ls, (uint32_t)it->second.m_nchilds);
+			lua_pushnumber(ls, (uint32_t)tinfo.m_nchilds);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "vmsize_kb");
-			lua_pushnumber(ls, (uint32_t)it->second.m_vmsize_kb);
+			lua_pushnumber(ls, (uint32_t)tinfo.m_vmsize_kb);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "vmrss_kb");
-			lua_pushnumber(ls, (uint32_t)it->second.m_vmrss_kb);
+			lua_pushnumber(ls, (uint32_t)tinfo.m_vmrss_kb);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "vmswap_kb");
-			lua_pushnumber(ls, (uint32_t)it->second.m_vmswap_kb);
+			lua_pushnumber(ls, (uint32_t)tinfo.m_vmswap_kb);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "pfmajor");
-			lua_pushnumber(ls, (uint32_t)it->second.m_pfmajor);
+			lua_pushnumber(ls, (uint32_t)tinfo.m_pfmajor);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "pfminor");
-			lua_pushnumber(ls, (uint32_t)it->second.m_pfminor);
+			lua_pushnumber(ls, (uint32_t)tinfo.m_pfminor);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "clone_ts");
-			lua_pushstring(ls, to_string((long long int)it->second.m_clone_ts).c_str());
+			lua_pushstring(ls, to_string((long long int)tinfo.m_clone_ts).c_str());
 			lua_settable(ls, -3);
 
 			//
@@ -826,13 +860,13 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 			const unordered_map<uint32_t, scap_userinfo*>* userlist = ch->m_inspector->get_userlist();
 			ASSERT(userlist->size() != 0);
 
-			if(it->second.m_uid == 0xffffffff)
+			if(tinfo.m_uid == 0xffffffff)
 			{
 				username = "<NA>";
 			}
 			else
 			{
-				uit = userlist->find(it->second.m_uid);
+				uit = userlist->find(tinfo.m_uid);
 				if(uit == userlist->end())
 				{
 					username = "<NA>";
@@ -853,7 +887,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 			//
 			lua_pushstring(ls, "args");
 
-			vector<string>* args = &(it->second.m_args);
+			vector<string>* args = &tinfo.m_args;
 			lua_newtable(ls);
 			for(j = 0; j < args->size(); j++)
 			{
@@ -868,7 +902,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 			//
 			lua_pushstring(ls, "env");
 
-			const auto& env = it->second.get_env();
+			const auto& env = tinfo.get_env();
 			lua_newtable(ls);
 			for(j = 0; j < env.size(); j++)
 			{
@@ -889,9 +923,9 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 		{
 			for(fdit = fdtable->m_table.begin(); fdit != fdtable->m_table.end(); ++fdit)
 			{
-				tevt.m_tinfo = &(it->second);
+				tevt.m_tinfo = &tinfo;
 				tevt.m_fdinfo = &(fdit->second);
-				tscapevt.tid = it->first;
+				tscapevt.tid = tinfo.m_tid;
 				int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;
 				tevt.m_tinfo->m_lastevent_fd = fdit->first;
 
@@ -917,81 +951,99 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 				}
 
 				scap_fd_type evt_type = fdit->second.m_type;
-				if(evt_type == SCAP_FD_IPV4_SOCK || evt_type == SCAP_FD_IPV4_SERVSOCK)
+				if(evt_type == SCAP_FD_IPV4_SOCK || evt_type == SCAP_FD_IPV4_SERVSOCK ||
+				   evt_type == SCAP_FD_IPV6_SOCK || evt_type == SCAP_FD_IPV6_SERVSOCK)
 				{
-					uint8_t* pip4;
+					bool include_client;
+					char sipbuf[128], cipbuf[128];
+					uint8_t *sip, *cip;
+					uint16_t sport, cport;
+					bool is_server;
+					int af;
 
 					if(evt_type == SCAP_FD_IPV4_SOCK)
 					{
-						// cip
-						pip4 = (uint8_t*)&(fdit->second.m_sockinfo.m_ipv4info.m_fields.m_sip);
-						snprintf(ipbuf,
-							sizeof(ipbuf),
-							"%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
-							pip4[0],
-							pip4[1],
-							pip4[2],
-							pip4[3]);
-
-						lua_pushliteral(ls, "cip");
-						lua_pushstring(ls, ipbuf);
-						lua_settable(ls, -3);
-
-						// sip
-						pip4 = (uint8_t*)&(fdit->second.m_sockinfo.m_ipv4info.m_fields.m_dip);
-						snprintf(ipbuf,
-							sizeof(ipbuf),
-							"%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
-							pip4[0],
-							pip4[1],
-							pip4[2],
-							pip4[3]);
-
-						lua_pushliteral(ls, "sip");
-						lua_pushstring(ls, ipbuf);
-						lua_settable(ls, -3);
-
-						// cport
-						lua_pushliteral(ls, "cport");
-						lua_pushnumber(ls, fdit->second.m_sockinfo.m_ipv4info.m_fields.m_sport);
-						lua_settable(ls, -3);
-
-						// sport
-						lua_pushliteral(ls, "sport");
-						lua_pushnumber(ls, fdit->second.m_sockinfo.m_ipv4info.m_fields.m_dport);
-						lua_settable(ls, -3);
-
-						// is_server
-						lua_pushliteral(ls, "is_server");
-						lua_pushboolean(ls, fdit->second.is_role_server());
-						lua_settable(ls, -3);
+						include_client = true;
+						af = AF_INET;
+						cip = (uint8_t*)&(fdit->second.m_sockinfo.m_ipv4info.m_fields.m_sip);
+						sip = (uint8_t*)&(fdit->second.m_sockinfo.m_ipv4info.m_fields.m_dip);
+						cport = fdit->second.m_sockinfo.m_ipv4info.m_fields.m_sport;
+						sport = fdit->second.m_sockinfo.m_ipv4info.m_fields.m_dport;
+						is_server = fdit->second.is_role_server();
+					}
+					else if (evt_type == SCAP_FD_IPV4_SERVSOCK)
+					{
+						include_client = false;
+						af = AF_INET;
+						cip = NULL;
+						sip = (uint8_t*)&(fdit->second.m_sockinfo.m_ipv4serverinfo.m_ip);
+						sport = fdit->second.m_sockinfo.m_ipv4serverinfo.m_port;
+						is_server = true;
+					}
+					else if (evt_type == SCAP_FD_IPV6_SOCK)
+					{
+						include_client = true;
+						af = AF_INET6;
+						cip = (uint8_t*)&(fdit->second.m_sockinfo.m_ipv6info.m_fields.m_sip);
+						sip = (uint8_t*)&(fdit->second.m_sockinfo.m_ipv6info.m_fields.m_dip);
+						cport = fdit->second.m_sockinfo.m_ipv6info.m_fields.m_sport;
+						sport = fdit->second.m_sockinfo.m_ipv6info.m_fields.m_dport;
+						is_server = fdit->second.is_role_server();
 					}
 					else
 					{
-						// sip
-						pip4 = (uint8_t*)&(fdit->second.m_sockinfo.m_ipv4serverinfo.m_ip);
-						snprintf(ipbuf,
-							sizeof(ipbuf),
-							"%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
-							pip4[0],
-							pip4[1],
-							pip4[2],
-							pip4[3]);
+						include_client = false;
+						af = AF_INET6;
+						cip = NULL;
+						sip = (uint8_t*)&(fdit->second.m_sockinfo.m_ipv6serverinfo.m_ip);
+						sport = fdit->second.m_sockinfo.m_ipv6serverinfo.m_port;
+						is_server = true;
+					}
 
-						lua_pushliteral(ls, "sip");
-						lua_pushstring(ls, ipbuf);
-						lua_settable(ls, -3);
+					// Now convert the raw sip/cip to strings
+					if(NULL == inet_ntop(af, sip, sipbuf, sizeof(sipbuf)))
+					{
+						strcpy(sipbuf, "<NA>");
+					}
 
-						// sport
-						lua_pushliteral(ls, "sport");
-						lua_pushnumber(ls, fdit->second.m_sockinfo.m_ipv4serverinfo.m_port);
-						lua_settable(ls, -3);
+					if(cip)
+					{
+						if(NULL == inet_ntop(af, cip, cipbuf, sizeof(cipbuf)))
+						{
+							strcpy(cipbuf, "<NA>");
+						}
+					}
 
-						// is_server
-						lua_pushliteral(ls, "is_server");
-						lua_pushboolean(ls, 1);
+					if(include_client)
+					{
+						// cip
+						lua_pushliteral(ls, "cip");
+						lua_pushstring(ls, cipbuf);
 						lua_settable(ls, -3);
 					}
+
+					// sip
+					lua_pushliteral(ls, "sip");
+					lua_pushstring(ls, sipbuf);
+					lua_settable(ls, -3);
+
+					if(include_client)
+					{
+						// cport
+						lua_pushliteral(ls, "cport");
+						lua_pushnumber(ls, cport);
+						lua_settable(ls, -3);
+					}
+
+					// sport
+					lua_pushliteral(ls, "sport");
+					lua_pushnumber(ls, sport);
+					lua_settable(ls, -3);
+
+					// is_server
+					lua_pushliteral(ls, "is_server");
+					lua_pushboolean(ls, is_server);
+					lua_settable(ls, -3);
 
 					// l4proto
 					const char* l4ps;
@@ -1035,8 +1087,9 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 		//
 		// Set the key for this entry
 		//
-		lua_rawseti(ls,-2, (uint32_t)it->first);
-	}
+		lua_rawseti(ls,-2, (uint32_t)tinfo.m_tid);
+		return true;
+	});
 
 	if(filter)
 	{

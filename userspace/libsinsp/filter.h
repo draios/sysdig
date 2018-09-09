@@ -43,7 +43,8 @@ enum cmpop {
 	CO_ICONTAINS = 10,
 	CO_STARTSWITH = 11,
 	CO_GLOB = 12,
-	CO_PMATCH = 13
+	CO_PMATCH = 13,
+	CO_ENDSWITH = 14
 };
 
 enum boolop
@@ -175,6 +176,7 @@ public:
 
 	void add(std::string &name,
 		 std::set<uint32_t> &evttypes,
+		 std::set<uint32_t> &syscalls,
 		 std::set<string> &tags,
 		 sinsp_filter* filter);
 
@@ -205,48 +207,58 @@ public:
 	// relates to event type 10.
 	void evttypes_for_ruleset(std::vector<bool> &evttypes, uint16_t ruleset);
 
+	// Populate the provided vector, indexed by syscall code, of the
+	// syscall codes associated with the given ruleset id. For
+	// example, syscalls[10] = true would mean that this ruleset
+	// relates to syscall code 10.
+	void syscalls_for_ruleset(std::vector<bool> &syscalls, uint16_t ruleset);
+
 private:
 
-	class filter_wrapper {
-	public:
-		filter_wrapper();
-		virtual ~filter_wrapper();
-
+	struct filter_wrapper {
 		sinsp_filter *filter;
 
 		// Indexes from event type to enabled/disabled.
 		std::vector<bool> evttypes;
 
-		// Indexes from ruleset to enabled/disabled. Unlike
-		// m_filter_by_evttype, this is managed as a vector as we're
-		// expecting ruleset ids that are small and grouped in the range
-		// 0..k, as compared to all possible event types.
-		std::vector<bool> enabled;
+		// Indexes from syscall code to enabled/disabled.
+		std::vector<bool> syscalls;
 	};
 
-        // Solely used for code sharing in evttypes_for_rulset
-	void check_filter_wrappers(std::vector<bool> &evttypes,
-				   uint32_t etype,
-				   std::list<filter_wrapper *> &filters,
-				   uint16_t ruleset);
+	// A group of filters all having the same ruleset
+	class ruleset_filters {
+	public:
+		ruleset_filters();
 
-	// Maps from event type to filter. There can be multiple
-	// filters per event type.
-	std::list<filter_wrapper *> *m_filter_by_evttype[PPM_EVENT_MAX];
+		virtual ~ruleset_filters();
 
-	// It's possible to add an event type filter with an empty
-	// list of event types, meaning it should run for all event
-	// types.
-	std::list<filter_wrapper *> m_catchall_evttype_filters;
+		void add_filter(filter_wrapper *wrap);
+		void remove_filter(filter_wrapper *wrap);
+
+		bool run(sinsp_evt *evt);
+
+		void evttypes_for_ruleset(std::vector<bool> &evttypes);
+
+		void syscalls_for_ruleset(std::vector<bool> &syscalls);
+
+	private:
+		// Maps from event type to filter. There can be multiple
+		// filters per event type.
+		std::list<filter_wrapper *> *m_filter_by_evttype[PPM_EVENT_MAX];
+
+		// Maps from syscall number to filter. There can be multiple
+		// filters per syscall number
+		std::list<filter_wrapper *> *m_filter_by_syscall[PPM_SC_MAX];
+	};
+
+	std::vector<ruleset_filters *> m_rulesets;
 
 	// Maps from tag to list of filters having that tag.
 	std::map<std::string, std::list<filter_wrapper *>> m_filter_by_tag;
 
-	// This holds all the filters in
-	// m_filter_by_evttype/m_catchall_evttype_filters, so they can
+	// This holds all the filters passed to add(), so they can
 	// be cleaned up.
-
-	map<std::string,filter_wrapper *> m_evttype_filters;
+	map<std::string,filter_wrapper *> m_filters;
 };
 
 /*@}*/

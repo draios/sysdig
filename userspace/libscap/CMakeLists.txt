@@ -12,17 +12,24 @@ list(APPEND targetfiles
 	scap_savefile.c
 	scap_procs.c
 	scap_userlist.c
-	flags_table.c
-	dynamic_params_table.c
-	event_table.c
-	syscall_info_table.c)
+	syscall_info_table.c
+	../../driver/dynamic_params_table.c
+	../../driver/event_table.c
+	../../driver/flags_table.c)
+
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+	list(APPEND targetfiles
+		scap_bpf.c
+		../../driver/syscall_table.c
+		../../driver/fillers_table.c)
+endif()
 
 if(CYGWIN)
 	list(APPEND targetfiles
 		windows_hal.c)
 endif()
 
-add_library(scap STATIC 
+add_library(scap STATIC
 	${targetfiles})
 
 if(USE_BUNDLED_ZLIB)
@@ -32,14 +39,17 @@ endif()
 if (CMAKE_SYSTEM_NAME MATCHES "SunOS")
 	target_link_libraries(scap
 		socket nsl)
+elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
+	target_link_libraries(scap
+		elf
+		rt)
 elseif (WIN32)
 	target_link_libraries(scap
 		Ws2_32.lib)
 elseif (CYGWIN)
 	target_link_libraries(scap
 		/lib/w32api/libpsapi.a
-		${WIN_HAL_LIB}/dragent_win_hal.lib
-		)
+		${WIN_HAL_LIB}/dragent_win_hal.lib)
 endif()
 
 target_link_libraries(scap

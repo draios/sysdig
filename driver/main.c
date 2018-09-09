@@ -55,7 +55,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/fdtable.h>
 #endif
 #include <net/sock.h>
-#include <asm/asm-offsets.h>	/* For NR_syscalls */
 #include <asm/unistd.h>
 
 #include "driver_config.h"
@@ -755,6 +754,13 @@ cleanup_ioctl_procinfo:
 		}
 		ret = 0;
 		goto cleanup_ioctl_nolock;
+	} else if (cmd == PPM_IOCTL_GET_PROBE_VERSION) {
+		if (copy_to_user((void *)arg, PROBE_VERSION, sizeof(PROBE_VERSION))) {
+			ret = -EINVAL;
+			goto cleanup_ioctl_nolock;
+		}
+		ret = 0;
+		goto cleanup_ioctl_nolock;
 	}
 
 	mutex_lock(&g_consumer_mutex);
@@ -905,7 +911,7 @@ cleanup_ioctl_procinfo:
 
 		vpr_info("PPM_IOCTL_MASK_SET_EVENT (%u), consumer %p\n", syscall_to_set, consumer_id);
 
-		if (syscall_to_set > PPM_EVENT_MAX) {
+		if (syscall_to_set >= PPM_EVENT_MAX) {
 			pr_err("invalid syscall %u\n", syscall_to_set);
 			ret = -EINVAL;
 			goto cleanup_ioctl;
@@ -922,7 +928,7 @@ cleanup_ioctl_procinfo:
 
 		vpr_info("PPM_IOCTL_MASK_UNSET_EVENT (%u), consumer %p\n", syscall_to_unset, consumer_id);
 
-		if (syscall_to_unset > NR_syscalls) {
+		if (syscall_to_unset >= PPM_EVENT_MAX) {
 			pr_err("invalid syscall %u\n", syscall_to_unset);
 			ret = -EINVAL;
 			goto cleanup_ioctl;
@@ -1384,51 +1390,78 @@ static inline void record_drop_x(struct ppm_consumer_t *consumer, struct timespe
 	}
 }
 
+// Return 1 if the event should be dropped, else 0
+static inline int drop_nostate_event(enum ppm_event_type event_type,
+				     struct pt_regs *regs)
+{
+	unsigned long arg = 0;
+	int close_fd = -1;
+	struct files_struct *files;
+	struct fdtable *fdt;
+	bool drop = false;
+
+	switch (event_type) {
+	case PPME_SYSCALL_CLOSE_X:
+	case PPME_SOCKET_BIND_X:
+		if (syscall_get_return_value(current, regs) < 0)
+			drop = true;
+		break;
+	case PPME_SYSCALL_CLOSE_E:
+		/*
+		 * It's annoying but valid for a program to make a large number of
+		 * close() calls on nonexistent fds. That can cause driver cpu usage
+		 * to spike dramatically, so drop close events if the fd is not valid.
+		 *
+		 * The invalid fd events don't matter to userspace in dropping mode,
+		 * so we do this before the UF_NEVER_DROP check
+		 */
+		syscall_get_arguments(current, regs, 0, 1, &arg);
+		close_fd = (int)arg;
+
+		files = current->files;
+		spin_lock(&files->file_lock);
+		fdt = files_fdtable(files);
+		if (close_fd < 0 || close_fd >= fdt->max_fds ||
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0))
+		    !FD_ISSET(close_fd, fdt->open_fds)
+#else
+		    !fd_is_open(close_fd, fdt)
+#endif
+			) {
+			drop = true;
+		}
+		spin_unlock(&files->file_lock);
+		break;
+	case PPME_SYSCALL_FCNTL_E:
+	case PPME_SYSCALL_FCNTL_X:
+		// cmd arg
+		syscall_get_arguments(current, regs, 1, 1, &arg);
+		if (arg != F_DUPFD && arg != F_DUPFD_CLOEXEC)
+			drop = true;
+		break;
+	default:
+		break;
+	}
+
+	if (drop)
+		return 1;
+	else
+		return 0;
+}
+
+// Return 1 if the event should be dropped, else 0
 static inline int drop_event(struct ppm_consumer_t *consumer,
 			     enum ppm_event_type event_type,
 			     enum syscall_flags drop_flags,
 			     struct timespec *ts,
 			     struct pt_regs *regs)
 {
-	unsigned long close_arg = 0;
-	int close_fd = -1;
-	struct files_struct *files;
-	struct fdtable *fdt;
-	bool close_return = false;
+	int maybe_ret = 0;
 
-	/*
-	 * It's annoying but valid for a program to make a large number of
-	 * close() calls on nonexistent fds. That can cause driver cpu usage
-	 * to spike dramatically, so drop close events if the fd is not valid.
-	 *
-	 * The invalid fd events don't matter to userspace in dropping mode,
-	 * so we do this before the UF_NEVER_DROP check
-	 */
 	if (consumer->dropping_mode) {
-		if (event_type == PPME_SYSCALL_CLOSE_X) {
-			if (syscall_get_return_value(current, regs) < 0)
-				close_return = true;
-		} else if (event_type == PPME_SYSCALL_CLOSE_E) {
-			syscall_get_arguments(current, regs, 0, 1, &close_arg);
-			close_fd = (int)close_arg;
-
-			files = current->files;
-			spin_lock(&files->file_lock);
-			fdt = files_fdtable(files);
-			if (close_fd < 0 || close_fd >= fdt->max_fds ||
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0))
-			    !FD_ISSET(close_fd, fdt->open_fds)
-#else
-			    !fd_is_open(close_fd, fdt)
-#endif
-				) {
-				close_return = true;
-			}
-			spin_unlock(&files->file_lock);
-		}
-
-		if (close_return)
-			return 1;
+		maybe_ret = drop_nostate_event(event_type, regs);
+		if (maybe_ret > 0)
+			return maybe_ret;
 	}
 
 	if (drop_flags & UF_NEVER_DROP) {
@@ -1639,6 +1672,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		hdr->ts = timespec_to_ns(ts);
 		hdr->tid = current->pid;
 		hdr->type = event_type;
+		hdr->nparams = args.nargs;
 
 		/*
 		 * Populate the parameters for the filler callback
@@ -1708,16 +1742,11 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		/*
 		 * Fire the filler callback
 		 */
-		if (g_ppm_events[event_type].filler_callback == PPM_AUTOFILL) {
-			/*
-			 * This event is automatically filled. Hand it to f_sys_autofill.
-			 */
-			cbres = f_sys_autofill(&args, &g_ppm_events[event_type]);
-		} else {
-			/*
-			 * There's a callback function for this event
-			 */
+		if (likely(g_ppm_events[event_type].filler_callback)) {
 			cbres = g_ppm_events[event_type].filler_callback(&args);
+		} else {
+			pr_err("corrupted filler for event type %d: NULL callback\n", event_type);
+			ASSERT(0);
 		}
 
 		if (likely(cbres == PPM_SUCCESS)) {
@@ -1816,7 +1845,7 @@ static inline void g_n_tracepoint_hit_inc(void)
 	/* this_cpu_inc has been added with 2.6.33 but backported by RHEL/CentOS to 2.6.32
 	 * so just checking the existence of the symbol rather than matching the kernel version
 	 * https://github.com/torvalds/linux/commit/7340a0b15280c9d902c7dd0608b8e751b5a7c403
-	 * 
+	 *
 	 * per_cpu_var removed with:
 	 * https://github.com/torvalds/linux/commit/dd17c8f72993f9461e9c19250e3f155d6d99df22
 	 */
@@ -1854,7 +1883,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 #endif
 
 	g_n_tracepoint_hit_inc();
-	
+
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
 		struct event_data_t event_data;

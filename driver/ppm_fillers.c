@@ -28,7 +28,6 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/tcp.h>
 #include <linux/udp.h>
 #include <linux/file.h>
-#include <linux/futex.h>
 #include <linux/fs_struct.h>
 #include <linux/pid_namespace.h>
 #include <linux/ptrace.h>
@@ -37,10 +36,10 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/quota.h>
 #include <linux/tty.h>
 #include <linux/uaccess.h>
+#include <linux/audit.h>
 #ifdef CONFIG_CGROUPS
 #include <linux/cgroup.h>
 #endif
-#include <asm/mman.h>
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
 #include "ppm_syscall.h"
 #else
@@ -51,387 +50,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "ppm_events_public.h"
 #include "ppm_events.h"
 #include "ppm.h"
+#include "ppm_flag_helpers.h"
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
 #include <linux/bpf.h>
 #endif
 
-/* This is described in syscall(2). Some syscalls take 64-bit arguments. On
- * arches that have 64-bit registers, these arguments are shipped in a register.
- * On 32-bit arches, however, these are split between two consecutive registers,
- * with some alignment requirements. Some require an odd/even pair while some
- * others require even/odd. For now I assume they all do what x86_32 does, and
- * we can handle the rest when we port those.
- */
-#ifdef CONFIG_64BIT
-#define _64BIT_ARGS_SINGLE_REGISTER
-#endif
-
-static int f_sys_generic(struct event_filler_arguments *args);	/* generic syscall event filler that includes the system call number */
-static int f_sys_empty(struct event_filler_arguments *args);		/* empty filler */
-static int f_sys_single(struct event_filler_arguments *args);		/* generic enter filler that copies a single argument syscall into a single parameter event */
-static int f_sys_single_x(struct event_filler_arguments *args);		/* generic exit filler that captures an integer */
-static int f_sys_open_x(struct event_filler_arguments *args);
-static int f_sys_read_x(struct event_filler_arguments *args);
-static int f_sys_write_x(struct event_filler_arguments *args);
-static int f_sys_execve_e(struct event_filler_arguments *args);
-static int f_proc_startupdate(struct event_filler_arguments *args);
-static int f_sys_socketpair_x(struct event_filler_arguments *args);
-static int f_sys_connect_x(struct event_filler_arguments *args);
-static int f_sys_accept4_e(struct event_filler_arguments *args);
-static int f_sys_accept_x(struct event_filler_arguments *args);
-static int f_sys_send_e(struct event_filler_arguments *args);
-static int f_sys_send_x(struct event_filler_arguments *args);
-static int f_sys_sendto_e(struct event_filler_arguments *args);
-static int f_sys_sendmsg_e(struct event_filler_arguments *args);
-static int f_sys_sendmsg_x(struct event_filler_arguments *args);
-static int f_sys_recv_e(struct event_filler_arguments *args);
-static int f_sys_recv_x(struct event_filler_arguments *args);
-static int f_sys_recvfrom_e(struct event_filler_arguments *args);
-static int f_sys_recvfrom_x(struct event_filler_arguments *args);
-static int f_sys_recvmsg_e(struct event_filler_arguments *args);
-static int f_sys_recvmsg_x(struct event_filler_arguments *args);
-static int f_sys_shutdown_e(struct event_filler_arguments *args);
-static int f_sys_pipe_x(struct event_filler_arguments *args);
-static int f_sys_eventfd_e(struct event_filler_arguments *args);
-static int f_sys_futex_e(struct event_filler_arguments *args);
-static int f_sys_lseek_e(struct event_filler_arguments *args);
-static int f_sys_llseek_e(struct event_filler_arguments *args);
-static int f_sys_socket_bind_x(struct event_filler_arguments *args);
-static int f_sys_poll_e(struct event_filler_arguments *args);
-static int f_sys_poll_x(struct event_filler_arguments *args);
-static int f_sys_openat_e(struct event_filler_arguments *args);
-static int f_sys_unlinkat_x(struct event_filler_arguments *args);
-#ifndef _64BIT_ARGS_SINGLE_REGISTER
-static int f_sys_pread64_e(struct event_filler_arguments *args);
-static int f_sys_preadv_e(struct event_filler_arguments *args);
-#endif
-static int f_sys_writev_e(struct event_filler_arguments *args);
-static int f_sys_pwrite64_e(struct event_filler_arguments *args);
-static int f_sys_readv_x(struct event_filler_arguments *args);
-static int f_sys_writev_e(struct event_filler_arguments *args);
-static int f_sys_writev_pwritev_x(struct event_filler_arguments *args);
-static int f_sys_preadv_x(struct event_filler_arguments *args);
-static int f_sys_pwritev_e(struct event_filler_arguments *args);
-static int f_sys_nanosleep_e(struct event_filler_arguments *args);
-static int f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args);
-static int f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args);
-static int f_sys_prlimit_e(struct event_filler_arguments *args);
-static int f_sys_prlimit_x(struct event_filler_arguments *args);
-#ifdef CAPTURE_CONTEXT_SWITCHES
-static int f_sched_switch_e(struct event_filler_arguments *args);
-#endif
-static int f_sched_drop(struct event_filler_arguments *args);
-static int f_sched_fcntl_e(struct event_filler_arguments *args);
-static int f_sys_ptrace_e(struct event_filler_arguments *args);
-static int f_sys_ptrace_x(struct event_filler_arguments *args);
-static int f_sys_mmap_e(struct event_filler_arguments *args);
-static int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args);
-static int f_sys_renameat_x(struct event_filler_arguments *args);
-static int f_sys_symlinkat_x(struct event_filler_arguments *args);
-static int f_sys_procexit_e(struct event_filler_arguments *args);
-static int f_sys_sendfile_e(struct event_filler_arguments *args);
-static int f_sys_sendfile_x(struct event_filler_arguments *args);
-static int f_sys_quotactl_e(struct event_filler_arguments *args);
-static int f_sys_quotactl_x(struct event_filler_arguments *args);
-static int f_sys_sysdigevent_e(struct event_filler_arguments *args);
-static int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args);
-#ifdef CAPTURE_SIGNAL_DELIVERIES
-static int f_sys_signaldeliver_e(struct event_filler_arguments *args);
-#endif
-#ifdef CAPTURE_PAGE_FAULTS
-static int f_sys_pagefault_e(struct event_filler_arguments *args);
-#endif
-static int f_sys_setns_e(struct event_filler_arguments *args);
-static int f_sys_unshare_e(struct event_filler_arguments *args);
-static int f_sys_flock_e(struct event_filler_arguments *args);
-static int f_cpu_hotplug_e(struct event_filler_arguments *args);
-static int f_sys_semop_e(struct event_filler_arguments *args);
-static int f_sys_semop_x(struct event_filler_arguments *args);
-static int f_sys_semget_e(struct event_filler_arguments *args);
-static int f_sys_semctl_e(struct event_filler_arguments *args);
-static int f_sys_semctl_x(struct event_filler_arguments *args);
-static int f_sys_ppoll_e(struct event_filler_arguments *args);
-static int f_sys_mount_e(struct event_filler_arguments *args);
-static int f_sys_access_e(struct event_filler_arguments *args);
-static int f_sys_access_x(struct event_filler_arguments *args);
-static int f_sys_bpf_x(struct event_filler_arguments *args);
-static int f_sys_mkdirat_x(struct event_filler_arguments *args);
-static int f_sys_fchownat_e(struct event_filler_arguments *args);
-static int f_sys_fchmodat_e(struct event_filler_arguments *args);
-
-/*
- * Note, this is not part of g_event_info because we want to share g_event_info with userland.
- * However, separating this information in a different struct is not ideal and we should find a better way.
- */
-const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
-	[PPME_GENERIC_E] = {f_sys_generic},
-	[PPME_GENERIC_X] = {f_sys_generic},
-	[PPME_SYSCALL_OPEN_E] = {f_sys_empty},
-	[PPME_SYSCALL_OPEN_X] = {f_sys_open_x},
-	[PPME_SYSCALL_CREAT_E] = {f_sys_empty},
-	[PPME_SYSCALL_CREAT_X] = {PPM_AUTOFILL, 3, APT_REG, {{AF_ID_RETVAL}, {0}, {AF_ID_USEDEFAULT, 0} } },
-	[PPME_SYSCALL_CLOSE_E] = {f_sys_single},
-	[PPME_SYSCALL_CLOSE_X] = {f_sys_single_x},
-	[PPME_SYSCALL_READ_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {2} } },
-	[PPME_SYSCALL_READ_X] = {f_sys_read_x},
-	[PPME_SYSCALL_WRITE_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {2} } },
-	[PPME_SYSCALL_WRITE_X] = {f_sys_write_x},
-	[PPME_PROCEXIT_1_E] = {f_sys_procexit_e},
-	[PPME_SOCKET_SOCKET_E] = {PPM_AUTOFILL, 3, APT_SOCK, {{0}, {1}, {2} } },
-	[PPME_SOCKET_SOCKET_X] = {f_sys_single_x},
-	[PPME_SOCKET_SOCKETPAIR_E] = {PPM_AUTOFILL, 3, APT_SOCK, {{0}, {1}, {2} } },
-	[PPME_SOCKET_SOCKETPAIR_X] = {f_sys_socketpair_x},
-	[PPME_SOCKET_BIND_E] = {PPM_AUTOFILL, 1, APT_SOCK, {{0} } },
-	[PPME_SOCKET_BIND_X] = {f_sys_socket_bind_x},
-	[PPME_SOCKET_CONNECT_E] = {PPM_AUTOFILL, 1, APT_SOCK, {{0} } },
-	[PPME_SOCKET_CONNECT_X] = {f_sys_connect_x},
-	[PPME_SOCKET_LISTEN_E] = {PPM_AUTOFILL, 2, APT_SOCK, {{0}, {1} } },
-	[PPME_SOCKET_LISTEN_X] = {f_sys_single_x},
-	[PPME_SOCKET_ACCEPT_5_E] = {f_sys_empty},
-	[PPME_SOCKET_ACCEPT_5_X] = {f_sys_accept_x},
-	[PPME_SOCKET_ACCEPT4_5_E] = {f_sys_accept4_e},
-	[PPME_SOCKET_ACCEPT4_5_X] = {f_sys_accept_x},
-	[PPME_SOCKET_SEND_E] = {f_sys_send_e},
-	[PPME_SOCKET_SEND_X] = {f_sys_send_x},
-	[PPME_SOCKET_SENDTO_E] = {f_sys_sendto_e},
-	[PPME_SOCKET_SENDTO_X] = {f_sys_send_x},
-	[PPME_SOCKET_SENDMSG_E] = {f_sys_sendmsg_e},
-	[PPME_SOCKET_SENDMSG_X] = {f_sys_sendmsg_x},
-	[PPME_SOCKET_RECV_E] = {f_sys_recv_e},
-	[PPME_SOCKET_RECV_X] = {f_sys_recv_x},
-	[PPME_SOCKET_RECVFROM_E] = {f_sys_recvfrom_e},
-	[PPME_SOCKET_RECVFROM_X] = {f_sys_recvfrom_x},
-	[PPME_SOCKET_RECVMSG_E] = {f_sys_recvmsg_e},
-	[PPME_SOCKET_RECVMSG_X] = {f_sys_recvmsg_x},
-	[PPME_SOCKET_SHUTDOWN_E] = {f_sys_shutdown_e},
-	[PPME_SOCKET_SHUTDOWN_X] = {f_sys_single_x},
-	[PPME_SYSCALL_PIPE_E] = {f_sys_empty},
-	[PPME_SYSCALL_PIPE_X] = {f_sys_pipe_x},
-	[PPME_SYSCALL_EVENTFD_E] = {f_sys_eventfd_e},
-	[PPME_SYSCALL_EVENTFD_X] = {f_sys_single_x},
-	[PPME_SYSCALL_FUTEX_E] = {f_sys_futex_e},
-	[PPME_SYSCALL_FUTEX_X] = {f_sys_single_x},
-	[PPME_SYSCALL_STAT_E] = {f_sys_empty},
-	[PPME_SYSCALL_STAT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_LSTAT_E] = {f_sys_empty},
-	[PPME_SYSCALL_LSTAT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_FSTAT_E] = {f_sys_single},
-	[PPME_SYSCALL_FSTAT_X] = {f_sys_single_x},
-	[PPME_SYSCALL_STAT64_E] = {f_sys_empty},
-	[PPME_SYSCALL_STAT64_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_LSTAT64_E] = {f_sys_empty},
-	[PPME_SYSCALL_LSTAT64_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_FSTAT64_E] = {f_sys_single},
-	[PPME_SYSCALL_FSTAT64_X] = {f_sys_single_x},
-	[PPME_SYSCALL_EPOLLWAIT_E] = {PPM_AUTOFILL, 1, APT_REG, {{2} } },
-	[PPME_SYSCALL_EPOLLWAIT_X] = {f_sys_single_x},
-	[PPME_SYSCALL_POLL_E] = {f_sys_poll_e},
-	[PPME_SYSCALL_POLL_X] = {f_sys_poll_x},
-	[PPME_SYSCALL_SELECT_E] = {f_sys_empty},
-	[PPME_SYSCALL_SELECT_X] = {f_sys_single_x},
-	[PPME_SYSCALL_NEWSELECT_E] = {f_sys_empty},
-	[PPME_SYSCALL_NEWSELECT_X] = {f_sys_single_x},
-	[PPME_SYSCALL_LSEEK_E] = {f_sys_lseek_e},
-	[PPME_SYSCALL_LSEEK_X] = {f_sys_single_x},
-	[PPME_SYSCALL_LLSEEK_E] = {f_sys_llseek_e},
-	[PPME_SYSCALL_LLSEEK_X] = {f_sys_single_x},
-	[PPME_SYSCALL_IOCTL_3_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {1}, {2} } },
-	[PPME_SYSCALL_IOCTL_3_X] = {f_sys_single_x},
-	[PPME_SYSCALL_GETCWD_E] = {f_sys_empty},
-	[PPME_SYSCALL_GETCWD_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_CHDIR_E] = {f_sys_empty},
-	[PPME_SYSCALL_CHDIR_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_FCHDIR_E] = {f_sys_single},
-	[PPME_SYSCALL_FCHDIR_X] = {f_sys_single_x},
-	[PPME_SYSCALL_MKDIR_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {AF_ID_USEDEFAULT, 0} } },
-	[PPME_SYSCALL_MKDIR_X] = {f_sys_single_x},
-	[PPME_SYSCALL_RMDIR_E] = {f_sys_single},
-	[PPME_SYSCALL_RMDIR_X] = {f_sys_single_x},
-	[PPME_SYSCALL_OPENAT_E] = {f_sys_openat_e},
-	[PPME_SYSCALL_OPENAT_X] = {f_sys_single_x},
-	[PPME_SYSCALL_LINK_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
-	[PPME_SYSCALL_LINK_X] = {f_sys_single_x},
-	[PPME_SYSCALL_LINKAT_E] = {PPM_AUTOFILL, 4, APT_REG, {{0}, {1}, {2}, {3} } },
-	[PPME_SYSCALL_LINKAT_X] = {f_sys_single_x},
-	[PPME_SYSCALL_UNLINK_E] = {f_sys_single},
-	[PPME_SYSCALL_UNLINK_X] = {f_sys_single_x},
-	[PPME_SYSCALL_UNLINKAT_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
-	[PPME_SYSCALL_UNLINKAT_X] = {f_sys_single_x},
-#ifdef _64BIT_ARGS_SINGLE_REGISTER
-	[PPME_SYSCALL_PREAD_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {2}, {3} } },
-#else
-	[PPME_SYSCALL_PREAD_E] = {f_sys_pread64_e},
-#endif
-	[PPME_SYSCALL_PREAD_X] = {f_sys_read_x},
-	[PPME_SYSCALL_PWRITE_E] = {f_sys_pwrite64_e},
-	[PPME_SYSCALL_PWRITE_X] = {f_sys_write_x},
-	[PPME_SYSCALL_READV_E] = {f_sys_single},
-	[PPME_SYSCALL_READV_X] = {f_sys_readv_x},
-	[PPME_SYSCALL_WRITEV_E] = {f_sys_writev_e},
-	[PPME_SYSCALL_WRITEV_X] = {f_sys_writev_pwritev_x},
-#ifdef _64BIT_ARGS_SINGLE_REGISTER
-	[PPME_SYSCALL_PREADV_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {3} } },
-#else
-	[PPME_SYSCALL_PREADV_E] = {f_sys_preadv_e},
-#endif
-	[PPME_SYSCALL_PREADV_X] = {f_sys_preadv_x},
-	[PPME_SYSCALL_PWRITEV_E] = {f_sys_pwritev_e},
-	[PPME_SYSCALL_PWRITEV_X] = {f_sys_writev_pwritev_x},
-	[PPME_SYSCALL_DUP_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
-	[PPME_SYSCALL_DUP_X] = {f_sys_single_x},
-	/* Mask and Flags not implemented yet */
-	[PPME_SYSCALL_SIGNALFD_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {AF_ID_USEDEFAULT, 0}, {AF_ID_USEDEFAULT, 0} } },
-	[PPME_SYSCALL_SIGNALFD_X] = {f_sys_single_x},
-	[PPME_SYSCALL_KILL_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
-	[PPME_SYSCALL_KILL_X] = {f_sys_single_x},
-	[PPME_SYSCALL_TKILL_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
-	[PPME_SYSCALL_TKILL_X] = {f_sys_single_x},
-	[PPME_SYSCALL_TGKILL_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {1}, {2} } },
-	[PPME_SYSCALL_TGKILL_X] = {f_sys_single_x},
-	[PPME_SYSCALL_NANOSLEEP_E] = {f_sys_nanosleep_e},
-	[PPME_SYSCALL_NANOSLEEP_X] = {f_sys_single_x},
-	[PPME_SYSCALL_TIMERFD_CREATE_E] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_USEDEFAULT, 0}, {AF_ID_USEDEFAULT, 0} } },
-	[PPME_SYSCALL_TIMERFD_CREATE_X] = {f_sys_single_x},
-	[PPME_SYSCALL_INOTIFY_INIT_E] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_USEDEFAULT, 0} } },
-	[PPME_SYSCALL_INOTIFY_INIT_X] = {f_sys_single_x},
-	[PPME_SYSCALL_GETRLIMIT_E] = {f_sys_getrlimit_setrlimit_e},
-	[PPME_SYSCALL_GETRLIMIT_X] = {f_sys_getrlimit_setrlrimit_x},
-	[PPME_SYSCALL_SETRLIMIT_E] = {f_sys_getrlimit_setrlimit_e},
-	[PPME_SYSCALL_SETRLIMIT_X] = {f_sys_getrlimit_setrlrimit_x},
-	[PPME_SYSCALL_PRLIMIT_E] = {f_sys_prlimit_e},
-	[PPME_SYSCALL_PRLIMIT_X] = {f_sys_prlimit_x},
-#ifdef CAPTURE_CONTEXT_SWITCHES
-	[PPME_SCHEDSWITCH_6_E] = {f_sched_switch_e},
-#endif
-	[PPME_DROP_E] = {f_sched_drop},
-	[PPME_DROP_X] = {f_sched_drop},
-	[PPME_SYSCALL_FCNTL_E] = {f_sched_fcntl_e},
-	[PPME_SYSCALL_FCNTL_X] = {f_sys_single_x},
-	[PPME_SYSCALL_EXECVE_19_E] = {f_sys_execve_e},
-	[PPME_SYSCALL_EXECVE_19_X] = {f_proc_startupdate},
-	[PPME_SYSCALL_CLONE_20_E] = {f_sys_empty},
-	[PPME_SYSCALL_CLONE_20_X] = {f_proc_startupdate},
-	[PPME_SYSCALL_BRK_4_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
-	[PPME_SYSCALL_BRK_4_X] = {f_sys_brk_munmap_mmap_x},
-	[PPME_SYSCALL_MMAP_E] = {f_sys_mmap_e},
-	[PPME_SYSCALL_MMAP_X] = {f_sys_brk_munmap_mmap_x},
-	[PPME_SYSCALL_MMAP2_E] = {f_sys_mmap_e},
-	[PPME_SYSCALL_MMAP2_X] = {f_sys_brk_munmap_mmap_x},
-	[PPME_SYSCALL_MUNMAP_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
-	[PPME_SYSCALL_MUNMAP_X] = {f_sys_brk_munmap_mmap_x},
-	[PPME_SYSCALL_SPLICE_E] = {PPM_AUTOFILL, 4, APT_REG, {{0}, {2}, {4}, {5} } },
-	[PPME_SYSCALL_SPLICE_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_PTRACE_E] = {f_sys_ptrace_e},
-	[PPME_SYSCALL_PTRACE_X] = {f_sys_ptrace_x},
-	[PPME_SYSCALL_RENAME_E] = {f_sys_empty},
-	[PPME_SYSCALL_RENAME_X] = {PPM_AUTOFILL, 3, APT_REG, {{AF_ID_RETVAL}, {0}, {1} } },
-	[PPME_SYSCALL_RENAMEAT_E] = {f_sys_empty},
-	[PPME_SYSCALL_RENAMEAT_X] = {f_sys_renameat_x},
-	[PPME_SYSCALL_SYMLINK_E] = {f_sys_empty},
-	[PPME_SYSCALL_SYMLINK_X] = {PPM_AUTOFILL, 3, APT_REG, {{AF_ID_RETVAL}, {0}, {1} } },
-	[PPME_SYSCALL_SYMLINKAT_E] = {f_sys_empty},
-	[PPME_SYSCALL_SYMLINKAT_X] = {f_sys_symlinkat_x},
-	[PPME_SYSCALL_FORK_20_E] = {f_sys_empty},
-	[PPME_SYSCALL_FORK_20_X] = {f_proc_startupdate},
-	[PPME_SYSCALL_VFORK_20_E] = {f_sys_empty},
-	[PPME_SYSCALL_VFORK_20_X] = {f_proc_startupdate},
-	[PPME_SYSCALL_SENDFILE_E] = {f_sys_sendfile_e},
-	[PPME_SYSCALL_SENDFILE_X] = {f_sys_sendfile_x},
-	[PPME_SYSCALL_QUOTACTL_E] = {f_sys_quotactl_e},
-	[PPME_SYSCALL_QUOTACTL_X] = {f_sys_quotactl_x},
-	[PPME_SYSCALL_SETRESUID_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {1}, {2} } },
-	[PPME_SYSCALL_SETRESUID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_SETRESGID_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {1}, {2} } },
-	[PPME_SYSCALL_SETRESGID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSDIGEVENT_E] = {f_sys_sysdigevent_e},
-	[PPME_SYSCALL_SETUID_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
-	[PPME_SYSCALL_SETUID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_SETGID_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
-	[PPME_SYSCALL_SETGID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_GETUID_E] = {f_sys_empty},
-	[PPME_SYSCALL_GETUID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_GETEUID_E] = {f_sys_empty},
-	[PPME_SYSCALL_GETEUID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_GETGID_E] = {f_sys_empty},
-	[PPME_SYSCALL_GETGID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_GETEGID_E] = {f_sys_empty},
-	[PPME_SYSCALL_GETEGID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_GETRESUID_E] = {f_sys_empty},
-	[PPME_SYSCALL_GETRESUID_X] = {f_sys_getresuid_and_gid_x},
-	[PPME_SYSCALL_GETRESGID_E] = {f_sys_empty},
-	[PPME_SYSCALL_GETRESGID_X] = {f_sys_getresuid_and_gid_x},
-#ifdef CAPTURE_SIGNAL_DELIVERIES
-	[PPME_SIGNALDELIVER_E] = {f_sys_signaldeliver_e},
-	[PPME_SIGNALDELIVER_X] = {f_sys_empty},
-#endif
-	[PPME_SYSCALL_GETDENTS_E] = {f_sys_single},
-	[PPME_SYSCALL_GETDENTS_X] = {f_sys_single_x},
-	[PPME_SYSCALL_GETDENTS64_E] = {f_sys_single},
-	[PPME_SYSCALL_GETDENTS64_X] = {f_sys_single_x},
-	[PPME_SYSCALL_SETNS_E] = {f_sys_setns_e},
-	[PPME_SYSCALL_SETNS_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_FLOCK_E] = {f_sys_flock_e},
-	[PPME_SYSCALL_FLOCK_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_CPU_HOTPLUG_E] = {f_cpu_hotplug_e},
-	[PPME_SYSCALL_SEMOP_E] = {f_sys_semop_e},
-	[PPME_SYSCALL_SEMOP_X] = {f_sys_semop_x},
-	[PPME_SYSCALL_SEMGET_E] = {f_sys_semget_e},
-	[PPME_SYSCALL_SEMGET_X] = {f_sys_single_x},
-	[PPME_SYSCALL_SEMCTL_E] = {f_sys_semctl_e},
-	[PPME_SYSCALL_SEMCTL_X] = {f_sys_semctl_x},
-	[PPME_SYSCALL_PPOLL_E] = {f_sys_ppoll_e},
-	[PPME_SYSCALL_PPOLL_X] = {f_sys_poll_x}, /* exit same for poll() and ppoll() */
-	[PPME_SYSCALL_MOUNT_E] = {f_sys_mount_e},
-	[PPME_SYSCALL_MOUNT_X] = {PPM_AUTOFILL, 4, APT_REG, {{AF_ID_RETVAL}, {0}, {1}, {2} } },
-	[PPME_SYSCALL_UMOUNT_E] = {PPM_AUTOFILL, 1, APT_REG, {{1} } },
-	[PPME_SYSCALL_UMOUNT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_ACCESS_E] = {f_sys_access_e},
-	[PPME_SYSCALL_ACCESS_X] = {f_sys_access_x},
-	[PPME_SYSCALL_CHROOT_E] = {f_sys_empty},
-	[PPME_SYSCALL_CHROOT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_SETSID_E] = {f_sys_empty},
-	[PPME_SYSCALL_SETSID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_SETPGID_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
-	[PPME_SYSCALL_SETPGID_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_MKDIR_2_E] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_USEDEFAULT, 0} } },
-	[PPME_SYSCALL_MKDIR_2_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_RMDIR_2_E] = {f_sys_empty},
-	[PPME_SYSCALL_RMDIR_2_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_UNSHARE_E] = {f_sys_unshare_e},
-	[PPME_SYSCALL_UNSHARE_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-#ifdef CAPTURE_PAGE_FAULTS
-	[PPME_PAGE_FAULT_E] = {f_sys_pagefault_e},
-	[PPME_PAGE_FAULT_X] = {f_sys_empty},
-#endif
-	[PPME_SYSCALL_BPF_E] = {PPM_AUTOFILL, 1, APT_REG, {{0} } },
-	[PPME_SYSCALL_BPF_X] = {f_sys_bpf_x},
-	[PPME_SYSCALL_SECCOMP_E] = {PPM_AUTOFILL, 1, APT_REG, {{0}, {1} } },
-	[PPME_SYSCALL_SECCOMP_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_UNLINK_2_E] = {f_sys_empty},
-	[PPME_SYSCALL_UNLINK_2_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_UNLINKAT_2_E] = {f_sys_empty},
-	[PPME_SYSCALL_UNLINKAT_2_X] = {f_sys_unlinkat_x},
-	[PPME_SYSCALL_MKDIRAT_E] = {f_sys_empty},
-	[PPME_SYSCALL_MKDIRAT_X] = {f_sys_mkdirat_x},
-	[PPME_SYSCALL_CHOWN_E] = {PPM_AUTOFILL, 2, APT_REG, {{1}, {2} } },
-	[PPME_SYSCALL_CHOWN_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_LCHOWN_E] = {PPM_AUTOFILL, 2, APT_REG, {{1}, {2} } },
-	[PPME_SYSCALL_LCHOWN_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_FCHOWN_E] = {PPM_AUTOFILL, 3, APT_REG, {{0}, {1}, {2} } },
-	[PPME_SYSCALL_FCHOWN_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_FCHOWNAT_E] = {f_sys_fchownat_e},
-	[PPME_SYSCALL_FCHOWNAT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {1} } },
-	[PPME_SYSCALL_CHMOD_E] = {PPM_AUTOFILL, 1, APT_REG, {{1} } },
-	[PPME_SYSCALL_CHMOD_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
-	[PPME_SYSCALL_FCHMOD_E] = {PPM_AUTOFILL, 2, APT_REG, {{0}, {1} } },
-	[PPME_SYSCALL_FCHMOD_X] = {PPM_AUTOFILL, 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_FCHMODAT_E] = {f_sys_fchmodat_e},
-	[PPME_SYSCALL_FCHMODAT_X] = {PPM_AUTOFILL, 2, APT_REG, {{AF_ID_RETVAL}, {1} } },
-};
-
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
 
-static int f_sys_generic(struct event_filler_arguments *args)
+int f_sys_generic(struct event_filler_arguments *args)
 {
 	int res;
 	long table_index = args->syscall_id - SYSCALL_TABLE_ID0;
@@ -480,12 +106,12 @@ static int f_sys_generic(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_empty(struct event_filler_arguments *args)
+int f_sys_empty(struct event_filler_arguments *args)
 {
 	return add_sentinel(args);
 }
 
-static int f_sys_single(struct event_filler_arguments *args)
+int f_sys_single(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
@@ -498,7 +124,7 @@ static int f_sys_single(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_single_x(struct event_filler_arguments *args)
+int f_sys_single_x(struct event_filler_arguments *args)
 {
 	int res;
 	int64_t retval;
@@ -511,147 +137,11 @@ static int f_sys_single_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline u32 open_flags_to_scap(unsigned long flags)
+int f_sys_open_x(struct event_filler_arguments *args)
 {
-	u32 res = 0;
-
-	switch (flags & (O_RDONLY | O_WRONLY | O_RDWR)) {
-	case O_WRONLY:
-		res |= PPM_O_WRONLY;
-		break;
-	case O_RDWR:
-		res |= PPM_O_RDWR;
-		break;
-	default:
-		res |= PPM_O_RDONLY;
-		break;
-	}
-
-	if (flags & O_CREAT)
-		res |= PPM_O_CREAT;
-
-	if (flags & O_APPEND)
-		res |= PPM_O_APPEND;
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
-	if (flags & O_DSYNC)
-		res |= PPM_O_DSYNC;
-#endif
-
-	if (flags & O_EXCL)
-		res |= PPM_O_EXCL;
-
-	if (flags & O_NONBLOCK)
-		res |= PPM_O_NONBLOCK;
-
-	if (flags & O_SYNC)
-		res |= PPM_O_SYNC;
-
-	if (flags & O_TRUNC)
-		res |= PPM_O_TRUNC;
-
-	if (flags & O_DIRECT)
-		res |= PPM_O_DIRECT;
-
-	if (flags & O_DIRECTORY)
-		res |= PPM_O_DIRECTORY;
-
-	if (flags & O_LARGEFILE)
-		res |= PPM_O_LARGEFILE;
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
-	if (flags & O_CLOEXEC)
-		res |= PPM_O_CLOEXEC;
-#endif
-	return res;
-}
-
-
-static inline u32 open_modes_to_scap(unsigned long modes)
-{
-	u32 res = 0;
-
-	if (modes & S_IRUSR)
-		res |= PPM_S_IRUSR;
-
-	if (modes & S_IWUSR)
-		res |= PPM_S_IWUSR;
-
-	if (modes & S_IXUSR)
-		res |= PPM_S_IXUSR;
-
-	/*
-	* PPM_S_IRWXU == S_IRUSR | S_IWUSR | S_IXUSR 
-	*/
-
-	if (modes & S_IRGRP)
-		res |= PPM_S_IRGRP;
-
-	if (modes & S_IWGRP)
-		res |= PPM_S_IWGRP;
-
-	if (modes & S_IXGRP)
-		res |= PPM_S_IXGRP;
-
-	/*
-	* PPM_S_IRWXG == S_IRGRP | S_IWGRP | S_IXGRP 
-	*/
-
-	if (modes & S_IROTH)
-		res |= PPM_S_IROTH;
-
-	if (modes & S_IWOTH)
-		res |= PPM_S_IWOTH;
-
-	if (modes & S_IXOTH)
-		res |= PPM_S_IXOTH;
-	
-	/*
-	* PPM_S_IRWXO == S_IROTH | S_IWOTH | S_IXOTH
-	*/
-	
-	if (modes & S_ISUID)
-		res |= PPM_S_ISUID;
-
-	if (modes & S_ISGID)
-		res |= PPM_S_ISGID;
-
-	if (modes & S_ISVTX)
-		res |= PPM_S_ISVTX;
-
-	return res;
-}
-
-static inline int open_mode_to_ring(struct event_filler_arguments *args,
-				    unsigned long flags,
-				    unsigned int i)
-{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0)
-	unsigned long flags_mask = O_CREAT | O_TMPFILE;
-#else
-	unsigned long flags_mask = O_CREAT;
-#endif
-	int res;
-
-	if (flags & flags_mask) {
-		unsigned long val;
-
-		/*
-		 * Mode
-		 * Note that we convert them into the ppm portable
-		 * representation before pushing them to the ring
-		 */
-		syscall_get_arguments(current, args->regs, i, 1, &val);
-		res = val_to_ring(args, open_modes_to_scap(val), 0, false, 0);
-	} else {
-		res = val_to_ring(args, 0, 0, false, 0);
-	}
-	return res;
-}
-
-static int f_sys_open_x(struct event_filler_arguments *args)
-{
-	unsigned long val, flags;
+	unsigned long val;
+	unsigned long flags;
+	unsigned long modes;
 	int res;
 	int64_t retval;
 
@@ -683,14 +173,15 @@ static int f_sys_open_x(struct event_filler_arguments *args)
 	/*
 	 *  mode
 	 */
-	res = open_mode_to_ring(args, flags, 2);
+	syscall_get_arguments(current, args->regs, 2, 1, &modes);
+	res = val_to_ring(args, open_modes_to_scap(flags, modes), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
 	return add_sentinel(args);
 }
 
-static int f_sys_read_x(struct event_filler_arguments *args)
+int f_sys_read_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -741,7 +232,7 @@ static int f_sys_read_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_write_x(struct event_filler_arguments *args)
+int f_sys_write_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -779,100 +270,6 @@ static int f_sys_write_x(struct event_filler_arguments *args)
 		return res;
 
 	return add_sentinel(args);
-}
-
-static inline u32 clone_flags_to_scap(unsigned long flags)
-{
-	u32 res = 0;
-
-	if (flags & CLONE_FILES)
-		res |= PPM_CL_CLONE_FILES;
-
-	if (flags & CLONE_FS)
-		res |= PPM_CL_CLONE_FS;
-
-#ifdef CLONE_IO
-	if (flags & CLONE_IO)
-		res |= PPM_CL_CLONE_IO;
-#endif
-
-#ifdef CLONE_NEWIPC
-	if (flags & CLONE_NEWIPC)
-		res |= PPM_CL_CLONE_NEWIPC;
-#endif
-
-#ifdef CLONE_NEWNET
-	if (flags & CLONE_NEWNET)
-		res |= PPM_CL_CLONE_NEWNET;
-#endif
-
-#ifdef CLONE_NEWNS
-	if (flags & CLONE_NEWNS)
-		res |= PPM_CL_CLONE_NEWNS;
-#endif
-
-#ifdef CLONE_NEWPID
-	if (flags & CLONE_NEWPID)
-		res |= PPM_CL_CLONE_NEWPID;
-#endif
-
-#ifdef CLONE_NEWUTS
-	if (flags & CLONE_NEWUTS)
-		res |= PPM_CL_CLONE_NEWUTS;
-#endif
-
-	if (flags & CLONE_PARENT_SETTID)
-		res |= PPM_CL_CLONE_PARENT_SETTID;
-
-	if (flags & CLONE_PARENT)
-		res |= PPM_CL_CLONE_PARENT;
-
-	if (flags & CLONE_PTRACE)
-		res |= PPM_CL_CLONE_PTRACE;
-
-	if (flags & CLONE_SIGHAND)
-		res |= PPM_CL_CLONE_SIGHAND;
-
-	if (flags & CLONE_SYSVSEM)
-		res |= PPM_CL_CLONE_SYSVSEM;
-
-	if (flags & CLONE_THREAD)
-		res |= PPM_CL_CLONE_THREAD;
-
-	if (flags & CLONE_UNTRACED)
-		res |= PPM_CL_CLONE_UNTRACED;
-
-	if (flags & CLONE_VM)
-		res |= PPM_CL_CLONE_VM;
-
-#ifdef CLONE_NEWUSER
-	if (flags & CLONE_NEWUSER)
-		res |= PPM_CL_CLONE_NEWUSER;
-#endif
-
-	if (flags & CLONE_CHILD_CLEARTID)
-		res |= PPM_CL_CLONE_CHILD_CLEARTID;
-
-	if (flags & CLONE_CHILD_SETTID)
-		res |= PPM_CL_CLONE_CHILD_SETTID;
-
-	if (flags & CLONE_SETTLS)
-		res |= PPM_CL_CLONE_SETTLS;
-
-#ifdef CLONE_STOPPED
-	if (flags & CLONE_STOPPED)
-		res |= PPM_CL_CLONE_STOPPED;
-#endif
-
-	if (flags & CLONE_VFORK)
-		res |= PPM_CL_CLONE_VFORK;
-
-#ifdef CLONE_NEWCGROUP
-	if (flags & CLONE_NEWCGROUP)
-		res |= 	PPM_CL_CLONE_NEWCGROUP;
-#endif
-
-	return res;
 }
 
 /*
@@ -1221,7 +618,7 @@ static int ppm_get_tty(void)
 	return tty_nr;
 }
 
-static int f_proc_startupdate(struct event_filler_arguments *args)
+int f_proc_startupdate(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res = 0;
@@ -1594,12 +991,26 @@ cgroups_error:
 #endif
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
+
+		/*
+	 	* loginuid
+	 	*/
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
+		val = from_kuid(current_user_ns(), audit_get_loginuid(current));
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+		val = audit_get_loginuid(current);
+#else
+		val = audit_get_loginuid(current->audit_context);
+#endif
+		res = val_to_ring(args, val, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
 	}
 
 	return add_sentinel(args);
 }
 
-static int f_sys_execve_e(struct event_filler_arguments *args)
+int f_sys_execve_e(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
@@ -1618,7 +1029,7 @@ static int f_sys_execve_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_socket_bind_x(struct event_filler_arguments *args)
+int f_sys_socket_bind_x(struct event_filler_arguments *args)
 {
 	int res;
 	int64_t retval;
@@ -1683,7 +1094,7 @@ static int f_sys_socket_bind_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_connect_x(struct event_filler_arguments *args)
+int f_sys_connect_x(struct event_filler_arguments *args)
 {
 	int res;
 	int64_t retval;
@@ -1765,7 +1176,7 @@ static int f_sys_connect_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_socketpair_x(struct event_filler_arguments *args)
+int f_sys_socketpair_x(struct event_filler_arguments *args)
 {
 	int res;
 	int64_t retval;
@@ -1849,7 +1260,7 @@ static int f_sys_socketpair_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_accept4_e(struct event_filler_arguments *args)
+int f_sys_accept4_e(struct event_filler_arguments *args)
 {
 	int res;
 
@@ -1865,7 +1276,7 @@ static int f_sys_accept4_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_accept_x(struct event_filler_arguments *args)
+int f_sys_accept_x(struct event_filler_arguments *args)
 {
 	int res;
 	int fd;
@@ -1944,7 +1355,7 @@ static int f_sys_accept_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
+int f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
 {
 	int res;
 	unsigned long size;
@@ -1979,7 +1390,7 @@ static int f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
 	return PPM_SUCCESS;
 }
 
-static int f_sys_send_e(struct event_filler_arguments *args)
+int f_sys_send_e(struct event_filler_arguments *args)
 {
 	int res;
 	int fd;
@@ -1991,7 +1402,7 @@ static int f_sys_send_e(struct event_filler_arguments *args)
 	return res;
 }
 
-static int f_sys_sendto_e(struct event_filler_arguments *args)
+int f_sys_sendto_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -2062,7 +1473,7 @@ static int f_sys_sendto_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_send_x(struct event_filler_arguments *args)
+int f_sys_send_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -2117,60 +1528,7 @@ static int f_sys_send_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_recv_e_common(struct event_filler_arguments *args)
-{
-	int res;
-	unsigned long val;
-
-	/*
-	 * fd
-	 */
-	if (!args->is_socketcall)
-		syscall_get_arguments(current, args->regs, 0, 1, &val);
-	else
-		val = args->socketcall_args[0];
-
-	res = val_to_ring(args, val, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	/*
-	 * size
-	 */
-	if (!args->is_socketcall)
-		syscall_get_arguments(current, args->regs, 2, 1, &val);
-	else
-		val = args->socketcall_args[2];
-
-	res = val_to_ring(args, val, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	return PPM_SUCCESS;
-}
-
-static int f_sys_recv_e(struct event_filler_arguments *args)
-{
-	int res;
-
-	res = f_sys_recv_e_common(args);
-
-	if (likely(res == PPM_SUCCESS))
-		return add_sentinel(args);
-	return res;
-}
-
-static int f_sys_recvfrom_e(struct event_filler_arguments *args)
-{
-	int res;
-
-	res = f_sys_recv_e_common(args);
-	if (likely(res == PPM_SUCCESS))
-		return add_sentinel(args);
-	return res;
-}
-
-static int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *retval)
+int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *retval)
 {
 	int res;
 	unsigned long val;
@@ -2224,7 +1582,7 @@ static int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *ret
 	return PPM_SUCCESS;
 }
 
-static int f_sys_recv_x(struct event_filler_arguments *args)
+int f_sys_recv_x(struct event_filler_arguments *args)
 {
 	int res;
 	int64_t retval;
@@ -2236,7 +1594,7 @@ static int f_sys_recv_x(struct event_filler_arguments *args)
 	return res;
 }
 
-static int f_sys_recvfrom_x(struct event_filler_arguments *args)
+int f_sys_recvfrom_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -2328,7 +1686,7 @@ static int f_sys_recvfrom_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_sendmsg_e(struct event_filler_arguments *args)
+int f_sys_sendmsg_e(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
@@ -2451,7 +1809,7 @@ static int f_sys_sendmsg_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_sendmsg_x(struct event_filler_arguments *args)
+int f_sys_sendmsg_x(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
@@ -2517,27 +1875,7 @@ static int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_recvmsg_e(struct event_filler_arguments *args)
-{
-	int res;
-	unsigned long val;
-
-	/*
-	 * fd
-	 */
-	if (!args->is_socketcall)
-		syscall_get_arguments(current, args->regs, 0, 1, &val);
-	else
-		val = args->socketcall_args[0];
-
-	res = val_to_ring(args, val, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	return add_sentinel(args);
-}
-
-static int f_sys_recvmsg_x(struct event_filler_arguments *args)
+int f_sys_recvmsg_x(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
@@ -2660,8 +1998,7 @@ static int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-
-static int f_sys_pipe_x(struct event_filler_arguments *args)
+int f_sys_pipe_x(struct event_filler_arguments *args)
 {
 	int res;
 	int64_t retval;
@@ -2720,7 +2057,7 @@ static int f_sys_pipe_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_eventfd_e(struct event_filler_arguments *args)
+int f_sys_eventfd_e(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
@@ -2746,22 +2083,7 @@ static int f_sys_eventfd_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline u16 shutdown_how_to_scap(unsigned long how)
-{
-#ifdef SHUT_RD
-	if (how == SHUT_RD)
-		return PPM_SHUT_RD;
-	else if (how == SHUT_WR)
-		return SHUT_WR;
-	else if (how == SHUT_RDWR)
-		return SHUT_RDWR;
-
-	ASSERT(false);
-#endif
-	return (u16)how;
-}
-
-static int f_sys_shutdown_e(struct event_filler_arguments *args)
+int f_sys_shutdown_e(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
@@ -2793,58 +2115,7 @@ static int f_sys_shutdown_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline u16 futex_op_to_scap(unsigned long op)
-{
-	u16 res = 0;
-	unsigned long flt_op = op & 127;
-
-	if (flt_op == FUTEX_WAIT)
-		res = PPM_FU_FUTEX_WAIT;
-	else if (flt_op == FUTEX_WAKE)
-		res = PPM_FU_FUTEX_WAKE;
-	else if (flt_op == FUTEX_FD)
-		res = PPM_FU_FUTEX_FD;
-	else if (flt_op == FUTEX_REQUEUE)
-		res = PPM_FU_FUTEX_REQUEUE;
-	else if (flt_op == FUTEX_CMP_REQUEUE)
-		res = PPM_FU_FUTEX_CMP_REQUEUE;
-	else if (flt_op == FUTEX_WAKE_OP)
-		res = PPM_FU_FUTEX_WAKE_OP;
-	else if (flt_op == FUTEX_LOCK_PI)
-		res = PPM_FU_FUTEX_LOCK_PI;
-	else if (flt_op == FUTEX_UNLOCK_PI)
-		res = PPM_FU_FUTEX_UNLOCK_PI;
-	else if (flt_op == FUTEX_TRYLOCK_PI)
-		res = PPM_FU_FUTEX_TRYLOCK_PI;
-#ifdef FUTEX_WAIT_BITSET
-	else if (flt_op == FUTEX_WAIT_BITSET)
-		res = PPM_FU_FUTEX_WAIT_BITSET;
-#endif
-#ifdef FUTEX_WAKE_BITSET
-	else if (flt_op == FUTEX_WAKE_BITSET)
-		res = PPM_FU_FUTEX_WAKE_BITSET;
-#endif
-#ifdef FUTEX_WAIT_REQUEUE_PI
-	else if (flt_op == FUTEX_WAIT_REQUEUE_PI)
-		res = PPM_FU_FUTEX_WAIT_REQUEUE_PI;
-#endif
-#ifdef FUTEX_CMP_REQUEUE_PI
-	else if (flt_op == FUTEX_CMP_REQUEUE_PI)
-		res = PPM_FU_FUTEX_CMP_REQUEUE_PI;
-#endif
-
-	if (op & FUTEX_PRIVATE_FLAG)
-		res |= PPM_FU_FUTEX_PRIVATE_FLAG;
-
-#ifdef FUTEX_CLOCK_REALTIME
-	if (op & FUTEX_CLOCK_REALTIME)
-		res |= PPM_FU_FUTEX_CLOCK_REALTIME;
-#endif
-
-	return res;
-}
-
-static int f_sys_futex_e(struct event_filler_arguments *args)
+int f_sys_futex_e(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
@@ -2876,21 +2147,7 @@ static int f_sys_futex_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline uint64_t lseek_whence_to_scap(unsigned long whence)
-{
-	uint64_t res = 0;
-
-	if (whence == SEEK_SET)
-		res = PPM_SEEK_SET;
-	else if (whence == SEEK_CUR)
-		res = PPM_SEEK_CUR;
-	else if (whence == SEEK_END)
-		res = PPM_SEEK_END;
-
-	return res;
-}
-
-static int f_sys_lseek_e(struct event_filler_arguments *args)
+int f_sys_lseek_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -2922,7 +2179,7 @@ static int f_sys_lseek_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_llseek_e(struct event_filler_arguments *args)
+int f_sys_llseek_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -2958,47 +2215,6 @@ static int f_sys_llseek_e(struct event_filler_arguments *args)
 		return res;
 
 	return add_sentinel(args);
-}
-
-/* XXX this is very basic for the moment, we'll need to improve it */
-static inline u16 poll_events_to_scap(short revents)
-{
-	u16 res = 0;
-
-	if (revents & POLLIN)
-		res |= PPM_POLLIN;
-
-	if (revents & PPM_POLLPRI)
-		res |= PPM_POLLPRI;
-
-	if (revents & POLLOUT)
-		res |= PPM_POLLOUT;
-
-	if (revents & POLLRDHUP)
-		res |= PPM_POLLRDHUP;
-
-	if (revents & POLLERR)
-		res |= PPM_POLLERR;
-
-	if (revents & POLLHUP)
-		res |= PPM_POLLHUP;
-
-	if (revents & POLLNVAL)
-		res |= PPM_POLLNVAL;
-
-	if (revents & POLLRDNORM)
-		res |= PPM_POLLRDNORM;
-
-	if (revents & POLLRDBAND)
-		res |= PPM_POLLRDBAND;
-
-	if (revents & POLLWRNORM)
-		res |= PPM_POLLWRNORM;
-
-	if (revents & POLLWRBAND)
-		res |= PPM_POLLWRBAND;
-
-	return res;
 }
 
 static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
@@ -3072,7 +2288,7 @@ static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
 	return val_to_ring(args, (uint64_t)(unsigned long)targetbuf, pos, false, 0);
 }
 
-static int f_sys_poll_e(struct event_filler_arguments *args)
+int f_sys_poll_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -3127,7 +2343,7 @@ static int timespec_parse(struct event_filler_arguments *args, unsigned long val
 	return val_to_ring(args, longtime, 0, false, 0);
 }
 
-static int f_sys_ppoll_e(struct event_filler_arguments *args)
+int f_sys_ppoll_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -3164,7 +2380,7 @@ static int f_sys_ppoll_e(struct event_filler_arguments *args)
 }
 
 /* This is the same for poll() and ppoll() */
-static int f_sys_poll_x(struct event_filler_arguments *args)
+int f_sys_poll_x(struct event_filler_arguments *args)
 {
 	int64_t retval;
 	int res;
@@ -3184,10 +2400,7 @@ static int f_sys_poll_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#define PPM_MS_MGC_MSK 0xffff0000
-#define PPM_MS_MGC_VAL 0xC0ED0000
-
-static int f_sys_mount_e(struct event_filler_arguments *args)
+int f_sys_mount_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -3206,10 +2419,18 @@ static int f_sys_mount_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_openat_e(struct event_filler_arguments *args)
+int f_sys_openat_x(struct event_filler_arguments *args)
 {
-	unsigned long val, flags;
+	unsigned long val;
+	unsigned long flags;
+	unsigned long modes;
 	int res;
+	int64_t retval;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
 
 	/*
 	 * dirfd
@@ -3243,24 +2464,15 @@ static int f_sys_openat_e(struct event_filler_arguments *args)
 	/*
 	 *  mode
 	 */
-	res = open_mode_to_ring(args, flags, 3);
+	syscall_get_arguments(current, args->regs, 3, 1, &modes);
+	res = val_to_ring(args, open_modes_to_scap(flags, modes), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
 	return add_sentinel(args);
 }
 
-static u32 unlinkat_flags_to_scap(unsigned long flags)
-{
-	u32 res = 0;
-
-	if (flags & AT_REMOVEDIR)
-		res |= PPM_AT_REMOVEDIR;
-
-	return res;
-}
-
-static int f_sys_unlinkat_x(struct event_filler_arguments *args)
+int f_sys_unlinkat_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -3303,8 +2515,72 @@ static int f_sys_unlinkat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+int f_sys_linkat_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	unsigned long flags;
+	int res;
+	int64_t retval;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * olddir
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * oldpath
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * newdir
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * newpath
+	 */
+	syscall_get_arguments(current, args->regs, 3, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * Flags
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 */
+	syscall_get_arguments(current, args->regs, 4, 1, &flags);
+	res = val_to_ring(args, linkat_flags_to_scap(flags), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
 #ifndef _64BIT_ARGS_SINGLE_REGISTER
-static int f_sys_pread64_e(struct event_filler_arguments *args)
+int f_sys_pread64_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	unsigned long size;
@@ -3352,7 +2628,8 @@ static int f_sys_pread64_e(struct event_filler_arguments *args)
 }
 #endif /* _64BIT_ARGS_SINGLE_REGISTER */
 
-static int f_sys_pwrite64_e(struct event_filler_arguments *args)
+#ifndef _64BIT_ARGS_SINGLE_REGISTER
+int f_sys_pwrite64_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	unsigned long size;
@@ -3409,8 +2686,9 @@ static int f_sys_pwrite64_e(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+#endif
 
-static int f_sys_readv_x(struct event_filler_arguments *args)
+int f_sys_readv_preadv_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int64_t retval;
@@ -3433,7 +2711,6 @@ static int f_sys_readv_x(struct event_filler_arguments *args)
 	 * data and size
 	 */
 	syscall_get_arguments(current, args->regs, 1, 1, &val);
-
 	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
 
 #ifdef CONFIG_COMPAT
@@ -3452,7 +2729,7 @@ static int f_sys_readv_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_writev_e(struct event_filler_arguments *args)
+int f_sys_writev_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -3499,7 +2776,7 @@ static int f_sys_writev_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_writev_pwritev_x(struct event_filler_arguments *args)
+int f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -3545,7 +2822,7 @@ static int f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 }
 
 #ifndef _64BIT_ARGS_SINGLE_REGISTER
-static int f_sys_preadv_e(struct event_filler_arguments *args)
+int f_sys_preadv64_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -3584,48 +2861,7 @@ static int f_sys_preadv_e(struct event_filler_arguments *args)
 }
 #endif /* _64BIT_ARGS_SINGLE_REGISTER */
 
-static int f_sys_preadv_x(struct event_filler_arguments *args)
-{
-	unsigned long val;
-	int64_t retval;
-	int res;
-#ifdef CONFIG_COMPAT
-	const struct compat_iovec __user *compat_iov;
-#endif
-	const struct iovec __user *iov;
-	unsigned long iovcnt;
-
-	/*
-	 * res
-	 */
-	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
-	res = val_to_ring(args, retval, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	/*
-	 * data and size
-	 */
-	syscall_get_arguments(current, args->regs, 2, 1, &iovcnt);
-	syscall_get_arguments(current, args->regs, 1, 1, &val);
-
-#ifdef CONFIG_COMPAT
-	if (unlikely(args->compat)) {
-		compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
-		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
-	} else
-#endif
-	{
-		iov = (const struct iovec __user *)val;
-		res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
-	}
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	return add_sentinel(args);
-}
-
-static int f_sys_pwritev_e(struct event_filler_arguments *args)
+int f_sys_pwritev_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -3703,7 +2939,7 @@ static int f_sys_pwritev_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_nanosleep_e(struct event_filler_arguments *args)
+int f_sys_nanosleep_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -3716,49 +2952,7 @@ static int f_sys_nanosleep_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline u8 rlimit_resource_to_scap(unsigned long rresource)
-{
-	switch (rresource) {
-	case RLIMIT_CPU:
-		return PPM_RLIMIT_CPU;
-	case RLIMIT_FSIZE:
-		return PPM_RLIMIT_FSIZE;
-	case RLIMIT_DATA:
-		return PPM_RLIMIT_DATA;
-	case RLIMIT_STACK:
-		return PPM_RLIMIT_STACK;
-	case RLIMIT_CORE:
-		return PPM_RLIMIT_CORE;
-	case RLIMIT_RSS:
-		return PPM_RLIMIT_RSS;
-	case RLIMIT_NPROC:
-		return PPM_RLIMIT_NPROC;
-	case RLIMIT_NOFILE:
-		return PPM_RLIMIT_NOFILE;
-	case RLIMIT_MEMLOCK:
-		return PPM_RLIMIT_MEMLOCK;
-	case RLIMIT_AS:
-		return PPM_RLIMIT_AS;
-	case RLIMIT_LOCKS:
-		return PPM_RLIMIT_LOCKS;
-	case RLIMIT_SIGPENDING:
-		return PPM_RLIMIT_SIGPENDING;
-	case RLIMIT_MSGQUEUE:
-		return PPM_RLIMIT_MSGQUEUE;
-	case RLIMIT_NICE:
-		return PPM_RLIMIT_NICE;
-	case RLIMIT_RTPRIO:
-		return PPM_RLIMIT_RTPRIO;
-#ifdef RLIMIT_RTTIME
-	case RLIMIT_RTTIME:
-		return PPM_RLIMIT_RTTIME;
-#endif
-	default:
-		return PPM_RLIMIT_UNKNOWN;
-	}
-}
-
-static int f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args)
+int f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args)
 {
 	u8 ppm_resource;
 	unsigned long val;
@@ -3778,7 +2972,7 @@ static int f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args)
+int f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -3841,7 +3035,7 @@ static int f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_prlimit_e(struct event_filler_arguments *args)
+int f_sys_prlimit_e(struct event_filler_arguments *args)
 {
 	u8 ppm_resource;
 	unsigned long val;
@@ -3870,7 +3064,7 @@ static int f_sys_prlimit_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_prlimit_x(struct event_filler_arguments *args)
+int f_sys_prlimit_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -3981,7 +3175,7 @@ static int f_sys_prlimit_x(struct event_filler_arguments *args)
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
 
-static int f_sched_switch_e(struct event_filler_arguments *args)
+int f_sched_switch_e(struct event_filler_arguments *args)
 {
 	int res;
 	long total_vm = 0;
@@ -4057,12 +3251,12 @@ static int f_sched_switch_e(struct event_filler_arguments *args)
 }
 #endif /* CAPTURE_CONTEXT_SWITCHES */
 
-static int f_sched_drop(struct event_filler_arguments *args)
+int f_sched_drop(struct event_filler_arguments *args)
 {
 	int res;
 
 	/*
-	 * next
+	 * ratio
 	 */
 	res = val_to_ring(args, args->consumer->sampling_ratio, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -4071,88 +3265,7 @@ static int f_sched_drop(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline u8 fcntl_cmd_to_scap(unsigned long cmd)
-{
-	switch (cmd) {
-	case F_DUPFD:
-		return PPM_FCNTL_F_DUPFD;
-	case F_GETFD:
-		return PPM_FCNTL_F_GETFD;
-	case F_SETFD:
-		return PPM_FCNTL_F_SETFD;
-	case F_GETFL:
-		return PPM_FCNTL_F_GETFL;
-	case F_SETFL:
-		return PPM_FCNTL_F_SETFL;
-	case F_GETLK:
-		return PPM_FCNTL_F_GETLK;
-	case F_SETLK:
-		return PPM_FCNTL_F_SETLK;
-	case F_SETLKW:
-		return PPM_FCNTL_F_SETLKW;
-	case F_SETOWN:
-		return PPM_FCNTL_F_SETOWN;
-	case F_GETOWN:
-		return PPM_FCNTL_F_GETOWN;
-	case F_SETSIG:
-		return PPM_FCNTL_F_SETSIG;
-	case F_GETSIG:
-		return PPM_FCNTL_F_GETSIG;
-#ifndef CONFIG_64BIT
-	case F_GETLK64:
-		return PPM_FCNTL_F_GETLK64;
-	case F_SETLK64:
-		return PPM_FCNTL_F_SETLK64;
-	case F_SETLKW64:
-		return PPM_FCNTL_F_SETLKW64;
-#endif
-#ifdef F_SETOWN_EX
-	case F_SETOWN_EX:
-		return PPM_FCNTL_F_SETOWN_EX;
-#endif
-#ifdef F_GETOWN_EX
-	case F_GETOWN_EX:
-		return PPM_FCNTL_F_GETOWN_EX;
-#endif
-	case F_SETLEASE:
-		return PPM_FCNTL_F_SETLEASE;
-	case F_GETLEASE:
-		return PPM_FCNTL_F_GETLEASE;
-	case F_CANCELLK:
-		return PPM_FCNTL_F_CANCELLK;
-#ifdef F_DUPFD_CLOEXEC
-	case F_DUPFD_CLOEXEC:
-		return PPM_FCNTL_F_DUPFD_CLOEXEC;
-#endif
-	case F_NOTIFY:
-		return PPM_FCNTL_F_NOTIFY;
-#ifdef F_SETPIPE_SZ
-	case F_SETPIPE_SZ:
-		return PPM_FCNTL_F_SETPIPE_SZ;
-#endif
-#ifdef F_GETPIPE_SZ
-	case F_GETPIPE_SZ:
-		return PPM_FCNTL_F_GETPIPE_SZ;
-#endif
-#ifdef F_OFD_GETLK
-	case F_OFD_GETLK:
-		return PPM_FCNTL_F_OFD_GETLK;
-#endif
-#ifdef F_OFD_SETLK
-	case F_OFD_SETLK:
-		return PPM_FCNTL_F_OFD_SETLK;
-#endif
-#ifdef F_OFD_SETLKW
-	case F_OFD_SETLKW:
-		return PPM_FCNTL_F_OFD_SETLKW;
-#endif
-	default:
-		ASSERT(false);
-		return PPM_FCNTL_UNKNOWN;
-	}
-}
-
-static int f_sched_fcntl_e(struct event_filler_arguments *args)
+int f_sys_fcntl_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -4174,133 +3287,6 @@ static int f_sched_fcntl_e(struct event_filler_arguments *args)
 		return res;
 
 	return add_sentinel(args);
-}
-
-static inline u16 ptrace_requests_to_scap(unsigned long req)
-{
-	switch (req) {
-#ifdef PTRACE_SINGLEBLOCK
-	case PTRACE_SINGLEBLOCK:
-		return PPM_PTRACE_SINGLEBLOCK;
-#endif
-#ifdef PTRACE_SYSEMU_SINGLESTEP
-	case PTRACE_SYSEMU_SINGLESTEP:
-		return PPM_PTRACE_SYSEMU_SINGLESTEP;
-#endif
-
-#ifdef PTRACE_SYSEMU
-	case PTRACE_SYSEMU:
-		return PPM_PTRACE_SYSEMU;
-#endif
-#ifdef PTRACE_ARCH_PRCTL
-	case PTRACE_ARCH_PRCTL:
-		return PPM_PTRACE_ARCH_PRCTL;
-#endif
-#ifdef PTRACE_SET_THREAD_AREA
-	case PTRACE_SET_THREAD_AREA:
-		return PPM_PTRACE_SET_THREAD_AREA;
-#endif
-#ifdef PTRACE_GET_THREAD_AREA
-	case PTRACE_GET_THREAD_AREA:
-		return PPM_PTRACE_GET_THREAD_AREA;
-#endif
-#ifdef PTRACE_OLDSETOPTIONS
-	case PTRACE_OLDSETOPTIONS:
-		return PPM_PTRACE_OLDSETOPTIONS;
-#endif
-#ifdef PTRACE_SETFPXREGS
-	case PTRACE_SETFPXREGS:
-		return PPM_PTRACE_SETFPXREGS;
-#endif
-#ifdef PTRACE_GETFPXREGS
-	case PTRACE_GETFPXREGS:
-		return PPM_PTRACE_GETFPXREGS;
-#endif
-#ifdef PTRACE_SETFPREGS
-	case PTRACE_SETFPREGS:
-		return PPM_PTRACE_SETFPREGS;
-#endif
-#ifdef PTRACE_GETFPREGS
-	case PTRACE_GETFPREGS:
-		return PPM_PTRACE_GETFPREGS;
-#endif
-#ifdef PTRACE_SETREGS
-	case PTRACE_SETREGS:
-		return PPM_PTRACE_SETREGS;
-#endif
-#ifdef PTRACE_GETREGS
-	case PTRACE_GETREGS:
-		return PPM_PTRACE_GETREGS;
-#endif
-#ifdef PTRACE_SETSIGMASK
-	case PTRACE_SETSIGMASK:
-		return PPM_PTRACE_SETSIGMASK;
-#endif
-#ifdef PTRACE_GETSIGMASK
-	case PTRACE_GETSIGMASK:
-		return PPM_PTRACE_GETSIGMASK;
-#endif
-#ifdef PTRACE_PEEKSIGINFO
-	case PTRACE_PEEKSIGINFO:
-		return PPM_PTRACE_PEEKSIGINFO;
-#endif
-#ifdef PTRACE_LISTEN
-	case PTRACE_LISTEN:
-		return PPM_PTRACE_LISTEN;
-#endif
-#ifdef PTRACE_INTERRUPT
-	case PTRACE_INTERRUPT:
-		return PPM_PTRACE_INTERRUPT;
-#endif
-#ifdef PTRACE_SEIZE
-	case PTRACE_SEIZE:
-		return PPM_PTRACE_SEIZE;
-#endif
-#ifdef PTRACE_SETREGSET
-	case PTRACE_SETREGSET:
-		return PPM_PTRACE_SETREGSET;
-#endif
-#ifdef PTRACE_GETREGSET
-	case PTRACE_GETREGSET:
-		return PPM_PTRACE_GETREGSET;
-#endif
-	case PTRACE_SETSIGINFO:
-		return PPM_PTRACE_SETSIGINFO;
-	case PTRACE_GETSIGINFO:
-		return PPM_PTRACE_GETSIGINFO;
-	case PTRACE_GETEVENTMSG:
-		return PPM_PTRACE_GETEVENTMSG;
-	case PTRACE_SETOPTIONS:
-		return PPM_PTRACE_SETOPTIONS;
-	case PTRACE_SYSCALL:
-		return PPM_PTRACE_SYSCALL;
-	case PTRACE_DETACH:
-		return PPM_PTRACE_DETACH;
-	case PTRACE_ATTACH:
-		return PPM_PTRACE_ATTACH;
-	case PTRACE_SINGLESTEP:
-		return PPM_PTRACE_SINGLESTEP;
-	case PTRACE_KILL:
-		return PPM_PTRACE_KILL;
-	case PTRACE_CONT:
-		return PPM_PTRACE_CONT;
-	case PTRACE_POKEUSR:
-		return PPM_PTRACE_POKEUSR;
-	case PTRACE_POKEDATA:
-		return PPM_PTRACE_POKEDATA;
-	case PTRACE_POKETEXT:
-		return PPM_PTRACE_POKETEXT;
-	case PTRACE_PEEKUSR:
-		return PPM_PTRACE_PEEKUSR;
-	case PTRACE_PEEKDATA:
-		return PPM_PTRACE_PEEKDATA;
-	case PTRACE_PEEKTEXT:
-		return PPM_PTRACE_PEEKTEXT;
-	case PTRACE_TRACEME:
-		return PPM_PTRACE_TRACEME;
-	default:
-		return PPM_PTRACE_UNKNOWN;
-	}
 }
 
 static inline int parse_ptrace_addr(struct event_filler_arguments *args, u16 request)
@@ -4366,7 +3352,7 @@ static inline int parse_ptrace_data(struct event_filler_arguments *args, u16 req
 	return val_to_ring(args, dst, 0, false, idx);
 }
 
-static int f_sys_ptrace_e(struct event_filler_arguments *args)
+int f_sys_ptrace_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -4390,7 +3376,7 @@ static int f_sys_ptrace_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_ptrace_x(struct event_filler_arguments *args)
+int f_sys_ptrace_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int64_t retval;
@@ -4434,7 +3420,7 @@ static int f_sys_ptrace_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args)
+int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args)
 {
 	int64_t retval;
 	int res = 0;
@@ -4478,95 +3464,7 @@ static int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static u32 prot_flags_to_scap(int prot)
-{
-	u32 res = 0;
-
-	if (prot & PROT_READ)
-		res |= PPM_PROT_READ;
-
-	if (prot & PROT_WRITE)
-		res |= PPM_PROT_WRITE;
-
-	if (prot & PROT_EXEC)
-		res |= PPM_PROT_EXEC;
-
-	if (prot & PROT_SEM)
-		res |= PPM_PROT_SEM;
-
-	if (prot & PROT_GROWSDOWN)
-		res |= PPM_PROT_GROWSDOWN;
-
-	if (prot & PROT_GROWSUP)
-		res |= PPM_PROT_GROWSUP;
-
-#ifdef PROT_SAO
-	if (prot & PROT_SAO)
-		res |= PPM_PROT_SAO;
-#endif
-
-	return res;
-}
-
-static u32 mmap_flags_to_scap(int flags)
-{
-	u32 res = 0;
-
-	if (flags & MAP_SHARED)
-		res |= PPM_MAP_SHARED;
-
-	if (flags & MAP_PRIVATE)
-		res |= PPM_MAP_PRIVATE;
-
-	if (flags & MAP_FIXED)
-		res |= PPM_MAP_FIXED;
-
-	if (flags & MAP_ANONYMOUS)
-		res |= PPM_MAP_ANONYMOUS;
-
-#ifdef MAP_32BIT
-	if (flags & MAP_32BIT)
-		res |= PPM_MAP_32BIT;
-#endif
-
-#ifdef MAP_RENAME
-	if (flags & MAP_RENAME)
-		res |= PPM_MAP_RENAME;
-#endif
-
-	if (flags & MAP_NORESERVE)
-		res |= PPM_MAP_NORESERVE;
-
-	if (flags & MAP_POPULATE)
-		res |= PPM_MAP_POPULATE;
-
-	if (flags & MAP_NONBLOCK)
-		res |= PPM_MAP_NONBLOCK;
-
-	if (flags & MAP_GROWSDOWN)
-		res |= PPM_MAP_GROWSDOWN;
-
-	if (flags & MAP_DENYWRITE)
-		res |= PPM_MAP_DENYWRITE;
-
-	if (flags & MAP_EXECUTABLE)
-		res |= PPM_MAP_EXECUTABLE;
-
-#ifdef MAP_INHERIT
-	if (flags & MAP_INHERIT)
-		res |= PPM_MAP_INHERIT;
-#endif
-
-	if (flags & MAP_FILE)
-		res |= PPM_MAP_FILE;
-
-	if (flags & MAP_LOCKED)
-		res |= PPM_MAP_LOCKED;
-
-	return res;
-}
-
-static int f_sys_mmap_e(struct event_filler_arguments *args)
+int f_sys_mmap_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -4622,7 +3520,7 @@ static int f_sys_mmap_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_renameat_x(struct event_filler_arguments *args)
+int f_sys_renameat_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -4676,7 +3574,7 @@ static int f_sys_renameat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_symlinkat_x(struct event_filler_arguments *args)
+int f_sys_symlinkat_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -4718,7 +3616,7 @@ static int f_sys_symlinkat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_procexit_e(struct event_filler_arguments *args)
+int f_sys_procexit_e(struct event_filler_arguments *args)
 {
 	int res;
 
@@ -4737,7 +3635,7 @@ static int f_sys_procexit_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_sendfile_e(struct event_filler_arguments *args)
+int f_sys_sendfile_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -4795,7 +3693,7 @@ static int f_sys_sendfile_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_sendfile_x(struct event_filler_arguments *args)
+int f_sys_sendfile_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -4838,93 +3736,7 @@ static int f_sys_sendfile_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline uint8_t quotactl_type_to_scap(unsigned long cmd)
-{
-	switch (cmd & SUBCMDMASK) {
-	case USRQUOTA:
-		return PPM_USRQUOTA;
-	case GRPQUOTA:
-		return PPM_GRPQUOTA;
-	}
-	return 0;
-}
-
-static inline uint16_t quotactl_cmd_to_scap(unsigned long cmd)
-{
-	uint16_t res;
-
-	switch (cmd >> SUBCMDSHIFT) {
-	case Q_SYNC:
-		res = PPM_Q_SYNC;
-		break;
-	case Q_QUOTAON:
-		res = PPM_Q_QUOTAON;
-		break;
-	case Q_QUOTAOFF:
-		res = PPM_Q_QUOTAOFF;
-		break;
-	case Q_GETFMT:
-		res = PPM_Q_GETFMT;
-		break;
-	case Q_GETINFO:
-		res = PPM_Q_GETINFO;
-		break;
-	case Q_SETINFO:
-		res = PPM_Q_SETINFO;
-		break;
-	case Q_GETQUOTA:
-		res = PPM_Q_GETQUOTA;
-		break;
-	case Q_SETQUOTA:
-		res = PPM_Q_SETQUOTA;
-		break;
-	/*
-	 *  XFS specific
-	 */
-	case Q_XQUOTAON:
-		res = PPM_Q_XQUOTAON;
-		break;
-	case Q_XQUOTAOFF:
-		res = PPM_Q_XQUOTAOFF;
-		break;
-	case Q_XGETQUOTA:
-		res = PPM_Q_XGETQUOTA;
-		break;
-	case Q_XSETQLIM:
-		res = PPM_Q_XSETQLIM;
-		break;
-	case Q_XGETQSTAT:
-		res = PPM_Q_XGETQSTAT;
-		break;
-	case Q_XQUOTARM:
-		res = PPM_Q_XQUOTARM;
-		break;
-	case Q_XQUOTASYNC:
-		res = PPM_Q_XQUOTASYNC;
-		break;
-	default:
-		res = 0;
-	}
-	return res;
-}
-
-static inline uint8_t quotactl_fmt_to_scap(unsigned long fmt)
-{
-	switch (fmt) {
-	case QFMT_VFS_OLD:
-		return PPM_QFMT_VFS_OLD;
-	case QFMT_VFS_V0:
-		return PPM_QFMT_VFS_V0;
-#ifdef QFMT_VFS_V1
-	case QFMT_VFS_V1:
-		return PPM_QFMT_VFS_V1;
-#endif
-	default:
-		return PPM_QFMT_NOT_USED;
-	}
-}
-
-static int f_sys_quotactl_e(struct event_filler_arguments *args)
+int f_sys_quotactl_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -4980,7 +3792,7 @@ static int f_sys_quotactl_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_quotactl_x(struct event_filler_arguments *args)
+int f_sys_quotactl_x(struct event_filler_arguments *args)
 {
 	unsigned long val, len;
 	int res;
@@ -5156,7 +3968,7 @@ static int f_sys_quotactl_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_sysdigevent_e(struct event_filler_arguments *args)
+int f_sys_sysdigevent_e(struct event_filler_arguments *args)
 {
 	int res;
 
@@ -5177,7 +3989,7 @@ static int f_sys_sysdigevent_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args)
+int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val, len;
@@ -5239,26 +4051,7 @@ static int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline u32 flock_flags_to_scap(unsigned long flags)
-{
-	u32 res = 0;
-
-	if (flags & LOCK_EX)
-		res |= PPM_LOCK_EX;
-
-	if (flags & LOCK_SH)
-		res |= PPM_LOCK_SH;
-
-	if (flags & LOCK_UN)
-		res |= PPM_LOCK_UN;
-
-	if (flags & LOCK_NB)
-		res |= PPM_LOCK_NB;
-
-	return res;
-}
-
-static int f_sys_flock_e(struct event_filler_arguments *args)
+int f_sys_flock_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -5278,7 +4071,7 @@ static int f_sys_flock_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_setns_e(struct event_filler_arguments *args)
+int f_sys_setns_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -5304,7 +4097,7 @@ static int f_sys_setns_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_unshare_e(struct event_filler_arguments *args)
+int f_sys_unshare_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -5323,7 +4116,7 @@ static int f_sys_unshare_e(struct event_filler_arguments *args)
 }
 
 #ifdef CAPTURE_SIGNAL_DELIVERIES
-static int f_sys_signaldeliver_e(struct event_filler_arguments *args)
+int f_sys_signaldeliver_e(struct event_filler_arguments *args)
 {
 	int res;
 
@@ -5353,41 +4146,7 @@ static int f_sys_signaldeliver_e(struct event_filler_arguments *args)
 #endif
 
 #ifdef CAPTURE_PAGE_FAULTS
-static inline u32 pf_flags_to_scap(unsigned long flags)
-{
-	u32 res = 0;
-
-	/* Page fault error codes don't seem to be clearly defined in header
-	 * files througout the kernel except in some emulation modes (e.g. kvm)
-	 * which we can't assume to exist, so I just took the definitions from
-	 * the x86 manual. If we end up supporting another arch for page faults,
-	 * refactor this.
-	 */
-	if (flags & 0x1)
-		res |= PPM_PF_PROTECTION_VIOLATION;
-	else
-		res |= PPM_PF_PAGE_NOT_PRESENT;
-
-	if (flags & 0x2)
-		res |= PPM_PF_WRITE_ACCESS;
-	else
-		res |= PPM_PF_READ_ACCESS;
-
-	if (flags & 0x4)
-		res |= PPM_PF_USER_FAULT;
-	else
-		res |= PPM_PF_SUPERVISOR_FAULT;
-
-	if (flags & 0x8)
-		res |= PPM_PF_RESERVED_PAGE;
-
-	if (flags & 0x10)
-		res |= PPM_PF_INSTRUCTION_FETCH;
-
-	return res;
-}
-
-static int f_sys_pagefault_e(struct event_filler_arguments *args)
+int f_sys_pagefault_e(struct event_filler_arguments *args)
 {
 	int res;
 
@@ -5407,7 +4166,7 @@ static int f_sys_pagefault_e(struct event_filler_arguments *args)
 }
 #endif
 
-static int f_cpu_hotplug_e(struct event_filler_arguments *args)
+int f_cpu_hotplug_e(struct event_filler_arguments *args)
 {
 	int res;
 
@@ -5428,36 +4187,7 @@ static int f_cpu_hotplug_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline u16 semop_flags_to_scap(short flags)
-{
-	u16 res = 0;
-
-	if (flags & IPC_NOWAIT)
-		res |= PPM_IPC_NOWAIT;
-
-	if (flags & SEM_UNDO)
-		res |= PPM_SEM_UNDO;
-
-	return res;
-}
-
-static int f_sys_semop_e(struct event_filler_arguments *args)
-{
-	unsigned long val;
-	int res;
-
-	/*
-	 * semid
-	 */
-	syscall_get_arguments(current, args->regs, 0, 1, &val);
-	res = val_to_ring(args, val, 0, true, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	return add_sentinel(args);
-}
-
-static int f_sys_semop_x(struct event_filler_arguments *args)
+int f_sys_semop_x(struct event_filler_arguments *args)
 {
 	unsigned long nsops;
 	int res;
@@ -5516,20 +4246,7 @@ static int f_sys_semop_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline u32 semget_flags_to_scap(unsigned flags)
-{
-	u32 res = 0;
-
-	if (flags & IPC_CREAT)
-		res |= PPM_IPC_CREAT;
-
-	if (flags & IPC_EXCL)
-		res |= PPM_IPC_EXCL;
-
-	return res;
-}
-
-static int f_sys_semget_e(struct event_filler_arguments *args)
+int f_sys_semget_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -5561,27 +4278,7 @@ static int f_sys_semget_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline u32 semctl_cmd_to_scap(unsigned cmd)
-{
-	switch (cmd) {
-	case IPC_STAT: return PPM_IPC_STAT;
-	case IPC_SET: return PPM_IPC_SET;
-	case IPC_RMID: return PPM_IPC_RMID;
-	case IPC_INFO: return PPM_IPC_INFO;
-	case SEM_INFO: return PPM_SEM_INFO;
-	case SEM_STAT: return PPM_SEM_STAT;
-	case GETALL: return PPM_GETALL;
-	case GETNCNT: return PPM_GETNCNT;
-	case GETPID: return PPM_GETPID;
-	case GETVAL: return PPM_GETVAL;
-	case GETZCNT: return PPM_GETZCNT;
-	case SETALL: return PPM_SETALL;
-	case SETVAL: return PPM_SETVAL;
-	}
-	return 0;
-}
-
-static int f_sys_semctl_e(struct event_filler_arguments *args)
+int f_sys_semctl_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -5624,41 +4321,7 @@ static int f_sys_semctl_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_semctl_x(struct event_filler_arguments *args)
-{
-	int res;
-	int64_t retval;
-
-	/*
-	 * return value
-	 */
-	retval = (int64_t)syscall_get_return_value(current, args->regs);
-	res = val_to_ring(args, retval, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	return add_sentinel(args);
-}
-
-static inline u32 access_flags_to_scap(unsigned flags)
-{
-	u32 res = 0;
-
-	if (flags == 0/*F_OK*/) {
-		res = PPM_F_OK;
-	} else {
-		if (flags & MAY_EXEC)
-			res |= PPM_X_OK;
-		if (flags & MAY_READ)
-			res |= PPM_R_OK;
-		if (flags & MAY_WRITE)
-			res |= PPM_W_OK;
-	}
-
-	return res;
-}
-
-static int f_sys_access_e(struct event_filler_arguments *args)
+int f_sys_access_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -5674,32 +4337,7 @@ static int f_sys_access_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_access_x(struct event_filler_arguments *args)
-{
-	unsigned long val;
-	int res;
-	int64_t retval;
-
-	/*
-	 * return value
-	 */
-	retval = (int64_t)syscall_get_return_value(current, args->regs);
-	res = val_to_ring(args, retval, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	/*
-	 * pathname
-	 */
-	syscall_get_arguments(current, args->regs, 0, 1, &val);
-	res = val_to_ring(args, val, 0, true, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	return add_sentinel(args);
-}
-
-static int f_sys_bpf_x(struct event_filler_arguments *args)
+int f_sys_bpf_x(struct event_filler_arguments *args)
 {
 	int64_t retval;
 	unsigned long cmd;
@@ -5738,7 +4376,7 @@ static int f_sys_bpf_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_mkdirat_x(struct event_filler_arguments *args)
+int f_sys_mkdirat_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -5780,20 +4418,7 @@ static int f_sys_mkdirat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline u32 chown_chmod_flags_to_scap(unsigned flags)
-{
-	u32 res = 0;
-
-	if (flags & PPM_AT_EMPTY_PATH)
-		res |= PPM_AT_EMPTY_PATH;
-
-	if (flags & PPM_AT_SYMLINK_NOFOLLOW)
-		res |= PPM_AT_SYMLINK_NOFOLLOW;
-
-	return res;
-}
-
-static int f_sys_fchownat_e(struct event_filler_arguments *args)
+int f_sys_fchownat_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -5811,23 +4436,23 @@ static int f_sys_fchownat_e(struct event_filler_arguments *args)
 
 	/*
 	 * owner
- 	*/
+	 */
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
 	/*
- 	* group
- 	*/
+	 * group
+	 */
 	syscall_get_arguments(current, args->regs, 3, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
 	/*
- 	* flags
- 	*/
+	 * flags
+	 */
 	syscall_get_arguments(current, args->regs, 4, 1, &val);
 	res = val_to_ring(args, chown_chmod_flags_to_scap(val), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -5836,7 +4461,7 @@ static int f_sys_fchownat_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_fchmodat_e(struct event_filler_arguments *args)
+int f_sys_fchmodat_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -5847,7 +4472,6 @@ static int f_sys_fchmodat_e(struct event_filler_arguments *args)
 	syscall_get_arguments(current, args->regs, 0, 1, &val);
 	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
-
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5861,8 +4485,8 @@ static int f_sys_fchmodat_e(struct event_filler_arguments *args)
 		return res;
 
 	/*
- 	* flags
- 	*/
+	 * flags
+	 */
 	syscall_get_arguments(current, args->regs, 3, 1, &val);
 	res = val_to_ring(args, chown_chmod_flags_to_scap(val), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
