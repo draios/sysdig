@@ -1567,7 +1567,6 @@ FILLER(proc_startupdate_3, true)
 		kgid_t egid;
 		pid_t vtid;
 		pid_t vpid;
-        kuid_t loginuid;
 
 		/*
 		 * flags
@@ -1628,6 +1627,7 @@ FILLER(proc_startupdate_3, true)
 		 * execve-only parameters
 		 */
 		long env_len = 0;
+		kuid_t loginuid;
 		int tty;
 
 		/*
@@ -1696,7 +1696,8 @@ FILLER(proc_startupdate_3, true)
 		 * loginuid
 		 */
 		/* TODO: implement user namespace support */
-		res = bpf_val_to_ring_type(data, task->loginuid.val, PT_INT32);
+		loginuid = _READ(task->loginuid);
+		res = bpf_val_to_ring_type(data, loginuid.val, PT_INT32);
 		if (res != PPM_SUCCESS)
 			return res;
 	}
