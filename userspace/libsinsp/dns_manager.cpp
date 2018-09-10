@@ -47,6 +47,9 @@ void sinsp_dns_resolver::refresh(uint64_t erase_timeout, uint64_t base_refresh_t
 					refreshed_info.m_timeout = base_refresh_timeout;
 					refreshed_info.m_last_resolve_ts = info.m_last_resolve_ts = ts;
 
+					// dns_info::operator!= will check if some
+					// v4 or v6 addresses are changed from the
+					// last resolution
 					if(refreshed_info != info)
 					{
 						info = refreshed_info;
