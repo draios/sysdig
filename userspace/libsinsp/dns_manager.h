@@ -112,7 +112,7 @@ private:
 	// low, since we will almost never do an erase.
 	std::mutex m_erase_mutex;
 
-	// used to let m_resolver when to terminate
+	// used to let m_resolver know when to terminate
 	std::promise<void> m_exit_signal;
 
 	std::thread *m_resolver;
