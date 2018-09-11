@@ -1627,6 +1627,7 @@ FILLER(proc_startupdate_3, true)
 		 * execve-only parameters
 		 */
 		long env_len = 0;
+		kuid_t loginuid;
 		int tty;
 
 		/*
@@ -1688,6 +1689,17 @@ FILLER(proc_startupdate_3, true)
 		 * pgid
 		 */
 		res = bpf_val_to_ring_type(data, bpf_task_pgrp_vnr(task), PT_PID);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		/*
+		 * loginuid
+		 */
+		/* TODO: implement user namespace support */
+		loginuid = _READ(task->loginuid);
+		res = bpf_val_to_ring_type(data, loginuid.val, PT_INT32);
+		if (res != PPM_SUCCESS)
+			return res;
 	}
 
 	return res;
@@ -1833,12 +1845,18 @@ FILLER(sys_generic, true)
 	return res;
 }
 
-FILLER(sys_openat_e, true)
+FILLER(sys_openat_x, true)
 {
 	unsigned long flags;
 	unsigned long val;
 	unsigned long mode;
+	long retval;
 	int res;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
 
 	/*
 	 * dirfd
@@ -3659,6 +3677,64 @@ FILLER(sys_mkdirat_x, true)
 	 */
 	val = bpf_syscall_get_argument(data, 2);
 	res = bpf_val_to_ring(data, val);
+
+	return res;
+}
+
+FILLER(sys_linkat_x, true)
+{
+	unsigned long val;
+	long retval;
+	int res;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * olddir
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * oldpath
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * newdir
+	 */
+	val = bpf_syscall_get_argument(data, 2);
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * newpath
+	 */
+	val = bpf_syscall_get_argument(data, 3);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * flags
+	 */
+	val = bpf_syscall_get_argument(data, 4);
+	res = bpf_val_to_ring(data, linkat_flags_to_scap(val));
 
 	return res;
 }

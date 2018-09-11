@@ -66,8 +66,8 @@ function on_init()
 	sysdig.set_snaplen(1000)
 
 	-- set the filter
-	chisel.set_filter("evt.is_io=true and fd.type=ipv4 and fd.ip=" .. addr)
-	
+	chisel.set_filter("evt.is_io=true and (fd.type=ipv4 or fd.type=ipv6) and fd.ip=" .. addr)
+
 	return true
 end
 

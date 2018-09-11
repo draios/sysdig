@@ -10,6 +10,7 @@ if(NOT WIN32 AND NOT APPLE)
 	include_directories("${CURSES_INCLUDE_DIR}")
 	include_directories("${JQ_INCLUDE}")
 	include_directories("${OPENSSL_INCLUDE_DIR}")
+	include_directories("${TBB_INCLUDE}")
 endif()
 
 add_library(sinsp STATIC
@@ -24,6 +25,7 @@ add_library(sinsp STATIC
 	cursesui.cpp
 	event.cpp
 	eventformatter.cpp
+	dns_manager.cpp
 	docker.cpp
 	dumper.cpp
 	fdinfo.cpp
@@ -72,6 +74,7 @@ add_library(sinsp STATIC
 	prefix_search.cpp
 	protodecoder.cpp
 	threadinfo.cpp
+	tuples.cpp
 	sinsp.cpp
 	stats.cpp
 	table.cpp
@@ -101,12 +104,16 @@ if(NOT WIN32)
 	if(USE_BUNDLED_CURL)
 		add_dependencies(sinsp curl)
 	endif()
+	if(USE_BUNDLED_TBB)
+		add_dependencies(sinsp tbb)
+	endif()
 
 	if(NOT APPLE)
 		target_link_libraries(sinsp
 			"${JQ_LIB}"
 			"${B64_LIB}"
 			"${CURL_LIBRARIES}"
+			"${TBB_LIB}"
 			rt
 			anl)
 	endif()

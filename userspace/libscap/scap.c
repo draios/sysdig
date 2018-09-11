@@ -53,9 +53,14 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 static const char *SYSDIG_BPF_PROBE_ENV = "SYSDIG_BPF_PROBE";
 
+//
+// Probe version string size
+//
+#define SCAP_PROBE_VERSION_SIZE 32
+
 const char* scap_getlasterr(scap_t* handle)
 {
-	return handle->m_lasterr;
+	return handle ? handle->m_lasterr : "null scap handle";
 }
 
 static int32_t copy_comms(scap_t *handle, const char **suppressed_comms)
@@ -423,7 +428,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 
 	return handle;
 }
-#endif // HAS_CAPTURE
+#endif // !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 
 scap_t* scap_open_offline_int(gzFile gzfile,
 			      char *error,
@@ -469,6 +474,8 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 	handle->m_whh = NULL;
 #endif
 	handle->m_bpf = false;
+	handle->m_suppressed_comms = NULL;
+	handle->m_suppressed_tids = NULL;
 
 	handle->m_file_evt_buf = (char*)malloc(FILE_READ_BUF_SIZE);
 	if(!handle->m_file_evt_buf)
@@ -518,9 +525,7 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 	snprintf(handle->m_fake_kernel_proc.exe, SCAP_MAX_PATH_SIZE, "kernel");
 	handle->m_fake_kernel_proc.args[0] = 0;
 
-	handle->m_suppressed_comms = NULL;
 	handle->m_num_suppressed_comms = 0;
-	handle->m_suppressed_tids = NULL;
 	handle->m_num_suppressed_evts = 0;
 
 	if ((*rc = copy_comms(handle, suppressed_comms)) != SCAP_SUCCESS)
@@ -1140,6 +1145,7 @@ static int32_t scap_next_nodriver(scap_t* handle, OUT scap_evt** pevent, OUT uin
 	evt.len = 0;
 	evt.tid = -1;
 	evt.type = PPME_SYSDIGEVENT_X;
+	evt.nparams = 0;
 
 	usleep(100000);
 
@@ -1573,6 +1579,11 @@ int64_t scap_get_readfile_offset(scap_t* handle)
 #ifndef CYGWING_AGENT
 static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event_id)
 {
+	if (handle == NULL)
+	{
+		return SCAP_FAILURE;
+	}
+
 	//
 	// Not supported on files
 	//
@@ -1613,7 +1624,9 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 	{
 		if(ioctl(handle->m_devs[0].m_fd, op, event_id))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) failed", __FUNCTION__, op);
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE,
+				 "%s(%d) failed for event type %d",
+				 __FUNCTION__, op, event_id);
 			ASSERT(false);
 			return SCAP_FAILURE;
 		}

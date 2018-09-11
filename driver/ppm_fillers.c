@@ -36,6 +36,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/quota.h>
 #include <linux/tty.h>
 #include <linux/uaccess.h>
+#include <linux/audit.h>
 #ifdef CONFIG_CGROUPS
 #include <linux/cgroup.h>
 #endif
@@ -988,6 +989,20 @@ cgroups_error:
 #else
 		res = val_to_ring(args, (int64_t)process_group(current), 0, false, 0);
 #endif
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+
+		/*
+	 	* loginuid
+	 	*/
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
+		val = from_kuid(current_user_ns(), audit_get_loginuid(current));
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+		val = audit_get_loginuid(current);
+#else
+		val = audit_get_loginuid(current->audit_context);
+#endif
+		res = val_to_ring(args, val, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 	}
@@ -2404,12 +2419,18 @@ int f_sys_mount_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_openat_e(struct event_filler_arguments *args)
+int f_sys_openat_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	unsigned long flags;
 	unsigned long modes;
 	int res;
+	int64_t retval;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
 
 	/*
 	 * dirfd
@@ -2488,6 +2509,70 @@ int f_sys_unlinkat_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 2, 1, &val);
 	res = val_to_ring(args, unlinkat_flags_to_scap(val), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+int f_sys_linkat_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	unsigned long flags;
+	int res;
+	int64_t retval;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * olddir
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * oldpath
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * newdir
+	 */
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * newpath
+	 */
+	syscall_get_arguments(current, args->regs, 3, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * Flags
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 */
+	syscall_get_arguments(current, args->regs, 4, 1, &flags);
+	res = val_to_ring(args, linkat_flags_to_scap(flags), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

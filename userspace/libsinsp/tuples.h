@@ -18,7 +18,9 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
-/** @defgroup state State management 
+#include <stdint.h>
+
+/** @defgroup state State management
  *  @{
  */
 
@@ -47,15 +49,28 @@ typedef struct ipv4net
 	uint32_t m_netmask; ///< Subnet mask
 }ipv4net;
 
+typedef struct _ipv6addr
+{
+	uint32_t m_b[4];
+
+	bool operator==(const _ipv6addr &other) const;
+	bool operator!=(const _ipv6addr &other) const;
+	bool operator<(const _ipv6addr &other) const;
+	bool in_subnet(const _ipv6addr &other) const;
+
+	static struct _ipv6addr empty_address;
+}ipv6addr;
+
+
 /*!
 	\brief An IPv6 tuple. 
 */
 typedef union _ipv6tuple
 {
-	struct
-	{
-		uint32_t m_sip[4]; ///< source (i.e. client) address.
-		uint32_t m_dip[4]; ///< destination (i.e. server) address.
+	struct {
+
+		ipv6addr m_sip; ///< source (i.e. client) address.
+		ipv6addr m_dip; ///< destination (i.e. server) address.
 		uint16_t m_sport; ///< source (i.e. client) port.
 		uint16_t m_dport; ///< destination (i.e. server) port.
 		uint8_t m_l4proto; ///< Layer 4 protocol (e.g. TCP, UDP...)
@@ -78,7 +93,7 @@ typedef struct ipv4serverinfo
 */
 typedef struct ipv6serverinfo
 {
-	uint32_t m_ip[4];  ///< address
+	ipv6addr m_ip;  ///< address
 	uint16_t m_port;  ///< port
 	uint8_t m_l4proto;  ///< IP protocol
 } ipv6serverinfo;

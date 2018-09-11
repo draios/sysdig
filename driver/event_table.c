@@ -123,12 +123,12 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_MKDIR_X */{"mkdir", EC_FILE, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_RMDIR_E */{"rmdir", EC_FILE, EF_NONE, 1, {{"path", PT_FSPATH, PF_NA} } },
 	/* PPME_SYSCALL_RMDIR_X */{"rmdir", EC_FILE, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
-	/* PPME_SYSCALL_OPENAT_E */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 4, {{"dirfd", PT_FD, PF_DEC}, {"name", PT_CHARBUF, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_OCT} } },
-	/* PPME_SYSCALL_OPENAT_X */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 1, {{"fd", PT_FD, PF_DEC} } },
-	/* PPME_SYSCALL_LINK_E */{"link", EC_FILE, EF_NONE, 2, {{"oldpath", PT_FSPATH, PF_NA}, {"newpath", PT_FSPATH, PF_NA} } },
-	/* PPME_SYSCALL_LINK_X */{"link", EC_FILE, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
-	/* PPME_SYSCALL_LINKAT_E */{"linkat", EC_FILE, EF_NONE, 4, {{"olddir", PT_FD, PF_DEC}, {"oldpath", PT_CHARBUF, PF_NA}, {"newdir", PT_FD, PF_DEC}, {"newpath", PT_CHARBUF, PF_NA} } },
-	/* PPME_SYSCALL_LINKAT_X */{"linkat", EC_FILE, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
+	/* PPME_SYSCALL_OPENAT_E */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE | EF_OLD_VERSION, 4, {{"dirfd", PT_FD, PF_DEC}, {"name", PT_CHARBUF, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_OCT} } },
+	/* PPME_SYSCALL_OPENAT_X */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE | EF_OLD_VERSION, 1, {{"fd", PT_FD, PF_DEC} } },
+	/* PPME_SYSCALL_LINK_E */{"link", EC_FILE, EF_OLD_VERSION, 2, {{"oldpath", PT_FSPATH, PF_NA}, {"newpath", PT_FSPATH, PF_NA} } },
+	/* PPME_SYSCALL_LINK_X */{"link", EC_FILE, EF_OLD_VERSION, 1, {{"res", PT_ERRNO, PF_DEC} } },
+	/* PPME_SYSCALL_LINKAT_E */{"linkat", EC_FILE, EF_OLD_VERSION, 4, {{"olddir", PT_FD, PF_DEC}, {"oldpath", PT_CHARBUF, PF_NA}, {"newdir", PT_FD, PF_DEC}, {"newpath", PT_CHARBUF, PF_NA} } },
+	/* PPME_SYSCALL_LINKAT_X */{"linkat", EC_FILE, EF_OLD_VERSION, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_UNLINK_E */{"unlink", EC_FILE, EF_OLD_VERSION, 1, {{"path", PT_FSPATH, PF_NA} } },
 	/* PPME_SYSCALL_UNLINK_X */{"unlink", EC_FILE, EF_OLD_VERSION, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_UNLINKAT_E */{"unlinkat", EC_FILE, EF_OLD_VERSION, 2, {{"dirfd", PT_FD, PF_DEC}, {"name", PT_CHARBUF, PF_NA} } },
@@ -314,11 +314,11 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_PAGE_FAULT_E */ {"page_fault", EC_OTHER, EF_SKIPPARSERESET | EF_DROP_FALCO, 3, {{"addr", PT_UINT64, PF_HEX}, {"ip", PT_UINT64, PF_HEX}, {"error", PT_FLAGS32, PF_HEX, pf_flags} } },
 	/* PPME_PAGE_FAULT_X */ {"NA5", EC_OTHER, EF_UNUSED, 0},
 	/* PPME_SYSCALL_EXECVE_19_E */{"execve", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"filename", PT_FSPATH, PF_NA} } },
-	/* PPME_SYSCALL_EXECVE_19_X */{"execve", EC_PROCESS, EF_MODIFIES_STATE, 18, {{"res", PT_ERRNO, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_UINT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"comm", PT_CHARBUF, PF_NA}, {"cgroups", PT_BYTEBUF, PF_NA}, {"env", PT_BYTEBUF, PF_NA}, {"tty", PT_INT32, PF_DEC}, {"pgid", PT_PID, PF_DEC} } },
+	/* PPME_SYSCALL_EXECVE_19_X */{"execve", EC_PROCESS, EF_MODIFIES_STATE, 19, {{"res", PT_ERRNO, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_UINT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"comm", PT_CHARBUF, PF_NA}, {"cgroups", PT_BYTEBUF, PF_NA}, {"env", PT_BYTEBUF, PF_NA}, {"tty", PT_INT32, PF_DEC}, {"pgid", PT_PID, PF_DEC}, {"loginuid", PT_INT32, PF_DEC} } },
 	/* PPME_SYSCALL_SETPGID_E */{"setpgid", EC_PROCESS, EF_MODIFIES_STATE, 2, {{"pid", PT_PID, PF_DEC}, {"pgid", PT_PID, PF_DEC} } },
 	/* PPME_SYSCALL_SETPGID_X */{"setpgid", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"res", PT_PID, PF_DEC} } },
 	/* PPME_SYSCALL_BPF_E */{"bpf", EC_OTHER, EF_CREATES_FD, 1, {{"cmd", PT_INT64, PF_DEC} } },
-	/* PPME_SYSCALL_BPF_X */{"bpf", EC_OTHER, EF_CREATES_FD, 1, {{"res_or_fd", PT_DYN, PF_DEC, bpf_dynamic_param, PPM_BPF_IDX_MAX} }},
+	/* PPME_SYSCALL_BPF_X */{"bpf", EC_OTHER, EF_CREATES_FD, 1, {{"res_or_fd", PT_DYN, PF_DEC, bpf_dynamic_param, PPM_BPF_IDX_MAX} } },
 	/* PPME_SYSCALL_SECCOMP_E */{"seccomp", EC_OTHER, EF_NONE, 1, {{"op", PT_UINT64, PF_DEC}, {"flags", PT_UINT64, PF_HEX} } },
 	/* PPME_SYSCALL_SECCOMP_X */{"seccomp", EC_OTHER, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_UNLINK_2_E */{"unlink", EC_FILE, EF_NONE, 0},
@@ -326,5 +326,15 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_UNLINKAT_2_E */{"unlinkat", EC_FILE, EF_NONE, 0},
 	/* PPME_SYSCALL_UNLINKAT_2_X */{"unlinkat", EC_FILE, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"name", PT_FSPATH, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, unlinkat_flags} } },
 	/* PPME_SYSCALL_MKDIRAT_E */{"mkdirat", EC_FILE, EF_NONE, 0},
-	/* PPME_SYSCALL_MKDIRAT_X */{"mkdirat", EC_FILE, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"path", PT_FSPATH, PF_NA}, {"mode", PT_UINT32, PF_HEX} } }
+	/* PPME_SYSCALL_MKDIRAT_X */{"mkdirat", EC_FILE, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"path", PT_FSPATH, PF_NA}, {"mode", PT_UINT32, PF_HEX} } },
+	/* PPME_SYSCALL_OPENAT_2_E */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 0},
+	/* PPME_SYSCALL_OPENAT_2_X */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 5, {{"fd", PT_FD, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"name", PT_CHARBUF, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_OCT} } },
+	/* PPME_SYSCALL_LINK_2_E */{"link", EC_FILE, EF_NONE, 0},
+	/* PPME_SYSCALL_LINK_2_X */{"link", EC_FILE, EF_NONE, 3, {{"res", PT_ERRNO, PF_DEC}, {"oldpath", PT_FSPATH, PF_NA}, {"newpath", PT_FSPATH, PF_NA} } },
+	/* PPME_SYSCALL_LINKAT_2_E */{"linkat", EC_FILE, EF_NONE, 0},
+	/* PPME_SYSCALL_LINKAT_2_X */{"linkat", EC_FILE, EF_NONE, 6, {{"res", PT_ERRNO, PF_DEC}, {"olddir", PT_FD, PF_DEC}, {"oldpath", PT_CHARBUF, PF_NA}, {"newdir", PT_FD, PF_DEC}, {"newpath", PT_CHARBUF, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, linkat_flags} } }
+	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
+	 *     New event types are allowed only for new syscalls or new internal events.
+	 *     The number of parameters can be used to differentiate between event versions.
+	 */
 };

@@ -51,7 +51,7 @@ typedef struct _block_header
 // Must be increased every time we change the capture format
 // (e.g. most of the changes in the event table, like adding
 // a syscall)
-#define CURRENT_MINOR_VERSION	1
+#define CURRENT_MINOR_VERSION	2
 
 typedef struct _section_header_block
 {
@@ -60,6 +60,13 @@ typedef struct _section_header_block
 	uint16_t minor_version;
 	uint64_t section_length;
 }section_header_block;
+
+// NB:
+// Starting from scap version 1.2, block versions will no longer be changed.
+// New block fields must be appended and, instead of using the version, the
+// lengths of the sub blocks will be used to differentiate between versions.
+// For more infomation, look at the comments inside the various scap_read_*
+// functions.
 
 ///////////////////////////////////////////////////////////////////////////////
 // MACHINE INFO BLOCK
@@ -97,6 +104,8 @@ typedef struct _section_header_block
 
 #define PL_BLOCK_TYPE_V8		0x214
 
+#define PL_BLOCK_TYPE_V9		0x215
+
 ///////////////////////////////////////////////////////////////////////////////
 // FD LIST BLOCK
 ///////////////////////////////////////////////////////////////////////////////
@@ -104,6 +113,7 @@ typedef struct _section_header_block
 #define FDL_BLOCK_TYPE_INT		0x8001ABCD	// This is the unofficial number used before the
 											// library release. We'll keep him for a while for
 											// backward compatibility
+#define FDL_BLOCK_TYPE_V2		0x218
 
 ///////////////////////////////////////////////////////////////////////////////
 // EVENT BLOCK
@@ -112,6 +122,7 @@ typedef struct _section_header_block
 #define EV_BLOCK_TYPE_INT		0x8010ABCD	// This is the unofficial number used before the
 											// library release. We'll keep him for a while for
 											// backward compatibility
+#define EV_BLOCK_TYPE_V2		0x216
 
 ///////////////////////////////////////////////////////////////////////////////
 // INTERFACE LIST BLOCK
@@ -120,6 +131,7 @@ typedef struct _section_header_block
 #define IL_BLOCK_TYPE_INT		0x8011ABCD	// This is the unofficial number used before the
 											// library release. We'll keep him for a while for
 											// backward compatibility
+#define IL_BLOCK_TYPE_V2		0x219
 
 ///////////////////////////////////////////////////////////////////////////////
 // USER LIST BLOCK
@@ -128,11 +140,14 @@ typedef struct _section_header_block
 #define UL_BLOCK_TYPE_INT		0x8012ABCD	// This is the unofficial number used before the
 											// library release. We'll keep him for a while for
 											// backward compatibility
+#define UL_BLOCK_TYPE_V2		0x220
 
 ///////////////////////////////////////////////////////////////////////////////
 // EVENT BLOCK WITH FLAGS
 ///////////////////////////////////////////////////////////////////////////////
-#define EVF_BLOCK_TYPE	0x208
+#define EVF_BLOCK_TYPE		0x208
+
+#define EVF_BLOCK_TYPE_V2	0x217
 
 #if defined __sun
 #pragma pack()

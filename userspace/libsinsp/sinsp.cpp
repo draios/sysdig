@@ -35,6 +35,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "chisel.h"
 #include "cyclewriter.h"
 #include "protodecoder.h"
+#include "dns_manager.h"
 
 #ifndef CYGWING_AGENT
 #include "k8s_api_handler.h"
@@ -136,6 +137,7 @@ sinsp::sinsp() :
 	m_meinfo.m_piscapevt = (scap_evt*)new char[evlen];
 	m_meinfo.m_piscapevt->type = PPME_PROCINFO_E;
 	m_meinfo.m_piscapevt->len = evlen;
+	m_meinfo.m_piscapevt->nparams = 2;
 	uint16_t* lens = (uint16_t*)((char *)m_meinfo.m_piscapevt + sizeof(struct ppm_evt_hdr));
 	lens[0] = 8;
 	lens[1] = 8;
@@ -214,6 +216,7 @@ sinsp::~sinsp()
 	delete m_mesos_client;
 #ifdef HAS_CAPTURE
 	curl_global_cleanup();
+	sinsp_dns_manager::get().cleanup();
 #endif
 #endif
 }
@@ -1499,6 +1502,7 @@ threadinfo_map_t::ptr_t sinsp::get_thread_ref(int64_t tid, bool query_os_if_not_
 			newti->m_uid = 0xffffffff;
 			newti->m_gid = 0xffffffff;
 			newti->m_nchilds = 0;
+			newti->m_loginuid = 0xffffffff;
 		}
 
 		//
@@ -1717,6 +1721,23 @@ const scap_machine_info* sinsp::get_machine_info()
 const unordered_map<uint32_t, scap_userinfo*>* sinsp::get_userlist()
 {
 	return &m_userlist;
+}
+
+scap_userinfo* sinsp::get_user(uint32_t uid)
+{
+	unordered_map<uint32_t, scap_userinfo*>::const_iterator it;
+	if(uid == 0xffffffff)
+	{
+		return NULL;
+	}
+
+	it = m_userlist.find(uid);
+	if(it == m_userlist.end())
+	{
+		return NULL;
+	}
+
+	return it->second;
 }
 
 const unordered_map<uint32_t, scap_groupinfo*>* sinsp::get_grouplist()

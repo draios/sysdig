@@ -26,15 +26,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <locale>
 #include <sstream>
 
+#include <tuples.h>
 #include <scap.h>
 #include "json/json.h"
 
 class sinsp_evttables;
 typedef union _sinsp_sockinfo sinsp_sockinfo;
-typedef union _ipv4tuple ipv4tuple;
-typedef union _ipv6tuple ipv6tuple;
-typedef struct ipv4serverinfo ipv4serverinfo;
-typedef struct ipv6serverinfo ipv6serverinfo;
 class filter_check_info;
 
 extern sinsp_evttables g_infotables;
@@ -72,6 +69,12 @@ public:
 	//
 	//
 	static bool sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, char* targetbuf, uint32_t targetbuf_size, bool resolve = false);
+
+	//
+	// Check if string ends with another 
+	//
+	static bool endswith(const std::string& str, const std::string& ending);
+	static bool endswith(const char *str, const char *ending, uint32_t lstr, uint32_t lend);
 
 	//
 	// Concatenate two paths and puts the result in "target".
@@ -117,6 +120,11 @@ public:
 					  std::string &tag,
 					  std::string &digest,
 					  bool split_repo = true);
+
+	static void parse_suppressed_types(const std::vector<std::string> &supp_strs,
+					   std::vector<uint16_t> *supp_ids);
+
+	static const char* event_name_by_id(uint16_t id);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -178,7 +186,7 @@ std::string sinsp_gethostname();
 // each of these functions uses values in network byte order
 
 std::string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve);
-std::string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve);
+std::string ipv6tuple_to_string(ipv6tuple* tuple, bool resolve);
 std::string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve);
 std::string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve);
 

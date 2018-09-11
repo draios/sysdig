@@ -738,7 +738,6 @@ char* sinsp_evt::render_fd(int64_t fd, const char** resolved_str, sinsp_evt::par
 
 Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_str, sinsp_evt::param_fmt fmt)
 {
-	ASSERT(id < m_info->nparams);
 	const ppm_param_info* param_info;
 	char* payload;
 	uint16_t payload_len;
@@ -752,6 +751,8 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 		load_params();
 		m_flags |= (uint32_t)sinsp_evt::SINSP_EF_PARAMS_LOADED;
 	}
+
+	ASSERT(id < get_num_params());
 
 	//
 	// Reset the resolved string
@@ -1374,7 +1375,6 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	char* payload;
 	uint32_t j;
 	uint16_t payload_len;
-	ASSERT(id < m_info->nparams);
 
 	//
 	// Make sure the params are actually loaded
@@ -1384,6 +1384,8 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		load_params();
 		m_flags |= (uint32_t)sinsp_evt::SINSP_EF_PARAMS_LOADED;
 	}
+
+	ASSERT(id < get_num_params());
 
 	//
 	// Reset the resolved string
@@ -1696,6 +1698,28 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				snprintf(&m_paramstr_storage[0],
 				         m_paramstr_storage.size(),
 				         "INVALID IPv4");
+			}
+		}
+		else if(payload[0] == PPM_AF_INET6)
+		{
+			if(payload_len == 1 + 16 + 2)
+			{
+				ipv6serverinfo addr;
+				memcpy((uint8_t *) addr.m_ip.m_b, (uint8_t *) payload+1, sizeof(addr.m_ip.m_b));
+				addr.m_port = *(uint16_t*)(payload+17);
+				addr.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
+				string straddr = ipv6serveraddr_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
+				snprintf(&m_paramstr_storage[0],
+					   	 m_paramstr_storage.size(),
+					   	 "%s",
+					   	 straddr.c_str());
+			}
+			else
+			{
+				ASSERT(false);
+				snprintf(&m_paramstr_storage[0],
+				         m_paramstr_storage.size(),
+				         "INVALID IPv6");
 			}
 		}
 		else

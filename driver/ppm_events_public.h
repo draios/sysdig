@@ -265,6 +265,12 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_AT_REMOVEDIR 0x200
 
 /*
+ * linkat() flags
+ */
+#define PPM_AT_SYMLINK_FOLLOW	0x400
+#define PPM_AT_EMPTY_PATH       0x1000
+
+/*
  * rlimit resources
  */
 #define PPM_RLIMIT_CPU 0 /* CPU time in sec */
@@ -850,7 +856,13 @@ enum ppm_event_type {
 	PPME_SYSCALL_UNLINKAT_2_X = 303,
 	PPME_SYSCALL_MKDIRAT_E = 304,
 	PPME_SYSCALL_MKDIRAT_X = 305,
-	PPM_EVENT_MAX = 306
+	PPME_SYSCALL_OPENAT_2_E = 306,
+	PPME_SYSCALL_OPENAT_2_X = 307,
+	PPME_SYSCALL_LINK_2_E = 308,
+	PPME_SYSCALL_LINK_2_X = 309,
+	PPME_SYSCALL_LINKAT_2_E = 310,
+	PPME_SYSCALL_LINKAT_2_X = 311,
+	PPM_EVENT_MAX = 312
 };
 /*@}*/
 
@@ -1264,7 +1276,11 @@ enum ppm_param_type {
 	PT_CHARBUFARRAY = 35,	/* Pointer to an array of strings, exported by the user events decoder. 64bit. For internal use only. */
 	PT_CHARBUF_PAIR_ARRAY = 36,	/* Pointer to an array of string pairs, exported by the user events decoder. 64bit. For internal use only. */
 	PT_IPV4NET = 37, /* An IPv4 network. */
-	PT_MAX = 38 /* array size */
+	PT_IPV6ADDR = 38, /* A 16 byte raw IPv6 address. */
+	PT_IPV6NET = 39, /* An IPv6 network. */
+	PT_IPADDR = 40,  /* Either an IPv4 or IPv6 address. The length indicates which one it is. */
+	PT_IPNET = 41,  /* Either an IPv4 or IPv6 network. The length indicates which one it is. */
+	PT_MAX = 42 /* array size */
 };
 
 enum ppm_print_format {
@@ -1326,6 +1342,7 @@ struct ppm_evt_hdr {
 	uint64_t tid; /* the tid of the thread that generated this event */
 	uint32_t len; /* the event len, including the header */
 	uint16_t type; /* the event type */
+	uint32_t nparams; /* the number of parameters of the event */
 };
 #if defined __sun
 #pragma pack()
@@ -1359,6 +1376,7 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_SET_SIMPLE_MODE _IO(PPM_IOCTL_MAGIC, 18)
 #define PPM_IOCTL_ENABLE_PAGE_FAULTS _IO(PPM_IOCTL_MAGIC, 19)
 #define PPM_IOCTL_GET_N_TRACEPOINT_HIT _IO(PPM_IOCTL_MAGIC, 20)
+#define PPM_IOCTL_GET_PROBE_VERSION _IO(PPM_IOCTL_MAGIC, 21)
 #endif // CYGWING_AGENT
 
 extern const struct ppm_name_value socket_families[];
@@ -1387,6 +1405,7 @@ extern const struct ppm_name_value semctl_commands[];
 extern const struct ppm_name_value access_flags[];
 extern const struct ppm_name_value pf_flags[];
 extern const struct ppm_name_value unlinkat_flags[];
+extern const struct ppm_name_value linkat_flags[];
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
 extern const struct ppm_param_info bpf_dynamic_param[];

@@ -90,6 +90,7 @@ void sinsp_threadinfo::init()
 	m_parent_loop_detected = false;
 	m_tty = 0;
 	m_blprogram = NULL;
+	m_loginuid = 0;
 }
 
 sinsp_threadinfo::~sinsp_threadinfo()
@@ -281,8 +282,8 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 		}
 		else
 		{
-			copy_ipv6_address(newfdi->m_sockinfo.m_ipv6info.m_fields.m_sip, fdi->info.ipv6info.sip);
-			copy_ipv6_address(newfdi->m_sockinfo.m_ipv6info.m_fields.m_dip, fdi->info.ipv6info.dip);
+			copy_ipv6_address(newfdi->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b, fdi->info.ipv6info.sip);
+			copy_ipv6_address(newfdi->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b, fdi->info.ipv6info.dip);
 			newfdi->m_sockinfo.m_ipv6info.m_fields.m_sport = fdi->info.ipv6info.sport;
 			newfdi->m_sockinfo.m_ipv6info.m_fields.m_dport = fdi->info.ipv6info.dport;
 			newfdi->m_sockinfo.m_ipv6info.m_fields.m_l4proto = fdi->info.ipv6info.l4proto;
@@ -294,7 +295,7 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 		}
 		break;
 	case SCAP_FD_IPV6_SERVSOCK:
-		copy_ipv6_address(newfdi->m_sockinfo.m_ipv6serverinfo.m_ip, fdi->info.ipv6serverinfo.ip);
+		copy_ipv6_address(newfdi->m_sockinfo.m_ipv6serverinfo.m_ip.m_b, fdi->info.ipv6serverinfo.ip);
 		newfdi->m_sockinfo.m_ipv6serverinfo.m_port = fdi->info.ipv6serverinfo.port;
 		newfdi->m_sockinfo.m_ipv6serverinfo.m_l4proto = fdi->info.ipv6serverinfo.l4proto;
 		newfdi->m_name = ipv6serveraddr_to_string(&newfdi->m_sockinfo.m_ipv6serverinfo, m_inspector->m_hostname_and_port_resolution_enabled);
@@ -420,6 +421,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_vpid = pi->vpid;
 	m_clone_ts = pi->clone_ts;
 	m_tty = pi->tty;
+	m_loginuid = pi->loginuid;
 
 	set_cgroups(pi->cgroups, pi->cgroups_len);
 	m_root = pi->root;
@@ -438,6 +440,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	tscapevt.ts = 0;
 	tscapevt.type = PPME_SYSCALL_READ_X;
 	tscapevt.len = 0;
+	tscapevt.nparams = 0;
 
 	tevt.m_inspector = m_inspector;
 	tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
@@ -515,8 +518,20 @@ void sinsp_threadinfo::set_args(const char* args, size_t len)
 
 void sinsp_threadinfo::set_env(const char* env, size_t len)
 {
-	m_env.clear();
+	if (len == SCAP_MAX_ENV_SIZE && m_inspector->is_live())
+	{
+		// the environment is possibly truncated, try to read from /proc
+		// this may fail for short-lived processes
+		if (set_env_from_proc())
+		{
+			g_logger.format(sinsp_logger::SEV_DEBUG, "Large environment for process %lu [%s], loaded from /proc", m_pid, m_comm.c_str());
+			return;
+		} else {
+			g_logger.format(sinsp_logger::SEV_INFO, "Failed to load environment for process %lu [%s] from /proc, using first %d bytes", m_pid, m_comm.c_str(), SCAP_MAX_ENV_SIZE);
+		}
+	}
 
+	m_env.clear();
 	size_t offset = 0;
 	while(offset < len)
 	{
@@ -538,6 +553,29 @@ void sinsp_threadinfo::set_env(const char* env, size_t len)
 
 		offset += m_env.back().length() + 1;
 	}
+}
+
+bool sinsp_threadinfo::set_env_from_proc() {
+	string environ_path = string(scap_get_host_root()) + "/proc/" + to_string(m_pid) + "/environ";
+
+	ifstream environ(environ_path);
+	if (!environ)
+	{
+		// failed to read the environment from /proc, work with what we have
+		return false;
+	}
+
+	m_env.clear();
+	while (environ) {
+		string env;
+		getline(environ, env, '\0');
+		if (!env.empty())
+		{
+			m_env.emplace_back(env);
+		}
+	}
+
+	return true;
 }
 
 const vector<string>& sinsp_threadinfo::get_env()
@@ -1092,14 +1130,14 @@ void sinsp_threadinfo::fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src)
 		dst->info.ipv4serverinfo.l4proto = src->m_sockinfo.m_ipv4serverinfo.m_l4proto;
 		break;
 	case SCAP_FD_IPV6_SOCK:
-		copy_ipv6_address(dst->info.ipv6info.sip, src->m_sockinfo.m_ipv6info.m_fields.m_sip);
-		copy_ipv6_address(dst->info.ipv6info.dip, src->m_sockinfo.m_ipv6info.m_fields.m_dip);
+		copy_ipv6_address(dst->info.ipv6info.sip, src->m_sockinfo.m_ipv6info.m_fields.m_sip.m_b);
+		copy_ipv6_address(dst->info.ipv6info.dip, src->m_sockinfo.m_ipv6info.m_fields.m_dip.m_b);
 		dst->info.ipv6info.sport = src->m_sockinfo.m_ipv6info.m_fields.m_sport;
 		dst->info.ipv6info.dport = src->m_sockinfo.m_ipv6info.m_fields.m_dport;
 		dst->info.ipv6info.l4proto = src->m_sockinfo.m_ipv6info.m_fields.m_l4proto;
 		break;
 	case SCAP_FD_IPV6_SERVSOCK:
-		copy_ipv6_address(dst->info.ipv6serverinfo.ip, src->m_sockinfo.m_ipv6serverinfo.m_ip);
+		copy_ipv6_address(dst->info.ipv6serverinfo.ip, src->m_sockinfo.m_ipv6serverinfo.m_ip.m_b);
 		dst->info.ipv6serverinfo.port = src->m_sockinfo.m_ipv6serverinfo.m_port;
 		dst->info.ipv6serverinfo.l4proto = src->m_sockinfo.m_ipv6serverinfo.m_l4proto;
 		break;
@@ -1423,19 +1461,23 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, 	scap_threadi
 	sctinfo->vtid = tinfo.m_vtid;
 	sctinfo->vpid = tinfo.m_vpid;
 	sctinfo->fdlist = NULL;
+	sctinfo->loginuid = tinfo.m_loginuid;
 	sctinfo->filtered_out = false;
 }
 
 void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 {
 	//
-	// First pass of the table to calculate the length
+	// First pass of the table to calculate the lengths
 	//
 	uint32_t totlen = 0;
 
+	vector<uint32_t> lengths;
+
 	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
 		uint32_t il = (uint32_t)
-			(sizeof(uint64_t) +	// tid
+			(sizeof(uint32_t) +     // len
+			sizeof(uint64_t) +	// tid
 			sizeof(uint64_t) +	// pid
 			sizeof(uint64_t) +	// ptid
 			sizeof(uint64_t) +	// sid
@@ -1447,6 +1489,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
                         // 1 is sizeof("/")
                         2 + MIN((tinfo.m_cwd == "")? 1 : tinfo.m_cwd.size(), SCAP_MAX_PATH_SIZE) +
 			sizeof(uint64_t) +	// fdlimit
+			sizeof(uint32_t) +	// flags
 			sizeof(uint32_t) +	// uid
 			sizeof(uint32_t) +	// gid
 			sizeof(uint32_t) +  // vmsize_kb
@@ -1458,9 +1501,10 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			sizeof(int64_t) +  // vtid
 			sizeof(int64_t) +  // vpid
                         2 + MIN(tinfo.cgroups_len(), SCAP_MAX_CGROUPS_SIZE) +
-			sizeof(uint32_t) +
-			2 + MIN(tinfo.m_root.size(), SCAP_MAX_PATH_SIZE));
+			2 + MIN(tinfo.m_root.size(), SCAP_MAX_PATH_SIZE)) +
+			sizeof(uint32_t);  // loginuid
 
+		lengths.push_back(il);
 		totlen += il;
 		return true;
 	});
@@ -1473,6 +1517,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 	}
 
+	uint32_t idx = 0;
 	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
 		scap_threadinfo *sctinfo;
 		struct iovec *args_iov, *envs_iov, *cgroups_iov;
@@ -1489,7 +1534,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		tinfo.env_to_iovec(&envs_iov, &envscnt, envsrem);
 		tinfo.cgroups_to_iovec(&cgroups_iov, &cgroupscnt, cgroupsrem);
 
-		if(scap_write_proclist_entry_bufs(m_inspector->m_h, dumper, sctinfo,
+		if(scap_write_proclist_entry_bufs(m_inspector->m_h, dumper, sctinfo, lengths[idx++],
 						  tinfo.m_comm.c_str(),
 						  tinfo.m_exe.c_str(),
 						  tinfo.m_exepath.c_str(),

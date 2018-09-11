@@ -439,3 +439,9 @@ const struct ppm_name_value unlinkat_flags[] = {
 	{"AT_REMOVEDIR", PPM_AT_REMOVEDIR},
 	{ },
 };
+
+const struct ppm_name_value linkat_flags[] = {
+	{"AT_SYMLINK_FOLLOW", PPM_AT_SYMLINK_FOLLOW},
+	{"AT_EMPTY_PATH", PPM_AT_EMPTY_PATH},
+	{ },
+};

@@ -32,6 +32,7 @@ class sinsp_filter_check_reference;
 bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
 bool flt_compare_avg(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len, uint32_t cnt1, uint32_t cnt2);
 bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2);
+bool flt_compare_ipv6net(cmpop op, ipv6addr *operand1, ipv6addr* operand2);
 
 char* flt_to_string(uint8_t* rawval, filtercheck_field_info* finfo);
 int32_t gmt2local(time_t t);
@@ -145,8 +146,11 @@ public:
 protected:
 	bool flt_compare(cmpop op, ppm_param_type type, void* operand1, uint32_t op1_len = 0, uint32_t op2_len = 0);
 
-	char* rawval_to_string(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
-	Json::Value rawval_to_json(uint8_t* rawval, const filtercheck_field_info* finfo, uint32_t len);
+	char* rawval_to_string(uint8_t* rawval,
+			       ppm_param_type ptype,
+			       ppm_print_format print_format,
+			       uint32_t len);
+	Json::Value rawval_to_json(uint8_t* rawval, ppm_param_type ptype, ppm_print_format print_format, uint32_t len);
 	void string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype);
 
 	char m_getpropertystr_storage[1024];
@@ -284,6 +288,10 @@ public:
 		TYPE_RNET = 31,
 		TYPE_IS_CONNECTED = 32,
 		TYPE_NAME_CHANGED = 33,
+		TYPE_CLIENTIP_NAME = 34,
+		TYPE_SERVERIP_NAME = 35,
+		TYPE_LIP_NAME = 36,
+		TYPE_RIP_NAME = 37
 	};
 
 	enum fd_type
@@ -308,6 +316,7 @@ public:
 	bool compare_ip(sinsp_evt *evt);
 	bool compare_net(sinsp_evt *evt);
 	bool compare_port(sinsp_evt *evt);
+	bool compare_domain(sinsp_evt *evt);
 	bool compare(sinsp_evt *evt);
 
 	sinsp_threadinfo* m_tinfo;
@@ -533,6 +542,8 @@ public:
 		TYPE_NAME = 1,
 		TYPE_HOMEDIR = 2,
 		TYPE_SHELL = 3,
+		TYPE_LOGINUID = 4,
+		TYPE_LOGINNAME = 5,
 	};
 
 	sinsp_filter_check_user();

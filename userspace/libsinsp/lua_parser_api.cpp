@@ -53,6 +53,10 @@ cmpop string_to_cmpop(const char* str)
 	{
 		return CO_STARTSWITH;
 	}
+	else if(strcmp(str, "endswith") == 0)
+	{
+		return CO_ENDSWITH;
+	}
 	else if(strcmp(str, "in") == 0)
 	{
 		return CO_IN;

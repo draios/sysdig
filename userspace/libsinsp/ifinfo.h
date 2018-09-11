@@ -18,6 +18,8 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include "tuples.h"
+
 #define LOOPBACK_ADDR 0x0100007f
 
 #ifndef VISIBILITY_PRIVATE
@@ -53,9 +55,7 @@ class SINSP_PUBLIC sinsp_ipv6_ifinfo
 public:
 	sinsp_ipv6_ifinfo() {};
 
-	char m_addr[SCAP_IPV6_ADDR_LEN];
-	char m_netmask[SCAP_IPV6_ADDR_LEN];
-	char m_bcast[SCAP_IPV6_ADDR_LEN];
+	ipv6addr m_net;
 
 	string m_name;
 };
@@ -63,22 +63,25 @@ public:
 class SINSP_PUBLIC sinsp_network_interfaces
 {
 public:
-	sinsp_network_interfaces(sinsp* inspector): m_inspector(inspector)
-	{
-	}
+	sinsp_network_interfaces(sinsp* inspector);
 
 	void import_interfaces(scap_addrlist* paddrlist);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
 	void update_fd(sinsp_fdinfo_t *fd);
 	bool is_ipv4addr_in_subnet(uint32_t addr);
 	bool is_ipv4addr_in_local_machine(uint32_t addr, sinsp_threadinfo* tinfo);
+	void import_ipv6_interface(const sinsp_ipv6_ifinfo& ifinfo);
+	bool is_ipv6addr_in_local_machine(ipv6addr &addr, sinsp_threadinfo* tinfo);
 	vector<sinsp_ipv4_ifinfo>* get_ipv4_list();
 	vector<sinsp_ipv6_ifinfo>* get_ipv6_list();
 	inline void clear();
 
+	ipv6addr m_ipv6_loopback_addr;
+
 VISIBILITY_PRIVATE
 	uint32_t infer_ipv4_address(uint32_t destination_address);
 	void import_ipv4_ifaddr_list(uint32_t count, scap_ifinfo_ipv4* plist);
+	ipv6addr infer_ipv6_address(ipv6addr &destination_address);
 	void import_ipv6_ifaddr_list(uint32_t count, scap_ifinfo_ipv6* plist);
 	vector<sinsp_ipv4_ifinfo> m_ipv4_interfaces;
 	vector<sinsp_ipv6_ifinfo> m_ipv6_interfaces;

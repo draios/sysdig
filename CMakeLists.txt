@@ -1,3 +1,4 @@
+
 # Prior to doing anything, we make sure that we aren't trying to
 # run cmake in-tree. (see Issue 71: https://github.com/draios/sysdig/issues/71)
 if(EXISTS CMakeLists.txt)
@@ -206,6 +207,37 @@ else()
 endif()
 
 #
+# Intel tbb
+#
+if(NOT WIN32 AND NOT APPLE)
+	option(USE_BUNDLED_TBB "Enable building of the bundled tbb" ${USE_BUNDLED_DEPS})
+	if(NOT USE_BUNDLED_TBB)
+		find_path(TBB_INCLUDE tbb.h PATH_SUFFIXES tbb)
+		find_library(TBB_LIB NAMES tbb)
+		if(TBB_INCLUDE AND TBB_LIB)
+			message(STATUS "Found tbb: include: ${TBB_INCLUDE}, lib: ${TBB_LIB}")
+		else()
+			message(FATAL_ERROR "Couldn't find system tbb")
+		endif()
+	else()
+		set(TBB_SRC "${PROJECT_BINARY_DIR}/tbb-prefix/src/tbb")
+
+		message(STATUS "Using bundled tbb in '${TBB_SRC}'")
+
+		set(TBB_INCLUDE "${TBB_SRC}/include/")
+		set(TBB_LIB "${TBB_SRC}/build/lib_release/libtbb.a")
+		ExternalProject_Add(tbb
+			URL "http://s3.amazonaws.com/download.draios.com/dependencies/tbb-2018_U5.tar.gz"
+			URL_MD5 "ff3ae09f8c23892fbc3008c39f78288f"
+			CONFIGURE_COMMAND ""
+			BUILD_COMMAND ${CMD_MAKE} tbb_build_dir=${TBB_SRC}/build tbb_build_prefix=lib extra_inc=big_iron.inc
+			BUILD_IN_SOURCE 1
+			BUILD_BYPRODUCTS ${TBB_LIB}
+			INSTALL_COMMAND "")
+	endif()
+endif()
+
+#
 # jq
 #
 if(NOT WIN32 AND NOT APPLE)
@@ -343,8 +375,8 @@ if(NOT WIN32 AND NOT APPLE)
 
 		ExternalProject_Add(curl
 			DEPENDS openssl
-			URL "http://download.draios.com/dependencies/curl-7.57.0.tar.bz2"
-			URL_MD5 "dd3e22e923be17663e67f721c2aec054"
+			URL "http://download.draios.com/dependencies/curl-7.61.0.tar.bz2"
+			URL_MD5 "31d0a9f48dc796a7db351898a1e5058a"
 			CONFIGURE_COMMAND ./configure ${CURL_SSL_OPTION} --disable-threaded-resolver --disable-shared --enable-optimize --disable-curldebug --disable-rt --enable-http --disable-ftp --disable-file --disable-ldap --disable-ldaps --disable-rtsp --disable-telnet --disable-tftp --disable-pop3 --disable-imap --disable-smb --disable-smtp --disable-gopher --disable-sspi --disable-ntlm-wb --disable-tls-srp --without-winssl --without-darwinssl --without-polarssl --without-cyassl --without-nss --without-axtls --without-ca-path --without-ca-bundle --without-libmetalink --without-librtmp --without-winidn --without-libidn --without-nghttp2 --without-libssh2
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1

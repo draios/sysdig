@@ -189,9 +189,15 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 		container->m_imageid = imgstr.substr(cpos + 1);
 	}
 
+	// containers can be spawned using just the imageID as image name,
+	// with or without the hash prefix (e.g. sha256:)
 	bool no_name = !container->m_imageid.empty() &&
 		strncmp(container->m_image.c_str(), container->m_imageid.c_str(),
 			MIN(container->m_image.length(), container->m_imageid.length())) == 0;
+	no_name |= !imgstr.empty() &&
+		strncmp(container->m_image.c_str(), imgstr.c_str(),
+			MIN(container->m_image.length(), imgstr.length())) == 0;
+
 	if(!no_name || !m_query_image_info)
 	{
 		string hostname, port;
@@ -240,11 +246,11 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 						string repotag = rtag.asString();
 						if(container->m_imagerepo.empty())
 						{
-							container->m_imagerepo = repotag.substr(0, repotag.find(":"));
+							container->m_imagerepo = repotag.substr(0, repotag.rfind(":"));
 						}
 						if(repotag.find(container->m_imagerepo) != string::npos)
 						{
-							container->m_imagetag = repotag.substr(repotag.find(":")+1);
+							container->m_imagetag = repotag.substr(repotag.rfind(":")+1);
 							break;
 						}
 					}
@@ -1086,15 +1092,15 @@ bool sinsp_container_manager::remove_inactive_containers()
 	return res;
 }
 
-const sinsp_container_info* sinsp_container_manager::get_container(const string& container_id) const
+sinsp_container_info* sinsp_container_manager::get_container(const string& container_id)
 {
-	unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.find(container_id);
+	auto it = m_containers.find(container_id);
 	if(it != m_containers.end())
 	{
 		return &it->second;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
@@ -1193,6 +1199,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 	scapevt->tid = 0;
 	scapevt->len = (uint32_t)totlen;
 	scapevt->type = PPME_CONTAINER_JSON_E;
+	scapevt->nparams = 1;
 
 	uint16_t* lens = (uint16_t*)((char *)scapevt + sizeof(struct ppm_evt_hdr));
 	char* valptr = (char*)lens + sizeof(uint16_t);
