@@ -20,7 +20,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 
 ipv6addr ipv6addr::empty_address = {0x00000000, 0x00000000, 0x00000000, 0x00000000};
 
-bool ipv6addr::operator==(const ipv6addr &other)
+bool ipv6addr::operator==(const ipv6addr &other) const
 {
 	return (m_b[0] == other.m_b[0] &&
 		m_b[1] == other.m_b[1] &&
@@ -28,12 +28,22 @@ bool ipv6addr::operator==(const ipv6addr &other)
 		m_b[3] == other.m_b[3]);
 }
 
-bool ipv6addr::operator!=(const ipv6addr &other)
+bool ipv6addr::operator!=(const ipv6addr &other) const
 {
 	return !operator==(other);
 }
 
-bool ipv6addr::in_subnet(const ipv6addr &other)
+bool ipv6addr::operator<(const ipv6addr &other) const
+{
+	for(int i = 0; i < 4; i++)
+	{
+		if(m_b[i] < other.m_b[i]) return true;
+		else if(other.m_b[i] < m_b[i]) return false;
+	}
+	return false;
+}
+
+bool ipv6addr::in_subnet(const ipv6addr &other) const
 {
 	// They're in the same subnet if the first 64 bits match
 	// (Assumes convention of first 48 bits for network, next 16

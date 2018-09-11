@@ -288,6 +288,10 @@ public:
 		TYPE_RNET = 31,
 		TYPE_IS_CONNECTED = 32,
 		TYPE_NAME_CHANGED = 33,
+		TYPE_CLIENTIP_NAME = 34,
+		TYPE_SERVERIP_NAME = 35,
+		TYPE_LIP_NAME = 36,
+		TYPE_RIP_NAME = 37
 	};
 
 	enum fd_type
@@ -312,6 +316,7 @@ public:
 	bool compare_ip(sinsp_evt *evt);
 	bool compare_net(sinsp_evt *evt);
 	bool compare_port(sinsp_evt *evt);
+	bool compare_domain(sinsp_evt *evt);
 	bool compare(sinsp_evt *evt);
 
 	sinsp_threadinfo* m_tinfo;

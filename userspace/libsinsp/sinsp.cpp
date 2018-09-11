@@ -35,6 +35,7 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include "chisel.h"
 #include "cyclewriter.h"
 #include "protodecoder.h"
+#include "dns_manager.h"
 
 #ifndef CYGWING_AGENT
 #include "k8s_api_handler.h"
@@ -215,6 +216,7 @@ sinsp::~sinsp()
 	delete m_mesos_client;
 #ifdef HAS_CAPTURE
 	curl_global_cleanup();
+	sinsp_dns_manager::get().cleanup();
 #endif
 #endif
 }
