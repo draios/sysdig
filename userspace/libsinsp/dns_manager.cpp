@@ -197,5 +197,6 @@ void sinsp_dns_manager::cleanup()
 		m_exit_signal.set_value();
 		m_resolver->join();
 		m_resolver = NULL;
+		m_exit_signal = std::promise<void>();
 	}
 }
