@@ -1604,10 +1604,10 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 				//
 				// Add the new fd to the scap table.
 				//
-				if(scap_fd_add(sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
+				if(scap_fd_add(m_inspector->m_h, sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
 				{
 					scap_proc_free(m_inspector->m_h, sctinfo);
-					throw sinsp_exception("error calling scap_fd_add in sinsp_thread_manager::to_scap");
+					throw sinsp_exception("error calling scap_fd_add in sinsp_thread_manager::to_scap (" + string(scap_getlasterr(m_inspector->m_h)) + ")");
 				}
 			}
 		}
@@ -1618,7 +1618,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		if(scap_write_proc_fds(m_inspector->m_h, sctinfo, dumper) != SCAP_SUCCESS)
 		{
 			scap_proc_free(m_inspector->m_h, sctinfo);
-			throw sinsp_exception("error calling scap_proc_add in sinsp_thread_manager::to_scap");
+			throw sinsp_exception("error calling scap_proc_add in sinsp_thread_manager::to_scap (" + string(scap_getlasterr(m_inspector->m_h)) + ")");
 		}
 
 		scap_proc_free(m_inspector->m_h, sctinfo);

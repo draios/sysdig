@@ -116,6 +116,10 @@ struct scap
 	char* m_file_evt_buf;
 	uint32_t m_last_evt_dump_flags;
 	char m_lasterr[SCAP_LASTERR_SIZE];
+
+	// Used for scap_strerror
+	char m_strerror_buf[SCAP_LASTERR_SIZE];
+
 	scap_threadinfo* m_proclist;
 	scap_threadinfo m_fake_kernel_proc;
 	uint64_t m_evtcnt;
@@ -203,14 +207,14 @@ void scap_proc_free_table(scap_t* handle);
 // Copy the fd table of a process into the one of another process
 // int32_t scap_proc_copy_fd_table(scap_t* handle, scap_threadinfo* dst, scap_threadinfo* src);
 // Internal helper function to output the process table to screen
-void scap_proc_print_info(scap_threadinfo* pi);
+void scap_proc_print_info(scap_t *handle, scap_threadinfo* pi);
 void scap_proc_print_table(scap_t* handle);
 // Free all the state related to a process and delete it from the fd table
 void scap_proc_delete(scap_t* handle, scap_threadinfo* proc);
 // Internal helper function to output the fd table of a process
-void scap_fd_print_table(scap_threadinfo* pi);
+void scap_fd_print_table(scap_t *handle, scap_threadinfo* pi);
 // Internal helper function to output an fd table
-void scap_fd_print_fd_table(scap_fdinfo* fds);
+void scap_fd_print_fd_table(scap_t *handle, scap_fdinfo* fds);
 // Given an event, get the info entry for the process that generated it.
 // NOTE: this is different from scap_event_getprocinfo() because it returns the full event information
 // struct scap_threadinfo* scap_proc_get_from_event(scap_t* handle, scap_evt* e);
@@ -221,7 +225,7 @@ void scap_fd_free_ns_sockets_list(scap_t* handle, struct scap_ns_socket_list** s
 // Free a process' fd table
 void scap_fd_free_proc_fd_table(scap_t* handle, scap_threadinfo* pi);
 // Convert an fd entry's info into a string
-int32_t scap_fd_info_to_string(scap_fdinfo* fdi, OUT char* str, uint32_t strlen);
+int32_t scap_fd_info_to_string(scap_t *handle, scap_fdinfo* fdi, OUT char* str, uint32_t strlen);
 // Calculate the length on disk of an fd entry's info
 uint32_t scap_fd_info_len(scap_fdinfo* fdi);
 // Write the given fd info to disk
@@ -232,7 +236,7 @@ uint32_t scap_fd_read_from_disk(scap_t* handle, OUT scap_fdinfo* fdi, OUT size_t
 int32_t scap_read_init(scap_t* handle, gzFile f);
 // Add the file descriptor info pointed by fdi to the fd table for process pi.
 // Note: silently skips if fdi->type is SCAP_FD_UNKNOWN.
-int32_t scap_add_fd_to_proc_table(scap_t* handle, scap_threadinfo* pi, scap_fdinfo* fdi);
+int32_t scap_add_fd_to_proc_table(scap_t* handle, scap_threadinfo* pi, scap_fdinfo* fdi, char *error);
 // Remove the given fd from the process table of the process pointed by pi
 void scap_fd_remove(scap_t* handle, scap_threadinfo* pi, int64_t fd);
 // Read an event from disk
@@ -242,7 +246,7 @@ int32_t scap_fd_scan_fd_dir(scap_t* handle, char * procdir, scap_threadinfo* pi,
 // read tcp or udp sockets from the proc filesystem
 int32_t scap_fd_read_ipv4_sockets_from_proc_fs(scap_t* handle, const char * dir, int l4proto, scap_fdinfo ** sockets);
 // read all sockets and add them to the socket table hashed by their ino
-int32_t scap_fd_read_sockets(scap_t* handle, char* procdir, struct scap_ns_socket_list* sockets);
+int32_t scap_fd_read_sockets(scap_t* handle, char* procdir, struct scap_ns_socket_list* sockets, char *error);
 // prints procs details for a give tid
 void scap_proc_print_proc_by_tid(scap_t* handle, uint64_t tid);
 // Allocate and return the list of interfaces on this system
@@ -256,7 +260,7 @@ void scap_free_userlist(scap_userlist* uhandle);
 
 int32_t scap_fd_post_process_unix_sockets(scap_t* handle, scap_fdinfo* sockets);
 
-int32_t scap_proc_fill_cgroups(struct scap_threadinfo* tinfo, const char* procdirname);
+int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, const char* procdirname);
 
 bool scap_alloc_proclist_info(scap_t* handle, uint32_t n_entries);
 
@@ -283,6 +287,9 @@ int32_t scap_update_suppressed(scap_t *handle,
 			       const char *comm,
 			       uint64_t tid, uint64_t ptid,
 			       bool *suppressed);
+
+// Wrapper around strerror using buffer in handle
+const char *scap_strerror(scap_t *handle, int errnum);
 
 //
 // ASSERT implementation

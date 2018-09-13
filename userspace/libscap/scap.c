@@ -183,7 +183,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	if(handle->m_ncpus == -1)
 	{
 		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_CONF: %s", strerror(errno));
+		snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_CONF: %s", scap_strerror(handle, errno));
 		*rc = SCAP_FAILURE;
 		return NULL;
 	}
@@ -195,7 +195,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	if(ndevs == -1)
 	{
 		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_ONLN: %s", strerror(errno));
+		snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_ONLN: %s", scap_strerror(handle, errno));
 		*rc = SCAP_FAILURE;
 		return NULL;
 	}
@@ -340,7 +340,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 
 			// Set close-on-exec for the fd
 			if (fcntl(handle->m_devs[j].m_fd, F_SETFD, FD_CLOEXEC) == -1) {
-				snprintf(error, SCAP_LASTERR_SIZE, "Can not set close-on-exec flag for fd for device %s (%s)", filename, strerror(errno));
+				snprintf(error, SCAP_LASTERR_SIZE, "Can not set close-on-exec flag for fd for device %s (%s)", filename, scap_strerror(handle, errno));
 				scap_close(handle);
 				*rc = SCAP_FAILURE;
 				return NULL;
@@ -1368,7 +1368,7 @@ static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t samp
 		if(ioctl(handle->m_devs[0].m_fd, request, sampling_ratio))
 		{
 			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s, request %d for sampling ratio %u: %s",
-					__FUNCTION__, request, sampling_ratio, strerror(errno));
+					__FUNCTION__, request, sampling_ratio, scap_strerror(handle, errno));
 			ASSERT(false);
 			return SCAP_FAILURE;
 		}
@@ -1942,7 +1942,7 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 			}
 			else
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_get_n_tracepoint_hit failed (%s)", strerror(errno));
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_get_n_tracepoint_hit failed (%s)", scap_strerror(handle, errno));
 			}
 
 			ASSERT(false);
