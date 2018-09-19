@@ -20,4 +20,4 @@ install(FILES
 	ring_helpers.h
 	types.h
 	DESTINATION "src/${PACKAGE_NAME}-${PROBE_VERSION}/bpf"
-	COMPONENT agent)
+	COMPONENT agent-kmodule)
