@@ -160,7 +160,7 @@ load_bpf_probe() {
 		if [ -n "${COS}" ]; then
 			echo "* COS detected (build ${BUILD_ID}), downloading and setting up kernel headers"
 
-			local -r download_url="https://storage.googleapis.com/cos-tools/${BUILD_ID}/kernel-src.tar.gz"
+			local -r download_url="https://storage.googleapis.com/cos-tools/${BUILD_ID}/kernel-headers.tgz"
 
 			echo "* Downloading ${download_url}"
 
@@ -170,18 +170,11 @@ load_bpf_probe() {
 				exit 1;
 			fi
 
-			echo "* Extracting kernel sources"
+			echo "* Extracting kernel headers"
 
-			tar xf kernel-src.tar.gz
-			zcat /proc/config.gz > .config
-			sed -i 's/LOCALVERSION=""/LOCALVERSION="+"/' .config
+			tar xf kernel-headers.tgz
 
-			echo "* Configuring kernel"
-
-			make olddefconfig > /dev/null
-			make modules_prepare > /dev/null
-
-			export KERNELDIR=/tmp/kernel
+			export KERNELDIR=/tmp/kernel/usr/src/linux-headers-${KERNEL_RELEASE}
 		fi
 
 		if [ -n "${MINIKUBE}" ]; then
