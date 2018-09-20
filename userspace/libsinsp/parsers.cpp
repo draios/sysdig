@@ -1746,13 +1746,13 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	// to identify the version of the event.
 	// For example:
 	//
-	// if(evt->get_num_params() > 17)
+	// if(evt->get_num_params() > 18)
 	// {
 	//   ...
 	// }
 
 	// Get the loginuid
-	if(evt->get_num_params() > 17)
+	if(evt->get_num_params() > 18)
 	{
 		parinfo = evt->get_param(18);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
