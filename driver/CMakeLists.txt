@@ -56,7 +56,7 @@ if(ENABLE_DKMS)
 	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms
 		RENAME Makefile
 		DESTINATION "src/${PACKAGE_NAME}-${PROBE_VERSION}"
-		COMPONENT agent-kmodule)
+		COMPONENT agent)
 
 	install(FILES
 		${CMAKE_CURRENT_BINARY_DIR}/dkms.conf
@@ -79,8 +79,7 @@ if(ENABLE_DKMS)
 		ppm_cputime.c
 		ppm_compat_unistd_32.h
 		DESTINATION "src/${PACKAGE_NAME}-${PROBE_VERSION}"
-		COMPONENT agent-kmodule)
-
+		COMPONENT agent)
 endif()
 
 add_subdirectory(bpf)
