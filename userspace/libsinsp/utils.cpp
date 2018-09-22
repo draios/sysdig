@@ -950,6 +950,36 @@ void sinsp_utils::ts_to_string(uint64_t ts, OUT string* res, bool date, bool ns)
 // Time utility functions.
 ///////////////////////////////////////////////////////////////////////////////
 
+bool sinsp_utils::parse_iso_8601_utc_string(const std::string& time_str, uint64_t &ns)
+{
+#ifndef _WIN32
+	char *rem;
+
+	struct tm tm_time = {0};
+	rem = strptime(time_str.c_str(), "%Y-%m-%dT%H:%M:", &tm_time);
+	if(rem == NULL || *rem == '\0')
+	{
+		return false;
+	}
+	tm_time.tm_isdst = -1; // strptime does not set this, signal timegm to determine DST
+	ns = timegm(&tm_time) * ONE_SECOND_IN_NS;
+
+	// Handle the possibly fractional seconds now. Also verify
+	// that the string ends with Z.
+	double fractional_secs;
+	if(sscanf(rem, "%lfZ", &fractional_secs) != 1)
+	{
+		return false;
+	}
+
+	ns += (fractional_secs * ONE_SECOND_IN_NS);
+
+	return true;
+#else
+	throw sinsp_exception("parse_iso_8601_utc_string() not implemented on Windows");
+#endif
+}
+
 time_t get_epoch_utc_seconds(const std::string& time_str, const std::string& fmt)
 {
 #ifndef _WIN32

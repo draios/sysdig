@@ -128,6 +128,11 @@ public:
 	static const char* event_name_by_id(uint16_t id);
 
 	static void ts_to_string(uint64_t ts, OUT std::string* res, bool date, bool ns);
+
+        // Limited version of iso 8601 time string parsing, that assumes a
+        // timezone of Z for UTC, but does support parsing fractional seconds,
+        // unlike get_epoch_utc_seconds_* below.
+	static bool parse_iso_8601_utc_string(const std::string& time_str, uint64_t &ns);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
