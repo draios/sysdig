@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Copyright (C) 2018 Draios Inc.
+# Copyright (C) 2013-2018 Draios Inc.
 #
 # This file is part of sysdig .
 #
