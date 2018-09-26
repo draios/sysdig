@@ -1,5 +1,5 @@
 --[[
-Copyright (C) 2013-2018 Draios inc.
+Copyright (C) 2013-2018 Draios Inc dba Sysdig.
 Copyright (C) 2015 Brendan Gregg.
 
 This file is part of sysdig.
