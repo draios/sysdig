@@ -508,15 +508,19 @@ if [ -z "$KERNEL_TYPE" ]; then
 	done
 
 	#
+	# boot2docker is officially in maintenance mode
+	# Disabled boot2docker builds as they were failing because of
+	# upstream changes to the Dockerfile.
+	#
 	# boot2docker build
 	#
-	echo Building boot2docker
-	DIR=$(dirname $(readlink -f $0))
-	$DIR/boot2docker-kernel-crawler.py | \
-		while read KERNEL_ARGS
-		do
-			boot2docker_build $KERNEL_ARGS
-		done
+	# echo Building boot2docker
+	# DIR=$(dirname $(readlink -f $0))
+	# $DIR/boot2docker-kernel-crawler.py | \
+	# 	while read KERNEL_ARGS
+	# 	do
+	# 		boot2docker_build $KERNEL_ARGS
+	# 	done
 
 	#
 	# Debian build
