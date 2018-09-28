@@ -191,7 +191,7 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 	//
 	HASH_ITER(hh, tinfo->fdlist, fdi, tfdi)
 	{
-		if(fdi->type != SCAP_FD_UNINITIALIZED)
+		if(fdi->type != SCAP_FD_UNINITIALIZED && fdi->type != SCAP_FD_UNKNOWN)
 		{
 			if(scap_fd_write_to_disk(handle, fdi, d, lengths[idx++]) != SCAP_SUCCESS)
 			{
