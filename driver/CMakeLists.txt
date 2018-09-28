@@ -1,3 +1,10 @@
+#
+# Copyright (c) 2013-2018 Draios Inc. dba Sysdig.
+#
+# This file is dual licensed under either the MIT or GPL 2. See
+# MIT.txt or GPL.txt for full copies of the license.
+#
+
 option(BUILD_DRIVER "Build the driver on Linux" ON)
 option(ENABLE_DKMS "Enable DKMS on Linux" ON)
 
