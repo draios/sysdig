@@ -176,6 +176,9 @@ load_bpf_probe() {
 			zcat /proc/config.gz > .config
 			sed -i 's/LOCALVERSION=""/LOCALVERSION="+"/' .config
 
+			sed -i '/^#define randomized_struct_fields_start	struct {$/d' include/linux/compiler-clang.h
+			sed -i '/^#define randomized_struct_fields_end	};$/d' include/linux/compiler-clang.h
+
 			echo "* Configuring kernel"
 
 			make olddefconfig > /dev/null
