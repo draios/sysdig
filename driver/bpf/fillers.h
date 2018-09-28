@@ -1074,57 +1074,97 @@ static __always_inline int bpf_ppm_get_tty(struct task_struct *task)
 	return tty_nr;
 }
 
-enum bpf_pid_type {
-	BPF_PIDTYPE_PID,
-	BPF_PIDTYPE_PGID,
-	BPF_PIDTYPE_SID,
-	BPF_PIDTYPE_MAX,
-	BPF__PIDTYPE_TGID
-};
+static __always_inline struct pid *bpf_task_pid(struct task_struct *task)
+{
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
+	return _READ(task->pids[PIDTYPE_PID].pid);
+#else
+	return _READ(task->thread_pid);
+#endif
+}
+
+static __always_inline struct pid_namespace *bpf_ns_of_pid(struct pid *pid)
+{
+	struct pid_namespace *ns = NULL;
+
+	if (pid)
+		ns = _READ(pid->numbers[_READ(pid->level)].ns);
+	return ns;
+}
+
+static __always_inline struct pid_namespace *bpf_task_active_pid_ns(struct task_struct *tsk)
+{
+	return bpf_ns_of_pid(bpf_task_pid(tsk));
+}
+
+static __always_inline pid_t bpf_pid_nr_ns(struct pid *pid,
+					   struct pid_namespace *ns)
+{
+	unsigned int ns_level;
+	struct upid *upid;
+	pid_t nr = 0;
+
+	ns_level = _READ(ns->level);
+	if (pid && ns_level <= _READ(pid->level)) {
+		upid = &pid->numbers[ns_level];
+		if (_READ(upid->ns) == ns)
+			nr = _READ(upid->nr);
+	}
+	return nr;
+}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
+static __always_inline struct pid **bpf_task_pid_ptr(struct task_struct *task,
+						     enum pid_type type)
+{
+	return (type == PIDTYPE_PID) ?
+		&task->thread_pid :
+		&_READ(task->signal)->pids[type];
+}
+#endif
 
 static __always_inline pid_t bpf_task_pid_nr_ns(struct task_struct *task,
-						enum bpf_pid_type type)
+						enum pid_type type,
+						struct pid_namespace *ns)
 {
 	pid_t nr = 0;
-	struct pid *pid = _READ(task->pids[PIDTYPE_PID].pid);
-	unsigned int pid_level = _READ(pid->level);
-	struct pid_namespace *ns = _READ(pid->numbers[pid_level].ns);
-	unsigned int ns_level = _READ(ns->level);
 
-	if (type != BPF_PIDTYPE_PID) {
-		if (type == BPF__PIDTYPE_TGID)
-			type = BPF_PIDTYPE_PID;
+	if (!ns)
+		ns = bpf_task_active_pid_ns(task);
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
+	if (type != PIDTYPE_PID) {
+		if (type == __PIDTYPE_TGID)
+			type = PIDTYPE_PID;
 
 		task = _READ(task->group_leader);
 	}
 
-	pid = _READ(task->pids[type].pid);
-	pid_level = _READ(pid->level);
-
-	if (pid && ns_level <= pid_level) {
-		struct upid *upid = &pid->numbers[ns_level];
-		struct pid_namespace *upid_ns = _READ(upid->ns);
-
-		if (upid_ns == ns)
-			nr = _READ(upid->nr);
-	}
+	nr = bpf_pid_nr_ns(_READ(task->pids[type].pid), ns);
+#else
+	nr = bpf_pid_nr_ns(_READ(*bpf_task_pid_ptr(task, type)), ns);
+#endif
 
 	return nr;
 }
 
 static __always_inline pid_t bpf_task_pid_vnr(struct task_struct *task)
 {
-	return bpf_task_pid_nr_ns(task, BPF_PIDTYPE_PID);
+	return bpf_task_pid_nr_ns(task, PIDTYPE_PID, NULL);
 }
 
 static __always_inline pid_t bpf_task_tgid_vnr(struct task_struct *task)
 {
-	return bpf_task_pid_nr_ns(task, BPF__PIDTYPE_TGID);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
+	return bpf_task_pid_nr_ns(task, __PIDTYPE_TGID, NULL);
+#else
+	return bpf_task_pid_nr_ns(task, PIDTYPE_TGID, NULL);
+#endif
 }
 
 static __always_inline pid_t bpf_task_pgrp_vnr(struct task_struct *task)
 {
-	return bpf_task_pid_nr_ns(task, BPF_PIDTYPE_PGID);
+	return bpf_task_pid_nr_ns(task, PIDTYPE_PGID, NULL);
 }
 
 #define MAX_CGROUP_PATHS 6
