@@ -1,6 +1,6 @@
 FROM debian:stable
 
-MAINTAINER Sysdig <support@sysdig.com>
+LABEL maintainer="Sysdig <support@sysdig.com>"
 
 ENV SYSDIG_REPOSITORY stable
 
