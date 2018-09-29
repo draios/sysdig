@@ -50,7 +50,7 @@ const struct ppm_name_value socket_families[] = {
 	{"AF_LOCAL", PPM_AF_LOCAL},
 	{"AF_UNIX", PPM_AF_UNIX},
 	{"AF_UNSPEC", PPM_AF_UNSPEC},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value file_flags[] = {
@@ -69,7 +69,7 @@ const struct ppm_name_value file_flags[] = {
 	{"O_RDONLY", PPM_O_RDONLY},
 	{"O_CLOEXEC", PPM_O_CLOEXEC},
 	{"O_NONE", PPM_O_NONE},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value flock_flags[] = {
@@ -78,7 +78,7 @@ const struct ppm_name_value flock_flags[] = {
 	{"LOCK_NB", PPM_LOCK_NB},
 	{"LOCK_UN", PPM_LOCK_UN},
 	{"LOCK_NONE", PPM_LOCK_NONE},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value clone_flags[] = {
@@ -108,7 +108,7 @@ const struct ppm_name_value clone_flags[] = {
 	{"CLONE_STOPPED", PPM_CL_CLONE_STOPPED},
 	{"CLONE_VFORK", PPM_CL_CLONE_VFORK},
 	{"CLONE_NEWCGROUP", PPM_CL_CLONE_NEWCGROUP},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value futex_operations[] = {
@@ -127,7 +127,7 @@ const struct ppm_name_value futex_operations[] = {
 	{"FUTEX_FD", PPM_FU_FUTEX_FD},
 	{"FUTEX_WAKE", PPM_FU_FUTEX_WAKE},
 	{"FUTEX_WAIT", PPM_FU_FUTEX_WAIT},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value poll_flags[] = {
@@ -142,7 +142,7 @@ const struct ppm_name_value poll_flags[] = {
 	{"POLLRDBAND", PPM_POLLRDBAND},
 	{"POLLWRNORM", PPM_POLLWRNORM},
 	{"POLLWRBAND", PPM_POLLWRBAND},
-	{ },
+	{NULL, 0},
 };
 
 /* http://lxr.free-electrons.com/source/include/uapi/linux/fs.h?v=4.2#L65 */
@@ -175,7 +175,7 @@ const struct ppm_name_value mount_flags[] = {
 	{"BORN", PPM_MS_BORN},
 	{"ACTIVE", PPM_MS_ACTIVE},
 	{"NOUSER", PPM_MS_NOUSER},
-	{ },
+	{NULL, 0},
 };
 
 /* http://lxr.free-electrons.com/source/include/linux/fs.h?v=4.2#L1251 */
@@ -184,21 +184,21 @@ const struct ppm_name_value umount_flags[] = {
 	{"DETACH", PPM_MNT_DETACH},
 	{"EXPIRE", PPM_MNT_EXPIRE},
 	{"NOFOLLOW", PPM_UMOUNT_NOFOLLOW},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value lseek_whence[] = {
 	{"SEEK_END", PPM_SEEK_END},
 	{"SEEK_CUR", PPM_SEEK_CUR},
 	{"SEEK_SET", PPM_SEEK_SET},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value shutdown_how[] = {
 	{"SHUT_RDWR", PPM_SHUT_RDWR},
 	{"SHUT_WR", PPM_SHUT_WR},
 	{"SHUT_RD", PPM_SHUT_RD},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value rlimit_resources[] = {
@@ -219,7 +219,7 @@ const struct ppm_name_value rlimit_resources[] = {
 	{"RLIMIT_DATA", PPM_RLIMIT_DATA},
 	{"RLIMIT_FSIZE", PPM_RLIMIT_FSIZE},
 	{"RLIMIT_CPU", PPM_RLIMIT_CPU},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value fcntl_commands[] = {
@@ -253,7 +253,7 @@ const struct ppm_name_value fcntl_commands[] = {
 	{"F_OFD_SETLK", PPM_FCNTL_F_OFD_SETLK},
 	{"F_OFD_SETLKW", PPM_FCNTL_F_OFD_SETLKW},
 	{"UNKNOWN", PPM_FCNTL_UNKNOWN},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value ptrace_requests[] = {
@@ -296,7 +296,7 @@ const struct ppm_name_value ptrace_requests[] = {
 	{"PTRACE_PEEKTEXT", PPM_PTRACE_PEEKTEXT},
 	{"PTRACE_TRACEME", PPM_PTRACE_TRACEME},
 	{"PTRACE_UNKNOWN", PPM_PTRACE_UNKNOWN},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value prot_flags[] = {
@@ -308,7 +308,7 @@ const struct ppm_name_value prot_flags[] = {
 	{"PROT_GROWSUP", PPM_PROT_GROWSUP},
 	{"PROT_SAO", PPM_PROT_SAO},
 	{"PROT_NONE", PPM_PROT_NONE},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value mmap_flags[] = {
@@ -327,7 +327,7 @@ const struct ppm_name_value mmap_flags[] = {
 	{"MAP_INHERIT", PPM_MAP_INHERIT},
 	{"MAP_FILE", PPM_MAP_FILE},
 	{"MAP_LOCKED", PPM_MAP_LOCKED},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value splice_flags[] = {
@@ -335,13 +335,13 @@ const struct ppm_name_value splice_flags[] = {
 	{"SPLICE_F_NONBLOCK", PPM_SPLICE_F_NONBLOCK},
 	{"SPLICE_F_MORE", PPM_SPLICE_F_MORE},
 	{"SPLICE_F_GIFT", PPM_SPLICE_F_GIFT},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value quotactl_dqi_flags[] = {
 	{"DQF_NONE", PPM_DQF_NONE},
 	{"V1_DQF_RSQUASH", PPM_V1_DQF_RSQUASH},
-	{ }
+	{NULL, 0},
 };
 
 const struct ppm_name_value quotactl_cmds[] = {
@@ -360,13 +360,13 @@ const struct ppm_name_value quotactl_cmds[] = {
 	{"Q_XGETQSTAT", PPM_Q_XGETQSTAT},
 	{"Q_XQUOTARM", PPM_Q_XQUOTARM},
 	{"Q_XQUOTASYNC", PPM_Q_XQUOTASYNC},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value quotactl_types[] = {
 	{"USRQUOTA", PPM_USRQUOTA},
 	{"GRPQUOTA", PPM_GRPQUOTA},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value quotactl_quota_fmts[] = {
@@ -374,19 +374,19 @@ const struct ppm_name_value quotactl_quota_fmts[] = {
 	{"QFMT_VFS_OLD", PPM_QFMT_VFS_OLD},
 	{"QFMT_VFS_V0", PPM_QFMT_VFS_V0},
 	{"QFMT_VFS_V1", PPM_QFMT_VFS_V1},
-	{ }
+	{NULL, 0},
 };
 
 const struct ppm_name_value semop_flags[] = {
 	{"IPC_NOWAIT", PPM_IPC_NOWAIT},
 	{"SEM_UNDO", PPM_SEM_UNDO},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value semget_flags[] = {
 	{"IPC_EXCL", PPM_IPC_EXCL},
 	{"IPC_CREAT", PPM_IPC_CREAT},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value semctl_commands[] = {
@@ -403,7 +403,7 @@ const struct ppm_name_value semctl_commands[] = {
 	{"GETZCNT", PPM_GETZCNT},
 	{"SETALL", PPM_SETALL},
 	{"SETVAL", PPM_SETVAL},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value access_flags[] = {
@@ -411,7 +411,7 @@ const struct ppm_name_value access_flags[] = {
 	{"R_OK", PPM_R_OK},
 	{"W_OK", PPM_W_OK},
 	{"X_OK", PPM_X_OK},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value pf_flags[] = {
@@ -423,16 +423,16 @@ const struct ppm_name_value pf_flags[] = {
 	{"SUPERVISOR_FAULT", PPM_PF_SUPERVISOR_FAULT},
 	{"RESERVED_PAGE", PPM_PF_RESERVED_PAGE},
 	{"INSTRUCTION_FETCH", PPM_PF_INSTRUCTION_FETCH},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value unlinkat_flags[] = {
 	{"AT_REMOVEDIR", PPM_AT_REMOVEDIR},
-	{ },
+	{NULL, 0},
 };
 
 const struct ppm_name_value linkat_flags[] = {
 	{"AT_SYMLINK_FOLLOW", PPM_AT_SYMLINK_FOLLOW},
 	{"AT_EMPTY_PATH", PPM_AT_EMPTY_PATH},
-	{ },
+	{NULL, 0},
 };

@@ -18,8 +18,12 @@ limitations under the License.
 */
 
 #include <sys/types.h>
+#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
+#include <WinSock2.h>
+#else
 #include <sys/socket.h>
 #include <netdb.h>
+#endif
 #include <string>
 #include <thread>
 #include <chrono>

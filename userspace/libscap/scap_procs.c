@@ -1327,8 +1327,11 @@ void scap_proc_print_table(scap_t* handle)
 const char *scap_strerror(scap_t *handle, int errnum)
 {
 	int rc;
-
+#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
+	if((rc = strerror_s(handle->m_strerror_buf, SCAP_LASTERR_SIZE, errnum) != 0))
+#else
 	if((rc = strerror_r(errnum, handle->m_strerror_buf, SCAP_LASTERR_SIZE) != 0))
+#endif
 	{
 		if(rc != ERANGE)
 		{
