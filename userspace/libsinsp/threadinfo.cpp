@@ -945,7 +945,8 @@ shared_ptr<sinsp_threadinfo> sinsp_threadinfo::lookup_thread()
 #if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
 sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 {
-	if (m_main_thread.lock())
+	auto main_thread = m_main_thread.lock();
+	if (!main_thread)
 	{
 		//
 		// Is this a child thread?
@@ -971,13 +972,12 @@ sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 			{
 				return NULL;
 			}
-
 			m_main_thread = ptinfo;
+			return &*ptinfo;
 		}
 	}
 
-	auto ret = m_main_thread.lock();
-	return &(*ret);
+	return &*main_thread;
 }
 #endif
 
