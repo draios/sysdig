@@ -4662,6 +4662,14 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt)
 	int64_t fd;
 	int8_t level, optname;
 
+	// right now we only parse getsockopt() for SO_ERROR options
+	// if that ever changes, move this check inside
+	// the `if (level == PPM_SOCKOPT_LEVEL_SOL_SOCKET ...)` block
+	if (!m_track_connection_status)
+	{
+		return;
+	}
+
 	if (!evt->m_tinfo)
 	{
 		return;
@@ -4689,11 +4697,6 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt)
 
 	if(level == PPM_SOCKOPT_LEVEL_SOL_SOCKET && optname == PPM_SOCKOPT_SO_ERROR)
 	{
-		if (!m_track_connection_status)
-		{
-			return;
-		}
-
 		parinfo = evt->get_param(1);
 		fd = *(int64_t *)parinfo->m_val;
 		ASSERT(parinfo->m_len == sizeof(int64_t));
