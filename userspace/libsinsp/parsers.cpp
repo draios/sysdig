@@ -3406,7 +3406,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 	{
 		uint16_t etype = evt->get_type();
 
-		if (evt->m_fdinfo->m_type == SCAP_FD_IPV4_SOCK) {
+		if (evt->m_fdinfo->m_type == SCAP_FD_IPV4_SOCK ||
+		    evt->m_fdinfo->m_type == SCAP_FD_IPV6_SOCK) {
 			evt->m_fdinfo->set_socket_connected();
 		}
 
@@ -3595,7 +3596,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 			}
 		}
 	} else if (m_track_connection_status) {
-		if (evt->m_fdinfo->m_type == SCAP_FD_IPV4_SOCK) {
+		if (evt->m_fdinfo->m_type == SCAP_FD_IPV4_SOCK ||
+		    evt->m_fdinfo->m_type == SCAP_FD_IPV6_SOCK) {
 			evt->m_fdinfo->set_socket_failed();
 			if (m_fd_listener)
 			{
