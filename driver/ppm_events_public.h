@@ -23,11 +23,8 @@ or GPL2.txt for full copies of the license.
 /*
  * Macros for packing in different build environments
  */
-#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
-#define SYSDIG_WIN 1
-#endif
 
-#ifdef SYSDIG_WIN
+#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
 #define _packed
 __pragma(pack(push, 1));
 __pragma(pack(pop))
