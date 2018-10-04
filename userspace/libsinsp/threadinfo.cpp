@@ -559,17 +559,17 @@ void sinsp_threadinfo::set_env(const char* env, size_t len)
 bool sinsp_threadinfo::set_env_from_proc() {
 	string environ_path = string(scap_get_host_root()) + "/proc/" + to_string(m_pid) + "/environ";
 
-	ifstream environ(environ_path);
-	if (!environ)
+	ifstream environment(environ_path);
+	if (!environment)
 	{
 		// failed to read the environment from /proc, work with what we have
 		return false;
 	}
 
 	m_env.clear();
-	while (environ) {
+	while (environment) {
 		string env;
-		getline(environ, env, '\0');
+		getline(environment, env, '\0');
 		if (!env.empty())
 		{
 			m_env.emplace_back(env);
@@ -942,10 +942,11 @@ shared_ptr<sinsp_threadinfo> sinsp_threadinfo::lookup_thread()
 // Note: this is duplicated here because visual studio has trouble inlining
 //       the method.
 //
-#ifdef _WIN32
+#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
 sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 {
-	if (m_main_thread == NULL)
+	auto main_thread = m_main_thread.lock();
+	if (!main_thread)
 	{
 		//
 		// Is this a child thread?
@@ -971,12 +972,12 @@ sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 			{
 				return NULL;
 			}
-
 			m_main_thread = ptinfo;
+			return &*ptinfo;
 		}
 	}
 
-	return &*m_main_thread;
+	return &*main_thread;
 }
 #endif
 
