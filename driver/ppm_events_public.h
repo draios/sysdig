@@ -21,6 +21,22 @@ or GPL2.txt for full copies of the license.
 #endif
 
 /*
+ * Macros for packing in different build environments
+ */
+#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
+#define SYSDIG_WIN 1
+#endif
+
+#ifdef SYSDIG_WIN
+#define _packed
+__pragma(pack(push, 1));
+__pragma(pack(pop))
+#else
+#define _packed
+__attribute__((packed))
+#endif
+
+/*
  * Limits
  */
 #define PPM_MAX_EVENT_PARAMS (1 << 5)	/* Max number of parameters an event can have */
@@ -1302,16 +1318,7 @@ struct ppm_param_info {
 	const void *info; /**< If this is a flags parameter, it points to an array of ppm_name_value,
 			       else if this is a dynamic parameter it points to an array of ppm_param_info */
 	uint8_t ninfo; /**< Number of entry in the info array. */
-}
-#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
-#pragma pack(push,1)
-#else
-__attribute__((packed))
-#endif
-;
-#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
-#pragma pack(pop)
-#endif
+} _packed;
 
 /*!
   \brief Event information.
@@ -1324,16 +1331,7 @@ struct ppm_event_info {
 	enum ppm_event_flags flags; /**< flags for this event. */
 	uint32_t nparams; /**< Number of parameter in the params array. */
 	struct ppm_param_info params[PPM_MAX_EVENT_PARAMS]; /**< parameters descriptions. */
-}
-#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
-#pragma pack(push,1)
-#else
-__attribute__((packed))
-#endif
-;
-#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
-#pragma pack(pop)
-#endif
+} _packed;
 
 #if defined _MSC_VER
 #pragma pack(push)
@@ -1455,16 +1453,7 @@ struct syscall_evt_pair {
 	int flags;
 	enum ppm_event_type enter_event_type;
 	enum ppm_event_type exit_event_type;
-}
-#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
-#pragma pack(push,1)
-#else
-__attribute__((packed))
-#endif
-;
-#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
-#pragma pack(pop)
-#endif
+} _packed;
 
 #define SYSCALL_TABLE_SIZE 512
 
@@ -1493,16 +1482,7 @@ struct ppm_autofill_arg {
 #define AF_ID_USEDEFAULT -2
 	int16_t id;
 	long default_val;
-}
-#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
-#pragma pack(push,1)
-#else
-__attribute__((packed))
-#endif
-;
-#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
-#pragma pack(pop)
-#endif
+} _packed;
 
 enum autofill_paramtype {
 	APT_REG,
@@ -1517,16 +1497,7 @@ struct ppm_event_entry {
 	uint16_t n_autofill_args;
 	enum autofill_paramtype paramtype;
 	struct ppm_autofill_arg autofill_args[PPM_MAX_AUTOFILL_ARGS];
-}
-#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
-#pragma pack(push,1)
-#else
-__attribute__((packed))
-#endif
-;
-#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
-#pragma pack(pop)
-#endif
+} _packed;
 
 /*
  * parse_readv_writev_bufs flags
