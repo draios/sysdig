@@ -867,6 +867,9 @@ public:
 
 	void set_query_docker_image_info(bool query_image_info);
 
+        void set_url_groups(const std::set<std::string>& groups);
+        const std::set<std::string>* get_url_groups();
+
 VISIBILITY_PRIVATE
 
         static inline ppm_event_flags falco_skip_flags()
@@ -1008,6 +1011,9 @@ public:
 	sinsp_thread_manager* m_thread_manager;
 
 	sinsp_container_manager m_container_manager;
+
+        bool m_url_groups_enabled;
+        const std::set<std::string>* m_url_groups;
 
 	//
 	// Kubernetes

@@ -1588,6 +1588,18 @@ void sinsp::set_query_docker_image_info(bool query_image_info)
 	m_container_manager.set_query_docker_image_info(query_image_info);
 }
 
+void sinsp::set_url_groups(const std::set<std::string>& groups)
+{
+    m_url_groups_enabled = true;
+    m_url_groups = &groups;
+}
+
+const std::set<std::string>*
+sinsp::get_url_groups()
+{
+    return m_url_groups_enabled ? m_url_groups : NULL;
+}
+
 void sinsp::set_snaplen(uint32_t snaplen)
 {
 	//

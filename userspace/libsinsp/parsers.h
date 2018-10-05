@@ -34,6 +34,8 @@ public:
 	uint32_t m_scap_buf_size;
 };
 
+class erase_fd_params;
+
 class sinsp_parser
 {
 public:
@@ -158,7 +160,7 @@ private:
 	uint8_t* reserve_event_buffer();
 	void free_event_buffer(uint8_t*);
 
-	//
+        //
 	// Pointers to inspector context
 	//
 	sinsp* m_inspector;
