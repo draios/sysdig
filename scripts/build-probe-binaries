@@ -57,6 +57,18 @@ else
 	SYSDIG_TAG="${PROBE_DEVICE_NAME}/${PROBE_VERSION}"
 fi
 
+# The previously released versions of sysdig, falco, and the agent
+# don't have one of the necessary changes that this script requires
+# (namely, the ability to run cmake from the sysdig directory but
+# specify PROBE_NAME, PROBE_VERSION, and PROBE_DEVICE_NAME). Rather
+# than change what was in the tag we made modified tags x.y.z-cfgprobe
+# that include the sysdig version x.y.z but also one additional commit
+# that allows making the probe name/version/etc configurable.
+
+if [ $SYSDIG_TAG = "0.24.1" ] || [ $SYSDIG_TAG = "agent/0.85.1" ] || [ $SYSDIG_TAG = "falco/0.12.1" ]; then
+    SYSDIG_TAG="${SYSDIG_TAG}-cfgprobe"
+fi
+
 function checkout_sysdig {
 
         rm -rf sysdig || true
