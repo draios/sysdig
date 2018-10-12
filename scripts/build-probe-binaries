@@ -466,12 +466,12 @@ function debian_build {
 	cd ${BASEDIR}
 }
 
-checkout_sysdig
-
 if [ -z "$KERNEL_TYPE" ]; then
 	#
 	# Ubuntu build
 	#
+
+        checkout_sysdig
 
 	echo Building Ubuntu
 	DIR=$(dirname $(readlink -f $0))
