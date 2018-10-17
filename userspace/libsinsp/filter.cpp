@@ -1275,6 +1275,7 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 		{
 		case PT_IPV4NET:
 		case PT_IPV6NET:
+		case PT_IPNET:
 		case PT_SOCKADDR:
 		case PT_SOCKTUPLE:
 		case PT_FDLIST:
@@ -1285,7 +1286,9 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 				if (::flt_compare(CO_EQ,
 						  type,
 						  operand1,
-						  filter_value_p(i)))
+						  filter_value_p(i),
+						  op1_len,
+						  filter_value(i).size()))
 				{
 					return true;
 				}
