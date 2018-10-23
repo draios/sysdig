@@ -1,3 +1,20 @@
+#
+# Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+#
+# This file is part of sysdig .
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 # Prior to doing anything, we make sure that we aren't trying to
 # run cmake in-tree. (see Issue 71: https://github.com/draios/sysdig/issues/71)
@@ -57,9 +74,16 @@ if(NOT WIN32)
 			set(KBUILD_FLAGS "${SYSDIG_FEATURE_FLAGS}")
 		endif()
 
-		set(PROBE_VERSION "${SYSDIG_VERSION}")
-		set(PROBE_NAME "sysdig-probe")
-		set(PROBE_DEVICE_NAME "sysdig")
+		if(NOT DEFINED PROBE_VERSION)
+			set(PROBE_VERSION "${SYSDIG_VERSION}")
+		endif()
+		if(NOT DEFINED PROBE_NAME)
+			set(PROBE_NAME "sysdig-probe")
+		endif()
+
+		if(NOT DEFINED PROBE_DEVICE_NAME)
+			set(PROBE_DEVICE_NAME "sysdig")
+		endif()
 
 		add_subdirectory(driver)
 		add_definitions(-DHAS_CAPTURE)
@@ -202,6 +226,37 @@ else()
 			BUILD_COMMAND nmake -f win32/Makefile.msc
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${ZLIB_LIB}
+			INSTALL_COMMAND "")
+	endif()
+endif()
+
+#
+# Intel tbb
+#
+if(NOT WIN32 AND NOT APPLE)
+	option(USE_BUNDLED_TBB "Enable building of the bundled tbb" ${USE_BUNDLED_DEPS})
+	if(NOT USE_BUNDLED_TBB)
+		find_path(TBB_INCLUDE tbb.h PATH_SUFFIXES tbb)
+		find_library(TBB_LIB NAMES tbb)
+		if(TBB_INCLUDE AND TBB_LIB)
+			message(STATUS "Found tbb: include: ${TBB_INCLUDE}, lib: ${TBB_LIB}")
+		else()
+			message(FATAL_ERROR "Couldn't find system tbb")
+		endif()
+	else()
+		set(TBB_SRC "${PROJECT_BINARY_DIR}/tbb-prefix/src/tbb")
+
+		message(STATUS "Using bundled tbb in '${TBB_SRC}'")
+
+		set(TBB_INCLUDE "${TBB_SRC}/include/")
+		set(TBB_LIB "${TBB_SRC}/build/lib_release/libtbb.a")
+		ExternalProject_Add(tbb
+			URL "http://s3.amazonaws.com/download.draios.com/dependencies/tbb-2018_U5.tar.gz"
+			URL_MD5 "ff3ae09f8c23892fbc3008c39f78288f"
+			CONFIGURE_COMMAND ""
+			BUILD_COMMAND ${CMD_MAKE} tbb_build_dir=${TBB_SRC}/build tbb_build_prefix=lib extra_inc=big_iron.inc
+			BUILD_IN_SOURCE 1
+			BUILD_BYPRODUCTS ${TBB_LIB}
 			INSTALL_COMMAND "")
 	endif()
 endif()
@@ -376,7 +431,7 @@ set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "http://www.sysdig.org")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "dkms (>= 2.1.0.0)")
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_BINARY_DIR}/scripts/debian/postinst;${CMAKE_BINARY_DIR}/scripts/debian/prerm")
 
-set(CPACK_RPM_PACKAGE_LICENSE "GPLv2")
+set(CPACK_RPM_PACKAGE_LICENSE "Apache v2.0")
 set(CPACK_RPM_PACKAGE_URL "http://www.sysdig.org")
 set(CPACK_RPM_PACKAGE_REQUIRES "dkms, gcc, make, kernel-devel, perl")
 set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/scripts/rpm/postinstall")

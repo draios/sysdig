@@ -1,5 +1,23 @@
 #!/bin/bash
 #
+# Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+#
+# This file is part of sysdig .
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+#
 # This script builds a precompiled version of sysdig-probe for a bunch of kernels
 # The precompiled binary is then obtained at runtime by sysdig-probe-loader
 # Ideally, the community should expand this stuff with better support
@@ -29,31 +47,44 @@ if [ ! -d $BASEDIR/output ]; then
 	mkdir $BASEDIR/output
 fi
 
+PROBE_DEVICE_NAME=$(echo $PROBE_NAME | cut -f1 -d-)
+
 if [ $PROBE_NAME = "sysdigcloud-probe" ]; then
-	PROBE_REPO_NAME="agent"
+	SYSDIG_TAG="agent/${PROBE_VERSION}"
+elif [ $PROBE_NAME = "sysdig-probe" ]; then
+	SYSDIG_TAG="${PROBE_VERSION}"
 else
-	PROBE_REPO_NAME=$(echo $PROBE_NAME | cut -f1 -d-)
+	SYSDIG_TAG="${PROBE_DEVICE_NAME}/${PROBE_VERSION}"
 fi
 
-function update_code_for {
-	repo=$1
-	if [ ! -d $repo ]; then
-		git clone git@github.com:draios/$repo.git
-	fi
+# The previously released versions of sysdig, falco, and the agent
+# don't have one of the necessary changes that this script requires
+# (namely, the ability to run cmake from the sysdig directory but
+# specify PROBE_NAME, PROBE_VERSION, and PROBE_DEVICE_NAME). Rather
+# than change what was in the tag we made modified tags x.y.z-cfgprobe
+# that include the sysdig version x.y.z but also one additional commit
+# that allows making the probe name/version/etc configurable.
 
-	cd $repo
-	git checkout master
-	# The UEK builder container doesn't have git credentials
-	# It relies on the non-UEK builds doing the pull earlier
-	if [[ ! "$KERNEL_TYPE" =~ "UEK" ]]; then
-		git pull
-	fi
+if [ $SYSDIG_TAG = "0.24.1" ] || [ $SYSDIG_TAG = "agent/0.85.1" ] || [ $SYSDIG_TAG = "falco/0.12.1" ]; then
+    SYSDIG_TAG="${SYSDIG_TAG}-cfgprobe"
+fi
 
-	if [ $PROBE_REPO_NAME = $repo ]; then
-		git checkout $PROBE_VERSION
-	else
-		git checkout $PROBE_REPO_NAME/$PROBE_VERSION
-	fi
+function checkout_sysdig {
+
+        rm -rf sysdig || true
+
+	git clone git@github.com:draios/sysdig.git
+
+	cd sysdig
+
+	git checkout $SYSDIG_TAG
+
+	cd ..
+}
+
+function clean_sysdig {
+
+        cd sysdig
 
 	# Remove everything other than the files actually belonging to
 	# the repo.
@@ -70,24 +101,15 @@ function build_probe {
 
 	if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] || [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
 
-		echo Building $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko [${FUNCNAME[1]}]
+	        echo Building $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko [${FUNCNAME[1]}]
 
-		update_code_for sysdig
+		clean_sysdig
+		cd sysdig/
 
-		if [ $PROBE_NAME != "sysdig-probe" ]; then
-			update_code_for falco
-		fi
-
-		if [ $PROBE_NAME = "sysdigcloud-probe" ]; then
-			update_code_for agent
-		fi
-
-		cd $PROBE_REPO_NAME
 		mkdir build
 		cd build
-		version_name=-D$(echo $PROBE_REPO_NAME | tr [a-z] [A-Z])_VERSION
 
-		cmake -DCMAKE_BUILD_TYPE=Release $version_name=$PROBE_VERSION ..
+		cmake -DCMAKE_BUILD_TYPE=Release -DPROBE_NAME=$PROBE_NAME -DPROBE_VERSION=$PROBE_VERSION -DPROBE_DEVICE_NAME=$PROBE_DEVICE_NAME ..
 		make driver
 		strip -g driver/$PROBE_NAME.ko
 
@@ -449,6 +471,8 @@ if [ -z "$KERNEL_TYPE" ]; then
 	# Ubuntu build
 	#
 
+        checkout_sysdig
+
 	echo Building Ubuntu
 	DIR=$(dirname $(readlink -f $0))
 	URLS="$($DIR/kernel-crawler.py Ubuntu)"
@@ -508,15 +532,19 @@ if [ -z "$KERNEL_TYPE" ]; then
 	done
 
 	#
+	# boot2docker is officially in maintenance mode
+	# Disabled boot2docker builds as they were failing because of
+	# upstream changes to the Dockerfile.
+	#
 	# boot2docker build
 	#
-	echo Building boot2docker
-	DIR=$(dirname $(readlink -f $0))
-	$DIR/boot2docker-kernel-crawler.py | \
-		while read KERNEL_ARGS
-		do
-			boot2docker_build $KERNEL_ARGS
-		done
+	# echo Building boot2docker
+	# DIR=$(dirname $(readlink -f $0))
+	# $DIR/boot2docker-kernel-crawler.py | \
+	# 	while read KERNEL_ARGS
+	# 	do
+	# 		boot2docker_build $KERNEL_ARGS
+	# 	done
 
 	#
 	# Debian build

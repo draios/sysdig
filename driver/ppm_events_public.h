@@ -1,19 +1,10 @@
 /*
-Copyright (C) 2013-2014 Draios inc.
 
-This file is part of sysdig.
+Copyright (c) 2013-2018 Draios Inc. dba Sysdig.
 
-sysdig is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 2 as
-published by the Free Software Foundation.
+This file is dual licensed under either the MIT or GPL 2. See MIT.txt
+or GPL2.txt for full copies of the license.
 
-sysdig is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifndef EVENTS_PUBLIC_H_
@@ -27,6 +18,16 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/types.h>
 #else
 #include "../userspace/common/sysdig_types.h"
+#endif
+
+/*
+ * Macros for packing in different build environments
+ */
+
+#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
+#define _packed __pragma(pack(push, 1)); __pragma(pack(pop))
+#else
+#define _packed __attribute__((packed))
 #endif
 
 /*
@@ -1331,7 +1332,7 @@ struct ppm_param_info {
 	const void *info; /**< If this is a flags parameter, it points to an array of ppm_name_value,
 			       else if this is a dynamic parameter it points to an array of ppm_param_info */
 	uint8_t ninfo; /**< Number of entry in the info array. */
-} __attribute__((packed));
+} _packed;
 
 /*!
   \brief Event information.
@@ -1344,7 +1345,7 @@ struct ppm_event_info {
 	enum ppm_event_flags flags; /**< flags for this event. */
 	uint32_t nparams; /**< Number of parameter in the params array. */
 	struct ppm_param_info params[PPM_MAX_EVENT_PARAMS]; /**< parameters descriptions. */
-} __attribute__((packed));
+} _packed;
 
 #if defined _MSC_VER
 #pragma pack(push)
@@ -1467,7 +1468,7 @@ struct syscall_evt_pair {
 	int flags;
 	enum ppm_event_type enter_event_type;
 	enum ppm_event_type exit_event_type;
-} __attribute__((packed));
+} _packed;
 
 #define SYSCALL_TABLE_SIZE 512
 
@@ -1496,7 +1497,7 @@ struct ppm_autofill_arg {
 #define AF_ID_USEDEFAULT -2
 	int16_t id;
 	long default_val;
-} __attribute__((packed));
+} _packed;
 
 enum autofill_paramtype {
 	APT_REG,
@@ -1511,7 +1512,7 @@ struct ppm_event_entry {
 	uint16_t n_autofill_args;
 	enum autofill_paramtype paramtype;
 	struct ppm_autofill_arg autofill_args[PPM_MAX_AUTOFILL_ARGS];
-} __attribute__((packed));
+} _packed;
 
 /*
  * parse_readv_writev_bufs flags

@@ -1,19 +1,20 @@
 /*
-Copyright (C) 2013-2014 Draios inc.
+Copyright (C) 2013-2018 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
-sysdig is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 2 as
-published by the Free Software Foundation.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-sysdig is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+    http://www.apache.org/licenses/LICENSE-2.0
 
-You should have received a copy of the GNU General Public License
-along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
 */
 
 #include <stdio.h>
@@ -183,7 +184,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	if(handle->m_ncpus == -1)
 	{
 		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_CONF: %s", strerror(errno));
+		snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_CONF: %s", scap_strerror(handle, errno));
 		*rc = SCAP_FAILURE;
 		return NULL;
 	}
@@ -195,7 +196,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	if(ndevs == -1)
 	{
 		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_ONLN: %s", strerror(errno));
+		snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_ONLN: %s", scap_strerror(handle, errno));
 		*rc = SCAP_FAILURE;
 		return NULL;
 	}
@@ -340,7 +341,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 
 			// Set close-on-exec for the fd
 			if (fcntl(handle->m_devs[j].m_fd, F_SETFD, FD_CLOEXEC) == -1) {
-				snprintf(error, SCAP_LASTERR_SIZE, "Can not set close-on-exec flag for fd for device %s (%s)", filename, strerror(errno));
+				snprintf(error, SCAP_LASTERR_SIZE, "Can not set close-on-exec flag for fd for device %s (%s)", filename, scap_strerror(handle, errno));
 				scap_close(handle);
 				*rc = SCAP_FAILURE;
 				return NULL;
@@ -1368,7 +1369,7 @@ static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t samp
 		if(ioctl(handle->m_devs[0].m_fd, request, sampling_ratio))
 		{
 			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s, request %d for sampling ratio %u: %s",
-					__FUNCTION__, request, sampling_ratio, strerror(errno));
+					__FUNCTION__, request, sampling_ratio, scap_strerror(handle, errno));
 			ASSERT(false);
 			return SCAP_FAILURE;
 		}
@@ -1942,7 +1943,7 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 			}
 			else
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_get_n_tracepoint_hit failed (%s)", strerror(errno));
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_get_n_tracepoint_hit failed (%s)", scap_strerror(handle, errno));
 			}
 
 			ASSERT(false);

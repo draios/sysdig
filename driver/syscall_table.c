@@ -1,19 +1,10 @@
-	/*
-Copyright (C) 2013-2014 Draios inc.
+/*
 
-This file is part of sysdig.
+Copyright (c) 2013-2018 Draios Inc. dba Sysdig.
 
-sysdig is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 2 as
-published by the Free Software Foundation.
+This file is dual licensed under either the MIT or GPL 2. See MIT.txt
+or GPL2.txt for full copies of the license.
 
-sysdig is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifdef __KERNEL__
@@ -295,13 +286,6 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_seccomp
 	[__NR_seccomp - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_SECCOMP_E, PPME_SYSCALL_SECCOMP_X},
 #endif
-	[__NR_chown - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_CHOWN_E, PPME_SYSCALL_CHOWN_X},
-	[__NR_lchown - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_LCHOWN_E, PPME_SYSCALL_LCHOWN_X},
-	[__NR_fchown - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_FCHOWN_E, PPME_SYSCALL_FCHOWN_X},
-	[__NR_fchownat - SYSCALL_TABLE_ID0] =                   {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_FCHOWNAT_E, PPME_SYSCALL_FCHOWNAT_X},
-	[__NR_chmod - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_CHMOD_E, PPME_SYSCALL_CHMOD_X},
-	[__NR_fchmod - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_FCHMOD_E, PPME_SYSCALL_FCHMOD_X},
-	[__NR_fchmodat - SYSCALL_TABLE_ID0] =                   {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_FCHMODAT_E, PPME_SYSCALL_FCHMODAT_X},
 };
 
 /*
@@ -1099,13 +1083,6 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_ia32_seccomp
 	[__NR_ia32_seccomp - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_SECCOMP_E, PPME_SYSCALL_SECCOMP_X},
 #endif
-	[__NR_ia32_chown - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_CHOWN_E, PPME_SYSCALL_CHOWN_X},
-	[__NR_ia32_lchown - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_LCHOWN_E, PPME_SYSCALL_LCHOWN_X},
-	[__NR_ia32_fchown - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_FCHOWN_E, PPME_SYSCALL_FCHOWN_X},
-	[__NR_ia32_fchownat - SYSCALL_TABLE_ID0] =                   {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_FCHOWNAT_E, PPME_SYSCALL_FCHOWNAT_X},
-	[__NR_ia32_chmod - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_CHMOD_E, PPME_SYSCALL_CHMOD_X},
-	[__NR_ia32_fchmod - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_FCHMOD_E, PPME_SYSCALL_FCHMOD_X},
-	[__NR_ia32_fchmodat - SYSCALL_TABLE_ID0] =                   {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_FCHMODAT_E, PPME_SYSCALL_FCHMODAT_X},
 };
 
 /*

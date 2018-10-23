@@ -1,19 +1,20 @@
 /*
-Copyright (C) 2013-2014 Draios inc.
+Copyright (C) 2013-2018 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
-sysdig is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 2 as
-published by the Free Software Foundation.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-sysdig is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+    http://www.apache.org/licenses/LICENSE-2.0
 
-You should have received a copy of the GNU General Public License
-along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
 */
 
 //
@@ -1274,6 +1275,7 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 		{
 		case PT_IPV4NET:
 		case PT_IPV6NET:
+		case PT_IPNET:
 		case PT_SOCKADDR:
 		case PT_SOCKTUPLE:
 		case PT_FDLIST:
@@ -1284,7 +1286,9 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 				if (::flt_compare(CO_EQ,
 						  type,
 						  operand1,
-						  filter_value_p(i)))
+						  filter_value_p(i),
+						  op1_len,
+						  filter_value(i).size()))
 				{
 					return true;
 				}

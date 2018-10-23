@@ -1,19 +1,20 @@
 /*
-Copyright (C) 2013-2014 Draios inc.
+Copyright (C) 2013-2018 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
-sysdig is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 2 as
-published by the Free Software Foundation.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-sysdig is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+    http://www.apache.org/licenses/LICENSE-2.0
 
-You should have received a copy of the GNU General Public License
-along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
 */
 
 /*!
@@ -593,7 +594,7 @@ public:
 	/*!
 	  \brief Get the list of machine network interfaces.
 
-	  \return Pointer to the iterface list manager.
+	  \return Pointer to the interface list manager.
 	*/
 	sinsp_network_interfaces* get_ifaddr_list();
 
@@ -631,7 +632,7 @@ public:
 	}
 
 	/*!
-	  \brief Returns true if the current capture is live
+	  \brief Returns true if the sysdig module is not loaded
 	*/
 	inline bool is_nodriver()
 	{
@@ -695,7 +696,7 @@ public:
 	/*!
 	  \brief Sets the max length of event argument strings.
 
-	  \param len Max length after which an avent argument string is truncated.
+	  \param len Max length after which an event argument string is truncated.
 	   0 means no limit. Use this to reduce verbosity when printing event info
 	   on screen.
 	*/
@@ -712,7 +713,7 @@ public:
 	/*!
 	  \brief Set a flag indicating if the command line requested to show container information.
 
-	  \param set true if the command line arugment is set to show container information
+	  \param set true if the command line argument is set to show container information
 	*/
 	void set_print_container_data(bool print_container_data);
 
@@ -751,7 +752,7 @@ public:
 	/*!
 	  \brief If this is an online capture, set event_id.
 	  \param event type to set
-	  \return SCAP_SUCCESS if the call is succesful
+	  \return SCAP_SUCCESS if the call is successful
 	   On Failure, SCAP_FAILURE is returned and getlasterr() can be used to
 	   obtain the cause of the error.
 
@@ -762,7 +763,7 @@ public:
 	/*!
 	  \brief If this is an online capture, unset event_id.
 	  \param event type to unset
-	  \return SCAP_SUCCESS if the call is succesful
+	  \return SCAP_SUCCESS if the call is successful
 	   On Failure, SCAP_FAILURE is returned and getlasterr() can be used to
 	   obtain the cause of the error.
 
@@ -1044,7 +1045,7 @@ public:
 
 	//
 	// True if the command line argument is set to show container information
-	// The deafult is false set within the constructor
+	// The default is false set within the constructor
 	//
 	bool m_print_container_data;
 
