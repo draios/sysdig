@@ -69,6 +69,7 @@ public:
 		OT_STDERR = 2,
 		OT_FILE = 4,
 		OT_CALLBACK = 8,
+		OT_ENCODE_SEV = 128,
 		OT_NOTS = 256,
 	};
 
@@ -82,6 +83,8 @@ public:
 	void add_file_log(FILE* f);
 	void add_callback_log(sinsp_logger_callback callback);
 	void remove_callback_log();
+	void include_timestamp(bool enable);
+	void include_severity(bool enable);
 
 	void set_severity(severity sev);
 	severity get_severity() const;
@@ -93,9 +96,15 @@ public:
 	char* format(severity sev, const char* fmt, ...);
 	char* format(const char* fmt, ...);
 
+	// Returns the decoded severity or SEV_MAX+1 for errors.
+	// len is set to the length of the severity string on success
+	// and 0 in case of errors
+	static severity decode_severity(const std::string &s, size_t *len);
 private:
 	bool is_callback() const;
 	bool is_user_event(severity sev) const;
+
+	static const char *encode_severity(const severity sev);
 
 	FILE* m_file;
 	sinsp_logger_callback m_callback;
