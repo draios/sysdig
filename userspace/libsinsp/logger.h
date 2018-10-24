@@ -76,6 +76,7 @@ public:
 	const static uint32_t OT_FILE;
 	const static uint32_t OT_CALLBACK;
 	const static uint32_t OT_NOTS;
+	const static uint32_t OT_ENCODE_SEV;
 
 	/**
 	 * Initialize this sinsp_logger with no output sinks enabled.
@@ -106,6 +107,9 @@ public:
 
 	/** Disables tagging logs with the current timestamp. */
 	void disable_timestamps();
+
+	/** Adds encoded severity to log messages */
+	void add_encoded_severity();
 
 	/**
 	 * Registered the given callback as the logging callback.
@@ -154,6 +158,12 @@ public:
 	 */
 	const char* format(const char* fmt, ...);
 
+	/** Sets `sev` to the decoded severity or SEV_MAX+1 for errors.
+	 *  Returns the length of the severity string on success
+	 *  and 0 in case of errors
+	 */
+	static size_t decode_severity(const std::string &s, severity& sev);
+
 private:
 	/** Returns true if the callback log sync is enabled, false otherwise. */
 	bool is_callback() const;
@@ -166,6 +176,9 @@ private:
 	 * as a single type.
 	 */
 	static bool is_event_severity(severity sev);
+
+	/** Returns a string containing encoded severity, for OT_ENCODE_SEV. */
+	static const char* encode_severity(severity sev);
 
 	std::atomic<FILE*> m_file;
 	std::atomic<sinsp_logger_callback> m_callback;
