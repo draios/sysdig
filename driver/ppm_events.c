@@ -382,6 +382,15 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 					} else if (dport == PPM_PORT_STATSD) {
 						sockfd_put(sock);
 						return 2000;
+					} else if (args->consumer->fullcapture_port_range_end != 0 &&
+								((sport >= args->consumer->fullcapture_port_range_start && sport <= args->consumer->fullcapture_port_range_end) ||
+								(dport >= args->consumer->fullcapture_port_range_start && dport <= args->consumer->fullcapture_port_range_end)
+							)) {
+						/*
+						 * mpegts detection
+						 */
+						sockfd_put(sock);
+						return 16000;
 					} else {
 						if (lookahead_size >= 5) {
 							if (*(u32 *)buf == g_http_get_intval ||

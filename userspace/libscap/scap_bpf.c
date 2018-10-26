@@ -881,6 +881,28 @@ int32_t scap_bpf_set_snaplen(scap_t* handle, uint32_t snaplen)
 	return SCAP_SUCCESS;
 }
 
+int32_t scap_bpf_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, uint16_t range_end)
+{
+	struct sysdig_bpf_settings settings;
+	int k = 0;
+
+	if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SYSDIG_SETTINGS_MAP], &k, &settings) != 0)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SYSDIG_SETTINGS_MAP bpf_map_lookup_elem < 0");
+		return SCAP_FAILURE;
+	}
+
+	settings.fullcapture_port_range_start = range_start;
+	settings.fullcapture_port_range_end = range_end;
+	if(bpf_map_update_elem(handle->m_bpf_map_fds[SYSDIG_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SYSDIG_SETTINGS_MAP bpf_map_update_elem < 0");
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+}
+
 int32_t scap_bpf_disable_dynamic_snaplen(scap_t* handle)
 {
 	struct sysdig_bpf_settings settings;
