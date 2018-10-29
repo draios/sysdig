@@ -286,6 +286,13 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_seccomp
 	[__NR_seccomp - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_SECCOMP_E, PPME_SYSCALL_SECCOMP_X},
 #endif
+	[__NR_chown - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_SYSCALL_CHOWN_E, PPME_SYSCALL_CHOWN_X},
+	[__NR_lchown - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_LCHOWN_E, PPME_SYSCALL_LCHOWN_X},
+	[__NR_fchown - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_FCHOWN_E, PPME_SYSCALL_FCHOWN_X},
+	[__NR_fchownat - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_FCHOWNAT_E, PPME_SYSCALL_FCHOWNAT_X},
+	[__NR_chmod - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_SYSCALL_CHMOD_E, PPME_SYSCALL_CHMOD_X},
+	[__NR_fchmod - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_FCHMOD_E, PPME_SYSCALL_FCHMOD_X},
+	[__NR_fchmodat - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_FCHMODAT_E, PPME_SYSCALL_FCHMODAT_X},
 };
 
 /*

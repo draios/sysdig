@@ -3787,6 +3787,49 @@ FILLER(sys_linkat_x, true)
 	return res;
 }
 
+FILLER(sys_fchownat_e, true)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	* dirfd
+	*/
+	val = bpf_syscall_get_argument(data, 0);
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	* owner
+	*/
+	val = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	* group
+	*/
+	val = bpf_syscall_get_argument(data, 3);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	* flags
+	*/
+	val = bpf_syscall_get_argument(data, 4);
+	res = bpf_val_to_ring(data, chown_chmod_flags_to_scap(val));
+	if (res != PPM_SUCCESS)
+		return res;
+
+	return res;
+}
+
 FILLER(sys_autofill, true)
 {
 	const struct ppm_event_entry *evinfo;

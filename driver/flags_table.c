@@ -436,3 +436,9 @@ const struct ppm_name_value linkat_flags[] = {
 	{"AT_EMPTY_PATH", PPM_AT_EMPTY_PATH},
 	{0, 0},
 };
+
+const struct ppm_name_value chown_flags[] = {
+	{"AT_SYMLINK_NOFOLLOW", PPM_AT_SYMLINK_NOFOLLOW},
+	{"AT_EMPTY_PATH", PPM_AT_EMPTY_PATH},
+	{0, 0},
+};

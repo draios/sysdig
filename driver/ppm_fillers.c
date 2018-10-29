@@ -4408,3 +4408,46 @@ int f_sys_mkdirat_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+int f_sys_fchownat_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	* dirfd
+	*/
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	* owner
+	*/
+	syscall_get_arguments(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	* group
+	*/
+	syscall_get_arguments(current, args->regs, 3, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	* flags
+	*/
+	syscall_get_arguments(current, args->regs, 4, 1, &val);
+	res = val_to_ring(args, chown_flags_to_scap(val), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}

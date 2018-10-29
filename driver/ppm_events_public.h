@@ -508,6 +508,11 @@ or GPL2.txt for full copies of the license.
 #define PPM_PF_INSTRUCTION_FETCH	(1 << 7)
 
 /*
+ * fchmodat flags
+ */
+#define PPM_AT_SYMLINK_NOFOLLOW 	(1 << 0)
+
+/*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
  *
@@ -863,7 +868,21 @@ enum ppm_event_type {
 	PPME_SYSCALL_LINK_2_X = 309,
 	PPME_SYSCALL_LINKAT_2_E = 310,
 	PPME_SYSCALL_LINKAT_2_X = 311,
-	PPM_EVENT_MAX = 312
+	PPME_SYSCALL_CHOWN_E = 312,
+	PPME_SYSCALL_CHOWN_X = 313,
+	PPME_SYSCALL_LCHOWN_E = 314,
+	PPME_SYSCALL_LCHOWN_X = 315,
+	PPME_SYSCALL_FCHOWN_E = 316,
+	PPME_SYSCALL_FCHOWN_X = 317,
+	PPME_SYSCALL_FCHOWNAT_E = 318,
+	PPME_SYSCALL_FCHOWNAT_X = 319,
+	PPME_SYSCALL_CHMOD_E = 320,
+	PPME_SYSCALL_CHMOD_X = 321,
+	PPME_SYSCALL_FCHMOD_E = 322,
+	PPME_SYSCALL_FCHMOD_X = 323,
+	PPME_SYSCALL_FCHMODAT_E = 324,
+	PPME_SYSCALL_FCHMODAT_X = 325,
+	PPM_EVENT_MAX = 326
 };
 /*@}*/
 
@@ -1407,6 +1426,7 @@ extern const struct ppm_name_value access_flags[];
 extern const struct ppm_name_value pf_flags[];
 extern const struct ppm_name_value unlinkat_flags[];
 extern const struct ppm_name_value linkat_flags[];
+extern const struct ppm_name_value chown_flags[];
 
 extern const struct ppm_param_info ptrace_dynamic_param[];
 extern const struct ppm_param_info bpf_dynamic_param[];
