@@ -979,7 +979,9 @@ static int __always_inline parse_sockopt(struct filler_data *data, int level, in
 #ifdef SO_MAX_PACING_RATE
 			case SO_MAX_PACING_RATE:
 #endif
+#ifdef SO_BPF_EXTENSIONS
 			case SO_BPF_EXTENSIONS:
+#endif
 #ifdef SO_INCOMING_CPU
 			case SO_INCOMING_CPU:
 #endif
