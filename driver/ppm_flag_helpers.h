@@ -639,8 +639,10 @@ static __always_inline u8 sockopt_optname_to_scap(int level, int optname)
 		case SO_MAX_PACING_RATE:
 			return PPM_SOCKOPT_SO_MAX_PACING_RATE;
 #endif
+#ifdef SO_BPF_EXTENSIONS
 		case SO_BPF_EXTENSIONS:
 			return PPM_SOCKOPT_SO_BPF_EXTENSIONS;
+#endif
 #ifdef SO_INCOMING_CPU
 		case SO_INCOMING_CPU:
 			return PPM_SOCKOPT_SO_INCOMING_CPU;

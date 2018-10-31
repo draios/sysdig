@@ -1331,7 +1331,9 @@ static int parse_sockopt(struct event_filler_arguments *args, int level, int opt
 #ifdef SO_MAX_PACING_RATE
 			case SO_MAX_PACING_RATE:
 #endif
+#ifdef SO_BPF_EXTENSIONS
 			case SO_BPF_EXTENSIONS:
+#endif
 #ifdef SO_INCOMING_CPU
 			case SO_INCOMING_CPU:
 #endif
