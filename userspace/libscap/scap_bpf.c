@@ -1221,6 +1221,8 @@ static int32_t set_default_settings(scap_t *handle)
 	settings.page_faults = false;
 	settings.dropping_mode = false;
 	settings.is_dropping = false;
+	settings.fullcapture_port_range_start = 0;
+	settings.fullcapture_port_range_end = 0;
 
 	int k = 0;
 	if(bpf_map_update_elem(handle->m_bpf_map_fds[SYSDIG_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)

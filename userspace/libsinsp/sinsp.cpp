@@ -1617,7 +1617,12 @@ void sinsp::set_fullcapture_port_range(uint16_t range_start, uint16_t range_end)
 		throw sinsp_exception("set_fullcapture_port_range called before capture start");
 	}
 
-	if(is_live() && scap_set_fullcapture_port_range(m_h, range_start, range_end) != SCAP_SUCCESS)
+	if(!is_live())
+	{
+		throw sinsp_exception("set_fullcapture_port_range called on a trace file");
+	}
+
+	if(scap_set_fullcapture_port_range(m_h, range_start, range_end) != SCAP_SUCCESS)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
 	}

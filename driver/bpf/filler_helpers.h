@@ -364,7 +364,7 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 		/*
 		* mpegts detection
 		*/
-		return 16000;
+		return RW_MAX_FULLCAPTURE_PORT_SNAPLEN;
 	} else {
 		if (lookahead_size >= 5) {
 			u32 buf = *(u32 *)&get_buf(0);

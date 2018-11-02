@@ -390,7 +390,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 						 * mpegts detection
 						 */
 						sockfd_put(sock);
-						return 16000;
+						return RW_MAX_FULLCAPTURE_PORT_SNAPLEN;
 					} else {
 						if (lookahead_size >= 5) {
 							if (*(u32 *)buf == g_http_get_intval ||
