@@ -1421,6 +1421,18 @@ struct ppm_evt_hdr {
 	uint16_t type; /* the event type */
 	uint32_t nparams; /* the number of parameters of the event */
 };
+
+/// Event header as stored in scap files. if PPM_ENABLE_SENTINEL is not defined,
+/// it must be identical to ppm_evt_hdr. Otherwise, it must match the *end*
+/// of ppm_evt_hdr (scap files don't have the sentinel at the beginning of the struct)
+/// see scap_next_offline() in scap_savefile.c
+struct ppm_scap_evt_hdr {
+	uint64_t ts; /* timestamp, in nanoseconds from epoch */
+	uint64_t tid; /* the tid of the thread that generated this event */
+	uint32_t len; /* the event len, including the header */
+	uint16_t type; /* the event type */
+	uint32_t nparams; /* the number of parameters of the event */
+};
 #if defined __sun
 #pragma pack()
 #else

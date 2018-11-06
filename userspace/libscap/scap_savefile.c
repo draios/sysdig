@@ -2745,7 +2745,7 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 			return SCAP_UNEXPECTED_BLOCK;
 		}
 
-		hdr_len = sizeof(struct ppm_evt_hdr);
+		hdr_len = sizeof(struct ppm_scap_evt_hdr);
 		if(bh.block_type != EV_BLOCK_TYPE_V2 && bh.block_type != EVF_BLOCK_TYPE_V2)
 		{
 			hdr_len -= 4;
@@ -2768,7 +2768,9 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 			return SCAP_FAILURE;
 		}
 
-		readsize = gzread(f, handle->m_file_evt_buf, readlen);
+		// read a ppm_scap_evt_hdr struct leaving some space at the beginning of the buffer
+		// so that we can cast the whole buffer as ppm_evt_hdr
+		readsize = gzread(f, handle->m_file_evt_buf + sizeof(struct ppm_evt_hdr) - sizeof(struct ppm_scap_evt_hdr), readlen);
 		CHECK_READ_SIZE(readsize, readlen);
 
 		//
