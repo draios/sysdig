@@ -1,3 +1,10 @@
+#
+# Copyright (c) 2013-2018 Draios Inc. dba Sysdig.
+#
+# This file is dual licensed under either the MIT or GPL 2. See
+# MIT.txt or GPL.txt for full copies of the license.
+#
+
 option(BUILD_DRIVER "Build the driver on Linux" ON)
 option(ENABLE_DKMS "Enable DKMS on Linux" ON)
 
@@ -56,7 +63,7 @@ if(ENABLE_DKMS)
 	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makefile.dkms
 		RENAME Makefile
 		DESTINATION "src/${PACKAGE_NAME}-${PROBE_VERSION}"
-		COMPONENT agent)
+		COMPONENT agent-kmodule)
 
 	install(FILES
 		${CMAKE_CURRENT_BINARY_DIR}/dkms.conf
@@ -79,7 +86,8 @@ if(ENABLE_DKMS)
 		ppm_cputime.c
 		ppm_compat_unistd_32.h
 		DESTINATION "src/${PACKAGE_NAME}-${PROBE_VERSION}"
-		COMPONENT agent)
+		COMPONENT agent-kmodule)
+
 endif()
 
 add_subdirectory(bpf)

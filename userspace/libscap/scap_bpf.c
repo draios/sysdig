@@ -1,3 +1,21 @@
+/*
+Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+
+This file is part of sysdig.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
@@ -280,7 +298,7 @@ static int32_t load_maps(scap_t *handle, struct bpf_map_data *maps, int nr_maps)
 
 		if(handle->m_bpf_map_fds[j] < 0)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't create map: %s", strerror(errno));
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't create map: %s", scap_strerror(handle, errno));
 			return SCAP_FAILURE;
 		}
 
@@ -440,7 +458,7 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 		efd = bpf_raw_tracepoint_open(event, fd);
 		if(efd < 0)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "BPF_RAW_TRACEPOINT_OPEN: event %s: %s", event, strerror(errno));
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "BPF_RAW_TRACEPOINT_OPEN: event %s: %s", event, scap_strerror(handle, errno));
 			return SCAP_FAILURE;
 		}
 	}
@@ -467,7 +485,7 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 		if(err < 0 || err >= sizeof(buf))
 		{
 			close(efd);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "read from '%s' failed '%s'", event, strerror(errno));
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "read from '%s' failed '%s'", event, scap_strerror(handle, errno));
 			return SCAP_FAILURE;
 		}
 
@@ -480,14 +498,14 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 		efd = sys_perf_event_open(&attr, -1, 0, -1, 0);
 		if(efd < 0)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "event %d fd %d err %s", id, efd, strerror(errno));
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "event %d fd %d err %s", id, efd, scap_strerror(handle, errno));
 			return SCAP_FAILURE;
 		}
 
 		if(ioctl(efd, PERF_EVENT_IOC_SET_BPF, fd))
 		{
 			close(efd);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "PERF_EVENT_IOC_SET_BPF: %s", strerror(errno));
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "PERF_EVENT_IOC_SET_BPF: %s", scap_strerror(handle, errno));
 			return SCAP_FAILURE;
 		}
 	}
@@ -529,7 +547,7 @@ static int32_t load_bpf_file(scap_t *handle, const char *path)
 	int program_fd = open(path, O_RDONLY, 0);
 	if(program_fd < 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open BPF probe '%s': %s", path, strerror(errno));
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open BPF probe '%s': %s", path, scap_strerror(handle, errno));
 		return SCAP_FAILURE;
 	}
 
@@ -1259,7 +1277,7 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 			fp = fopen(filename, "r");
 			if(fp == NULL)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open %s: %s", filename, strerror(errno));
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open %s: %s", filename, scap_strerror(handle, errno));
 				return SCAP_FAILURE;
 			}
 
@@ -1267,7 +1285,7 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 			{
 				fclose(fp);
 
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't read %s: %s", filename, strerror(errno));
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't read %s: %s", filename, scap_strerror(handle, errno));
 				return SCAP_FAILURE;
 			}
 
@@ -1288,7 +1306,7 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 		pmu_fd = sys_perf_event_open(&attr, -1, j, -1, 0);
 		if(pmu_fd < 0)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "pmu_fd < 0: %s", strerror(errno));
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "pmu_fd < 0: %s", scap_strerror(handle, errno));
 			return SCAP_FAILURE;
 		}
 
@@ -1296,7 +1314,7 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 
 		if(bpf_map_update_elem(handle->m_bpf_map_fds[SYSDIG_PERF_MAP], &j, &pmu_fd, BPF_ANY) != 0)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SYSDIG_PERF_MAP bpf_map_update_elem < 0: %s", strerror(errno));
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SYSDIG_PERF_MAP bpf_map_update_elem < 0: %s", scap_strerror(handle, errno));
 			return SCAP_FAILURE;
 		}
 

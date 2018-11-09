@@ -1,19 +1,10 @@
 /*
-Copyright (C) 2013-2014 Draios inc.
 
-This file is part of sysdig.
+Copyright (c) 2013-2018 Draios Inc. dba Sysdig.
 
-sysdig is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 2 as
-published by the Free Software Foundation.
+This file is dual licensed under either the MIT or GPL 2. See MIT.txt
+or GPL2.txt for full copies of the license.
 
-sysdig is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifndef EVENTS_PUBLIC_H_
@@ -27,6 +18,16 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #include <linux/types.h>
 #else
 #include "../userspace/common/sysdig_types.h"
+#endif
+
+/*
+ * Macros for packing in different build environments
+ */
+
+#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
+#define _packed __pragma(pack(push, 1)); __pragma(pack(pop))
+#else
+#define _packed __attribute__((packed))
 #endif
 
 /*
@@ -324,6 +325,82 @@ along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 #define PPM_FCNTL_F_OFD_GETLK 30
 #define PPM_FCNTL_F_OFD_SETLK 31
 #define PPM_FCNTL_F_OFD_SETLKW 32
+
+/*
+ * getsockopt/setsockopt levels
+ */
+#define PPM_SOCKOPT_LEVEL_UNKNOWN 0
+#define PPM_SOCKOPT_LEVEL_SOL_SOCKET 1
+#define PPM_SOCKOPT_LEVEL_SOL_TCP 2
+
+/*
+ * getsockopt/setsockopt options
+ * SOL_SOCKET only currently
+ */
+#define PPM_SOCKOPT_UNKNOWN	0
+#define PPM_SOCKOPT_SO_DEBUG	1
+#define PPM_SOCKOPT_SO_REUSEADDR	2
+#define PPM_SOCKOPT_SO_TYPE		3
+#define PPM_SOCKOPT_SO_ERROR	4
+#define PPM_SOCKOPT_SO_DONTROUTE	5
+#define PPM_SOCKOPT_SO_BROADCAST	6
+#define PPM_SOCKOPT_SO_SNDBUF	7
+#define PPM_SOCKOPT_SO_RCVBUF	8
+#define PPM_SOCKOPT_SO_SNDBUFFORCE	32
+#define PPM_SOCKOPT_SO_RCVBUFFORCE	33
+#define PPM_SOCKOPT_SO_KEEPALIVE	9
+#define PPM_SOCKOPT_SO_OOBINLINE	10
+#define PPM_SOCKOPT_SO_NO_CHECK	11
+#define PPM_SOCKOPT_SO_PRIORITY	12
+#define PPM_SOCKOPT_SO_LINGER	13
+#define PPM_SOCKOPT_SO_BSDCOMPAT	14
+#define PPM_SOCKOPT_SO_REUSEPORT	15
+#define PPM_SOCKOPT_SO_PASSCRED	16
+#define PPM_SOCKOPT_SO_PEERCRED	17
+#define PPM_SOCKOPT_SO_RCVLOWAT	18
+#define PPM_SOCKOPT_SO_SNDLOWAT	19
+#define PPM_SOCKOPT_SO_RCVTIMEO	20
+#define PPM_SOCKOPT_SO_SNDTIMEO	21
+#define PPM_SOCKOPT_SO_SECURITY_AUTHENTICATION		22
+#define PPM_SOCKOPT_SO_SECURITY_ENCRYPTION_TRANSPORT	23
+#define PPM_SOCKOPT_SO_SECURITY_ENCRYPTION_NETWORK		24
+#define PPM_SOCKOPT_SO_BINDTODEVICE	25
+#define PPM_SOCKOPT_SO_ATTACH_FILTER	26
+#define PPM_SOCKOPT_SO_DETACH_FILTER	27
+#define PPM_SOCKOPT_SO_PEERNAME		28
+#define PPM_SOCKOPT_SO_TIMESTAMP		29
+#define PPM_SOCKOPT_SO_ACCEPTCONN		30
+#define PPM_SOCKOPT_SO_PEERSEC		31
+#define PPM_SOCKOPT_SO_PASSSEC		34
+#define PPM_SOCKOPT_SO_TIMESTAMPNS		35
+#define PPM_SOCKOPT_SO_MARK			36
+#define PPM_SOCKOPT_SO_TIMESTAMPING		37
+#define PPM_SOCKOPT_SO_PROTOCOL		38
+#define PPM_SOCKOPT_SO_DOMAIN		39
+#define PPM_SOCKOPT_SO_RXQ_OVFL             40
+#define PPM_SOCKOPT_SO_WIFI_STATUS		41
+#define PPM_SOCKOPT_SO_PEEK_OFF		42
+#define PPM_SOCKOPT_SO_NOFCS		43
+#define PPM_SOCKOPT_SO_LOCK_FILTER		44
+#define PPM_SOCKOPT_SO_SELECT_ERR_QUEUE	45
+#define PPM_SOCKOPT_SO_BUSY_POLL		46
+#define PPM_SOCKOPT_SO_MAX_PACING_RATE	47
+#define PPM_SOCKOPT_SO_BPF_EXTENSIONS	48
+#define PPM_SOCKOPT_SO_INCOMING_CPU		49
+#define PPM_SOCKOPT_SO_ATTACH_BPF		50
+#define PPM_SOCKOPT_SO_PEERGROUPS		51
+#define PPM_SOCKOPT_SO_MEMINFO		52
+#define PPM_SOCKOPT_SO_COOKIE		53
+
+/*
+ * getsockopt/setsockopt dynamic params
+ */
+#define PPM_SOCKOPT_IDX_UNKNOWN 0
+#define PPM_SOCKOPT_IDX_ERRNO 1
+#define PPM_SOCKOPT_IDX_UINT32 2
+#define PPM_SOCKOPT_IDX_UINT64 3
+#define PPM_SOCKOPT_IDX_TIMEVAL 4
+#define PPM_SOCKOPT_IDX_MAX 5
 
  /*
  * ptrace requests
@@ -1311,7 +1388,7 @@ struct ppm_param_info {
 	const void *info; /**< If this is a flags parameter, it points to an array of ppm_name_value,
 			       else if this is a dynamic parameter it points to an array of ppm_param_info */
 	uint8_t ninfo; /**< Number of entry in the info array. */
-} __attribute__((packed));
+} _packed;
 
 /*!
   \brief Event information.
@@ -1324,7 +1401,7 @@ struct ppm_event_info {
 	enum ppm_event_flags flags; /**< flags for this event. */
 	uint32_t nparams; /**< Number of parameter in the params array. */
 	struct ppm_param_info params[PPM_MAX_EVENT_PARAMS]; /**< parameters descriptions. */
-} __attribute__((packed));
+} _packed;
 
 #if defined _MSC_VER
 #pragma pack(push)
@@ -1391,6 +1468,8 @@ extern const struct ppm_name_value umount_flags[];
 extern const struct ppm_name_value shutdown_how[];
 extern const struct ppm_name_value rlimit_resources[];
 extern const struct ppm_name_value fcntl_commands[];
+extern const struct ppm_name_value sockopt_levels[];
+extern const struct ppm_name_value sockopt_options[];
 extern const struct ppm_name_value ptrace_requests[];
 extern const struct ppm_name_value prot_flags[];
 extern const struct ppm_name_value mmap_flags[];
@@ -1407,6 +1486,7 @@ extern const struct ppm_name_value pf_flags[];
 extern const struct ppm_name_value unlinkat_flags[];
 extern const struct ppm_name_value linkat_flags[];
 
+extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
 extern const struct ppm_param_info bpf_dynamic_param[];
 
@@ -1446,7 +1526,7 @@ struct syscall_evt_pair {
 	int flags;
 	enum ppm_event_type enter_event_type;
 	enum ppm_event_type exit_event_type;
-} __attribute__((packed));
+} _packed;
 
 #define SYSCALL_TABLE_SIZE 512
 
@@ -1475,7 +1555,7 @@ struct ppm_autofill_arg {
 #define AF_ID_USEDEFAULT -2
 	int16_t id;
 	long default_val;
-} __attribute__((packed));
+} _packed;
 
 enum autofill_paramtype {
 	APT_REG,
@@ -1490,7 +1570,7 @@ struct ppm_event_entry {
 	uint16_t n_autofill_args;
 	enum autofill_paramtype paramtype;
 	struct ppm_autofill_arg autofill_args[PPM_MAX_AUTOFILL_ARGS];
-} __attribute__((packed));
+} _packed;
 
 /*
  * parse_readv_writev_bufs flags

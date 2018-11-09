@@ -1,19 +1,10 @@
 /*
-Copyright (C) 2013-2014 Draios inc.
 
-This file is part of sysdig.
+Copyright (c) 2013-2018 Draios Inc. dba Sysdig.
 
-sysdig is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 2 as
-published by the Free Software Foundation.
+This file is dual licensed under either the MIT or GPL 2. See MIT.txt
+or GPL2.txt for full copies of the license.
 
-sysdig is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "ppm_events_public.h"
@@ -63,10 +54,10 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SOCKET_GETPEERNAME_X */{"getpeername", EC_NET, EF_DROP_FALCO, 0},
 	/* PPME_SOCKET_SOCKETPAIR_E */{"socketpair", EC_IPC, EF_CREATES_FD | EF_MODIFIES_STATE, 3, {{"domain", PT_FLAGS32, PF_DEC, socket_families}, {"type", PT_UINT32, PF_DEC}, {"proto", PT_UINT32, PF_DEC} } },
 	/* PPME_SOCKET_SOECKETPAIR_X */{"socketpair", EC_IPC, EF_CREATES_FD | EF_MODIFIES_STATE, 5, {{"res", PT_ERRNO, PF_DEC}, {"fd1", PT_FD, PF_DEC}, {"fd2", PT_FD, PF_DEC}, {"source", PT_UINT64, PF_HEX}, {"peer", PT_UINT64, PF_HEX} } },
-	/* PPME_SOCKET_SETSOCKOPT_E */{"setsockopt", EC_NET, EF_NONE, 0},
-	/* PPME_SOCKET_SETSOCKOPT_X */{"setsockopt", EC_NET, EF_NONE, 0},
-	/* PPME_SOCKET_GETSOCKOPT_E */{"getsockopt", EC_NET, EF_DROP_FALCO, 0},
-	/* PPME_SOCKET_GETSOCKOPT_X */{"getsockopt", EC_NET, EF_DROP_FALCO, 0},
+	/* PPME_SOCKET_SETSOCKOPT_E */{"setsockopt", EC_NET, EF_NONE, 0 },
+	/* PPME_SOCKET_SETSOCKOPT_X */{"setsockopt", EC_NET, EF_USES_FD, 6, {{"res", PT_ERRNO, PF_DEC}, {"fd", PT_FD, PF_DEC}, {"level", PT_FLAGS8, PF_DEC, sockopt_levels}, {"optname", PT_FLAGS8, PF_DEC, sockopt_options}, {"val", PT_DYN, PF_DEC, sockopt_dynamic_param, PPM_SOCKOPT_IDX_MAX}, {"optlen", PT_UINT32, PF_DEC}}},
+	/* PPME_SOCKET_GETSOCKOPT_E */{"getsockopt", EC_NET, EF_DROP_FALCO, 0 },
+	/* PPME_SOCKET_GETSOCKOPT_X */{"getsockopt", EC_NET, EF_USES_FD | EF_DROP_FALCO, 6, {{"res", PT_ERRNO, PF_DEC}, {"fd", PT_FD, PF_DEC}, {"level", PT_FLAGS8, PF_DEC, sockopt_levels}, {"optname", PT_FLAGS8, PF_DEC, sockopt_options}, {"val", PT_DYN, PF_DEC, sockopt_dynamic_param, PPM_SOCKOPT_IDX_MAX}, {"optlen", PT_UINT32, PF_DEC}}},
 	/* PPME_SOCKET_SENDMSG_E */{"sendmsg", EC_IO_WRITE, EF_USES_FD | EF_WRITES_TO_FD | EF_MODIFIES_STATE, 3, {{"fd", PT_FD, PF_DEC}, {"size", PT_UINT32, PF_DEC}, {"tuple", PT_SOCKTUPLE, PF_NA} } },
 	/* PPME_SOCKET_SENDMSG_X */{"sendmsg", EC_IO_WRITE, EF_USES_FD | EF_WRITES_TO_FD | EF_MODIFIES_STATE, 2, {{"res", PT_ERRNO, PF_DEC}, {"data", PT_BYTEBUF, PF_NA} } },
 	/* PPME_SOCKET_SENDMMSG_E */{"sendmmsg", EC_IO_WRITE, EF_DROP_FALCO, 0},

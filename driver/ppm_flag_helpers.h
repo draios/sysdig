@@ -1,19 +1,10 @@
 /*
-Copyright (C) 2013-2014 Draios inc.
 
-This file is part of sysdig.
+Copyright (c) 2013-2018 Draios Inc. dba Sysdig.
 
-sysdig is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 2 as
-published by the Free Software Foundation.
+This file is dual licensed under either the MIT or GPL 2. See MIT.txt
+or GPL2.txt for full copies of the license.
 
-sysdig is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifndef PPM_FLAG_HELPERS_H_
@@ -518,6 +509,245 @@ static __always_inline u8 fcntl_cmd_to_scap(unsigned long cmd)
 	default:
 		ASSERT(false);
 		return PPM_FCNTL_UNKNOWN;
+	}
+}
+
+static __always_inline u8 sockopt_level_to_scap(int level)
+{
+	switch (level) {
+		case SOL_SOCKET:
+			return PPM_SOCKOPT_LEVEL_SOL_SOCKET;
+		case SOL_TCP:
+			return PPM_SOCKOPT_LEVEL_SOL_TCP;
+		default:
+			/* no ASSERT as there are legitimate other levels we don't just support yet */
+			return PPM_SOCKOPT_LEVEL_UNKNOWN;
+	}
+}
+
+static __always_inline u8 sockopt_optname_to_scap(int level, int optname)
+{
+	if (level != SOL_SOCKET)
+	{
+		/* no ASSERT as there are legitimate other levels we don't just support yet */
+		return PPM_SOCKOPT_LEVEL_UNKNOWN;
+	}
+	switch (optname) {
+#ifdef SO_DEBUG
+		case SO_DEBUG:
+			return PPM_SOCKOPT_SO_DEBUG;
+#endif
+#ifdef SO_REUSEADDR
+		case SO_REUSEADDR:
+			return PPM_SOCKOPT_SO_REUSEADDR;
+#endif
+#ifdef SO_TYPE
+		case SO_TYPE:
+			return PPM_SOCKOPT_SO_TYPE;
+#endif
+#ifdef SO_ERROR
+		case SO_ERROR:
+			return PPM_SOCKOPT_SO_ERROR;
+#endif
+#ifdef SO_DONTORUTE
+		case SO_DONTROUTE:
+			return PPM_SOCKOPT_SO_DONTROUTE;
+#endif
+#ifdef SO_BROADCAST
+		case SO_BROADCAST:
+			return PPM_SOCKOPT_SO_BROADCAST;
+#endif
+#ifdef SO_SNDBUF
+		case SO_SNDBUF:
+			return PPM_SOCKOPT_SO_SNDBUF;
+#endif
+#ifdef SO_RCVBUF
+		case SO_RCVBUF:
+			return PPM_SOCKOPT_SO_RCVBUF;
+#endif
+#ifdef SO_SNDBUFFORCE
+		case SO_SNDBUFFORCE:
+			return PPM_SOCKOPT_SO_SNDBUFFORCE;
+#endif
+#ifdef SO_RCVBUFFORCE
+		case SO_RCVBUFFORCE:
+			return PPM_SOCKOPT_SO_RCVBUFFORCE;
+#endif
+#ifdef SO_KEEPALIVE
+		case SO_KEEPALIVE:
+			return PPM_SOCKOPT_SO_KEEPALIVE;
+#endif
+#ifdef SO_OOBINLINE
+		case SO_OOBINLINE:
+			return PPM_SOCKOPT_SO_OOBINLINE;
+#endif
+#ifdef SO_NO_CHECK
+		case SO_NO_CHECK:
+			return PPM_SOCKOPT_SO_NO_CHECK;
+#endif
+#ifdef SO_PRIORITY
+		case SO_PRIORITY:
+			return PPM_SOCKOPT_SO_PRIORITY;
+#endif
+#ifdef SO_LINGER
+		case SO_LINGER:
+			return PPM_SOCKOPT_SO_LINGER;
+#endif
+#ifdef SO_BSDCOMPAT
+		case SO_BSDCOMPAT:
+			return PPM_SOCKOPT_SO_BSDCOMPAT;
+#endif
+#ifdef SO_REUSEPORT
+		case SO_REUSEPORT:
+			return PPM_SOCKOPT_SO_REUSEPORT;
+#endif
+#ifdef SO_PASSCRED
+		case SO_PASSCRED:
+			return PPM_SOCKOPT_SO_PASSCRED;
+#endif
+#ifdef SO_PEERCRED
+		case SO_PEERCRED:
+			return PPM_SOCKOPT_SO_PEERCRED;
+#endif
+#ifdef SO_RCVLOWAT
+		case SO_RCVLOWAT:
+			return PPM_SOCKOPT_SO_RCVLOWAT;
+#endif
+#ifdef SO_SNDLOWAT
+		case SO_SNDLOWAT:
+			return PPM_SOCKOPT_SO_SNDLOWAT;
+#endif
+#ifdef SO_RCVTIMEO
+		case SO_RCVTIMEO:
+			return PPM_SOCKOPT_SO_RCVTIMEO;
+#endif
+#ifdef SO_SNDTIMEO
+		case SO_SNDTIMEO:
+			return PPM_SOCKOPT_SO_SNDTIMEO;
+#endif
+#ifdef SO_SECURITY_AUTHENTICATION
+		case SO_SECURITY_AUTHENTICATION:
+			return PPM_SOCKOPT_SO_SECURITY_AUTHENTICATION;
+#endif
+#ifdef SO_SECURITY_ENCRYPTION_TRANSPORT
+		case SO_SECURITY_ENCRYPTION_TRANSPORT:
+			return PPM_SOCKOPT_SO_SECURITY_ENCRYPTION_TRANSPORT;
+#endif
+#ifdef SO_SECURITY_ENCRYPTION_NETWORK
+		case SO_SECURITY_ENCRYPTION_NETWORK:
+			return PPM_SOCKOPT_SO_SECURITY_ENCRYPTION_NETWORK;
+#endif
+#ifdef SO_BINDTODEVICE
+		case SO_BINDTODEVICE:
+			return PPM_SOCKOPT_SO_BINDTODEVICE;
+#endif
+#ifdef SO_ATTACH_FILTER
+		case SO_ATTACH_FILTER:
+			return PPM_SOCKOPT_SO_ATTACH_FILTER;
+#endif
+#ifdef SO_DETACH_FILTER
+		case SO_DETACH_FILTER:
+			return PPM_SOCKOPT_SO_DETACH_FILTER;
+#endif
+#ifdef SO_PEERNAME
+		case SO_PEERNAME:
+			return PPM_SOCKOPT_SO_PEERNAME;
+#endif
+#ifdef SO_TIMESTAMP
+		case SO_TIMESTAMP:
+			return PPM_SOCKOPT_SO_TIMESTAMP;
+#endif
+#ifdef SO_ACCEPTCONN
+		case SO_ACCEPTCONN:
+			return PPM_SOCKOPT_SO_ACCEPTCONN;
+#endif
+#ifdef SO_PEERSEC
+		case SO_PEERSEC:
+			return PPM_SOCKOPT_SO_PEERSEC;
+#endif
+#ifdef SO_PASSSEC
+		case SO_PASSSEC:
+			return PPM_SOCKOPT_SO_PASSSEC;
+#endif
+#ifdef SO_TIMESTAMPNS
+		case SO_TIMESTAMPNS:
+			return PPM_SOCKOPT_SO_TIMESTAMPNS;
+#endif
+#ifdef SO_MARK
+		case SO_MARK:
+			return PPM_SOCKOPT_SO_MARK;
+#endif
+#ifdef SO_TIMESTAMPING
+		case SO_TIMESTAMPING:
+			return PPM_SOCKOPT_SO_TIMESTAMPING;
+#endif
+#ifdef SO_PROTOCOL
+		case SO_PROTOCOL:
+			return PPM_SOCKOPT_SO_PROTOCOL;
+#endif
+#ifdef SO_DOMAIN
+		case SO_DOMAIN:
+			return PPM_SOCKOPT_SO_DOMAIN;
+#endif
+#ifdef SO_RXQ_OVFL
+		case SO_RXQ_OVFL:
+			return PPM_SOCKOPT_SO_RXQ_OVFL;
+#endif
+#ifdef SO_WIFI_STATUS
+		case SO_WIFI_STATUS:
+			return PPM_SOCKOPT_SO_WIFI_STATUS;
+#endif
+#ifdef SO_PEEK_OFF
+		case SO_PEEK_OFF:
+			return PPM_SOCKOPT_SO_PEEK_OFF;
+#endif
+#ifdef SO_NOFCS
+		case SO_NOFCS:
+			return PPM_SOCKOPT_SO_NOFCS;
+#endif
+#ifdef SO_LOCK_FILTER
+		case SO_LOCK_FILTER:
+			return PPM_SOCKOPT_SO_LOCK_FILTER;
+#endif
+#ifdef SO_SELECT_ERR_QUEUE
+		case SO_SELECT_ERR_QUEUE:
+			return PPM_SOCKOPT_SO_SELECT_ERR_QUEUE;
+#endif
+#ifdef SO_BUSY_POLL
+		case SO_BUSY_POLL:
+			return PPM_SOCKOPT_SO_BUSY_POLL;
+#endif
+#ifdef SO_MAX_PACING_RATE
+		case SO_MAX_PACING_RATE:
+			return PPM_SOCKOPT_SO_MAX_PACING_RATE;
+#endif
+#ifdef SO_BPF_EXTENSIONS
+		case SO_BPF_EXTENSIONS:
+			return PPM_SOCKOPT_SO_BPF_EXTENSIONS;
+#endif
+#ifdef SO_INCOMING_CPU
+		case SO_INCOMING_CPU:
+			return PPM_SOCKOPT_SO_INCOMING_CPU;
+#endif
+#ifdef SO_ATTACH_BPF
+		case SO_ATTACH_BPF:
+			return PPM_SOCKOPT_SO_ATTACH_BPF;
+#endif
+#ifdef SO_PEERGROUPS
+		case SO_PEERGROUPS:
+			return PPM_SOCKOPT_SO_PEERGROUPS;
+#endif
+#ifdef SO_MEMINFO
+		case SO_MEMINFO:
+			return PPM_SOCKOPT_SO_MEMINFO;
+#endif
+#ifdef SO_COOKIE
+		case SO_COOKIE:
+			return PPM_SOCKOPT_SO_COOKIE;
+#endif
+		default:
+			ASSERT(false);
+			return PPM_SOCKOPT_UNKNOWN;
 	}
 }
 

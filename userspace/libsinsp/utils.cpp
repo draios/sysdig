@@ -1,19 +1,20 @@
 /*
-Copyright (C) 2013-2014 Draios inc.
+Copyright (C) 2013-2018 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
-sysdig is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 2 as
-published by the Free Software Foundation.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-sysdig is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+    http://www.apache.org/licenses/LICENSE-2.0
 
-You should have received a copy of the GNU General Public License
-along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
 */
 
 #ifndef _WIN32
@@ -905,9 +906,79 @@ const char* sinsp_utils::event_name_by_id(uint16_t id)
 	return g_infotables.m_event_info[id].name;
 }
 
+void sinsp_utils::ts_to_string(uint64_t ts, OUT string* res, bool date, bool ns)
+{
+	struct tm *tm;
+	time_t Time;
+	uint64_t sec = ts / ONE_SECOND_IN_NS;
+	uint64_t nsec = ts % ONE_SECOND_IN_NS;
+	int32_t thiszone = gmt2local(0);
+	int32_t s = (sec + thiszone) % 86400;
+	int32_t bufsize = 0;
+	char buf[256];
+
+	if(date)
+	{
+		Time = (sec + thiszone) - s;
+		tm = gmtime (&Time);
+		if(!tm)
+		{
+			bufsize = sprintf(buf, "<date error> ");
+		}
+		else
+		{
+			bufsize = sprintf(buf, "%04d-%02d-%02d ",
+				   tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday);
+		}
+	}
+
+	if(ns)
+	{
+		sprintf(buf + bufsize, "%02d:%02d:%02d.%09u",
+				s / 3600, (s % 3600) / 60, s % 60, (unsigned)nsec);
+	}
+	else
+	{
+		sprintf(buf + bufsize, "%02d:%02d:%02d",
+				s / 3600, (s % 3600) / 60, s % 60);
+	}
+
+	*res = buf;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Time utility functions.
 ///////////////////////////////////////////////////////////////////////////////
+
+bool sinsp_utils::parse_iso_8601_utc_string(const std::string& time_str, uint64_t &ns)
+{
+#ifndef _WIN32
+	char *rem;
+
+	struct tm tm_time = {0};
+	rem = strptime(time_str.c_str(), "%Y-%m-%dT%H:%M:", &tm_time);
+	if(rem == NULL || *rem == '\0')
+	{
+		return false;
+	}
+	tm_time.tm_isdst = -1; // strptime does not set this, signal timegm to determine DST
+	ns = timegm(&tm_time) * ONE_SECOND_IN_NS;
+
+	// Handle the possibly fractional seconds now. Also verify
+	// that the string ends with Z.
+	double fractional_secs;
+	if(sscanf(rem, "%lfZ", &fractional_secs) != 1)
+	{
+		return false;
+	}
+
+	ns += (fractional_secs * ONE_SECOND_IN_NS);
+
+	return true;
+#else
+	throw sinsp_exception("parse_iso_8601_utc_string() not implemented on Windows");
+#endif
+}
 
 time_t get_epoch_utc_seconds(const std::string& time_str, const std::string& fmt)
 {

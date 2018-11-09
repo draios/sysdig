@@ -1,19 +1,20 @@
 /*
-Copyright (C) 2013-2014 Draios inc.
+Copyright (C) 2013-2018 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
-sysdig is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 2 as
-published by the Free Software Foundation.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-sysdig is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+    http://www.apache.org/licenses/LICENSE-2.0
 
-You should have received a copy of the GNU General Public License
-along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
 */
 
 #ifdef _WIN32
@@ -466,6 +467,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_SETSID_X:
 		parse_setsid_exit(evt);
+		break;
+	case PPME_SOCKET_GETSOCKOPT_X:
+		parse_getsockopt_exit(evt);
 		break;
 	default:
 		break;
@@ -1746,13 +1750,13 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	// to identify the version of the event.
 	// For example:
 	//
-	// if(evt->get_num_params() > 17)
+	// if(evt->get_num_params() > 18)
 	// {
 	//   ...
 	// }
 
 	// Get the loginuid
-	if(evt->get_num_params() > 17)
+	if(evt->get_num_params() > 18)
 	{
 		parinfo = evt->get_param(18);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
@@ -2409,14 +2413,25 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(uint64_t));
 	retval = *(int64_t*)parinfo->m_val;
 
-	if(retval < 0)
+	if (m_track_connection_status)
 	{
-		//
-		// connections that return with a SE_EINPROGRESS are totally legit.
-		//
-		if(retval != -SE_EINPROGRESS)
+		if (retval == -SE_EINPROGRESS) {
+			evt->m_fdinfo->set_socket_pending();
+		} else if(retval < 0) {
+			evt->m_fdinfo->set_socket_failed();
+		} else {
+			evt->m_fdinfo->set_socket_connected();
+		}
+	}
+	else
+	{
+		if (retval < 0 && retval != -SE_EINPROGRESS)
 		{
 			return;
+		}
+		else
+		{
+			evt->m_fdinfo->set_socket_connected();
 		}
 	}
 
@@ -2529,11 +2544,6 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 		//
 		evt->m_fdinfo->set_role_client();
 	}
-
-	//
-	// Mark this fd as a connected socket
-	//
-	evt->m_fdinfo->set_socket_connected();
 
 	//
 	// Call the protocol decoder callbacks associated to this event
@@ -3396,6 +3406,11 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 	{
 		uint16_t etype = evt->get_type();
 
+		if (evt->m_fdinfo->m_type == SCAP_FD_IPV4_SOCK ||
+		    evt->m_fdinfo->m_type == SCAP_FD_IPV6_SOCK) {
+			evt->m_fdinfo->set_socket_connected();
+		}
+
 		if(eflags & EF_READS_FROM_FD)
 		{
 			char *data;
@@ -3578,6 +3593,15 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 				{
 					(*it)->on_write(evt, data, datalen);
 				}
+			}
+		}
+	} else if (m_track_connection_status) {
+		if (evt->m_fdinfo->m_type == SCAP_FD_IPV4_SOCK ||
+		    evt->m_fdinfo->m_type == SCAP_FD_IPV6_SOCK) {
+			evt->m_fdinfo->set_socket_failed();
+			if (m_fd_listener)
+			{
+				m_fd_listener->on_socket_status_changed(evt);
 			}
 		}
 	}
@@ -4626,6 +4650,80 @@ void sinsp_parser::parse_setsid_exit(sinsp_evt *evt)
 	{
 		if (evt->get_thread_info()) {
 			evt->get_thread_info()->m_sid = retval;
+		}
+	}
+}
+
+void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	int64_t retval;
+	int64_t err;
+	int64_t fd;
+	int8_t level, optname;
+
+	// right now we only parse getsockopt() for SO_ERROR options
+	// if that ever changes, move this check inside
+	// the `if (level == PPM_SOCKOPT_LEVEL_SOL_SOCKET ...)` block
+	if (!m_track_connection_status)
+	{
+		return;
+	}
+
+	if (!evt->m_tinfo)
+	{
+		return;
+	}
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(retval < 0)
+	{
+		return;
+	}
+
+	parinfo = evt->get_param(2);
+	level = *(int8_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int8_t));
+
+	parinfo = evt->get_param(3);
+	optname = *(int8_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int8_t));
+
+	if(level == PPM_SOCKOPT_LEVEL_SOL_SOCKET && optname == PPM_SOCKOPT_SO_ERROR)
+	{
+		parinfo = evt->get_param(1);
+		fd = *(int64_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+
+		evt->m_fdinfo = evt->m_tinfo->get_main_thread()->get_fd(fd);
+		if (!evt->m_fdinfo)
+		{
+			return;
+		}
+
+		parinfo = evt->get_param(4);
+		ASSERT(*parinfo->m_val == PPM_SOCKOPT_IDX_ERRNO);
+		ASSERT(parinfo->m_len == sizeof(int64_t) + 1);
+		err = *(int64_t *)(parinfo->m_val + 1); // add 1 byte to skip over PT_DYN param index
+
+		evt->m_errorcode = (int32_t)err;
+		if (err < 0)
+		{
+			evt->m_fdinfo->set_socket_failed();
+		}
+		else
+		{
+			evt->m_fdinfo->set_socket_connected();
+		}
+		if (m_fd_listener)
+		{
+			m_fd_listener->on_socket_status_changed(evt);
 		}
 	}
 }

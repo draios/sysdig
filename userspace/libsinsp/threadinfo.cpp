@@ -1,19 +1,20 @@
 /*
-Copyright (C) 2013-2014 Draios inc.
+Copyright (C) 2013-2018 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
-sysdig is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 2 as
-published by the Free Software Foundation.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-sysdig is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+    http://www.apache.org/licenses/LICENSE-2.0
 
-You should have received a copy of the GNU General Public License
-along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
 */
 
 #ifndef _WIN32
@@ -558,17 +559,17 @@ void sinsp_threadinfo::set_env(const char* env, size_t len)
 bool sinsp_threadinfo::set_env_from_proc() {
 	string environ_path = string(scap_get_host_root()) + "/proc/" + to_string(m_pid) + "/environ";
 
-	ifstream environ(environ_path);
-	if (!environ)
+	ifstream environment(environ_path);
+	if (!environment)
 	{
 		// failed to read the environment from /proc, work with what we have
 		return false;
 	}
 
 	m_env.clear();
-	while (environ) {
+	while (environment) {
 		string env;
-		getline(environ, env, '\0');
+		getline(environment, env, '\0');
 		if (!env.empty())
 		{
 			m_env.emplace_back(env);
@@ -941,10 +942,11 @@ shared_ptr<sinsp_threadinfo> sinsp_threadinfo::lookup_thread()
 // Note: this is duplicated here because visual studio has trouble inlining
 //       the method.
 //
-#ifdef _WIN32
+#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
 sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 {
-	if (m_main_thread == NULL)
+	auto main_thread = m_main_thread.lock();
+	if (!main_thread)
 	{
 		//
 		// Is this a child thread?
@@ -970,12 +972,12 @@ sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
 			{
 				return NULL;
 			}
-
 			m_main_thread = ptinfo;
+			return &*ptinfo;
 		}
 	}
 
-	return &*m_main_thread;
+	return &*main_thread;
 }
 #endif
 
@@ -1604,10 +1606,10 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 				//
 				// Add the new fd to the scap table.
 				//
-				if(scap_fd_add(sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
+				if(scap_fd_add(m_inspector->m_h, sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
 				{
 					scap_proc_free(m_inspector->m_h, sctinfo);
-					throw sinsp_exception("error calling scap_fd_add in sinsp_thread_manager::to_scap");
+					throw sinsp_exception("error calling scap_fd_add in sinsp_thread_manager::to_scap (" + string(scap_getlasterr(m_inspector->m_h)) + ")");
 				}
 			}
 		}
@@ -1618,7 +1620,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		if(scap_write_proc_fds(m_inspector->m_h, sctinfo, dumper) != SCAP_SUCCESS)
 		{
 			scap_proc_free(m_inspector->m_h, sctinfo);
-			throw sinsp_exception("error calling scap_proc_add in sinsp_thread_manager::to_scap");
+			throw sinsp_exception("error calling scap_proc_add in sinsp_thread_manager::to_scap (" + string(scap_getlasterr(m_inspector->m_h)) + ")");
 		}
 
 		scap_proc_free(m_inspector->m_h, sctinfo);

@@ -1,22 +1,21 @@
 /*
-Copyright (C) 2013-2014 Draios inc.
 
-This file is part of sysdig.
+Copyright (c) 2013-2018 Draios Inc. dba Sysdig.
 
-sysdig is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License version 2 as
-published by the Free Software Foundation.
+This file is dual licensed under either the MIT or GPL 2. See MIT.txt
+or GPL2.txt for full copies of the license.
 
-sysdig is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with sysdig.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "ppm_events_public.h"
+
+const struct ppm_param_info sockopt_dynamic_param[PPM_SOCKOPT_IDX_MAX] = {
+	[PPM_SOCKOPT_IDX_UNKNOWN] = {{0}, PT_BYTEBUF, PF_HEX},
+	[PPM_SOCKOPT_IDX_ERRNO] = {{0}, PT_ERRNO, PF_DEC},
+	[PPM_SOCKOPT_IDX_UINT32] = {{0}, PT_UINT32, PF_DEC},
+	[PPM_SOCKOPT_IDX_UINT64] = {{0}, PT_UINT64, PF_DEC},
+	[PPM_SOCKOPT_IDX_TIMEVAL] = {{0}, PT_RELTIME, PF_DEC},
+};
 
 const struct ppm_param_info ptrace_dynamic_param[PPM_PTRACE_IDX_MAX] = {
 	[PPM_PTRACE_IDX_UINT64] = {{0}, PT_UINT64, PF_HEX},
