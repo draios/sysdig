@@ -46,13 +46,7 @@ limitations under the License.
 #pragma warning(disable: 4251 4200 4221 4190)
 #endif
 
-#ifdef _WIN32
-#define SINSP_PUBLIC __declspec(dllexport)
-#include <Ws2tcpip.h>
-#else
-#define SINSP_PUBLIC
-#include <arpa/inet.h>
-#endif
+#include "sinsp_public.h"
 
 #define __STDC_FORMAT_MACROS
 
