@@ -1224,7 +1224,7 @@ void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* thr
 	}
 }
 
-void sinsp_thread_manager::add_thread(sinsp_threadinfo* threadinfo, bool from_scap_proctable)
+bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_scap_proctable)
 {
 #ifdef GATHER_INTERNAL_STATS
 	m_added_threads->increment();
@@ -1239,7 +1239,7 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo* threadinfo, bool from_sc
 		)
 	{
 		m_n_drops++;
-		return;
+		return false;
 	}
 
 	if(!from_scap_proctable)
@@ -1255,6 +1255,7 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo* threadinfo, bool from_sc
 	{
 		m_listener->on_thread_created(threadinfo);
 	}
+	return true;
 }
 
 void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
