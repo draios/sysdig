@@ -530,17 +530,29 @@ sinsp_docker_response sinsp_container_engine_docker::get_docker(const sinsp_cont
 		return sinsp_docker_response::RESP_ERROR;
 	}
 
-	int still_running;
-	do
+	while(true)
 	{
+		int still_running;
 		CURLMcode res = curl_multi_perform(m_curlm, &still_running);
 		if(res != CURLM_OK)
 		{
 			ASSERT(false);
 			return sinsp_docker_response::RESP_ERROR;
 		}
+
+		if(still_running == 0)
+		{
+			break;
+		}
+
+		int numfds;
+		res = curl_multi_wait(m_curlm, NULL, 0, -1, &numfds);
+		if(res != CURLM_OK)
+		{
+			ASSERT(false);
+			return sinsp_docker_response::RESP_ERROR;
+		}
 	}
-	while(still_running);
 
 	if(curl_multi_remove_handle(m_curlm, m_curl) != CURLM_OK)
 	{
