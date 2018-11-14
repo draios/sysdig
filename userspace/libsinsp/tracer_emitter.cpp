@@ -134,50 +134,74 @@ void tracer_writer::close_fd()
 	}
 }
 
-tracer_emitter::tracer_emitter(std::string tag, uint64_t timeout_ns)
+tracer_emitter::tracer_emitter(std::string tag, uint64_t timeout_ns, bool delay_enter)
 	: m_tag(std::move(tag))
-	, m_start_ns(sinsp_utils::get_current_time_ns())
+	, m_start_ns(m_enabled ? sinsp_utils::get_current_time_ns() : 0)
 	, m_timeout_ns(timeout_ns)
+	, m_delay_enter(delay_enter)
 {
-	start();
+	if (!m_delay_enter)
+	{
+		write_tracer(true);
+	}
 }
 
 bool tracer_emitter::m_enabled = false;
 
 // XXX find/write a constexpr-compatible string class
 // for compile time concatenation
-tracer_emitter::tracer_emitter(std::string tag, const tracer_emitter &parent, uint64_t timeout_ns)
+tracer_emitter::tracer_emitter(std::string tag, const tracer_emitter &parent,
+			       uint64_t timeout_ns, bool delay_enter)
 	: tracer_emitter::tracer_emitter(
-		parent.tag() + '.' + std::move(tag),
-		std::min(timeout_ns, parent.m_timeout_ns))
+		parent.m_tag + '.' + std::move(tag),
+		std::min(timeout_ns, parent.m_timeout_ns),
+		parent.m_delay_enter || delay_enter)
 {
 }
 
 tracer_emitter::~tracer_emitter()
 {
-	if (!m_exit_written)
-	{
-		write_tracer(false);
-		elapsed_time(); // just for the side effect of logging if needed
-	}
-}
-
-void tracer_emitter::start()
-{
-	write_tracer(true);
+	do_stop();
 }
 
 uint64_t tracer_emitter::stop()
 {
-	ASSERT(!m_exit_written);
-	if (!m_exit_written)
+	ASSERT(!m_exit_done);
+	return do_stop();
+}
+
+uint64_t tracer_emitter::do_stop()
+{
+	if (!m_enabled || m_exit_done)
+	{
+		m_exit_done = true;
+		return 0;
+	}
+	m_exit_done = true;
+
+	ASSERT(m_start_ns != 0);
+	uint64_t diff = sinsp_utils::get_current_time_ns() - m_start_ns;
+	uint64_t elapsed_ns = diff > 0 ? diff : 1;
+
+	if (!m_delay_enter)
 	{
 		write_tracer(false);
 	}
-	return elapsed_time();
+
+	if (elapsed_ns > m_timeout_ns)
+	{
+		if (m_delay_enter)
+		{
+			write_tracer(false, elapsed_ns);
+		}
+		g_logger.format(sinsp_logger::SEV_INFO,
+				"Tracer %s elapsed time %llu ms",
+				m_tag.c_str(), elapsed_ns / (1000*1000));
+	}
+	return elapsed_ns;
 }
 
-void tracer_emitter::write_tracer(const bool enter)
+void tracer_emitter::write_tracer(bool enter, uint64_t elapsed_ns)
 {
 	if (!m_enabled)
 	{
@@ -191,22 +215,12 @@ void tracer_emitter::write_tracer(const bool enter)
 	// 't' == use thread id
 	trc_str.append(":t:");
 	trc_str.append(m_tag);
-	trc_str.append("::");
+	trc_str.append(":");
+	if (elapsed_ns != 0)
+	{
+		trc_str.append("duration=" + std::to_string(elapsed_ns));
+	}
+	trc_str.append(":");
 
 	trc_writer.write(trc_str);
-
-	if (!enter)
-	{
-		m_exit_written = true;
-	}
-}
-
-uint64_t tracer_emitter::elapsed_time() const
-{
-	auto elapsed = sinsp_utils::get_current_time_ns() - m_start_ns;
-	if (elapsed > m_timeout_ns)
-	{
-		g_logger.format(sinsp_logger::SEV_INFO, "Tracer %s elapsed time %llu ns", m_tag.c_str(), elapsed);
-	}
-	return elapsed;
 }

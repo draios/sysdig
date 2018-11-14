@@ -19,36 +19,57 @@ limitations under the License.
 #pragma once
 #include <string>
 
-// This class allows the caller to output sysdig tracers
-// to /dev/null.
+// This class allows the caller to output sysdig tracers to /dev/null.
+// An enter event is written by the constructor, and an exit event is
+// written when stop() or the destructor is called.
+
+// Delayed tracers can be used for debugging perf sensitive code blocks.
+// No enter event is written, and an exit is only written if the span duration
+// exceeds the timeout value.
+// *WARNING* using (c)sysdig for tracer analysis with delayed tracers is not
+// supported. Simple features work like filtering by span.tags, but others
+// like duration fail because we didn't write an enter event.
 class tracer_emitter
 {
 public:
 	static const uint64_t no_timeout = ~0ULL;
 
-	tracer_emitter(std::string tag, uint64_t timeout_ns=no_timeout);
-	tracer_emitter(std::string tag, const tracer_emitter &parent, uint64_t timeout_ns=no_timeout);
+	// - tag: name of the span
+	// - timeout_ns: log when a span takes longer than this threshold
+	// - delay_enter: conditionally write tracers only when the elapsed
+	//   time is >timeout_ns
+	tracer_emitter(std::string tag,
+		       uint64_t timeout_ns = no_timeout,
+		       bool delay_enter = false);
+	// Passing a parent tracer causes the child to inherit certain values:
+	// - tag is appended to the parent's span name "parent_tag.tag"
+	// - timeout_ns is the lower of the parent and the passed value
+	// - delay_enter is OR'd with the parents value so all children of a
+	//   delayed parent will also be delayed
+	tracer_emitter(std::string tag,
+		       const tracer_emitter &parent,
+		       uint64_t timeout_ns = no_timeout,
+		       bool delay_enter = false);
 	~tracer_emitter();
 
 	tracer_emitter() = delete;
 	tracer_emitter(const tracer_emitter&) = delete;
 	tracer_emitter& operator=(const tracer_emitter&) = delete;
 
-	// Stop is only needed if you want the exit
-	// event before the instance gets destructed,
-	// i.e. goes out of scope
+	// stop() is only needed if you want the exit event before the instance
+	// gets destructed, i.e. goes out of scope. stop() should be called
+	// after child tracers have exited, otherwise behavior is undefined.
 	uint64_t stop();
 	static void set_enabled(bool enabled) { m_enabled = enabled; }
 
 private:
-	void start();
-	void write_tracer(const bool enter);
-	const std::string& tag() const { return m_tag; }
-	uint64_t elapsed_time() const;
+	uint64_t do_stop();
+	void write_tracer(bool enter, uint64_t elapsed_ns = 0);
 
 	const std::string m_tag;
 	const uint64_t m_start_ns = 0;
 	const uint64_t m_timeout_ns = 0;
-	bool m_exit_written = false;
+	const bool m_delay_enter = false;
+	bool m_exit_done = false;
 	static bool m_enabled;
 };
