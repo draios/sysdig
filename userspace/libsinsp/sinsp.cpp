@@ -848,6 +848,12 @@ void sinsp::on_new_entry_from_proc(void* context,
 				delete newti;
 				return;
 			}
+
+			sinsp_tinfo = find_thread(tid, true);
+			if (!sinsp_tinfo) {
+				ASSERT(false);
+				return;
+			}
 		}
 
 		sinsp_fdinfo_t sinsp_fdinfo;
