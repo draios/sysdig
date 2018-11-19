@@ -1238,6 +1238,12 @@ bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_sc
 #endif
 		)
 	{
+		// rate limit messages to avoid spamming the logs
+		if (m_n_drops % m_inspector->m_max_thread_table_size == 0)
+		{
+			g_logger.format(sinsp_logger::SEV_INFO, "Thread table full, dropping tid %lu (pid %lu, comm \"%s\")",
+				threadinfo->m_tid, threadinfo->m_pid, threadinfo->m_comm.c_str());
+		}
 		m_n_drops++;
 		return false;
 	}
