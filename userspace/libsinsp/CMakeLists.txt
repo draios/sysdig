@@ -48,6 +48,7 @@ add_library(sinsp STATIC
 	fdinfo.cpp
 	filter.cpp
 	filterchecks.cpp
+	gen_filter.cpp
 	http_parser.c
 	http_reason.cpp
 	ifinfo.cpp

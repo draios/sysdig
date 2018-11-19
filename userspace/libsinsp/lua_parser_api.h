@@ -19,11 +19,49 @@ limitations under the License.
 
 #pragma once
 
-extern "C" {
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
-}
+typedef struct lua_State lua_State;
+
+class lua_parser_filtercheck
+{
+public:
+
+	lua_parser_filtercheck() {};
+	virtual ~lua_parser_filtercheck() {};
+
+	boolop m_boolop;
+	cmpop m_cmpop;
+
+	virtual int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) = 0;
+
+	virtual void add_filter_value(const char* str, uint32_t len, uint32_t i = 0 ) = 0;
+
+	virtual void set_check_id(int32_t id) = 0;
+};
+
+class lua_parser_filter
+{
+public:
+	lua_parser_filter() {};
+	virtual ~lua_parser_filter() {};
+
+	virtual void push_expression(boolop op) = 0;
+	virtual void pop_expression() = 0;
+	virtual void add_check(lua_parser_filtercheck* chk) = 0;
+};
+
+class lua_filter_factory
+{
+public:
+
+	lua_filter_factory() {};
+	virtual ~lua_filter_factory() {};
+
+	// Create a new filter
+	virtual lua_parser_filter *new_filter() = 0;
+
+	// Create a new filterchekc
+	virtual lua_parser_filtercheck *new_filtercheck(const char *fldname) = 0;
+};
 
 class lua_parser_cbacks
 {

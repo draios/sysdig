@@ -18,6 +18,9 @@ limitations under the License.
 */
 
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #ifndef _WIN32
 #include <unistd.h>
 #include <sys/uio.h>
@@ -27,9 +30,6 @@ struct iovec {
 	size_t iov_len;     /* Number of bytes to transfer */
 };
 #endif
-
-#include <stdio.h>
-#include <stdlib.h>
 
 #include "scap.h"
 #include "scap-int.h"
