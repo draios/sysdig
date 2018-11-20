@@ -324,7 +324,6 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_utime
 	[__NR_utime - SYSCALL_TABLE_ID0] = PPM_SC_UTIME,
 #endif
-	//[__NR_access - SYSCALL_TABLE_ID0] = PPM_SC_ACCESS,
 	[__NR_sync - SYSCALL_TABLE_ID0] = PPM_SC_SYNC,
 	[__NR_kill - SYSCALL_TABLE_ID0] = PPM_SC_KILL,
 	[__NR_rename - SYSCALL_TABLE_ID0] = PPM_SC_RENAME,
@@ -396,7 +395,6 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_mprotect - SYSCALL_TABLE_ID0] = PPM_SC_MPROTECT,
 	[__NR_init_module - SYSCALL_TABLE_ID0] = PPM_SC_INIT_MODULE,
 	[__NR_delete_module - SYSCALL_TABLE_ID0] = PPM_SC_DELETE_MODULE,
-	//[__NR_quotactl - SYSCALL_TABLE_ID0] = PPM_SC_QUOTACTL,
 	[__NR_getpgid - SYSCALL_TABLE_ID0] = PPM_SC_GETPGID,
 	[__NR_fchdir - SYSCALL_TABLE_ID0] = PPM_SC_FCHDIR,
 	[__NR_sysfs - SYSCALL_TABLE_ID0] = PPM_SC_SYSFS,
