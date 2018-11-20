@@ -58,8 +58,11 @@ if(NOT WIN32)
 
 	set(SYSDIG_DEBUG_FLAGS "-D_DEBUG")
 
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -ggdb")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -ggdb --std=c++0x")
+    set(CMAKE_SUPPRESSED_WARNINGS "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare -Wno-type-limits -Wno-implicit-fallthrough -Wno-format-truncation")
+    set(CMAKE_COMMON_FLAGS "-Wall -Wextra -Werror ${CMAKE_SUPPRESSED_WARNINGS} -ggdb")
+
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_COMMON_FLAGS}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_COMMON_FLAGS} -std=c++0x")
 
 	set(CMAKE_C_FLAGS_DEBUG "${SYSDIG_DEBUG_FLAGS}")
 	set(CMAKE_CXX_FLAGS_DEBUG "${SYSDIG_DEBUG_FLAGS}")
