@@ -24,7 +24,11 @@ limitations under the License.
 #define VISIBILITY_PRIVATE private:
 #endif
 
+#include "sinsp_public.h"
+#include "scap.h"
 #include "gen_filter.h"
+#include "../../driver/ppm_events_public.h"
+#include "settings.h"
 
 typedef class sinsp sinsp;
 typedef class sinsp_threadinfo sinsp_threadinfo;
@@ -302,7 +306,7 @@ public:
 	   before returning it. For example, and FD number will be converted into
 	   the correspondent file, TCP tuple, etc.
 	*/
-	string get_param_value_str(const string& name, bool resolved = true);
+	std::string get_param_value_str(const std::string& name, bool resolved = true);
 
 	/*!
 	  \brief Return the event's category, based on the event type and the FD on
@@ -384,8 +388,8 @@ private:
 			valptr += lens[j];
 		}
 	}
-	string get_param_value_str(uint32_t id, bool resolved);
-	string get_param_value_str(const char* name, bool resolved = true);
+	std::string get_param_value_str(uint32_t id, bool resolved);
+	std::string get_param_value_str(const char* name, bool resolved = true);
 	char* render_fd(int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
 	int render_fd_json(Json::Value *ret, int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
 	uint32_t get_dump_flags();
@@ -406,10 +410,10 @@ VISIBILITY_PRIVATE
 	uint32_t m_flags;
 	bool m_params_loaded;
 	const struct ppm_event_info* m_info;
-	vector<sinsp_evt_param> m_params;
+	std::vector<sinsp_evt_param> m_params;
 
-	vector<char> m_paramstr_storage;
-	vector<char> m_resolved_paramstr_storage;
+	std::vector<char> m_paramstr_storage;
+	std::vector<char> m_resolved_paramstr_storage;
 
 	sinsp_threadinfo* m_tinfo;
 	sinsp_fdinfo_t* m_fdinfo;
