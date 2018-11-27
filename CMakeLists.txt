@@ -61,7 +61,7 @@ if(NOT WIN32)
 	set(SYSDIG_DEBUG_FLAGS "-D_DEBUG")
 	set(CMAKE_COMMON_FLAGS "-Wall -ggdb")
 
-	if (BUILD_WARNINGS_AS_ERRORS)
+	if(BUILD_WARNINGS_AS_ERRORS)
 		set(CMAKE_SUPPRESSED_WARNINGS "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare -Wno-type-limits -Wno-implicit-fallthrough -Wno-format-truncation")
 		set(CMAKE_COMMON_FLAGS "${CMAKE_COMMON_FLAGS} -Wextra -Werror ${CMAKE_SUPPRESSED_WARNINGS}")
 	endif()
