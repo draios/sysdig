@@ -683,6 +683,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 	if ((res = scap_update_suppressed(handle, tinfo->comm, tid, 0, &suppressed)) != SCAP_SUCCESS)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "can't update set of suppressed tids (%s)", handle->m_lasterr);
+		free(tinfo);
 		return res;
 	}
 
