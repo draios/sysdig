@@ -24,41 +24,7 @@ limitations under the License.
 
 #ifdef HAS_FILTERING
 
-class sinsp_filter_expression;
-class sinsp_filter_check;
-
-/*
- * Operators to compare events
- */
-enum cmpop {
-	CO_NONE = 0,
-	CO_EQ = 1,
-	CO_NE = 2,
-	CO_LT = 3,
-	CO_LE = 4,
-	CO_GT = 5,
-	CO_GE = 6,
-	CO_CONTAINS = 7,
-	CO_IN = 8,
-	CO_EXISTS = 9,
-	CO_ICONTAINS = 10,
-	CO_STARTSWITH = 11,
-	CO_GLOB = 12,
-	CO_PMATCH = 13,
-	CO_ENDSWITH = 14
-};
-
-enum boolop
-{
-	BO_NONE = 0,
-	BO_NOT = 1,
-	BO_OR = 2,
-	BO_AND = 4,
-
-	// obtained by bitwise OR'ing with one of above ops
-	BO_ORNOT = 3,
-	BO_ANDNOT = 5,
-};
+#include "gen_filter.h"
 
 /** @defgroup filter Filtering events
  * Filtering infrastructure.
@@ -68,39 +34,14 @@ enum boolop
 /*!
   \brief This is the class that runs sysdig-type filters.
 */
-class SINSP_PUBLIC sinsp_filter
+class SINSP_PUBLIC sinsp_filter : public gen_event_filter
 {
 public:
-	/*!
-	  \brief Constructs the filter.
-
-	  \param inspector Pointer to the inspector instance that will generate the
-	   events to be filtered.
-	*/
 	sinsp_filter(sinsp* inspector);
-
 	~sinsp_filter();
 
-	/*!
-	  \brief Applies the filter to the given event.
-
-	  \param evt Pointer that needs to be filtered.
-	  \return true if the event is accepted by the filter, false if it's rejected.
-	*/
-	bool run(sinsp_evt *evt);
-	void push_expression(boolop op);
-	void pop_expression();
-	void add_check(sinsp_filter_check* chk);
-
 private:
-
-	void parse_check(sinsp_filter_expression* parent_expr, boolop op);
-
-
 	sinsp* m_inspector;
-
-	sinsp_filter_expression* m_curexpr;
-	sinsp_filter_expression* m_filter;
 
 	friend class sinsp_evt_formatter;
 };
@@ -263,5 +204,19 @@ private:
 };
 
 /*@}*/
+
+class sinsp_filter_factory : public gen_event_filter_factory
+{
+public:
+	sinsp_filter_factory(sinsp *inspector);
+	virtual ~sinsp_filter_factory();
+
+	gen_event_filter *new_filter();
+
+	gen_event_filter_check *new_filtercheck(const char *fldname);
+
+protected:
+	sinsp *m_inspector;
+};
 
 #endif // HAS_FILTERING
