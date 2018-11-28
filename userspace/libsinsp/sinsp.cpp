@@ -815,6 +815,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 	//
 	if(fdinfo == NULL)
 	{
+		bool thread_added = false;
 		sinsp_threadinfo* newti = new sinsp_threadinfo(this);
 		newti->init(tinfo);
 		if(is_nodriver())
@@ -822,12 +823,15 @@ void sinsp::on_new_entry_from_proc(void* context,
 			auto sinsp_tinfo = find_thread(tid, true);
 			if(sinsp_tinfo == nullptr || newti->m_clone_ts > sinsp_tinfo->m_clone_ts)
 			{
-				m_thread_manager->add_thread(newti, true);
+				thread_added = m_thread_manager->add_thread(newti, true);
 			}
 		}
 		else
 		{
-			m_thread_manager->add_thread(newti, true);
+			thread_added = m_thread_manager->add_thread(newti, true);
+		}
+		if (!thread_added) {
+			delete newti;
 		}
 	}
 	else
@@ -839,11 +843,14 @@ void sinsp::on_new_entry_from_proc(void* context,
 			sinsp_threadinfo* newti = new sinsp_threadinfo(this);
 			newti->init(tinfo);
 
-			m_thread_manager->add_thread(newti, true);
+			if (!m_thread_manager->add_thread(newti, true)) {
+				ASSERT(false);
+				delete newti;
+				return;
+			}
 
 			sinsp_tinfo = find_thread(tid, true);
-			if(!sinsp_tinfo)
-			{
+			if (!sinsp_tinfo) {
 				ASSERT(false);
 				return;
 			}
@@ -1533,9 +1540,9 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid)
 	return get_thread(tid, false, true);
 }
 
-void sinsp::add_thread(const sinsp_threadinfo* ptinfo)
+bool sinsp::add_thread(const sinsp_threadinfo *ptinfo)
 {
-	m_thread_manager->add_thread((sinsp_threadinfo*)ptinfo, false);
+	return m_thread_manager->add_thread((sinsp_threadinfo*)ptinfo, false);
 }
 
 void sinsp::remove_thread(int64_t tid, bool force)

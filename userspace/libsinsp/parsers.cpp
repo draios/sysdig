@@ -1472,7 +1472,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	//
 	// Add the new thread to the table
 	//
-	m_inspector->add_thread(tinfo);
+	bool thread_added = m_inspector->add_thread(tinfo);
 
 	//
 	// If there's a listener, invoke it
@@ -1498,6 +1498,10 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			"tid collision for %" PRIu64 "(%s)",
 			tinfo->m_tid, tinfo->m_comm.c_str());
 #endif
+	}
+
+	if (!thread_added) {
+		delete tinfo;
 	}
 
 	return;
