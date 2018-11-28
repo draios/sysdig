@@ -686,6 +686,12 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 		return res;
 	}
 
+	if (suppressed && tid_to_scan == -1)
+	{
+		free(tinfo);
+		return SCAP_SUCCESS;
+	}
+
 	//
 	// Gather the command line
 	//
