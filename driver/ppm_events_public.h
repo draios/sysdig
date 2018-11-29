@@ -1562,10 +1562,10 @@ enum autofill_paramtype {
 	APT_SOCK,
 };
 
-typedef int (*filler_callback_t) (struct event_filler_arguments *args);
+typedef int (*filler_callback) (struct event_filler_arguments *args);
 
 struct ppm_event_entry {
-	filler_callback_t filler_callback;
+	filler_callback filler_callback;
 	enum ppm_filler_id filler_id;
 	uint16_t n_autofill_args;
 	enum autofill_paramtype paramtype;
