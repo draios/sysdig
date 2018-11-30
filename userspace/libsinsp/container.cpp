@@ -423,7 +423,7 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 
 sinsp_docker_response sinsp_container_engine_docker::get_docker(sinsp_container_manager* manager, const string& url, string &json)
 {
-	const char* response;
+	const char* response = NULL;
 	bool qdres = wh_query_docker(manager->get_inspector()->get_wmi_handle(),
 		(char*)url.c_str(),
 		&response);
