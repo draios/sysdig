@@ -177,7 +177,7 @@ protected:
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	static size_t curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json);
 #endif
-	sinsp_docker_response get_docker(const sinsp_container_manager* manager, const string& url, string &json);
+	sinsp_docker_response get_docker(sinsp_container_manager* manager, const string& url, string &json);
 	bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
 
 	string m_unix_socket_path;
@@ -254,6 +254,7 @@ public:
 	void cleanup();
 
 	void set_query_docker_image_info(bool query_image_info);
+	sinsp* get_inspector() { return m_inspector; }
 private:
 	string container_to_json(const sinsp_container_info& container_info);
 	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);
