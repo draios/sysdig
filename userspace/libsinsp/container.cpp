@@ -357,11 +357,12 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 			container->m_env.emplace_back(env_var.asString());
 		}
 	}
-
+#ifndef CYGWING_AGENT
 	if (sinsp_container_engine_mesos::set_mesos_task_id(container, tinfo))
 	{
 		g_logger.log("Mesos Docker container: [" + root["Id"].asString() + "], Mesos task ID: [" + container->m_mesos_task_id + ']', sinsp_logger::SEV_DEBUG);
 	}
+#endif
 
 	const auto& host_config_obj = root["HostConfig"];
 	container->m_memory_limit = host_config_obj["Memory"].asInt64();
@@ -394,14 +395,15 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 
 
 #ifdef CYGWING_AGENT
-bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
-	wh_docker_container_info wcinfo = wh_docker_resolve_pid(m_inspector->get_wmi_handle(), tinfo->m_pid);
+	wh_docker_container_info wcinfo = wh_docker_resolve_pid(manager->get_inspector()->get_wmi_handle(), tinfo->m_pid);
 	if(!wcinfo.m_res)
 	{
 		return false;
 	}
 
+	sinsp_container_info container_info;
 	container_info.m_type = CT_DOCKER;
 	container_info.m_id = wcinfo.m_container_id;
 	container_info.m_name = wcinfo.m_container_name;
@@ -416,13 +418,14 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 		manager->add_container(container_info, tinfo);
 		manager->notify_new_container(container_info);
 	}
+	return true;
 }
 
-sinsp_docker_response sinsp_container_engine_docker::get_docker(const sinsp_container_manager* manager, const string& url, string &json)
+sinsp_docker_response sinsp_container_engine_docker::get_docker(sinsp_container_manager* manager, const string& url, string &json)
 {
-	const char* response;
-	bool qdres = wh_query_docker(manager->m_inspector->get_wmi_handle(), 
-		(char*)url.c_str(), 
+	const char* response = NULL;
+	bool qdres = wh_query_docker(manager->get_inspector()->get_wmi_handle(),
+		(char*)url.c_str(),
 		&response);
 	if(qdres == false)
 	{
@@ -510,7 +513,7 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 	return true;
 }
 
-sinsp_docker_response sinsp_container_engine_docker::get_docker(const sinsp_container_manager* manager, const string& url, string &json)
+sinsp_docker_response sinsp_container_engine_docker::get_docker(sinsp_container_manager* manager, const string& url, string &json)
 {
 #ifdef HAS_CAPTURE
 	if(curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str()) != CURLE_OK)

@@ -23,8 +23,7 @@ or GPL2.txt for full copies of the license.
 /*
  * Macros for packing in different build environments
  */
-
-#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
+#if !defined(CYGWING_AGENT) && (defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32))
 #define _packed __pragma(pack(push, 1)); __pragma(pack(pop))
 #else
 #define _packed __attribute__((packed))
