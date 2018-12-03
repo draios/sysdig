@@ -112,6 +112,12 @@ static void usage()
 "                    ':' or '#' characters in the file name.\n"
 "                    Option can also be provided via the environment variable SYSDIG_K8S_API_CERT.\n"
 " -l, --list         List all the fields that can be used in views.\n"
+" --large-environment\n"
+"                    Support environments larger than 4KiB\n"
+"                    When the environment is larger than 4KiB, load the whole\n"
+"                    environment from /proc instead of truncating to the first 4KiB\n"
+"                    This may fail for short-lived processes and in that case\n"
+"                    the truncated environment is used instead.\n"
 " --logfile=<file>\n"
 "                    Print program logs into the given file.\n"
 " -n <num>, --numevents=<num>\n"
@@ -334,6 +340,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"k8s-api-cert", required_argument, 0, 'K' },
 		{"json", no_argument, 0, 'j' },
 		{"interactive", optional_argument, 0, 0 },
+		{"large-environment", no_argument, 0, 0 },
 		{"list", optional_argument, 0, 'l' },
 		{"list-views", no_argument, 0, 0},
 		{"mesos-api", required_argument, 0, 'm'},
@@ -507,6 +514,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					{
 						is_interactive = true;
 						output_type = sinsp_table::OT_JSON;
+					}
+					else if(optname == "large-environment")
+					{
+						inspector->set_large_envs(true);
 					}
 					else if(optname == "logfile")
 					{
