@@ -163,12 +163,14 @@ load_bpf_probe() {
 
 		if [ "${ID}" == "cos" ]; then
 			COS=1
+			echo "* COS detected (build ${BUILD_ID}) from ${SYSDIG_HOST_ROOT}/etc/os-release"
+		elif [ "${ID}" == "buildroot" ] && [ -f "${SYSDIG_HOST_ROOT}/etc/VERSION" ]; then
+			MINIKUBE_VERSION="$(cat ${SYSDIG_HOST_ROOT}/etc/VERSION)"
+			if [ ! -z ${MINIKUBE_VERSION} ]; then
+				MINIKUBE=1
+				echo "* Minikube detected (${MINIKUBE_VERSION}) detected from ${SYSDIG_HOST_ROOT}/etc/os-release"
+			fi
 		fi
-	fi
-
-	if [ ! -z "${SYSDIG_HOST_ROOT}" ] && [ -f "${SYSDIG_HOST_ROOT}/etc/VERSION" ]; then
-		MINIKUBE=1
-		MINIKUBE_VERSION="$(cat ${SYSDIG_HOST_ROOT}/etc/VERSION)"
 	fi
 
 	local BPF_PROBE_FILENAME="${BPF_PROBE_NAME}-${SYSDIG_VERSION}-${ARCH}-${KERNEL_RELEASE}-${HASH}.o"
