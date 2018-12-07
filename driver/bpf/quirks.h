@@ -11,6 +11,21 @@ or GPL2.txt for full copies of the license.
 
 #include <linux/version.h>
 
+#ifdef RHEL_RELEASE_CODE
+
+#if RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(7, 6)
+#error RHEL version must be >= 7.6
+#endif
+
+/* RHEL has its own backported eBPF version, so the other defines in
+ * quirks don't quite apply. In particular, as of 7.6:
+ * - BPF_FORBIDS_ZERO_ACCESS is not necessary
+ * - BPF_SUPPORTS_RAW_TRACEPOINTS is defined in the uapi but not actually
+ *   implemented in the kernel
+ */
+
+#else /* RHEL_RELEASE_CODE */
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
 #error Kernel version must be >= 4.14 with eBPF enabled
 #endif
@@ -27,5 +42,7 @@ or GPL2.txt for full copies of the license.
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)
 #define BPF_SUPPORTS_RAW_TRACEPOINTS
 #endif
+
+#endif /* RHEL_RELEASE_CODE */
 
 #endif

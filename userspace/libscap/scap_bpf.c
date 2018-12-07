@@ -1128,56 +1128,49 @@ static int32_t set_runtime_params(scap_t *handle)
 		return SCAP_FAILURE;
 	}
 
+	//
+	// Not every kernel has BPF_JIT enabled or all the flags we'd like
+	// to tweak (e.g. earlier COS versions or RHEL 7).
+	//
+
 	FILE *f = fopen("/proc/sys/net/core/bpf_jit_enable", "w");
-	if(!f)
+	if(f)
 	{
-		// snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Can't open /proc/sys/net/core/bpf_jit_enable");
-		// return SCAP_FAILURE;
+		if(fprintf(f, "1") != 1)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Can't write to /proc/sys/net/core/bpf_jit_enable");
+			fclose(f);
+			return SCAP_FAILURE;
+		}
 
-		// Not every kernel has BPF_JIT enabled. Fix this after COS changes.
-		return SCAP_SUCCESS;
-	}
-
-	if(fprintf(f, "1") != 1)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Can't write to /proc/sys/net/core/bpf_jit_enable");
 		fclose(f);
-		return SCAP_FAILURE;
 	}
-
-	fclose(f);
 
 	f = fopen("/proc/sys/net/core/bpf_jit_harden", "w");
-	if(!f)
+	if(f)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Can't open /proc/sys/net/core/bpf_jit_harden");
-		return SCAP_FAILURE;
-	}
+		if(fprintf(f, "0") != 1)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Can't write to /proc/sys/net/core/bpf_jit_harden");
+			fclose(f);
+			return SCAP_FAILURE;
+		}
 
-	if(fprintf(f, "0") != 1)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Can't write to /proc/sys/net/core/bpf_jit_harden");
 		fclose(f);
-		return SCAP_FAILURE;
 	}
-
-	fclose(f);
 
 	f = fopen("/proc/sys/net/core/bpf_jit_kallsyms", "w");
-	if(!f)
+	if(f)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Can't open /proc/sys/net/core/bpf_jit_kallsyms");
-		return SCAP_FAILURE;
-	}
+		if(fprintf(f, "1") != 1)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Can't write to /proc/sys/net/core/bpf_jit_kallsyms");
+			fclose(f);
+			return SCAP_FAILURE;
+		}
 
-	if(fprintf(f, "1") != 1)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Can't write to /proc/sys/net/core/bpf_jit_kallsyms");
 		fclose(f);
-		return SCAP_FAILURE;
 	}
-
-	fclose(f);
 
 	return SCAP_SUCCESS;
 }

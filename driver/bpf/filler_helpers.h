@@ -283,7 +283,11 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 		}
 	} else if (data->state->tail_ctx.evt_type == PPME_SOCKET_SENDMSG_X) {
 		struct sockaddr *usrsockaddr;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
 		struct user_msghdr mh;
+#else
+		struct msghdr mh;
+#endif
 		unsigned long val;
 		int addrlen;
 
@@ -907,7 +911,11 @@ static __always_inline bool bpf_in_ia32_syscall()
 
 	task = (struct task_struct *)bpf_get_current_task();
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 18)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 0)
+	struct thread_info *thread_info = _READ(task->stack);
+
+	status = _READ(thread_info->status);
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 18)
 	status = _READ(task->thread.status);
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
 	status = _READ(task->thread_info.status);
