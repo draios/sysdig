@@ -1581,7 +1581,8 @@ static __always_inline int __bpf_append_cgroup(struct css_set *cgroups,
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		if (res > 1) {
-			if (res == 2 && buf[off & SCRATCH_SIZE_HALF] == '/')
+			if (res == sizeof("/") &&
+			    buf[off & SCRATCH_SIZE_HALF] == '/')
 				--res;
 
 			off += res - 1;
@@ -1606,7 +1607,7 @@ static __always_inline int __bpf_append_cgroup(struct css_set *cgroups,
 
 #define APPEND_CGROUP(id)								\
 do {											\
-	char subsys_name[sizeof(#id)] = #id;						\
+	char subsys_name[] = #id;							\
 	res = __bpf_append_cgroup(cgroups, SUBSYS_ID(id), subsys_name, buf, len);	\
 	if (res != PPM_SUCCESS)								\
 		return res;								\
