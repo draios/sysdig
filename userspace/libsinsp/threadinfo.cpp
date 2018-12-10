@@ -519,7 +519,7 @@ void sinsp_threadinfo::set_args(const char* args, size_t len)
 
 void sinsp_threadinfo::set_env(const char* env, size_t len)
 {
-	if (len == SCAP_MAX_ENV_SIZE && m_inspector->is_live())
+	if (len == SCAP_MAX_ENV_SIZE && m_inspector->large_envs_enabled())
 	{
 		// the environment is possibly truncated, try to read from /proc
 		// this may fail for short-lived processes
