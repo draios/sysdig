@@ -287,7 +287,7 @@ CONFIG_FILE="/etc/sysdig/${SCRIPT_NAME}"
 if [[ -f "${CONFIG_FILE}" ]]; then
         source "${CONFIG_FILE}"
 fi
-: ${SYSDIG_PROBE_URL:=https://s3.amazonaws.com/download.draios.com}
+: ${SYSDIG_PROBE_URL:=http://download.draios.com}
 : ${SYSDIG_REPOSITORY:=stable}
 MAX_RMMOD_WAIT=60
 if [[ $# -ge 1 ]]; then
