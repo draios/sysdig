@@ -21,6 +21,12 @@ limitations under the License.
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <grpc++/grpc++.h>
+#include "cri.pb.h"
+#include "cri.grpc.pb.h"
+
+#define CONTAINER_CPP
+typedef runtime::v1alpha2::RuntimeService::Stub RuntimeService_Stub;
 #endif
 
 #include "sinsp.h"
@@ -124,12 +130,14 @@ void sinsp_container_info::parse_healthcheck(const Json::Value &healthcheck_obj)
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 CURLM *sinsp_container_engine_docker::m_curlm = NULL;
 CURL *sinsp_container_engine_docker::m_curl = NULL;
+unique_ptr<runtime::v1alpha2::RuntimeService::Stub> sinsp_container_engine_docker::m_containerd = nullptr;
 #endif
 
 bool sinsp_container_engine_docker::m_query_image_info = true;
 
 sinsp_container_engine_docker::sinsp_container_engine_docker() :
 	m_unix_socket_path(string(scap_get_host_root()) + "/var/run/docker.sock"),
+	m_containerd_unix_socket_path("unix://" + string(scap_get_host_root()) + "/run/containerd/containerd.sock"),
 	m_api_version("/v1.24")
 {
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
@@ -151,6 +159,12 @@ sinsp_container_engine_docker::sinsp_container_engine_docker() :
 			curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, curl_write_callback);
 		}
 	}
+
+	if(!m_containerd)
+	{
+		m_containerd = runtime::v1alpha2::RuntimeService::NewStub(
+			grpc::CreateChannel(m_containerd_unix_socket_path, grpc::InsecureChannelCredentials()));
+	}
 #endif
 }
 
@@ -161,6 +175,8 @@ void sinsp_container_engine_docker::cleanup()
 	m_curl = NULL;
 	curl_multi_cleanup(m_curlm);
 	m_curlm = NULL;
+
+	m_containerd.reset(nullptr);
 #endif
 }
 
@@ -450,6 +466,150 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 }
 
 
+bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
+{
+#ifdef CYGWING_AGENT
+	ASSERT(false);
+	return false;
+#else
+	runtime::v1alpha2::ContainerStatusRequest req;
+	runtime::v1alpha2::ContainerStatusResponse resp;
+	req.set_container_id(container->m_id);
+	req.set_verbose(true);
+	grpc::ClientContext context;
+	// XXX async
+	grpc::Status status = m_containerd->ContainerStatus(&context, req, &resp);
+	if (!status.ok()) {
+		return false;
+	}
+
+	if (!resp.has_status())
+	{
+		ASSERT(false);
+		return false;
+	}
+
+	const auto& resp_container = resp.status();
+	container->m_name = resp_container.metadata().name();
+
+	// image_ref may be one of two forms:
+	// host/image@sha256:digest
+	// sha256:digest
+	const auto& image_ref = resp_container.image_ref();
+	auto digest_start = image_ref.find("sha256:");
+	if (digest_start != string::npos)
+	{
+		container->m_imagedigest = image_ref.substr(digest_start);
+	}
+
+	string hostname, port, digest;
+	sinsp_utils::split_container_image(resp_container.image().image(),
+					   hostname,
+					   port,
+					   container->m_imagerepo,
+					   container->m_imagetag,
+					   digest,
+					   false);
+
+	for (const auto& mount : resp_container.mounts())
+	{
+		const char* propagation;
+		switch(mount.propagation()) {
+			case runtime::v1alpha2::MountPropagation::PROPAGATION_PRIVATE:
+				propagation = "private";
+				break;
+			case runtime::v1alpha2::MountPropagation::PROPAGATION_HOST_TO_CONTAINER:
+				propagation = "rslave";
+				break;
+			case runtime::v1alpha2::MountPropagation::PROPAGATION_BIDIRECTIONAL:
+				propagation = "rshared";
+				break;
+			default:
+				propagation = "unknown";
+				break;
+		}
+		container->m_mounts.emplace_back(
+			mount.host_path(),
+			mount.container_path(),
+			"",
+			!mount.readonly(),
+			propagation);
+	}
+
+	for (const auto& pair : resp_container.labels())
+	{
+		container->m_labels[pair.first] = pair.second;
+	}
+
+	const auto& info_it = resp.info().find("info");
+	if (info_it == resp.info().end())
+	{
+		ASSERT(false);
+		return false;
+	}
+	Json::Value root;
+	Json::Reader reader;
+	bool parsingSuccessful = reader.parse(info_it->second, root);
+	if(!parsingSuccessful)
+	{
+		ASSERT(false);
+		return false;
+	}
+
+	const Json::Value& config = root["config"];
+	const Json::Value& envs = config["envs"];
+
+	for (const auto& env_var : envs)
+	{
+		auto key = env_var["key"].asString();
+		auto value = env_var["value"].asString();
+		container->m_env.emplace_back(key + '=' + value);
+	}
+
+	const Json::Value& resources = root["runtimeSpec"]["linux"]["resources"];
+	container->m_memory_limit = resources["memory"]["limit"].asInt64();
+	container->m_swap_limit = container->m_memory_limit;
+
+	const Json::Value& cpu = resources["cpu"];
+	container->m_cpu_shares = cpu["shares"].asInt64();
+	container->m_cpu_quota = cpu["quota"].asInt64();
+	container->m_cpu_period = cpu["period"].asInt64();
+
+	const Json::Value& privileged = root["runtimeSpec"]["linux"]["security_context"]["privileged"];
+	container->m_privileged = privileged.asBool();
+
+	const auto pod_sandbox_id = root["sandboxID"].asString();
+	runtime::v1alpha2::PodSandboxStatusRequest psreq;
+	runtime::v1alpha2::PodSandboxStatusResponse psresp;
+	psreq.set_pod_sandbox_id(pod_sandbox_id);
+	psreq.set_verbose(true);
+	grpc::ClientContext pscontext;
+	// XXX async
+	status = m_containerd->PodSandboxStatus(&pscontext, psreq, &psresp);
+	if (!status.ok()) {
+		return false;
+	}
+
+	const auto& pod_ip = psresp.status().network().ip();
+	if (!pod_ip.empty())
+	{
+		long ip;
+		if (inet_pton(AF_INET, pod_ip.c_str(), &ip) == -1)
+		{
+			ASSERT(false);
+		}
+		else
+		{
+			container->m_container_ip = ntohl(ip);
+		}
+	}
+
+	return true;
+#endif
+}
+
+
+
 #ifdef CYGWING_AGENT
 bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
@@ -560,7 +720,10 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 #ifndef _WIN32
 		if (query_os_for_missing_info)
 		{
-			parse_docker(manager, &container_info, tinfo);
+			if (!parse_docker(manager, &container_info, tinfo))
+			{
+				parse_containerd(manager, &container_info, tinfo);
+			}
 		}
 #endif
 		manager->add_container(container_info, tinfo);
