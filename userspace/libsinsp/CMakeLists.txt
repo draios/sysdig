@@ -25,9 +25,12 @@ if(NOT WIN32 AND NOT APPLE)
 	include_directories("${B64_INCLUDE}")
 	include_directories("${CURL_INCLUDE_DIR}")
 	include_directories("${CURSES_INCLUDE_DIR}")
+	include_directories("${GRPC_INCLUDE}")
 	include_directories("${JQ_INCLUDE}")
 	include_directories("${OPENSSL_INCLUDE_DIR}")
+	include_directories("${PROTOBUF_INCLUDE}")
 	include_directories("${TBB_INCLUDE}")
+	include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 endif()
 
 add_library(sinsp STATIC
@@ -105,7 +108,10 @@ add_library(sinsp STATIC
 	utils.cpp
 	user_event.cpp
 	value_parser.cpp
-	viewinfo.cpp)
+	viewinfo.cpp
+	${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.cc
+	${CMAKE_CURRENT_BINARY_DIR}/cri.pb.cc
+)
 
 target_link_libraries(sinsp 
 	scap
@@ -144,6 +150,23 @@ if(NOT WIN32)
 		target_link_libraries(sinsp
                     "${OPENSSL_LIBRARIES}")
         endif()
+
+	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.cc
+				${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.h
+				${CMAKE_CURRENT_BINARY_DIR}/cri.pb.cc
+				${CMAKE_CURRENT_BINARY_DIR}/cri.pb.h
+			COMMENT "Generate CRI grpc code"
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cri.proto
+			COMMAND ${PROTOC} -I ${CMAKE_CURRENT_SOURCE_DIR} --cpp_out=. ${CMAKE_CURRENT_SOURCE_DIR}/cri.proto
+			COMMAND ${PROTOC} -I ${CMAKE_CURRENT_SOURCE_DIR} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_SRC}/bins/opt/grpc_cpp_plugin ${CMAKE_CURRENT_SOURCE_DIR}/cri.proto
+			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+	add_dependencies(sinsp grpc)
+	target_link_libraries(sinsp
+		"${GRPCPP_LIB}"
+		"${GRPC_LIB}"
+		"${PROTOBUF_LIB}"
+		"${CARES_LIB}")
 
 	target_link_libraries(sinsp
 		"${LUAJIT_LIB}"
