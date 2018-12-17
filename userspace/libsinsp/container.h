@@ -25,6 +25,13 @@ limitations under the License.
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <curl/multi.h>
+
+#ifndef CONTAINER_CPP
+// a class that no-op extends RuntimeService::Stub from the CRI GRPC header
+// we can't include the header due to conflicts with ncurses in table.cc
+// and  we can't forward-declare a nested class
+class RuntimeService_Stub;
+#endif
 #endif
 
 enum sinsp_container_type
@@ -195,13 +202,17 @@ protected:
 #endif
 	sinsp_docker_response get_docker(sinsp_container_manager* manager, const string& url, string &json);
 	bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
+	bool parse_containerd(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
 
 	string m_unix_socket_path;
+	string m_containerd_unix_socket_path;
 	string m_api_version;
 	static bool m_query_image_info;
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	static CURLM *m_curlm;
 	static CURL *m_curl;
+
+	static unique_ptr<RuntimeService_Stub> m_containerd;
 #endif
 };
 
