@@ -74,6 +74,13 @@ public:
 		{
 		}
 
+		container_mount_info(const std::string&& source, const std::string&& dest,
+				     const std::string&& mode, const bool rw,
+				     const std::string&& propagation) :
+			m_source(source), m_dest(dest), m_mode(mode), m_rdwr(rw), m_propagation(propagation)
+		{
+		}
+
 		container_mount_info(const Json::Value &source, const Json::Value &dest,
 				     const Json::Value &mode, const Json::Value &rw,
 				     const Json::Value &propagation)
