@@ -215,7 +215,6 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 			}
 			/* FALLTHRU */
 		case sinsp_docker_response::RESP_ERROR:
-			ASSERT(false);
 			return false;
 
 		case sinsp_docker_response::RESP_OK:
@@ -626,9 +625,14 @@ sinsp_docker_response sinsp_container_engine_docker::get_docker(sinsp_container_
 		ASSERT(false);
 		return sinsp_docker_response::RESP_ERROR;
 	}
-	if(http_code != 200)
+	switch(http_code)
 	{
-		return sinsp_docker_response::RESP_BAD_REQUEST;
+		case 0: /* connection failed, apparently */
+			return sinsp_docker_response::RESP_ERROR;
+		case 200:
+			return sinsp_docker_response::RESP_OK;
+		default:
+			return sinsp_docker_response::RESP_BAD_REQUEST;
 	}
 
 	return sinsp_docker_response::RESP_OK;
