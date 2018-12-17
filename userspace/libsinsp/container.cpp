@@ -31,20 +31,6 @@ limitations under the License.
 #include "dragent_win_hal_public.h"
 #endif
 
-void sinsp_container_info::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_container_info::container_mount_info> &mounts)
-{
-	if(!mnt_obj.isNull() && mnt_obj.isArray())
-	{
-		for(uint32_t i=0; i<mnt_obj.size(); i++)
-		{
-			const Json::Value &mount = mnt_obj[i];
-			mounts.emplace_back(mount["Source"], mount["Destination"],
-					    mount["Mode"], mount["RW"],
-					    mount["Propagation"]);
-		}
-	}
-}
-
 const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_idx(uint32_t idx) const
 {
 	if (idx >= m_mounts.size())
@@ -176,6 +162,20 @@ void sinsp_container_engine_docker::cleanup()
 	curl_multi_cleanup(m_curlm);
 	m_curlm = NULL;
 #endif
+}
+
+void sinsp_container_engine_docker::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_container_info::container_mount_info> &mounts)
+{
+	if(!mnt_obj.isNull() && mnt_obj.isArray())
+	{
+		for(uint32_t i=0; i<mnt_obj.size(); i++)
+		{
+			const Json::Value &mount = mnt_obj[i];
+			mounts.emplace_back(mount["Source"], mount["Destination"],
+					    mount["Mode"], mount["RW"],
+					    mount["Propagation"]);
+		}
+	}
 }
 
 void sinsp_container_engine_docker::set_query_image_info(bool query_image_info)
@@ -441,7 +441,7 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 		container->m_privileged = privileged.asBool();
 	}
 
-	sinsp_container_info::parse_json_mounts(root["Mounts"], container->m_mounts);
+	parse_json_mounts(root["Mounts"], container->m_mounts);
 
 #ifdef HAS_ANALYZER
 	sinsp_utils::find_env(container->m_sysdig_agent_conf, container->get_env(), "SYSDIG_AGENT_CONF");
