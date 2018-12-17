@@ -126,6 +126,7 @@ sinsp::sinsp() :
 	m_file_start_offset = 0;
 	m_flush_memory_dump = false;
 	m_next_stats_print_time_ns = 0;
+	m_large_envs_enabled = false;
 
 	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
 	m_print_container_data = false;
@@ -1899,6 +1900,11 @@ void sinsp::set_drop_event_flags(ppm_event_flags flags)
 sinsp_evt::param_fmt sinsp::get_buffer_format()
 {
 	return m_buffer_format;
+}
+
+void sinsp::set_large_envs(bool enable)
+{
+	m_large_envs_enabled = enable;
 }
 
 void sinsp::set_debug_mode(bool enable_debug)
