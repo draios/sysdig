@@ -166,6 +166,12 @@ static void usage()
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
 "                    field.\n"
+" --large-environment\n"
+"                    Support environments larger than 4KiB\n"
+"                    When the environment is larger than 4KiB, load the whole\n"
+"                    environment from /proc instead of truncating to the first 4KiB\n"
+"                    This may fail for short-lived processes and in that case\n"
+"                    the truncated environment is used instead.\n"
 " --list-markdown    like -l, but produces markdown output\n"
 " -m <url[,marathon_url]>, --mesos-api=<url[,marathon_url]>\n"
 "                    Enable Mesos support by connecting to the API server\n"
@@ -800,6 +806,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"json", no_argument, 0, 'j' },
 		{"k8s-api", required_argument, 0, 'k'},
 		{"k8s-api-cert", required_argument, 0, 'K' },
+		{"large-environment", no_argument, 0, 0 },
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
 		{"list-markdown", no_argument, 0, 0 },
@@ -1205,6 +1212,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			if(string(long_options[long_index].name) == "filter-proclist")
 			{
 				filter_proclist_flag = true;
+			}
+
+			if(string(long_options[long_index].name) == "large-environment")
+			{
+				inspector->set_large_envs(true);
 			}
 
 			if(string(long_options[long_index].name) == "list-markdown")

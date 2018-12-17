@@ -640,6 +640,23 @@ public:
 	}
 
 	/*!
+	  \brief Returns true if truncated environments should be loaded from /proc
+	*/
+	inline bool large_envs_enabled()
+	{
+		return is_live() && m_large_envs_enabled;
+	}
+
+	/*!
+	  \brief Enable/disable large environment support
+
+	  \param enable when it is true and the current capture is live
+	  environments larger than SCAP_MAX_ENV_SIZE will be loaded
+	  from /proc/<pid>/environ (if possible)
+	*/
+	void set_large_envs(bool enable);
+
+	/*!
 	  \brief Set the debugging mode of the inspector.
 
 	  \param enable_debug when it is true and the current capture is live
@@ -1004,6 +1021,7 @@ private:
 	// restart in the middle of the file.
 	uint64_t m_file_start_offset;
 	bool m_flush_memory_dump;
+	bool m_large_envs_enabled;
 
 	sinsp_network_interfaces* m_network_interfaces;
 public:
