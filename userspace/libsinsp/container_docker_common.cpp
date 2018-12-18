@@ -17,34 +17,12 @@ limitations under the License.
 
 */
 
-#ifndef _WIN32
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <unistd.h>
-#include <grpc++/grpc++.h>
-#include "cri.pb.h"
-#include "cri.grpc.pb.h"
-
-#define CONTAINER_CPP
-typedef runtime::v1alpha2::RuntimeService::Stub RuntimeService_Stub;
-#endif
-
-#include "container_docker_common.h"
-#include "container_mesos.h"
+#include "container_docker.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "container.h"
 #include "utils.h"
-#ifdef CYGWING_AGENT
-#include "dragent_win_hal_public.h"
-#endif
 
-
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-CURLM *sinsp_container_engine_docker::m_curlm = NULL;
-CURL *sinsp_container_engine_docker::m_curl = NULL;
-unique_ptr<runtime::v1alpha2::RuntimeService::Stub> sinsp_container_engine_docker::m_containerd = nullptr;
-#endif
 
 bool sinsp_container_engine_docker::m_query_image_info = true;
 

@@ -50,7 +50,7 @@ limitations under the License.
 bool should_drop(sinsp_evt *evt);
 #endif
 
-#include "container_docker_common.h"
+#include "container_docker.h"
 
 extern sinsp_protodecoder_list g_decoderlist;
 extern sinsp_evttables g_infotables;
