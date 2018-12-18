@@ -48,44 +48,6 @@ unique_ptr<runtime::v1alpha2::RuntimeService::Stub> sinsp_container_engine_docke
 
 bool sinsp_container_engine_docker::m_query_image_info = true;
 
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-sinsp_container_engine_docker::sinsp_container_engine_docker() :
-	m_unix_socket_path(string(scap_get_host_root()) + "/var/run/docker.sock"),
-	m_containerd_unix_socket_path("unix://" + string(scap_get_host_root()) + "/run/containerd/containerd.sock"),
-	m_api_version("/v1.24")
-{
-	if(!m_curlm)
-	{
-		m_curl = curl_easy_init();
-		m_curlm = curl_multi_init();
-
-		if(m_curlm)
-		{
-			curl_multi_setopt(m_curlm, CURLMOPT_PIPELINING, CURLPIPE_HTTP1|CURLPIPE_MULTIPLEX);
-		}
-
-		if(m_curl)
-		{
-			curl_easy_setopt(m_curl, CURLOPT_UNIX_SOCKET_PATH, m_unix_socket_path.c_str());
-			curl_easy_setopt(m_curl, CURLOPT_HTTPGET, 1);
-			curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
-			curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, curl_write_callback);
-		}
-	}
-
-	if(!m_containerd)
-	{
-		m_containerd = runtime::v1alpha2::RuntimeService::NewStub(
-			grpc::CreateChannel(m_containerd_unix_socket_path, grpc::InsecureChannelCredentials()));
-	}
-}
-#else
-sinsp_container_engine_docker::sinsp_container_engine_docker() :
-	m_api_version("/v1.30")
-{
-}
-#endif
-
 void sinsp_container_engine_docker::cleanup()
 {
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)

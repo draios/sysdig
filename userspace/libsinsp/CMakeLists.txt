@@ -121,6 +121,9 @@ list(APPEND SINSP_SOURCES
 	container_lxc.cpp
 	container_mesos.cpp
 	container_rkt.cpp)
+else()
+list(APPEND SINSP_SOURCES
+	container_docker_win.cpp)
 endif()
 
 add_library(sinsp STATIC ${SINSP_SOURCES})

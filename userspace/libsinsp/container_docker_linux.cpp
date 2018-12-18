@@ -29,9 +29,44 @@ typedef runtime::v1alpha2::RuntimeService::Stub RuntimeService_Stub;
 #include "sinsp.h"
 #include "sinsp_int.h"
 
+sinsp_container_engine_docker::sinsp_container_engine_docker() :
+#if defined(HAS_CAPTURE)
+	m_unix_socket_path(string(scap_get_host_root()) + "/var/run/docker.sock"),
+	m_containerd_unix_socket_path("unix://" + string(scap_get_host_root()) + "/run/containerd/containerd.sock"),
+#endif
+	m_api_version("/v1.24")
+{
+#if defined(HAS_CAPTURE)
+	if(!m_curlm)
+	{
+		m_curl = curl_easy_init();
+		m_curlm = curl_multi_init();
+
+		if(m_curlm)
+		{
+			curl_multi_setopt(m_curlm, CURLMOPT_PIPELINING, CURLPIPE_HTTP1|CURLPIPE_MULTIPLEX);
+		}
+
+		if(m_curl)
+		{
+			curl_easy_setopt(m_curl, CURLOPT_UNIX_SOCKET_PATH, m_unix_socket_path.c_str());
+			curl_easy_setopt(m_curl, CURLOPT_HTTPGET, 1);
+			curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
+			curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, curl_write_callback);
+		}
+	}
+
+	if(!m_containerd)
+	{
+		m_containerd = runtime::v1alpha2::RuntimeService::NewStub(
+			grpc::CreateChannel(m_containerd_unix_socket_path, grpc::InsecureChannelCredentials()));
+	}
+#endif
+}
 
 bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
 {
+#if defined(HAS_CAPTURE)
 	runtime::v1alpha2::ContainerStatusRequest req;
 	runtime::v1alpha2::ContainerStatusResponse resp;
 	req.set_container_id(container->m_id);
@@ -165,6 +200,10 @@ bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* ma
 	}
 
 	return true;
+#else
+	ASSERT(false);
+	return false;
+#endif
 }
 
 
