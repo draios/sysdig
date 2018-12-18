@@ -344,12 +344,6 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 			container->m_env.emplace_back(env_var.asString());
 		}
 	}
-#ifndef CYGWING_AGENT
-	if (sinsp_container_engine_mesos::set_mesos_task_id(container, tinfo))
-	{
-		g_logger.log("Mesos Docker container: [" + root["Id"].asString() + "], Mesos task ID: [" + container->m_mesos_task_id + ']', sinsp_logger::SEV_DEBUG);
-	}
-#endif
 
 	const auto& host_config_obj = root["HostConfig"];
 	container->m_memory_limit = host_config_obj["Memory"].asInt64();
@@ -638,6 +632,12 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 			if (!parse_docker(manager, &container_info, tinfo))
 			{
 				parse_containerd(manager, &container_info, tinfo);
+			}
+			if (sinsp_container_engine_mesos::set_mesos_task_id(&container_info, tinfo))
+			{
+				g_logger.format(sinsp_logger::SEV_DEBUG,
+					"Mesos Docker container: [%s], Mesos task ID: [%s]",
+					container_info.m_id.c_str(), container_info.m_mesos_task_id.c_str());
 			}
 		}
 #endif
