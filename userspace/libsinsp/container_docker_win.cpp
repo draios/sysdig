@@ -21,3 +21,12 @@ sinsp_container_engine_docker::sinsp_container_engine_docker() :
 	m_api_version("/v1.30")
 {
 }
+
+void sinsp_container_engine_docker::cleanup()
+{
+}
+
+std::string sinsp_container_engine_docker::build_request(const std::string &url)
+{
+	return "GET " + m_api_version + url + " HTTP/1.1\r\nHost: docker\r\n\r\n";
+}
