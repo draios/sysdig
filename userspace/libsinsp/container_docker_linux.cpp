@@ -232,4 +232,143 @@ bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* ma
 #endif
 }
 
+bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+{
+	sinsp_container_info container_info;
+	bool matches = false;
 
+	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
+	{
+		string cgroup = it->second;
+		size_t pos;
+
+		//
+		// Non-systemd Docker
+		//
+		pos = cgroup.find_last_of("/");
+		if(pos != string::npos)
+		{
+			if(cgroup.length() - pos - 1 == 64 &&
+			   cgroup.find_first_not_of("0123456789abcdefABCDEF", pos + 1) == string::npos)
+			{
+				container_info.m_type = CT_DOCKER;
+				container_info.m_id = cgroup.substr(pos + 1, 12);
+				matches = true;
+				break;
+			}
+		}
+
+		//
+		// systemd Docker
+		//
+		pos = cgroup.find("docker-");
+		if(pos != string::npos)
+		{
+			size_t pos2 = cgroup.find(".scope");
+			if(pos2 != string::npos &&
+			   pos2 - pos - sizeof("docker-") + 1 == 64)
+			{
+				container_info.m_type = CT_DOCKER;
+				container_info.m_id = cgroup.substr(pos + sizeof("docker-") - 1, 12);
+				matches = true;
+				break;
+			}
+		}
+	}
+
+	if (!matches)
+		return false;
+
+	tinfo->m_container_id = container_info.m_id;
+	if (!manager->container_exists(container_info.m_id))
+	{
+		if (query_os_for_missing_info)
+		{
+			if (!parse_docker(manager, &container_info, tinfo))
+			{
+				parse_containerd(manager, &container_info, tinfo);
+			}
+		}
+		if (sinsp_container_engine_mesos::set_mesos_task_id(&container_info, tinfo))
+		{
+			g_logger.format(sinsp_logger::SEV_DEBUG,
+					"Mesos Docker container: [%s], Mesos task ID: [%s]",
+					container_info.m_id.c_str(), container_info.m_mesos_task_id.c_str());
+		}
+		manager->add_container(container_info, tinfo);
+		manager->notify_new_container(container_info);
+	}
+	return true;
+}
+
+sinsp_docker_response sinsp_container_engine_docker::get_docker(sinsp_container_manager* manager, const string& url, string &json)
+{
+#ifdef HAS_CAPTURE
+	if(curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str()) != CURLE_OK)
+	{
+		ASSERT(false);
+		return sinsp_docker_response::RESP_ERROR;
+	}
+	if(curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &json) != CURLE_OK)
+	{
+		ASSERT(false);
+		return sinsp_docker_response::RESP_ERROR;
+	}
+
+	if(curl_multi_add_handle(m_curlm, m_curl) != CURLM_OK)
+	{
+		ASSERT(false);
+		return sinsp_docker_response::RESP_ERROR;
+	}
+
+	while(true)
+	{
+		int still_running;
+		CURLMcode res = curl_multi_perform(m_curlm, &still_running);
+		if(res != CURLM_OK)
+		{
+			ASSERT(false);
+			return sinsp_docker_response::RESP_ERROR;
+		}
+
+		if(still_running == 0)
+		{
+			break;
+		}
+
+		int numfds;
+		res = curl_multi_wait(m_curlm, NULL, 0, -1, &numfds);
+		if(res != CURLM_OK)
+		{
+			ASSERT(false);
+			return sinsp_docker_response::RESP_ERROR;
+		}
+	}
+
+	if(curl_multi_remove_handle(m_curlm, m_curl) != CURLM_OK)
+	{
+		ASSERT(false);
+		return sinsp_docker_response::RESP_ERROR;
+	}
+
+	long http_code = 0;
+	if(curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &http_code) != CURLE_OK)
+	{
+		ASSERT(false);
+		return sinsp_docker_response::RESP_ERROR;
+	}
+	switch(http_code)
+	{
+		case 0: /* connection failed, apparently */
+			return sinsp_docker_response::RESP_ERROR;
+		case 200:
+			return sinsp_docker_response::RESP_OK;
+		default:
+			return sinsp_docker_response::RESP_BAD_REQUEST;
+	}
+
+	return sinsp_docker_response::RESP_OK;
+#else
+	return sinsp_docker_response::RESP_ERROR;
+#endif
+}
