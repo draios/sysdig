@@ -64,6 +64,32 @@ sinsp_container_engine_docker::sinsp_container_engine_docker() :
 #endif
 }
 
+void sinsp_container_engine_docker::cleanup()
+{
+#if defined(HAS_CAPTURE)
+	curl_easy_cleanup(m_curl);
+	m_curl = NULL;
+	curl_multi_cleanup(m_curlm);
+	m_curlm = NULL;
+
+	m_containerd.reset(nullptr);
+#endif
+}
+
+#if defined(HAS_CAPTURE)
+size_t sinsp_container_engine_docker::curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json)
+{
+	const std::size_t total = size * nmemb;
+	json->append(ptr, total);
+	return total;
+}
+#endif
+
+std::string sinsp_container_engine_docker::build_request(const std::string &url)
+{
+	return "http://localhost" + m_api_version + url;
+}
+
 bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
 {
 #if defined(HAS_CAPTURE)

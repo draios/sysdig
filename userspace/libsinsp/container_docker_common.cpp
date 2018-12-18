@@ -48,18 +48,6 @@ unique_ptr<runtime::v1alpha2::RuntimeService::Stub> sinsp_container_engine_docke
 
 bool sinsp_container_engine_docker::m_query_image_info = true;
 
-void sinsp_container_engine_docker::cleanup()
-{
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-	curl_easy_cleanup(m_curl);
-	m_curl = NULL;
-	curl_multi_cleanup(m_curlm);
-	m_curlm = NULL;
-
-	m_containerd.reset(nullptr);
-#endif
-}
-
 void sinsp_container_engine_docker::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_container_info::container_mount_info> &mounts)
 {
 	if(!mnt_obj.isNull() && mnt_obj.isArray())
@@ -77,24 +65,6 @@ void sinsp_container_engine_docker::parse_json_mounts(const Json::Value &mnt_obj
 void sinsp_container_engine_docker::set_query_image_info(bool query_image_info)
 {
 	m_query_image_info = query_image_info;
-}
-
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-size_t sinsp_container_engine_docker::curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json)
-{
-	const std::size_t total = size * nmemb;
-	json->append(ptr, total);
-	return total;
-}
-#endif
-
-std::string sinsp_container_engine_docker::build_request(const std::string &url)
-{
-#ifndef CYGWING_AGENT
-	return "http://localhost" + m_api_version + url;
-#else
-	return "GET " + m_api_version + url + " HTTP/1.1\r\nHost: docker\r\n\r\n";
-#endif
 }
 
 bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
