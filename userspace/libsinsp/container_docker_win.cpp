@@ -30,3 +30,58 @@ std::string sinsp_container_engine_docker::build_request(const std::string &url)
 {
 	return "GET " + m_api_version + url + " HTTP/1.1\r\nHost: docker\r\n\r\n";
 }
+
+bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+{
+	wh_docker_container_info wcinfo = wh_docker_resolve_pid(manager->get_inspector()->get_wmi_handle(), tinfo->m_pid);
+	if(!wcinfo.m_res)
+	{
+		return false;
+	}
+
+	sinsp_container_info container_info;
+	container_info.m_type = CT_DOCKER;
+	container_info.m_id = wcinfo.m_container_id;
+	container_info.m_name = wcinfo.m_container_name;
+
+	tinfo->m_container_id = container_info.m_id;
+	if (!manager->container_exists(container_info.m_id))
+	{
+		if (query_os_for_missing_info)
+		{
+			parse_docker(manager, &container_info, tinfo);
+		}
+		manager->add_container(container_info, tinfo);
+		manager->notify_new_container(container_info);
+	}
+	return true;
+}
+
+sinsp_docker_response sinsp_container_engine_docker::get_docker(sinsp_container_manager* manager, const string& url, string &json)
+{
+	const char* response = NULL;
+	bool qdres = wh_query_docker(manager->get_inspector()->get_wmi_handle(),
+				     (char*)url.c_str(),
+				     &response);
+	if(qdres == false)
+	{
+		ASSERT(false);
+		return sinsp_docker_response::RESP_ERROR;
+	}
+
+	json = response;
+	if(strncmp(json.c_str(), "HTTP/1.0 200 OK", sizeof("HTTP/1.0 200 OK") -1))
+	{
+		return sinsp_docker_response::RESP_BAD_REQUEST;
+	}
+
+	size_t pos = json.find("{");
+	if(pos == string::npos)
+	{
+		ASSERT(false);
+		return sinsp_docker_response::RESP_ERROR;
+	}
+	json = json.substr(pos);
+
+	return sinsp_docker_response::RESP_OK;
+}
