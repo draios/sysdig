@@ -24,10 +24,16 @@ limitations under the License.
 #define CONTAINER_CPP
 typedef runtime::v1alpha2::RuntimeService::Stub RuntimeService_Stub;
 
-#include "container_docker_common.h"
+#include "container_docker.h"
 #include "container_mesos.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
+
+#if defined(HAS_CAPTURE)
+CURLM *sinsp_container_engine_docker::m_curlm = NULL;
+CURL *sinsp_container_engine_docker::m_curl = NULL;
+unique_ptr<runtime::v1alpha2::RuntimeService::Stub> sinsp_container_engine_docker::m_containerd = nullptr;
+#endif
 
 sinsp_container_engine_docker::sinsp_container_engine_docker() :
 #if defined(HAS_CAPTURE)

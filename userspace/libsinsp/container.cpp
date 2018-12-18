@@ -17,7 +17,7 @@ limitations under the License.
 
 */
 
-#include "container_docker_common.h"
+#include "container_docker.h"
 #include "container_rkt.h"
 #include "container_lxc.h"
 #include "container_mesos.h"
