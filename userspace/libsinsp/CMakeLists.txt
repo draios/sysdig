@@ -33,10 +33,11 @@ if(NOT WIN32 AND NOT APPLE)
 	include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 endif()
 
-add_library(sinsp STATIC
+set(SINSP_SOURCES
 	chisel.cpp
 	chisel_api.cpp
 	container.cpp
+	container_info.cpp
 	ctext.cpp
 	cyclewriter.cpp
 	cursescomponents.cpp
@@ -112,6 +113,15 @@ add_library(sinsp STATIC
 	${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.cc
 	${CMAKE_CURRENT_BINARY_DIR}/cri.pb.cc
 )
+
+if(NOT WIN32)
+list(APPEND SINSP_SOURCES
+	container_lxc.cpp
+	container_mesos.cpp
+	container_rkt.cpp)
+endif()
+
+add_library(sinsp STATIC ${SINSP_SOURCES})
 
 target_link_libraries(sinsp 
 	scap
