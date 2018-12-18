@@ -66,6 +66,7 @@ protected:
 	static size_t curl_write_callback(const char* ptr, size_t size, size_t nmemb, std::string* json);
 #endif
 	sinsp_docker_response get_docker(sinsp_container_manager* manager, const std::string& url, std::string &json);
+	std::string build_request(const std::string& url);
 	bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
 	bool parse_containerd(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
 
