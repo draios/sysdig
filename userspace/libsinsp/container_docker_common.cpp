@@ -126,23 +126,24 @@ size_t sinsp_container_engine_docker::curl_write_callback(const char* ptr, size_
 }
 #endif
 
+std::string sinsp_container_engine_docker::build_request(const std::string &url)
+{
+#ifndef CYGWING_AGENT
+	return "http://localhost" + m_api_version + url;
+#else
+	return "GET " + m_api_version + url + " HTTP/1.1\r\nHost: docker\r\n\r\n";
+#endif
+}
+
 bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
 {
 	string json;
-#ifndef CYGWING_AGENT
-	sinsp_docker_response resp = get_docker(manager, "http://localhost" + m_api_version + "/containers/" + container->m_id + "/json", json);
-#else
-	sinsp_docker_response resp = get_docker(manager, "GET /v1.30/containers/" + container->m_id + "/json HTTP/1.1\r\nHost: docker\r\n\r\n", json);
-#endif
+	sinsp_docker_response resp = get_docker(manager, build_request("/containers/" + container->m_id + "/json"), json);
 	switch(resp) {
 		case sinsp_docker_response::RESP_BAD_REQUEST:
 			m_api_version = "";
 			json = "";
-#ifndef CYGWING_AGENT
-			resp = get_docker(manager, "http://localhost/containers/" + container->m_id + "/json", json);
-#else
-			resp = get_docker(manager, "GET /containers/" + container->m_id + "/json HTTP/1.1\r\nHost: docker\r\n\r\n", json);
-#endif
+			resp = get_docker(manager, build_request("/containers/" + container->m_id + "/json"), json);
 			if (resp == sinsp_docker_response::RESP_OK)
 			{
 				break;
@@ -205,11 +206,7 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 	   (no_name || container->m_imagedigest.empty() || (!container->m_imagedigest.empty() && container->m_imagetag.empty())))
 	{
 		string img_json;
-#ifndef CYGWING_AGENT
-		if(get_docker(manager, "http://localhost" + m_api_version + "/images/" + container->m_imageid + "/json?digests=1", img_json) == sinsp_docker_response::RESP_OK)
-#else
-			if(get_docker(manager, "GET /v1.30/images/" + container->m_imageid + "/json?digests=1 HTTP/1.1\r\nHost: docker \r\n\r\n", img_json) == sinsp_docker_response::RESP_OK)
-#endif
+		if(get_docker(manager, build_request("/images/" + container->m_imageid + "/json?digests=1"), img_json) == sinsp_docker_response::RESP_OK)
 		{
 			Json::Value img_root;
 			if(reader.parse(img_json, img_root))
