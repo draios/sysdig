@@ -36,6 +36,12 @@ class sinsp_threadinfo;
 #include <curl/easy.h>
 #include <curl/multi.h>
 
+namespace runtime {
+namespace v1alpha2 {
+class ContainerStatus;
+}
+}
+
 #ifndef CONTAINER_CPP
 // a class that no-op extends RuntimeService::Stub from the CRI GRPC header
 // we can't include the header due to conflicts with ncurses in table.cc
@@ -64,6 +70,11 @@ public:
 protected:
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	static size_t curl_write_callback(const char* ptr, size_t size, size_t nmemb, std::string* json);
+	inline bool parse_containerd_mounts(const runtime::v1alpha2::ContainerStatus& status, sinsp_container_info *container);
+	inline bool parse_containerd_image(const runtime::v1alpha2::ContainerStatus& status, sinsp_container_info *container);
+	inline bool parse_containerd_env(const Json::Value& info, sinsp_container_info *container);
+	inline bool parse_containerd_runtime_spec(const Json::Value& info, sinsp_container_info *container);
+	inline uint32_t get_pod_sandbox_ip(const std::string& pod_sandbox_id);
 #endif
 	sinsp_docker_response get_docker(sinsp_container_manager* manager, const std::string& url, std::string &json);
 	std::string build_request(const std::string& url);
