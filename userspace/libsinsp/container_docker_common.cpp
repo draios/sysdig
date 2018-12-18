@@ -48,12 +48,12 @@ unique_ptr<runtime::v1alpha2::RuntimeService::Stub> sinsp_container_engine_docke
 
 bool sinsp_container_engine_docker::m_query_image_info = true;
 
+#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 sinsp_container_engine_docker::sinsp_container_engine_docker() :
 	m_unix_socket_path(string(scap_get_host_root()) + "/var/run/docker.sock"),
 	m_containerd_unix_socket_path("unix://" + string(scap_get_host_root()) + "/run/containerd/containerd.sock"),
 	m_api_version("/v1.24")
 {
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	if(!m_curlm)
 	{
 		m_curl = curl_easy_init();
@@ -78,8 +78,13 @@ sinsp_container_engine_docker::sinsp_container_engine_docker() :
 		m_containerd = runtime::v1alpha2::RuntimeService::NewStub(
 			grpc::CreateChannel(m_containerd_unix_socket_path, grpc::InsecureChannelCredentials()));
 	}
-#endif
 }
+#else
+sinsp_container_engine_docker::sinsp_container_engine_docker() :
+	m_api_version("/v1.30")
+{
+}
+#endif
 
 void sinsp_container_engine_docker::cleanup()
 {
