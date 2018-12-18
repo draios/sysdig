@@ -96,33 +96,13 @@ std::string sinsp_container_engine_docker::build_request(const std::string &url)
 	return "http://localhost" + m_api_version + url;
 }
 
-bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
-{
 #if defined(HAS_CAPTURE)
-	runtime::v1alpha2::ContainerStatusRequest req;
-	runtime::v1alpha2::ContainerStatusResponse resp;
-	req.set_container_id(container->m_id);
-	req.set_verbose(true);
-	grpc::ClientContext context;
-	// XXX async
-	grpc::Status status = m_containerd->ContainerStatus(&context, req, &resp);
-	if (!status.ok()) {
-		return false;
-	}
-
-	if (!resp.has_status())
-	{
-		ASSERT(false);
-		return false;
-	}
-
-	const auto& resp_container = resp.status();
-	container->m_name = resp_container.metadata().name();
-
+bool sinsp_container_engine_docker::parse_containerd_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info *container)
+{
 	// image_ref may be one of two forms:
 	// host/image@sha256:digest
 	// sha256:digest
-	const auto& image_ref = resp_container.image_ref();
+	const auto& image_ref = status.image_ref();
 	auto digest_start = image_ref.find("sha256:");
 	if (digest_start != string::npos)
 	{
@@ -130,7 +110,7 @@ bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* ma
 	}
 
 	string hostname, port, digest;
-	sinsp_utils::split_container_image(resp_container.image().image(),
+	sinsp_utils::split_container_image(status.image().image(),
 					   hostname,
 					   port,
 					   container->m_imagerepo,
@@ -138,7 +118,12 @@ bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* ma
 					   digest,
 					   false);
 
-	for (const auto& mount : resp_container.mounts())
+	return true;
+}
+
+bool sinsp_container_engine_docker::parse_containerd_mounts(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info *container)
+{
+	for (const auto& mount : status.mounts())
 	{
 		const char* propagation;
 		switch(mount.propagation()) {
@@ -162,11 +147,164 @@ bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* ma
 			!mount.readonly(),
 			propagation);
 	}
+	return true;
+
+}
+
+namespace {
+bool walk_down_json(const Json::Value& root, const Json::Value** out, const std::string& key)
+{
+	if (root.isMember(key))
+	{
+		*out = &root[key];
+		return true;
+	}
+	return false;
+}
+
+template<typename... Args> bool walk_down_json(const Json::Value& root, const Json::Value** out, const std::string& key, Args... args)
+{
+	if (root.isMember(key))
+	{
+		return walk_down_json(root[key], out, args...);
+	}
+	return false;
+}
+
+bool set_numeric(const Json::Value& dict, const std::string& key, int64_t& val)
+{
+	if (!dict.isMember(key))
+	{
+		return false;
+	}
+	const auto& json_val = dict[key];
+	if (!json_val.isNumeric())
+	{
+		return false;
+	}
+	val = json_val.asInt64();
+	return true;
+}
+
+}
+
+bool sinsp_container_engine_docker::parse_containerd_env(const Json::Value &info, sinsp_container_info *container)
+{
+	const Json::Value *envs;
+	if (!walk_down_json(info, &envs, "config", "envs") || !envs->isArray())
+	{
+		return false;
+	}
+
+	for (const auto& env_var : *envs)
+	{
+		const auto& key = env_var["key"];
+		const auto& value = env_var["value"];
+
+		if (key.isString() && value.isString())
+		{
+			auto var = key.asString();
+			var += '=';
+			var += value.asString();
+			container->m_env.emplace_back(var);
+		}
+	}
+
+	return true;
+}
+
+bool sinsp_container_engine_docker::parse_containerd_runtime_spec(const Json::Value &info, sinsp_container_info *container)
+{
+	const Json::Value *linux = nullptr;
+	if(!walk_down_json(info, &linux, "runtimeSpec", "linux") || !linux->isArray())
+	{
+		return false;
+	}
+
+	const Json::Value *memory = nullptr;
+	if(walk_down_json(*linux, &memory, "resources", "memory"))
+	{
+		set_numeric(*memory, "limit", container->m_memory_limit);
+		container->m_swap_limit = container->m_memory_limit;
+	}
+
+	const Json::Value *cpu = nullptr;
+	if(walk_down_json(*linux, &cpu, "resources", "cpu") && cpu->isObject())
+	{
+		set_numeric(*cpu, "shares", container->m_cpu_shares);
+		set_numeric(*cpu, "quota", container->m_cpu_quota);
+		set_numeric(*cpu, "period", container->m_cpu_period);
+	}
+
+	const Json::Value *privileged;
+	if(walk_down_json(*linux, &privileged, "security_context", "privileged") && privileged->isBool())
+	{
+		container->m_privileged = privileged->asBool();
+	}
+
+	return true;
+}
+#endif
+
+uint32_t sinsp_container_engine_docker::get_pod_sandbox_ip(const std::string& pod_sandbox_id)
+{
+	runtime::v1alpha2::PodSandboxStatusRequest req;
+	runtime::v1alpha2::PodSandboxStatusResponse resp;
+	req.set_pod_sandbox_id(pod_sandbox_id);
+	req.set_verbose(true);
+	grpc::ClientContext pscontext;
+	grpc::Status status = m_containerd->PodSandboxStatus(&pscontext, req, &resp);
+
+	if (!status.ok()) {
+		return 0;
+	}
+
+	const auto& pod_ip = resp.status().network().ip();
+	if (pod_ip.empty()) {
+		return 0;
+	}
+
+	uint32_t ip;
+	if (inet_pton(AF_INET, pod_ip.c_str(), &ip) == -1)
+	{
+		ASSERT(false);
+		return 0;
+	}
+	else
+	{
+		return ip;
+	}
+}
+
+bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
+{
+#if defined(HAS_CAPTURE)
+	runtime::v1alpha2::ContainerStatusRequest req;
+	runtime::v1alpha2::ContainerStatusResponse resp;
+	req.set_container_id(container->m_id);
+	req.set_verbose(true);
+	grpc::ClientContext context;
+	grpc::Status status = m_containerd->ContainerStatus(&context, req, &resp);
+	if (!status.ok()) {
+		return false;
+	}
+
+	if (!resp.has_status())
+	{
+		ASSERT(false);
+		return false;
+	}
+
+	const auto& resp_container = resp.status();
+	container->m_name = resp_container.metadata().name();
 
 	for (const auto& pair : resp_container.labels())
 	{
 		container->m_labels[pair.first] = pair.second;
 	}
+
+	parse_containerd_image(resp_container, container);
+	parse_containerd_mounts(resp_container, container);
 
 	const auto& info_it = resp.info().find("info");
 	if (info_it == resp.info().end())
@@ -176,59 +314,19 @@ bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* ma
 	}
 	Json::Value root;
 	Json::Reader reader;
-	bool parsingSuccessful = reader.parse(info_it->second, root);
-	if(!parsingSuccessful)
+	if(!reader.parse(info_it->second, root))
 	{
 		ASSERT(false);
 		return false;
 	}
 
-	const Json::Value& config = root["config"];
-	const Json::Value& envs = config["envs"];
+	parse_containerd_env(root, container);
+	parse_containerd_runtime_spec(root, container);
 
-	for (const auto& env_var : envs)
+	if(root.isMember("sandboxID") && root["sandboxID"].isString())
 	{
-		auto key = env_var["key"].asString();
-		auto value = env_var["value"].asString();
-		container->m_env.emplace_back(key + '=' + value);
-	}
-
-	const Json::Value& resources = root["runtimeSpec"]["linux"]["resources"];
-	container->m_memory_limit = resources["memory"]["limit"].asInt64();
-	container->m_swap_limit = container->m_memory_limit;
-
-	const Json::Value& cpu = resources["cpu"];
-	container->m_cpu_shares = cpu["shares"].asInt64();
-	container->m_cpu_quota = cpu["quota"].asInt64();
-	container->m_cpu_period = cpu["period"].asInt64();
-
-	const Json::Value& privileged = root["runtimeSpec"]["linux"]["security_context"]["privileged"];
-	container->m_privileged = privileged.asBool();
-
-	const auto pod_sandbox_id = root["sandboxID"].asString();
-	runtime::v1alpha2::PodSandboxStatusRequest psreq;
-	runtime::v1alpha2::PodSandboxStatusResponse psresp;
-	psreq.set_pod_sandbox_id(pod_sandbox_id);
-	psreq.set_verbose(true);
-	grpc::ClientContext pscontext;
-	// XXX async
-	status = m_containerd->PodSandboxStatus(&pscontext, psreq, &psresp);
-	if (!status.ok()) {
-		return false;
-	}
-
-	const auto& pod_ip = psresp.status().network().ip();
-	if (!pod_ip.empty())
-	{
-		long ip;
-		if (inet_pton(AF_INET, pod_ip.c_str(), &ip) == -1)
-		{
-			ASSERT(false);
-		}
-		else
-		{
-			container->m_container_ip = ntohl(ip);
-		}
+		const auto pod_sandbox_id = root["sandboxID"].asString();
+		container->m_container_ip = ntohl(get_pod_sandbox_ip(pod_sandbox_id));
 	}
 
 	return true;
