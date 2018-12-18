@@ -69,9 +69,12 @@ protected:
 	bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
 	bool parse_containerd(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
 
+#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	std::string m_unix_socket_path;
 	std::string m_containerd_unix_socket_path;
+#endif
 	std::string m_api_version;
+
 	static bool m_query_image_info;
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	static CURLM *m_curlm;
