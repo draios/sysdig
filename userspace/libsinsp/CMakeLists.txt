@@ -117,6 +117,7 @@ set(SINSP_SOURCES
 
 if(NOT WIN32)
 list(APPEND SINSP_SOURCES
+	container_docker_linux.cpp
 	container_lxc.cpp
 	container_mesos.cpp
 	container_rkt.cpp)
