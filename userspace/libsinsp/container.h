@@ -36,47 +36,6 @@ class RuntimeService_Stub;
 #endif
 #endif
 
-enum sinsp_docker_response
-{
-	RESP_OK = 0,
-	RESP_BAD_REQUEST = 1,
-	RESP_ERROR = 2
-};
-
-class sinsp_container_manager;
-
-typedef std::function<bool(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)> sinsp_container_engine;
-
-class sinsp_container_engine_docker
-{
-public:
-	sinsp_container_engine_docker();
-
-	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
-	static void cleanup();
-	static void set_query_image_info(bool query_image_info);
-	static void parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_container_info::container_mount_info> &mounts);
-
-protected:
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-	static size_t curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json);
-#endif
-	sinsp_docker_response get_docker(sinsp_container_manager* manager, const string& url, string &json);
-	bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
-	bool parse_containerd(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
-
-	string m_unix_socket_path;
-	string m_containerd_unix_socket_path;
-	string m_api_version;
-	static bool m_query_image_info;
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-	static CURLM *m_curlm;
-	static CURL *m_curl;
-
-	static unique_ptr<RuntimeService_Stub> m_containerd;
-#endif
-};
-
 class sinsp_container_manager
 {
 public:
