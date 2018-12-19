@@ -253,8 +253,10 @@ uint32_t sinsp_container_engine_docker::get_pod_sandbox_ip(const std::string& po
 	runtime::v1alpha2::PodSandboxStatusResponse resp;
 	req.set_pod_sandbox_id(pod_sandbox_id);
 	req.set_verbose(true);
-	grpc::ClientContext pscontext;
-	grpc::Status status = m_containerd->PodSandboxStatus(&pscontext, req, &resp);
+	grpc::ClientContext context;
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(1000);
+	context.set_deadline(deadline);
+	grpc::Status status = m_containerd->PodSandboxStatus(&context, req, &resp);
 
 	if (!status.ok()) {
 		return 0;
@@ -286,6 +288,8 @@ bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* ma
 	req.set_container_id(container->m_id);
 	req.set_verbose(true);
 	grpc::ClientContext context;
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(1000);
+	context.set_deadline(deadline);
 	grpc::Status status = m_containerd->ContainerStatus(&context, req, &resp);
 	if (!status.ok()) {
 		return false;
