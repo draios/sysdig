@@ -18,6 +18,7 @@ limitations under the License.
 */
 
 #if defined(HAS_CAPTURE)
+#include <sys/stat.h>
 #include <grpc++/grpc++.h>
 #include "cri.pb.h"
 #include "cri.grpc.pb.h"
@@ -40,7 +41,7 @@ unique_ptr<runtime::v1alpha2::RuntimeService::Stub> sinsp_container_engine_docke
 sinsp_container_engine_docker::sinsp_container_engine_docker() :
 #if defined(HAS_CAPTURE)
 	m_unix_socket_path(string(scap_get_host_root()) + "/var/run/docker.sock"),
-	m_containerd_unix_socket_path("unix://" + string(scap_get_host_root()) + "/run/containerd/containerd.sock"),
+	m_containerd_unix_socket_path(string(scap_get_host_root()) + "/run/containerd/containerd.sock"),
 #endif
 	m_api_version("/v1.24")
 {
@@ -66,8 +67,12 @@ sinsp_container_engine_docker::sinsp_container_engine_docker() :
 
 	if(!m_containerd)
 	{
-		m_containerd = runtime::v1alpha2::RuntimeService::NewStub(
-			grpc::CreateChannel(m_containerd_unix_socket_path, grpc::InsecureChannelCredentials()));
+		struct stat s;
+		if(stat(m_containerd_unix_socket_path.c_str(), &s) == 0 && (s.st_mode & S_IFMT) == S_IFSOCK)
+		{
+			m_containerd = runtime::v1alpha2::RuntimeService::NewStub(
+				grpc::CreateChannel("unix://" + m_containerd_unix_socket_path, grpc::InsecureChannelCredentials()));
+		}
 	}
 #endif
 }
@@ -394,7 +399,7 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 	{
 		if (query_os_for_missing_info)
 		{
-			if (!parse_docker(manager, &container_info, tinfo))
+			if (!parse_docker(manager, &container_info, tinfo) && m_containerd)
 			{
 				parse_containerd(manager, &container_info, tinfo);
 			}
