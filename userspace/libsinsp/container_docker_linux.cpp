@@ -17,12 +17,14 @@ limitations under the License.
 
 */
 
+#if defined(HAS_CAPTURE)
 #include <grpc++/grpc++.h>
 #include "cri.pb.h"
 #include "cri.grpc.pb.h"
 
 #define CONTAINER_CPP
 typedef runtime::v1alpha2::RuntimeService::Stub RuntimeService_Stub;
+#endif
 
 #include "container_docker.h"
 #include "container_mesos.h"
@@ -244,7 +246,6 @@ bool sinsp_container_engine_docker::parse_containerd_runtime_spec(const Json::Va
 
 	return true;
 }
-#endif
 
 uint32_t sinsp_container_engine_docker::get_pod_sandbox_ip(const std::string& pod_sandbox_id)
 {
@@ -275,6 +276,7 @@ uint32_t sinsp_container_engine_docker::get_pod_sandbox_ip(const std::string& po
 		return ip;
 	}
 }
+#endif
 
 bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
 {
