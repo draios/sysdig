@@ -355,7 +355,9 @@ if(NOT WIN32 AND NOT APPLE)
 			BUILD_BYPRODUCTS ${B64_LIB}
 			INSTALL_COMMAND "")
 	endif()
+endif()
 
+if(NOT WIN32)
 	#
 	# OpenSSL
 	#
