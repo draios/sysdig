@@ -2046,23 +2046,6 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, OUT uint3
 	return NULL;
 }
 
-static void populate_cmdline(string &cmdline, sinsp_threadinfo *tinfo)
-{
-	cmdline = tinfo->get_comm() + " ";
-
-	uint32_t j;
-	uint32_t nargs = (uint32_t)tinfo->m_args.size();
-
-	for(j = 0; j < nargs; j++)
-	{
-		cmdline += tinfo->m_args[j];
-		if(j < nargs -1)
-		{
-			cmdline += ' ';
-		}
-	}
-}
-
 uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	*len = 0;
@@ -2181,7 +2164,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_CMDLINE:
 		{
-			populate_cmdline(m_tstr, tinfo);
+			sinsp_threadinfo::populate_cmdline(m_tstr, tinfo);
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_EXELINE:
@@ -2299,7 +2282,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 
 			if(ptinfo != NULL)
 			{
-				populate_cmdline(m_tstr, ptinfo);
+				sinsp_threadinfo::populate_cmdline(m_tstr, ptinfo);
 				RETURN_EXTRACT_STRING(m_tstr);
 			}
 			else

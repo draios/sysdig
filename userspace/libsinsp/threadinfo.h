@@ -230,6 +230,8 @@ public:
 	typedef std::function<bool (sinsp_threadinfo *)> visitor_func_t;
 	void traverse_parent_state(visitor_func_t &visitor);
 
+	static void populate_cmdline(string &cmdline, sinsp_threadinfo *tinfo);
+
 	//
 	// Core state
 	//
