@@ -28,6 +28,10 @@ limitations under the License.
 #include "user_event.h"
 
 const std::string docker::DOCKER_SOCKET_FILE = "/var/run/docker.sock";
+#ifdef HAS_CAPTURE
+int docker::m_connection_id = 0;
+bool docker::m_ever_connected = false;
+#endif
 
 docker::docker(std::string url,
 	const std::string& path,
@@ -133,6 +137,7 @@ docker::docker(std::string url,
 			// { "destroy"     "Destroyed"    } duplicate
 		}
 {
+	m_connection_id++;
 	g_logger.log(std::string("Creating Docker object for " +
 							(url.empty() ? std::string("capture replay") : url)),
 				 sinsp_logger::SEV_DEBUG);
@@ -174,6 +179,7 @@ void docker::connect()
 	{
 		throw sinsp_exception("Connection to Docker API failed.");
 	}
+	m_ever_connected = true;
 }
 #endif // HAS_CAPTURE
 
