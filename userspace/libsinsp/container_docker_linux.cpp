@@ -295,7 +295,7 @@ std::string sinsp_container_engine_docker::build_request(const std::string &url)
 	return "http://localhost" + m_api_version + url;
 }
 
-bool parse_containerd(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
+bool parse_cri(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
 {
 #if defined(HAS_CAPTURE)
 	if (!cri)
@@ -415,7 +415,7 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 		{
 			if(!parse_docker(manager, &container_info, tinfo))
 			{
-				parse_containerd(manager, &container_info, tinfo);
+				parse_cri(manager, &container_info, tinfo);
 			}
 		}
 		if (sinsp_container_engine_mesos::set_mesos_task_id(&container_info, tinfo))
