@@ -419,24 +419,24 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 	return true;
 }
 
-sinsp_docker_response sinsp_container_engine_docker::get_docker(sinsp_container_manager* manager, const string& url, string &json)
+sinsp_container_engine_docker::docker_response sinsp_container_engine_docker::get_docker(sinsp_container_manager* manager, const string& url, string &json)
 {
 #ifdef HAS_CAPTURE
 	if(curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str()) != CURLE_OK)
 	{
 		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
+		return docker_response::RESP_ERROR;
 	}
 	if(curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &json) != CURLE_OK)
 	{
 		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
+		return docker_response::RESP_ERROR;
 	}
 
 	if(curl_multi_add_handle(m_curlm, m_curl) != CURLM_OK)
 	{
 		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
+		return docker_response::RESP_ERROR;
 	}
 
 	while(true)
@@ -446,7 +446,7 @@ sinsp_docker_response sinsp_container_engine_docker::get_docker(sinsp_container_
 		if(res != CURLM_OK)
 		{
 			ASSERT(false);
-			return sinsp_docker_response::RESP_ERROR;
+			return docker_response::RESP_ERROR;
 		}
 
 		if(still_running == 0)
@@ -459,34 +459,34 @@ sinsp_docker_response sinsp_container_engine_docker::get_docker(sinsp_container_
 		if(res != CURLM_OK)
 		{
 			ASSERT(false);
-			return sinsp_docker_response::RESP_ERROR;
+			return docker_response::RESP_ERROR;
 		}
 	}
 
 	if(curl_multi_remove_handle(m_curlm, m_curl) != CURLM_OK)
 	{
 		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
+		return docker_response::RESP_ERROR;
 	}
 
 	long http_code = 0;
 	if(curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &http_code) != CURLE_OK)
 	{
 		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
+		return docker_response::RESP_ERROR;
 	}
 	switch(http_code)
 	{
 		case 0: /* connection failed, apparently */
-			return sinsp_docker_response::RESP_ERROR;
+			return docker_response::RESP_ERROR;
 		case 200:
-			return sinsp_docker_response::RESP_OK;
+			return docker_response::RESP_OK;
 		default:
-			return sinsp_docker_response::RESP_BAD_REQUEST;
+			return docker_response::RESP_BAD_REQUEST;
 	}
 
-	return sinsp_docker_response::RESP_OK;
+	return docker_response::RESP_OK;
 #else
-	return sinsp_docker_response::RESP_ERROR;
+	return docker_response::RESP_ERROR;
 #endif
 }

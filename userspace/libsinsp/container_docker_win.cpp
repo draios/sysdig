@@ -63,7 +63,7 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 	return true;
 }
 
-sinsp_docker_response sinsp_container_engine_docker::get_docker(sinsp_container_manager* manager, const string& url, string &json)
+sinsp_container_engine_docker::docker_response sinsp_container_engine_docker::get_docker(sinsp_container_manager* manager, const string& url, string &json)
 {
 	const char* response = NULL;
 	bool qdres = wh_query_docker(manager->get_inspector()->get_wmi_handle(),
@@ -72,22 +72,22 @@ sinsp_docker_response sinsp_container_engine_docker::get_docker(sinsp_container_
 	if(qdres == false)
 	{
 		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
+		return docker_response::RESP_ERROR;
 	}
 
 	json = response;
 	if(strncmp(json.c_str(), "HTTP/1.0 200 OK", sizeof("HTTP/1.0 200 OK") -1))
 	{
-		return sinsp_docker_response::RESP_BAD_REQUEST;
+		return docker_response::RESP_BAD_REQUEST;
 	}
 
 	size_t pos = json.find("{");
 	if(pos == string::npos)
 	{
 		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
+		return docker_response::RESP_ERROR;
 	}
 	json = json.substr(pos);
 
-	return sinsp_docker_response::RESP_OK;
+	return docker_response::RESP_OK;
 }

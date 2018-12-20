@@ -48,21 +48,21 @@ void sinsp_container_engine_docker::set_query_image_info(bool query_image_info)
 bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
 {
 	string json;
-	sinsp_docker_response resp = get_docker(manager, build_request("/containers/" + container->m_id + "/json"), json);
+	docker_response resp = get_docker(manager, build_request("/containers/" + container->m_id + "/json"), json);
 	switch(resp) {
-		case sinsp_docker_response::RESP_BAD_REQUEST:
+		case docker_response::RESP_BAD_REQUEST:
 			m_api_version = "";
 			json = "";
 			resp = get_docker(manager, build_request("/containers/" + container->m_id + "/json"), json);
-			if (resp == sinsp_docker_response::RESP_OK)
+			if (resp == docker_response::RESP_OK)
 			{
 				break;
 			}
 			/* FALLTHRU */
-		case sinsp_docker_response::RESP_ERROR:
+		case docker_response::RESP_ERROR:
 			return false;
 
-		case sinsp_docker_response::RESP_OK:
+		case docker_response::RESP_OK:
 			break;
 	}
 
@@ -116,7 +116,7 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 	   (no_name || container->m_imagedigest.empty() || (!container->m_imagedigest.empty() && container->m_imagetag.empty())))
 	{
 		string img_json;
-		if(get_docker(manager, build_request("/images/" + container->m_imageid + "/json?digests=1"), img_json) == sinsp_docker_response::RESP_OK)
+		if(get_docker(manager, build_request("/images/" + container->m_imageid + "/json?digests=1"), img_json) == docker_response::RESP_OK)
 		{
 			Json::Value img_root;
 			if(reader.parse(img_json, img_root))
