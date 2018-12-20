@@ -541,7 +541,7 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 	{
 		if(*nbytes > sub_len)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Had read %lu bytes, but fdlist entry have length %u.",
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Had read %zu bytes, but fdlist entry have length %u.",
 				 *nbytes, sub_len);
 			return SCAP_FAILURE;
 		}
@@ -777,7 +777,7 @@ void scap_fd_flags_file(scap_t *handle, scap_fdinfo *fdi, const char *procdir)
 	char line[SCAP_MAX_PATH_SIZE];
 	FILE *finfo;
 
-	snprintf(fd_dir_name, SCAP_MAX_PATH_SIZE, "%sfdinfo/%ld", procdir, fdi->fd);
+	snprintf(fd_dir_name, SCAP_MAX_PATH_SIZE, "%sfdinfo/%" PRId64, procdir, fdi->fd);
 	finfo = fopen(fd_dir_name, "r");
 	if(finfo == NULL)
 	{
@@ -1846,7 +1846,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_FIFO);
 			if(SCAP_FAILURE == res)
 			{
-				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for fifo fd %ld", fd);
+				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for fifo fd %" PRIu64, fd);
 				break;
 			}
 			res = scap_fd_handle_pipe(handle, f_name, tinfo, fdi, error);
@@ -1858,7 +1858,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_FILE_V2);
 			if(SCAP_FAILURE == res)
 			{
-				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for file fd %ld", fd);
+				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for file fd %" PRIu64, fd);
 				break;
 			}
 			fdi->ino = sb.st_ino;
@@ -1868,7 +1868,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_DIRECTORY);
 			if(SCAP_FAILURE == res)
 			{
-				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for dir fd %ld", fd);
+				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for dir fd %" PRIu64, fd);
 				break;
 			}
 			fdi->ino = sb.st_ino;
@@ -1878,7 +1878,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_UNKNOWN);
 			if(SCAP_FAILURE == res)
 			{
-				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for sock fd %ld", fd);
+				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for sock fd %" PRIu64, fd);
 				break;
 			}
 			res = scap_fd_handle_socket(handle, f_name, tinfo, fdi, procdir, net_ns, sockets_by_ns, error);
@@ -1895,7 +1895,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_UNSUPPORTED);
 			if(SCAP_FAILURE == res)
 			{
-				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for unsupported fd %ld", fd);
+				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for unsupported fd %" PRIu64, fd);
 				break;
 			}
 			fdi->ino = sb.st_ino;
