@@ -22,9 +22,6 @@ limitations under the License.
 #include <grpc++/grpc++.h>
 #include "cri.pb.h"
 #include "cri.grpc.pb.h"
-
-#define CONTAINER_CPP
-typedef runtime::v1alpha2::RuntimeService::Stub RuntimeService_Stub;
 #endif
 
 #include "container_docker.h"
@@ -33,12 +30,12 @@ typedef runtime::v1alpha2::RuntimeService::Stub RuntimeService_Stub;
 #include "sinsp_int.h"
 
 #if defined(HAS_CAPTURE)
-string sinsp_container_engine_docker::m_unix_socket_path = "/var/run/docker.sock";
-string sinsp_container_engine_docker::m_cri_unix_socket_path = "/run/containerd/containerd.sock";
-unique_ptr<runtime::v1alpha2::RuntimeService::Stub> sinsp_container_engine_docker::m_cri = nullptr;
-int64_t sinsp_container_engine_docker::m_cri_timeout = 1000;
-
 namespace {
+string docker_unix_socket_path = "/var/run/docker.sock";
+string cri_unix_socket_path = "/run/containerd/containerd.sock";
+unique_ptr<runtime::v1alpha2::RuntimeService::Stub> cri = nullptr;
+int64_t cri_timeout = 1000;
+
 CURLM *m_curlm = NULL;
 CURL *m_curl = NULL;
 
@@ -68,7 +65,7 @@ sinsp_container_engine_docker::sinsp_container_engine_docker()
 
 		if(m_curl)
 		{
-			auto docker_path = scap_get_host_root() + m_unix_socket_path;
+			auto docker_path = scap_get_host_root() + docker_unix_socket_path;
 			curl_easy_setopt(m_curl, CURLOPT_UNIX_SOCKET_PATH, docker_path.c_str());
 			curl_easy_setopt(m_curl, CURLOPT_HTTPGET, 1);
 			curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
@@ -76,14 +73,13 @@ sinsp_container_engine_docker::sinsp_container_engine_docker()
 		}
 	}
 
-	if(!m_cri && !m_cri_unix_socket_path.empty())
+	if(!cri && !cri_unix_socket_path.empty())
 	{
-		auto cri_path = scap_get_host_root() + m_cri_unix_socket_path;
+		auto cri_path = scap_get_host_root() + cri_unix_socket_path;
 		struct stat s;
 		if(stat(cri_path.c_str(), &s) == 0 && (s.st_mode & S_IFMT) == S_IFSOCK)
 		{
-
-			m_cri = runtime::v1alpha2::RuntimeService::NewStub(
+			cri = runtime::v1alpha2::RuntimeService::NewStub(
 				grpc::CreateChannel("unix://" + cri_path, grpc::InsecureChannelCredentials()));
 		}
 	}
@@ -98,7 +94,21 @@ void sinsp_container_engine_docker::cleanup()
 	curl_multi_cleanup(m_curlm);
 	m_curlm = NULL;
 
-	m_cri.reset(nullptr);
+	cri.reset(nullptr);
+#endif
+}
+
+void sinsp_container_engine_docker::set_cri_socket_path(const std::string& path)
+{
+#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
+	cri_unix_socket_path = path;
+#endif
+}
+
+void sinsp_container_engine_docker::set_cri_timeout(int64_t timeout_ms)
+{
+#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
+	cri_timeout = timeout_ms;
 #endif
 }
 
@@ -263,9 +273,9 @@ uint32_t sinsp_container_engine_docker::get_pod_sandbox_ip(const std::string& po
 	req.set_pod_sandbox_id(pod_sandbox_id);
 	req.set_verbose(true);
 	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(m_cri_timeout);
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(cri_timeout);
 	context.set_deadline(deadline);
-	grpc::Status status = m_cri->PodSandboxStatus(&context, req, &resp);
+	grpc::Status status = cri->PodSandboxStatus(&context, req, &resp);
 
 	if (!status.ok()) {
 		return 0;
@@ -297,9 +307,9 @@ bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* ma
 	req.set_container_id(container->m_id);
 	req.set_verbose(true);
 	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(m_cri_timeout);
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(cri_timeout);
 	context.set_deadline(deadline);
-	grpc::Status status = m_cri->ContainerStatus(&context, req, &resp);
+	grpc::Status status = cri->ContainerStatus(&context, req, &resp);
 	if (!status.ok()) {
 		return false;
 	}
@@ -403,7 +413,7 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 	{
 		if (query_os_for_missing_info)
 		{
-			if (!parse_docker(manager, &container_info, tinfo) && m_cri)
+			if (!parse_docker(manager, &container_info, tinfo) && cri)
 			{
 				parse_containerd(manager, &container_info, tinfo);
 			}

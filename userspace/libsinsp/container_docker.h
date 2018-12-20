@@ -41,13 +41,6 @@ namespace v1alpha2 {
 class ContainerStatus;
 }
 }
-
-#ifndef CONTAINER_CPP
-// a class that no-op extends RuntimeService::Stub from the CRI GRPC header
-// we can't include the header due to conflicts with ncurses in table.cc
-// and  we can't forward-declare a nested class
-class RuntimeService_Stub;
-#endif
 #endif
 
 class sinsp_container_engine_docker
@@ -65,16 +58,8 @@ public:
 	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	static void cleanup();
 	static void set_query_image_info(bool query_image_info);
-	static void set_cri_socket_path(const std::string& path) {
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-		m_cri_unix_socket_path = path;
-#endif
-	}
-	static void set_cri_timeout(int64_t timeout_ms) {
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-		m_cri_timeout = timeout_ms;
-#endif
-	}
+	static void set_cri_socket_path(const std::string& path);
+	static void set_cri_timeout(int64_t timeout_ms);
 	static void parse_json_mounts(const Json::Value &mnt_obj, std::vector<sinsp_container_info::container_mount_info> &mounts);
 
 protected:
@@ -92,12 +77,5 @@ protected:
 
 	static std::string m_api_version;
 	static bool m_query_image_info;
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-	static std::string m_unix_socket_path;
-
-	static std::string m_cri_unix_socket_path;
-	static std::unique_ptr<RuntimeService_Stub> m_cri;
-	static int64_t m_cri_timeout;
-#endif
 };
 
