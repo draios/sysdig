@@ -22,9 +22,9 @@ limitations under the License.
 #include "sinsp_int.h"
 #include "dragent_win_hal_public.h"
 
+std::string sinsp_container_engine_docker::m_api_version = "/v1.30";
 
-sinsp_container_engine_docker::sinsp_container_engine_docker() :
-	m_api_version("/v1.30")
+sinsp_container_engine_docker::sinsp_container_engine_docker()
 {
 }
 
