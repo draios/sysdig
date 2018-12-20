@@ -880,6 +880,8 @@ public:
 
 	void set_fullcapture_port_range(uint16_t range_start, uint16_t range_end);
 
+	void set_cri_socket_path(const std::string& path);
+
 VISIBILITY_PRIVATE
 
         static inline ppm_event_flags falco_skip_flags()

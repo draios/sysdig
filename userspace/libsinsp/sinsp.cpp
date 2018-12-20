@@ -1596,6 +1596,11 @@ void sinsp::set_query_docker_image_info(bool query_image_info)
 	m_container_manager.set_query_docker_image_info(query_image_info);
 }
 
+void sinsp::set_cri_socket_path(const std::string& path)
+{
+	m_container_manager.set_cri_socket_path(path);
+}
+
 void sinsp::set_snaplen(uint32_t snaplen)
 {
 	//

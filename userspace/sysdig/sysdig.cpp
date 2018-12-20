@@ -92,6 +92,11 @@ static void usage()
 "                    starting at 0 and continuing upward. The units of file_size\n"
 "                    are millions of bytes (10^6, not 2^20). Use the -W flag to\n"
 "                    determine how many files will be saved to disk.\n"
+#ifdef HAS_CAPTURE
+" --cri <path>       Path to CRI socket for container metadata\n"
+"                    If Sysdig cannot fetch metadata from Docker, use the\n"
+"                    specified socket to fetch data from a CRI-compatible runtime\n"
+#endif
 " -d, --displayflt   Make the given filter a display one\n"
 "                    Setting this option causes the events to be filtered\n"
 "                    after being parsed by the state system. Events are\n"
@@ -791,6 +796,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"chisel", required_argument, 0, 'c' },
 		{"list-chisels", no_argument, &cflag, 1 },
 #endif
+#ifdef HAS_CAPTURE
+		{"cri", required_argument, 0, 0 },
+#endif
 		{"displayflt", no_argument, 0, 'd' },
 		{"debug", no_argument, 0, 'D'},
 		{"exclude-users", no_argument, 0, 'E' },
@@ -1203,7 +1211,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
 			}
-
+#ifdef HAS_CAPTURE
+			if(string(long_options[long_index].name) == "cri")
+			{
+				inspector->set_cri_socket_path(optarg);
+			}
+#endif
 			if(string(long_options[long_index].name) == "unbuffered")
 			{
 				unbuf_flag = true;

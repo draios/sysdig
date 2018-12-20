@@ -72,6 +72,7 @@ public:
 	void cleanup();
 
 	void set_query_docker_image_info(bool query_image_info);
+	void set_cri_socket_path(const std::string& path);
 	sinsp* get_inspector() { return m_inspector; }
 private:
 	string container_to_json(const sinsp_container_info& container_info);
