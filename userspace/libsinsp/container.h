@@ -27,13 +27,6 @@ limitations under the License.
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <curl/multi.h>
-
-#ifndef CONTAINER_CPP
-// a class that no-op extends RuntimeService::Stub from the CRI GRPC header
-// we can't include the header due to conflicts with ncurses in table.cc
-// and  we can't forward-declare a nested class
-class RuntimeService_Stub;
-#endif
 #endif
 
 class sinsp_container_manager

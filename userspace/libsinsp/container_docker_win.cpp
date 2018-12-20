@@ -32,6 +32,14 @@ void sinsp_container_engine_docker::cleanup()
 {
 }
 
+void sinsp_container_engine_docker::set_cri_socket_path(const std::string& path)
+{
+}
+
+void sinsp_container_engine_docker::set_cri_timeout(int64_t timeout_ms)
+{
+}
+
 std::string sinsp_container_engine_docker::build_request(const std::string &url)
 {
 	return "GET " + m_api_version + url + " HTTP/1.1\r\nHost: docker\r\n\r\n";
