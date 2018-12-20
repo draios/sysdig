@@ -35,13 +35,13 @@ typedef runtime::v1alpha2::RuntimeService::Stub RuntimeService_Stub;
 #if defined(HAS_CAPTURE)
 CURLM *sinsp_container_engine_docker::m_curlm = NULL;
 CURL *sinsp_container_engine_docker::m_curl = NULL;
-unique_ptr<runtime::v1alpha2::RuntimeService::Stub> sinsp_container_engine_docker::m_containerd = nullptr;
+unique_ptr<runtime::v1alpha2::RuntimeService::Stub> sinsp_container_engine_docker::m_cri = nullptr;
 #endif
 
 sinsp_container_engine_docker::sinsp_container_engine_docker() :
 #if defined(HAS_CAPTURE)
 	m_unix_socket_path("/var/run/docker.sock"),
-	m_containerd_unix_socket_path("/run/containerd/containerd.sock"),
+	m_cri_unix_socket_path("/run/containerd/containerd.sock"),
 #endif
 	m_api_version("/v1.24")
 {
@@ -66,15 +66,15 @@ sinsp_container_engine_docker::sinsp_container_engine_docker() :
 		}
 	}
 
-	if(!m_containerd)
+	if(!m_cri)
 	{
-		auto containerd_path = scap_get_host_root() + m_containerd_unix_socket_path;
+		auto cri_path = scap_get_host_root() + m_cri_unix_socket_path;
 		struct stat s;
-		if(stat(containerd_path.c_str(), &s) == 0 && (s.st_mode & S_IFMT) == S_IFSOCK)
+		if(stat(cri_path.c_str(), &s) == 0 && (s.st_mode & S_IFMT) == S_IFSOCK)
 		{
 
-			m_containerd = runtime::v1alpha2::RuntimeService::NewStub(
-				grpc::CreateChannel("unix://" + containerd_path, grpc::InsecureChannelCredentials()));
+			m_cri = runtime::v1alpha2::RuntimeService::NewStub(
+				grpc::CreateChannel("unix://" + cri_path, grpc::InsecureChannelCredentials()));
 		}
 	}
 #endif
@@ -88,7 +88,7 @@ void sinsp_container_engine_docker::cleanup()
 	curl_multi_cleanup(m_curlm);
 	m_curlm = NULL;
 
-	m_containerd.reset(nullptr);
+	m_cri.reset(nullptr);
 #endif
 }
 
@@ -107,7 +107,7 @@ std::string sinsp_container_engine_docker::build_request(const std::string &url)
 }
 
 #if defined(HAS_CAPTURE)
-bool sinsp_container_engine_docker::parse_containerd_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info *container)
+bool sinsp_container_engine_docker::parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info *container)
 {
 	// image_ref may be one of two forms:
 	// host/image@sha256:digest
@@ -131,7 +131,7 @@ bool sinsp_container_engine_docker::parse_containerd_image(const runtime::v1alph
 	return true;
 }
 
-bool sinsp_container_engine_docker::parse_containerd_mounts(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info *container)
+bool sinsp_container_engine_docker::parse_cri_mounts(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info *container)
 {
 	for (const auto& mount : status.mounts())
 	{
@@ -198,7 +198,7 @@ bool set_numeric(const Json::Value& dict, const std::string& key, int64_t& val)
 
 }
 
-bool sinsp_container_engine_docker::parse_containerd_env(const Json::Value &info, sinsp_container_info *container)
+bool sinsp_container_engine_docker::parse_cri_env(const Json::Value &info, sinsp_container_info *container)
 {
 	const Json::Value *envs;
 	if (!walk_down_json(info, &envs, "config", "envs") || !envs->isArray())
@@ -223,7 +223,7 @@ bool sinsp_container_engine_docker::parse_containerd_env(const Json::Value &info
 	return true;
 }
 
-bool sinsp_container_engine_docker::parse_containerd_runtime_spec(const Json::Value &info, sinsp_container_info *container)
+bool sinsp_container_engine_docker::parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info *container)
 {
 	const Json::Value *linux = nullptr;
 	if(!walk_down_json(info, &linux, "runtimeSpec", "linux") || !linux->isArray())
@@ -264,7 +264,7 @@ uint32_t sinsp_container_engine_docker::get_pod_sandbox_ip(const std::string& po
 	grpc::ClientContext context;
 	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(1000);
 	context.set_deadline(deadline);
-	grpc::Status status = m_containerd->PodSandboxStatus(&context, req, &resp);
+	grpc::Status status = m_cri->PodSandboxStatus(&context, req, &resp);
 
 	if (!status.ok()) {
 		return 0;
@@ -298,7 +298,7 @@ bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* ma
 	grpc::ClientContext context;
 	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(1000);
 	context.set_deadline(deadline);
-	grpc::Status status = m_containerd->ContainerStatus(&context, req, &resp);
+	grpc::Status status = m_cri->ContainerStatus(&context, req, &resp);
 	if (!status.ok()) {
 		return false;
 	}
@@ -317,8 +317,8 @@ bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* ma
 		container->m_labels[pair.first] = pair.second;
 	}
 
-	parse_containerd_image(resp_container, container);
-	parse_containerd_mounts(resp_container, container);
+	parse_cri_image(resp_container, container);
+	parse_cri_mounts(resp_container, container);
 
 	const auto& info_it = resp.info().find("info");
 	if (info_it == resp.info().end())
@@ -334,8 +334,8 @@ bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* ma
 		return false;
 	}
 
-	parse_containerd_env(root, container);
-	parse_containerd_runtime_spec(root, container);
+	parse_cri_env(root, container);
+	parse_cri_runtime_spec(root, container);
 
 	if(root.isMember("sandboxID") && root["sandboxID"].isString())
 	{
@@ -402,7 +402,7 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 	{
 		if (query_os_for_missing_info)
 		{
-			if (!parse_docker(manager, &container_info, tinfo) && m_containerd)
+			if (!parse_docker(manager, &container_info, tinfo) && m_cri)
 			{
 				parse_containerd(manager, &container_info, tinfo);
 			}
