@@ -51,8 +51,9 @@ size_t docker_curl_write_callback(const char* ptr, size_t size, size_t nmemb, st
 }
 #endif
 
-sinsp_container_engine_docker::sinsp_container_engine_docker() :
-	m_api_version("/v1.24")
+std::string sinsp_container_engine_docker::m_api_version = "/v1.24";
+
+sinsp_container_engine_docker::sinsp_container_engine_docker()
 {
 #if defined(HAS_CAPTURE)
 	if(!m_curlm)
