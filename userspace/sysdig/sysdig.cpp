@@ -96,6 +96,8 @@ static void usage()
 " --cri <path>       Path to CRI socket for container metadata\n"
 "                    If Sysdig cannot fetch metadata from Docker, use the\n"
 "                    specified socket to fetch data from a CRI-compatible runtime\n"
+" --cri-timeout <timeout_ms>\n"
+"                    Wait at most <timeout_ms> milliseconds for response from CRI\n"
 #endif
 " -d, --displayflt   Make the given filter a display one\n"
 "                    Setting this option causes the events to be filtered\n"
@@ -798,6 +800,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #endif
 #ifdef HAS_CAPTURE
 		{"cri", required_argument, 0, 0 },
+		{"cri-timeout", required_argument, 0, 0 },
 #endif
 		{"displayflt", no_argument, 0, 'd' },
 		{"debug", no_argument, 0, 'D'},
@@ -1215,6 +1218,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			if(string(long_options[long_index].name) == "cri")
 			{
 				inspector->set_cri_socket_path(optarg);
+			}
+			if(string(long_options[long_index].name) == "cri-timeout")
+			{
+				inspector->set_cri_timeout(sinsp_numparser::parsed64(optarg));
 			}
 #endif
 			if(string(long_options[long_index].name) == "unbuffered")

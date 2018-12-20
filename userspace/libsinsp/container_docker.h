@@ -70,6 +70,11 @@ public:
 		m_cri_unix_socket_path = path;
 #endif
 	}
+	static void set_cri_timeout(int64_t timeout_ms) {
+#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
+		m_cri_timeout = timeout_ms;
+#endif
+	}
 	static void parse_json_mounts(const Json::Value &mnt_obj, std::vector<sinsp_container_info::container_mount_info> &mounts);
 
 protected:
@@ -90,11 +95,12 @@ protected:
 	static bool m_query_image_info;
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	static std::string m_unix_socket_path;
-	static std::string m_cri_unix_socket_path;
 	static CURLM *m_curlm;
 	static CURL *m_curl;
 
+	static std::string m_cri_unix_socket_path;
 	static std::unique_ptr<RuntimeService_Stub> m_cri;
+	static int64_t m_cri_timeout;
 #endif
 };
 

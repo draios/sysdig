@@ -1601,6 +1601,11 @@ void sinsp::set_cri_socket_path(const std::string& path)
 	m_container_manager.set_cri_socket_path(path);
 }
 
+void sinsp::set_cri_timeout(int64_t timeout_ms)
+{
+	m_container_manager.set_cri_timeout(timeout_ms);
+}
+
 void sinsp::set_snaplen(uint32_t snaplen)
 {
 	//
