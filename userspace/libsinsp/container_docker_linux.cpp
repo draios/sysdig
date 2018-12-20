@@ -34,12 +34,21 @@ typedef runtime::v1alpha2::RuntimeService::Stub RuntimeService_Stub;
 
 #if defined(HAS_CAPTURE)
 string sinsp_container_engine_docker::m_unix_socket_path = "/var/run/docker.sock";
-CURLM *sinsp_container_engine_docker::m_curlm = NULL;
-CURL *sinsp_container_engine_docker::m_curl = NULL;
-
 string sinsp_container_engine_docker::m_cri_unix_socket_path = "/run/containerd/containerd.sock";
 unique_ptr<runtime::v1alpha2::RuntimeService::Stub> sinsp_container_engine_docker::m_cri = nullptr;
 int64_t sinsp_container_engine_docker::m_cri_timeout = 1000;
+
+namespace {
+CURLM *m_curlm = NULL;
+CURL *m_curl = NULL;
+
+size_t docker_curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json)
+{
+	const std::size_t total = size * nmemb;
+	json->append(ptr, total);
+	return total;
+}
+}
 #endif
 
 sinsp_container_engine_docker::sinsp_container_engine_docker() :
@@ -62,7 +71,7 @@ sinsp_container_engine_docker::sinsp_container_engine_docker() :
 			curl_easy_setopt(m_curl, CURLOPT_UNIX_SOCKET_PATH, docker_path.c_str());
 			curl_easy_setopt(m_curl, CURLOPT_HTTPGET, 1);
 			curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
-			curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, curl_write_callback);
+			curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, docker_curl_write_callback);
 		}
 	}
 
@@ -91,15 +100,6 @@ void sinsp_container_engine_docker::cleanup()
 	m_cri.reset(nullptr);
 #endif
 }
-
-#if defined(HAS_CAPTURE)
-size_t sinsp_container_engine_docker::curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json)
-{
-	const std::size_t total = size * nmemb;
-	json->append(ptr, total);
-	return total;
-}
-#endif
 
 std::string sinsp_container_engine_docker::build_request(const std::string &url)
 {

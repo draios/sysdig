@@ -79,7 +79,6 @@ public:
 
 protected:
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-	static size_t curl_write_callback(const char* ptr, size_t size, size_t nmemb, std::string* json);
 	inline bool parse_cri_mounts(const runtime::v1alpha2::ContainerStatus& status, sinsp_container_info *container);
 	inline bool parse_cri_image(const runtime::v1alpha2::ContainerStatus& status, sinsp_container_info *container);
 	inline bool parse_cri_env(const Json::Value& info, sinsp_container_info *container);
@@ -95,8 +94,6 @@ protected:
 	static bool m_query_image_info;
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	static std::string m_unix_socket_path;
-	static CURLM *m_curlm;
-	static CURL *m_curl;
 
 	static std::string m_cri_unix_socket_path;
 	static std::unique_ptr<RuntimeService_Stub> m_cri;
