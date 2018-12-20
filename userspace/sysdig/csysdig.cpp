@@ -78,6 +78,11 @@ static void usage()
 "                    The BPF probe can also be specified via the environment variable\n"
 "                    SYSDIG_BPF_PROBE. If <bpf_probe> is left empty, sysdig will\n"
 "                    try to load one from the sysdig-probe-loader script.\n"
+#ifdef HAS_CAPTURE
+" --cri <path>       Path to CRI socket for container metadata\n"
+"                    If Sysdig cannot fetch metadata from Docker, use the\n"
+"                    specified socket to fetch data from a CRI-compatible runtime\n"
+#endif
 " -d <period>, --delay=<period>\n"
 "                    Set the delay between updates, in milliseconds. This works\n"
 "                    similarly to the -d option in top.\n"
@@ -332,6 +337,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	{
 		{"print-ascii", no_argument, 0, 'A' },
 		{"bpf", optional_argument, 0, 'B' },
+#ifdef HAS_CAPTURE
+		{"cri", required_argument, 0, 0 },
+#endif
 		{"delay", required_argument, 0, 'd' },
 		{"exclude-users", no_argument, 0, 'E' },
 		{"from", required_argument, 0, 0 },
@@ -519,6 +527,12 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					{
 						inspector->set_large_envs(true);
 					}
+#ifdef HAS_CAPTURE
+					else if(optname == "cri")
+					{
+						inspector->set_cri_socket_path(optarg);
+					}
+#endif
 					else if(optname == "logfile")
 					{
 						inspector->set_log_file(optarg);

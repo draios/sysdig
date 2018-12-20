@@ -65,6 +65,11 @@ public:
 	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	static void cleanup();
 	static void set_query_image_info(bool query_image_info);
+	static void set_cri_socket_path(const std::string& path) {
+#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
+		m_cri_unix_socket_path = path;
+#endif
+	}
 	static void parse_json_mounts(const Json::Value &mnt_obj, std::vector<sinsp_container_info::container_mount_info> &mounts);
 
 protected:

@@ -361,3 +361,8 @@ void sinsp_container_manager::set_query_docker_image_info(bool query_image_info)
 {
 	sinsp_container_engine_docker::set_query_image_info(query_image_info);
 }
+
+void sinsp_container_manager::set_cri_socket_path(const std::string &path)
+{
+	sinsp_container_engine_docker::set_cri_socket_path(path);
+}

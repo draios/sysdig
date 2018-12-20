@@ -64,7 +64,7 @@ sinsp_container_engine_docker::sinsp_container_engine_docker() :
 		}
 	}
 
-	if(!m_cri)
+	if(!m_cri && !m_cri_unix_socket_path.empty())
 	{
 		auto cri_path = scap_get_host_root() + m_cri_unix_socket_path;
 		struct stat s;
