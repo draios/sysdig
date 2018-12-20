@@ -70,10 +70,10 @@ public:
 protected:
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	static size_t curl_write_callback(const char* ptr, size_t size, size_t nmemb, std::string* json);
-	inline bool parse_containerd_mounts(const runtime::v1alpha2::ContainerStatus& status, sinsp_container_info *container);
-	inline bool parse_containerd_image(const runtime::v1alpha2::ContainerStatus& status, sinsp_container_info *container);
-	inline bool parse_containerd_env(const Json::Value& info, sinsp_container_info *container);
-	inline bool parse_containerd_runtime_spec(const Json::Value& info, sinsp_container_info *container);
+	inline bool parse_cri_mounts(const runtime::v1alpha2::ContainerStatus& status, sinsp_container_info *container);
+	inline bool parse_cri_image(const runtime::v1alpha2::ContainerStatus& status, sinsp_container_info *container);
+	inline bool parse_cri_env(const Json::Value& info, sinsp_container_info *container);
+	inline bool parse_cri_runtime_spec(const Json::Value& info, sinsp_container_info *container);
 	inline uint32_t get_pod_sandbox_ip(const std::string& pod_sandbox_id);
 #endif
 	sinsp_docker_response get_docker(sinsp_container_manager* manager, const std::string& url, std::string &json);
@@ -83,7 +83,7 @@ protected:
 
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	std::string m_unix_socket_path;
-	std::string m_containerd_unix_socket_path;
+	std::string m_cri_unix_socket_path;
 #endif
 	std::string m_api_version;
 
@@ -92,7 +92,7 @@ protected:
 	static CURLM *m_curlm;
 	static CURL *m_curl;
 
-	static std::unique_ptr<RuntimeService_Stub> m_containerd;
+	static std::unique_ptr<RuntimeService_Stub> m_cri;
 #endif
 };
 
