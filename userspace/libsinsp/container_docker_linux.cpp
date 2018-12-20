@@ -33,16 +33,14 @@ typedef runtime::v1alpha2::RuntimeService::Stub RuntimeService_Stub;
 #include "sinsp_int.h"
 
 #if defined(HAS_CAPTURE)
+string sinsp_container_engine_docker::m_unix_socket_path = "/var/run/docker.sock";
+string sinsp_container_engine_docker::m_cri_unix_socket_path = "/run/containerd/containerd.sock";
 CURLM *sinsp_container_engine_docker::m_curlm = NULL;
 CURL *sinsp_container_engine_docker::m_curl = NULL;
 unique_ptr<runtime::v1alpha2::RuntimeService::Stub> sinsp_container_engine_docker::m_cri = nullptr;
 #endif
 
 sinsp_container_engine_docker::sinsp_container_engine_docker() :
-#if defined(HAS_CAPTURE)
-	m_unix_socket_path("/var/run/docker.sock"),
-	m_cri_unix_socket_path("/run/containerd/containerd.sock"),
-#endif
 	m_api_version("/v1.24")
 {
 #if defined(HAS_CAPTURE)
