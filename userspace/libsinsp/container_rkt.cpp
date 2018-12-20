@@ -17,9 +17,10 @@ limitations under the License.
 
 */
 
+#include "container_rkt.h"
+
 #include <unistd.h>
 
-#include "container_rkt.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 

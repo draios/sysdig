@@ -17,6 +17,8 @@ limitations under the License.
 
 */
 
+#include "container_docker.h"
+
 #if defined(HAS_CAPTURE)
 #include <sys/stat.h>
 #include <grpc++/grpc++.h>
@@ -24,7 +26,6 @@ limitations under the License.
 #include "cri.grpc.pb.h"
 #endif
 
-#include "container_docker.h"
 #include "container_mesos.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
