@@ -46,6 +46,183 @@ size_t docker_curl_write_callback(const char* ptr, size_t size, size_t nmemb, st
 	json->append(ptr, total);
 	return total;
 }
+
+bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info *container)
+{
+	// image_ref may be one of two forms:
+	// host/image@sha256:digest
+	// sha256:digest
+	const auto& image_ref = status.image_ref();
+	auto digest_start = image_ref.find("sha256:");
+	if (digest_start != string::npos)
+	{
+		container->m_imagedigest = image_ref.substr(digest_start);
+	}
+
+	string hostname, port, digest;
+	sinsp_utils::split_container_image(status.image().image(),
+					   hostname,
+					   port,
+					   container->m_imagerepo,
+					   container->m_imagetag,
+					   digest,
+					   false);
+
+	return true;
+}
+
+bool parse_cri_mounts(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info *container)
+{
+	for (const auto& mount : status.mounts())
+	{
+		const char* propagation;
+		switch(mount.propagation()) {
+			case runtime::v1alpha2::MountPropagation::PROPAGATION_PRIVATE:
+				propagation = "private";
+				break;
+			case runtime::v1alpha2::MountPropagation::PROPAGATION_HOST_TO_CONTAINER:
+				propagation = "rslave";
+				break;
+			case runtime::v1alpha2::MountPropagation::PROPAGATION_BIDIRECTIONAL:
+				propagation = "rshared";
+				break;
+			default:
+				propagation = "unknown";
+				break;
+		}
+		container->m_mounts.emplace_back(
+			mount.host_path(),
+			mount.container_path(),
+			"",
+			!mount.readonly(),
+			propagation);
+	}
+	return true;
+
+}
+
+bool walk_down_json(const Json::Value& root, const Json::Value** out, const std::string& key)
+{
+	if (root.isMember(key))
+	{
+		*out = &root[key];
+		return true;
+	}
+	return false;
+}
+
+template<typename... Args> bool walk_down_json(const Json::Value& root, const Json::Value** out, const std::string& key, Args... args)
+{
+	if (root.isMember(key))
+	{
+		return walk_down_json(root[key], out, args...);
+	}
+	return false;
+}
+
+bool set_numeric(const Json::Value& dict, const std::string& key, int64_t& val)
+{
+	if (!dict.isMember(key))
+	{
+		return false;
+	}
+	const auto& json_val = dict[key];
+	if (!json_val.isNumeric())
+	{
+		return false;
+	}
+	val = json_val.asInt64();
+	return true;
+}
+
+bool parse_cri_env(const Json::Value &info, sinsp_container_info *container)
+{
+	const Json::Value *envs;
+	if (!walk_down_json(info, &envs, "config", "envs") || !envs->isArray())
+	{
+		return false;
+	}
+
+	for (const auto& env_var : *envs)
+	{
+		const auto& key = env_var["key"];
+		const auto& value = env_var["value"];
+
+		if (key.isString() && value.isString())
+		{
+			auto var = key.asString();
+			var += '=';
+			var += value.asString();
+			container->m_env.emplace_back(var);
+		}
+	}
+
+	return true;
+}
+
+bool parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info *container)
+{
+	const Json::Value *linux = nullptr;
+	if(!walk_down_json(info, &linux, "runtimeSpec", "linux") || !linux->isArray())
+	{
+		return false;
+	}
+
+	const Json::Value *memory = nullptr;
+	if(walk_down_json(*linux, &memory, "resources", "memory"))
+	{
+		set_numeric(*memory, "limit", container->m_memory_limit);
+		container->m_swap_limit = container->m_memory_limit;
+	}
+
+	const Json::Value *cpu = nullptr;
+	if(walk_down_json(*linux, &cpu, "resources", "cpu") && cpu->isObject())
+	{
+		set_numeric(*cpu, "shares", container->m_cpu_shares);
+		set_numeric(*cpu, "quota", container->m_cpu_quota);
+		set_numeric(*cpu, "period", container->m_cpu_period);
+	}
+
+	const Json::Value *privileged;
+	if(walk_down_json(*linux, &privileged, "security_context", "privileged") && privileged->isBool())
+	{
+		container->m_privileged = privileged->asBool();
+	}
+
+	return true;
+}
+
+uint32_t get_pod_sandbox_ip(const std::string& pod_sandbox_id)
+{
+	runtime::v1alpha2::PodSandboxStatusRequest req;
+	runtime::v1alpha2::PodSandboxStatusResponse resp;
+	req.set_pod_sandbox_id(pod_sandbox_id);
+	req.set_verbose(true);
+	grpc::ClientContext context;
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(cri_timeout);
+	context.set_deadline(deadline);
+	grpc::Status status = cri->PodSandboxStatus(&context, req, &resp);
+
+	if (!status.ok()) {
+		return 0;
+	}
+
+	const auto& pod_ip = resp.status().network().ip();
+	if (pod_ip.empty()) {
+		return 0;
+	}
+
+	uint32_t ip;
+	if (inet_pton(AF_INET, pod_ip.c_str(), &ip) == -1)
+	{
+		ASSERT(false);
+		return 0;
+	}
+	else
+	{
+		return ip;
+	}
+}
 }
 #endif
 
@@ -118,191 +295,14 @@ std::string sinsp_container_engine_docker::build_request(const std::string &url)
 	return "http://localhost" + m_api_version + url;
 }
 
-#if defined(HAS_CAPTURE)
-bool sinsp_container_engine_docker::parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info *container)
-{
-	// image_ref may be one of two forms:
-	// host/image@sha256:digest
-	// sha256:digest
-	const auto& image_ref = status.image_ref();
-	auto digest_start = image_ref.find("sha256:");
-	if (digest_start != string::npos)
-	{
-		container->m_imagedigest = image_ref.substr(digest_start);
-	}
-
-	string hostname, port, digest;
-	sinsp_utils::split_container_image(status.image().image(),
-					   hostname,
-					   port,
-					   container->m_imagerepo,
-					   container->m_imagetag,
-					   digest,
-					   false);
-
-	return true;
-}
-
-bool sinsp_container_engine_docker::parse_cri_mounts(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info *container)
-{
-	for (const auto& mount : status.mounts())
-	{
-		const char* propagation;
-		switch(mount.propagation()) {
-			case runtime::v1alpha2::MountPropagation::PROPAGATION_PRIVATE:
-				propagation = "private";
-				break;
-			case runtime::v1alpha2::MountPropagation::PROPAGATION_HOST_TO_CONTAINER:
-				propagation = "rslave";
-				break;
-			case runtime::v1alpha2::MountPropagation::PROPAGATION_BIDIRECTIONAL:
-				propagation = "rshared";
-				break;
-			default:
-				propagation = "unknown";
-				break;
-		}
-		container->m_mounts.emplace_back(
-			mount.host_path(),
-			mount.container_path(),
-			"",
-			!mount.readonly(),
-			propagation);
-	}
-	return true;
-
-}
-
-namespace {
-bool walk_down_json(const Json::Value& root, const Json::Value** out, const std::string& key)
-{
-	if (root.isMember(key))
-	{
-		*out = &root[key];
-		return true;
-	}
-	return false;
-}
-
-template<typename... Args> bool walk_down_json(const Json::Value& root, const Json::Value** out, const std::string& key, Args... args)
-{
-	if (root.isMember(key))
-	{
-		return walk_down_json(root[key], out, args...);
-	}
-	return false;
-}
-
-bool set_numeric(const Json::Value& dict, const std::string& key, int64_t& val)
-{
-	if (!dict.isMember(key))
-	{
-		return false;
-	}
-	const auto& json_val = dict[key];
-	if (!json_val.isNumeric())
-	{
-		return false;
-	}
-	val = json_val.asInt64();
-	return true;
-}
-
-}
-
-bool sinsp_container_engine_docker::parse_cri_env(const Json::Value &info, sinsp_container_info *container)
-{
-	const Json::Value *envs;
-	if (!walk_down_json(info, &envs, "config", "envs") || !envs->isArray())
-	{
-		return false;
-	}
-
-	for (const auto& env_var : *envs)
-	{
-		const auto& key = env_var["key"];
-		const auto& value = env_var["value"];
-
-		if (key.isString() && value.isString())
-		{
-			auto var = key.asString();
-			var += '=';
-			var += value.asString();
-			container->m_env.emplace_back(var);
-		}
-	}
-
-	return true;
-}
-
-bool sinsp_container_engine_docker::parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info *container)
-{
-	const Json::Value *linux = nullptr;
-	if(!walk_down_json(info, &linux, "runtimeSpec", "linux") || !linux->isArray())
-	{
-		return false;
-	}
-
-	const Json::Value *memory = nullptr;
-	if(walk_down_json(*linux, &memory, "resources", "memory"))
-	{
-		set_numeric(*memory, "limit", container->m_memory_limit);
-		container->m_swap_limit = container->m_memory_limit;
-	}
-
-	const Json::Value *cpu = nullptr;
-	if(walk_down_json(*linux, &cpu, "resources", "cpu") && cpu->isObject())
-	{
-		set_numeric(*cpu, "shares", container->m_cpu_shares);
-		set_numeric(*cpu, "quota", container->m_cpu_quota);
-		set_numeric(*cpu, "period", container->m_cpu_period);
-	}
-
-	const Json::Value *privileged;
-	if(walk_down_json(*linux, &privileged, "security_context", "privileged") && privileged->isBool())
-	{
-		container->m_privileged = privileged->asBool();
-	}
-
-	return true;
-}
-
-uint32_t sinsp_container_engine_docker::get_pod_sandbox_ip(const std::string& pod_sandbox_id)
-{
-	runtime::v1alpha2::PodSandboxStatusRequest req;
-	runtime::v1alpha2::PodSandboxStatusResponse resp;
-	req.set_pod_sandbox_id(pod_sandbox_id);
-	req.set_verbose(true);
-	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(cri_timeout);
-	context.set_deadline(deadline);
-	grpc::Status status = cri->PodSandboxStatus(&context, req, &resp);
-
-	if (!status.ok()) {
-		return 0;
-	}
-
-	const auto& pod_ip = resp.status().network().ip();
-	if (pod_ip.empty()) {
-		return 0;
-	}
-
-	uint32_t ip;
-	if (inet_pton(AF_INET, pod_ip.c_str(), &ip) == -1)
-	{
-		ASSERT(false);
-		return 0;
-	}
-	else
-	{
-		return ip;
-	}
-}
-#endif
-
-bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
+bool parse_containerd(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
 {
 #if defined(HAS_CAPTURE)
+	if (!cri)
+	{
+		return false;
+	}
+
 	runtime::v1alpha2::ContainerStatusRequest req;
 	runtime::v1alpha2::ContainerStatusResponse resp;
 	req.set_container_id(container->m_id);
@@ -357,7 +357,6 @@ bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* ma
 
 	return true;
 #else
-	ASSERT(false);
 	return false;
 #endif
 }
@@ -414,7 +413,7 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 	{
 		if (query_os_for_missing_info)
 		{
-			if (!parse_docker(manager, &container_info, tinfo) && cri)
+			if(!parse_docker(manager, &container_info, tinfo))
 			{
 				parse_containerd(manager, &container_info, tinfo);
 			}
