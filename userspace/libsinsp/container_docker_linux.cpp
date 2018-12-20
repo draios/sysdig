@@ -40,8 +40,8 @@ unique_ptr<runtime::v1alpha2::RuntimeService::Stub> sinsp_container_engine_docke
 
 sinsp_container_engine_docker::sinsp_container_engine_docker() :
 #if defined(HAS_CAPTURE)
-	m_unix_socket_path(string(scap_get_host_root()) + "/var/run/docker.sock"),
-	m_containerd_unix_socket_path(string(scap_get_host_root()) + "/run/containerd/containerd.sock"),
+	m_unix_socket_path("/var/run/docker.sock"),
+	m_containerd_unix_socket_path("/run/containerd/containerd.sock"),
 #endif
 	m_api_version("/v1.24")
 {
@@ -58,7 +58,8 @@ sinsp_container_engine_docker::sinsp_container_engine_docker() :
 
 		if(m_curl)
 		{
-			curl_easy_setopt(m_curl, CURLOPT_UNIX_SOCKET_PATH, m_unix_socket_path.c_str());
+			auto docker_path = scap_get_host_root() + m_unix_socket_path;
+			curl_easy_setopt(m_curl, CURLOPT_UNIX_SOCKET_PATH, docker_path.c_str());
 			curl_easy_setopt(m_curl, CURLOPT_HTTPGET, 1);
 			curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
 			curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, curl_write_callback);
@@ -67,11 +68,13 @@ sinsp_container_engine_docker::sinsp_container_engine_docker() :
 
 	if(!m_containerd)
 	{
+		auto containerd_path = scap_get_host_root() + m_containerd_unix_socket_path;
 		struct stat s;
-		if(stat(m_containerd_unix_socket_path.c_str(), &s) == 0 && (s.st_mode & S_IFMT) == S_IFSOCK)
+		if(stat(containerd_path.c_str(), &s) == 0 && (s.st_mode & S_IFMT) == S_IFSOCK)
 		{
+
 			m_containerd = runtime::v1alpha2::RuntimeService::NewStub(
-				grpc::CreateChannel("unix://" + m_containerd_unix_socket_path, grpc::InsecureChannelCredentials()));
+				grpc::CreateChannel("unix://" + containerd_path, grpc::InsecureChannelCredentials()));
 		}
 	}
 #endif
