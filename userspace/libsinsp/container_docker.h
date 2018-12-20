@@ -50,15 +50,15 @@ class RuntimeService_Stub;
 #endif
 #endif
 
-enum sinsp_docker_response
-{
-	RESP_OK = 0,
-	RESP_BAD_REQUEST = 1,
-	RESP_ERROR = 2
-};
-
 class sinsp_container_engine_docker
 {
+	enum docker_response
+	{
+		RESP_OK = 0,
+		RESP_BAD_REQUEST = 1,
+		RESP_ERROR = 2
+	};
+
 public:
 	sinsp_container_engine_docker();
 
@@ -86,7 +86,7 @@ protected:
 	inline bool parse_cri_runtime_spec(const Json::Value& info, sinsp_container_info *container);
 	inline uint32_t get_pod_sandbox_ip(const std::string& pod_sandbox_id);
 #endif
-	sinsp_docker_response get_docker(sinsp_container_manager* manager, const std::string& url, std::string &json);
+	docker_response get_docker(sinsp_container_manager* manager, const std::string& url, std::string &json);
 	std::string build_request(const std::string& url);
 	bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
 	bool parse_containerd(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
