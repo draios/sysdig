@@ -31,18 +31,6 @@ class sinsp_container_manager;
 class sinsp_container_info;
 class sinsp_threadinfo;
 
-#if !defined(_WIN32) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-#include <curl/curl.h>
-#include <curl/easy.h>
-#include <curl/multi.h>
-
-namespace runtime {
-namespace v1alpha2 {
-class ContainerStatus;
-}
-}
-#endif
-
 class sinsp_container_engine_docker
 {
 	enum docker_response
@@ -63,17 +51,9 @@ public:
 	static void parse_json_mounts(const Json::Value &mnt_obj, std::vector<sinsp_container_info::container_mount_info> &mounts);
 
 protected:
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-	inline bool parse_cri_mounts(const runtime::v1alpha2::ContainerStatus& status, sinsp_container_info *container);
-	inline bool parse_cri_image(const runtime::v1alpha2::ContainerStatus& status, sinsp_container_info *container);
-	inline bool parse_cri_env(const Json::Value& info, sinsp_container_info *container);
-	inline bool parse_cri_runtime_spec(const Json::Value& info, sinsp_container_info *container);
-	inline uint32_t get_pod_sandbox_ip(const std::string& pod_sandbox_id);
-#endif
 	docker_response get_docker(sinsp_container_manager* manager, const std::string& url, std::string &json);
 	std::string build_request(const std::string& url);
 	bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
-	bool parse_containerd(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
 
 	static std::string m_api_version;
 	static bool m_query_image_info;
