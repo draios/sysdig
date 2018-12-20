@@ -34,10 +34,12 @@ typedef runtime::v1alpha2::RuntimeService::Stub RuntimeService_Stub;
 
 #if defined(HAS_CAPTURE)
 string sinsp_container_engine_docker::m_unix_socket_path = "/var/run/docker.sock";
-string sinsp_container_engine_docker::m_cri_unix_socket_path = "/run/containerd/containerd.sock";
 CURLM *sinsp_container_engine_docker::m_curlm = NULL;
 CURL *sinsp_container_engine_docker::m_curl = NULL;
+
+string sinsp_container_engine_docker::m_cri_unix_socket_path = "/run/containerd/containerd.sock";
 unique_ptr<runtime::v1alpha2::RuntimeService::Stub> sinsp_container_engine_docker::m_cri = nullptr;
+int64_t sinsp_container_engine_docker::m_cri_timeout = 1000;
 #endif
 
 sinsp_container_engine_docker::sinsp_container_engine_docker() :
@@ -260,7 +262,7 @@ uint32_t sinsp_container_engine_docker::get_pod_sandbox_ip(const std::string& po
 	req.set_pod_sandbox_id(pod_sandbox_id);
 	req.set_verbose(true);
 	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(1000);
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(m_cri_timeout);
 	context.set_deadline(deadline);
 	grpc::Status status = m_cri->PodSandboxStatus(&context, req, &resp);
 
@@ -294,7 +296,7 @@ bool sinsp_container_engine_docker::parse_containerd(sinsp_container_manager* ma
 	req.set_container_id(container->m_id);
 	req.set_verbose(true);
 	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(1000);
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(m_cri_timeout);
 	context.set_deadline(deadline);
 	grpc::Status status = m_cri->ContainerStatus(&context, req, &resp);
 	if (!status.ok()) {

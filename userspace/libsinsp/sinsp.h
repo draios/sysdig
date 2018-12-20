@@ -881,6 +881,7 @@ public:
 	void set_fullcapture_port_range(uint16_t range_start, uint16_t range_end);
 
 	void set_cri_socket_path(const std::string& path);
+	void set_cri_timeout(int64_t timeout_ms);
 
 VISIBILITY_PRIVATE
 

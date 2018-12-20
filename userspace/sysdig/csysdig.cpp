@@ -82,6 +82,8 @@ static void usage()
 " --cri <path>       Path to CRI socket for container metadata\n"
 "                    If Sysdig cannot fetch metadata from Docker, use the\n"
 "                    specified socket to fetch data from a CRI-compatible runtime\n"
+" --cri-timeout <timeout_ms>\n"
+"                    Wait at most <timeout_ms> milliseconds for response from CRI\n"
 #endif
 " -d <period>, --delay=<period>\n"
 "                    Set the delay between updates, in milliseconds. This works\n"
@@ -339,6 +341,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"bpf", optional_argument, 0, 'B' },
 #ifdef HAS_CAPTURE
 		{"cri", required_argument, 0, 0 },
+		{"cri-timeout", required_argument, 0, 0 },
 #endif
 		{"delay", required_argument, 0, 'd' },
 		{"exclude-users", no_argument, 0, 'E' },
@@ -531,6 +534,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					else if(optname == "cri")
 					{
 						inspector->set_cri_socket_path(optarg);
+					}
+					else if(optname == "cri-timeout")
+					{
+						inspector->set_cri_timeout(sinsp_numparser::parsed64(optarg));
 					}
 #endif
 					else if(optname == "logfile")

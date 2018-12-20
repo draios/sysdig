@@ -366,3 +366,8 @@ void sinsp_container_manager::set_cri_socket_path(const std::string &path)
 {
 	sinsp_container_engine_docker::set_cri_socket_path(path);
 }
+
+void sinsp_container_manager::set_cri_timeout(int64_t timeout_ms)
+{
+	sinsp_container_engine_docker::set_cri_timeout(timeout_ms);
+}
