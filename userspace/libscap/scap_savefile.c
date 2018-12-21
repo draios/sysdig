@@ -1068,7 +1068,7 @@ int64_t scap_dump_get_offset(scap_dumper_t *d)
 	}
 	else
 	{
-		return (int64_t)d->m_targetbufcurpos - (int64_t)d->m_targetbuf;
+		return (int64_t)((intptr_t)d->m_targetbufcurpos - (intptr_t)d->m_targetbuf);
 	}
 }
 
@@ -1080,7 +1080,7 @@ int64_t scap_dump_ftell(scap_dumper_t *d)
 	}
 	else
 	{
-		return (int64_t)d->m_targetbufcurpos - (int64_t)d->m_targetbuf;
+		return (int64_t)((intptr_t)d->m_targetbufcurpos - (intptr_t)d->m_targetbuf);
 	}
 }
 
@@ -1716,7 +1716,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		{
 			if(subreadsize > sub_len)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Had read %lu bytes, but proclist entry have length %u.",
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Had read %zu bytes, but proclist entry have length %u.",
 					 subreadsize, sub_len);
 				return SCAP_FAILURE;
 			}
@@ -1740,7 +1740,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 	//
 	if(totreadsize > block_length)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_read_proclist read more %lu than a block %u", totreadsize, block_length);
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_read_proclist read more %zu than a block %u", totreadsize, block_length);
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
@@ -2344,7 +2344,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 		{
 			if(subreadsize > sub_len)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Had read %lu bytes, but userlist entry have length %u.",
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Had read %zu bytes, but userlist entry have length %u.",
 					 subreadsize, sub_len);
 				return SCAP_FAILURE;
 			}
@@ -2369,7 +2369,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 	if(totreadsize > block_length)
 	{
 		ASSERT(false);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_read_userlist read more %lu than a block %u", totreadsize, block_length);
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_read_userlist read more %zu than a block %u", totreadsize, block_length);
 		return SCAP_FAILURE;
 	}
 	padding_len = block_length - totreadsize;
@@ -2471,7 +2471,7 @@ static int32_t scap_read_fdlist(scap_t *handle, gzFile f, uint32_t block_length,
 	if(totreadsize > block_length)
 	{
 		ASSERT(false);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_read_fdlist read more %lu than a block %u", totreadsize, block_length);
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_read_fdlist read more %zu than a block %u", totreadsize, block_length);
 		return SCAP_FAILURE;
 	}
 	padding_len = block_length - totreadsize;
@@ -2804,7 +2804,7 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 			//
 			if((readlen + sizeof(uint32_t)) > FILE_READ_BUF_SIZE)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "cannot convert v1 event block to v2 (%lu greater than read buffer size %u)",
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "cannot convert v1 event block to v2 (%zu greater than read buffer size %u)",
 					 readlen + sizeof(uint32_t),
 					 FILE_READ_BUF_SIZE);
 				return SCAP_FAILURE;
