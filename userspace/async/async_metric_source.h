@@ -83,6 +83,8 @@ public:
 
 	virtual ~async_metric_source();
 
+	uint64_t get_max_wait() const;
+
 	/**
 	 * Lookup metrics based on the given key.  This method will block
 	 * the caller for up the max_wait_ms time specified at construction
@@ -174,7 +176,7 @@ private:
 		bool m_available;
 		metric_type m_metric;
 		std::condition_variable m_available_condition;
-		callback_handler m_callback;
+		callback_handler m_callback; // TODO: This may need to be a list
 	};
 
 	typedef std::map<key_type, lookup_request> metric_map;

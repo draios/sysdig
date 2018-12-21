@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
+#include <assert.h>
 #include <algorithm>
 #include <chrono>
 #include <iostream>
@@ -48,6 +49,12 @@ async_metric_source<key_type, metric_type>::~async_metric_source()
 	{
 		// TODO: Ignore? Log?
 	}
+}
+
+template<typename key_type, typename metric_type>
+uint64_t async_metric_source<key_type, metric_type>::get_max_wait() const
+{
+	return m_max_wait_ms;
 }
 
 template<typename key_type, typename metric_type>
@@ -162,11 +169,6 @@ bool async_metric_source<key_type, metric_type>::lookup(
 
 			itr = m_metric_map.find(key);
 			found = (itr != m_metric_map.end()) && itr->second.m_available;
-
-			if(!found)
-			{
-				m_metric_map[key].m_callback = callback;
-			}
 		}
 	}
 
@@ -174,6 +176,10 @@ bool async_metric_source<key_type, metric_type>::lookup(
 	{
 		metric = itr->second.m_metric;
 		m_metric_map.erase(key);
+	}
+	else
+	{
+		m_metric_map[key].m_callback = callback;
 	}
 
 	return found;
@@ -204,17 +210,17 @@ void async_metric_source<key_type, metric_type>::store_metric(
 {
 	std::lock_guard<std::mutex> guard(m_mutex);
 
-        if (m_metric_map[key].m_callback)
-        {
-                m_metric_map[key].m_callback(key, metric);
-                m_metric_map.erase(key);
-        }
-        else
-        {
-            m_metric_map[key].m_metric = metric;
-            m_metric_map[key].m_available = true;
-            m_metric_map[key].m_available_condition.notify_one();
-        }
+	if (m_metric_map[key].m_callback)
+	{
+		m_metric_map[key].m_callback(key, metric);
+		m_metric_map.erase(key);
+	}
+	else
+	{
+		m_metric_map[key].m_metric = metric;
+		m_metric_map[key].m_available = true;
+		m_metric_map[key].m_available_condition.notify_one();
+	}
 }
 
 } // end namespace sysdig
