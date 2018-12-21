@@ -4679,6 +4679,7 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 
 	evt->m_fdinfo = evt->m_tinfo->get_main_thread()->get_fd(fd);
+	evt->m_tinfo->m_lastevent_fd = fd;
 
 	// right now we only parse getsockopt() for SO_ERROR options
 	// if that ever changes, move this check inside
