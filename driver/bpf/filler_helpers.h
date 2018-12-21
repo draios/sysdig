@@ -357,6 +357,14 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 		return 2000;
 	} else if (dport == PPM_PORT_STATSD) {
 		return 2000;
+	} else if (data->settings->fullcapture_port_range_end != 0 &&
+				((sport >= data->settings->fullcapture_port_range_start && sport <= data->settings->fullcapture_port_range_end) ||
+				(dport >= data->settings->fullcapture_port_range_start && dport <= data->settings->fullcapture_port_range_end)
+			)) {
+		/*
+		* mpegts detection
+		*/
+		return RW_MAX_FULLCAPTURE_PORT_SNAPLEN;
 	} else {
 		if (lookahead_size >= 5) {
 			u32 buf = *(u32 *)&get_buf(0);

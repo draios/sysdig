@@ -206,6 +206,8 @@ struct sysdig_bpf_settings {
 	bool dropping_mode;
 	bool is_dropping;
 	bool tracers_enabled;
+	uint16_t fullcapture_port_range_start;
+	uint16_t fullcapture_port_range_end;
 } __attribute__((packed));
 
 struct tail_context {
