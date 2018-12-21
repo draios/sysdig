@@ -90,6 +90,7 @@ void sinsp_threadinfo::init()
 	m_lastevent_data = NULL;
 	m_parent_loop_detected = false;
 	m_tty = 0;
+	m_is_container_healthcheck = false;
 	m_blprogram = NULL;
 	m_loginuid = 0;
 }
@@ -423,6 +424,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_clone_ts = pi->clone_ts;
 	m_tty = pi->tty;
 	m_loginuid = pi->loginuid;
+	m_is_container_healthcheck = false;
 
 	set_cgroups(pi->cgroups, pi->cgroups_len);
 	m_root = pi->root;

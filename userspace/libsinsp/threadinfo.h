@@ -263,6 +263,9 @@ public:
 	int32_t m_tty;
 	int32_t m_loginuid; ///< loginuid (auid)
 
+	// If true, this thread is part of a container health check
+	bool m_is_container_healthcheck;
+
 	//
 	// State for multi-event processing
 	//
