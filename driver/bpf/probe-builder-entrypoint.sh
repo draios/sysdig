@@ -22,18 +22,15 @@
 # docker container)
 #
 
+set -euo pipefail
+
 SYSDIG_HOST_ROOT=/host
 
 echo "* Building probe ${BPF_PROBE_FILENAME}"
 
-for i in $(ls $SYSDIG_HOST_ROOT/usr/src)
-do
-	ln -s $SYSDIG_HOST_ROOT/usr/src/$i /usr/src/$i
-done
-
 cd /driver/bpf
 echo "Building bpf"
-make
+KERNELDIR=/kernel make
 
 echo "** Done building probe"
 cp probe.o /out/${BPF_PROBE_FILENAME}
