@@ -469,7 +469,10 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		parse_setsid_exit(evt);
 		break;
 	case PPME_SOCKET_GETSOCKOPT_X:
-		parse_getsockopt_exit(evt);
+		if(evt->get_num_params() > 0)
+		{
+			parse_getsockopt_exit(evt);
+		}
 		break;
 	default:
 		break;
