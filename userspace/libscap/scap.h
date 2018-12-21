@@ -1007,6 +1007,7 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret);
 typedef struct wh_t wh_t;
 wh_t* scap_get_wmi_handle(scap_t* handle);
 #endif
+int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, uint16_t range_end);
 
 #ifdef __cplusplus
 }

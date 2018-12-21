@@ -469,7 +469,10 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		parse_setsid_exit(evt);
 		break;
 	case PPME_SOCKET_GETSOCKOPT_X:
-		parse_getsockopt_exit(evt);
+		if(evt->get_num_params() > 0)
+		{
+			parse_getsockopt_exit(evt);
+		}
 		break;
 	default:
 		break;
@@ -680,7 +683,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		//
 		// Error detection logic
 		//
-		if(evt->m_info->nparams != 0 &&
+		if(evt->get_num_params() != 0 &&
 			((evt->m_info->params[0].name[0] == 'r' &&
 			  evt->m_info->params[0].name[1] == 'e' &&
 			  evt->m_info->params[0].name[2] == 's' &&

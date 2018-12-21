@@ -428,6 +428,8 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	consumer->do_dynamic_snaplen = false;
 	consumer->need_to_insert_drop_e = 0;
 	consumer->need_to_insert_drop_x = 0;
+	consumer->fullcapture_port_range_start = 0;
+	consumer->fullcapture_port_range_end = 0;
 	bitmap_fill(g_events_mask, PPM_EVENT_MAX); /* Enable all syscall to be passed to userspace */
 	reset_ring_buffer(ring);
 	ring->open = true;
@@ -879,6 +881,22 @@ cleanup_ioctl_procinfo:
 		consumer->snaplen = new_snaplen;
 
 		vpr_info("new snaplen: %d\n", consumer->snaplen);
+
+		ret = 0;
+		goto cleanup_ioctl;
+	}
+	case PPM_IOCTL_SET_FULLCAPTURE_PORT_RANGE:
+	{
+		u32 encoded_port_range;
+
+		vpr_info("PPM_IOCTL_SET_FULLCAPTURE_PORT_RANGE, consumer %p\n", consumer_id);
+		encoded_port_range = (u32)arg;
+
+		consumer->fullcapture_port_range_start = encoded_port_range & 0xFFFF;
+		consumer->fullcapture_port_range_end = encoded_port_range >> 16;
+
+		pr_info("new fullcapture_port_range_start: %d\n", (int)consumer->fullcapture_port_range_start);
+		pr_info("new fullcapture_port_range_end: %d\n", (int)consumer->fullcapture_port_range_end);
 
 		ret = 0;
 		goto cleanup_ioctl;

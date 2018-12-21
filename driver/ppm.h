@@ -72,6 +72,8 @@ struct ppm_consumer_t {
 	volatile int need_to_insert_drop_e;
 	volatile int need_to_insert_drop_x;
 	struct list_head node;
+	uint16_t fullcapture_port_range_start;
+	uint16_t fullcapture_port_range_end;
 };
 
 #define STR_STORAGE_SIZE PAGE_SIZE
