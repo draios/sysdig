@@ -884,6 +884,8 @@ public:
 
 	void set_query_docker_image_info(bool query_image_info);
 
+	void set_fullcapture_port_range(uint16_t range_start, uint16_t range_end);
+
 VISIBILITY_PRIVATE
 
         static inline ppm_event_flags falco_skip_flags()
