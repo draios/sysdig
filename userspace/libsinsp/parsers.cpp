@@ -683,7 +683,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		//
 		// Error detection logic
 		//
-		if(evt->m_info->nparams != 0 &&
+		if(evt->get_num_params() != 0 &&
 			((evt->m_info->params[0].name[0] == 'r' &&
 			  evt->m_info->params[0].name[1] == 'e' &&
 			  evt->m_info->params[0].name[2] == 's' &&
