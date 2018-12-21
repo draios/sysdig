@@ -244,6 +244,9 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 
 	container->parse_healthcheck(config_obj["Healthcheck"]);
 
+	// Saving full healthcheck for container event parsing/writing
+	container->m_healthcheck_obj = config_obj["Healthcheck"];
+
 	// containers can be spawned using just the imageID as image name,
 	// with or without the hash prefix (e.g. sha256:)
 	bool no_name = !container->m_imageid.empty() &&
@@ -1238,6 +1241,11 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	}
 
 	container["Mounts"] = mounts;
+
+	if(!container_info.m_healthcheck_obj.isNull())
+	{
+		container["Healthcheck"] = container_info.m_healthcheck_obj;
+	}
 
 	char addrbuff[100];
 	uint32_t iph = htonl(container_info.m_container_ip);

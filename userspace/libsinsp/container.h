@@ -160,6 +160,7 @@ public:
 	int64_t m_cpu_shares;
 	int64_t m_cpu_quota;
 	int64_t m_cpu_period;
+	Json::Value m_healthcheck_obj;
 	bool m_has_healthcheck;
 	std::string m_healthcheck_exe;
 	std::vector<std::string> m_healthcheck_args;
