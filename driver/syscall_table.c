@@ -324,6 +324,7 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_utime
 	[__NR_utime - SYSCALL_TABLE_ID0] = PPM_SC_UTIME,
 #endif
+	[__NR_access - SYSCALL_TABLE_ID0] = PPM_SC_ACCESS,
 	[__NR_sync - SYSCALL_TABLE_ID0] = PPM_SC_SYNC,
 	[__NR_kill - SYSCALL_TABLE_ID0] = PPM_SC_KILL,
 	[__NR_rename - SYSCALL_TABLE_ID0] = PPM_SC_RENAME,
@@ -395,6 +396,7 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_mprotect - SYSCALL_TABLE_ID0] = PPM_SC_MPROTECT,
 	[__NR_init_module - SYSCALL_TABLE_ID0] = PPM_SC_INIT_MODULE,
 	[__NR_delete_module - SYSCALL_TABLE_ID0] = PPM_SC_DELETE_MODULE,
+	[__NR_quotactl - SYSCALL_TABLE_ID0] = PPM_SC_QUOTACTL,
 	[__NR_getpgid - SYSCALL_TABLE_ID0] = PPM_SC_GETPGID,
 	[__NR_fchdir - SYSCALL_TABLE_ID0] = PPM_SC_FCHDIR,
 	[__NR_sysfs - SYSCALL_TABLE_ID0] = PPM_SC_SYSFS,
@@ -452,12 +454,22 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #endif
 /* [__NR_mmap_pgoff - SYSCALL_TABLE_ID0] = PPM_SC_NR_MMAP_PGOFF, */
 	[__NR_lchown - SYSCALL_TABLE_ID0] = PPM_SC_LCHOWN,
+	[__NR_getuid - SYSCALL_TABLE_ID0] = PPM_SC_GETUID,
+	[__NR_getgid - SYSCALL_TABLE_ID0] = PPM_SC_GETGID,
+	[__NR_geteuid - SYSCALL_TABLE_ID0] = PPM_SC_GETEUID,
+	[__NR_getegid - SYSCALL_TABLE_ID0] = PPM_SC_GETEGID,
 	[__NR_setreuid - SYSCALL_TABLE_ID0] = PPM_SC_SETREUID,
 	[__NR_setregid - SYSCALL_TABLE_ID0] = PPM_SC_SETREGID,
 	[__NR_getgroups - SYSCALL_TABLE_ID0] = PPM_SC_GETGROUPS,
 	[__NR_setgroups - SYSCALL_TABLE_ID0] = PPM_SC_SETGROUPS,
 	[__NR_fchown - SYSCALL_TABLE_ID0] = PPM_SC_FCHOWN,
+	[__NR_setresuid - SYSCALL_TABLE_ID0] = PPM_SC_SETRESUID,
+	[__NR_getresuid - SYSCALL_TABLE_ID0] = PPM_SC_GETRESUID,
+	[__NR_setresgid - SYSCALL_TABLE_ID0] = PPM_SC_SETRESGID,
+	[__NR_getresgid - SYSCALL_TABLE_ID0] = PPM_SC_GETRESGID,
 	[__NR_chown - SYSCALL_TABLE_ID0] = PPM_SC_CHOWN,
+	[__NR_setuid - SYSCALL_TABLE_ID0] = PPM_SC_SETUID,
+	[__NR_setgid - SYSCALL_TABLE_ID0] = PPM_SC_SETGID,
 	[__NR_setfsuid - SYSCALL_TABLE_ID0] = PPM_SC_SETFSUID,
 	[__NR_setfsgid - SYSCALL_TABLE_ID0] = PPM_SC_SETFSGID,
 	[__NR_pivot_root - SYSCALL_TABLE_ID0] = PPM_SC_PIVOT_ROOT,
@@ -575,6 +587,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_syncfs
 	[__NR_syncfs - SYSCALL_TABLE_ID0] = PPM_SC_SYNCFS,
+#endif
+#ifdef __NR_setns
+	[__NR_setns - SYSCALL_TABLE_ID0] = PPM_SC_SETNS,
 #endif
 	[__NR_getdents64 - SYSCALL_TABLE_ID0] =  PPM_SC_GETDENTS64,
 #ifndef __NR_socketcall

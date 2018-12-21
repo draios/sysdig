@@ -4523,7 +4523,7 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, boo
 {
 	*len = 0;
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
-	scap_userinfo* uinfo = nullptr;
+	scap_userinfo* uinfo;
 
 	if(tinfo == NULL)
 	{

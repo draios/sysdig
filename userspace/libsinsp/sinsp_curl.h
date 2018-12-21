@@ -117,12 +117,12 @@ public:
 	{
 		return m_response_headers;
 	}
-
-	long get_response_code() const
+	
+	const long get_response_code() const
 	{
 		return m_response_code;
 	}
-
+	
 private:
 	struct data
 	{
