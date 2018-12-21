@@ -1185,6 +1185,10 @@ int lua_cbacks::get_container_table(lua_State *ls)
 		{
 			lua_pushstring(ls, "rkt");
 		}
+		else if(it->second.m_type == CT_CRI)
+		{
+			lua_pushstring(ls, "cri");
+		}
 		else
 		{
 			ASSERT(false);
