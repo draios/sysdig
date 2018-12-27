@@ -67,7 +67,7 @@ bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_con
 					   container->m_imagetag,
 					   digest,
 					   false);
-
+	container->m_image = status.image().image();
 	return true;
 }
 
@@ -155,6 +155,28 @@ bool parse_cri_env(const Json::Value &info, sinsp_container_info *container)
 			var += value.asString();
 			container->m_env.emplace_back(var);
 		}
+	}
+
+	return true;
+}
+
+bool parse_cri_json_image(const Json::Value &info, sinsp_container_info *container)
+{
+	const Json::Value *image;
+	if (!walk_down_json(info, &image, "config", "image", "image") || !image->isString())
+	{
+		return false;
+	}
+
+	auto image_str = image->asString();
+	auto pos = image_str.find(':');
+	if (pos == string::npos)
+	{
+		container->m_imageid = move(image_str);
+	}
+	else
+	{
+		container->m_imageid = image_str.substr(pos+1);
 	}
 
 	return true;
@@ -348,6 +370,7 @@ bool parse_cri(sinsp_container_manager* manager, sinsp_container_info *container
 	}
 
 	parse_cri_env(root, container);
+	parse_cri_json_image(root, container);
 	parse_cri_runtime_spec(root, container);
 
 	if(root.isMember("sandboxID") && root["sandboxID"].isString())
