@@ -260,7 +260,7 @@ const struct ppm_name_value sockopt_levels[] = {
 	{"SOL_SOCKET", PPM_SOCKOPT_LEVEL_SOL_SOCKET},
 	{"SOL_TCP", PPM_SOCKOPT_LEVEL_SOL_TCP},
 	{"UNKNOWN", PPM_SOCKOPT_LEVEL_UNKNOWN},
-	{ },
+	{0, 0},
 };
 
 const struct ppm_name_value sockopt_options[] = {
@@ -318,7 +318,7 @@ const struct ppm_name_value sockopt_options[] = {
 	{"SO_REUSEADDR", PPM_SOCKOPT_SO_REUSEADDR},
 	{"SO_DEBUG", PPM_SOCKOPT_SO_DEBUG},
 	{"UNKNOWN", PPM_SOCKOPT_UNKNOWN},
-	{ },
+	{0, 0},
 };
 
 const struct ppm_name_value ptrace_requests[] = {

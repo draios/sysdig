@@ -29,7 +29,7 @@ limitations under the License.
 #include <chrono>
 #include <future>
 #include <mutex>
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 #include "tbb/concurrent_unordered_map.h"
 #endif
 #include "sinsp.h"
@@ -70,7 +70,7 @@ public:
 
 	size_t size()
 	{
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 		return m_cache.size();
 #else
 		return 0;
@@ -87,7 +87,7 @@ private:
         sinsp_dns_manager(sinsp_dns_manager const&) = delete;
         void operator=(sinsp_dns_manager const&) = delete;
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 	struct dns_info
 	{
 		bool operator==(const dns_info &other) const

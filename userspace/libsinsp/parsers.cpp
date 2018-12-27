@@ -469,7 +469,10 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		parse_setsid_exit(evt);
 		break;
 	case PPME_SOCKET_GETSOCKOPT_X:
-		parse_getsockopt_exit(evt);
+		if(evt->get_num_params() > 0)
+		{
+			parse_getsockopt_exit(evt);
+		}
 		break;
 	default:
 		break;
@@ -680,7 +683,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		//
 		// Error detection logic
 		//
-		if(evt->m_info->nparams != 0 &&
+		if(evt->get_num_params() != 0 &&
 			((evt->m_info->params[0].name[0] == 'r' &&
 			  evt->m_info->params[0].name[1] == 'e' &&
 			  evt->m_info->params[0].name[2] == 's' &&
@@ -4666,6 +4669,18 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt)
 	int64_t fd;
 	int8_t level, optname;
 
+	if(!evt->m_tinfo)
+	{
+		return;
+	}
+
+	parinfo = evt->get_param(1);
+	fd = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	evt->m_fdinfo = evt->m_tinfo->get_main_thread()->get_fd(fd);
+	evt->m_tinfo->m_lastevent_fd = fd;
+
 	// right now we only parse getsockopt() for SO_ERROR options
 	// if that ever changes, move this check inside
 	// the `if (level == PPM_SOCKOPT_LEVEL_SOL_SOCKET ...)` block
@@ -4674,10 +4689,7 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt)
 		return;
 	}
 
-	if (!evt->m_tinfo)
-	{
-		return;
-	}
+	//evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
 
 	//
 	// Extract the return value
@@ -4701,11 +4713,6 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt)
 
 	if(level == PPM_SOCKOPT_LEVEL_SOL_SOCKET && optname == PPM_SOCKOPT_SO_ERROR)
 	{
-		parinfo = evt->get_param(1);
-		fd = *(int64_t *)parinfo->m_val;
-		ASSERT(parinfo->m_len == sizeof(int64_t));
-
-		evt->m_fdinfo = evt->m_tinfo->get_main_thread()->get_fd(fd);
 		if (!evt->m_fdinfo)
 		{
 			return;
