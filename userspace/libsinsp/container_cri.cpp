@@ -18,6 +18,7 @@ limitations under the License.
 */
 
 #include "container_cri.h"
+#include "container_docker.h"
 
 #include <sys/stat.h>
 #include <grpc++/grpc++.h>
@@ -329,50 +330,15 @@ bool parse_cri(sinsp_container_manager* manager, sinsp_container_info *container
 bool sinsp_container_engine_cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	sinsp_container_info container_info;
-	bool matches = false;
 
-	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
+	if(sinsp_container_engine_docker::detect_docker(tinfo, container_info.m_id))
 	{
-		string cgroup = it->second;
-		size_t pos;
-
-		//
-		// Non-systemd Docker
-		//
-		pos = cgroup.find_last_of("/");
-		if(pos != string::npos)
-		{
-			if(cgroup.length() - pos - 1 == 64 &&
-			   cgroup.find_first_not_of("0123456789abcdefABCDEF", pos + 1) == string::npos)
-			{
-				container_info.m_type = CT_CRI;
-				container_info.m_id = cgroup.substr(pos + 1, 12);
-				matches = true;
-				break;
-			}
-		}
-
-		//
-		// systemd Docker
-		//
-		pos = cgroup.find("docker-");
-		if(pos != string::npos)
-		{
-			size_t pos2 = cgroup.find(".scope");
-			if(pos2 != string::npos &&
-			   pos2 - pos - sizeof("docker-") + 1 == 64)
-			{
-				container_info.m_type = CT_CRI;
-				container_info.m_id = cgroup.substr(pos + sizeof("docker-") - 1, 12);
-				matches = true;
-				break;
-			}
-		}
+		container_info.m_type = CT_CRI;
 	}
-
-	if (!matches)
+	else
+	{
 		return false;
-
+	}
 	tinfo->m_container_id = container_info.m_id;
 	if (!manager->container_exists(container_info.m_id))
 	{

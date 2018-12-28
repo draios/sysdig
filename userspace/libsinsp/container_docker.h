@@ -48,6 +48,10 @@ public:
 	static void set_query_image_info(bool query_image_info);
 	static void parse_json_mounts(const Json::Value &mnt_obj, std::vector<sinsp_container_info::container_mount_info> &mounts);
 
+#if !defined(_WIN32)
+	static bool detect_docker(const sinsp_threadinfo* tinfo, std::string& container_id);
+#endif
+
 protected:
 	docker_response get_docker(sinsp_container_manager* manager, const std::string& url, std::string &json);
 	std::string build_request(const std::string& url);
