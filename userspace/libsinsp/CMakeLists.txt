@@ -126,6 +126,7 @@ endif()
 
 if(NOT WIN32 AND NOT APPLE)
 list(APPEND SINSP_SOURCES
+	container_cri.cpp
 	${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.cc
 	${CMAKE_CURRENT_BINARY_DIR}/cri.pb.cc)
 endif()

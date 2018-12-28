@@ -17,6 +17,7 @@ limitations under the License.
 
 */
 
+#include "container_cri.h"
 #include "container_docker.h"
 #include "container_rkt.h"
 #include "container_lxc.h"
@@ -114,6 +115,9 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 #else
 	matches = matches || resolve_container_impl<
 		sinsp_container_engine_docker,
+#if defined(HAS_CAPTURE)
+		sinsp_container_engine_cri,
+#endif
 		sinsp_container_engine_lxc,
 		sinsp_container_engine_libvirt_lxc,
 		sinsp_container_engine_mesos,
@@ -355,6 +359,9 @@ void sinsp_container_manager::subscribe_on_remove_container(remove_container_cb 
 void sinsp_container_manager::cleanup()
 {
 	sinsp_container_engine_docker::cleanup();
+#if defined(HAS_CAPTURE)
+	sinsp_container_engine_cri::cleanup();
+#endif
 }
 
 void sinsp_container_manager::set_query_docker_image_info(bool query_image_info)
@@ -364,10 +371,14 @@ void sinsp_container_manager::set_query_docker_image_info(bool query_image_info)
 
 void sinsp_container_manager::set_cri_socket_path(const std::string &path)
 {
-	sinsp_container_engine_docker::set_cri_socket_path(path);
+#if defined(HAS_CAPTURE)
+	sinsp_container_engine_cri::set_cri_socket_path(path);
+#endif
 }
 
 void sinsp_container_manager::set_cri_timeout(int64_t timeout_ms)
 {
-	sinsp_container_engine_docker::set_cri_timeout(timeout_ms);
+#if defined(HAS_CAPTURE)
+	sinsp_container_engine_cri::set_cri_timeout(timeout_ms);
+#endif
 }
