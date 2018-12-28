@@ -369,6 +369,14 @@ void sinsp_container_manager::set_query_docker_image_info(bool query_image_info)
 	sinsp_container_engine_docker::set_query_image_info(query_image_info);
 }
 
+void sinsp_container_manager::set_docker_cri_mode(bool docker_then_cri)
+{
+#if defined(HAS_CAPTURE)
+	auto mode = docker_then_cri ? sinsp_container_engine_docker::WEAK : sinsp_container_engine_docker::DISABLED;
+	sinsp_container_engine_docker::set_mode(mode);
+#endif
+}
+
 void sinsp_container_manager::set_cri_socket_path(const std::string &path)
 {
 #if defined(HAS_CAPTURE)

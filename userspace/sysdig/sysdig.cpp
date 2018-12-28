@@ -94,8 +94,10 @@ static void usage()
 "                    determine how many files will be saved to disk.\n"
 #ifdef HAS_CAPTURE
 " --cri <path>       Path to CRI socket for container metadata\n"
-"                    If Sysdig cannot fetch metadata from Docker, use the\n"
-"                    specified socket to fetch data from a CRI-compatible runtime\n"
+"                    Use the specified socket to fetch data from a CRI-compatible runtime\n"
+"\n"
+"                    Note: this disables Docker support unless --docker-then-cri\n"
+"                    is also passed.\n"
 " --cri-timeout <timeout_ms>\n"
 "                    Wait at most <timeout_ms> milliseconds for response from CRI\n"
 #endif
@@ -107,6 +109,11 @@ static void usage()
 " -D, --debug        Capture events about sysdig itself, display internal events\n"
 "                    in addition to system events, and print additional\n"
 "                    logging on standard error.\n"
+#ifdef HAS_CAPTURE
+" --docker-then-cri  Enable Docker support along with CRI\n"
+"                    First, query the Docker daemon for container metadata.\n"
+"                    If that fails, query CRI.\n"
+#endif
 " -E, --exclude-users\n"
 "                    Don't create the user/group tables by querying the OS when\n"
 "                    sysdig starts. This also means that no user or group info\n"
@@ -782,6 +789,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool bpf = false;
 	string bpf_probe;
 	std::set<std::string> suppress_comms;
+#ifdef HAS_CAPTURE
+	string cri_socket_path;
+	bool docker_then_cri = false;
+#endif
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -801,6 +812,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #ifdef HAS_CAPTURE
 		{"cri", required_argument, 0, 0 },
 		{"cri-timeout", required_argument, 0, 0 },
+		{"docker-then-cri", no_argument, 0, 0 },
 #endif
 		{"displayflt", no_argument, 0, 'd' },
 		{"debug", no_argument, 0, 'D'},
@@ -1217,11 +1229,15 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #ifdef HAS_CAPTURE
 			if(string(long_options[long_index].name) == "cri")
 			{
-				inspector->set_cri_socket_path(optarg);
+				cri_socket_path = optarg;
 			}
 			if(string(long_options[long_index].name) == "cri-timeout")
 			{
 				inspector->set_cri_timeout(sinsp_numparser::parsed64(optarg));
+			}
+			if(string(long_options[long_index].name) == "docker-then-cri")
+			{
+				docker_then_cri = true;
 			}
 #endif
 			if(string(long_options[long_index].name) == "unbuffered")
@@ -1250,6 +1266,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				page_faults = true;
 			}
 		}
+
+#ifdef HAS_CAPTURE
+		if(!cri_socket_path.empty())
+		{
+			inspector->set_cri_socket_path(cri_socket_path);
+			inspector->set_docker_cri_mode(docker_then_cri);
+		}
+#endif
 
 		if(!bpf)
 		{
