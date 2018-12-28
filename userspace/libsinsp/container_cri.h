@@ -19,41 +19,21 @@ limitations under the License.
 
 #pragma once
 
-#include <memory>
 #include <string>
-#include <vector>
-
-#include "json/json.h"
-
-#include "container_info.h"
+#include <stdint.h>
 
 class sinsp_container_manager;
 class sinsp_container_info;
 class sinsp_threadinfo;
 
-class sinsp_container_engine_docker
+class sinsp_container_engine_cri
 {
-	enum docker_response
-	{
-		RESP_OK = 0,
-		RESP_BAD_REQUEST = 1,
-		RESP_ERROR = 2
-	};
-
 public:
-	sinsp_container_engine_docker();
+	sinsp_container_engine_cri();
 
 	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	static void cleanup();
-	static void set_query_image_info(bool query_image_info);
-	static void parse_json_mounts(const Json::Value &mnt_obj, std::vector<sinsp_container_info::container_mount_info> &mounts);
-
-protected:
-	docker_response get_docker(sinsp_container_manager* manager, const std::string& url, std::string &json);
-	std::string build_request(const std::string& url);
-	bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
-
-	static std::string m_api_version;
-	static bool m_query_image_info;
+	static void set_cri_socket_path(const std::string& path);
+	static void set_cri_timeout(int64_t timeout_ms);
 };
 
