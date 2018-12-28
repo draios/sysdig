@@ -40,6 +40,7 @@ size_t docker_curl_write_callback(const char* ptr, size_t size, size_t nmemb, st
 #endif
 
 std::string sinsp_container_engine_docker::m_api_version = "/v1.24";
+sinsp_container_engine_docker::engine_mode sinsp_container_engine_docker::m_engine_mode = sinsp_container_engine_docker::ENABLED;
 
 sinsp_container_engine_docker::sinsp_container_engine_docker()
 {
@@ -73,6 +74,8 @@ void sinsp_container_engine_docker::cleanup()
 	m_curl = NULL;
 	curl_multi_cleanup(m_curlm);
 	m_curlm = NULL;
+
+	set_mode(ENABLED);
 #endif
 }
 
@@ -85,6 +88,11 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 {
 	sinsp_container_info container_info;
 
+	if (m_engine_mode == DISABLED)
+	{
+		return false;
+	}
+
 	if(detect_docker(tinfo, container_info.m_id))
 	{
 		container_info.m_type = CT_DOCKER;
@@ -93,12 +101,14 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 	{
 		return false;
 	}
-	tinfo->m_container_id = container_info.m_id;
 	if (!manager->container_exists(container_info.m_id))
 	{
 		if (query_os_for_missing_info)
 		{
-			parse_docker(manager, &container_info, tinfo);
+			if (!parse_docker(manager, &container_info, tinfo) && m_engine_mode == WEAK)
+			{
+				return false;
+			}
 		}
 		if (sinsp_container_engine_mesos::set_mesos_task_id(&container_info, tinfo))
 		{
@@ -109,6 +119,7 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 		manager->add_container(container_info, tinfo);
 		manager->notify_new_container(container_info);
 	}
+	tinfo->m_container_id = container_info.m_id;
 	return true;
 }
 
@@ -222,4 +233,9 @@ bool sinsp_container_engine_docker::detect_docker(const sinsp_threadinfo *tinfo,
 	}
 
 	return false;
+}
+
+void sinsp_container_engine_docker::set_mode(engine_mode mode)
+{
+	m_engine_mode = mode;
 }

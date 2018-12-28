@@ -49,6 +49,13 @@ public:
 	static void parse_json_mounts(const Json::Value &mnt_obj, std::vector<sinsp_container_info::container_mount_info> &mounts);
 
 #if !defined(_WIN32)
+	enum engine_mode
+	{
+		DISABLED = 0,
+		ENABLED = 1,
+		WEAK = 2, // only report container when metadata is found, for Docker-then-CRI mode
+	};
+	static void set_mode(engine_mode mode);
 	static bool detect_docker(const sinsp_threadinfo* tinfo, std::string& container_id);
 #endif
 
@@ -59,5 +66,7 @@ protected:
 
 	static std::string m_api_version;
 	static bool m_query_image_info;
+#if !defined(_WIN32)
+	static engine_mode m_engine_mode;
+#endif
 };
-
