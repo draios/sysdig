@@ -1809,6 +1809,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exepath", "The full executable path of the process."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "thread.nametid", "this field chains the process name and tid of a thread and can be used as a specific identifier of a thread for a specific execve."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.vpgid", "the process group id of the process generating the event, as seen from its current PID namespace."},
+	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_container_healthcheck", "true if this process is running as a part of the container's health check."},
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -2045,23 +2046,6 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, OUT uint3
 	return NULL;
 }
 
-static void populate_cmdline(string &cmdline, sinsp_threadinfo *tinfo)
-{
-	cmdline = tinfo->get_comm() + " ";
-
-	uint32_t j;
-	uint32_t nargs = (uint32_t)tinfo->m_args.size();
-
-	for(j = 0; j < nargs; j++)
-	{
-		cmdline += tinfo->m_args[j];
-		if(j < nargs -1)
-		{
-			cmdline += ' ';
-		}
-	}
-}
-
 uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	*len = 0;
@@ -2180,7 +2164,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_CMDLINE:
 		{
-			populate_cmdline(m_tstr, tinfo);
+			sinsp_threadinfo::populate_cmdline(m_tstr, tinfo);
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_EXELINE:
@@ -2298,7 +2282,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 
 			if(ptinfo != NULL)
 			{
-				populate_cmdline(m_tstr, ptinfo);
+				sinsp_threadinfo::populate_cmdline(m_tstr, ptinfo);
 				RETURN_EXTRACT_STRING(m_tstr);
 			}
 			else
@@ -2614,6 +2598,9 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_NAMETID:
 		m_tstr = tinfo->get_comm() + to_string(evt->get_tid());
 		RETURN_EXTRACT_STRING(m_tstr);
+	case TYPE_IS_CONTAINER_HEALTHCHECK:
+		m_tbool = tinfo->m_is_container_healthcheck;
+		RETURN_EXTRACT_VAR(m_tbool);
 	default:
 		ASSERT(false);
 		return NULL;
@@ -5912,7 +5899,8 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "container.mount.propagation", "the mount propagation value, specified by number (e.g. container.mount.propagation[0]) or mount source (container.mount.propagation[/usr/local]). The pathname can be a glob."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.repository", "the container image repository (e.g. sysdig/sysdig)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.tag", "the container image tag (e.g. stable, latest)."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.digest", "the container image registry digest (e.g. sha256:d977378f890d445c15e51795296e4e5062f109ce6da83e0a355fc4ad8699d27)."}
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.digest", "the container image registry digest (e.g. sha256:d977378f890d445c15e51795296e4e5062f109ce6da83e0a355fc4ad8699d27)."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.healthcheck", "The container's health check. Will be the null value (\"N/A\") if no healthcheck configured, \"NONE\" if configured but explicitly not created, and the healthcheck command line otherwise"}
 };
 
 sinsp_filter_check_container::sinsp_filter_check_container()
@@ -6330,6 +6318,42 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
+	case TYPE_CONTAINER_HEALTHCHECK:
+		if(tinfo->m_container_id.empty())
+		{
+			return NULL;
+		}
+		else
+		{
+			const sinsp_container_info *container_info =
+				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			if(!container_info)
+			{
+				return NULL;
+			}
+
+			if(container_info->m_healthcheck_obj.isNull())
+			{
+				return NULL;
+			}
+
+			if(!container_info->m_has_healthcheck)
+			{
+				m_tstr = "NONE";
+
+				RETURN_EXTRACT_STRING(m_tstr);
+			}
+
+			m_tstr = container_info->m_healthcheck_exe;
+
+			for(auto &arg : container_info->m_healthcheck_args)
+			{
+				m_tstr += " ";
+				m_tstr += arg;
+			}
+
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
 
 	default:
 		ASSERT(false);

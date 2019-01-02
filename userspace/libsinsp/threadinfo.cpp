@@ -90,6 +90,7 @@ void sinsp_threadinfo::init()
 	m_lastevent_data = NULL;
 	m_parent_loop_detected = false;
 	m_tty = 0;
+	m_is_container_healthcheck = false;
 	m_blprogram = NULL;
 	m_loginuid = 0;
 }
@@ -423,6 +424,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_clone_ts = pi->clone_ts;
 	m_tty = pi->tty;
 	m_loginuid = pi->loginuid;
+	m_is_container_healthcheck = false;
 
 	set_cgroups(pi->cgroups, pi->cgroups_len);
 	m_root = pi->root;
@@ -930,6 +932,19 @@ void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
 				return;
 			}
 		}
+	}
+}
+
+void sinsp_threadinfo::populate_cmdline(string &cmdline, sinsp_threadinfo *tinfo)
+{
+	cmdline = tinfo->get_comm();
+
+	uint32_t j;
+	uint32_t nargs = (uint32_t)tinfo->m_args.size();
+
+	for(j = 0; j < nargs; j++)
+	{
+		cmdline += " " + tinfo->m_args[j];
 	}
 }
 
