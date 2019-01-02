@@ -236,16 +236,18 @@ uint32_t get_pod_sandbox_ip(const std::string& pod_sandbox_id)
 
 sinsp_container_engine_cri::sinsp_container_engine_cri()
 {
-	if(!cri && !cri_unix_socket_path.empty())
-	{
-		auto cri_path = scap_get_host_root() + cri_unix_socket_path;
-		struct stat s;
-		if(stat(cri_path.c_str(), &s) == 0 && (s.st_mode & S_IFMT) == S_IFSOCK)
-		{
-			cri = runtime::v1alpha2::RuntimeService::NewStub(
-				grpc::CreateChannel("unix://" + cri_path, grpc::InsecureChannelCredentials()));
-		}
+	if(cri || cri_unix_socket_path.empty()) {
+		return;
 	}
+
+	auto cri_path = scap_get_host_root() + cri_unix_socket_path;
+	struct stat s;
+	if(stat(cri_path.c_str(), &s) != 0 || (s.st_mode & S_IFMT) != S_IFSOCK) {
+		return;
+	}
+
+	cri = runtime::v1alpha2::RuntimeService::NewStub(
+		grpc::CreateChannel("unix://" + cri_path, grpc::InsecureChannelCredentials()));
 }
 
 void sinsp_container_engine_cri::cleanup()
