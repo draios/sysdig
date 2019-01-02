@@ -33,6 +33,19 @@ namespace {
 string cri_unix_socket_path = "/run/containerd/containerd.sock";
 unique_ptr<runtime::v1alpha2::RuntimeService::Stub> cri = nullptr;
 int64_t cri_timeout = 1000;
+sinsp_container_type cri_runtime_type = CT_CRI;
+
+sinsp_container_type get_cri_runtime_type(const std::string& runtime_name)
+{
+	if (runtime_name == "containerd")
+	{
+		return CT_CONTAINERD;
+	}
+	else
+	{
+		return CT_CRI;
+	}
+}
 
 bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info *container)
 {
@@ -248,6 +261,23 @@ sinsp_container_engine_cri::sinsp_container_engine_cri()
 
 	cri = runtime::v1alpha2::RuntimeService::NewStub(
 		grpc::CreateChannel("unix://" + cri_path, grpc::InsecureChannelCredentials()));
+
+	runtime::v1alpha2::VersionRequest vreq;
+	runtime::v1alpha2::VersionResponse vresp;
+
+	vreq.set_version("v1alpha2");
+	grpc::ClientContext context;
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(cri_timeout);
+	context.set_deadline(deadline);
+	grpc::Status status = cri->Version(&context, vreq, &vresp);
+
+	if (!status.ok())
+	{
+		// we could disable CRI support here...
+		return;
+	}
+
+	cri_runtime_type = get_cri_runtime_type(vresp.runtime_name());
 }
 
 void sinsp_container_engine_cri::cleanup()
@@ -292,7 +322,7 @@ bool parse_cri(sinsp_container_manager* manager, sinsp_container_info *container
 
 	const auto& resp_container = resp.status();
 	container->m_name = resp_container.metadata().name();
-	container->m_type = sinsp_container_type::CT_CRI;
+	container->m_type = cri_runtime_type;
 
 	for (const auto& pair : resp_container.labels())
 	{
@@ -335,7 +365,7 @@ bool sinsp_container_engine_cri::resolve(sinsp_container_manager* manager, sinsp
 
 	if(sinsp_container_engine_docker::detect_docker(tinfo, container_info.m_id))
 	{
-		container_info.m_type = CT_CRI;
+		container_info.m_type = cri_runtime_type;
 	}
 	else
 	{

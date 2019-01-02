@@ -6148,6 +6148,9 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			case sinsp_container_type::CT_CRI:
 				m_tstr = "cri";
 				break;
+			case sinsp_container_type::CT_CONTAINERD:
+				m_tstr = "containerd";
+				break;
 			case sinsp_container_type::CT_RKT:
 				m_tstr = "rkt";
 				break;

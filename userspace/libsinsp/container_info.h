@@ -35,12 +35,15 @@ enum sinsp_container_type
 	CT_RKT = 4,
 	CT_CUSTOM = 5,
 	CT_CRI = 6,
+	CT_CONTAINERD = 7,
 };
 
 // Docker and CRI-compatible runtimes are very similar
 static inline bool is_docker_compatible(sinsp_container_type t)
 {
-	return t == CT_DOCKER || t == CT_CRI;
+	return t == CT_DOCKER ||
+		t == CT_CRI ||
+		t == CT_CONTAINERD;
 }
 
 class sinsp_container_info
