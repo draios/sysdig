@@ -2,10 +2,6 @@ FROM debian:unstable
 
 MAINTAINER Sysdig <support@sysdig.com>
 
-ENV SYSDIG_HOST_ROOT /host
-
-ENV HOME /root
-
 # Based on the sysdig container, used for building eBPF probe
 
 RUN apt-get update \
@@ -24,9 +20,6 @@ RUN rm -rf /usr/bin/clang \
  && rm -rf /usr/bin/llc \
  && ln -s /usr/bin/clang-7 /usr/bin/clang \
  && ln -s /usr/bin/llc-7 /usr/bin/llc
-
-RUN rm -df /lib/modules \
- && ln -s $SYSDIG_HOST_ROOT/lib/modules /lib/modules
 
 COPY ./probe-builder-entrypoint.sh /
 

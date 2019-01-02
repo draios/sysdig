@@ -24,8 +24,6 @@
 
 set -euo pipefail
 
-SYSDIG_HOST_ROOT=/host
-
 echo "* Building probe ${BPF_PROBE_FILENAME}"
 
 cd /driver/bpf
