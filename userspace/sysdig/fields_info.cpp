@@ -38,12 +38,12 @@ limitations under the License.
 #define PRINTF_WRAP_CPROC(x)  #x
 #define PRINTF_WRAP(x) PRINTF_WRAP_CPROC(x)
 
-void list_fields(bool verbose, bool markdown)
+void list_fields(bool verbose, bool markdown, bool names_only)
 {
 	uint32_t j, l, m;
 	int32_t k;
 
-	if(markdown)
+	if(markdown && !names_only)
 	{
 		printf("# Sysdig Filter Fields List\n\n");
 	}
@@ -60,14 +60,17 @@ void list_fields(bool verbose, bool markdown)
 			continue;
 		}
 
-		if(markdown)
+		if(!names_only)
 		{
-			printf("## Filter Class: %s\n\n", fci->m_name.c_str());
-		}
-		else
-		{
-			printf("\n----------------------\n");
-			printf("Field Class: %s\n\n", fci->m_name.c_str());
+			if(markdown)
+			{
+				printf("## Filter Class: %s\n\n", fci->m_name.c_str());
+			}
+			else
+			{
+				printf("\n----------------------\n");
+				printf("Field Class: %s\n\n", fci->m_name.c_str());
+			}
 		}
 
 		for(k = 0; k < fci->m_nfields; k++)
@@ -79,7 +82,11 @@ void list_fields(bool verbose, bool markdown)
 				continue;
 			}
 
-			if(markdown)
+			if(names_only)
+			{
+				printf("%s\n", fld->m_name);
+			}
+			else if(markdown)
 			{
 				printf("**Name**: %s  \n", fld->m_name);
 				printf("**Description**: %s  \n", fld->m_description);
