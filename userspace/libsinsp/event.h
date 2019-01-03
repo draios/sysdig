@@ -18,6 +18,7 @@ limitations under the License.
 */
 
 #pragma once
+#include "sinsp_public.h"
 #include <json/json.h>
 
 #ifndef VISIBILITY_PRIVATE

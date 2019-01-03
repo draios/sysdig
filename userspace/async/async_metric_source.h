@@ -63,6 +63,12 @@ template<typename key_type, typename metric_type>
 class async_metric_source
 {
 public:
+	/**
+	 * If provided to the constructor as max_wait_ms, then lookup will
+	 * not wait for a response.
+	 */
+	const static uint64_t NO_LOOKUP_WAIT = 0;
+
         typedef std::function<void(const key_type& key,
 			           const metric_type& metric)> callback_handler;
 
@@ -146,6 +152,8 @@ protected:
 	 * @returns the next key to look up.
 	 */
 	key_type dequeue_next_key();
+
+	metric_type get_metrics(const key_type& key);
 
 	/**
 	 * Stores a collected set of metrics for the given key.  Concrete

@@ -23,6 +23,7 @@ limitations under the License.
 #include <unistd.h>
 #endif
 
+#include "async_docker_metrics_source.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "container.h"
@@ -30,6 +31,10 @@ limitations under the License.
 #ifdef CYGWING_AGENT
 #include "dragent_win_hal_public.h"
 #endif
+
+#include <sstream>
+
+using namespace sysdig;
 
 void sinsp_container_info::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_container_info::container_mount_info> &mounts)
 {
@@ -83,316 +88,125 @@ const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by
 	return NULL;
 }
 
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-CURLM *sinsp_container_engine_docker::m_curlm = NULL;
-CURL *sinsp_container_engine_docker::m_curl = NULL;
+namespace
+{
+
+std::ostream& operator<<(std::ostream& out, const sinsp_container_info::container_mount_info& info)
+{
+	out << info.to_string();
+	return out;
+}
+
+std::ostream& operator<<(std::ostream& out, const sinsp_container_info::container_port_mapping& info)
+{
+	out << info.to_string();
+	return out;
+}
+
+template<typename Iterable>
+std::string iterable_to_string(const Iterable& itr)
+{
+	std::stringstream out;
+	auto i = itr.begin();
+
+	out << "[";
+
+	if (i != itr.end())
+	{
+		out << *i;
+
+		for(++i; i != itr.end(); ++i)
+		{
+			out << ", " << *i;
+		}
+	}
+
+	out << "]";
+
+	return out.str();
+}
+
+template<typename key_type, typename value_type>
+std::string map_to_string(const std::map<key_type, value_type>& target)
+{
+	std::stringstream out;
+	auto i = target.begin();
+
+	out << "{";
+
+	if (i != target.end())
+	{
+		out << i->first << ":" << i->second;
+
+		for(++i; i != target.end(); ++i)
+		{
+			out << ", " << i->first << ":" << i->second;
+		}
+	}
+
+	out << "}";
+
+	return out.str();
+}
+
+} // end namespace
+
+std::string sinsp_container_info::to_string() const
+{
+	std::stringstream out;
+
+	out << "container_info:" << std::endl;
+
+	out << "m_id:                " << m_id << std::endl;
+	out << "m_type:              " << static_cast<int>(m_type) << std::endl;
+	out << "m_name:              " << m_name << std::endl;
+	out << "m_image:             " << m_image << std::endl;
+	out << "m_imageid:           " << m_imageid << std::endl;
+	out << "m_imagerepo:         " << m_imagerepo << std::endl;
+	out << "m_imagetag:          " << m_imagetag << std::endl;
+	out << "m_imagedigest:       " << m_imagedigest << std::endl;
+	out << "m_container_ip:      " << m_container_ip << std::endl;
+	out << "m_privileged:        " << m_privileged << std::endl;
+	out << "m_mounts:            " << ::iterable_to_string(m_mounts) << std::endl;
+	out << "m_port_mappings:     " << ::iterable_to_string(m_port_mappings) << std::endl;
+	out << "m_labels:            " << ::map_to_string(m_labels) << std::endl;
+	out << "m_env:               " << ::iterable_to_string(m_env) << std::endl;
+	out << "m_mesos_task_id:     " << m_mesos_task_id << std::endl;
+	out << "m_memory_limit:      " << m_memory_limit << std::endl;
+	out << "m_swap_limit:        " << m_swap_limit << std::endl;
+	out << "m_cpu_shares:        " << m_cpu_shares << std::endl;
+	out << "m_cpu_quota:         " << m_cpu_quota << std::endl;
+	out << "m_cpu_period:        " << m_cpu_period << std::endl;
+#ifdef HAS_ANALYZER
+	out << "m_sysdig_agent_conf: " << m_sysdig_agent_conf << std::endl;
+	out << "m_metadata_deadline: " << m_metadata_deadline << std::endl;
 #endif
+	return out.str();
+}
+
+std::unique_ptr<async_docker_metrics_source> s_docker_metrics;
+
 
 bool sinsp_container_engine_docker::m_query_image_info = true;
 
-sinsp_container_engine_docker::sinsp_container_engine_docker() :
-	m_unix_socket_path(string(scap_get_host_root()) + "/var/run/docker.sock"),
-	m_api_version("/v1.24")
+sinsp_container_engine_docker::sinsp_container_engine_docker()
 {
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-	if(!m_curlm)
+	if(!s_docker_metrics)
 	{
-		m_curl = curl_easy_init();
-		m_curlm = curl_multi_init();
-
-		if(m_curlm)
-		{
-			curl_multi_setopt(m_curlm, CURLMOPT_PIPELINING, CURLPIPE_HTTP1|CURLPIPE_MULTIPLEX);
-		}
-
-		if(m_curl)
-		{
-			curl_easy_setopt(m_curl, CURLOPT_UNIX_SOCKET_PATH, m_unix_socket_path.c_str());
-			curl_easy_setopt(m_curl, CURLOPT_HTTPGET, 1);
-			curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
-			curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, curl_write_callback);
-		}
+		s_docker_metrics.reset(async_docker_metrics_source::new_async_docker_metrics_source());
 	}
-#endif
+
 }
 
 void sinsp_container_engine_docker::cleanup()
 {
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-	curl_easy_cleanup(m_curl);
-	m_curl = NULL;
-	curl_multi_cleanup(m_curlm);
-	m_curlm = NULL;
-#endif
+	s_docker_metrics.reset();
 }
 
 void sinsp_container_engine_docker::set_query_image_info(bool query_image_info)
 {
 	m_query_image_info = query_image_info;
 }
-
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-size_t sinsp_container_engine_docker::curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json)
-{
-	const std::size_t total = size * nmemb;
-	json->append(ptr, total);
-	return total;
-}
-#endif
-
-bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
-{
-	string json;
-#ifndef CYGWING_AGENT
-	sinsp_docker_response resp = get_docker(manager, "http://localhost" + m_api_version + "/containers/" + container->m_id + "/json", json);
-#else
-	sinsp_docker_response resp = get_docker(manager, "GET /v1.30/containers/" + container->m_id + "/json HTTP/1.1\r\nHost: docker\r\n\r\n", json);
-#endif
-	switch(resp) {
-		case sinsp_docker_response::RESP_BAD_REQUEST:
-			m_api_version = "";
-			json = "";
-#ifndef CYGWING_AGENT
-			resp = get_docker(manager, "http://localhost/containers/" + container->m_id + "/json", json);
-#else
-			resp = get_docker(manager, "GET /containers/" + container->m_id + "/json HTTP/1.1\r\nHost: docker\r\n\r\n", json);
-#endif
-			if (resp == sinsp_docker_response::RESP_OK)
-			{
-				break;
-			}
-			/* FALLTHRU */
-		case sinsp_docker_response::RESP_ERROR:
-			ASSERT(false);
-			return false;
-
-		case sinsp_docker_response::RESP_OK:
-			break;
-	}
-
-	Json::Value root;
-	Json::Reader reader;
-	bool parsingSuccessful = reader.parse(json, root);
-	if(!parsingSuccessful)
-	{
-		ASSERT(false);
-		return false;
-	}
-
-	const Json::Value& config_obj = root["Config"];
-
-	container->m_image = config_obj["Image"].asString();
-
-	string imgstr = root["Image"].asString();
-	size_t cpos = imgstr.find(":");
-	if(cpos != string::npos)
-	{
-		container->m_imageid = imgstr.substr(cpos + 1);
-	}
-
-	// containers can be spawned using just the imageID as image name,
-	// with or without the hash prefix (e.g. sha256:)
-	bool no_name = !container->m_imageid.empty() &&
-		strncmp(container->m_image.c_str(), container->m_imageid.c_str(),
-			MIN(container->m_image.length(), container->m_imageid.length())) == 0;
-	no_name |= !imgstr.empty() &&
-		strncmp(container->m_image.c_str(), imgstr.c_str(),
-			MIN(container->m_image.length(), imgstr.length())) == 0;
-
-	if(!no_name || !m_query_image_info)
-	{
-		string hostname, port;
-		sinsp_utils::split_container_image(container->m_image,
-						   hostname,
-						   port,
-						   container->m_imagerepo,
-						   container->m_imagetag,
-						   container->m_imagedigest,
-						   false);
-	}
-
-	if(m_query_image_info && !container->m_imageid.empty() &&
-	   (no_name || container->m_imagedigest.empty() || (!container->m_imagedigest.empty() && container->m_imagetag.empty())))
-	{
-		string img_json;
-#ifndef CYGWING_AGENT
-		if(get_docker(manager, "http://localhost" + m_api_version + "/images/" + container->m_imageid + "/json?digests=1", img_json) == sinsp_docker_response::RESP_OK)
-#else
-		if(get_docker(manager, "GET /v1.30/images/" + container->m_imageid + "/json?digests=1 HTTP/1.1\r\nHost: docker \r\n\r\n", img_json) == sinsp_docker_response::RESP_OK)
-#endif
-		{
-			Json::Value img_root;
-			if(reader.parse(img_json, img_root))
-			{
-				for(const auto& rdig : img_root["RepoDigests"])
-				{
-					if(rdig.isString())
-					{
-						string repodigest = rdig.asString();
-						if(container->m_imagerepo.empty())
-						{
-							container->m_imagerepo = repodigest.substr(0, repodigest.find("@"));
-						}
-						if(repodigest.find(container->m_imagerepo) != string::npos)
-						{
-							container->m_imagedigest = repodigest.substr(repodigest.find("@")+1);
-							break;
-						}
-					}
-				}
-				for(const auto& rtag : img_root["RepoTags"])
-				{
-					if(rtag.isString())
-					{
-						string repotag = rtag.asString();
-						if(container->m_imagerepo.empty())
-						{
-							container->m_imagerepo = repotag.substr(0, repotag.rfind(":"));
-						}
-						if(repotag.find(container->m_imagerepo) != string::npos)
-						{
-							container->m_imagetag = repotag.substr(repotag.rfind(":")+1);
-							break;
-						}
-					}
-				}
-			}
-		}
-	}
-	if(container->m_imagetag.empty())
-	{
-		container->m_imagetag = "latest";
-	}
-
-	container->m_name = root["Name"].asString();
-
-	if(!container->m_name.empty() && container->m_name[0] == '/')
-	{
-		container->m_name = container->m_name.substr(1);
-	}
-
-	const Json::Value& net_obj = root["NetworkSettings"];
-
-	string ip = net_obj["IPAddress"].asString();
-	if(ip.empty())
-	{
-		const Json::Value& hconfig_obj = root["HostConfig"];
-		string net_mode = hconfig_obj["NetworkMode"].asString();
-		if(strncmp(net_mode.c_str(), "container:", strlen("container:")) == 0)
-		{
-			std::string container_id = net_mode.substr(net_mode.find(":") + 1);
-			uint32_t container_ip;
-			const sinsp_container_info *container_info = manager->get_container(container_id);
-			if(container_info)
-			{
-				container_ip = container_info->m_container_ip;
-			}
-			else
-			{
-				sinsp_container_info pcnt;
-				pcnt.m_id = container_id;
-				parse_docker(manager, &pcnt, tinfo);
-				container_ip = pcnt.m_container_ip;
-			}
-			container->m_container_ip = container_ip;
-		}
-	}
-	else
-	{
-		if(inet_pton(AF_INET, ip.c_str(), &container->m_container_ip) == -1)
-		{
-			ASSERT(false);
-		}
-		container->m_container_ip = ntohl(container->m_container_ip);
-	}
-
-	vector<string> ports = net_obj["Ports"].getMemberNames();
-	for(vector<string>::const_iterator it = ports.begin(); it != ports.end(); ++it)
-	{
-		size_t tcp_pos = it->find("/tcp");
-		if(tcp_pos == string::npos)
-		{
-			continue;
-		}
-
-		uint16_t container_port = atoi(it->c_str());
-
-		const Json::Value& v = net_obj["Ports"][*it];
-		if(v.isArray())
-		{
-			for(uint32_t j = 0; j < v.size(); ++j)
-			{
-				sinsp_container_info::container_port_mapping port_mapping;
-
-				ip = v[j]["HostIp"].asString();
-				string port = v[j]["HostPort"].asString();
-
-				if(inet_pton(AF_INET, ip.c_str(), &port_mapping.m_host_ip) == -1)
-				{
-					ASSERT(false);
-					continue;
-				}
-				port_mapping.m_host_ip = ntohl(port_mapping.m_host_ip);
-
-				port_mapping.m_container_port = container_port;
-				port_mapping.m_host_port = atoi(port.c_str());
-				container->m_port_mappings.push_back(port_mapping);
-			}
-		}
-	}
-
-	vector<string> labels = config_obj["Labels"].getMemberNames();
-	for(vector<string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
-	{
-		string val = config_obj["Labels"][*it].asString();
-		container->m_labels[*it] = val;
-	}
-
-	const Json::Value& env_vars = config_obj["Env"];
-
-	for(const auto& env_var : env_vars)
-	{
-		if(env_var.isString())
-		{
-			container->m_env.emplace_back(env_var.asString());
-		}
-	}
-#ifndef CYGWING_AGENT
-	if (sinsp_container_engine_mesos::set_mesos_task_id(container, tinfo))
-	{
-		g_logger.log("Mesos Docker container: [" + root["Id"].asString() + "], Mesos task ID: [" + container->m_mesos_task_id + ']', sinsp_logger::SEV_DEBUG);
-	}
-#endif
-
-	const auto& host_config_obj = root["HostConfig"];
-	container->m_memory_limit = host_config_obj["Memory"].asInt64();
-	container->m_swap_limit = host_config_obj["MemorySwap"].asInt64();
-	const auto cpu_shares = host_config_obj["CpuShares"].asInt64();
-	if(cpu_shares > 0)
-	{
-		container->m_cpu_shares = cpu_shares;
-	}
-	container->m_cpu_quota = host_config_obj["CpuQuota"].asInt64();
-	const auto cpu_period = host_config_obj["CpuPeriod"].asInt64();
-	if(cpu_period > 0)
-	{
-		container->m_cpu_period = cpu_period;
-	}
-	const Json::Value &privileged = host_config_obj["Privileged"];
-	if(!privileged.isNull() && privileged.isBool())
-	{
-		container->m_privileged = privileged.asBool();
-	}
-
-	sinsp_container_info::parse_json_mounts(root["Mounts"], container->m_mounts);
-
-#ifdef HAS_ANALYZER
-	sinsp_utils::find_env(container->m_sysdig_agent_conf, container->get_env(), "SYSDIG_AGENT_CONF");
-	// container->m_sysdig_agent_conf = get_docker_env(env_vars, "SYSDIG_AGENT_CONF");
-#endif
-	return true;
-}
-
 
 #ifdef CYGWING_AGENT
 bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
@@ -421,39 +235,11 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 	return true;
 }
 
-sinsp_docker_response sinsp_container_engine_docker::get_docker(sinsp_container_manager* manager, const string& url, string &json)
-{
-	const char* response = NULL;
-	bool qdres = wh_query_docker(manager->get_inspector()->get_wmi_handle(),
-		(char*)url.c_str(),
-		&response);
-	if(qdres == false)
-	{
-		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
-	}
-
-	json = response;
-	if(strncmp(json.c_str(), "HTTP/1.0 200 OK", sizeof("HTTP/1.0 200 OK") -1))
-	{
-		return sinsp_docker_response::RESP_BAD_REQUEST;
-	}
-
-	size_t pos = json.find("{");
-	if(pos == string::npos)
-	{
-		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
-	}
-	json = json.substr(pos);
-
-	return sinsp_docker_response::RESP_OK;
-}
 
 #else
 bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
-	sinsp_container_info container_info;
+	std::shared_ptr<sinsp_container_info> container_info(new sinsp_container_info());
 	bool matches = false;
 
 	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
@@ -470,8 +256,8 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 			if(cgroup.length() - pos - 1 == 64 &&
 				cgroup.find_first_not_of("0123456789abcdefABCDEF", pos + 1) == string::npos)
 			{
-				container_info.m_type = CT_DOCKER;
-				container_info.m_id = cgroup.substr(pos + 1, 12);
+				container_info->m_type = CT_DOCKER;
+				container_info->m_id = cgroup.substr(pos + 1, 12);
 				matches = true;
 				break;
 			}
@@ -487,8 +273,8 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 			if(pos2 != string::npos &&
 				pos2 - pos - sizeof("docker-") + 1 == 64)
 			{
-				container_info.m_type = CT_DOCKER;
-				container_info.m_id = cgroup.substr(pos + sizeof("docker-") - 1, 12);
+				container_info->m_type = CT_DOCKER;
+				container_info->m_id = cgroup.substr(pos + sizeof("docker-") - 1, 12);
 				matches = true;
 				break;
 			}
@@ -498,87 +284,42 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 	if (!matches)
 		return false;
 
-	tinfo->m_container_id = container_info.m_id;
-	if (!manager->container_exists(container_info.m_id))
+	tinfo->m_container_id = container_info->m_id;
+	if (!manager->container_exists(container_info->m_id))
 	{
+		g_logger.log("resolve: container with id " + container_info->m_id + " does not exist");
 #ifndef _WIN32
+		g_logger.log("resolve: query_os_for_missing_info: " + std::to_string(query_os_for_missing_info));
 		if (query_os_for_missing_info)
 		{
-			parse_docker(manager, &container_info, tinfo);
+			docker_metrics metrics(manager, container_info);
+
+			// TODO: This will need to eventually change when we
+			//       want to report partial information to the
+			//       backend.
+			if(s_docker_metrics->lookup(tinfo->m_container_id, metrics))
+			{
+				g_logger.log("resolve: metric lookup successful, metrics: " + metrics.m_container_info->to_string());
+
+				manager->add_container(*metrics.m_container_info, tinfo);
+				manager->notify_new_container(*metrics.m_container_info);
+
+				return true;
+			}
+
+			return false;
 		}
 #endif
-		manager->add_container(container_info, tinfo);
-		manager->notify_new_container(container_info);
+
+		if (!query_os_for_missing_info)
+		{
+			manager->add_container(*container_info, tinfo);
+			manager->notify_new_container(*container_info);
+		}
 	}
 	return true;
 }
 
-sinsp_docker_response sinsp_container_engine_docker::get_docker(sinsp_container_manager* manager, const string& url, string &json)
-{
-#ifdef HAS_CAPTURE
-	if(curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str()) != CURLE_OK)
-	{
-		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
-	}
-	if(curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &json) != CURLE_OK)
-	{
-		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
-	}
-
-	if(curl_multi_add_handle(m_curlm, m_curl) != CURLM_OK)
-	{
-		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
-	}
-
-	while(true)
-	{
-		int still_running;
-		CURLMcode res = curl_multi_perform(m_curlm, &still_running);
-		if(res != CURLM_OK)
-		{
-			ASSERT(false);
-			return sinsp_docker_response::RESP_ERROR;
-		}
-
-		if(still_running == 0)
-		{
-			break;
-		}
-
-		int numfds;
-		res = curl_multi_wait(m_curlm, NULL, 0, -1, &numfds);
-		if(res != CURLM_OK)
-		{
-			ASSERT(false);
-			return sinsp_docker_response::RESP_ERROR;
-		}
-	}
-
-	if(curl_multi_remove_handle(m_curlm, m_curl) != CURLM_OK)
-	{
-		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
-	}
-
-	long http_code = 0;
-	if(curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &http_code) != CURLE_OK)
-	{
-		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
-	}
-	if(http_code != 200)
-	{
-		return sinsp_docker_response::RESP_BAD_REQUEST;
-	}
-
-	return sinsp_docker_response::RESP_OK;
-#else
-	return sinsp_docker_response::RESP_ERROR;
-#endif
-}
 
 bool sinsp_container_engine_lxc::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {

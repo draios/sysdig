@@ -16,6 +16,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
+#include "logger.h"
+
 #include <assert.h>
 #include <algorithm>
 #include <chrono>
@@ -41,13 +43,14 @@ async_metric_source<key_type, metric_type>::async_metric_source(
 template<typename key_type, typename metric_type>
 async_metric_source<key_type, metric_type>::~async_metric_source()
 {
+	g_logger.log("async_metric_source destructor");
 	try
 	{
 		stop();
 	}
 	catch(...)
 	{
-		// TODO: Ignore? Log?
+		g_logger.log(std::string(__FUNCTION__) + ": Exception in destructor", sinsp_logger::SEV_ERROR);
 	}
 }
 
@@ -60,6 +63,7 @@ uint64_t async_metric_source<key_type, metric_type>::get_max_wait() const
 template<typename key_type, typename metric_type>
 void async_metric_source<key_type, metric_type>::stop()
 {
+	g_logger.log("ENTRY: sync_metric_source::stop");
 	bool join_needed = false;
 
 	{
@@ -84,6 +88,7 @@ void async_metric_source<key_type, metric_type>::stop()
 		// (just to be safe)
 		m_thread = std::thread();
 	}
+	g_logger.log("EXIT: sync_metric_source::stop");
 }
 
 template<typename key_type, typename metric_type>
@@ -97,6 +102,7 @@ bool async_metric_source<key_type, metric_type>::is_running() const
 template<typename key_type, typename metric_type>
 void async_metric_source<key_type, metric_type>::run()
 {
+	g_logger.log("ENTRY: sync_metric_source::run");
 	m_running = true;
 
 	while(!m_terminate)
@@ -106,6 +112,7 @@ void async_metric_source<key_type, metric_type>::run()
 
 			while(!m_terminate && m_request_queue.empty())
 			{
+				g_logger.log("sync_metric_source::run: Waiting for queue item");
 				// Wait for something to show up on the queue
 				m_queue_not_empty_condition.wait(guard);
 			}
@@ -113,11 +120,13 @@ void async_metric_source<key_type, metric_type>::run()
 
 		if(!m_terminate)
 		{
+			g_logger.log("sync_metric_source::run: Invoking run_impl");
 			run_impl();
 		}
 	}
 
 	m_running = false;
+	g_logger.log("EXIT: sync_metric_source::run");
 }
 
 template<typename key_type, typename metric_type>
@@ -126,21 +135,27 @@ bool async_metric_source<key_type, metric_type>::lookup(
 		metric_type& metric,
 		const callback_handler& callback)
 {
+	g_logger.log("ENTRY: sync_metric_source::lookup: key:" + key);
 	std::unique_lock<std::mutex> guard(m_mutex);
 
 	if(!m_running)
 	{
+		g_logger.log("sync_metric_source::lookup: starting thread");
 		m_thread = std::thread(&async_metric_source::run, this);
 	}
 
 	typename metric_map::const_iterator itr = m_metric_map.find(key);
-	bool found = (itr != m_metric_map.end()) && itr->second.m_available;
+	bool request_complete = (itr != m_metric_map.end()) && itr->second.m_available;
 
-	if(!found)
+	if(!request_complete)
 	{
+		g_logger.log("sync_metric_source::lookup: metrics for key not yet available");
+		// Haven't made the request yet
 		if (itr == m_metric_map.end())
 		{
+			g_logger.log("sync_metric_source::lookup: first request for metrics");
 			m_metric_map[key].m_available = false;
+			m_metric_map[key].m_metric = metric;
 		}
 
 		// Make request to API and let the async thread know about it
@@ -148,6 +163,7 @@ bool async_metric_source<key_type, metric_type>::lookup(
 		              m_request_queue.end(),
 		              key) == m_request_queue.end())
 		{
+			g_logger.log("sync_metric_source::lookup: adding work to queue");
 			m_request_queue.push_back(key);
 			m_queue_not_empty_condition.notify_one();
 		}
@@ -168,21 +184,23 @@ bool async_metric_source<key_type, metric_type>::lookup(
 					std::chrono::milliseconds(m_max_wait_ms));
 
 			itr = m_metric_map.find(key);
-			found = (itr != m_metric_map.end()) && itr->second.m_available;
+			request_complete = (itr != m_metric_map.end()) && itr->second.m_available;
 		}
 	}
 
-	if(found)
+	g_logger.log("sync_metric_source::lookup: request_complete: " + std::to_string(request_complete));
+	if(request_complete)
 	{
 		metric = itr->second.m_metric;
 		m_metric_map.erase(key);
 	}
 	else
 	{
+		g_logger.log("sync_metric_source::lookup: saving callback");
 		m_metric_map[key].m_callback = callback;
 	}
 
-	return found;
+	return request_complete;
 }
 
 template<typename key_type, typename metric_type>
@@ -195,12 +213,22 @@ std::size_t async_metric_source<key_type, metric_type>::queue_size() const
 template<typename key_type, typename metric_type>
 key_type async_metric_source<key_type, metric_type>::dequeue_next_key()
 {
+	g_logger.log("ENTRY: sync_metric_source::dequeue_next_key");
 	std::lock_guard<std::mutex> guard(m_mutex);
 	key_type key = m_request_queue.front();
 
 	m_request_queue.pop_front();
 
+	g_logger.log("EXIT: sync_metric_source::dequeue_next_key");
 	return key;
+}
+
+template<typename key_type, typename metric_type>
+metric_type async_metric_source<key_type, metric_type>::get_metrics(const key_type& key)
+{
+	std::lock_guard<std::mutex> guard(m_mutex);
+
+	return m_metric_map[key].m_metric;
 }
 
 template<typename key_type, typename metric_type>
@@ -208,19 +236,23 @@ void async_metric_source<key_type, metric_type>::store_metric(
 		const key_type& key,
 		const metric_type& metric)
 {
+	g_logger.log("ENTRY: sync_metric_source::store_metric");
 	std::lock_guard<std::mutex> guard(m_mutex);
 
 	if (m_metric_map[key].m_callback)
 	{
+		g_logger.log("sync_metric_source::store_metric: Invoking callback");
 		m_metric_map[key].m_callback(key, metric);
 		m_metric_map.erase(key);
 	}
 	else
 	{
+		g_logger.log("sync_metric_source::store_metric: Saving metrics for later");
 		m_metric_map[key].m_metric = metric;
 		m_metric_map[key].m_available = true;
 		m_metric_map[key].m_available_condition.notify_one();
 	}
+	g_logger.log("EXIT: sync_metric_source::store_metric");
 }
 
 } // end namespace sysdig

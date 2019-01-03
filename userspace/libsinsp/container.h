@@ -60,6 +60,13 @@ public:
 		uint32_t m_host_ip;
 		uint16_t m_host_port;
 		uint16_t m_container_port;
+
+		std::string to_string() const
+		{
+			return std::to_string(m_host_ip) + ":" +
+			       std::to_string(m_host_port) + "->" +
+			       std::to_string(m_container_port);
+		}
 	};
 
 	class container_mount_info
@@ -135,6 +142,8 @@ public:
 	const container_mount_info *mount_by_source(std::string &source) const;
 	const container_mount_info *mount_by_dest(std::string &dest) const;
 
+	std::string to_string() const;
+
 	string m_id;
 	sinsp_container_type m_type;
 	string m_name;
@@ -173,20 +182,9 @@ public:
 	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	static void cleanup();
 	static void set_query_image_info(bool query_image_info);
-protected:
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-	static size_t curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json);
-#endif
-	sinsp_docker_response get_docker(sinsp_container_manager* manager, const string& url, string &json);
-	bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
 
-	string m_unix_socket_path;
-	string m_api_version;
+protected:
 	static bool m_query_image_info;
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-	static CURLM *m_curlm;
-	static CURL *m_curl;
-#endif
 };
 
 #ifndef CYGWING_AGENT

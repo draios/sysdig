@@ -18,6 +18,7 @@
 include_directories(./)
 include_directories(../../common)
 include_directories(../libscap)
+include_directories(../async)
 include_directories("${JSONCPP_INCLUDE}")
 include_directories("${LUAJIT_INCLUDE}")
 
@@ -31,6 +32,8 @@ if(NOT WIN32 AND NOT APPLE)
 endif()
 
 add_library(sinsp STATIC
+	async_docker_metrics_source.cpp
+	async_linux_docker_metrics_source.cpp
 	chisel.cpp
 	chisel_api.cpp
 	container.cpp
