@@ -95,7 +95,7 @@ struct summary_table_entry_rsort_comparer
 //
 // Printer functions
 //
-void list_fields(bool verbose, bool markdown);
+void list_fields(bool verbose, bool markdown, bool names_only=false);
 void list_events(sinsp* inspector);
 
 #ifdef HAS_CHISELS
