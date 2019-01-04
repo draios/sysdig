@@ -23,7 +23,7 @@ limitations under the License.
 #include <unistd.h>
 #endif
 
-#include "async_docker_metrics_source.h"
+#include "async_docker_metadata_source.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "container.h"
@@ -184,23 +184,24 @@ std::string sinsp_container_info::to_string() const
 	return out.str();
 }
 
-std::unique_ptr<async_docker_metrics_source> s_docker_metrics;
+std::unique_ptr<async_docker_metadata_source> s_docker_metadata;
 
 
 bool sinsp_container_engine_docker::m_query_image_info = true;
 
 sinsp_container_engine_docker::sinsp_container_engine_docker()
 {
-	if(!s_docker_metrics)
+	if(!s_docker_metadata)
 	{
-		s_docker_metrics.reset(async_docker_metrics_source::new_async_docker_metrics_source());
+		s_docker_metadata.reset(
+				async_docker_metadata_source::new_async_docker_metadata_source());
 	}
 
 }
 
 void sinsp_container_engine_docker::cleanup()
 {
-	s_docker_metrics.reset();
+	s_docker_metadata.reset();
 }
 
 void sinsp_container_engine_docker::set_query_image_info(bool query_image_info)
@@ -292,17 +293,15 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 		g_logger.log("resolve: query_os_for_missing_info: " + std::to_string(query_os_for_missing_info));
 		if (query_os_for_missing_info)
 		{
-			docker_metrics metrics(manager, container_info);
+			docker_metadata metadata(manager, container_info);
 
 			// TODO: This will need to eventually change when we
 			//       want to report partial information to the
 			//       backend.
-			if(s_docker_metrics->lookup(tinfo->m_container_id, metrics))
+			if(s_docker_metadata->lookup(tinfo->m_container_id, metadata))
 			{
-				g_logger.log("resolve: metric lookup successful, metrics: " + metrics.m_container_info->to_string());
-
-				manager->add_container(*metrics.m_container_info, tinfo);
-				manager->notify_new_container(*metrics.m_container_info);
+				manager->add_container(*metadata.m_container_info, tinfo);
+				manager->notify_new_container(*metadata.m_container_info);
 
 				return true;
 			}

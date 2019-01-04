@@ -32,8 +32,8 @@ if(NOT WIN32 AND NOT APPLE)
 endif()
 
 add_library(sinsp STATIC
-	async_docker_metrics_source.cpp
-	async_linux_docker_metrics_source.cpp
+	async_docker_metadata_source.cpp
+	async_linux_docker_metadata_source.cpp
 	chisel.cpp
 	chisel_api.cpp
 	container.cpp

@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#include "async_linux_docker_metrics_source.h"
+#include "async_linux_docker_metadata_source.h"
 #include "sinsp_int.h"
 #include "logger.h"
 
@@ -45,46 +45,14 @@ size_t docker_curl_write_callback(const char* const ptr,
 }
 #endif
 
-// TODO: Move to windows implementation file
-// sinsp_docker_response get_docker(sinsp_container_manager* const manager,
-//                                  const std::string& url,
-//                 		 std::string &json)
-// {
-// 	const char* response = NULL;
-// 	bool qdres = wh_query_docker(manager->get_inspector()->get_wmi_handle(),
-// 		(char*)url.c_str(),
-// 		&response);
-// 	if(qdres == false)
-// 	{
-// 		ASSERT(false);
-// 		return sinsp_docker_response::RESP_ERROR;
-// 	}
-// 
-// 	json = response;
-// 	if(strncmp(json.c_str(), "HTTP/1.0 200 OK", sizeof("HTTP/1.0 200 OK") -1))
-// 	{
-// 		return sinsp_docker_response::RESP_BAD_REQUEST;
-// 	}
-// 
-// 	size_t pos = json.find("{");
-// 	if(pos == std::string::npos)
-// 	{
-// 		ASSERT(false);
-// 		return sinsp_docker_response::RESP_ERROR;
-// 	}
-// 	json = json.substr(pos);
-// 
-// 	return sinsp_docker_response::RESP_OK;
-// }
-
 } // end namespace
 
-const std::string async_linux_docker_metrics_source::DEFAULT_API_VERSION = "/v1.24";
+const std::string async_linux_docker_metadata_source::DEFAULT_API_VERSION = "/v1.24";
 
-async_linux_docker_metrics_source::async_linux_docker_metrics_source(
+async_linux_docker_metadata_source::async_linux_docker_metadata_source(
 		const std::string& api_version,
 		const uint16_t port):
-	  async_docker_metrics_source(api_version, port)
+	  async_docker_metadata_source(api_version, port)
 	, m_unix_socket_path(scap_get_host_root() + s_docker_socket_path)
 #if defined(HAS_CAPTURE)
 	, m_curl(curl_easy_init())
@@ -109,7 +77,7 @@ async_linux_docker_metrics_source::async_linux_docker_metrics_source(
 #endif
 }
 
-async_linux_docker_metrics_source::~async_linux_docker_metrics_source()
+async_linux_docker_metadata_source::~async_linux_docker_metadata_source()
 {
 #if defined(HAS_CAPTURE)
 	curl_easy_cleanup(m_curl);
@@ -117,12 +85,12 @@ async_linux_docker_metrics_source::~async_linux_docker_metrics_source()
 #endif
 }
 
-std::string async_linux_docker_metrics_source::build_request(const std::string& url)
+std::string async_linux_docker_metadata_source::build_request(const std::string& path)
 {
-	return "http://localhost" + get_api_version() + url;
+	return "http://localhost" + get_api_version() + path;
 }
 
-sinsp_docker_response async_linux_docker_metrics_source::get_docker(
+sinsp_docker_response async_linux_docker_metadata_source::get_docker(
 		sinsp_container_manager* const,
                 const std::string& url,
                 std::string &json)

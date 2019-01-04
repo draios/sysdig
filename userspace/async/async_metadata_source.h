@@ -30,37 +30,37 @@ namespace sysdig
 {
 
 /**
- * Base class for classes that need to collect metrics asynchronously from some
- * metric source.  Subclasses will override the the run_impl() method.  In
+ * Base class for classes that need to collect metadata asynchronously from some
+ * metadata source.  Subclasses will override the the run_impl() method.  In
  * that method, subclasses will use use dequeue_next_key() method to get the
- * key that it will use to collect the metrics, collect the appropriate metrics,
- * and call the store_metrics() method to save the metrics.  The run_impl()
- * method should continue to dequeue and process metrics while the queue_size()
- * method returns non-zero.
+ * key that it will use to collect the metadata, collect the appropriate
+ * metadata, and call the store_metadata() method to save the metadata.  The
+ * run_impl() method should continue to dequeue and process metadata while the
+ * queue_size() method returns non-zero.
  *
  * The constructor for this class accepts a maximum wait time; this specifies
  * how long client code is willing to wait for a synchronous response (i.e.,
- * how long the lookup() method will block waiting for the requested metrics).
- * If the async_metric_source is able to collect the requested metrics within
+ * how long the lookup() method will block waiting for the requested metadata).
+ * If the async_metadata_source is able to collect the requested metadata within
  * that time period, then the lookup() method will return them.
  *
- * If the lookup() method is unable to collect the requested metrics within
+ * If the lookup() method is unable to collect the requested metadata within
  * the requested time period, then one of two things will happen.  (1) If
  * the client supplied a handler in the call to lookup(), then that handler
- * will be invoked by the async_metric_source once the metric has been
+ * will be invoked by the async_metadata_source once the metadata has been
  * collected.  Note that the callback handler will be invoked in the context
- * of the asynchronous thread associated with the async_metric_source.  (2) If
- * the client did not supply a handler, then the metric will be stored, and the
+ * of the asynchronous thread associated with the async_metadata_source.  (2) If
+ * the client did not supply a handler, then the metadata will be stored, and the
  * next call to the lookup() method with the same key will return the previously
- * collected metrics.
+ * collected metadata.
  *
  * @tparam key_type    The type of the keys for which concrete subclasses will
  *                     query.
- * @tparam metric_type The type of metric that concrete subclasses will receive
+ * @tparam metadata_type The type of metadata that concrete subclasses will receive
  *                     from a query.
  */
-template<typename key_type, typename metric_type>
-class async_metric_source
+template<typename key_type, typename metadata_type>
+class async_metadata_source
 {
 public:
 	/**
@@ -70,65 +70,65 @@ public:
 	const static uint64_t NO_LOOKUP_WAIT = 0;
 
         typedef std::function<void(const key_type& key,
-			           const metric_type& metric)> callback_handler;
+			           const metadata_type& metadata)> callback_handler;
 
 	/**
-	 * Initialize this new async_metric_source, which will block
-	 * synchronously for the given max_wait_ms for metric collection.
+	 * Initialize this new async_metadata_source, which will block
+	 * synchronously for the given max_wait_ms for metadata collection.
 	 *
 	 * @param[in] max_wait_ms The maximum amount of time that client code
 	 *                        is willing to wait for lookup() to collect
-	 *                        metrics before falling back to an async
+	 *                        metadata before falling back to an async
 	 *                        return.
 	 */
-	async_metric_source(uint64_t max_wait_ms);
+	async_metadata_source(uint64_t max_wait_ms);
 
-	async_metric_source(const async_metric_source&) = delete;
-	async_metric_source(async_metric_source&&) = delete;
-	async_metric_source& operator=(const async_metric_source&) = delete;
+	async_metadata_source(const async_metadata_source&) = delete;
+	async_metadata_source(async_metadata_source&&) = delete;
+	async_metadata_source& operator=(const async_metadata_source&) = delete;
 
-	virtual ~async_metric_source();
+	virtual ~async_metadata_source();
 
 	uint64_t get_max_wait() const;
 
 	/**
-	 * Lookup metrics based on the given key.  This method will block
+	 * Lookup metadata based on the given key.  This method will block
 	 * the caller for up the max_wait_ms time specified at construction
-	 * for the desired metrics to be available.
+	 * for the desired metadata to be available.
 	 *
-	 * @param[in] key     The key to the metric for which the client wishes
+	 * @param[in] key     The key to the metadata for which the client wishes
 	 *                    to query.
-	 * @param[out] metric If this method is able to fetch the desired
-	 *                    metrics within the max_wait_ms specified at
+	 * @param[out] metadata If this method is able to fetch the desired
+	 *                    metadata within the max_wait_ms specified at
 	 *                    construction time, then this output parameter will
-	 *                    contain the collected metrics.  The value of this
+	 *                    contain the collected metadata.  The value of this
 	 *                    parameter is defined only if this method returns
 	 *                    true.
 	 * @param[in] handler If this method is unable to collect the requested
-	 *                    metrics before the timeout, and if this parameter
+	 *                    metadata before the timeout, and if this parameter
 	 *                    is a valid, non-empty, function, then this class
 	 *                    will invoke the given handler from the async
-	 *                    thread immediately after the collected metrics
+	 *                    thread immediately after the collected metadata
 	 *                    are available.  If this handler is empty, then
-	 *                    this async_metric_source will store the metrics
+	 *                    this async_metadata_source will store the metadata
 	 *                    and return them on the next call to lookup().
 	 *
 	 * @returns true if this method was able to lookup and return the
-	 *          metric synchronously; false otherwise.
+	 *          metadata synchronously; false otherwise.
 	 */
 	bool lookup(const key_type& key,
-                    metric_type& metric,
+                    metadata_type& metadata,
                     const callback_handler& handler = callback_handler());
 
 	/**
 	 * @returns true if the async thread assocaited with this
-	 *          async_metric_source is running, false otherwise.
+	 *          async_metadata_source is running, false otherwise.
 	 */
 	bool is_running() const;
 
 protected:
 	/**
-	 * Stops the thread assocaited with this async_metric_source, if
+	 * Stops the thread assocaited with this async_metadata_source, if
 	 * it is running.
 	 */
 	void stop();
@@ -145,7 +145,7 @@ protected:
 	/**
 	 * Dequeues an entry from the request queue and returns it.  Concrete
 	 * subclasses will call this method to get the next key for which
-	 * to collect metrics.
+	 * to collect metadata.
 	 *
 	 * Precondition: queue_size() must be non-zero.
 	 *
@@ -153,21 +153,21 @@ protected:
 	 */
 	key_type dequeue_next_key();
 
-	metric_type get_metrics(const key_type& key);
+	metadata_type get_metadata(const key_type& key);
 
 	/**
-	 * Stores a collected set of metrics for the given key.  Concrete
+	 * Stores a collected set of metadata for the given key.  Concrete
 	 * subclasses will call this method from their run_impl() method to
-	 * save (or otherwise notifiy the client about) a collected metric.
+	 * save (or otherwise notifiy the client about) a collected metadata.
 	 *
-	 * @param[in] key     The key for which the client asked for metrics.
-	 * @param[in] metrics The collected metrics.
+	 * @param[in] key      The key for which the client asked for metadata.
+	 * @param[in] metadata The collected metadata.
 	 */
-	void store_metric(const key_type& key, const metric_type& metric);
+	void store_metadata(const key_type& key, const metadata_type& metadata);
 
 	/**
 	 * Concrete subclasses must override this method to perform the
-	 * asynchronous metric lookup.
+	 * asynchronous metadata lookup.
 	 */
 	virtual void run_impl() = 0;
 
@@ -176,18 +176,18 @@ private:
 	{
 		lookup_request():
 			m_available(false),
-			m_metric(),
+			m_metadata(),
 			m_available_condition(),
 			m_callback()
 		{}
 
 		bool m_available;
-		metric_type m_metric;
+		metadata_type m_metadata;
 		std::condition_variable m_available_condition;
 		callback_handler m_callback; // TODO: This may need to be a list
 	};
 
-	typedef std::map<key_type, lookup_request> metric_map;
+	typedef std::map<key_type, lookup_request> metadata_map;
 
 	void run();
 
@@ -199,10 +199,10 @@ private:
 	std::condition_variable m_start_condition;
 	std::condition_variable m_queue_not_empty_condition;
 	std::list<key_type> m_request_queue;
-	metric_map m_metric_map;
+	metadata_map m_metadata_map;
 };
 
 
 } // end namespace sysdig
 
-#include "async_metric_source.tpp"
+#include "async_metadata_source.tpp"

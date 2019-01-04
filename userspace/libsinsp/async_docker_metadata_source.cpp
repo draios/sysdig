@@ -16,69 +16,75 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#include "async_docker_metrics_source.h"
-#include "async_linux_docker_metrics_source.h"
+#include "async_docker_metadata_source.h"
+
+#if defined(CYGWING_AGENT)
+#    include "async_windows_docker_metadata_source.h"
+#else
+#    include "async_linux_docker_metadata_source.h"
+#endif
+
 #include "sinsp_int.h"
 #include "logger.h"
 
 using namespace sysdig;
 
-const uint16_t async_docker_metrics_source::DEFAULT_PORT = 80;
+const uint16_t async_docker_metadata_source::DEFAULT_PORT = 80;
 
-async_docker_metrics_source::async_docker_metrics_source(const std::string& api_version,
+async_docker_metadata_source::async_docker_metadata_source(const std::string& api_version,
                                            const uint16_t port):
-	async_metric_source<std::string, docker_metrics>(NO_LOOKUP_WAIT),
+	async_metadata_source<std::string, docker_metadata>(NO_LOOKUP_WAIT),
 	m_query_image_info(true),
 	m_api_version(api_version),
 	m_port(port)
 {
 }
 
-const std::string& async_docker_metrics_source::get_api_version() const
+const std::string& async_docker_metadata_source::get_api_version() const
 {
 	return m_api_version;
 }
 
-uint16_t async_docker_metrics_source::get_port() const
+uint16_t async_docker_metadata_source::get_port() const
 {
 	return m_port;
 }
 
-bool async_docker_metrics_source::query_image_info() const
+bool async_docker_metadata_source::query_image_info() const
 {
 	return m_query_image_info;
 }
 
-void async_docker_metrics_source::set_query_image_info(const bool query_info)
+void async_docker_metadata_source::set_query_image_info(const bool query_info)
 {
 	m_query_image_info = query_info;
 }
 
-void async_docker_metrics_source::run_impl()
+void async_docker_metadata_source::run_impl()
 {
 	while(queue_size() > 0)
 	{
 		const std::string container_id = dequeue_next_key();
-		docker_metrics metrics = get_metrics(container_id);
+		docker_metadata metadata = get_metadata(container_id);
 
-		if(metrics.m_manager != nullptr)
+		if(metadata.m_manager != nullptr)
 		{
-			if(parse_docker(metrics.m_manager,
-					metrics.m_container_info.get()))
+			if(parse_docker(metadata.m_manager,
+					metadata.m_container_info.get()))
 			{
-				store_metric(container_id, metrics);
+				store_metadata(container_id, metadata);
 			}
 		}
 		else
 		{
 			g_logger.log("Unexpected null manager",
 			             sinsp_logger::SEV_ERROR);
-			ASSERT(metrics.m_manager != nullptr);
+			ASSERT(metadata.m_manager != nullptr);
 		}
 	}
 }
 
-bool async_docker_metrics_source::parse_docker(sinsp_container_manager* const manager,
+bool async_docker_metadata_source::parse_docker(sinsp_container_manager* const manager,
                                                sinsp_container_info* const container)
 {
 	std::string json;
@@ -341,21 +347,20 @@ bool async_docker_metrics_source::parse_docker(sinsp_container_manager* const ma
 	return true;
 }
 
-async_docker_metrics_source* async_docker_metrics_source::new_async_docker_metrics_source()
+async_docker_metadata_source* async_docker_metadata_source::new_async_docker_metadata_source()
 {
-	async_docker_metrics_source* docker_metrics = nullptr;
+	async_docker_metadata_source* docker_metadata = nullptr;
 
 #if defined(CYGWING_AGENT)
-	// TODO: Need to implement async_windows_docker_metrics
-	// docker_metrics = new async_windows_docker_metrics();
-#else // CYGWING_AGENT
-#       if defined(HAS_ANALYZER)
-		docker_metrics = new async_linux_docker_metrics_source();
-#       else // HAS_ANALYZER
-		// TODO: Need to implement async_null_docker_metrics_source
-		// docker_metrics = new async_null_docker_metrics_source();
-#       endif //HAS_ANALYZER
+	docker_metadata = new async_windows_docker_metadata_source();
+#else // !CYGWING_AGENT
+#       if defined(HAS_CAPTURE)
+		docker_metadata = new async_linux_docker_metadata_source();
+#       else // !HAS_CAPTURE
+		// TODO: Need to implement async_null_docker_metadata_source
+		// docker_metadata = new async_null_docker_metadata_source();
+#       endif //HAS_CAPTURE
 #endif // CYGWING_AGENT
 
-	return docker_metrics;
+	return docker_metadata;
 }

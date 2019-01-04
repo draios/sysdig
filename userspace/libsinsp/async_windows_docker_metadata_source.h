@@ -18,40 +18,30 @@ limitations under the License.
 */
 #pragma once
 
-#include "async_docker_metrics_source.h"
-#include <curl/curl.h>
+#include "async_docker_metadata_source.h"
 
 namespace sysdig
 {
 
 /**
- * Interface to async_linux_docker_metrics_source -- a concrete
- * async_docker_metrics_source for fetching docker metrics and metadata
- * on Linux.
+ * Interface to async_windows_docker_metadata_source -- a concrete
+ * async_docker_metadata_source for fetching docker metadata and metadata
+ * on Windows.
  */
-class async_linux_docker_metrics_source : public async_docker_metrics_source
+class async_windows_docker_metadata_source : public async_docker_metadata_source
 {
 public:
 	const static std::string DEFAULT_API_VERSION;
 
-	async_linux_docker_metrics_source(
+	async_windows_docker_metadata_source(
 			const std::string& api_version = DEFAULT_API_VERSION,
 	                uint16_t port = DEFAULT_PORT);
-	~async_linux_docker_metrics_source();
 
 protected:
-	std::string build_request(const std::string& url) override;
+	std::string build_request(const std::string& path) override;
 	sinsp_docker_response get_docker(sinsp_container_manager* manager,
 	                                 const std::string& url,
 	                                 std::string &json) override;
-
-private:
-	std::string m_unix_socket_path;
-
-#if defined(HAS_CAPTURE)
-	CURL* const m_curl;
-	CURLM* const m_curlm;
-#endif
 };
 
 }
