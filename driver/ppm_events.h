@@ -23,7 +23,7 @@ or GPL2.txt for full copies of the license.
 	#define _HAS_SOCKETCALL
 #endif
 
-#include <ppm_events_public.h>
+#include "ppm_events_public.h"
 
 /*
  * Various crap that a callback might need
