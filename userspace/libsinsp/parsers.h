@@ -21,6 +21,7 @@ limitations under the License.
 // Public definitions for the scap library
 ////////////////////////////////////////////////////////////////////////////
 #pragma once
+#include "sinsp.h"
 
 class sinsp_fd_listener;
 
