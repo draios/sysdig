@@ -25,11 +25,9 @@ using namespace sysdig;
 const std::string async_windows_docker_metadata_source::DEFAULT_API_VERSION = "/v1.30";
 
 async_windows_docker_metadata_source::async_windows_docker_metadata_source(
-		const std::string& api_version,
-		const uint16_t port):
-	  async_docker_metadata_source(api_version, port)
-{
-}
+		const std::string& api_version):
+	  async_docker_metadata_source(api_version)
+{ }
 
 std::string async_windows_docker_metadata_source::build_request(const std::string& path)
 {

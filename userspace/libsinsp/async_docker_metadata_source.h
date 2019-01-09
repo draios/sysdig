@@ -53,21 +53,11 @@ struct docker_metadata
 class async_docker_metadata_source : public async_metadata_source<std::string, docker_metadata>
 {
 public:
-	/** The default port on which Docker listens for REST requests. */
-	static const uint16_t DEFAULT_PORT;
-
 	/**
 	 * Returns the API version that this async_metadata_source will use to
 	 * fetch information from Docker.
 	 */
 	const std::string& get_api_version() const;
-
-
-	/**
-	 * Returns the port that this async_docker_metadata_source will use
-	 * to connect to Docker.
-	 */
-	uint16_t get_port() const;
 
 	/**
 	 * Returns true if this async_docker_metadata_source should query for
@@ -89,8 +79,12 @@ public:
 	static async_docker_metadata_source* new_async_docker_metadata_source();
 
 protected:
-	async_docker_metadata_source(const std::string& api_version,
-	                            uint16_t port = DEFAULT_PORT);
+	/**
+	 * Initialize a new async_docker_metadata_source.
+	 *
+	 * @param[in] api_version the version of the Docker API to use.
+	 */
+	async_docker_metadata_source(const std::string& api_version);
 
 	/**
 	 * Builds and returns a URL for querying Docker on the local host.
@@ -134,7 +128,6 @@ protected:
 private:
 	bool m_query_image_info;
 	std::string m_api_version;
-	uint16_t m_port;
 };
 
 } // end namespace sysdig

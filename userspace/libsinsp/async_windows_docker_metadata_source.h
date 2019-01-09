@@ -34,8 +34,7 @@ public:
 	const static std::string DEFAULT_API_VERSION;
 
 	async_windows_docker_metadata_source(
-			const std::string& api_version = DEFAULT_API_VERSION,
-	                uint16_t port = DEFAULT_PORT);
+			const std::string& api_version = DEFAULT_API_VERSION);
 
 protected:
 	std::string build_request(const std::string& path) override;

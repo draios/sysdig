@@ -20,12 +20,17 @@ limitations under the License.
 #include "sinsp_int.h"
 #include "logger.h"
 
+#if defined(LOCAL_DEBUG)
+#       include<cstdio>
+#       define LOG(fmt, ...) fprintf(stderr, "[%s]:%d: " fmt "\n", __FUNCTION__, __LINE__, ##__VA_ARGS__)
+#else
+#       define LOG(fmt, ...) do { } while(false)
+#endif
+
 using namespace sysdig;
 
 namespace
 {
-
-const std::string s_docker_socket_path = "/var/run/docker.sock";
 
 #if defined(HAS_CAPTURE)
 /**
@@ -47,13 +52,14 @@ size_t docker_curl_write_callback(const char* const ptr,
 
 } // end namespace
 
+const std::string async_linux_docker_metadata_source::DEFAULT_DOCKER_SOCKET_PATH = "/var/run/docker.sock";
 const std::string async_linux_docker_metadata_source::DEFAULT_API_VERSION = "/v1.24";
 
 async_linux_docker_metadata_source::async_linux_docker_metadata_source(
-		const std::string& api_version,
-		const uint16_t port):
-	  async_docker_metadata_source(api_version, port)
-	, m_unix_socket_path(scap_get_host_root() + s_docker_socket_path)
+		const std::string& socket_path,
+		const std::string& api_version):
+	  async_docker_metadata_source(api_version)
+	, m_unix_socket_path(scap_get_host_root() + socket_path)
 #if defined(HAS_CAPTURE)
 	, m_curl(curl_easy_init())
 	, m_curlm(curl_multi_init())
@@ -79,10 +85,17 @@ async_linux_docker_metadata_source::async_linux_docker_metadata_source(
 
 async_linux_docker_metadata_source::~async_linux_docker_metadata_source()
 {
+	stop();
+
 #if defined(HAS_CAPTURE)
 	curl_easy_cleanup(m_curl);
 	curl_multi_cleanup(m_curlm);
 #endif
+}
+
+const std::string& async_linux_docker_metadata_source::get_socket_path() const
+{
+	return m_unix_socket_path;
 }
 
 std::string async_linux_docker_metadata_source::build_request(const std::string& path)
@@ -95,15 +108,12 @@ sinsp_docker_response async_linux_docker_metadata_source::get_docker(
                 const std::string& url,
                 std::string &json)
 {
+	LOG("url: %s", url.c_str());
+
 #if defined(HAS_CAPTURE)
 
+	LOG("url: %s", url.c_str());
 	if(curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str()) != CURLE_OK)
-	{
-		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
-	}
-
-	if(curl_easy_setopt(m_curl, CURLOPT_PORT, get_port()) != CURLE_OK)
 	{
 		ASSERT(false);
 		return sinsp_docker_response::RESP_ERROR;
@@ -115,8 +125,7 @@ sinsp_docker_response async_linux_docker_metadata_source::get_docker(
 		return sinsp_docker_response::RESP_ERROR;
 	}
 
-	if(curl_multi_add_handle(m_curlm, m_curl) != CURLM_OK)
-	{
+	if(curl_multi_add_handle(m_curlm, m_curl) != CURLM_OK) {
 		ASSERT(false);
 		return sinsp_docker_response::RESP_ERROR;
 	}

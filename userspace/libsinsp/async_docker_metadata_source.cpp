@@ -27,27 +27,24 @@ limitations under the License.
 #include "sinsp_int.h"
 #include "logger.h"
 
+#if defined(LOCAL_DEBUG)
+#       include<cstdio>
+#       define LOG(fmt, ...) fprintf(stderr, "[%s]:%d: " fmt "\n", __FUNCTION__, __LINE__, ##__VA_ARGS__)
+#else
+#       define LOG(fmt, ...) do { } while(false)
+#endif
+
 using namespace sysdig;
 
-const uint16_t async_docker_metadata_source::DEFAULT_PORT = 80;
-
-async_docker_metadata_source::async_docker_metadata_source(const std::string& api_version,
-                                           const uint16_t port):
+async_docker_metadata_source::async_docker_metadata_source(const std::string& api_version):
 	async_metadata_source<std::string, docker_metadata>(NO_LOOKUP_WAIT),
 	m_query_image_info(true),
-	m_api_version(api_version),
-	m_port(port)
-{
-}
+	m_api_version(api_version)
+{ }
 
 const std::string& async_docker_metadata_source::get_api_version() const
 {
 	return m_api_version;
-}
-
-uint16_t async_docker_metadata_source::get_port() const
-{
-	return m_port;
 }
 
 bool async_docker_metadata_source::query_image_info() const
@@ -67,19 +64,10 @@ void async_docker_metadata_source::run_impl()
 		const std::string container_id = dequeue_next_key();
 		docker_metadata metadata = get_metadata(container_id);
 
-		if(metadata.m_manager != nullptr)
+		if(parse_docker(metadata.m_manager,
+		                metadata.m_container_info.get()))
 		{
-			if(parse_docker(metadata.m_manager,
-					metadata.m_container_info.get()))
-			{
-				store_metadata(container_id, metadata);
-			}
-		}
-		else
-		{
-			g_logger.log("Unexpected null manager",
-			             sinsp_logger::SEV_ERROR);
-			ASSERT(metadata.m_manager != nullptr);
+			store_metadata(container_id, metadata);
 		}
 	}
 }
@@ -232,7 +220,9 @@ bool async_docker_metadata_source::parse_docker(sinsp_container_manager* const m
 		{
 			std::string container_id = net_mode.substr(net_mode.find(":") + 1);
 			uint32_t container_ip;
-			const sinsp_container_info* const container_info = manager->get_container(container_id);
+			const sinsp_container_info* const container_info =
+				manager ? manager->get_container(container_id) : nullptr;
+
 			if(container_info)
 			{
 				container_ip = container_info->m_container_ip;

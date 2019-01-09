@@ -114,7 +114,7 @@ const uint64_t delayed_metadata_source::MAX_WAIT_TIME_MS = 0;
  * Ensure that a concrete async_metadata_source is in the expected initial state
  * after construction.
  */
-TEST(async_metadata_source, construction)
+TEST(async_metadata_source_test, construction)
 {
 	immediate_metadata_source source;
 
@@ -127,21 +127,18 @@ TEST(async_metadata_source, construction)
  * the timeout, that the lookup() method returns true, and that it returns
  * the metadata in the output parameter.
  */
-TEST(async_metadata_source, lookup_key_immediate_return)
+TEST(async_metadata_source_test, lookup_key_immediate_return)
 {
 	const std::string key = "foo";
 	const std::string metadata = "bar";
 	std::string response = "response-not-set";
-	bool response_found;
 
 	immediate_metadata_source source;
 
 	// Seed the precanned response
 	source.set_response(key, metadata);
 
-	response_found = source.lookup(key, response);
-
-	ASSERT_TRUE(response_found);
+	ASSERT_TRUE(source.lookup(key, response));
 	ASSERT_EQ(metadata, response);
 	ASSERT_TRUE(source.is_running());
 }
@@ -151,7 +148,7 @@ TEST(async_metadata_source, lookup_key_immediate_return)
  * before the timeout, and if the client did not provide a callback, that
  * calling lookup() after the result it available returns the value.
  */
-TEST(async_metadata_source, lookup_key_delayed_return_second_call)
+TEST(async_metadata_source_test, lookup_key_delayed_return_second_call)
 {
 	const uint64_t DELAY_MS = 50;
 	const std::string key = "mykey";
@@ -187,7 +184,7 @@ TEST(async_metadata_source, lookup_key_delayed_return_second_call)
  * before the timeout, and if the client did provide a callback, that the
  * callback is invoked with the metadata once they're avaialble.
  */
-TEST(async_metadata_source, look_key_delayed_async_callback)
+TEST(async_metadata_source_test, look_key_delayed_async_callback)
 {
 	const uint64_t DELAY_MS = 50;
 	const std::string key = "mykey";
