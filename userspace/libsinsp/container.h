@@ -120,7 +120,9 @@ public:
 		m_swap_limit(0),
 		m_cpu_shares(1024),
 		m_cpu_quota(0),
-		m_cpu_period(100000)
+		m_cpu_period(100000),
+		m_has_healthcheck(false),
+		m_healthcheck_exe("")
 #ifdef HAS_ANALYZER
 		,m_metadata_deadline(0)
 #endif
@@ -128,6 +130,9 @@ public:
 	}
 
 	static void parse_json_mounts(const Json::Value &mnt_obj, vector<container_mount_info> &mounts);
+
+	std::string normalize_healthcheck_arg(const std::string &arg);
+	void parse_healthcheck(const Json::Value &config_obj);
 
 	const vector<string>& get_env() const { return m_env; }
 
@@ -155,6 +160,10 @@ public:
 	int64_t m_cpu_shares;
 	int64_t m_cpu_quota;
 	int64_t m_cpu_period;
+	Json::Value m_healthcheck_obj;
+	bool m_has_healthcheck;
+	std::string m_healthcheck_exe;
+	std::vector<std::string> m_healthcheck_args;
 #ifdef HAS_ANALYZER
 	string m_sysdig_agent_conf;
 	uint64_t m_metadata_deadline;
@@ -241,6 +250,13 @@ public:
 	bool resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	void dump_containers(scap_dumper_t* dumper);
 	string get_container_name(sinsp_threadinfo* tinfo);
+
+	// Set tinfo's is_container_healthcheck attribute to true if
+	// it is identified as a container healthcheck. It will *not*
+	// set it to false by default, so a threadinfo that is
+	// initially identified as a health check will remain one
+	// across execs e.g. "sh -c /bin/true" execing /bin/true.
+	void identify_healthcheck(sinsp_threadinfo *tinfo);
 
 	bool container_exists(const string& container_id) const {
 		return m_containers.find(container_id) != m_containers.end();
