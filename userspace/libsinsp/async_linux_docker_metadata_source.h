@@ -19,7 +19,10 @@ limitations under the License.
 #pragma once
 
 #include "async_docker_metadata_source.h"
-#include <curl/curl.h>
+
+#if defined(HAS_CAPTURE)
+#    include "url_fetcher.h"
+#endif
 
 namespace sysdig
 {
@@ -52,8 +55,7 @@ private:
 	std::string m_unix_socket_path;
 
 #if defined(HAS_CAPTURE)
-	CURL* const m_curl;
-	CURLM* const m_curlm;
+	url_fetcher::ptr m_url_fetcher;
 #endif
 };
 

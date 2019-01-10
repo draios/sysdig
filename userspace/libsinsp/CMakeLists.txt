@@ -38,6 +38,7 @@ add_library(sinsp STATIC
 	chisel_api.cpp
 	container.cpp
 	ctext.cpp
+    curl_url_fetcher.cpp
 	cyclewriter.cpp
 	cursescomponents.cpp
 	cursestable.cpp
@@ -103,6 +104,7 @@ add_library(sinsp STATIC
 	sinsp_auth.cpp
 	sinsp_curl.cpp
 	stopwatch.cpp
+    url_fetcher.cpp
 	uri_parser.c
 	uri.cpp
 	utils.cpp

@@ -29,29 +29,6 @@ limitations under the License.
 
 using namespace sysdig;
 
-namespace
-{
-
-#if defined(HAS_CAPTURE)
-/**
- * Handles callbacks from libcurl to build a string representation of the
- * document that its fetching.
- */
-size_t docker_curl_write_callback(const char* const ptr,
-                                  const size_t size,
-                                  const size_t nmemb,
-                                  std::string* const json)
-{
-	const std::size_t total = size * nmemb;
-
-	json->append(ptr, total);
-
-	return total;
-}
-#endif
-
-} // end namespace
-
 const std::string async_linux_docker_metadata_source::DEFAULT_DOCKER_SOCKET_PATH = "/var/run/docker.sock";
 const std::string async_linux_docker_metadata_source::DEFAULT_API_VERSION = "/v1.24";
 
@@ -61,36 +38,13 @@ async_linux_docker_metadata_source::async_linux_docker_metadata_source(
 	  async_docker_metadata_source(api_version)
 	, m_unix_socket_path(scap_get_host_root() + socket_path)
 #if defined(HAS_CAPTURE)
-	, m_curl(curl_easy_init())
-	, m_curlm(curl_multi_init())
+        , m_url_fetcher(url_fetcher::new_fetcher(m_unix_socket_path))
 #endif
-{
-#if defined(HAS_CAPTURE)
-	if(m_curlm != nullptr)
-	{
-		curl_multi_setopt(m_curlm,
-		                  CURLMOPT_PIPELINING,
-		                  CURLPIPE_HTTP1 | CURLPIPE_MULTIPLEX);
-	}
-
-	if(m_curl != nullptr)
-	{
-		curl_easy_setopt(m_curl, CURLOPT_UNIX_SOCKET_PATH, m_unix_socket_path.c_str());
-		curl_easy_setopt(m_curl, CURLOPT_HTTPGET, 1);
-		curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
-		curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, docker_curl_write_callback);
-	}
-#endif
-}
+{ }
 
 async_linux_docker_metadata_source::~async_linux_docker_metadata_source()
 {
 	stop();
-
-#if defined(HAS_CAPTURE)
-	curl_easy_cleanup(m_curl);
-	curl_multi_cleanup(m_curlm);
-#endif
 }
 
 const std::string& async_linux_docker_metadata_source::get_socket_path() const
@@ -108,76 +62,33 @@ sinsp_docker_response async_linux_docker_metadata_source::get_docker(
                 const std::string& url,
                 std::string &json)
 {
-	LOG("url: %s", url.c_str());
+	sinsp_docker_response response = sinsp_docker_response::RESP_ERROR;
 
 #if defined(HAS_CAPTURE)
-
-	LOG("url: %s", url.c_str());
-	if(curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str()) != CURLE_OK)
+	try
 	{
-		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
-	}
+		LOG("url: %s", url.c_str());
 
-	if(curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &json) != CURLE_OK)
-	{
-		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
-	}
+		const int http_code = m_url_fetcher->fetch(url, json);
 
-	if(curl_multi_add_handle(m_curlm, m_curl) != CURLM_OK) {
-		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
-	}
-
-	while(true)
-	{
-		int still_running = 42;
-		CURLMcode res = curl_multi_perform(m_curlm, &still_running);
-
-		if(res != CURLM_OK)
+		if(http_code == 200)
 		{
-			ASSERT(false);
-			return sinsp_docker_response::RESP_ERROR;
+			response = sinsp_docker_response::RESP_OK;
 		}
-
-		if(still_running == 0)
+		else
 		{
-			break;
-		}
-
-		int numfds = 0;
-		res = curl_multi_wait(m_curlm, NULL, 0, -1, &numfds);
-		if(res != CURLM_OK)
-		{
-			ASSERT(false);
-			return sinsp_docker_response::RESP_ERROR;
+			g_logger.log("http_code: " + std::to_string(http_code),
+				     sinsp_logger::SEV_WARNING);
+			response = sinsp_docker_response::RESP_BAD_REQUEST;
 		}
 	}
-
-	if(curl_multi_remove_handle(m_curlm, m_curl) != CURLM_OK)
+	catch(const std::exception& ex)
 	{
+		g_logger.log(std::string("Failed to fetch URL: ") + ex.what());
 		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
+		response = sinsp_docker_response::RESP_ERROR;
 	}
+#endif // HAS_CAPTURE
 
-	long http_code = 0;
-	if(curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &http_code) != CURLE_OK)
-	{
-		ASSERT(false);
-		return sinsp_docker_response::RESP_ERROR;
-	}
-
-	if(http_code != 200)
-	{
-		g_logger.log("http_code: " + std::to_string(http_code),
-		             sinsp_logger::SEV_WARNING);
-		return sinsp_docker_response::RESP_BAD_REQUEST;
-	}
-
-	return sinsp_docker_response::RESP_OK;
-#else /* HAS_CAPTURE */
-	return sinsp_docker_response::RESP_ERROR;
-#endif /* HAS_CAPTURE */
+	return response;
 }
-
