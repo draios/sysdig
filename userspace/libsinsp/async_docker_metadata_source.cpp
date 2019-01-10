@@ -37,7 +37,7 @@ limitations under the License.
 using namespace sysdig;
 
 async_docker_metadata_source::async_docker_metadata_source(const std::string& api_version):
-	async_metadata_source<std::string, docker_metadata>(NO_LOOKUP_WAIT),
+	async_metadata_source<std::string, docker_metadata>(NO_LOOKUP_WAIT, MAX_TTL_MS),
 	m_query_image_info(true),
 	m_api_version(api_version)
 { }

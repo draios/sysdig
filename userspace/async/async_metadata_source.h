@@ -18,6 +18,7 @@ limitations under the License.
 */
 #pragma once
 
+#include <chrono>
 #include <condition_variable>
 #include <functional>
 #include <list>
@@ -54,10 +55,10 @@ namespace sysdig
  * next call to the lookup() method with the same key will return the previously
  * collected metadata.
  *
- * @tparam key_type    The type of the keys for which concrete subclasses will
- *                     query.
- * @tparam metadata_type The type of metadata that concrete subclasses will receive
- *                     from a query.
+ * @tparam key_type      The type of the keys for which concrete subclasses will
+ *                       query.
+ * @tparam metadata_type The type of metadata that concrete subclasses will
+ *                       receive from a query.
  */
 template<typename key_type, typename metadata_type>
 class async_metadata_source
@@ -80,8 +81,11 @@ public:
 	 *                        is willing to wait for lookup() to collect
 	 *                        metadata before falling back to an async
 	 *                        return.
+	 * @param[in] ttl_ms      The time, in milliseconds, that a cached
+	 *                        result will live before being considered
+	 *                        "too old" and being pruned.
 	 */
-	async_metadata_source(uint64_t max_wait_ms);
+	async_metadata_source(uint64_t max_wait_ms, uint64_t ttl_ms);
 
 	async_metadata_source(const async_metadata_source&) = delete;
 	async_metadata_source(async_metadata_source&&) = delete;
@@ -89,7 +93,17 @@ public:
 
 	virtual ~async_metadata_source();
 
+	/**
+	 * Returns the maximum amount of time, in milliseconds, that a call to
+	 * lookup() will block synchronously before returning.
+	 */
 	uint64_t get_max_wait() const;
+
+	/**
+	 * Returns the maximum amount of time, in milliseconds, that a cached
+	 * metadata result will live before being pruned.
+	 */
+	uint64_t get_ttl() const;
 
 	/**
 	 * Lookup metadata based on the given key.  This method will block
@@ -178,20 +192,24 @@ private:
 			m_available(false),
 			m_metadata(),
 			m_available_condition(),
-			m_callback()
-		{}
+			m_callback(),
+			m_start_time(std::chrono::steady_clock::now())
+		{ }
 
 		bool m_available;
 		metadata_type m_metadata;
 		std::condition_variable m_available_condition;
 		callback_handler m_callback; // TODO: This may need to be a list
+		std::chrono::time_point<std::chrono::steady_clock> m_start_time;
 	};
 
 	typedef std::map<key_type, lookup_request> metadata_map;
 
 	void run();
+	void prune_stale_requests();
 
 	uint64_t m_max_wait_ms;
+	uint64_t m_ttl_ms;
 	std::thread m_thread;
 	bool m_running;
 	bool m_terminate;

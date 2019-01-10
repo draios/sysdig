@@ -30,8 +30,10 @@ namespace sysdig
 
 template<typename key_type, typename metadata_type>
 async_metadata_source<key_type, metadata_type>::async_metadata_source(
-		const uint64_t max_wait_ms):
+		const uint64_t max_wait_ms,
+		const uint64_t ttl_ms):
 	m_max_wait_ms(max_wait_ms),
+	m_ttl_ms(ttl_ms),
 	m_thread(),
 	m_running(false),
 	m_terminate(false),
@@ -59,6 +61,12 @@ template<typename key_type, typename metadata_type>
 uint64_t async_metadata_source<key_type, metadata_type>::get_max_wait() const
 {
 	return m_max_wait_ms;
+}
+
+template<typename key_type, typename metadata_type>
+uint64_t async_metadata_source<key_type, metadata_type>::get_ttl() const
+{
+	return m_ttl_ms;
 }
 
 template<typename key_type, typename metadata_type>
@@ -113,6 +121,8 @@ void async_metadata_source<key_type, metadata_type>::run()
 				// Wait for something to show up on the queue
 				m_queue_not_empty_condition.wait(guard);
 			}
+
+			prune_stale_requests();
 		}
 
 		if(!m_terminate)
@@ -235,6 +245,41 @@ void async_metadata_source<key_type, metadata_type>::store_metadata(
 		m_metadata_map[key].m_metadata = metadata;
 		m_metadata_map[key].m_available = true;
 		m_metadata_map[key].m_available_condition.notify_one();
+	}
+}
+
+/**
+ * Prune any "old" outstanding requests.  This method expect that the caller
+ * is holding m_mutex.
+ */
+template<typename key_type, typename metadata_type>
+void async_metadata_source<key_type, metadata_type>::prune_stale_requests()
+{
+	// Avoid both iterating over and modifying the map by saving a list
+	// of keys to prune.
+	std::vector<key_type> keys_to_prune;
+
+	for(auto i = m_metadata_map.begin();
+	    !m_terminate && (i != m_metadata_map.end());
+	    ++i)
+	{
+		const auto now = std::chrono::steady_clock::now();
+
+		const auto age_ms =
+			std::chrono::duration_cast<std::chrono::milliseconds>(
+					now - i->second.m_start_time).count();
+
+		if(age_ms > m_ttl_ms)
+		{
+			keys_to_prune.push_back(i->first);
+		}
+	}
+
+	for(auto i = keys_to_prune.begin();
+	    !m_terminate && (i != keys_to_prune.end());
+	    ++i)
+	{
+		m_metadata_map.erase(*i);
 	}
 }
 

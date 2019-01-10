@@ -54,6 +54,13 @@ class async_docker_metadata_source : public async_metadata_source<std::string, d
 {
 public:
 	/**
+	 * The maximum amount of time that a collected Docker metric will
+	 * remain cached waiting for a subsequent call to lookup() before
+	 * being discarded.
+	 */
+	const uint64_t MAX_TTL_MS = (30 * 1000);
+
+	/**
 	 * Returns the API version that this async_metadata_source will use to
 	 * fetch information from Docker.
 	 */

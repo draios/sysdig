@@ -33,8 +33,10 @@ namespace
 class precanned_metadata_source : public async_metadata_source<std::string, std::string> 
 {
 public:
-	precanned_metadata_source(const uint64_t max_wait_ms)
-		: async_metadata_source(max_wait_ms),
+	const static uint64_t FOREVER_MS;
+
+	precanned_metadata_source(const uint64_t max_wait_ms, const uint64_t ttl_ms = FOREVER_MS)
+		: async_metadata_source(max_wait_ms, ttl_ms),
 		m_responses()
 	{ }
 
@@ -51,6 +53,7 @@ public:
 private:
 	std::map<std::string, std::string> m_responses;
 };
+const uint64_t precanned_metadata_source::FOREVER_MS = static_cast<uint64_t>(~0L);
 
 /**
  * Realization of async_metadata_source that returns results without delay.
@@ -85,8 +88,9 @@ class delayed_metadata_source : public precanned_metadata_source
 public:
 	const static uint64_t MAX_WAIT_TIME_MS;
 
-	delayed_metadata_source(const uint64_t delay_ms):
-		precanned_metadata_source(MAX_WAIT_TIME_MS),
+	delayed_metadata_source(const uint64_t delay_ms,
+	                        const uint64_t ttl_ms = FOREVER_MS):
+		precanned_metadata_source(MAX_WAIT_TIME_MS, ttl_ms),
 		m_delay_ms(delay_ms)
 	{ }
 
@@ -119,6 +123,7 @@ TEST(async_metadata_source_test, construction)
 	immediate_metadata_source source;
 
 	ASSERT_EQ(immediate_metadata_source::MAX_WAIT_TIME_MS, source.get_max_wait());
+	ASSERT_EQ(precanned_metadata_source::FOREVER_MS, source.get_ttl());
 	ASSERT_FALSE(source.is_running());
 }
 
@@ -215,4 +220,45 @@ TEST(async_metadata_source_test, look_key_delayed_async_callback)
 	std::this_thread::sleep_for(std::chrono::milliseconds(5 * DELAY_MS));
 
 	ASSERT_EQ(metadata, async_response);
+}
+
+/**
+ * Ensure that "old" results are pruned
+ */
+TEST(async_metadata_source_test, prune_old_metadata)
+{
+	const uint64_t DELAY_MS = 0;
+	const uint64_t TTL_MS = 20;
+
+	const std::string key1 = "mykey1";
+	const std::string metadata1 = "myvalue1";
+
+	const std::string key2 = "mykey2";
+	const std::string metadata2 = "myvalue2";
+
+	delayed_metadata_source source(DELAY_MS, TTL_MS);
+	std::string response = "response-not-set";
+
+	// Seed the precanned response
+	source.set_response(key1, metadata1);
+	source.set_response(key2, metadata2);
+
+	// Since DELAY_MS is 0, then lookup should return false immediately,
+	// and should almost immediately add the result to the cache
+	ASSERT_FALSE(source.lookup(key1, response));
+
+	// Wait long enough for the old entry to require pruning
+	std::this_thread::sleep_for(std::chrono::milliseconds(2 * TTL_MS));
+
+	// Request the other key.  This should wake up the thread and actually
+	// preform the pruning.
+	ASSERT_FALSE(source.lookup(key2, response));
+
+	// Wait long enough for the async thread to get woken up and to
+	// prune the old entry
+	std::this_thread::sleep_for(std::chrono::milliseconds(TTL_MS));
+
+	// Since the first key should have been pruned, a second call to
+	// fetch the first key should also return false.
+	ASSERT_FALSE(source.lookup(key1, response));
 }
