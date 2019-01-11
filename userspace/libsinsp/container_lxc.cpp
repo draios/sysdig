@@ -46,7 +46,9 @@ bool sinsp_container_engine_lxc::resolve(sinsp_container_manager* manager, sinsp
 	}
 
 	if (!matches)
+	{
 		return false;
+	}
 
 	tinfo->m_container_id = container_info.m_id;
 	if (!manager->container_exists(container_info.m_id))
@@ -116,7 +118,9 @@ bool sinsp_container_engine_libvirt_lxc::resolve(sinsp_container_manager* manage
 	sinsp_container_info container_info;
 
 	if (!match(tinfo, &container_info))
+	{
 		return false;
+	}
 
 	tinfo->m_container_id = container_info.m_id;
 	if (!manager->container_exists(container_info.m_id))
