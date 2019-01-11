@@ -37,7 +37,7 @@ set(SINSP_SOURCES
 	chisel.cpp
 	chisel_api.cpp
 	container.cpp
-	container_docker_common.cpp
+	container_engine/docker_common.cpp
 	container_info.cpp
 	ctext.cpp
 	cyclewriter.cpp
@@ -115,19 +115,20 @@ set(SINSP_SOURCES
 
 if(WIN32)
 list(APPEND SINSP_SOURCES
-	container_docker_win.cpp)
+	container_engine/docker_win.cpp)
 else()
 list(APPEND SINSP_SOURCES
-	container_docker_linux.cpp
-	container_lxc.cpp
-	container_mesos.cpp
-	container_rkt.cpp)
+	container_engine/docker_linux.cpp
+	container_engine/libvirt_lxc.cpp
+	container_engine/lxc.cpp
+	container_engine/mesos.cpp
+	container_engine/rkt.cpp)
 endif()
 
 if(NOT WIN32 AND NOT APPLE)
 list(APPEND SINSP_SOURCES
     cri.cpp
-	container_cri.cpp
+	container_engine/cri.cpp
 	${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.cc
 	${CMAKE_CURRENT_BINARY_DIR}/cri.pb.cc)
 endif()

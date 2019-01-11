@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2013-2019 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
@@ -19,18 +19,18 @@ limitations under the License.
 
 #pragma once
 
-#include <string>
-
 class sinsp_container_manager;
 class sinsp_container_info;
 class sinsp_threadinfo;
 
-class sinsp_container_engine_mesos
+namespace libsinsp {
+namespace container_engine {
+class libvirt_lxc
 {
 public:
 	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
-	static bool set_mesos_task_id(sinsp_container_info* container, sinsp_threadinfo* tinfo);
 protected:
 	bool match(sinsp_threadinfo* tinfo, sinsp_container_info* container_info);
-	static std::string get_env_mesos_task_id(sinsp_threadinfo* tinfo);
 };
+}
+}

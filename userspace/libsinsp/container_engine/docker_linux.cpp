@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2013-2019 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
@@ -17,11 +17,13 @@ limitations under the License.
 
 */
 
-#include "container_docker.h"
+#include "container_engine/docker.h"
 
-#include "container_mesos.h"
+#include "container_engine/mesos.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
+
+using namespace libsinsp::container_engine;
 
 #if defined(HAS_CAPTURE)
 namespace {
@@ -39,10 +41,10 @@ size_t docker_curl_write_callback(const char* ptr, size_t size, size_t nmemb, st
 }
 #endif
 
-std::string sinsp_container_engine_docker::m_api_version = "/v1.24";
-sinsp_container_engine_docker::engine_mode sinsp_container_engine_docker::m_engine_mode = sinsp_container_engine_docker::ENABLED;
+std::string docker::m_api_version = "/v1.24";
+docker::engine_mode libsinsp::container_engine::docker::m_engine_mode = libsinsp::container_engine::docker::ENABLED;
 
-sinsp_container_engine_docker::sinsp_container_engine_docker()
+docker::docker()
 {
 #if defined(HAS_CAPTURE)
 	if(!s_curlm)
@@ -67,7 +69,7 @@ sinsp_container_engine_docker::sinsp_container_engine_docker()
 #endif
 }
 
-void sinsp_container_engine_docker::cleanup()
+void docker::cleanup()
 {
 #if defined(HAS_CAPTURE)
 	curl_easy_cleanup(s_curl);
@@ -79,12 +81,12 @@ void sinsp_container_engine_docker::cleanup()
 #endif
 }
 
-std::string sinsp_container_engine_docker::build_request(const std::string &url)
+std::string docker::build_request(const std::string &url)
 {
 	return "http://localhost" + m_api_version + url;
 }
 
-bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	sinsp_container_info container_info;
 
@@ -110,7 +112,7 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 				return false;
 			}
 		}
-		if (sinsp_container_engine_mesos::set_mesos_task_id(&container_info, tinfo))
+		if (mesos::set_mesos_task_id(&container_info, tinfo))
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"Mesos Docker container: [%s], Mesos task ID: [%s]",
@@ -123,7 +125,7 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 	return true;
 }
 
-sinsp_container_engine_docker::docker_response sinsp_container_engine_docker::get_docker(sinsp_container_manager* manager, const std::string& url, std::string &json)
+docker::docker_response libsinsp::container_engine::docker::get_docker(sinsp_container_manager* manager, const std::string& url, std::string &json)
 {
 #ifdef HAS_CAPTURE
 	if(curl_easy_setopt(s_curl, CURLOPT_URL, url.c_str()) != CURLE_OK)
@@ -195,7 +197,7 @@ sinsp_container_engine_docker::docker_response sinsp_container_engine_docker::ge
 #endif
 }
 
-bool sinsp_container_engine_docker::detect_docker(const sinsp_threadinfo *tinfo, std::string &container_id)
+bool docker::detect_docker(const sinsp_threadinfo *tinfo, std::string &container_id)
 {
 	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
 	{
@@ -235,7 +237,7 @@ bool sinsp_container_engine_docker::detect_docker(const sinsp_threadinfo *tinfo,
 	return false;
 }
 
-void sinsp_container_engine_docker::set_mode(engine_mode mode)
+void docker::set_mode(engine_mode mode)
 {
 	m_engine_mode = mode;
 }

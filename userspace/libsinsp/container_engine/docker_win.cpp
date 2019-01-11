@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2013-2019 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
@@ -17,35 +17,37 @@ limitations under the License.
 
 */
 
-#include "container_docker.h"
+#include "container_engine/docker.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "dragent_win_hal_public.h"
 
-std::string sinsp_container_engine_docker::m_api_version = "/v1.30";
+using namespace libsinsp::container_engine;
 
-sinsp_container_engine_docker::sinsp_container_engine_docker()
+std::string docker::m_api_version = "/v1.30";
+
+docker::docker()
 {
 }
 
-void sinsp_container_engine_docker::cleanup()
+void docker::cleanup()
 {
 }
 
-void sinsp_container_engine_docker::set_cri_socket_path(const std::string& path)
+void docker::set_cri_socket_path(const std::string& path)
 {
 }
 
-void sinsp_container_engine_docker::set_cri_timeout(int64_t timeout_ms)
+void docker::set_cri_timeout(int64_t timeout_ms)
 {
 }
 
-std::string sinsp_container_engine_docker::build_request(const std::string &url)
+std::string docker::build_request(const std::string &url)
 {
 	return "GET " + m_api_version + url + " HTTP/1.1\r\nHost: docker\r\n\r\n";
 }
 
-bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	wh_docker_container_info wcinfo = wh_docker_resolve_pid(manager->get_inspector()->get_wmi_handle(), tinfo->m_pid);
 	if(!wcinfo.m_res)
@@ -71,7 +73,7 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 	return true;
 }
 
-sinsp_container_engine_docker::docker_response sinsp_container_engine_docker::get_docker(sinsp_container_manager* manager, const string& url, string &json)
+docker::docker_response libsinsp::container_engine::docker::get_docker(sinsp_container_manager* manager, const string& url, string &json)
 {
 	const char* response = NULL;
 	bool qdres = wh_query_docker(manager->get_inspector()->get_wmi_handle(),

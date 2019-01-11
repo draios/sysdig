@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2013-2019 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
@@ -17,48 +17,12 @@ limitations under the License.
 
 */
 
-#include "container_lxc.h"
+#include "container_engine/libvirt_lxc.h"
 #include "sinsp.h"
 
-bool sinsp_container_engine_lxc::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
-{
-	sinsp_container_info container_info;
-	bool matches = false;
+using namespace libsinsp::container_engine;
 
-	for(const auto& it : tinfo->m_cgroups)
-	{
-		//
-		// Non-systemd LXC
-		//
-		const auto& cgroup = it.second;
-		size_t pos = cgroup.find("/lxc/");
-		if(pos != std::string::npos)
-		{
-			auto id_start = pos + sizeof("/lxc/") - 1;
-			auto id_end = cgroup.find('/', id_start);
-			container_info.m_type = CT_LXC;
-			container_info.m_id = cgroup.substr(id_start, id_end - id_start);
-			matches = true;
-			break;
-		}
-	}
-
-	if (!matches)
-	{
-		return false;
-	}
-
-	tinfo->m_container_id = container_info.m_id;
-	if (!manager->container_exists(container_info.m_id))
-	{
-		container_info.m_name = container_info.m_id;
-		manager->add_container(container_info, tinfo);
-		manager->notify_new_container(container_info);
-	}
-	return true;
-}
-
-bool sinsp_container_engine_libvirt_lxc::match(sinsp_threadinfo* tinfo, sinsp_container_info* container_info)
+bool libvirt_lxc::match(sinsp_threadinfo* tinfo, sinsp_container_info* container_info)
 {
 	for(const auto& it : tinfo->m_cgroups)
 	{
@@ -109,7 +73,7 @@ bool sinsp_container_engine_libvirt_lxc::match(sinsp_threadinfo* tinfo, sinsp_co
 	return false;
 }
 
-bool sinsp_container_engine_libvirt_lxc::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+bool libvirt_lxc::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	sinsp_container_info container_info;
 
