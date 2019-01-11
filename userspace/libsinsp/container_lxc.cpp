@@ -25,15 +25,13 @@ bool sinsp_container_engine_lxc::resolve(sinsp_container_manager* manager, sinsp
 	sinsp_container_info container_info;
 	bool matches = false;
 
-	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
+	for(const auto& it : tinfo->m_cgroups)
 	{
-		std::string cgroup = it->second;
-		size_t pos;
-
 		//
 		// Non-systemd LXC
 		//
-		pos = cgroup.find("/lxc/");
+		const auto& cgroup = it.second;
+		size_t pos = cgroup.find("/lxc/");
 		if(pos != std::string::npos)
 		{
 			auto id_start = pos + sizeof("/lxc/") - 1;
@@ -62,15 +60,13 @@ bool sinsp_container_engine_lxc::resolve(sinsp_container_manager* manager, sinsp
 
 bool sinsp_container_engine_libvirt_lxc::match(sinsp_threadinfo* tinfo, sinsp_container_info* container_info)
 {
-	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
+	for(const auto& it : tinfo->m_cgroups)
 	{
-		std::string cgroup = it->second;
-		size_t pos;
-
 		//
 		// Non-systemd libvirt-lxc
 		//
-		pos = cgroup.find(".libvirt-lxc");
+		const auto& cgroup = it.second;
+		size_t pos = cgroup.find(".libvirt-lxc");
 		if(pos != std::string::npos &&
 		   pos == cgroup.length() - sizeof(".libvirt-lxc") + 1)
 		{
