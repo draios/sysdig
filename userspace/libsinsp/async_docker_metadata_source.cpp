@@ -36,9 +36,12 @@ limitations under the License.
 
 using namespace sysdig;
 
-async_docker_metadata_source::async_docker_metadata_source(const std::string& api_version):
-	async_metadata_source<std::string, docker_metadata>(NO_LOOKUP_WAIT, MAX_TTL_MS),
-	m_query_image_info(true),
+async_docker_metadata_source::async_docker_metadata_source(
+		const std::string& api_version,
+		const bool query_image_info):
+	async_metadata_source<std::string, docker_metadata>(NO_LOOKUP_WAIT,
+	                                                    MAX_TTL_MS),
+	m_query_image_info(query_image_info),
 	m_api_version(api_version)
 { }
 
@@ -337,15 +340,16 @@ bool async_docker_metadata_source::parse_docker(sinsp_container_manager* const m
 	return true;
 }
 
-async_docker_metadata_source* async_docker_metadata_source::new_async_docker_metadata_source()
+async_docker_metadata_source*
+async_docker_metadata_source::new_async_docker_metadata_source(const bool query_image_info)
 {
 	async_docker_metadata_source* docker_metadata = nullptr;
 
 #if defined(CYGWING_AGENT)
-	docker_metadata = new async_windows_docker_metadata_source();
+	docker_metadata = new async_windows_docker_metadata_source(query_image_info);
 #else // !CYGWING_AGENT
 #       if defined(HAS_CAPTURE)
-		docker_metadata = new async_linux_docker_metadata_source();
+		docker_metadata = new async_linux_docker_metadata_source(query_image_info);
 #       else // !HAS_CAPTURE
 		// TODO: Need to implement async_null_docker_metadata_source
 		// docker_metadata = new async_null_docker_metadata_source();

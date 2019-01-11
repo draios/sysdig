@@ -39,8 +39,10 @@ public:
 	const static std::string DEFAULT_API_VERSION;
 
 	async_linux_docker_metadata_source(
+			bool query_image_information = true,
 			const std::string& socket_path = DEFAULT_DOCKER_SOCKET_PATH,
 			const std::string& api_version = DEFAULT_API_VERSION);
+
 	~async_linux_docker_metadata_source();
 
 	const std::string& get_socket_path() const;

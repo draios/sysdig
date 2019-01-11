@@ -194,7 +194,7 @@ sinsp_container_engine_docker::sinsp_container_engine_docker()
 	if(!s_docker_metadata)
 	{
 		s_docker_metadata.reset(
-				async_docker_metadata_source::new_async_docker_metadata_source());
+			async_docker_metadata_source::new_async_docker_metadata_source(m_query_image_info));
 	}
 
 }
@@ -204,9 +204,14 @@ void sinsp_container_engine_docker::cleanup()
 	s_docker_metadata.reset();
 }
 
-void sinsp_container_engine_docker::set_query_image_info(bool query_image_info)
+void sinsp_container_engine_docker::set_query_image_info(const bool query_image_info)
 {
 	m_query_image_info = query_image_info;
+
+	if(s_docker_metadata.get() != nullptr)
+	{
+		s_docker_metadata->set_query_image_info(m_query_image_info);
+	}
 }
 
 #ifdef CYGWING_AGENT

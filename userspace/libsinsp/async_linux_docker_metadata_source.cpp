@@ -33,9 +33,10 @@ const std::string async_linux_docker_metadata_source::DEFAULT_DOCKER_SOCKET_PATH
 const std::string async_linux_docker_metadata_source::DEFAULT_API_VERSION = "/v1.24";
 
 async_linux_docker_metadata_source::async_linux_docker_metadata_source(
+		const bool query_image_info,
 		const std::string& socket_path,
 		const std::string& api_version):
-	  async_docker_metadata_source(api_version)
+	  async_docker_metadata_source(api_version, query_image_info)
 	, m_unix_socket_path(scap_get_host_root() + socket_path)
 #if defined(HAS_CAPTURE)
         , m_url_fetcher(url_fetcher::new_fetcher(m_unix_socket_path))

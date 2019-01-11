@@ -81,17 +81,24 @@ public:
 	 * Creates a new async_docker_metadata_source that is appropriate
 	 * for the build environment (Linux/Windows/no-analyzer)
 	 *
+	 * @param[in] query_image_info If image information is missing, should
+	 *                             we query Docker for it?
+	 *
 	 * Note that the caller is responsible for deleting the returned object.
 	 */
-	static async_docker_metadata_source* new_async_docker_metadata_source();
+	static async_docker_metadata_source* new_async_docker_metadata_source(
+			bool query_image_info);
 
 protected:
 	/**
 	 * Initialize a new async_docker_metadata_source.
 	 *
-	 * @param[in] api_version the version of the Docker API to use.
+	 * @param[in] api_version      The version of the Docker API to use.
+	 * @param[in] query_image_info Should this componenty query Docker for
+	 *                             missing image information?
 	 */
-	async_docker_metadata_source(const std::string& api_version);
+	async_docker_metadata_source(const std::string& api_version,
+	                             bool query_image_info = true);
 
 	/**
 	 * Builds and returns a URL for querying Docker on the local host.

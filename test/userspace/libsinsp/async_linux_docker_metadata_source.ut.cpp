@@ -148,6 +148,7 @@ TEST_F(async_linux_docker_metadata_source_test, constructor)
 	          source.get_api_version());
 	ASSERT_EQ(async_linux_docker_metadata_source::DEFAULT_DOCKER_SOCKET_PATH,
 	          source.get_socket_path());
+	ASSERT_TRUE(source.query_image_info());
 }
 
 /**
@@ -156,13 +157,31 @@ TEST_F(async_linux_docker_metadata_source_test, constructor)
  */
 TEST_F(async_linux_docker_metadata_source_test, constructor_custom_values)
 {
+	const bool query_image_info = true;
 	const std::string api_version = "v10";
 	const std::string socket_path = "/some/path.sock";
 
-	async_linux_docker_metadata_source source(socket_path, api_version);;
+	async_linux_docker_metadata_source source(query_image_info,
+	                                          socket_path,
+	                                          api_version);
 
 	ASSERT_EQ(api_version, source.get_api_version());
 	ASSERT_EQ(socket_path, source.get_socket_path());
+	ASSERT_EQ(query_image_info, source.query_image_info());
+}
+
+/**
+ * Ensure that set_query_image_info() updates the image info query state.
+ */
+TEST_F(async_linux_docker_metadata_source_test, query_image_info)
+{
+	async_linux_docker_metadata_source source;
+
+	source.set_query_image_info(false);
+	ASSERT_FALSE(source.query_image_info());
+
+	source.set_query_image_info(true);
+	ASSERT_TRUE(source.query_image_info());
 }
 
 /**
@@ -174,6 +193,7 @@ TEST_F(async_linux_docker_metadata_source_test, constructor_custom_values)
  */
 TEST_F(async_linux_docker_metadata_source_test, lookup_metrics)
 {
+	const bool query_image_info = true;
 	std::shared_ptr<sinsp_container_info> container_info(new sinsp_container_info());
 	sinsp_container_manager* manager = nullptr;
 
@@ -181,7 +201,8 @@ TEST_F(async_linux_docker_metadata_source_test, lookup_metrics)
 	container_info->m_type = CT_DOCKER;
 
 	docker_metadata metadata(manager, container_info);
-	async_linux_docker_metadata_source source(get_docker().get_socket_path());
+	async_linux_docker_metadata_source source(query_image_info,
+			                          get_docker().get_socket_path());
 
 	// The first call to lookup() will kick off the async lookup.  The
 	// Docker metadata fetcher will not block waiting for a response, so
@@ -266,3 +287,4 @@ TEST_F(async_linux_docker_metadata_source_test, lookup_metrics)
 	ASSERT_EQ(container_info->m_sysdig_agent_conf, std::string());
 	ASSERT_EQ(container_info->m_metadata_deadline, 0);
 }
+
