@@ -27,14 +27,14 @@ bool sinsp_container_engine_lxc::resolve(sinsp_container_manager* manager, sinsp
 
 	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
 	{
-		string cgroup = it->second;
+		std::string cgroup = it->second;
 		size_t pos;
 
 		//
 		// Non-systemd LXC
 		//
 		pos = cgroup.find("/lxc/");
-		if(pos != string::npos)
+		if(pos != std::string::npos)
 		{
 			auto id_start = pos + sizeof("/lxc/") - 1;
 			auto id_end = cgroup.find('/', id_start);
@@ -64,18 +64,18 @@ bool sinsp_container_engine_libvirt_lxc::match(sinsp_threadinfo* tinfo, sinsp_co
 {
 	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
 	{
-		string cgroup = it->second;
+		std::string cgroup = it->second;
 		size_t pos;
 
 		//
 		// Non-systemd libvirt-lxc
 		//
 		pos = cgroup.find(".libvirt-lxc");
-		if(pos != string::npos &&
+		if(pos != std::string::npos &&
 		   pos == cgroup.length() - sizeof(".libvirt-lxc") + 1)
 		{
 			size_t pos2 = cgroup.find_last_of("/");
-			if(pos2 != string::npos)
+			if(pos2 != std::string::npos)
 			{
 				container_info->m_type = CT_LIBVIRT_LXC;
 				container_info->m_id = cgroup.substr(pos2 + 1, pos - pos2 - 1);
@@ -87,10 +87,10 @@ bool sinsp_container_engine_libvirt_lxc::match(sinsp_threadinfo* tinfo, sinsp_co
 		// systemd libvirt-lxc
 		//
 		pos = cgroup.find("-lxc\\x2");
-		if(pos != string::npos)
+		if(pos != std::string::npos)
 		{
 			size_t pos2 = cgroup.find(".scope");
-			if(pos2 != string::npos &&
+			if(pos2 != std::string::npos &&
 			   pos2 == cgroup.length() - sizeof(".scope") + 1)
 			{
 				container_info->m_type = CT_LIBVIRT_LXC;
@@ -103,7 +103,7 @@ bool sinsp_container_engine_libvirt_lxc::match(sinsp_threadinfo* tinfo, sinsp_co
 		// Legacy libvirt-lxc
 		//
 		pos = cgroup.find("/libvirt/lxc/");
-		if(pos != string::npos)
+		if(pos != std::string::npos)
 		{
 			container_info->m_type = CT_LIBVIRT_LXC;
 			container_info->m_id = cgroup.substr(pos + sizeof("/libvirt/lxc/") - 1);
