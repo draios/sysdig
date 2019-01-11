@@ -30,10 +30,10 @@ limitations under the License.
 #include "sinsp_int.h"
 
 namespace {
-string cri_unix_socket_path = "/run/containerd/containerd.sock";
-unique_ptr<runtime::v1alpha2::RuntimeService::Stub> cri = nullptr;
-int64_t cri_timeout = 1000;
-sinsp_container_type cri_runtime_type = CT_CRI;
+string s_cri_unix_socket_path = "/run/containerd/containerd.sock";
+unique_ptr<runtime::v1alpha2::RuntimeService::Stub> s_cri = nullptr;
+int64_t s_cri_timeout = 1000;
+sinsp_container_type s_cri_runtime_type = CT_CRI;
 
 sinsp_container_type get_cri_runtime_type(const std::string& runtime_name)
 {
@@ -221,9 +221,9 @@ uint32_t get_pod_sandbox_ip(const std::string& pod_sandbox_id)
 	req.set_pod_sandbox_id(pod_sandbox_id);
 	req.set_verbose(true);
 	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(cri_timeout);
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
 	context.set_deadline(deadline);
-	grpc::Status status = cri->PodSandboxStatus(&context, req, &resp);
+	grpc::Status status = s_cri->PodSandboxStatus(&context, req, &resp);
 
 	if (!status.ok()) {
 		return 0;
@@ -249,17 +249,17 @@ uint32_t get_pod_sandbox_ip(const std::string& pod_sandbox_id)
 
 sinsp_container_engine_cri::sinsp_container_engine_cri()
 {
-	if(cri || cri_unix_socket_path.empty()) {
+	if(s_cri || s_cri_unix_socket_path.empty()) {
 		return;
 	}
 
-	auto cri_path = scap_get_host_root() + cri_unix_socket_path;
+	auto cri_path = scap_get_host_root() + s_cri_unix_socket_path;
 	struct stat s;
 	if(stat(cri_path.c_str(), &s) != 0 || (s.st_mode & S_IFMT) != S_IFSOCK) {
 		return;
 	}
 
-	cri = runtime::v1alpha2::RuntimeService::NewStub(
+	s_cri = runtime::v1alpha2::RuntimeService::NewStub(
 		grpc::CreateChannel("unix://" + cri_path, grpc::InsecureChannelCredentials()));
 
 	runtime::v1alpha2::VersionRequest vreq;
@@ -267,9 +267,9 @@ sinsp_container_engine_cri::sinsp_container_engine_cri()
 
 	vreq.set_version("v1alpha2");
 	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(cri_timeout);
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
 	context.set_deadline(deadline);
-	grpc::Status status = cri->Version(&context, vreq, &vresp);
+	grpc::Status status = s_cri->Version(&context, vreq, &vresp);
 
 	if (!status.ok())
 	{
@@ -277,27 +277,27 @@ sinsp_container_engine_cri::sinsp_container_engine_cri()
 		return;
 	}
 
-	cri_runtime_type = get_cri_runtime_type(vresp.runtime_name());
+	s_cri_runtime_type = get_cri_runtime_type(vresp.runtime_name());
 }
 
 void sinsp_container_engine_cri::cleanup()
 {
-	cri.reset(nullptr);
+	s_cri.reset(nullptr);
 }
 
 void sinsp_container_engine_cri::set_cri_socket_path(const std::string& path)
 {
-	cri_unix_socket_path = path;
+	s_cri_unix_socket_path = path;
 }
 
 void sinsp_container_engine_cri::set_cri_timeout(int64_t timeout_ms)
 {
-	cri_timeout = timeout_ms;
+	s_cri_timeout = timeout_ms;
 }
 
 bool parse_cri(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
 {
-	if (!cri)
+	if (!s_cri)
 	{
 		return false;
 	}
@@ -307,9 +307,9 @@ bool parse_cri(sinsp_container_manager* manager, sinsp_container_info *container
 	req.set_container_id(container->m_id);
 	req.set_verbose(true);
 	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(cri_timeout);
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
 	context.set_deadline(deadline);
-	grpc::Status status = cri->ContainerStatus(&context, req, &resp);
+	grpc::Status status = s_cri->ContainerStatus(&context, req, &resp);
 	if (!status.ok()) {
 		return false;
 	}
@@ -322,7 +322,7 @@ bool parse_cri(sinsp_container_manager* manager, sinsp_container_info *container
 
 	const auto& resp_container = resp.status();
 	container->m_name = resp_container.metadata().name();
-	container->m_type = cri_runtime_type;
+	container->m_type = s_cri_runtime_type;
 
 	for (const auto& pair : resp_container.labels())
 	{
@@ -365,7 +365,7 @@ bool sinsp_container_engine_cri::resolve(sinsp_container_manager* manager, sinsp
 
 	if(sinsp_container_engine_docker::detect_docker(tinfo, container_info.m_id))
 	{
-		container_info.m_type = cri_runtime_type;
+		container_info.m_type = s_cri_runtime_type;
 	}
 	else
 	{
