@@ -25,9 +25,9 @@ limitations under the License.
 
 #if defined(HAS_CAPTURE)
 namespace {
-string docker_unix_socket_path = "/var/run/docker.sock";
-CURLM *m_curlm = NULL;
-CURL *m_curl = NULL;
+string s_docker_unix_socket_path = "/var/run/docker.sock";
+CURLM *s_curlm = NULL;
+CURL *s_curl = NULL;
 
 size_t docker_curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json)
 {
@@ -45,23 +45,23 @@ sinsp_container_engine_docker::engine_mode sinsp_container_engine_docker::m_engi
 sinsp_container_engine_docker::sinsp_container_engine_docker()
 {
 #if defined(HAS_CAPTURE)
-	if(!m_curlm)
+	if(!s_curlm)
 	{
-		m_curl = curl_easy_init();
-		m_curlm = curl_multi_init();
+		s_curl = curl_easy_init();
+		s_curlm = curl_multi_init();
 
-		if(m_curlm)
+		if(s_curlm)
 		{
-			curl_multi_setopt(m_curlm, CURLMOPT_PIPELINING, CURLPIPE_HTTP1|CURLPIPE_MULTIPLEX);
+			curl_multi_setopt(s_curlm, CURLMOPT_PIPELINING, CURLPIPE_HTTP1|CURLPIPE_MULTIPLEX);
 		}
 
-		if(m_curl)
+		if(s_curl)
 		{
-			auto docker_path = scap_get_host_root() + docker_unix_socket_path;
-			curl_easy_setopt(m_curl, CURLOPT_UNIX_SOCKET_PATH, docker_path.c_str());
-			curl_easy_setopt(m_curl, CURLOPT_HTTPGET, 1);
-			curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
-			curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, docker_curl_write_callback);
+			auto docker_path = scap_get_host_root() + s_docker_unix_socket_path;
+			curl_easy_setopt(s_curl, CURLOPT_UNIX_SOCKET_PATH, docker_path.c_str());
+			curl_easy_setopt(s_curl, CURLOPT_HTTPGET, 1);
+			curl_easy_setopt(s_curl, CURLOPT_FOLLOWLOCATION, 1);
+			curl_easy_setopt(s_curl, CURLOPT_WRITEFUNCTION, docker_curl_write_callback);
 		}
 	}
 #endif
@@ -70,10 +70,10 @@ sinsp_container_engine_docker::sinsp_container_engine_docker()
 void sinsp_container_engine_docker::cleanup()
 {
 #if defined(HAS_CAPTURE)
-	curl_easy_cleanup(m_curl);
-	m_curl = NULL;
-	curl_multi_cleanup(m_curlm);
-	m_curlm = NULL;
+	curl_easy_cleanup(s_curl);
+	s_curl = NULL;
+	curl_multi_cleanup(s_curlm);
+	s_curlm = NULL;
 
 	set_mode(ENABLED);
 #endif
@@ -126,18 +126,18 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 sinsp_container_engine_docker::docker_response sinsp_container_engine_docker::get_docker(sinsp_container_manager* manager, const string& url, string &json)
 {
 #ifdef HAS_CAPTURE
-	if(curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str()) != CURLE_OK)
+	if(curl_easy_setopt(s_curl, CURLOPT_URL, url.c_str()) != CURLE_OK)
 	{
 		ASSERT(false);
 		return docker_response::RESP_ERROR;
 	}
-	if(curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &json) != CURLE_OK)
+	if(curl_easy_setopt(s_curl, CURLOPT_WRITEDATA, &json) != CURLE_OK)
 	{
 		ASSERT(false);
 		return docker_response::RESP_ERROR;
 	}
 
-	if(curl_multi_add_handle(m_curlm, m_curl) != CURLM_OK)
+	if(curl_multi_add_handle(s_curlm, s_curl) != CURLM_OK)
 	{
 		ASSERT(false);
 		return docker_response::RESP_ERROR;
@@ -146,7 +146,7 @@ sinsp_container_engine_docker::docker_response sinsp_container_engine_docker::ge
 	while(true)
 	{
 		int still_running;
-		CURLMcode res = curl_multi_perform(m_curlm, &still_running);
+		CURLMcode res = curl_multi_perform(s_curlm, &still_running);
 		if(res != CURLM_OK)
 		{
 			ASSERT(false);
@@ -159,7 +159,7 @@ sinsp_container_engine_docker::docker_response sinsp_container_engine_docker::ge
 		}
 
 		int numfds;
-		res = curl_multi_wait(m_curlm, NULL, 0, -1, &numfds);
+		res = curl_multi_wait(s_curlm, NULL, 0, -1, &numfds);
 		if(res != CURLM_OK)
 		{
 			ASSERT(false);
@@ -167,14 +167,14 @@ sinsp_container_engine_docker::docker_response sinsp_container_engine_docker::ge
 		}
 	}
 
-	if(curl_multi_remove_handle(m_curlm, m_curl) != CURLM_OK)
+	if(curl_multi_remove_handle(s_curlm, s_curl) != CURLM_OK)
 	{
 		ASSERT(false);
 		return docker_response::RESP_ERROR;
 	}
 
 	long http_code = 0;
-	if(curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &http_code) != CURLE_OK)
+	if(curl_easy_getinfo(s_curl, CURLINFO_RESPONSE_CODE, &http_code) != CURLE_OK)
 	{
 		ASSERT(false);
 		return docker_response::RESP_ERROR;
