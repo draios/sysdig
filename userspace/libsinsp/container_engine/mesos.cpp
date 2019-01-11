@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2013-2019 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
@@ -17,15 +17,14 @@ limitations under the License.
 
 */
 
-#include "container_mesos.h"
+#include "container_engine/mesos.h"
 
 #include <unistd.h>
 
 #include "sinsp.h"
 #include "sinsp_int.h"
 
-
-bool sinsp_container_engine_mesos::match(sinsp_threadinfo* tinfo, sinsp_container_info* container_info)
+bool libsinsp::container_engine::mesos::match(sinsp_threadinfo* tinfo, sinsp_container_info* container_info)
 {
 	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
 	{
@@ -53,7 +52,7 @@ bool sinsp_container_engine_mesos::match(sinsp_threadinfo* tinfo, sinsp_containe
 	return false;
 }
 
-bool sinsp_container_engine_mesos::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+bool libsinsp::container_engine::mesos::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	sinsp_container_info container_info;
 
@@ -70,7 +69,7 @@ bool sinsp_container_engine_mesos::resolve(sinsp_container_manager* manager, sin
 	return true;
 }
 
-string sinsp_container_engine_mesos::get_env_mesos_task_id(sinsp_threadinfo* tinfo)
+string libsinsp::container_engine::mesos::get_env_mesos_task_id(sinsp_threadinfo* tinfo)
 {
 	string mtid;
 
@@ -99,7 +98,7 @@ string sinsp_container_engine_mesos::get_env_mesos_task_id(sinsp_threadinfo* tin
 	return mtid;
 }
 
-bool sinsp_container_engine_mesos::set_mesos_task_id(sinsp_container_info* container, sinsp_threadinfo* tinfo)
+bool libsinsp::container_engine::mesos::set_mesos_task_id(sinsp_container_info* container, sinsp_threadinfo* tinfo)
 {
 	ASSERT(container);
 	ASSERT(tinfo);

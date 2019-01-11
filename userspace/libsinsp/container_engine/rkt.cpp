@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2013-2019 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
@@ -17,14 +17,16 @@ limitations under the License.
 
 */
 
-#include "container_rkt.h"
+#include "container_engine/rkt.h"
 
 #include <unistd.h>
 
 #include "sinsp.h"
 #include "sinsp_int.h"
 
-bool sinsp_container_engine_rkt::match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp_container_info* container_info, string& rkt_podid, string& rkt_appname, bool query_os_for_missing_info)
+using namespace libsinsp::container_engine;
+
+bool rkt::match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp_container_info* container_info, string& rkt_podid, string& rkt_appname, bool query_os_for_missing_info)
 {
 	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
 	{
@@ -163,7 +165,7 @@ bool sinsp_container_engine_rkt::match(sinsp_container_manager* manager, sinsp_t
 	return false;
 }
 
-bool sinsp_container_engine_rkt::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+bool rkt::rkt::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	sinsp_container_info container_info;
 	string rkt_podid, rkt_appname;
@@ -197,7 +199,7 @@ bool sinsp_container_engine_rkt::resolve(sinsp_container_manager* manager, sinsp
 	}
 }
 
-bool sinsp_container_engine_rkt::parse_rkt(sinsp_container_info *container, const string &podid, const string &appname)
+bool rkt::rkt::parse_rkt(sinsp_container_info *container, const string &podid, const string &appname)
 {
 	bool ret = false;
 	Json::Reader reader;

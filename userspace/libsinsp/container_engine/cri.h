@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2013-2019 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
@@ -20,17 +20,23 @@ limitations under the License.
 #pragma once
 
 #include <string>
+#include <stdint.h>
 
 class sinsp_container_manager;
 class sinsp_container_info;
 class sinsp_threadinfo;
 
-class sinsp_container_engine_rkt
+namespace libsinsp {
+namespace container_engine {
+class cri
 {
 public:
-	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
-protected:
-	bool match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp_container_info* container_info, std::string& rkt_podid, std::string& rkt_appname, bool query_os_for_missing_info);
-	bool parse_rkt(sinsp_container_info* container, const std::string& podid, const std::string& appname);
-};
+	cri();
 
+	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+	static void cleanup();
+	static void set_cri_socket_path(const std::string& path);
+	static void set_cri_timeout(int64_t timeout_ms);
+};
+}
+}

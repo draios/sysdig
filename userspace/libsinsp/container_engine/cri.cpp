@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2013-2019 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
@@ -17,29 +17,30 @@ limitations under the License.
 
 */
 
-#include "container_cri.h"
+#include "container_engine/cri.h"
 
 #include <sys/stat.h>
 #include <grpc++/grpc++.h>
 #include "cri.pb.h"
 #include "cri.grpc.pb.h"
 
-#include "container_docker.h"
-#include "container_mesos.h"
-#include "cri.h"
+#include "container_engine/docker.h"
+#include "container_engine/mesos.h"
+#include <cri.h>
 #include "sinsp.h"
 #include "sinsp_int.h"
 
 using namespace libsinsp::cri;
+using namespace libsinsp::container_engine;
 
-sinsp_container_engine_cri::sinsp_container_engine_cri()
+cri::cri()
 {
 	if(s_cri || s_cri_unix_socket_path.empty()) {
 		return;
 	}
 
 	auto cri_path = scap_get_host_root() + s_cri_unix_socket_path;
-	struct stat s;
+	struct stat s = {};
 	if(stat(cri_path.c_str(), &s) != 0 || (s.st_mode & S_IFMT) != S_IFSOCK) {
 		return;
 	}
@@ -65,17 +66,17 @@ sinsp_container_engine_cri::sinsp_container_engine_cri()
 	s_cri_runtime_type = get_cri_runtime_type(vresp.runtime_name());
 }
 
-void sinsp_container_engine_cri::cleanup()
+void cri::cleanup()
 {
 	s_cri.reset(nullptr);
 }
 
-void sinsp_container_engine_cri::set_cri_socket_path(const std::string& path)
+void cri::set_cri_socket_path(const std::string& path)
 {
 	s_cri_unix_socket_path = path;
 }
 
-void sinsp_container_engine_cri::set_cri_timeout(int64_t timeout_ms)
+void cri::set_cri_timeout(int64_t timeout_ms)
 {
 	s_cri_timeout = timeout_ms;
 }
@@ -144,11 +145,11 @@ bool parse_cri(sinsp_container_manager* manager, sinsp_container_info *container
 	return true;
 }
 
-bool sinsp_container_engine_cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	sinsp_container_info container_info;
 
-	if(sinsp_container_engine_docker::detect_docker(tinfo, container_info.m_id))
+	if(docker::detect_docker(tinfo, container_info.m_id))
 	{
 		container_info.m_type = s_cri_runtime_type;
 	}
@@ -163,7 +164,7 @@ bool sinsp_container_engine_cri::resolve(sinsp_container_manager* manager, sinsp
 		{
 			parse_cri(manager, &container_info, tinfo);
 		}
-		if (sinsp_container_engine_mesos::set_mesos_task_id(&container_info, tinfo))
+		if (mesos::set_mesos_task_id(&container_info, tinfo))
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"Mesos Docker container: [%s], Mesos task ID: [%s]",

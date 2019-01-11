@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2013-2019 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
@@ -31,7 +31,9 @@ class sinsp_container_manager;
 class sinsp_container_info;
 class sinsp_threadinfo;
 
-class sinsp_container_engine_docker
+namespace libsinsp {
+namespace container_engine {
+class docker
 {
 	enum docker_response
 	{
@@ -41,7 +43,7 @@ class sinsp_container_engine_docker
 	};
 
 public:
-	sinsp_container_engine_docker();
+	docker();
 
 	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	static void cleanup();
@@ -70,3 +72,5 @@ protected:
 	static engine_mode m_engine_mode;
 #endif
 };
+}
+}

@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2013-2019 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
@@ -17,16 +17,17 @@ limitations under the License.
 
 */
 
-#include "container_docker.h"
+#include "container_engine/docker.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "container.h"
 #include "utils.h"
 
+using namespace libsinsp::container_engine;
 
-bool sinsp_container_engine_docker::m_query_image_info = true;
+bool docker::m_query_image_info = true;
 
-void sinsp_container_engine_docker::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_container_info::container_mount_info> &mounts)
+void docker::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_container_info::container_mount_info> &mounts)
 {
 	if(!mnt_obj.isNull() && mnt_obj.isArray())
 	{
@@ -40,12 +41,12 @@ void sinsp_container_engine_docker::parse_json_mounts(const Json::Value &mnt_obj
 	}
 }
 
-void sinsp_container_engine_docker::set_query_image_info(bool query_image_info)
+void docker::set_query_image_info(bool query_image_info)
 {
 	m_query_image_info = query_image_info;
 }
 
-bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
+bool docker::parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
 {
 	string json;
 	docker_response resp = get_docker(manager, build_request("/containers/" + container->m_id + "/json"), json);
