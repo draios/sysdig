@@ -25,7 +25,7 @@ limitations under the License.
 
 #if defined(HAS_CAPTURE)
 namespace {
-string s_docker_unix_socket_path = "/var/run/docker.sock";
+std::string s_docker_unix_socket_path = "/var/run/docker.sock";
 CURLM *s_curlm = NULL;
 CURL *s_curl = NULL;
 
@@ -123,7 +123,7 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 	return true;
 }
 
-sinsp_container_engine_docker::docker_response sinsp_container_engine_docker::get_docker(sinsp_container_manager* manager, const string& url, string &json)
+sinsp_container_engine_docker::docker_response sinsp_container_engine_docker::get_docker(sinsp_container_manager* manager, const std::string& url, std::string &json)
 {
 #ifdef HAS_CAPTURE
 	if(curl_easy_setopt(s_curl, CURLOPT_URL, url.c_str()) != CURLE_OK)
@@ -199,17 +199,17 @@ bool sinsp_container_engine_docker::detect_docker(const sinsp_threadinfo *tinfo,
 {
 	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
 	{
-		string cgroup = it->second;
+		std::string cgroup = it->second;
 		size_t pos;
 
 		//
 		// Non-systemd Docker
 		//
 		pos = cgroup.find_last_of("/");
-		if(pos != string::npos)
+		if(pos != std::string::npos)
 		{
 			if(cgroup.length() - pos - 1 == 64 &&
-			   cgroup.find_first_not_of("0123456789abcdefABCDEF", pos + 1) == string::npos)
+			   cgroup.find_first_not_of("0123456789abcdefABCDEF", pos + 1) == std::string::npos)
 			{
 				container_id = cgroup.substr(pos + 1, 12);
 				return true;
@@ -220,10 +220,10 @@ bool sinsp_container_engine_docker::detect_docker(const sinsp_threadinfo *tinfo,
 		// systemd Docker
 		//
 		pos = cgroup.find("docker-");
-		if(pos != string::npos)
+		if(pos != std::string::npos)
 		{
 			size_t pos2 = cgroup.find(".scope");
-			if(pos2 != string::npos &&
+			if(pos2 != std::string::npos &&
 			   pos2 - pos - sizeof("docker-") + 1 == 64)
 			{
 				container_id = cgroup.substr(pos + sizeof("docker-") - 1, 12);
