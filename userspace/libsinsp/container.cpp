@@ -305,7 +305,21 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 			//       backend.
 			if(s_docker_metadata->lookup(tinfo->m_container_id, metadata))
 			{
-				manager->add_container(*metadata.m_container_info, tinfo);
+#ifndef CYGWING_AGENT
+				if(sinsp_container_engine_mesos::set_mesos_task_id(
+							metadata.m_container_info.get(),
+							tinfo))
+				{
+					g_logger.log("Mesos Docker container: [" +
+					             metadata.m_container_info->m_id +
+						     "], Mesos task ID: [" +
+						     metadata.m_container_info->m_mesos_task_id +
+						     ']', sinsp_logger::SEV_DEBUG);
+				}
+#endif
+
+				manager->add_container(*metadata.m_container_info,
+				                       tinfo);
 				manager->notify_new_container(*metadata.m_container_info);
 
 				return true;

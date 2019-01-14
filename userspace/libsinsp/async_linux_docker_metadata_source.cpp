@@ -85,7 +85,8 @@ sinsp_docker_response async_linux_docker_metadata_source::get_docker(
 	}
 	catch(const std::exception& ex)
 	{
-		g_logger.log(std::string("Failed to fetch URL: ") + ex.what());
+		g_logger.log(std::string("Failed to fetch URL: ") + ex.what(),
+		             sinsp_logger::SEV_WARNING);
 		ASSERT(false);
 		response = sinsp_docker_response::RESP_ERROR;
 	}

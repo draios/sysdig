@@ -112,7 +112,6 @@ bool async_docker_metadata_source::parse_docker(sinsp_container_manager* const m
 	const bool parsingSuccessful = reader.parse(json, root);
 	if(!parsingSuccessful)
 	{
-		g_logger.log("Parsing unsuccessful", sinsp_logger::SEV_ERROR);
 		ASSERT(false);
 		return false;
 	}
@@ -301,15 +300,6 @@ bool async_docker_metadata_source::parse_docker(sinsp_container_manager* const m
 		}
 	}
 
-// TODO: Need to factor this out and get rid of the CYGWING_AGENT check
-#ifndef CYGWING_AGENT
-	// FIXME: Should we move this outside somewhere?
-	//if (sinsp_container_engine_mesos::set_mesos_task_id(container, tinfo))
-	//{
-	//	g_logger.log("Mesos Docker container: [" + root["Id"].asString() + "], Mesos task ID: [" + container->m_mesos_task_id + ']', sinsp_logger::SEV_DEBUG);
-	//}
-#endif
-
 	const auto& host_config_obj = root["HostConfig"];
 	container->m_memory_limit = host_config_obj["Memory"].asInt64();
 	container->m_swap_limit = host_config_obj["MemorySwap"].asInt64();
@@ -336,7 +326,6 @@ bool async_docker_metadata_source::parse_docker(sinsp_container_manager* const m
 	sinsp_utils::find_env(container->m_sysdig_agent_conf, container->get_env(), "SYSDIG_AGENT_CONF");
 	// container->m_sysdig_agent_conf = get_docker_env(env_vars, "SYSDIG_AGENT_CONF");
 #endif
-	g_logger.log("EXIT: parse_docker");
 	return true;
 }
 

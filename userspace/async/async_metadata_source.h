@@ -32,12 +32,13 @@ namespace sysdig
 
 /**
  * Base class for classes that need to collect metadata asynchronously from some
- * metadata source.  Subclasses will override the the run_impl() method.  In
- * that method, subclasses will use use dequeue_next_key() method to get the
- * key that it will use to collect the metadata, collect the appropriate
- * metadata, and call the store_metadata() method to save the metadata.  The
- * run_impl() method should continue to dequeue and process metadata while the
- * queue_size() method returns non-zero.
+ * metadata source.  Subclasses will override the the run_impl() method and
+ * implement the concrete metadata lookup behavior.  In that method, subclasses
+ * will use use dequeue_next_key() method to get the key that it will use to
+ * collect the metadata, collect the appropriate metadata, and call the
+ * store_metadata() method to save the metadata.  The run_impl() method should
+ * continue to dequeue and process metadata while the queue_size() method
+ * returns non-zero.
  *
  * The constructor for this class accepts a maximum wait time; this specifies
  * how long client code is willing to wait for a synchronous response (i.e.,
@@ -50,15 +51,17 @@ namespace sysdig
  * the client supplied a handler in the call to lookup(), then that handler
  * will be invoked by the async_metadata_source once the metadata has been
  * collected.  Note that the callback handler will be invoked in the context
- * of the asynchronous thread associated with the async_metadata_source.  (2) If
- * the client did not supply a handler, then the metadata will be stored, and the
- * next call to the lookup() method with the same key will return the previously
- * collected metadata.
+ * of the asynchronous thread associated with the async_metadata_source.
+ * (2) If the client did not supply a handler, then the metadata will be stored,
+ * and the next call to the lookup() method with the same key will return the
+ * previously collected metadata.  If lookup() is not called with the specified
+ * ttl time, then this compoment will prune the stored metadata.
  *
  * @tparam key_type      The type of the keys for which concrete subclasses will
- *                       query.
+ *                       query.  This type must have a valid operator==().
  * @tparam metadata_type The type of metadata that concrete subclasses will
- *                       receive from a query.
+ *                       receive from a query.  This type must have a valid
+ *                       operator=().
  */
 template<typename key_type, typename metadata_type>
 class async_metadata_source
@@ -135,8 +138,16 @@ public:
                     const callback_handler& handler = callback_handler());
 
 	/**
-	 * @returns true if the async thread assocaited with this
-	 *          async_metadata_source is running, false otherwise.
+	 * Determines if the async thread assocaited with this
+	 * async_metadata_source is running.
+	 *
+	 * <b>Note:</b> This API is for information only.  Clients should
+	 * not use this to implement any sort of complex behavior.  Such
+	 * use will lead to race conditions.  For example, is_running() and
+	 * lookup() could potentially race, causing is_running() to return
+	 * false after lookup() has started the thread.
+	 *
+	 * @returns true if the async thread is running, false otherwise.
 	 */
 	bool is_running() const;
 
