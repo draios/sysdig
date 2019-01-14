@@ -509,6 +509,18 @@ if [ -z "$KERNEL_TYPE" ]; then
 	done
 
 	#
+	# Fedora Atomic build
+	#
+	echo Building Fedora Atomic
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py Fedora-Atomic)"
+	
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
+
+	#
 	# CoreOS build
 	#
 	echo Building CoreOS
