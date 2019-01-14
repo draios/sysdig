@@ -74,7 +74,7 @@ protected:
 		while(queue_size() > 0)
 		{
 			const std::string key = dequeue_next_key();
-			store_metadata(key, get_response(key));
+			store_value(key, get_response(key));
 		}
 	}
 };
@@ -104,7 +104,7 @@ protected:
 
 			std::this_thread::sleep_for(std::chrono::milliseconds(m_delay_ms));
 
-			store_metadata(key, get_response(key));
+			store_value(key, get_response(key));
 		}
 	}
 

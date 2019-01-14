@@ -65,12 +65,12 @@ void async_docker_metadata_source::run_impl()
 	while(queue_size() > 0)
 	{
 		const std::string container_id = dequeue_next_key();
-		docker_metadata metadata = get_metadata(container_id);
+		docker_metadata metadata = get_value(container_id);
 
 		if(parse_docker(metadata.m_manager,
 		                metadata.m_container_info.get()))
 		{
-			store_metadata(container_id, metadata);
+			store_value(container_id, metadata);
 		}
 	}
 }

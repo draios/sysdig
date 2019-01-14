@@ -31,44 +31,43 @@ namespace sysdig
 {
 
 /**
- * Base class for classes that need to collect metadata asynchronously from some
- * metadata source.  Subclasses will override the the run_impl() method and
- * implement the concrete metadata lookup behavior.  In that method, subclasses
+ * Base class for classes that need to collect values asynchronously from some
+ * value source.  Subclasses will override the the run_impl() method and
+ * implement the concrete value lookup behavior.  In that method, subclasses
  * will use use dequeue_next_key() method to get the key that it will use to
- * collect the metadata, collect the appropriate metadata, and call the
- * store_metadata() method to save the metadata.  The run_impl() method should
- * continue to dequeue and process metadata while the queue_size() method
+ * collect the value(s), collect the appropriate value(s), and call the
+ * store_value() method to save the value.  The run_impl() method should
+ * continue to dequeue and process values while the queue_size() method
  * returns non-zero.
  *
  * The constructor for this class accepts a maximum wait time; this specifies
  * how long client code is willing to wait for a synchronous response (i.e.,
- * how long the lookup() method will block waiting for the requested metadata).
- * If the async_key_value_source is able to collect the requested metadata
+ * how long the lookup() method will block waiting for the requested value).
+ * If the async_key_value_source is able to collect the requested value
  * within that time period, then the lookup() method will return them.
  *
- * If the lookup() method is unable to collect the requested metadata within
+ * If the lookup() method is unable to collect the requested value within
  * the requested time period, then one of two things will happen.
  *
  * <ol>
  * <li>If the client supplied a callback handler in the call to lookup(), then
  *     that callback handler will be invoked by the async_key_value_source once
- *     the metadata has been collected.  Note that the callback handler will be
+ *     the value has been collected.  Note that the callback handler will be
  *     invoked in the context of the asynchronous thread associated with the
  *     async_key_value_source.</li>
- * <li>If the client did not supply a handler, then the metadata will be stored,
+ * <li>If the client did not supply a handler, then the value will be stored,
  *     and the next call to the lookup() method with the same key will return
- *     the previously collected metadata.  If lookup() is not called with the
- *     specified ttl time, then this compoment will prune the stored
- *     metadata.</li>
+ *     the previously collected value.  If lookup() is not called with the
+ *     specified ttl time, then this compoment will prune the stored value.</li>
  * </ol>
  *
- * @tparam key_type      The type of the keys for which concrete subclasses will
- *                       query.  This type must have a valid operator==().
- * @tparam metadata_type The type of metadata that concrete subclasses will
- *                       receive from a query.  This type must have a valid
- *                       operator=().
+ * @tparam key_type   The type of the keys for which concrete subclasses will
+ *                    query.  This type must have a valid operator==().
+ * @tparam value_type The type of value that concrete subclasses will
+ *                    receive from a query.  This type must have a valid
+ *                    operator=().
  */
-template<typename key_type, typename metadata_type>
+template<typename key_type, typename value_type>
 class async_key_value_source
 {
 public:
@@ -79,18 +78,18 @@ public:
 	const static uint64_t NO_WAIT_LOOKUP = 0;
 
         typedef std::function<void(const key_type& key,
-			           const metadata_type& metadata)> callback_handler;
+			           const value_type& value)> callback_handler;
 
 	/**
 	 * Initialize this new async_key_value_source, which will block
-	 * synchronously for the given max_wait_ms for metadata collection.
+	 * synchronously for the given max_wait_ms for value collection.
 	 *
 	 * @param[in] max_wait_ms The maximum amount of time that client code
 	 *                        is willing to wait for lookup() to collect
-	 *                        metadata before falling back to an async
+	 *                        a value before falling back to an async
 	 *                        return.
 	 * @param[in] ttl_ms      The time, in milliseconds, that a cached
-	 *                        result will live before being considered
+	 *                        value will live before being considered
 	 *                        "too old" and being pruned.
 	 */
 	async_key_value_source(uint64_t max_wait_ms, uint64_t ttl_ms);
@@ -109,40 +108,40 @@ public:
 
 	/**
 	 * Returns the maximum amount of time, in milliseconds, that a cached
-	 * metadata result will live before being pruned.
+	 * value will live before being pruned.
 	 */
 	uint64_t get_ttl() const;
 
 	/**
-	 * Lookup metadata based on the given key.  This method will block
+	 * Lookup value(s) based on the given key.  This method will block
 	 * the caller for up the max_wait_ms time specified at construction
-	 * for the desired metadata to be available.
+	 * for the desired value(s) to be available.
 	 *
-	 * @param[in] key       The key to the metadata for which the client
+	 * @param[in] key       The key to the value for which the client
 	 *                      wishs to query.
-	 * @param[out] metadata If this method is able to fetch the desired
-	 *                      metadata within the max_wait_ms specified at
+	 * @param[out] value    If this method is able to fetch the desired
+	 *                      value within the max_wait_ms specified at
 	 *                      construction time, then this output parameter
-	 *                      will contain the collected metadata.  The value
+	 *                      will contain the collected value.  The value
 	 *                      of this parameter is defined only if this method
 	 *                      returns true.
 	 * @param[in] handler   If this method is unable to collect the requested
-	 *                      metadata before the timeout, and if this parameter
+	 *                      value(s) before the timeout, and if this parameter
 	 *                      is a valid, non-empty, function, then this class
 	 *                      will invoke the given handler from the async
-	 *                      thread immediately after the collected metadata
+	 *                      thread immediately after the collected values
 	 *                      are available.  If this handler is empty, then
 	 *                      this async_key_value_source will store the
-	 *                      metadata until either the next call to lookup()
+	 *                      values until either the next call to lookup()
 	 *                      or until its ttl expires, whichever comes first.
 	 *                      The handler is responsible for any thread-safety
 	 *                      guarantees.
 	 *
 	 * @returns true if this method was able to lookup and return the
-	 *          metadata synchronously; false otherwise.
+	 *          value synchronously; false otherwise.
 	 */
 	bool lookup(const key_type& key,
-                    metadata_type& metadata,
+                    value_type& value,
                     const callback_handler& handler = callback_handler());
 
 	/**
@@ -190,7 +189,7 @@ protected:
 	/**
 	 * Dequeues an entry from the request queue and returns it.  Concrete
 	 * subclasses will call this method to get the next key for which
-	 * to collect metadata.
+	 * to collect values.
 	 *
 	 * Precondition: queue_size() must be non-zero.
 	 *
@@ -199,35 +198,35 @@ protected:
 	key_type dequeue_next_key();
 
 	/**
-	 * Get the metadata for the given key.
+	 * Get the (potentially partial) value for the given key.
 	 *
-	 * @param[in] key The key whose metadata is needed.
+	 * @param[in] key The key whose value is needed.
 	 *
-	 * @returns the metadata associated with the given key.
+	 * @returns the value associated with the given key.
 	 */
-	metadata_type get_metadata(const key_type& key);
+	value_type get_value(const key_type& key);
 
 	/**
-	 * Stores a collected set of metadata for the given key.  Concrete
-	 * subclasses will call this method from their run_impl() method to
-	 * save (or otherwise notifiy the client about) a collected metadata.
+	 * Stores a value for the given key.  Concrete subclasses will call
+	 * this method from their run_impl() method to save (or otherwise
+	 * notifiy the client about) an available value.
 	 *
-	 * @param[in] key      The key for which the client asked for metadata.
-	 * @param[in] metadata The collected metadata.
+	 * @param[in] key   The key for which the client asked for the value.
+	 * @param[in] value The collected value.
 	 */
-	void store_metadata(const key_type& key, const metadata_type& metadata);
+	void store_value(const key_type& key, const value_type& value);
 
 	/**
 	 * Concrete subclasses must override this method to perform the
-	 * asynchronous metadata lookup.  The implementation should:
+	 * asynchronous value lookup.  The implementation should:
 	 *
 	 * <ul>
 	 * <li>Loop while queue_size() is non-zero.</li>
 	 * <li>Dequeue the next key to process using dequeue_next_key()</li>
-	 * <li>Get any existing metadata for thaty key using get_metadata()</li>
-	 * <li>Do whatever work is necessary to lookup the metadata associated
+	 * <li>Get any existing value for that key using get_value()</li>
+	 * <li>Do whatever work is necessary to lookup the value associated
 	 *     with that key.</li>
-	 * <li>Call store_metadata to store the updated metadata, and to
+	 * <li>Call store_value to store the updated value, and to
 	 *     notify any client code waiting on that data.</li>
 	 * </ul>
 	 */
@@ -241,17 +240,17 @@ private:
 	{
 		lookup_request():
 			m_available(false),
-			m_metadata(),
+			m_value(),
 			m_available_condition(),
 			m_callback(),
 			m_start_time(std::chrono::steady_clock::now())
 		{ }
 
-		/** Is the metadata here available? */
+		/** Is the value here available? */
 		bool m_available;
 
-		/** The metadata for a key. */
-		metadata_type m_metadata;
+		/** The value for a key. */
+		value_type m_value;
 
 		/** Block in lookup() waiting for a sync response. */
 		std::condition_variable m_available_condition;
@@ -266,7 +265,7 @@ private:
 		std::chrono::time_point<std::chrono::steady_clock> m_start_time;
 	};
 
-	typedef std::map<key_type, lookup_request> metadata_map;
+	typedef std::map<key_type, lookup_request> value_map;
 
 	/**
 	 * The entry point of the async thread, which blocks waiting for work
@@ -288,7 +287,7 @@ private:
 	std::condition_variable m_start_condition;
 	std::condition_variable m_queue_not_empty_condition;
 	std::list<key_type> m_request_queue;
-	metadata_map m_metadata_map;
+	value_map m_value_map;
 };
 
 

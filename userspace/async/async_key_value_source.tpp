@@ -28,8 +28,8 @@ limitations under the License.
 namespace sysdig
 {
 
-template<typename key_type, typename metadata_type>
-async_key_value_source<key_type, metadata_type>::async_key_value_source(
+template<typename key_type, typename value_type>
+async_key_value_source<key_type, value_type>::async_key_value_source(
 		const uint64_t max_wait_ms,
 		const uint64_t ttl_ms):
 	m_max_wait_ms(max_wait_ms),
@@ -39,11 +39,11 @@ async_key_value_source<key_type, metadata_type>::async_key_value_source(
 	m_terminate(false),
 	m_mutex(),
 	m_queue_not_empty_condition(),
-	m_metadata_map()
+	m_value_map()
 { }
 
-template<typename key_type, typename metadata_type>
-async_key_value_source<key_type, metadata_type>::~async_key_value_source()
+template<typename key_type, typename value_type>
+async_key_value_source<key_type, value_type>::~async_key_value_source()
 {
 	try
 	{
@@ -57,20 +57,20 @@ async_key_value_source<key_type, metadata_type>::~async_key_value_source()
 	}
 }
 
-template<typename key_type, typename metadata_type>
-uint64_t async_key_value_source<key_type, metadata_type>::get_max_wait() const
+template<typename key_type, typename value_type>
+uint64_t async_key_value_source<key_type, value_type>::get_max_wait() const
 {
 	return m_max_wait_ms;
 }
 
-template<typename key_type, typename metadata_type>
-uint64_t async_key_value_source<key_type, metadata_type>::get_ttl() const
+template<typename key_type, typename value_type>
+uint64_t async_key_value_source<key_type, value_type>::get_ttl() const
 {
 	return m_ttl_ms;
 }
 
-template<typename key_type, typename metadata_type>
-void async_key_value_source<key_type, metadata_type>::stop()
+template<typename key_type, typename value_type>
+void async_key_value_source<key_type, value_type>::stop()
 {
 	bool join_needed = false;
 
@@ -98,16 +98,17 @@ void async_key_value_source<key_type, metadata_type>::stop()
 	}
 }
 
-template<typename key_type, typename metadata_type>
-bool async_key_value_source<key_type, metadata_type>::is_running() const
+template<typename key_type, typename value_type>
+bool async_key_value_source<key_type, value_type>::is_running() const
 {
-	std::lock_guard<std::mutex> guard(m_mutex);
+	// Since this is for information only and it's ok to race, we
+	// expliclty do not lock here.
 
 	return m_running;
 }
 
-template<typename key_type, typename metadata_type>
-void async_key_value_source<key_type, metadata_type>::run()
+template<typename key_type, typename value_type>
+void async_key_value_source<key_type, value_type>::run()
 {
 	m_running = true;
 
@@ -134,10 +135,10 @@ void async_key_value_source<key_type, metadata_type>::run()
 	m_running = false;
 }
 
-template<typename key_type, typename metadata_type>
-bool async_key_value_source<key_type, metadata_type>::lookup(
+template<typename key_type, typename value_type>
+bool async_key_value_source<key_type, value_type>::lookup(
 		const key_type& key,
-		metadata_type& metadata,
+		value_type& value,
 		const callback_handler& callback)
 {
 	std::unique_lock<std::mutex> guard(m_mutex);
@@ -147,16 +148,16 @@ bool async_key_value_source<key_type, metadata_type>::lookup(
 		m_thread = std::thread(&async_key_value_source::run, this);
 	}
 
-	typename metadata_map::const_iterator itr = m_metadata_map.find(key);
-	bool request_complete = (itr != m_metadata_map.end()) && itr->second.m_available;
+	typename value_map::const_iterator itr = m_value_map.find(key);
+	bool request_complete = (itr != m_value_map.end()) && itr->second.m_available;
 
 	if(!request_complete)
 	{
 		// Haven't made the request yet
-		if (itr == m_metadata_map.end())
+		if (itr == m_value_map.end())
 		{
-			m_metadata_map[key].m_available = false;
-			m_metadata_map[key].m_metadata = metadata;
+			m_value_map[key].m_available = false;
+			m_value_map[key].m_value = value;
 		}
 
 		// Make request to API and let the async thread know about it
@@ -173,43 +174,42 @@ bool async_key_value_source<key_type, metadata_type>::lookup(
 		// to satisfy the request, then wait for the async thread to
 		// pick up the newly-added request and execute it.  If
 		// processing that request takes too much time, then we'll
-		// not be able to return the metadata information on this call,
+		// not be able to return the value information on this call,
 		// and the async thread will continue handling the request so
 		// that it'll be available on the next call.
 		//
 		if (m_max_wait_ms > 0)
 		{
-			m_metadata_map[key].m_available_condition.wait_for(
+			m_value_map[key].m_available_condition.wait_for(
 					guard,
 					std::chrono::milliseconds(m_max_wait_ms));
 
-			itr = m_metadata_map.find(key);
-			request_complete = (itr != m_metadata_map.end()) && itr->second.m_available;
+			itr = m_value_map.find(key);
+			request_complete = (itr != m_value_map.end()) && itr->second.m_available;
 		}
 	}
 
 	if(request_complete)
 	{
-		metadata = itr->second.m_metadata;
-		m_metadata_map.erase(key);
+		value = itr->second.m_value;
+		m_value_map.erase(key);
 	}
 	else
 	{
-		m_metadata_map[key].m_callback = callback;
+		m_value_map[key].m_callback = callback;
 	}
 
 	return request_complete;
 }
 
-template<typename key_type, typename metadata_type>
-std::size_t async_key_value_source<key_type, metadata_type>::queue_size() const
+template<typename key_type, typename value_type>
+std::size_t async_key_value_source<key_type, value_type>::queue_size() const
 {
-	std::lock_guard<std::mutex> guard(m_mutex);
 	return m_request_queue.size();
 }
 
-template<typename key_type, typename metadata_type>
-key_type async_key_value_source<key_type, metadata_type>::dequeue_next_key()
+template<typename key_type, typename value_type>
+key_type async_key_value_source<key_type, value_type>::dequeue_next_key()
 {
 	std::lock_guard<std::mutex> guard(m_mutex);
 	key_type key = m_request_queue.front();
@@ -219,32 +219,32 @@ key_type async_key_value_source<key_type, metadata_type>::dequeue_next_key()
 	return key;
 }
 
-template<typename key_type, typename metadata_type>
-metadata_type async_key_value_source<key_type, metadata_type>::get_metadata(
+template<typename key_type, typename value_type>
+value_type async_key_value_source<key_type, value_type>::get_value(
 		const key_type& key)
 {
 	std::lock_guard<std::mutex> guard(m_mutex);
 
-	return m_metadata_map[key].m_metadata;
+	return m_value_map[key].m_value;
 }
 
-template<typename key_type, typename metadata_type>
-void async_key_value_source<key_type, metadata_type>::store_metadata(
+template<typename key_type, typename value_type>
+void async_key_value_source<key_type, value_type>::store_value(
 		const key_type& key,
-		const metadata_type& metadata)
+		const value_type& value)
 {
 	std::lock_guard<std::mutex> guard(m_mutex);
 
-	if (m_metadata_map[key].m_callback)
+	if (m_value_map[key].m_callback)
 	{
-		m_metadata_map[key].m_callback(key, metadata);
-		m_metadata_map.erase(key);
+		m_value_map[key].m_callback(key, value);
+		m_value_map.erase(key);
 	}
 	else
 	{
-		m_metadata_map[key].m_metadata = metadata;
-		m_metadata_map[key].m_available = true;
-		m_metadata_map[key].m_available_condition.notify_one();
+		m_value_map[key].m_value = value;
+		m_value_map[key].m_available = true;
+		m_value_map[key].m_available_condition.notify_one();
 	}
 }
 
@@ -252,15 +252,15 @@ void async_key_value_source<key_type, metadata_type>::store_metadata(
  * Prune any "old" outstanding requests.  This method expect that the caller
  * is holding m_mutex.
  */
-template<typename key_type, typename metadata_type>
-void async_key_value_source<key_type, metadata_type>::prune_stale_requests()
+template<typename key_type, typename value_type>
+void async_key_value_source<key_type, value_type>::prune_stale_requests()
 {
 	// Avoid both iterating over and modifying the map by saving a list
 	// of keys to prune.
 	std::vector<key_type> keys_to_prune;
 
-	for(auto i = m_metadata_map.begin();
-	    !m_terminate && (i != m_metadata_map.end());
+	for(auto i = m_value_map.begin();
+	    !m_terminate && (i != m_value_map.end());
 	    ++i)
 	{
 		const auto now = std::chrono::steady_clock::now();
@@ -279,7 +279,7 @@ void async_key_value_source<key_type, metadata_type>::prune_stale_requests()
 	    !m_terminate && (i != keys_to_prune.end());
 	    ++i)
 	{
-		m_metadata_map.erase(*i);
+		m_value_map.erase(*i);
 	}
 }
 
