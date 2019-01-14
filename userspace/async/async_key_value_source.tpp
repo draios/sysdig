@@ -29,7 +29,7 @@ namespace sysdig
 {
 
 template<typename key_type, typename metadata_type>
-async_metadata_source<key_type, metadata_type>::async_metadata_source(
+async_key_value_source<key_type, metadata_type>::async_key_value_source(
 		const uint64_t max_wait_ms,
 		const uint64_t ttl_ms):
 	m_max_wait_ms(max_wait_ms),
@@ -43,7 +43,7 @@ async_metadata_source<key_type, metadata_type>::async_metadata_source(
 { }
 
 template<typename key_type, typename metadata_type>
-async_metadata_source<key_type, metadata_type>::~async_metadata_source()
+async_key_value_source<key_type, metadata_type>::~async_key_value_source()
 {
 	try
 	{
@@ -58,19 +58,19 @@ async_metadata_source<key_type, metadata_type>::~async_metadata_source()
 }
 
 template<typename key_type, typename metadata_type>
-uint64_t async_metadata_source<key_type, metadata_type>::get_max_wait() const
+uint64_t async_key_value_source<key_type, metadata_type>::get_max_wait() const
 {
 	return m_max_wait_ms;
 }
 
 template<typename key_type, typename metadata_type>
-uint64_t async_metadata_source<key_type, metadata_type>::get_ttl() const
+uint64_t async_key_value_source<key_type, metadata_type>::get_ttl() const
 {
 	return m_ttl_ms;
 }
 
 template<typename key_type, typename metadata_type>
-void async_metadata_source<key_type, metadata_type>::stop()
+void async_key_value_source<key_type, metadata_type>::stop()
 {
 	bool join_needed = false;
 
@@ -99,7 +99,7 @@ void async_metadata_source<key_type, metadata_type>::stop()
 }
 
 template<typename key_type, typename metadata_type>
-bool async_metadata_source<key_type, metadata_type>::is_running() const
+bool async_key_value_source<key_type, metadata_type>::is_running() const
 {
 	std::lock_guard<std::mutex> guard(m_mutex);
 
@@ -107,7 +107,7 @@ bool async_metadata_source<key_type, metadata_type>::is_running() const
 }
 
 template<typename key_type, typename metadata_type>
-void async_metadata_source<key_type, metadata_type>::run()
+void async_key_value_source<key_type, metadata_type>::run()
 {
 	m_running = true;
 
@@ -135,16 +135,16 @@ void async_metadata_source<key_type, metadata_type>::run()
 }
 
 template<typename key_type, typename metadata_type>
-bool async_metadata_source<key_type, metadata_type>::lookup(
+bool async_key_value_source<key_type, metadata_type>::lookup(
 		const key_type& key,
 		metadata_type& metadata,
 		const callback_handler& callback)
 {
 	std::unique_lock<std::mutex> guard(m_mutex);
 
-	if(!m_running)
+	if(!m_running && !m_thread.joinable())
 	{
-		m_thread = std::thread(&async_metadata_source::run, this);
+		m_thread = std::thread(&async_key_value_source::run, this);
 	}
 
 	typename metadata_map::const_iterator itr = m_metadata_map.find(key);
@@ -202,14 +202,14 @@ bool async_metadata_source<key_type, metadata_type>::lookup(
 }
 
 template<typename key_type, typename metadata_type>
-std::size_t async_metadata_source<key_type, metadata_type>::queue_size() const
+std::size_t async_key_value_source<key_type, metadata_type>::queue_size() const
 {
 	std::lock_guard<std::mutex> guard(m_mutex);
 	return m_request_queue.size();
 }
 
 template<typename key_type, typename metadata_type>
-key_type async_metadata_source<key_type, metadata_type>::dequeue_next_key()
+key_type async_key_value_source<key_type, metadata_type>::dequeue_next_key()
 {
 	std::lock_guard<std::mutex> guard(m_mutex);
 	key_type key = m_request_queue.front();
@@ -220,7 +220,7 @@ key_type async_metadata_source<key_type, metadata_type>::dequeue_next_key()
 }
 
 template<typename key_type, typename metadata_type>
-metadata_type async_metadata_source<key_type, metadata_type>::get_metadata(
+metadata_type async_key_value_source<key_type, metadata_type>::get_metadata(
 		const key_type& key)
 {
 	std::lock_guard<std::mutex> guard(m_mutex);
@@ -229,7 +229,7 @@ metadata_type async_metadata_source<key_type, metadata_type>::get_metadata(
 }
 
 template<typename key_type, typename metadata_type>
-void async_metadata_source<key_type, metadata_type>::store_metadata(
+void async_key_value_source<key_type, metadata_type>::store_metadata(
 		const key_type& key,
 		const metadata_type& metadata)
 {
@@ -253,7 +253,7 @@ void async_metadata_source<key_type, metadata_type>::store_metadata(
  * is holding m_mutex.
  */
 template<typename key_type, typename metadata_type>
-void async_metadata_source<key_type, metadata_type>::prune_stale_requests()
+void async_key_value_source<key_type, metadata_type>::prune_stale_requests()
 {
 	// Avoid both iterating over and modifying the map by saving a list
 	// of keys to prune.

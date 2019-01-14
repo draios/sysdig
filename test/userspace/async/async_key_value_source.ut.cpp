@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#include "async_metadata_source.h"
+#include "async_key_value_source.h"
 
 #include <string>
 #include <gtest.h>
@@ -27,16 +27,17 @@ namespace
 {
 
 /**
- * Intermediate realization of async_metadata_source that can return pre-canned
+ * Intermediate realization of async_key_value_source that can return pre-canned
  * results.
  */
-class precanned_metadata_source : public async_metadata_source<std::string, std::string> 
+class precanned_metadata_source : public async_key_value_source<std::string, std::string> 
 {
 public:
 	const static uint64_t FOREVER_MS;
 
-	precanned_metadata_source(const uint64_t max_wait_ms, const uint64_t ttl_ms = FOREVER_MS)
-		: async_metadata_source(max_wait_ms, ttl_ms),
+	precanned_metadata_source(const uint64_t max_wait_ms,
+	                          const uint64_t ttl_ms = FOREVER_MS)
+		: async_key_value_source(max_wait_ms, ttl_ms),
 		m_responses()
 	{ }
 
@@ -56,7 +57,7 @@ private:
 const uint64_t precanned_metadata_source::FOREVER_MS = static_cast<uint64_t>(~0L);
 
 /**
- * Realization of async_metadata_source that returns results without delay.
+ * Realization of async_key_value_source that returns results without delay.
  */
 class immediate_metadata_source : public precanned_metadata_source
 {
@@ -80,7 +81,7 @@ protected:
 const uint64_t immediate_metadata_source::MAX_WAIT_TIME_MS = 5000;
 
 /**
- * Realization of async_metadata_source that returns results with some
+ * Realization of async_key_value_source that returns results with some
  * specified delay.
  */
 class delayed_metadata_source : public precanned_metadata_source
@@ -115,10 +116,10 @@ const uint64_t delayed_metadata_source::MAX_WAIT_TIME_MS = 0;
 }
 
 /**
- * Ensure that a concrete async_metadata_source is in the expected initial state
- * after construction.
+ * Ensure that a concrete async_key_value_source is in the expected initial
+ * state after construction.
  */
-TEST(async_metadata_source_test, construction)
+TEST(async_key_value_source_test, construction)
 {
 	immediate_metadata_source source;
 
@@ -128,11 +129,11 @@ TEST(async_metadata_source_test, construction)
 }
 
 /**
- * Ensure that if a concrete async_metadata_source returns the metadata before
+ * Ensure that if a concrete async_key_value_source returns the metadata before
  * the timeout, that the lookup() method returns true, and that it returns
  * the metadata in the output parameter.
  */
-TEST(async_metadata_source_test, lookup_key_immediate_return)
+TEST(async_key_value_source_test, lookup_key_immediate_return)
 {
 	const std::string key = "foo";
 	const std::string metadata = "bar";
@@ -149,11 +150,11 @@ TEST(async_metadata_source_test, lookup_key_immediate_return)
 }
 
 /**
- * Ensure that if a concrete async_metadata_source cannot return the result
+ * Ensure that if a concrete async_key_value_source cannot return the result
  * before the timeout, and if the client did not provide a callback, that
  * calling lookup() after the result it available returns the value.
  */
-TEST(async_metadata_source_test, lookup_key_delayed_return_second_call)
+TEST(async_key_value_source_test, lookup_key_delayed_return_second_call)
 {
 	const uint64_t DELAY_MS = 50;
 	const std::string key = "mykey";
@@ -185,11 +186,11 @@ TEST(async_metadata_source_test, lookup_key_delayed_return_second_call)
 }
 
 /**
- * Ensure that if a concrete async_metadata_source cannot return the result
+ * Ensure that if a concrete async_key_value_source cannot return the result
  * before the timeout, and if the client did provide a callback, that the
  * callback is invoked with the metadata once they're avaialble.
  */
-TEST(async_metadata_source_test, look_key_delayed_async_callback)
+TEST(async_key_value_source_test, look_key_delayed_async_callback)
 {
 	const uint64_t DELAY_MS = 50;
 	const std::string key = "mykey";
@@ -225,7 +226,7 @@ TEST(async_metadata_source_test, look_key_delayed_async_callback)
 /**
  * Ensure that "old" results are pruned
  */
-TEST(async_metadata_source_test, prune_old_metadata)
+TEST(async_key_value_source_test, prune_old_metadata)
 {
 	const uint64_t DELAY_MS = 0;
 	const uint64_t TTL_MS = 20;

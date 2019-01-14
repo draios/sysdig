@@ -18,7 +18,7 @@ limitations under the License.
 */
 #pragma once
 
-#include "async_metadata_source.h"
+#include "async_key_value_source.h"
 #include "sinsp.h"
 #include "container.h"
 
@@ -47,10 +47,10 @@ struct docker_metadata
 };
 
 /**
- * Interface to async_docker_metadata_source -- an abstract async_metadata_source
+ * Interface to async_docker_metadata_source -- an abstract async_key_value_source
  * for fetching docker metadata and metadata.
  */
-class async_docker_metadata_source : public async_metadata_source<std::string, docker_metadata>
+class async_docker_metadata_source : public async_key_value_source<std::string, docker_metadata>
 {
 public:
 	/**
@@ -61,7 +61,7 @@ public:
 	const uint64_t MAX_TTL_MS = (30 * 1000);
 
 	/**
-	 * Returns the API version that this async_metadata_source will use to
+	 * Returns the API version that this async_key_value_source will use to
 	 * fetch information from Docker.
 	 */
 	const std::string& get_api_version() const;
