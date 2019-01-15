@@ -473,40 +473,40 @@ if [ -z "$KERNEL_TYPE" ]; then
 
         checkout_sysdig
 
-	#echo Building Ubuntu
-	#DIR=$(dirname $(readlink -f $0))
-	#URLS="$($DIR/kernel-crawler.py Ubuntu)"
+	echo Building Ubuntu
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py Ubuntu)"
 
-	#for URL in $URLS
-	#do
-	#	ubuntu_build $URL
-	#done
+	for URL in $URLS
+	do
+		ubuntu_build $URL
+	done
 
 	#
 	# RHEL build
 	#
 
-	#echo Building RHEL
-	#DIR=$(dirname $(readlink -f $0))
-	#URLS="$($DIR/kernel-crawler.py CentOS)"
+	echo Building RHEL
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py CentOS)"
 
-	#for URL in $URLS
-	#do
-	#	rhel_build $URL
-	#done
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
 
 	#
 	# Fedora build
 	#
 
-	#echo Building Fedora
-	#DIR=$(dirname $(readlink -f $0))
-	#URLS="$($DIR/kernel-crawler.py Fedora)"
+	echo Building Fedora
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py Fedora)"
 
-	#for URL in $URLS
-	#do
-	#	rhel_build $URL
-	#done
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
 
 	#
 	# Fedora Atomic build
@@ -523,25 +523,25 @@ if [ -z "$KERNEL_TYPE" ]; then
 	#
 	# CoreOS build
 	#
-	#echo Building CoreOS
-	#DIR=$(dirname $(readlink -f $0))
-	#URLS="$($DIR/kernel-crawler.py CoreOS)"
+	echo Building CoreOS
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py CoreOS)"
 
-	#for URL in $URLS
-	#do
-	#	set +e
-	#	eval $(curl -s ${URL}version.txt)
-	#	if [ ${?} -ne 0 ]; then
-	#		echo "### Error fetching ${URL}version.txt ###"
-	#		continue
-	#	fi
-	#	set -e
-	#	if [ $COREOS_BUILD -gt 890 ]; then
-	#		coreos_build_new $URL $COREOS_VERSION
-	#	else
-	#		coreos_build_old $URL $COREOS_VERSION
-	#	fi
-	#done
+	for URL in $URLS
+	do
+		set +e
+		eval $(curl -s ${URL}version.txt)
+		if [ ${?} -ne 0 ]; then
+			echo "### Error fetching ${URL}version.txt ###"
+			continue
+		fi
+		set -e
+		if [ $COREOS_BUILD -gt 890 ]; then
+			coreos_build_new $URL $COREOS_VERSION
+		else
+			coreos_build_old $URL $COREOS_VERSION
+		fi
+	done
 
 	#
 	# boot2docker is officially in maintenance mode
@@ -561,14 +561,14 @@ if [ -z "$KERNEL_TYPE" ]; then
 	#
 	# Debian build
 	#
-	# echo Building Debian
-	# DIR=$(dirname $(readlink -f $0))
-	# URLS="$($DIR/kernel-crawler.py Debian)"
+	echo Building Debian
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py Debian)"
 
-	# for URL in $URLS
-	# do
-	# 	debian_build $URL
-	# done
+	for URL in $URLS
+	do
+		debian_build $URL
+	done
 	# XXX agent/434 - We need to force a build for certain kernel versions
 	# because they are still in use by some GCE customers but the headers
 	# are no longer available from the mirror. We pass the URL but nothing
@@ -581,14 +581,14 @@ if [ -z "$KERNEL_TYPE" ]; then
 	#
 	# Oracle RHCK build
 	#
-	# echo Building Oracle RHCK
-	# DIR=$(dirname $(readlink -f $0))
-	# URLS="$($DIR/oracle-kernel-crawler.py Oracle-RHCK)"
+	echo Building Oracle RHCK
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/oracle-kernel-crawler.py Oracle-RHCK)"
 
-	# for URL in $URLS
-	# do
-	# 	rhel_build $URL
-	# done
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
 
 	#
 	# The UEK builds needs to happen in a UEK environment, so we launch
@@ -618,26 +618,26 @@ if [ -z "$KERNEL_TYPE" ]; then
 	#
 	# AmazonLinux build
 	#
-	# echo Building AmazonLinux
-	# DIR=$(dirname $(readlink -f $0))
-	# URLS="$($DIR/kernel-crawler.py AmazonLinux)"
+	echo Building AmazonLinux
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py AmazonLinux)"
 
-	# for URL in $URLS
-	# do
-	# 	rhel_build $URL
-	# done
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
 
-	# #
-	# # AmazonLinux2 build
-	# #
-	# echo Building AmazonLinux2
-	# DIR=$(dirname $(readlink -f $0))
-	# URLS="$($DIR/kernel-crawler.py AmazonLinux2)"
+	#
+	# AmazonLinux2 build
+	#
+	echo Building AmazonLinux2
+	DIR=$(dirname $(readlink -f $0))
+	URLS="$($DIR/kernel-crawler.py AmazonLinux2)"
 
-	# for URL in $URLS
-	# do
-	# 	rhel_build $URL
-	# done
+	for URL in $URLS
+	do
+		rhel_build $URL
+	done
 
 	#
 	# Upload modules
