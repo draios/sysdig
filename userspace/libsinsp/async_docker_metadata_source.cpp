@@ -62,9 +62,10 @@ void async_docker_metadata_source::set_query_image_info(const bool query_info)
 
 void async_docker_metadata_source::run_impl()
 {
-	while(queue_size() > 0)
+	std::string container_id;
+
+	while(dequeue_next_key(container_id))
 	{
-		const std::string container_id = dequeue_next_key();
 		docker_metadata metadata = get_value(container_id);
 
 		if(parse_docker(metadata.m_manager,

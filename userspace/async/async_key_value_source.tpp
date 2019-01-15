@@ -203,20 +203,20 @@ bool async_key_value_source<key_type, value_type>::lookup(
 }
 
 template<typename key_type, typename value_type>
-std::size_t async_key_value_source<key_type, value_type>::queue_size() const
-{
-	return m_request_queue.size();
-}
-
-template<typename key_type, typename value_type>
-key_type async_key_value_source<key_type, value_type>::dequeue_next_key()
+bool async_key_value_source<key_type, value_type>::dequeue_next_key(key_type& key)
 {
 	std::lock_guard<std::mutex> guard(m_mutex);
-	key_type key = m_request_queue.front();
+	bool key_found = false;
 
-	m_request_queue.pop_front();
+	if(m_request_queue.size() > 0)
+	{
+		key_found = true;
 
-	return key;
+		key = m_request_queue.front();
+		m_request_queue.pop_front();
+	}
+
+	return key_found;
 }
 
 template<typename key_type, typename value_type>

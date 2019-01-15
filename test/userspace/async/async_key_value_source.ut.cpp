@@ -71,9 +71,10 @@ public:
 protected:
 	virtual void run_impl() override
 	{
-		while(queue_size() > 0)
+		std::string key;
+
+		while(dequeue_next_key(key))
 		{
-			const std::string key = dequeue_next_key();
 			store_value(key, get_response(key));
 		}
 	}
@@ -98,12 +99,11 @@ public:
 protected:
 	virtual void run_impl() override
 	{
-		while(queue_size() > 0)
+		std::string key;
+
+		while(dequeue_next_key(key))
 		{
-			const std::string key = dequeue_next_key();
-
 			std::this_thread::sleep_for(std::chrono::milliseconds(m_delay_ms));
-
 			store_value(key, get_response(key));
 		}
 	}

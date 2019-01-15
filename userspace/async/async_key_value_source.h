@@ -37,8 +37,8 @@ namespace sysdig
  * will use use dequeue_next_key() method to get the key that it will use to
  * collect the value(s), collect the appropriate value(s), and call the
  * store_value() method to save the value.  The run_impl() method should
- * continue to dequeue and process values while the queue_size() method
- * returns non-zero.
+ * continue to dequeue and process values while the dequeue_next_key() method
+ * returns true.
  *
  * The constructor for this class accepts a maximum wait time; this specifies
  * how long client code is willing to wait for a synchronous response (i.e.,
@@ -168,34 +168,13 @@ protected:
 	void stop();
 
 	/**
-	 * Returns the number of elements in the requeust queue.  Concrete
-	 * subclasses will call this methods from their run_impl() methods to
-	 * determine if there is more asynchronous work from them to perform.
+	 * Dequeues an entry from the request queue and returns it in the given
+	 * key.  Concrete subclasses will call this method to get the next key
+	 * for which to collect values.
 	 *
-	 * The only client of this API is the run_impl() method of concrete
-	 * subclasses running within the context of the async thread.  That
-	 * thread is the only thread that can decrease the value returned by
-	 * this queue_size().
-	 *
-	 * It is possible for there to be a race between the async thread
-	 * calling this and some other thread calling lookup().  In that case,
-	 * the key stored in the queue will be processed by the next call to
-	 * lookup().
-	 *
-	 * @returns the size of the request queue.
+	 * @returns true if there was a key to dequeue, false otherwise.
 	 */
-	std::size_t queue_size() const;
-
-	/**
-	 * Dequeues an entry from the request queue and returns it.  Concrete
-	 * subclasses will call this method to get the next key for which
-	 * to collect values.
-	 *
-	 * Precondition: queue_size() must be non-zero.
-	 *
-	 * @returns the next key to look up.
-	 */
-	key_type dequeue_next_key();
+	bool dequeue_next_key(key_type& key);
 
 	/**
 	 * Get the (potentially partial) value for the given key.
@@ -221,8 +200,7 @@ protected:
 	 * asynchronous value lookup.  The implementation should:
 	 *
 	 * <ul>
-	 * <li>Loop while queue_size() is non-zero.</li>
-	 * <li>Dequeue the next key to process using dequeue_next_key()</li>
+	 * <li>Loop while dequeue_next_key() is true.</li>
 	 * <li>Get any existing value for that key using get_value()</li>
 	 * <li>Do whatever work is necessary to lookup the value associated
 	 *     with that key.</li>
