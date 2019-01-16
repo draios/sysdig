@@ -25,22 +25,22 @@ limitations under the License.
 namespace sysdig
 {
 
-// TODO: Can this be inside the class below?
+/**
+ * The value_type that an async_docker_metadata_source's lookup() method
+ * will produce.
+ */
 struct docker_metadata
 {
 	docker_metadata():
 		m_manager(nullptr),
 		m_container_info()
-	{
-	}
+	{ }
 
 	docker_metadata(sinsp_container_manager* const manager,
 	               std::shared_ptr<sinsp_container_info>& container_info):
 		m_manager(manager),
 		m_container_info(container_info)
-	{
-	}
-
+	{ }
 
 	sinsp_container_manager* m_manager;
 	std::shared_ptr<sinsp_container_info> m_container_info;
@@ -50,7 +50,8 @@ struct docker_metadata
  * Interface to async_docker_metadata_source -- an abstract async_key_value_source
  * for fetching docker metadata and metadata.
  */
-class async_docker_metadata_source : public async_key_value_source<std::string, docker_metadata>
+class async_docker_metadata_source : public async_key_value_source<std::string,
+	                                                           docker_metadata>
 {
 public:
 	/**
