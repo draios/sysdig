@@ -24,6 +24,7 @@ limitations under the License.
 #include <list>
 #include <map>
 #include <mutex>
+#include <set>
 #include <thread>
 #include <stdint.h>
 
@@ -265,6 +266,7 @@ private:
 	std::condition_variable m_start_condition;
 	std::condition_variable m_queue_not_empty_condition;
 	std::list<key_type> m_request_queue;
+	std::set<key_type> m_request_set;
 	value_map m_value_map;
 };
 

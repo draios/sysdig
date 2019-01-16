@@ -161,11 +161,12 @@ bool async_key_value_source<key_type, value_type>::lookup(
 		}
 
 		// Make request to API and let the async thread know about it
-		if (std::find(m_request_queue.begin(),
-		              m_request_queue.end(),
-		              key) == m_request_queue.end())
+		if (std::find(m_request_set.begin(),
+		              m_request_set.end(),
+		              key) == m_request_set.end())
 		{
 			m_request_queue.push_back(key);
+			m_request_set.insert(key);
 			m_queue_not_empty_condition.notify_one();
 		}
 
@@ -214,6 +215,7 @@ bool async_key_value_source<key_type, value_type>::dequeue_next_key(key_type& ke
 
 		key = m_request_queue.front();
 		m_request_queue.pop_front();
+		m_request_set.erase(key);
 	}
 
 	return key_found;
