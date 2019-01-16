@@ -466,6 +466,66 @@ function debian_build {
 	cd ${BASEDIR}
 }
 
+function minikube_build {
+        VERSION=$1
+
+	MINIKUBE_BASEDIR=${BASEDIR}/minikube
+
+	if [ ! -d ${MINIKUBE_BASEDIR} ]; then
+	    mkdir -p ${MINIKUBE_BASEDIR}
+	fi
+
+	MINIKUBE_DIR=${MINIKUBE_BASEDIR}/minikube-$(echo ${VERSION} | sed 's/^v//')
+
+	if [ ! -d ${MINIKUBE_DIR} ]; then
+	    wget -P ${MINIKUBE_BASEDIR} --timeout=${URL_TIMEOUT} --tries=${RETRY} https://github.com/kubernetes/minikube/archive/${VERSION}.tar.gz
+	    tar -C ${MINIKUBE_BASEDIR} -zxf ${MINIKUBE_BASEDIR}/${VERSION}.tar.gz
+	    rm -f ${MINIKUBE_BASEDIR}/${VERSION}.tar.gz
+	fi
+
+	MINIKUBE_KERNEL_VERSION=$(cat ${MINIKUBE_DIR}/deploy/iso/minikube-iso/configs/minikube_defconfig | grep BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE | cut -d= -f 2 | sed 's/"//g')
+	TGZ_NAME=linux-${MINIKUBE_KERNEL_VERSION}.tar.xz
+	MAJOR=$(echo $MINIKUBE_KERNEL_VERSION | cut -d. -f1)
+	MINOR=$(echo $MINIKUBE_KERNEL_VERSION | cut -d. -f2)
+
+	KERNEL_CONFIG=${MINIKUBE_DIR}/deploy/iso/minikube-iso/board/coreos/minikube/linux_defconfig
+
+	# The filename used to contain the kernel version
+	if [ ! -e ${KERNEL_CONFIG} ]; then
+	    KERNEL_CONFIG=${MINIKUBE_DIR}/deploy/iso/minikube-iso/board/coreos/minikube/linux-${MAJOR}.${MINOR}_defconfig
+	fi
+
+	if [ ! -e ${KERNEL_CONFIG} ]; then
+	    echo "****ERROR: Could not find kernel config for minikube version ${VERSION}. Expected at ${KERNEL_CONFIG}"
+	    exit 1
+	fi
+
+	export KERNELDIR=${MINIKUBE_BASEDIR}/linux-${MINIKUBE_KERNEL_VERSION}
+
+	if [ ! -d ${KERNELDIR} ]; then
+	        wget -P ${MINIKUBE_BASEDIR} --timeout=${URL_TIMEOUT} --tries=${RETRY} https://www.kernel.org/pub/linux/kernel/v${MAJOR}.x/${TGZ_NAME}
+		tar -C ${MINIKUBE_BASEDIR} -xf ${MINIKUBE_BASEDIR}/${TGZ_NAME}
+		rm -f ${MINIKUBE_BASEDIR}/${TGZ_NAME}
+	fi
+
+	pushd ${KERNELDIR}
+	make distclean
+	cp ${KERNEL_CONFIG} .config
+	# Manually setting ARCH to x86_64 mirrors what buildroot does.
+	ARCH=x86_64 make olddefconfig
+	make modules_prepare
+	popd
+
+	HASH=$(md5sum ${KERNELDIR}/.config | cut -d' ' -f1)
+	HASH_ORIG=${HASH}
+
+	KERNEL_RELEASE=$(cat ${KERNELDIR}/include/config/kernel.release)
+
+	cd $BASEDIR
+
+	build_probe
+}
+
 if [ -z "$KERNEL_TYPE" ]; then
 	#
 	# Ubuntu build
@@ -625,6 +685,13 @@ if [ -z "$KERNEL_TYPE" ]; then
 	for URL in $URLS
 	do
 		rhel_build $URL
+	done
+
+	VERSIONS=$(curl https://api.github.com/repos/kubernetes/minikube/releases | jq -r '.[].name' | head -10)
+
+	for VERSION in $VERSIONS
+	do
+	        minikube_build $VERSION
 	done
 
 	#
