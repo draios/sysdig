@@ -83,6 +83,58 @@ const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by
 	return NULL;
 }
 
+std::string sinsp_container_info::normalize_healthcheck_arg(const std::string &arg)
+{
+	std::string ret = arg;
+
+	if(ret.empty())
+	{
+		return ret;
+	}
+
+	// Remove pairs of leading/trailing " or ' chars, if present
+	while(ret.front() == '"' || ret.front() == '\'')
+	{
+		if(ret.back() == ret.front())
+		{
+			ret.pop_back();
+			ret.erase(0, 1);
+		}
+	}
+
+	return ret;
+}
+
+void sinsp_container_info::parse_healthcheck(const Json::Value &healthcheck_obj)
+{
+	if(!healthcheck_obj.isNull())
+	{
+		const Json::Value &test_obj = healthcheck_obj["Test"];
+
+		if(!test_obj.isNull() && test_obj.isArray() && test_obj.size() >= 2)
+		{
+			if(test_obj[0].asString() == "CMD")
+			{
+				m_has_healthcheck = true;
+				m_healthcheck_exe = normalize_healthcheck_arg(test_obj[1].asString());
+
+				for(uint32_t i = 2; i < test_obj.size(); i++)
+				{
+					m_healthcheck_args.push_back(normalize_healthcheck_arg(test_obj[i].asString()));
+				}
+			}
+			else if(test_obj[0].asString() == "CMD-SHELL")
+			{
+				m_has_healthcheck = true;
+				m_healthcheck_exe = "/bin/sh";
+				m_healthcheck_args.push_back("-c");
+				m_healthcheck_args.push_back(test_obj[1].asString());
+			}
+		}
+	}
+}
+
+
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 CURLM *sinsp_container_engine_docker::m_curlm = NULL;
 CURL *sinsp_container_engine_docker::m_curl = NULL;
@@ -189,6 +241,11 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 	{
 		container->m_imageid = imgstr.substr(cpos + 1);
 	}
+
+	container->parse_healthcheck(config_obj["Healthcheck"]);
+
+	// Saving full healthcheck for container event parsing/writing
+	container->m_healthcheck_obj = config_obj["Healthcheck"];
 
 	// containers can be spawned using just the imageID as image name,
 	// with or without the hash prefix (e.g. sha256:)
@@ -357,11 +414,12 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 			container->m_env.emplace_back(env_var.asString());
 		}
 	}
-
+#ifndef CYGWING_AGENT
 	if (sinsp_container_engine_mesos::set_mesos_task_id(container, tinfo))
 	{
 		g_logger.log("Mesos Docker container: [" + root["Id"].asString() + "], Mesos task ID: [" + container->m_mesos_task_id + ']', sinsp_logger::SEV_DEBUG);
 	}
+#endif
 
 	const auto& host_config_obj = root["HostConfig"];
 	container->m_memory_limit = host_config_obj["Memory"].asInt64();
@@ -394,14 +452,15 @@ bool sinsp_container_engine_docker::parse_docker(sinsp_container_manager* manage
 
 
 #ifdef CYGWING_AGENT
-bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
-	wh_docker_container_info wcinfo = wh_docker_resolve_pid(m_inspector->get_wmi_handle(), tinfo->m_pid);
+	wh_docker_container_info wcinfo = wh_docker_resolve_pid(manager->get_inspector()->get_wmi_handle(), tinfo->m_pid);
 	if(!wcinfo.m_res)
 	{
 		return false;
 	}
 
+	sinsp_container_info container_info;
 	container_info.m_type = CT_DOCKER;
 	container_info.m_id = wcinfo.m_container_id;
 	container_info.m_name = wcinfo.m_container_name;
@@ -416,13 +475,14 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 		manager->add_container(container_info, tinfo);
 		manager->notify_new_container(container_info);
 	}
+	return true;
 }
 
-sinsp_docker_response sinsp_container_engine_docker::get_docker(const sinsp_container_manager* manager, const string& url, string &json)
+sinsp_docker_response sinsp_container_engine_docker::get_docker(sinsp_container_manager* manager, const string& url, string &json)
 {
-	const char* response;
-	bool qdres = wh_query_docker(manager->m_inspector->get_wmi_handle(), 
-		(char*)url.c_str(), 
+	const char* response = NULL;
+	bool qdres = wh_query_docker(manager->get_inspector()->get_wmi_handle(),
+		(char*)url.c_str(),
 		&response);
 	if(qdres == false)
 	{
@@ -510,7 +570,7 @@ bool sinsp_container_engine_docker::resolve(sinsp_container_manager* manager, si
 	return true;
 }
 
-sinsp_docker_response sinsp_container_engine_docker::get_docker(const sinsp_container_manager* manager, const string& url, string &json)
+sinsp_docker_response sinsp_container_engine_docker::get_docker(sinsp_container_manager* manager, const string& url, string &json)
 {
 #ifdef HAS_CAPTURE
 	if(curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str()) != CURLE_OK)
@@ -530,17 +590,29 @@ sinsp_docker_response sinsp_container_engine_docker::get_docker(const sinsp_cont
 		return sinsp_docker_response::RESP_ERROR;
 	}
 
-	int still_running;
-	do
+	while(true)
 	{
+		int still_running;
 		CURLMcode res = curl_multi_perform(m_curlm, &still_running);
 		if(res != CURLM_OK)
 		{
 			ASSERT(false);
 			return sinsp_docker_response::RESP_ERROR;
 		}
+
+		if(still_running == 0)
+		{
+			break;
+		}
+
+		int numfds;
+		res = curl_multi_wait(m_curlm, NULL, 0, -1, &numfds);
+		if(res != CURLM_OK)
+		{
+			ASSERT(false);
+			return sinsp_docker_response::RESP_ERROR;
+		}
 	}
-	while(still_running);
 
 	if(curl_multi_remove_handle(m_curlm, m_curl) != CURLM_OK)
 	{
@@ -1132,6 +1204,10 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	{
 		tinfo->m_container_id = "";
 	}
+
+	// Also identify if this thread is part of a container healthcheck
+	identify_healthcheck(tinfo);
+
 	return matches;
 }
 
@@ -1165,6 +1241,11 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	}
 
 	container["Mounts"] = mounts;
+
+	if(!container_info.m_healthcheck_obj.isNull())
+	{
+		container["Healthcheck"] = container_info.m_healthcheck_obj;
+	}
 
 	char addrbuff[100];
 	uint32_t iph = htonl(container_info.m_container_ip);
@@ -1276,6 +1357,67 @@ string sinsp_container_manager::get_container_name(sinsp_threadinfo* tinfo)
 	}
 
 	return res;
+}
+
+void sinsp_container_manager::identify_healthcheck(sinsp_threadinfo *tinfo)
+{
+	// This thread is a part of a container healthcheck if its
+	// parent thread is part of a health check.
+	sinsp_threadinfo* ptinfo = tinfo->get_parent_thread();
+
+	if(ptinfo && ptinfo->m_is_container_healthcheck)
+	{
+		tinfo->m_is_container_healthcheck = true;
+		return;
+	}
+
+	sinsp_container_info *cinfo = get_container(tinfo->m_container_id);
+
+	if(!cinfo)
+	{
+		return;
+	}
+
+	// Otherwise, the thread is a part of a container healthcheck if:
+	//
+	// 1. the comm and args match the container's healthcheck
+	// 2. we traverse the parent state and do *not* find vpid=1,
+	//    or find a process not in a container
+	//
+	// This indicates the initial process of the healthcheck.
+
+	if(!cinfo->m_has_healthcheck ||
+	   cinfo->m_healthcheck_exe != tinfo->m_exe ||
+	   cinfo->m_healthcheck_args != tinfo->m_args)
+	{
+		return;
+	}
+
+	if(tinfo->m_vpid == 1)
+	{
+		return;
+	}
+
+	bool found_container_init = false;
+	sinsp_threadinfo::visitor_func_t visitor =
+		[&found_container_init] (sinsp_threadinfo *ptinfo)
+	{
+		if(ptinfo->m_vpid == 1 && !ptinfo->m_container_id.empty())
+		{
+			found_container_init = true;
+
+			return false;
+		}
+
+		return true;
+	};
+
+	tinfo->traverse_parent_state(visitor);
+
+	if(!found_container_init)
+	{
+		tinfo->m_is_container_healthcheck = true;
+	}
 }
 
 void sinsp_container_manager::subscribe_on_new_container(new_container_cb callback)

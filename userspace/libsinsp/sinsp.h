@@ -46,13 +46,7 @@ limitations under the License.
 #pragma warning(disable: 4251 4200 4221 4190)
 #endif
 
-#ifdef _WIN32
-#define SINSP_PUBLIC __declspec(dllexport)
-#include <Ws2tcpip.h>
-#else
-#define SINSP_PUBLIC
-#include <arpa/inet.h>
-#endif
+#include "sinsp_public.h"
 
 #define __STDC_FORMAT_MACROS
 
@@ -640,6 +634,23 @@ public:
 	}
 
 	/*!
+	  \brief Returns true if truncated environments should be loaded from /proc
+	*/
+	inline bool large_envs_enabled()
+	{
+		return is_live() && m_large_envs_enabled;
+	}
+
+	/*!
+	  \brief Enable/disable large environment support
+
+	  \param enable when it is true and the current capture is live
+	  environments larger than SCAP_MAX_ENV_SIZE will be loaded
+	  from /proc/<pid>/environ (if possible)
+	*/
+	void set_large_envs(bool enable);
+
+	/*!
 	  \brief Set the debugging mode of the inspector.
 
 	  \param enable_debug when it is true and the current capture is live
@@ -867,6 +878,8 @@ public:
 
 	void set_query_docker_image_info(bool query_image_info);
 
+	void set_fullcapture_port_range(uint16_t range_start, uint16_t range_end);
+
 VISIBILITY_PRIVATE
 
         static inline ppm_event_flags falco_skip_flags()
@@ -885,7 +898,7 @@ private:
 	void import_user_list();
 	void add_protodecoders();
 
-	void add_thread(const sinsp_threadinfo* ptinfo);
+	bool add_thread(const sinsp_threadinfo *ptinfo);
 	void remove_thread(int64_t tid, bool force);
 
 	//
@@ -1002,6 +1015,7 @@ private:
 	// restart in the middle of the file.
 	uint64_t m_file_start_offset;
 	bool m_flush_memory_dump;
+	bool m_large_envs_enabled;
 
 	sinsp_network_interfaces* m_network_interfaces;
 public:

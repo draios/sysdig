@@ -90,6 +90,7 @@ void sinsp_threadinfo::init()
 	m_lastevent_data = NULL;
 	m_parent_loop_detected = false;
 	m_tty = 0;
+	m_is_container_healthcheck = false;
 	m_blprogram = NULL;
 	m_loginuid = 0;
 }
@@ -423,6 +424,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_clone_ts = pi->clone_ts;
 	m_tty = pi->tty;
 	m_loginuid = pi->loginuid;
+	m_is_container_healthcheck = false;
 
 	set_cgroups(pi->cgroups, pi->cgroups_len);
 	m_root = pi->root;
@@ -519,7 +521,7 @@ void sinsp_threadinfo::set_args(const char* args, size_t len)
 
 void sinsp_threadinfo::set_env(const char* env, size_t len)
 {
-	if (len == SCAP_MAX_ENV_SIZE && m_inspector->is_live())
+	if (len == SCAP_MAX_ENV_SIZE && m_inspector->large_envs_enabled())
 	{
 		// the environment is possibly truncated, try to read from /proc
 		// this may fail for short-lived processes
@@ -933,6 +935,19 @@ void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
 	}
 }
 
+void sinsp_threadinfo::populate_cmdline(string &cmdline, sinsp_threadinfo *tinfo)
+{
+	cmdline = tinfo->get_comm();
+
+	uint32_t j;
+	uint32_t nargs = (uint32_t)tinfo->m_args.size();
+
+	for(j = 0; j < nargs; j++)
+	{
+		cmdline += " " + tinfo->m_args[j];
+	}
+}
+
 shared_ptr<sinsp_threadinfo> sinsp_threadinfo::lookup_thread()
 {
 	return m_inspector->get_thread_ref(m_pid, true, true);
@@ -1224,7 +1239,7 @@ void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* thr
 	}
 }
 
-void sinsp_thread_manager::add_thread(sinsp_threadinfo* threadinfo, bool from_scap_proctable)
+bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_scap_proctable)
 {
 #ifdef GATHER_INTERNAL_STATS
 	m_added_threads->increment();
@@ -1238,8 +1253,14 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo* threadinfo, bool from_sc
 #endif
 		)
 	{
+		// rate limit messages to avoid spamming the logs
+		if (m_n_drops % m_inspector->m_max_thread_table_size == 0)
+		{
+			g_logger.format(sinsp_logger::SEV_INFO, "Thread table full, dropping tid %lu (pid %lu, comm \"%s\")",
+				threadinfo->m_tid, threadinfo->m_pid, threadinfo->m_comm.c_str());
+		}
 		m_n_drops++;
-		return;
+		return false;
 	}
 
 	if(!from_scap_proctable)
@@ -1255,6 +1276,7 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo* threadinfo, bool from_sc
 	{
 		m_listener->on_thread_created(threadinfo);
 	}
+	return true;
 }
 
 void sinsp_thread_manager::remove_thread(int64_t tid, bool force)

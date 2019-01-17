@@ -120,7 +120,9 @@ public:
 		m_swap_limit(0),
 		m_cpu_shares(1024),
 		m_cpu_quota(0),
-		m_cpu_period(100000)
+		m_cpu_period(100000),
+		m_has_healthcheck(false),
+		m_healthcheck_exe("")
 #ifdef HAS_ANALYZER
 		,m_metadata_deadline(0)
 #endif
@@ -128,6 +130,9 @@ public:
 	}
 
 	static void parse_json_mounts(const Json::Value &mnt_obj, vector<container_mount_info> &mounts);
+
+	std::string normalize_healthcheck_arg(const std::string &arg);
+	void parse_healthcheck(const Json::Value &config_obj);
 
 	const vector<string>& get_env() const { return m_env; }
 
@@ -155,6 +160,10 @@ public:
 	int64_t m_cpu_shares;
 	int64_t m_cpu_quota;
 	int64_t m_cpu_period;
+	Json::Value m_healthcheck_obj;
+	bool m_has_healthcheck;
+	std::string m_healthcheck_exe;
+	std::vector<std::string> m_healthcheck_args;
 #ifdef HAS_ANALYZER
 	string m_sysdig_agent_conf;
 	uint64_t m_metadata_deadline;
@@ -177,7 +186,7 @@ protected:
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	static size_t curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json);
 #endif
-	sinsp_docker_response get_docker(const sinsp_container_manager* manager, const string& url, string &json);
+	sinsp_docker_response get_docker(sinsp_container_manager* manager, const string& url, string &json);
 	bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
 
 	string m_unix_socket_path;
@@ -242,6 +251,13 @@ public:
 	void dump_containers(scap_dumper_t* dumper);
 	string get_container_name(sinsp_threadinfo* tinfo);
 
+	// Set tinfo's is_container_healthcheck attribute to true if
+	// it is identified as a container healthcheck. It will *not*
+	// set it to false by default, so a threadinfo that is
+	// initially identified as a health check will remain one
+	// across execs e.g. "sh -c /bin/true" execing /bin/true.
+	void identify_healthcheck(sinsp_threadinfo *tinfo);
+
 	bool container_exists(const string& container_id) const {
 		return m_containers.find(container_id) != m_containers.end();
 	}
@@ -254,6 +270,7 @@ public:
 	void cleanup();
 
 	void set_query_docker_image_info(bool query_image_info);
+	sinsp* get_inspector() { return m_inspector; }
 private:
 	string container_to_json(const sinsp_container_info& container_info);
 	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);

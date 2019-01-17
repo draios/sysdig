@@ -230,6 +230,8 @@ public:
 	typedef std::function<bool (sinsp_threadinfo *)> visitor_func_t;
 	void traverse_parent_state(visitor_func_t &visitor);
 
+	static void populate_cmdline(string &cmdline, sinsp_threadinfo *tinfo);
+
 	//
 	// Core state
 	//
@@ -262,6 +264,9 @@ public:
 	size_t m_program_hash_falco;
 	int32_t m_tty;
 	int32_t m_loginuid; ///< loginuid (auid)
+
+	// If true, this thread is part of a container health check
+	bool m_is_container_healthcheck;
 
 	//
 	// State for multi-event processing
@@ -501,7 +506,7 @@ public:
 	void clear();
 
 	void set_listener(sinsp_threadtable_listener* listener);
-	void add_thread(sinsp_threadinfo* threadinfo, bool from_scap_proctable);
+	bool add_thread(sinsp_threadinfo *threadinfo, bool from_scap_proctable);
 	void remove_thread(int64_t tid, bool force);
 	// Returns true if the table is actually scanned
 	// NOTE: this is implemented in sinsp.cpp so we can inline it from there

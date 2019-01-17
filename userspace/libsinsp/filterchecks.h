@@ -338,6 +338,7 @@ public:
 		TYPE_EXEPATH = 43,
 		TYPE_NAMETID = 44,
 		TYPE_VPGID = 45,
+		TYPE_IS_CONTAINER_HEALTHCHECK = 46,
 	};
 
 	sinsp_filter_check_thread();
@@ -722,6 +723,7 @@ public:
 		TYPE_CONTAINER_IMAGE_REPOSITORY,
 		TYPE_CONTAINER_IMAGE_TAG,
 		TYPE_CONTAINER_IMAGE_DIGEST,
+		TYPE_CONTAINER_HEALTHCHECK,
 	};
 
 	sinsp_filter_check_container();
