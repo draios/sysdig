@@ -57,6 +57,20 @@ else
 	SYSDIG_TAG="${PROBE_DEVICE_NAME}/${PROBE_VERSION}"
 fi
 
+# TEMPORARY FOR TESTING
+OL7_BUILD_DONE=0
+OL6_BUILD_DONE=0
+AL2_BUILD_DONE=0
+AL_BUILD_DONE=0
+ORACLE_RHCK_BUILD_DONE=0
+DEBIAN_BUILD_DONE=0
+COREOS_NEW_BUILD_DONE=0
+COREOS_OLD_BUILD_DONE=0
+RHEL_BUILD_DONE=0
+FEDORA_BUILD_DONE=0
+CENTOS_BUILD_DONE=0
+UBUNTU_BUILD_DONE=0
+
 # The previously released versions of sysdig, falco, and the agent
 # don't have one of the necessary changes that this script requires
 # (namely, the ability to run cmake from the sysdig directory but
@@ -131,6 +145,7 @@ function build_probe {
 function coreos_build_old {
 	VERSION_URL=$1
 	VERSION_NUMBER=$2
+	DONE_REF=$3
 	COREOS_DIR="coreos-"$VERSION_NUMBER
 
 	if [ ! -d $COREOS_DIR ]; then
@@ -183,11 +198,13 @@ function coreos_build_old {
 
 	export KERNELDIR=$BASEDIR/$COREOS_DIR/$DIR_NAME
 	build_probe
+	eval $DONE_REF=1
 }
 
 function coreos_build_new {
 	VERSION_URL=$1
 	VERSION_NUMBER=$2
+	DONE_REF=$3
 	COREOS_DIR="coreos-"$VERSION_NUMBER
 
 	if [ ! -d $COREOS_DIR ]; then
@@ -234,6 +251,8 @@ function coreos_build_new {
 	export KERNELDIR=$PWD/modules/$KERNEL_RELEASE/build
 	cd $BASEDIR
 	build_probe
+
+	eval $DONE_REF=1
 
 	return
 }
@@ -300,6 +319,7 @@ function boot2docker_build {
 function ubuntu_build {
 
 	URL=$1
+	DONE_REF=$2
 	DEB=$(echo $URL | grep -o '[^/]*$')
 	KERNEL_RELEASE_FULL=$(echo $DEB | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+-[0-9]+\.[0-9]+")		# ex. 3.13.0-24.47
 	KERNEL_RELEASE=$(echo $KERNEL_RELEASE_FULL | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+-[0-9]+")	# ex. 3.13.0-24
@@ -337,6 +357,7 @@ function ubuntu_build {
 
 		export KERNELDIR=$BASEDIR/$KERNEL_FOLDER/$KERNEL_UPDATE/usr/src/linux-headers-$KERNEL_RELEASE
 		build_probe
+		eval $DONE_REF=1
 	fi
 
 	cd $BASEDIR
@@ -350,6 +371,7 @@ function rhel_build {
 
 	# Get all the parameters needed
 	URL=$1
+	DONE_REF=$2
 	RPM=$(echo $URL | grep -o '[^/]*$')
 	KERNEL_RELEASE=$(echo $RPM | awk 'match($0, /[^kernel\-(uek\-)?(core\-|devel\-)?].*[^(\.rpm)]/){ print substr($0, RSTART, RLENGTH) }')
 
@@ -383,6 +405,7 @@ function rhel_build {
 
 		export KERNELDIR=$BASEDIR/$KERNEL_RELEASE/usr/src/kernels/$KERNEL_RELEASE
 		build_probe
+		eval $DONE_REF=1
 	fi
 
 	cd $BASEDIR
@@ -391,6 +414,7 @@ function rhel_build {
 function debian_build {
 
 	URL=${1}
+	DONE_REF=$2
 	DEB=$(echo ${URL} | grep -o '[^/]*$')
 
 	if [[ ${DEB} == *"kbuild"* ]]; then
@@ -460,6 +484,7 @@ function debian_build {
 			cd ${BASEDIR}
 
 			build_probe
+			eval $DONE_REF=1
 		fi
 	fi
 
@@ -539,7 +564,9 @@ if [ -z "$KERNEL_TYPE" ]; then
 
 	for URL in $URLS
 	do
-		ubuntu_build $URL
+	    if [ $UBUNTU_BUILD_DONE == 0 ]; then
+		    ubuntu_build $URL UBUNTU_BUILD_DONE
+	    fi
 	done
 
 	#
@@ -552,7 +579,9 @@ if [ -z "$KERNEL_TYPE" ]; then
 
 	for URL in $URLS
 	do
-		rhel_build $URL
+	    if [ $RHEL_BUILD_DONE == 0 ]; then
+		rhel_build $URL RHEL_BUILD_DONE
+	    fi
 	done
 
 	#
@@ -565,7 +594,9 @@ if [ -z "$KERNEL_TYPE" ]; then
 
 	for URL in $URLS
 	do
-		rhel_build $URL
+	    if [ $FEDORA_BUILD_DONE == 0 ]; then
+		rhel_build $URL FEDORA_BUILD_DONE
+	    fi
 	done
 
 	#
@@ -585,9 +616,13 @@ if [ -z "$KERNEL_TYPE" ]; then
 		fi
 		set -e
 		if [ $COREOS_BUILD -gt 890 ]; then
-			coreos_build_new $URL $COREOS_VERSION
+		    if [ $COREOS_NEW_BUILD_DONE == 0 ]; then
+			coreos_build_new $URL $COREOS_VERSION COREOS_NEW_BUILD_DONE
+		    fi
 		else
-			coreos_build_old $URL $COREOS_VERSION
+		    if [ $COREOS_OLD_BUILD_DONE == 0 ]; then
+			coreos_build_old $URL $COREOS_VERSION COREOS_OLD_BUILD_DONE
+		    fi
 		fi
 	done
 
@@ -615,7 +650,9 @@ if [ -z "$KERNEL_TYPE" ]; then
 
 	for URL in $URLS
 	do
-		debian_build $URL
+	    if [ $DEBIAN_BUILD_DONE == 0 ]; then
+		debian_build $URL DEBIAN_BUILD_DONE
+	    fi
 	done
 	# XXX agent/434 - We need to force a build for certain kernel versions
 	# because they are still in use by some GCE customers but the headers
@@ -635,7 +672,9 @@ if [ -z "$KERNEL_TYPE" ]; then
 
 	for URL in $URLS
 	do
-		rhel_build $URL
+	    if [ $ORACLE_RHCK_BUILD_DONE == 0 ]; then
+		rhel_build $URL ORACLE_RHCK_BUILD_DONE
+	    fi
 	done
 
 	#
@@ -672,7 +711,9 @@ if [ -z "$KERNEL_TYPE" ]; then
 
 	for URL in $URLS
 	do
-		rhel_build $URL
+	    if [ $AL_BUILD_DONE == 0 ]; then
+		rhel_build $URL AL_BUILD_DONE
+	    fi
 	done
 
 	#
@@ -684,7 +725,9 @@ if [ -z "$KERNEL_TYPE" ]; then
 
 	for URL in $URLS
 	do
-		rhel_build $URL
+	    if [ $AL2_BUILD_DONE == 0 ]; then
+		rhel_build $URL AL2_BUILD_DONE
+	    fi
 	done
 
 	VERSIONS=$(curl https://api.github.com/repos/kubernetes/minikube/releases | jq -r '.[].name' | head -10)
@@ -711,7 +754,9 @@ elif [ "OL6-UEK" = "$KERNEL_TYPE" ]; then
 
 	for URL in $URLS
 	do
-		rhel_build $URL
+	    if [ $OL6_BUILD_DONE == 0 ]; then
+		rhel_build $URL OL6_BUILD_DONE
+	    fi
 	done
 elif [ "OL7-UEK" = "$KERNEL_TYPE" ]; then
 	# This should only run in the ol7-builder container context
@@ -721,7 +766,9 @@ elif [ "OL7-UEK" = "$KERNEL_TYPE" ]; then
 
 	for URL in $URLS
 	do
-		rhel_build $URL
+	    if [ $OL7_BUILD_DONE == 0 ]; then
+		rhel_build $URL OL7_BUILD_DONE
+	    fi
 	done
 else
 	exit 1
