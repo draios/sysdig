@@ -724,7 +724,7 @@ if [ -z "$KERNEL_TYPE" ]; then
 	    fi
 	done
 
-	VERSIONS=$(curl https://api.github.com/repos/kubernetes/minikube/releases | jq -r '.[].name' | head -10)
+	VERSIONS=$(curl https://api.github.com/repos/kubernetes/minikube/releases | grep tag_name | cut -d\" -f4 | head -10)
 
 	for VERSION in $VERSIONS
 	do
