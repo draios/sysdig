@@ -724,7 +724,11 @@ if [ -z "$KERNEL_TYPE" ]; then
 	    fi
 	done
 
-	VERSIONS=$(curl https://api.github.com/repos/kubernetes/minikube/releases | grep tag_name | cut -d\" -f4 | head -10)
+	# The exclusion of 0.28.0 is a workaround until
+	# https://sysdig.atlassian.net/browse/DEVOPS-1079 is fixed. It
+	# just happens to be the case that for minikube the only
+	# minikube release that uses kernel >= 4.16 is 0.28.0.
+	VERSIONS=$(curl https://api.github.com/repos/kubernetes/minikube/releases | grep tag_name | grep -v 0.28.0 | cut -d\" -f4 | head -10)
 
 	for VERSION in $VERSIONS
 	do
