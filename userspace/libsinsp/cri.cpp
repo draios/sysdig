@@ -45,11 +45,19 @@ bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_con
 	// image_ref may be one of two forms:
 	// host/image@sha256:digest
 	// sha256:digest
+
+	bool have_digest = false;
 	const auto &image_ref = status.image_ref();
 	auto digest_start = image_ref.find("sha256:");
-	if(digest_start != string::npos)
+	switch (digest_start)
 	{
-		container->m_imagedigest = image_ref.substr(digest_start);
+	case 0: // sha256:digest
+		have_digest = true;
+		break;
+	case string::npos:
+		break;
+	default: // host/image@sha256:digest
+		have_digest = image_ref[digest_start - 1] == '@';
 	}
 
 	string hostname, port, digest;
@@ -61,6 +69,16 @@ bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_con
 					   digest,
 					   false);
 	container->m_image = status.image().image();
+
+
+	if(have_digest)
+	{
+		container->m_imagedigest = image_ref.substr(digest_start);
+	}
+	else
+	{
+		container->m_imagedigest = digest;
+	}
 	return true;
 }
 
