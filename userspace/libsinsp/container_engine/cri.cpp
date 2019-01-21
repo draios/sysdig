@@ -60,9 +60,11 @@ cri::cri()
 	if (!status.ok())
 	{
 		// we could disable CRI support here...
+		g_logger.format(sinsp_logger::SEV_WARNING, "CRI runtime returned an error after version check");
 		return;
 	}
 
+	g_logger.format(sinsp_logger::SEV_INFO, "CRI runtime: %s %s", vresp.runtime_name().c_str(), vresp.runtime_version().c_str());
 	s_cri_runtime_type = get_cri_runtime_type(vresp.runtime_name());
 }
 
@@ -167,7 +169,7 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 		if (mesos::set_mesos_task_id(&container_info, tinfo))
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
-					"Mesos Docker container: [%s], Mesos task ID: [%s]",
+					"Mesos CRI container: [%s], Mesos task ID: [%s]",
 					container_info.m_id.c_str(), container_info.m_mesos_task_id.c_str());
 		}
 		manager->add_container(container_info, tinfo);
