@@ -50,6 +50,8 @@ limitations under the License.
 bool should_drop(sinsp_evt *evt);
 #endif
 
+#include "container_engine/docker.h"
+
 extern sinsp_protodecoder_list g_decoderlist;
 extern sinsp_evttables g_infotables;
 
@@ -4462,7 +4464,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 			container_info.m_privileged = privileged.asBool();
 		}
 
-		sinsp_container_info::parse_json_mounts(container["Mounts"], container_info.m_mounts);
+		libsinsp::container_engine::docker::parse_json_mounts(container["Mounts"], container_info.m_mounts);
 
 		container_info.parse_healthcheck(container["Healthcheck"]);
 		const Json::Value& contip = container["ip"];

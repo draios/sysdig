@@ -92,6 +92,15 @@ static void usage()
 "                    starting at 0 and continuing upward. The units of file_size\n"
 "                    are millions of bytes (10^6, not 2^20). Use the -W flag to\n"
 "                    determine how many files will be saved to disk.\n"
+#ifdef HAS_CAPTURE
+" --cri <path>       Path to CRI socket for container metadata\n"
+"                    Use the specified socket to fetch data from a CRI-compatible runtime\n"
+"\n"
+"                    Note: this disables Docker support unless --docker-then-cri\n"
+"                    is also passed.\n"
+" --cri-timeout <timeout_ms>\n"
+"                    Wait at most <timeout_ms> milliseconds for response from CRI\n"
+#endif
 " -d, --displayflt   Make the given filter a display one\n"
 "                    Setting this option causes the events to be filtered\n"
 "                    after being parsed by the state system. Events are\n"
@@ -100,6 +109,11 @@ static void usage()
 " -D, --debug        Capture events about sysdig itself, display internal events\n"
 "                    in addition to system events, and print additional\n"
 "                    logging on standard error.\n"
+#ifdef HAS_CAPTURE
+" --docker-then-cri  Enable Docker support along with CRI\n"
+"                    First, query the Docker daemon for container metadata.\n"
+"                    If that fails, query CRI.\n"
+#endif
 " -E, --exclude-users\n"
 "                    Don't create the user/group tables by querying the OS when\n"
 "                    sysdig starts. This also means that no user or group info\n"
@@ -761,7 +775,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	uint32_t snaplen = 0;
 	int long_index = 0;
 	int32_t n_filterargs = 0;
-	int cflag = 0;
 	bool jflag = false;
 	bool unbuf_flag = false;
 	bool filter_proclist_flag = false;
@@ -775,6 +788,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool bpf = false;
 	string bpf_probe;
 	std::set<std::string> suppress_comms;
+#ifdef HAS_CAPTURE
+	string cri_socket_path;
+	bool docker_then_cri = false;
+#endif
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -789,7 +806,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"bpf", optional_argument, 0, 'B' },
 #ifdef HAS_CHISELS
 		{"chisel", required_argument, 0, 'c' },
-		{"list-chisels", no_argument, &cflag, 1 },
+		{"list-chisels", no_argument, 0, 0 },
+#endif
+#ifdef HAS_CAPTURE
+		{"cri", required_argument, 0, 0 },
+		{"cri-timeout", required_argument, 0, 0 },
+		{"docker-then-cri", no_argument, 0, 0 },
 #endif
 		{"displayflt", no_argument, 0, 'd' },
 		{"debug", no_argument, 0, 'D'},
@@ -888,33 +910,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				break;
 			}
-			case 0:
-				if(cflag != 1 && cflag != 2)
-				{
-					break;
-				}
-
-				if(cflag == 2)
-				{
-					cname = optarg;
-				}
 #ifdef HAS_CHISELS
 			case 'c':
 				{
-					if(cflag == 0)
-					{
-						string ostr(optarg);
-
-						if(ostr.size() >= 1)
-						{
-							if(ostr == "l")
-							{
-								cflag = 1;
-							}
-						}
-					}
-
-					if(cflag == 1)
+					string chisel = optarg;
+					if(chisel == "l")
 					{
 						vector<chisel_desc> chlist;
 						sinsp_chisel::get_chisel_list(&chlist);
@@ -923,7 +923,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
 
-					sinsp_chisel* ch = new sinsp_chisel(inspector, optarg);
+					sinsp_chisel* ch = new sinsp_chisel(inspector, chisel);
 					parse_chisel_args(ch, inspector, optind, argc, argv, &n_filterargs);
 					g_chisels.push_back(ch);
 				}
@@ -1188,6 +1188,57 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			case 'z':
 				compress = true;
 				break;
+			case 0:
+				{
+					string optname = string(long_options[long_index].name);
+					if (long_options[long_index].flag != 0) {
+						break;
+					}
+					if (optname == "version") {
+						printf("sysdig version %s\n", SYSDIG_VERSION);
+						delete inspector;
+						return sysdig_init_res(EXIT_SUCCESS);
+					}
+					else if (optname == "list-chisels") {
+						vector<chisel_desc> chlist;
+						sinsp_chisel::get_chisel_list(&chlist);
+						list_chisels(&chlist, true);
+						delete inspector;
+						return sysdig_init_res(EXIT_SUCCESS);
+					}
+#ifdef HAS_CAPTURE
+					else if (optname == "cri") {
+						cri_socket_path = optarg;
+					}
+					else if (optname == "cri-timeout") {
+						inspector->set_cri_timeout(sinsp_numparser::parsed64(optarg));
+					}
+					else if (optname == "docker-then-cri") {
+						docker_then_cri = true;
+					}
+#endif
+					else if (optname == "unbuffered") {
+						unbuf_flag = true;
+					}
+
+					else if (optname == "filter-proclist") {
+						filter_proclist_flag = true;
+					}
+
+					else if (optname == "large-environment") {
+						inspector->set_large_envs(true);
+					}
+
+					else if (optname == "list-markdown") {
+						list_flds = true;
+						list_flds_markdown = true;
+					}
+
+					else if (optname == "page-faults") {
+						page_faults = true;
+					}
+				}
+				break;
             // getopt_long : '?' for an ambiguous match or an extraneous parameter
 			case '?':
 				delete inspector;
@@ -1196,40 +1247,15 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			default:
 				break;
 			}
-
-			if(string(long_options[long_index].name) == "version")
-			{
-				printf("sysdig version %s\n", SYSDIG_VERSION);
-				delete inspector;
-				return sysdig_init_res(EXIT_SUCCESS);
-			}
-
-			if(string(long_options[long_index].name) == "unbuffered")
-			{
-				unbuf_flag = true;
-			}
-
-			if(string(long_options[long_index].name) == "filter-proclist")
-			{
-				filter_proclist_flag = true;
-			}
-
-			if(string(long_options[long_index].name) == "large-environment")
-			{
-				inspector->set_large_envs(true);
-			}
-
-			if(string(long_options[long_index].name) == "list-markdown")
-			{
-				list_flds = true;
-				list_flds_markdown = true;
-			}
-
-			if(string(long_options[long_index].name) == "page-faults")
-			{
-				page_faults = true;
-			}
 		}
+
+#ifdef HAS_CAPTURE
+		if(!cri_socket_path.empty())
+		{
+			inspector->set_cri_socket_path(cri_socket_path);
+			inspector->set_docker_cri_mode(docker_then_cri);
+		}
+#endif
 
 		if(!bpf)
 		{

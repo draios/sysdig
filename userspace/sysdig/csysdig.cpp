@@ -78,9 +78,23 @@ static void usage()
 "                    The BPF probe can also be specified via the environment variable\n"
 "                    SYSDIG_BPF_PROBE. If <bpf_probe> is left empty, sysdig will\n"
 "                    try to load one from the sysdig-probe-loader script.\n"
+#ifdef HAS_CAPTURE
+" --cri <path>       Path to CRI socket for container metadata\n"
+"                    Use the specified socket to fetch data from a CRI-compatible runtime\n"
+"\n"
+"                    Note: this disables Docker support unless --docker-then-cri\n"
+"                    is also passed.\n"
+" --cri-timeout <timeout_ms>\n"
+"                    Wait at most <timeout_ms> milliseconds for response from CRI\n"
+#endif
 " -d <period>, --delay=<period>\n"
 "                    Set the delay between updates, in milliseconds. This works\n"
 "                    similarly to the -d option in top.\n"
+#ifdef HAS_CAPTURE
+" --docker-then-cri  Enable Docker support along with CRI\n"
+"                    First, query the Docker daemon for container metadata.\n"
+"                    If that fails, query CRI.\n"
+#endif
 " -E, --exclude-users\n"
 "                    Don't create the user/group tables by querying the OS when\n"
 "                    sysdig starts. This also means that no user or group info\n"
@@ -313,6 +327,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	bool list_views = false;
 	bool bpf = false;
 	string bpf_probe;
+#ifdef HAS_CAPTURE
+	string cri_socket_path;
+	bool docker_then_cri = false;
+#endif
 
 #ifndef _WIN32
 	sinsp_table::output_type output_type = sinsp_table::OT_CURSES;
@@ -332,6 +350,11 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	{
 		{"print-ascii", no_argument, 0, 'A' },
 		{"bpf", optional_argument, 0, 'B' },
+#ifdef HAS_CAPTURE
+		{"cri", required_argument, 0, 0 },
+		{"cri-timeout", required_argument, 0, 0 },
+		{"docker-then-cri", no_argument, 0, 0 },
+#endif
 		{"delay", required_argument, 0, 'd' },
 		{"exclude-users", no_argument, 0, 'E' },
 		{"from", required_argument, 0, 0 },
@@ -519,6 +542,20 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					{
 						inspector->set_large_envs(true);
 					}
+#ifdef HAS_CAPTURE
+					else if(optname == "cri")
+					{
+						cri_socket_path = optarg;
+					}
+					else if(optname == "cri-timeout")
+					{
+						inspector->set_cri_timeout(sinsp_numparser::parsed64(optarg));
+					}
+					else if(optname == "docker-then-cri")
+					{
+						docker_then_cri = true;
+					}
+#endif
 					else if(optname == "logfile")
 					{
 						inspector->set_log_file(optarg);
@@ -557,6 +594,14 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 			}
 		}
+
+#ifdef HAS_CAPTURE
+		if(!cri_socket_path.empty())
+		{
+			inspector->set_cri_socket_path(cri_socket_path);
+			inspector->set_docker_cri_mode(docker_then_cri);
+		}
+#endif
 
 		string filter;
 

@@ -64,6 +64,9 @@ public:
 	void set_event_filter(event_filter_ptr_t event_filter);
 	void set_machine_id(const std::string& machine_id);
 	const std::string& get_machine_id() const;
+	static bool should_log_errors() {
+		return (m_connection_id <= 1) || m_ever_connected;
+	}
 
 	static std::string get_socket_file();
 
@@ -136,6 +139,22 @@ private:
 	name_translation_map_t m_name_translation;
 	size_t                 m_event_counter = 0;
 	bool                   m_event_limit_exceeded = false;
+
+#ifdef HAS_CAPTURE
+	// these two values are used to control logging of "can't connect" error messages
+	// we can't rely on docker.sock not being present without docker e.g. when
+	// using another runtime on k8s with our default daemonset
+	// so, in analyzer, we log the errors:
+	// 1. during the first attempt ever
+	// 2. if there were successful attempts in the past (if there weren't, there's probably
+	//    no docker daemon present, despite the socket)
+
+	// number of connections made so far
+	static int m_connection_id;
+
+	// set to true if we ever connect successfully
+	static bool m_ever_connected;
+#endif
 };
 
 #ifdef HAS_CAPTURE

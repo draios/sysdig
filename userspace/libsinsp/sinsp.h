@@ -880,6 +880,10 @@ public:
 
 	void set_fullcapture_port_range(uint16_t range_start, uint16_t range_end);
 
+	void set_docker_cri_mode(bool docker_then_cri);
+	void set_cri_socket_path(const std::string& path);
+	void set_cri_timeout(int64_t timeout_ms);
+
 VISIBILITY_PRIVATE
 
         static inline ppm_event_flags falco_skip_flags()
