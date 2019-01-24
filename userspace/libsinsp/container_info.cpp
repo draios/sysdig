@@ -59,11 +59,6 @@ const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by
 	return NULL;
 }
 
-bool sinsp_container_info::is_pod_sandbox() const
-{
-	return m_is_pod_sandbox || m_name.find("k8s_POD") != std::string::npos;
-}
-
 std::string sinsp_container_info::normalize_healthcheck_arg(const std::string &arg)
 {
 	std::string ret = arg;

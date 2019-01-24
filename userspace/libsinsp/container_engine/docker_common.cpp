@@ -163,6 +163,10 @@ bool docker::parse_docker(sinsp_container_manager* manager, sinsp_container_info
 	}
 
 	container->m_name = root["Name"].asString();
+	if(container->m_name.find("k8s_POD") != std::string::npos)
+	{
+		container->m_is_pod_sandbox = true;
+	}
 
 	if(!container->m_name.empty() && container->m_name[0] == '/')
 	{
