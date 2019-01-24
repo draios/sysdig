@@ -226,6 +226,20 @@ bool parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info *conta
 	return true;
 }
 
+bool is_pod_sandbox(const std::string &container_id)
+{
+	runtime::v1alpha2::PodSandboxStatusRequest req;
+	runtime::v1alpha2::PodSandboxStatusResponse resp;
+	req.set_pod_sandbox_id(container_id);
+	req.set_verbose(true);
+	grpc::ClientContext context;
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
+	context.set_deadline(deadline);
+	grpc::Status status = s_cri->PodSandboxStatus(&context, req, &resp);
+
+	return status.ok();
+}
+
 uint32_t get_pod_sandbox_ip(const std::string &pod_sandbox_id)
 {
 	runtime::v1alpha2::PodSandboxStatusRequest req;
