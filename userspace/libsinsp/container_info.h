@@ -147,6 +147,8 @@ public:
 	const container_mount_info *mount_by_source(std::string &source) const;
 	const container_mount_info *mount_by_dest(std::string &dest) const;
 
+	bool is_pod_sandbox() const;
+
 	std::string m_id;
 	sinsp_container_type m_type;
 	std::string m_name;
