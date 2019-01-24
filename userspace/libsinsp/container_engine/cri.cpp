@@ -51,6 +51,11 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 	grpc::Status status = s_cri->ContainerStatus(&context, req, &resp);
 	if(!status.ok())
 	{
+		if(is_pod_sandbox(container->m_id))
+		{
+			container->m_is_pod_sandbox = true;
+			return true;
+		}
 		return false;
 	}
 
