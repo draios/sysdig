@@ -693,6 +693,10 @@ if [ -z "$KERNEL_TYPE" ]; then
 		rhel_build $URL
 	done
 
+	#
+	# Minikube build
+	#
+	echo Building Minikube
 	VERSIONS=$(curl https://api.github.com/repos/kubernetes/minikube/releases | jq -r '.[].name' | head -10)
 
 	for VERSION in $VERSIONS
