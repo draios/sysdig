@@ -490,7 +490,7 @@ if(NOT WIN32 AND NOT APPLE)
 		set(GRPC_LIB "${GRPC_SRC}/libs/opt/libgrpc_unsecure.a")
 		set(GRPCPP_LIB "${GRPC_SRC}/libs/opt/libgrpc++_unsecure.a")
 
-		get_filename_component(PROTOC_DIR ${PROTOC} DIRECTORY)
+		get_filename_component(PROTOC_DIR ${PROTOC} PATH)
 
 		ExternalProject_Add(grpc
 		DEPENDS protobuf zlib c-ares
