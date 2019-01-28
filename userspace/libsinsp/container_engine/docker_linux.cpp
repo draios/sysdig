@@ -98,6 +98,7 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	if(detect_docker(tinfo, container_info.m_id))
 	{
 		container_info.m_type = CT_DOCKER;
+		tinfo->m_container_id = container_info.m_id;
 	}
 	else
 	{
@@ -124,7 +125,6 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 		manager->add_container(container_info, tinfo);
 		manager->notify_new_container(container_info);
 	}
-	tinfo->m_container_id = container_info.m_id;
 	return true;
 }
 
