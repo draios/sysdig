@@ -42,6 +42,7 @@ size_t docker_curl_write_callback(const char* ptr, size_t size, size_t nmemb, st
 #endif
 
 std::string docker::m_api_version = "/v1.24";
+bool libsinsp::container_engine::docker::m_enabled = true;
 
 docker::docker()
 {
@@ -76,6 +77,7 @@ void docker::cleanup()
 	curl_multi_cleanup(s_curlm);
 	s_curlm = NULL;
 
+	m_enabled = true;
 #endif
 }
 
@@ -87,6 +89,11 @@ std::string docker::build_request(const std::string &url)
 bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	sinsp_container_info container_info;
+
+	if (!m_enabled)
+	{
+		return false;
+	}
 
 	if(detect_docker(tinfo, container_info.m_id))
 	{
@@ -180,6 +187,8 @@ docker::docker_response libsinsp::container_engine::docker::get_docker(sinsp_con
 	switch(http_code)
 	{
 		case 0: /* connection failed, apparently */
+			g_logger.format(sinsp_logger::SEV_NOTICE, "Docker connection failed, disabling Docker container engine");
+			m_enabled = false;
 			return docker_response::RESP_ERROR;
 		case 200:
 			return docker_response::RESP_OK;

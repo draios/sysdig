@@ -61,6 +61,7 @@ protected:
 
 	static std::string m_api_version;
 	static bool m_query_image_info;
+	static bool m_enabled;
 };
 }
 }
