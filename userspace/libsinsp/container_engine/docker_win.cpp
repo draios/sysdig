@@ -34,14 +34,6 @@ void docker::cleanup()
 {
 }
 
-void docker::set_cri_socket_path(const std::string& path)
-{
-}
-
-void docker::set_cri_timeout(int64_t timeout_ms)
-{
-}
-
 std::string docker::build_request(const std::string &url)
 {
 	return "GET " + m_api_version + url + " HTTP/1.1\r\nHost: docker\r\n\r\n";
