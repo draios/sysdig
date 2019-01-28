@@ -330,6 +330,11 @@ public:
 
 	bool falco_consider();
 
+	inline uint16_t get_source()
+	{
+		return ESRC_SINSP;
+	}
+
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
 private:

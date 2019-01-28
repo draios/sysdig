@@ -53,6 +53,14 @@ enum boolop
 	BO_ANDNOT = 5,
 };
 
+enum evt_src
+{
+	ESRC_NONE = 0,
+	ESRC_SINSP = 1,
+	ESRC_K8S_AUDIT = 2,
+	ESRC_MAX = 3,
+};
+
 class gen_event
 {
 public:
@@ -71,6 +79,16 @@ public:
 
 	// Every event must expose a timestamp
 	virtual uint64_t get_ts() = 0;
+
+	/*!
+	  \brief Get the source of the event.
+	*/
+	virtual uint16_t get_source() = 0;
+
+	/*!
+	  \brief Get the type of the event.
+	*/
+	virtual uint16_t get_type() = 0;
 
 private:
 	int32_t m_check_id = 0;
