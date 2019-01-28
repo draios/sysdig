@@ -59,8 +59,10 @@ cri::cri()
 
 	if (!status.ok())
 	{
-		// we could disable CRI support here...
-		g_logger.format(sinsp_logger::SEV_WARNING, "CRI runtime returned an error after version check");
+		g_logger.format(sinsp_logger::SEV_NOTICE, "CRI runtime returned an error after version check at %s: %s",
+			s_cri_unix_socket_path.c_str(), status.error_message().c_str());
+		s_cri.reset(nullptr);
+		s_cri_unix_socket_path = "";
 		return;
 	}
 
