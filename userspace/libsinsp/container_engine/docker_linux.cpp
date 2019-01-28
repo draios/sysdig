@@ -42,7 +42,6 @@ size_t docker_curl_write_callback(const char* ptr, size_t size, size_t nmemb, st
 #endif
 
 std::string docker::m_api_version = "/v1.24";
-docker::engine_mode libsinsp::container_engine::docker::m_engine_mode = libsinsp::container_engine::docker::ENABLED;
 
 docker::docker()
 {
@@ -77,7 +76,6 @@ void docker::cleanup()
 	curl_multi_cleanup(s_curlm);
 	s_curlm = NULL;
 
-	set_mode(ENABLED);
 #endif
 }
 
@@ -89,11 +87,6 @@ std::string docker::build_request(const std::string &url)
 bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	sinsp_container_info container_info;
-
-	if (m_engine_mode == DISABLED)
-	{
-		return false;
-	}
 
 	if(detect_docker(tinfo, container_info.m_id))
 	{
@@ -107,8 +100,11 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	{
 		if (query_os_for_missing_info)
 		{
-			if (!parse_docker(manager, &container_info, tinfo) && m_engine_mode == WEAK)
+			if (!parse_docker(manager, &container_info, tinfo))
 			{
+				// give CRI a chance to return metadata for this container
+				g_logger.format(sinsp_logger::SEV_DEBUG, "Failed to get Docker metadata for container %s",
+					container_info.m_id.c_str());
 				return false;
 			}
 		}
@@ -235,9 +231,4 @@ bool docker::detect_docker(const sinsp_threadinfo *tinfo, std::string &container
 	}
 
 	return false;
-}
-
-void docker::set_mode(engine_mode mode)
-{
-	m_engine_mode = mode;
 }
