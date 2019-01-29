@@ -33,6 +33,7 @@ limitations under the License.
 using namespace libsinsp::cri;
 using namespace libsinsp::container_engine;
 
+namespace {
 bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container, sinsp_threadinfo *tinfo)
 {
 	if(!s_cri)
@@ -96,6 +97,7 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 	}
 
 	return true;
+}
 }
 
 cri::cri()
