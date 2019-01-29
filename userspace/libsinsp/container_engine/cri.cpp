@@ -169,7 +169,12 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 	{
 		if (query_os_for_missing_info)
 		{
-			parse_cri(manager, &container_info, tinfo);
+			if (!parse_cri(manager, &container_info, tinfo))
+			{
+				g_logger.format(sinsp_logger::SEV_DEBUG, "Failed to get CRI metadata for container %s",
+						container_info.m_id.c_str());
+				return false;
+			}
 		}
 		if (mesos::set_mesos_task_id(&container_info, tinfo))
 		{
