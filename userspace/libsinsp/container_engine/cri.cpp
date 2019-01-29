@@ -33,9 +33,9 @@ limitations under the License.
 using namespace libsinsp::cri;
 using namespace libsinsp::container_engine;
 
-bool parse_cri(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
+bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container, sinsp_threadinfo *tinfo)
 {
-	if (!s_cri)
+	if(!s_cri)
 	{
 		return false;
 	}
@@ -48,21 +48,22 @@ bool parse_cri(sinsp_container_manager* manager, sinsp_container_info *container
 	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
 	context.set_deadline(deadline);
 	grpc::Status status = s_cri->ContainerStatus(&context, req, &resp);
-	if (!status.ok()) {
+	if(!status.ok())
+	{
 		return false;
 	}
 
-	if (!resp.has_status())
+	if(!resp.has_status())
 	{
 		ASSERT(false);
 		return false;
 	}
 
-	const auto& resp_container = resp.status();
+	const auto &resp_container = resp.status();
 	container->m_name = resp_container.metadata().name();
 	container->m_type = s_cri_runtime_type;
 
-	for (const auto& pair : resp_container.labels())
+	for(const auto &pair : resp_container.labels())
 	{
 		container->m_labels[pair.first] = pair.second;
 	}
@@ -70,8 +71,8 @@ bool parse_cri(sinsp_container_manager* manager, sinsp_container_info *container
 	parse_cri_image(resp_container, container);
 	parse_cri_mounts(resp_container, container);
 
-	const auto& info_it = resp.info().find("info");
-	if (info_it == resp.info().end())
+	const auto &info_it = resp.info().find("info");
+	if(info_it == resp.info().end())
 	{
 		ASSERT(false);
 		return false;
