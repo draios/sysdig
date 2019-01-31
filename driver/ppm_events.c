@@ -46,7 +46,11 @@ or GPL2.txt for full copies of the license.
 #ifdef access_ok_noprefault
 #define ppm_access_ok access_ok_noprefault
 #else
-#define ppm_access_ok access_ok
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+#define ppm_access_ok(type, addr, size)	access_ok(type, addr, size)
+#else
+#define ppm_access_ok(type, addr, size)	access_ok(addr, size)
+#endif
 #endif
 
 extern bool g_tracers_enabled;
