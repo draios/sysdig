@@ -266,8 +266,18 @@ private:
 	std::thread m_thread;
 	bool m_running;
 	bool m_terminate;
+
+	/**
+	 * Protects the state of instances of this class.  This protected does
+	 * not extend to subclasses (i.e., this mutex should not be held when
+	 * dispatching to overridden methbods).
+	 */
 	mutable std::mutex m_mutex;
-	std::condition_variable m_start_condition;
+
+	/**
+	 * Enables run() to block waiting for the m_request_queue to become
+	 * non-empty.
+	 */
 	std::condition_variable m_queue_not_empty_condition;
 	std::list<key_type> m_request_queue;
 	std::set<key_type> m_request_set;

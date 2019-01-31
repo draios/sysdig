@@ -251,7 +251,7 @@ void async_key_value_source<key_type, value_type>::store_value(
 }
 
 /**
- * Prune any "old" outstanding requests.  This method expect that the caller
+ * Prune any "old" outstanding requests.  This method expects that the caller
  * is holding m_mutex.
  */
 template<typename key_type, typename value_type>
