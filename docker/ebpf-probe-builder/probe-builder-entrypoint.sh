@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-# Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+# Copyright (C) 2013-2019 Draios Inc dba Sysdig.
 #
-# This file is part of sysdig .
+# This file is part of sysdig.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,9 +22,24 @@
 # docker container)
 #
 
-set -euo pipefail
+set -exu
 
 echo "* Building probe ${BPF_PROBE_FILENAME}"
+
+# On some distros, the modules dir links into /usr/src, so we need to make sure
+# we have that sorted so we can build properly
+for i in $(ls /host/usr/src); do
+	ln -s /host/usr/src/$i /usr/src/$i
+done
+
+# Again, on some distros, we need to populate the /lib/modules directory
+# because the kernel header info is split among several subdirs
+
+mkdir -p /lib/modules
+
+for i in $(ls /host/lib/modules); do
+	ln -s /host/lib/modules/$i /lib/modules/$i
+done
 
 cd /driver/bpf
 echo "Building bpf"
