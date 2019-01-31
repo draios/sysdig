@@ -56,6 +56,8 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 			container->m_is_pod_sandbox = true;
 			return true;
 		}
+		g_logger.format(sinsp_logger::SEV_DEBUG, "id %s is neither a container nor a pod sandbox",
+			container->m_id.c_str());
 		return false;
 	}
 
