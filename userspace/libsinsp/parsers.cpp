@@ -258,6 +258,13 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	//
 	switch(etype)
 	{
+	case PPME_SOCKET_SENDTO_E:
+		if(evt->m_fdinfo == nullptr)
+		{
+			infer_sendto_fdinfo(evt);
+		}
+
+		// FALLTHRU
 	case PPME_SYSCALL_OPEN_E:
 	case PPME_SOCKET_SOCKET_E:
 	case PPME_SYSCALL_EVENTFD_E:
@@ -269,7 +276,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_GETRLIMIT_E:
 	case PPME_SYSCALL_SETRLIMIT_E:
 	case PPME_SYSCALL_PRLIMIT_E:
-	case PPME_SOCKET_SENDTO_E:
 	case PPME_SOCKET_SENDMSG_E:
 	case PPME_SYSCALL_SENDFILE_E:
 	case PPME_SYSCALL_SETRESUID_E:
@@ -2245,6 +2251,44 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 	// Add the fd to the table.
 	//
 	evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
+}
+
+/**
+ * If we receive a call to 'sendto()' and the event's m_fdinfo is nullptr,
+ * then we likely missed the call to 'socket()' that created the file
+ * descriptor.  In that case, we'll guess that it's a SOCK_DGRAM/UDP socket
+ * and create the fdinfo based on that.
+ *
+ * Precondition: evt->m_fdinfo == nullptr
+ */
+inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt* const evt)
+{
+	ASSERT(evt->m_fdinfo == nullptr);
+
+	const uint32_t FILE_DESCRIPTOR_PARAM = 0;
+	const uint32_t SOCKET_TUPLE_PARAM = 2;
+
+	sinsp_evt_param* parinfo = nullptr;
+
+	parinfo = evt->get_param(FILE_DESCRIPTOR_PARAM);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	ASSERT(parinfo->get_param_info(FILE_DESCRIPTOR_PARAM)->type == PT_FD);
+	const int64_t fd = *((int64_t*) parinfo->m_val);
+
+	parinfo = evt->get_param(SOCKET_TUPLE_PARAM);
+	const char addr_family = *((char*) parinfo->m_val);
+
+	if((addr_family == AF_INET) || (addr_family == AF_INET6))
+	{
+		const uint32_t domain = (addr_family == AF_INET)
+		                        ? PPM_AF_INET
+		                        : PPM_AF_INET6;
+
+		// Here we're assuming sendto() means SOCK_DGRAM/UDP, but it
+		// can be used with TCP.  We have no way to know for sure at
+		// this point.
+		add_socket(evt, fd, domain, SOCK_DGRAM, IPPROTO_UDP);
+	}
 }
 
 void sinsp_parser::parse_socket_exit(sinsp_evt *evt)
