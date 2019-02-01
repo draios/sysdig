@@ -46,6 +46,7 @@ limitations under the License.
 #pragma warning(disable: 4251 4200 4221 4190)
 #endif
 
+#include "sinsp_inet.h"
 #include "sinsp_public.h"
 
 #define __STDC_FORMAT_MACROS

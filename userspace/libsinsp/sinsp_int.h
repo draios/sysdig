@@ -52,6 +52,7 @@ using namespace std;
 #include "parsers.h"
 #include "ifinfo.h"
 #include "internal_metrics.h"
+#include "sinsp_public.h"
 
 #ifndef MIN
 #define MIN(X,Y) ((X) < (Y)? (X):(Y))
@@ -80,10 +81,8 @@ using namespace std;
 // Public export macro
 //
 #ifdef _WIN32
-#define SINSP_PUBLIC __declspec(dllexport)
 #define BRK(X) {if(evt != NULL && evt->get_num() == X)__debugbreak();}
 #else
-#define SINSP_PUBLIC
 #define BRK(X)
 #endif
 
