@@ -2259,12 +2259,18 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
  * descriptor.  In that case, we'll guess that it's a SOCK_DGRAM/UDP socket
  * and create the fdinfo based on that.
  *
- * Precondition: evt->m_fdinfo == nullptr
+ * Preconditions: evt->m_fdinfo == nullptr and
+ *                evt->m_tinfo != nullptr
+ * 
  */
 inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt* const evt)
 {
-	ASSERT(evt->m_fdinfo == nullptr);
-	ASSERT(evt->m_tinfo != nullptr);
+	if((evt->m_fdinfo == nullptr) || (evt->m_tinfo != nullptr))
+	{
+		ASSERT(evt->m_fdinfo == nullptr);
+		ASSERT(evt->m_tinfo != nullptr);
+		return;
+	}
 
 	const uint32_t FILE_DESCRIPTOR_PARAM = 0;
 	const uint32_t SOCKET_TUPLE_PARAM = 2;
@@ -2273,7 +2279,7 @@ inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt* const evt)
 
 	parinfo = evt->get_param(FILE_DESCRIPTOR_PARAM);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
-	ASSERT(parinfo->get_param_info(FILE_DESCRIPTOR_PARAM)->type == PT_FD);
+	ASSERT(evt->get_param_info(FILE_DESCRIPTOR_PARAM)->type == PT_FD);
 	const int64_t fd = *((int64_t*) parinfo->m_val);
 
 	if(fd < 0)
