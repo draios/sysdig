@@ -102,7 +102,7 @@ template<typename key_type, typename value_type>
 bool async_key_value_source<key_type, value_type>::is_running() const
 {
 	// Since this is for information only and it's ok to race, we
-	// expliclty do not lock here.
+	// explicitly do not lock here.
 
 	return m_running;
 }
