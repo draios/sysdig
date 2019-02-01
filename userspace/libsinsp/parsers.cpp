@@ -259,7 +259,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	switch(etype)
 	{
 	case PPME_SOCKET_SENDTO_E:
-		if(evt->m_fdinfo == nullptr)
+		if((evt->m_fdinfo == nullptr) && (evt->m_tinfo != nullptr))
 		{
 			infer_sendto_fdinfo(evt);
 		}
@@ -2264,6 +2264,7 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt* const evt)
 {
 	ASSERT(evt->m_fdinfo == nullptr);
+	ASSERT(evt->m_tinfo != nullptr);
 
 	const uint32_t FILE_DESCRIPTOR_PARAM = 0;
 	const uint32_t SOCKET_TUPLE_PARAM = 2;
@@ -2275,6 +2276,12 @@ inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt* const evt)
 	ASSERT(parinfo->get_param_info(FILE_DESCRIPTOR_PARAM)->type == PT_FD);
 	const int64_t fd = *((int64_t*) parinfo->m_val);
 
+	if(fd < 0)
+	{
+		// Call to sendto() with an invalid file descriptor
+		return;
+	}
+
 	parinfo = evt->get_param(SOCKET_TUPLE_PARAM);
 	const char addr_family = *((char*) parinfo->m_val);
 
@@ -2283,6 +2290,13 @@ inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt* const evt)
 		const uint32_t domain = (addr_family == AF_INET)
 		                        ? PPM_AF_INET
 		                        : PPM_AF_INET6;
+
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+		                "Call to sendto() with fd=%d; missing socket() "
+		                "data. Adding socket %s/SOCK_DGRAM/IPPROTO_UDP",
+		                fd,
+		                (domain == PPM_AF_INET)
+		                        ? "PPM_AF_INET" : "PPM_AF_INET6");
 
 		// Here we're assuming sendto() means SOCK_DGRAM/UDP, but it
 		// can be used with TCP.  We have no way to know for sure at
