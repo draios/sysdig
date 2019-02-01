@@ -2265,7 +2265,7 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
  */
 inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt* const evt)
 {
-	if((evt->m_fdinfo == nullptr) || (evt->m_tinfo != nullptr))
+	if((evt->m_fdinfo != nullptr) || (evt->m_tinfo == nullptr))
 	{
 		ASSERT(evt->m_fdinfo == nullptr);
 		ASSERT(evt->m_tinfo != nullptr);
@@ -2299,10 +2299,13 @@ inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt* const evt)
 
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 		                "Call to sendto() with fd=%d; missing socket() "
-		                "data. Adding socket %s/SOCK_DGRAM/IPPROTO_UDP",
+		                "data. Adding socket %s/SOCK_DGRAM/IPPROTO_UDP "
+				"for command '%s', pid %d",
 		                fd,
 		                (domain == PPM_AF_INET)
-		                        ? "PPM_AF_INET" : "PPM_AF_INET6");
+		                        ? "PPM_AF_INET" : "PPM_AF_INET6",
+			        evt->m_tinfo->get_comm().c_str(),
+			        evt->m_tinfo->m_pid);
 
 		// Here we're assuming sendto() means SOCK_DGRAM/UDP, but it
 		// can be used with TCP.  We have no way to know for sure at
