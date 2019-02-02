@@ -375,7 +375,7 @@ function rhel_build {
 
 		cd $BASEDIR
 
-		export KERNELDIR="$BASEDIR/$KERNEL_RELEASE/usr/src/kernels/$KERNEL_RELEASE"
+		export KERNELDIR=$BASEDIR/$KERNEL_RELEASE/usr/src/kernels/$KERNEL_RELEASE
 		build_probe
 	fi
 
