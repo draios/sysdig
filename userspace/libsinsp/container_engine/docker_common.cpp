@@ -163,14 +163,14 @@ bool docker::parse_docker(sinsp_container_manager* manager, sinsp_container_info
 	}
 
 	container->m_name = root["Name"].asString();
-	if(container->m_name.find("k8s_POD") == 0)
-	{
-		container->m_is_pod_sandbox = true;
-	}
-
+	// k8s Docker container names could have '/' as the first character.
 	if(!container->m_name.empty() && container->m_name[0] == '/')
 	{
 		container->m_name = container->m_name.substr(1);
+	}
+	if(container->m_name.find("k8s_POD") == 0)
+	{
+		container->m_is_pod_sandbox = true;
 	}
 
 	const Json::Value& net_obj = root["NetworkSettings"];
