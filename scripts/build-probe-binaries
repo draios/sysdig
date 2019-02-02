@@ -384,10 +384,9 @@ function rhel_build {
 
 		HASH_ORIG=$HASH
 
-		export KERNELDIR=$BASEDIR/$KERNEL_RELEASE/usr/src/kernels/$KERNEL_RELEASE
-
 		cd $BASEDIR
 
+		export KERNELDIR=$BASEDIR/$KERNEL_RELEASE/usr/src/kernels/$KERNEL_RELEASE
 		build_probe "${rebuild_gcc_plugins}"
 	fi
 
