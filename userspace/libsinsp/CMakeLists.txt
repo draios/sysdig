@@ -121,7 +121,8 @@ list(APPEND SINSP_SOURCES
 	container_engine/libvirt_lxc.cpp
 	container_engine/lxc.cpp
 	container_engine/mesos.cpp
-	container_engine/rkt.cpp)
+	container_engine/rkt.cpp
+	runc.cpp)
 endif()
 
 if(NOT WIN32 AND NOT APPLE)
