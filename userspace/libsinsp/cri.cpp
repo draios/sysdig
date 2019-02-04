@@ -34,6 +34,9 @@ sinsp_container_type get_cri_runtime_type(const std::string &runtime_name)
 	if(runtime_name == "containerd")
 	{
 		return CT_CONTAINERD;
+	} else if(runtime_name == "cri-o")
+	{
+		return CT_CRIO;
 	} else
 	{
 		return CT_CRI;
