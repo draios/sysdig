@@ -24,7 +24,7 @@ limitations under the License.
 #include "cri.pb.h"
 #include "cri.grpc.pb.h"
 
-#include "container_engine/docker.h"
+#include "runc.h"
 #include "container_engine/mesos.h"
 #include <cri.h>
 #include "sinsp.h"
@@ -32,6 +32,7 @@ limitations under the License.
 
 using namespace libsinsp::cri;
 using namespace libsinsp::container_engine;
+using namespace libsinsp::runc;
 
 namespace {
 bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container, sinsp_threadinfo *tinfo)
@@ -105,6 +106,14 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 
 	return true;
 }
+
+constexpr const cgroup_layout CRI_CGROUP_LAYOUT[] = {
+	{"/", ""}, // non-systemd containerd
+	{"/crio-", ""}, // non-systemd cri-o
+	{"/cri-containerd-", ".scope"}, // systemd containerd
+	{"/crio-", ".scope"}, // systemd cri-o
+	{nullptr, nullptr}
+};
 }
 
 cri::cri()
@@ -163,7 +172,7 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 {
 	sinsp_container_info container_info;
 
-	if(docker::detect_docker(tinfo, container_info.m_id))
+	if(matches_runc_cgroups(tinfo, CRI_CGROUP_LAYOUT, container_info.m_id))
 	{
 		container_info.m_type = s_cri_runtime_type;
 	}
