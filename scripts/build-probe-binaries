@@ -92,18 +92,16 @@ function clean_sysdig {
 }
 
 function build_probe {
-	local rebuild_gcc_plugins="${1:-"false"}"
 
-	if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] || \
+	if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] ||
 	   [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
-		# Rebuild the gcc-plugins if requested
-		if [[ "${rebuild_gcc_plugins}" == "true" ]]; then
-			# Don't generate noise if there's no such target
-			# Keep going if this fails
-			(cd "${KERNELDIR}" && make gcc-plugins 2&>1 | grep -v "No rule to make target") || true
+
+		if [[ -d "${KERNELDIR}/scripts/gcc-plugins" ]]; then
+			echo "Rebuilding gcc plugins for ${KERNELDIR}"
+			(cd "${KERNELDIR}" && make gcc-plugins)
 		fi
 
-	        echo Building $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko [${FUNCNAME[1]}]
+		echo Building $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko [${FUNCNAME[1]}]
 
 		clean_sysdig
 		cd sysdig/
@@ -347,14 +345,11 @@ function ubuntu_build {
 function rhel_build {
 
 	#
-	# ${1} - the URL to fetch
-	# ${2} - should gcc plugins be rebuilt (default: false)
+	# The function just requires the rpm url
 	#
 
 	# Get all the parameters needed
 	URL=$1
-	local rebuild_gcc_plugins="${2:-"false"}"
-
 	RPM=$(echo $URL | grep -o '[^/]*$')
 	KERNEL_RELEASE=$(echo $RPM | awk 'match($0, /[^kernel\-(uek\-)?(core\-|devel\-)?].*[^(\.rpm)]/){ print substr($0, RSTART, RLENGTH) }')
 
@@ -387,7 +382,7 @@ function rhel_build {
 		cd $BASEDIR
 
 		export KERNELDIR=$BASEDIR/$KERNEL_RELEASE/usr/src/kernels/$KERNEL_RELEASE
-		build_probe "${rebuild_gcc_plugins}"
+		build_probe
 	fi
 
 	cd $BASEDIR
@@ -570,7 +565,7 @@ if [ -z "$KERNEL_TYPE" ]; then
 
 	for URL in $URLS
 	do
-		rhel_build $URL "true"
+		rhel_build $URL
 	done
 
 	#
