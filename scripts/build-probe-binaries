@@ -96,7 +96,7 @@ function build_probe {
 	if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] ||
 	   [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
 
-		if [[ -d "${KERNELDIR}/scripts/gcc-plugins" ]]; then
+		if [[ -f "${KERNELDIR}/scripts/gcc-plugins/stackleak_plugin.so" ]]; then
 			echo "Rebuilding gcc plugins for ${KERNELDIR}"
 			(cd "${KERNELDIR}" && make gcc-plugins)
 		fi
