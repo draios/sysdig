@@ -300,6 +300,7 @@ function boot2docker_build {
 function ubuntu_build {
 
 	URL=$1
+	echo $URL
 	DEB=$(echo $URL | grep -o '[^/]*$')
 	KERNEL_RELEASE_FULL=$(echo $DEB | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+-[0-9]+\.[0-9]+")		# ex. 3.13.0-24.47
 	KERNEL_RELEASE=$(echo $KERNEL_RELEASE_FULL | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+-[0-9]+")	# ex. 3.13.0-24
