@@ -62,7 +62,6 @@ void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_thr
 // sinsp implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp::sinsp() :
-	m_check_bump_max_n_proc_lookups(true),
 	m_evt(this),
 	m_container_manager(this)
 {
@@ -1021,60 +1020,6 @@ void sinsp::restart_capture_at_filepos(uint64_t filepos)
 	}
 }
 
-int32_t sinsp::get_max_n_proc_lookups()
-{
-	uint32_t boost = 0;
-
-	// if m_max_n_proc_lookups has been set to a negative value,
-	// the proc scan has been disabled, so skip everything
-	if(m_max_n_proc_lookups >= 0)
-	{
-		static const uint64_t startup = sinsp_utils::get_current_time_sec();
-
-		if(m_check_bump_max_n_proc_lookups)
-		{
-			auto now = sinsp_utils::get_current_time_sec();
-			m_check_bump_max_n_proc_lookups = ((now - startup) < BUMP_MAX_N_PROC_LOOKUPS_DURATION_IN_SEC);
-			uint32_t boost = 0;
-                        /*		
-			 	 ^
-			 	 |
-			 	 |\
-			 	 | \
-			       K +--+
-			 	 |  |\
-			 	 |  | \
-			 	 |  |  \
-			 	 |  |   \
-			       N +--+----+
-			 	 |  | 	 |\
-			 	 |  | 	 | \
-			       R +--+----+--+
-			 	 |  |    |  |\
-			 	 +--+-------+--------------------------->
-			 	    S	 x  T+S
-			
-						
-			 T = BUMP_MAX_N_PROC_LOOKUPS_DURATION_IN_SEC
-			 S = startup		
-			 K = STARTUP_MAX_N_PROC_LOOKUPS
-					
-						
-			             K - R      
-			    boost = ------- * (T - (x - S))
-			               T 
-		        */
-			if(m_check_bump_max_n_proc_lookups)
-			{
-				boost = (STARTUP_MAX_N_PROC_LOOKUPS - m_max_n_proc_lookups)*(BUMP_MAX_N_PROC_LOOKUPS_DURATION_IN_SEC- (now - startup ))/(BUMP_MAX_N_PROC_LOOKUPS_DURATION_IN_SEC);
-				g_logger.format(sinsp_logger::SEV_TRACE, "Bumping max_n_proc_lookups to %d", m_max_n_proc_lookups + boost);
-
-			}
-		}
-	}
-	return m_max_n_proc_lookups + boost;
-}
-
 int32_t sinsp::next(OUT sinsp_evt **puevt)
 {
 	sinsp_evt* evt;
@@ -1513,15 +1458,14 @@ threadinfo_map_t::ptr_t sinsp::get_thread_ref(int64_t tid, bool query_os_if_not_
 
 		m_n_proc_lookups++;
 
-		auto current_n_proc_lookups = get_max_n_proc_lookups();
-		if(m_n_proc_lookups == current_n_proc_lookups)
+		if(m_n_proc_lookups == m_max_n_proc_lookups)
 		{
 			g_logger.format(sinsp_logger::SEV_INFO, "Reached max process lookup number, duration=%" PRIu64 "ms",
 				m_n_proc_lookups_duration_ns / 1000000);
 		}
 
-		if(current_n_proc_lookups < 0 ||
-		   m_n_proc_lookups <= current_n_proc_lookups)
+		if(m_max_n_proc_lookups < 0 ||
+		   m_n_proc_lookups <= m_max_n_proc_lookups)
 		{
 #ifdef HAS_ANALYZER
 			tracer_emitter("sinsp_proc_lookup");

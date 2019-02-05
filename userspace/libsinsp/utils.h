@@ -102,8 +102,6 @@ public:
 
 	static uint64_t get_current_time_ns();
 
-	static uint64_t get_current_time_sec();
-
 	static bool glob_match(const char *pattern, const char *string);
 
 #ifndef _WIN32

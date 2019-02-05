@@ -760,11 +760,6 @@ uint64_t sinsp_utils::get_current_time_ns()
     return tv.tv_sec * (uint64_t) 1000000000 + tv.tv_usec * 1000;
 }
 
-uint64_t sinsp_utils::get_current_time_sec()
-{
-	return get_current_time_ns() / 1e+9;
-}
-
 bool sinsp_utils::glob_match(const char *pattern, const char *string)
 {
 #ifdef _WIN32
