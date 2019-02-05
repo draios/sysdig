@@ -93,9 +93,15 @@ function clean_sysdig {
 
 function build_probe {
 
-	if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] || [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
+	if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] ||
+	   [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
 
-	        echo Building $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko [${FUNCNAME[1]}]
+		if [[ -f "${KERNELDIR}/scripts/gcc-plugins/stackleak_plugin.so" ]]; then
+			echo "Rebuilding gcc plugins for ${KERNELDIR}"
+			(cd "${KERNELDIR}" && make gcc-plugins)
+		fi
+
+		echo Building $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko [${FUNCNAME[1]}]
 
 		clean_sysdig
 		cd sysdig/
@@ -693,6 +699,10 @@ if [ -z "$KERNEL_TYPE" ]; then
 		rhel_build $URL
 	done
 
+	#
+	# Minikube build
+	#
+	echo Building Minikube
 	VERSIONS=$(curl https://api.github.com/repos/kubernetes/minikube/releases | jq -r '.[].name' | head -10)
 
 	for VERSION in $VERSIONS

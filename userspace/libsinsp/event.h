@@ -24,6 +24,7 @@ limitations under the License.
 #define VISIBILITY_PRIVATE private:
 #endif
 
+#include "sinsp_inet.h"
 #include "sinsp_public.h"
 #include "scap.h"
 #include "gen_filter.h"
@@ -329,6 +330,11 @@ public:
 	*/
 
 	bool falco_consider();
+
+	inline uint16_t get_source()
+	{
+		return ESRC_SINSP;
+	}
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN

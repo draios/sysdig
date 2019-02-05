@@ -33,6 +33,80 @@ limitations under the License.
 using namespace libsinsp::cri;
 using namespace libsinsp::container_engine;
 
+namespace {
+bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container, sinsp_threadinfo *tinfo)
+{
+	if(!s_cri)
+	{
+		return false;
+	}
+
+	runtime::v1alpha2::ContainerStatusRequest req;
+	runtime::v1alpha2::ContainerStatusResponse resp;
+	req.set_container_id(container->m_id);
+	req.set_verbose(true);
+	grpc::ClientContext context;
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
+	context.set_deadline(deadline);
+	grpc::Status status = s_cri->ContainerStatus(&context, req, &resp);
+	if(!status.ok())
+	{
+		if(is_pod_sandbox(container->m_id))
+		{
+			container->m_is_pod_sandbox = true;
+			return true;
+		}
+		g_logger.format(sinsp_logger::SEV_DEBUG, "id %s is neither a container nor a pod sandbox",
+			container->m_id.c_str());
+		return false;
+	}
+
+	if(!resp.has_status())
+	{
+		ASSERT(false);
+		return false;
+	}
+
+	const auto &resp_container = resp.status();
+	container->m_name = resp_container.metadata().name();
+	container->m_type = s_cri_runtime_type;
+
+	for(const auto &pair : resp_container.labels())
+	{
+		container->m_labels[pair.first] = pair.second;
+	}
+
+	parse_cri_image(resp_container, container);
+	parse_cri_mounts(resp_container, container);
+
+	const auto &info_it = resp.info().find("info");
+	if(info_it == resp.info().end())
+	{
+		ASSERT(false);
+		return false;
+	}
+	Json::Value root;
+	Json::Reader reader;
+	if(!reader.parse(info_it->second, root))
+	{
+		ASSERT(false);
+		return false;
+	}
+
+	parse_cri_env(root, container);
+	parse_cri_json_image(root, container);
+	parse_cri_runtime_spec(root, container);
+
+	if(root.isMember("sandboxID") && root["sandboxID"].isString())
+	{
+		const auto pod_sandbox_id = root["sandboxID"].asString();
+		container->m_container_ip = ntohl(get_pod_sandbox_ip(pod_sandbox_id));
+	}
+
+	return true;
+}
+}
+
 cri::cri()
 {
 	if(s_cri || s_cri_unix_socket_path.empty()) {
@@ -59,8 +133,10 @@ cri::cri()
 
 	if (!status.ok())
 	{
-		// we could disable CRI support here...
-		g_logger.format(sinsp_logger::SEV_WARNING, "CRI runtime returned an error after version check");
+		g_logger.format(sinsp_logger::SEV_NOTICE, "CRI runtime returned an error after version check at %s: %s",
+			s_cri_unix_socket_path.c_str(), status.error_message().c_str());
+		s_cri.reset(nullptr);
+		s_cri_unix_socket_path = "";
 		return;
 	}
 
@@ -83,70 +159,6 @@ void cri::set_cri_timeout(int64_t timeout_ms)
 	s_cri_timeout = timeout_ms;
 }
 
-bool parse_cri(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
-{
-	if (!s_cri)
-	{
-		return false;
-	}
-
-	runtime::v1alpha2::ContainerStatusRequest req;
-	runtime::v1alpha2::ContainerStatusResponse resp;
-	req.set_container_id(container->m_id);
-	req.set_verbose(true);
-	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
-	context.set_deadline(deadline);
-	grpc::Status status = s_cri->ContainerStatus(&context, req, &resp);
-	if (!status.ok()) {
-		return false;
-	}
-
-	if (!resp.has_status())
-	{
-		ASSERT(false);
-		return false;
-	}
-
-	const auto& resp_container = resp.status();
-	container->m_name = resp_container.metadata().name();
-	container->m_type = s_cri_runtime_type;
-
-	for (const auto& pair : resp_container.labels())
-	{
-		container->m_labels[pair.first] = pair.second;
-	}
-
-	parse_cri_image(resp_container, container);
-	parse_cri_mounts(resp_container, container);
-
-	const auto& info_it = resp.info().find("info");
-	if (info_it == resp.info().end())
-	{
-		ASSERT(false);
-		return false;
-	}
-	Json::Value root;
-	Json::Reader reader;
-	if(!reader.parse(info_it->second, root))
-	{
-		ASSERT(false);
-		return false;
-	}
-
-	parse_cri_env(root, container);
-	parse_cri_json_image(root, container);
-	parse_cri_runtime_spec(root, container);
-
-	if(root.isMember("sandboxID") && root["sandboxID"].isString())
-	{
-		const auto pod_sandbox_id = root["sandboxID"].asString();
-		container->m_container_ip = ntohl(get_pod_sandbox_ip(pod_sandbox_id));
-	}
-
-	return true;
-}
-
 bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	sinsp_container_info container_info;
@@ -164,7 +176,12 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 	{
 		if (query_os_for_missing_info)
 		{
-			parse_cri(manager, &container_info, tinfo);
+			if (!parse_cri(manager, &container_info, tinfo))
+			{
+				g_logger.format(sinsp_logger::SEV_DEBUG, "Failed to get CRI metadata for container %s",
+						container_info.m_id.c_str());
+				return false;
+			}
 		}
 		if (mesos::set_mesos_task_id(&container_info, tinfo))
 		{

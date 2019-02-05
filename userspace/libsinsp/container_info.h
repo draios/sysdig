@@ -131,7 +131,8 @@ public:
 		m_cpu_quota(0),
 		m_cpu_period(100000),
 		m_has_healthcheck(false),
-		m_healthcheck_exe("")
+		m_healthcheck_exe(""),
+		m_is_pod_sandbox(false)
 #ifdef HAS_ANALYZER
 		,m_metadata_deadline(0)
 #endif
@@ -146,6 +147,10 @@ public:
 	const container_mount_info *mount_by_idx(uint32_t idx) const;
 	const container_mount_info *mount_by_source(std::string &source) const;
 	const container_mount_info *mount_by_dest(std::string &dest) const;
+
+	bool is_pod_sandbox() const {
+		return m_is_pod_sandbox;
+	}
 
 	std::string m_id;
 	sinsp_container_type m_type;
@@ -171,6 +176,7 @@ public:
 	bool m_has_healthcheck;
 	std::string m_healthcheck_exe;
 	std::vector<std::string> m_healthcheck_args;
+	bool m_is_pod_sandbox;
 #ifdef HAS_ANALYZER
 	std::string m_sysdig_agent_conf;
 	uint64_t m_metadata_deadline;

@@ -105,6 +105,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	ASSERT(tinfo);
 	bool matches = false;
 
+	tinfo->m_container_id = "";
 	if (m_inspector->m_parser->m_fd_listener)
 	{
 		matches = m_inspector->m_parser->m_fd_listener->on_resolve_container(this, tinfo, query_os_for_missing_info);
@@ -126,11 +127,6 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	>(tinfo, query_os_for_missing_info);
 
 #endif // CYGWING_AGENT
-
-	if (!matches)
-	{
-		tinfo->m_container_id = "";
-	}
 
 	// Also identify if this thread is part of a container healthcheck
 	identify_healthcheck(tinfo);
@@ -368,14 +364,6 @@ void sinsp_container_manager::cleanup()
 void sinsp_container_manager::set_query_docker_image_info(bool query_image_info)
 {
 	libsinsp::container_engine::docker::set_query_image_info(query_image_info);
-}
-
-void sinsp_container_manager::set_docker_cri_mode(bool docker_then_cri)
-{
-#if defined(HAS_CAPTURE)
-	auto mode = docker_then_cri ? libsinsp::container_engine::docker::WEAK : libsinsp::container_engine::docker::DISABLED;
-	libsinsp::container_engine::docker::set_mode(mode);
-#endif
 }
 
 void sinsp_container_manager::set_cri_socket_path(const std::string &path)

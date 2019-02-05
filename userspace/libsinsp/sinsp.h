@@ -46,6 +46,7 @@ limitations under the License.
 #pragma warning(disable: 4251 4200 4221 4190)
 #endif
 
+#include "sinsp_inet.h"
 #include "sinsp_public.h"
 
 #define __STDC_FORMAT_MACROS
@@ -880,7 +881,6 @@ public:
 
 	void set_fullcapture_port_range(uint16_t range_start, uint16_t range_end);
 
-	void set_docker_cri_mode(bool docker_then_cri);
 	void set_cri_socket_path(const std::string& path);
 	void set_cri_timeout(int64_t timeout_ms);
 
@@ -980,6 +980,10 @@ private:
 
 	void add_suppressed_comms(scap_open_args &oargs);
 
+	int32_t get_max_n_proc_lookups();
+	static const int STARTUP_MAX_N_PROC_LOOKUPS = 100;
+	static const int BUMP_MAX_N_PROC_LOOKUPS_DURATION_IN_SEC = 60;
+	bool m_check_bump_max_n_proc_lookups;
 	scap_t* m_h;
 	uint32_t m_nevts;
 	int64_t m_filesize;

@@ -46,6 +46,8 @@ bool parse_cri_json_image(const Json::Value &info, sinsp_container_info *contain
 
 bool parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info *container);
 
+bool is_pod_sandbox(const std::string &container_id);
+
 uint32_t get_pod_sandbox_ip(const std::string &pod_sandbox_id);
 }
 }

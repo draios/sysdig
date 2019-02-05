@@ -48,7 +48,6 @@ set(SINSP_SOURCES
 	event.cpp
 	eventformatter.cpp
 	dns_manager.cpp
-	docker.cpp
 	dumper.cpp
 	fdinfo.cpp
 	filter.cpp
