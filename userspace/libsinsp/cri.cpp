@@ -40,6 +40,7 @@ std::unique_ptr <runtime::v1alpha2::RuntimeService::Stub> s_cri = nullptr;
 std::unique_ptr <runtime::v1alpha2::ImageService::Stub> s_cri_image = nullptr;
 int64_t s_cri_timeout = 1000;
 sinsp_container_type s_cri_runtime_type = CT_CRI;
+bool s_cri_extra_queries = true;
 
 sinsp_container_type get_cri_runtime_type(const std::string &runtime_name)
 {
