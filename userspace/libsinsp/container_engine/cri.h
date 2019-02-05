@@ -37,6 +37,7 @@ public:
 	static void cleanup();
 	static void set_cri_socket_path(const std::string& path);
 	static void set_cri_timeout(int64_t timeout_ms);
+	static void set_extra_queries(bool extra_queries);
 };
 }
 }
