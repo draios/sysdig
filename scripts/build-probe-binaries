@@ -329,9 +329,12 @@ function ubuntu_build {
 	if [ $NUM_DEB -eq 3 ]; then
 
 		local KERNEL_FOLDER=$KERNEL_RELEASE
-		rm linux-image-unsigned*
+		IMGS=$(ls -l linux-image-unsigned*)
+		echo $IMGS
+		rm $IMGS
 		KERNEL_RELEASE=$(ls -1 linux-image-* | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+-[0-9]+-[a-z]+")
 
+		#echo `ls -1 linux-image-*`
 		echo $KERNEL_RELEASE
 		HASH=$(md5sum boot/config-$KERNEL_RELEASE | cut -d' ' -f1)
 		HASH_ORIG=$HASH
