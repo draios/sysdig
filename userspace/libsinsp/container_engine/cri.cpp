@@ -114,8 +114,11 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 		return true;
 	}
 
-	container->m_container_ip = get_container_ip(container->m_id);
-	container->m_imageid = get_container_image_id(resp_container.image_ref());
+	if(s_cri_extra_queries)
+	{
+		container->m_container_ip = get_container_ip(container->m_id);
+		container->m_imageid = get_container_image_id(resp_container.image_ref());
+	}
 
 	return true;
 }
@@ -171,6 +174,7 @@ void cri::cleanup()
 {
 	s_cri.reset(nullptr);
 	s_cri_image.reset(nullptr);
+	s_cri_extra_queries = true;
 }
 
 void cri::set_cri_socket_path(const std::string& path)
@@ -181,6 +185,10 @@ void cri::set_cri_socket_path(const std::string& path)
 void cri::set_cri_timeout(int64_t timeout_ms)
 {
 	s_cri_timeout = timeout_ms;
+}
+
+void cri::set_extra_queries(bool extra_queries) {
+	s_cri_extra_queries = extra_queries;
 }
 
 bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
