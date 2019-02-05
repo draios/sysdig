@@ -366,6 +366,13 @@ void sinsp_container_manager::set_query_docker_image_info(bool query_image_info)
 	libsinsp::container_engine::docker::set_query_image_info(query_image_info);
 }
 
+void sinsp_container_manager::set_cri_extra_queries(bool extra_queries)
+{
+#if defined(HAS_CAPTURE)
+	libsinsp::container_engine::cri::set_extra_queries(extra_queries);
+#endif
+}
+
 void sinsp_container_manager::set_cri_socket_path(const std::string &path)
 {
 #if defined(HAS_CAPTURE)
