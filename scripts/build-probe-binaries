@@ -329,7 +329,7 @@ function ubuntu_build {
 	if [ $NUM_DEB -eq 3 ]; then
 
 		local KERNEL_FOLDER=$KERNEL_RELEASE
-		IMGS=$(ls -1 linux-image-*)
+		IMGS=$(ls -l linux-image-*)
 		echo $IMGS
 		KERNEL_RELEASE=$(ls -1 linux-image-* | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+-[0-9]+-[a-z]+")
 
