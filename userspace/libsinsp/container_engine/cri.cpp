@@ -35,6 +35,35 @@ using namespace libsinsp::container_engine;
 using namespace libsinsp::runc;
 
 namespace {
+bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info *container, sinsp_threadinfo *tinfo)
+{
+	const auto &info_it = status.info().find("info");
+	if(info_it == status.info().end())
+	{
+		return false;
+	}
+
+	Json::Value root;
+	Json::Reader reader;
+	if(!reader.parse(info_it->second, root))
+	{
+		ASSERT(false);
+		return false;
+	}
+
+	parse_cri_env(root, container);
+	parse_cri_json_image(root, container);
+	parse_cri_runtime_spec(root, container);
+
+	if(root.isMember("sandboxID") && root["sandboxID"].isString())
+	{
+		const auto pod_sandbox_id = root["sandboxID"].asString();
+		container->m_container_ip = ntohl(get_pod_sandbox_ip(pod_sandbox_id));
+	}
+
+	return true;
+}
+
 bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container, sinsp_threadinfo *tinfo)
 {
 	if(!s_cri)
@@ -80,29 +109,13 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 	parse_cri_image(resp_container, container);
 	parse_cri_mounts(resp_container, container);
 
-	const auto &info_it = resp.info().find("info");
-	if(info_it == resp.info().end())
+	if(parse_containerd(resp, container, tinfo))
 	{
-		ASSERT(false);
-		return false;
-	}
-	Json::Value root;
-	Json::Reader reader;
-	if(!reader.parse(info_it->second, root))
-	{
-		ASSERT(false);
-		return false;
+		return true;
 	}
 
-	parse_cri_env(root, container);
-	parse_cri_json_image(root, container);
-	parse_cri_runtime_spec(root, container);
-
-	if(root.isMember("sandboxID") && root["sandboxID"].isString())
-	{
-		const auto pod_sandbox_id = root["sandboxID"].asString();
-		container->m_container_ip = ntohl(get_pod_sandbox_ip(pod_sandbox_id));
-	}
+	container->m_container_ip = get_container_ip(container->m_id);
+	container->m_imageid = get_container_image_id(resp_container.image_ref());
 
 	return true;
 }
@@ -128,8 +141,9 @@ cri::cri()
 		return;
 	}
 
-	s_cri = runtime::v1alpha2::RuntimeService::NewStub(
-		grpc::CreateChannel("unix://" + cri_path, grpc::InsecureChannelCredentials()));
+	auto channel = grpc::CreateChannel("unix://" + cri_path, grpc::InsecureChannelCredentials());
+	s_cri = runtime::v1alpha2::RuntimeService::NewStub(channel);
+	s_cri_image = runtime::v1alpha2::ImageService::NewStub(channel);
 
 	runtime::v1alpha2::VersionRequest vreq;
 	runtime::v1alpha2::VersionResponse vresp;
@@ -156,6 +170,7 @@ cri::cri()
 void cri::cleanup()
 {
 	s_cri.reset(nullptr);
+	s_cri_image.reset(nullptr);
 }
 
 void cri::set_cri_socket_path(const std::string& path)
