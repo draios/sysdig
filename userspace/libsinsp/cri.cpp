@@ -19,13 +19,25 @@ limitations under the License.
 
 #include "cri.h"
 
+#include <chrono>
+#include <grpc++/grpc++.h>
+
 #include "sinsp.h"
 #include "sinsp_int.h"
+
+namespace {
+bool pod_uses_host_netns(const runtime::v1alpha2::PodSandboxStatusResponse& resp)
+{
+	const auto netns = resp.status().linux().namespaces().options().network();
+	return netns == runtime::v1alpha2::NODE;
+}
+}
 
 namespace libsinsp {
 namespace cri {
 std::string s_cri_unix_socket_path = "/run/containerd/containerd.sock";
 std::unique_ptr <runtime::v1alpha2::RuntimeService::Stub> s_cri = nullptr;
+std::unique_ptr <runtime::v1alpha2::ImageService::Stub> s_cri_image = nullptr;
 int64_t s_cri_timeout = 1000;
 sinsp_container_type s_cri_runtime_type = CT_CRI;
 
@@ -259,6 +271,11 @@ uint32_t get_pod_sandbox_ip(const std::string &pod_sandbox_id)
 		return 0;
 	}
 
+	if(pod_uses_host_netns(resp))
+	{
+		return 0;
+	}
+
 	const auto &pod_ip = resp.status().network().ip();
 	if(pod_ip.empty())
 	{
@@ -274,6 +291,66 @@ uint32_t get_pod_sandbox_ip(const std::string &pod_sandbox_id)
 	{
 		return ip;
 	}
+}
+
+uint32_t get_container_ip(const std::string &container_id)
+{
+	runtime::v1alpha2::ListContainersRequest req;
+	runtime::v1alpha2::ListContainersResponse resp;
+	auto filter = req.mutable_filter();
+	filter->set_id(container_id);
+	grpc::ClientContext context;
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
+	context.set_deadline(deadline);
+	grpc::Status lstatus = s_cri->ListContainers(&context, req, &resp);
+
+	switch(resp.containers_size())
+	{
+		case 0:
+			g_logger.format(sinsp_logger::SEV_WARNING, "Container id %s not in list from CRI", container_id.c_str());
+			ASSERT(false);
+			break;
+		case 1: {
+			const auto& cri_container = resp.containers(0);
+			return ntohl(get_pod_sandbox_ip(cri_container.pod_sandbox_id()));
+		}
+		default:
+			g_logger.format(sinsp_logger::SEV_WARNING, "Container id %s matches more than once in list from CRI", container_id.c_str());
+			ASSERT(false);
+			break;
+	}
+	return 0;
+}
+
+std::string get_container_image_id(const std::string &image_ref)
+{
+	runtime::v1alpha2::ListImagesRequest req;
+	runtime::v1alpha2::ListImagesResponse resp;
+	auto filter = req.mutable_filter();
+	auto spec = filter->mutable_image();
+	spec->set_image(image_ref);
+	grpc::ClientContext context;
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
+	context.set_deadline(deadline);
+	grpc::Status status = s_cri_image->ListImages(&context, req, &resp);
+
+	switch(resp.images_size())
+	{
+		case 0:
+			g_logger.format(sinsp_logger::SEV_WARNING, "Image ref %s not in list from CRI", image_ref.c_str());
+			ASSERT(false);
+			break;
+		case 1: {
+			const auto& image = resp.images(0);
+			return image.id();
+		}
+		default:
+			g_logger.format(sinsp_logger::SEV_WARNING, "Image ref %s matches more than once in list from CRI", image_ref.c_str());
+			ASSERT(false);
+			break;
+	}
+
+	return "";
 }
 }
 }
