@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2018-2019 Sysdig, Inc.
+Copyright (C) 2013-2019 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
@@ -16,11 +16,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
+
 #pragma once
 
-#ifdef _WIN32
-#define SINSP_PUBLIC __declspec(dllexport)
-#else
-#define SINSP_PUBLIC
-#endif
+class sinsp_container_manager;
+class sinsp_container_info;
+class sinsp_threadinfo;
 
+namespace libsinsp {
+namespace container_engine {
+class libvirt_lxc
+{
+public:
+	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+protected:
+	bool match(sinsp_threadinfo* tinfo, sinsp_container_info* container_info);
+};
+}
+}

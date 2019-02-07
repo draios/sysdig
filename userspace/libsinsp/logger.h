@@ -19,6 +19,8 @@ limitations under the License.
 
 #pragma once
 
+#include "sinsp_public.h"
+
 ///////////////////////////////////////////////////////////////////////////////
 // The logger class
 ///////////////////////////////////////////////////////////////////////////////
@@ -78,7 +80,7 @@ public:
 	void set_log_output_type(sinsp_logger::output_type log_output_type);
 	void add_stdout_log();
 	void add_stderr_log();
-	void add_file_log(string filename);
+	void add_file_log(std::string filename);
 	void add_file_log(FILE* f);
 	void add_callback_log(sinsp_logger_callback callback);
 	void remove_callback_log();
@@ -86,8 +88,8 @@ public:
 	void set_severity(severity sev);
 	severity get_severity() const;
 
-	void log(string msg, severity sev=SEV_INFO);
-	void log(string msg, event_severity sev);
+	void log(std::string msg, severity sev=SEV_INFO);
+	void log(std::string msg, event_severity sev);
 
 	// Log functions that accept printf syntax and return the formatted buffer.
 	char* format(severity sev, const char* fmt, ...);
@@ -103,6 +105,8 @@ private:
 	severity m_sev;
 	char m_tbuf[32768];
 };
+
+extern sinsp_logger g_logger;
 
 inline bool sinsp_logger::is_callback() const
 {

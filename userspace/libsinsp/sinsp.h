@@ -46,6 +46,7 @@ limitations under the License.
 #pragma warning(disable: 4251 4200 4221 4190)
 #endif
 
+#include "sinsp_inet.h"
 #include "sinsp_public.h"
 
 #define __STDC_FORMAT_MACROS
@@ -879,6 +880,9 @@ public:
 	void set_query_docker_image_info(bool query_image_info);
 
 	void set_fullcapture_port_range(uint16_t range_start, uint16_t range_end);
+
+	void set_cri_socket_path(const std::string& path);
+	void set_cri_timeout(int64_t timeout_ms);
 
 VISIBILITY_PRIVATE
 

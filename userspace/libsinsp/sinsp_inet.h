@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2018-2019 Sysdig, Inc.
+Copyright (C) 2019 Sysdig, Inc.
 
 This file is part of sysdig.
 
@@ -18,9 +18,8 @@ limitations under the License.
 */
 #pragma once
 
-#ifdef _WIN32
-#define SINSP_PUBLIC __declspec(dllexport)
+#if defined(_WIN32)
+#    include <Ws2tcpip.h>
 #else
-#define SINSP_PUBLIC
+#    include <arpa/inet.h>
 #endif
-

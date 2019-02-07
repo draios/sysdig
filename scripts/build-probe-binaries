@@ -24,12 +24,6 @@
 #
 set -euo pipefail
 
-#
-# For continuous integration log purposes, wget prints its own output to stderr
-# so it can be convenient to redirect it to a file. This can be done directly
-# at runtime.
-#
-
 PROBE_NAME=$1
 PROBE_VERSION=$2
 REPOSITORY_NAME=$3
@@ -99,9 +93,15 @@ function clean_sysdig {
 
 function build_probe {
 
-	if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] || [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
+	if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] ||
+	   [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
 
-	        echo Building $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko [${FUNCNAME[1]}]
+		if [[ -f "${KERNELDIR}/scripts/gcc-plugins/stackleak_plugin.so" ]]; then
+			echo "Rebuilding gcc plugins for ${KERNELDIR}"
+			(cd "${KERNELDIR}" && make gcc-plugins)
+		fi
+
+		echo Building $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko [${FUNCNAME[1]}]
 
 		clean_sysdig
 		cd sysdig/
@@ -140,7 +140,7 @@ function coreos_build_old {
 	cd $COREOS_DIR
 
 	if [ ! -f config_orig ]; then
-		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} ${VERSION_URL}coreos_developer_container.bin.bz2
+		wget -nv --timeout=${URL_TIMEOUT} --tries=${RETRY} ${VERSION_URL}coreos_developer_container.bin.bz2
 		bunzip2 coreos_developer_container.bin.bz2
 		sudo kpartx -asv coreos_developer_container.bin
 		LOOPDEV=$(sudo kpartx -asv coreos_developer_container.bin | cut -d\  -f 3)
@@ -162,7 +162,7 @@ function coreos_build_old {
 	KERNEL_URL=https://www.kernel.org/pub/linux/kernel/v${MAJOR}.x/$TGZ_NAME
 
 	if [ ! -f $TGZ_NAME ]; then
-		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} $KERNEL_URL
+		wget -nv --timeout=${URL_TIMEOUT} --tries=${RETRY} $KERNEL_URL
 	fi
 
 	if [ ! -d $DIR_NAME ]; then
@@ -197,7 +197,7 @@ function coreos_build_new {
 	cd $COREOS_DIR
 
 	if [ ! -f coreos_developer_container.bin ]; then
-		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} ${VERSION_URL}coreos_developer_container.bin.bz2
+		wget -nv --timeout=${URL_TIMEOUT} --tries=${RETRY} ${VERSION_URL}coreos_developer_container.bin.bz2
 		bunzip2 coreos_developer_container.bin.bz2
 	fi
 
@@ -257,7 +257,7 @@ function boot2docker_build {
 
 	if [ ! -f $TGZ_NAME ]; then
 		echo Downloading $TGZ_NAME [Boot2Docker]
-		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} $KERNEL_URL
+		wget -nv --timeout=${URL_TIMEOUT} --tries=${RETRY} $KERNEL_URL
 	fi
 
 	if [ ! -d $DIR_NAME ]; then
@@ -280,7 +280,7 @@ function boot2docker_build {
 		; do \
 	        patch -p1 < "$patch"; \
 		done
-		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} -O .config $KERNEL_CONFIG
+		wget -nv --timeout=${URL_TIMEOUT} --tries=${RETRY} -O .config $KERNEL_CONFIG
 		cp .config ../config-orig
 		make olddefconfig
 		make modules_prepare
@@ -319,7 +319,7 @@ function ubuntu_build {
 
 	if [ ! -f $DEB ]; then
 		echo Downloading $DEB [Ubuntu]
-		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} $URL
+		wget -nv --timeout=${URL_TIMEOUT} --tries=${RETRY} $URL
 		dpkg -x $DEB ./
 	fi
 
@@ -361,7 +361,7 @@ function rhel_build {
 
 	if [ ! -f $RPM ]; then
 		echo Downloading $RPM [RHEL and CentOS]
-		wget --timeout=${URL_TIMEOUT} --tries=${RETRY} $URL
+		wget -nv --timeout=${URL_TIMEOUT} --tries=${RETRY} $URL
 		rpm2cpio $RPM | cpio -idm
 	fi
 
@@ -399,7 +399,7 @@ function debian_build {
 		fi
 		if [ ! -f ${BASEDIR}/common-dependencies/debian/kbuild/${DEB} ]; then
 			echo Downloading ${DEB} [Debian]
-			wget --timeout=${URL_TIMEOUT} --tries=${RETRY} -P ${BASEDIR}/common-dependencies/debian/kbuild ${URL}
+			wget -nv --timeout=${URL_TIMEOUT} --tries=${RETRY} -P ${BASEDIR}/common-dependencies/debian/kbuild ${URL}
 		fi
 		return
 	else
@@ -421,7 +421,7 @@ function debian_build {
 
 		if [ ! -f ${DEB} ]; then
 			echo Downloading ${DEB} [Debian]
-			wget --timeout=${URL_TIMEOUT} --tries=${RETRY} ${URL}
+			wget -nv --timeout=${URL_TIMEOUT} --tries=${RETRY} ${URL}
 			dpkg -x ${DEB} ./
 		fi
 	fi
@@ -464,6 +464,66 @@ function debian_build {
 	fi
 
 	cd ${BASEDIR}
+}
+
+function minikube_build {
+        VERSION=$1
+
+	MINIKUBE_BASEDIR=${BASEDIR}/minikube
+
+	if [ ! -d ${MINIKUBE_BASEDIR} ]; then
+	    mkdir -p ${MINIKUBE_BASEDIR}
+	fi
+
+	MINIKUBE_DIR=${MINIKUBE_BASEDIR}/minikube-$(echo ${VERSION} | sed 's/^v//')
+
+	if [ ! -d ${MINIKUBE_DIR} ]; then
+	    wget -nv -P ${MINIKUBE_BASEDIR} --timeout=${URL_TIMEOUT} --tries=${RETRY} https://github.com/kubernetes/minikube/archive/${VERSION}.tar.gz
+	    tar -C ${MINIKUBE_BASEDIR} -zxf ${MINIKUBE_BASEDIR}/${VERSION}.tar.gz
+	    rm -f ${MINIKUBE_BASEDIR}/${VERSION}.tar.gz
+	fi
+
+	MINIKUBE_KERNEL_VERSION=$(cat ${MINIKUBE_DIR}/deploy/iso/minikube-iso/configs/minikube_defconfig | grep BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE | cut -d= -f 2 | sed 's/"//g')
+	TGZ_NAME=linux-${MINIKUBE_KERNEL_VERSION}.tar.xz
+	MAJOR=$(echo $MINIKUBE_KERNEL_VERSION | cut -d. -f1)
+	MINOR=$(echo $MINIKUBE_KERNEL_VERSION | cut -d. -f2)
+
+	KERNEL_CONFIG=${MINIKUBE_DIR}/deploy/iso/minikube-iso/board/coreos/minikube/linux_defconfig
+
+	# The filename used to contain the kernel version
+	if [ ! -e ${KERNEL_CONFIG} ]; then
+	    KERNEL_CONFIG=${MINIKUBE_DIR}/deploy/iso/minikube-iso/board/coreos/minikube/linux-${MAJOR}.${MINOR}_defconfig
+	fi
+
+	if [ ! -e ${KERNEL_CONFIG} ]; then
+	    echo "****ERROR: Could not find kernel config for minikube version ${VERSION}. Expected at ${KERNEL_CONFIG}"
+	    exit 1
+	fi
+
+	export KERNELDIR=${MINIKUBE_BASEDIR}/linux-${MINIKUBE_KERNEL_VERSION}
+
+	if [ ! -d ${KERNELDIR} ]; then
+	        wget -nv -P ${MINIKUBE_BASEDIR} --timeout=${URL_TIMEOUT} --tries=${RETRY} https://www.kernel.org/pub/linux/kernel/v${MAJOR}.x/${TGZ_NAME}
+		tar -C ${MINIKUBE_BASEDIR} -xf ${MINIKUBE_BASEDIR}/${TGZ_NAME}
+		rm -f ${MINIKUBE_BASEDIR}/${TGZ_NAME}
+	fi
+
+	pushd ${KERNELDIR}
+	make distclean
+	cp ${KERNEL_CONFIG} .config
+	# Manually setting ARCH to x86_64 mirrors what buildroot does.
+	ARCH=x86_64 make olddefconfig
+	make modules_prepare
+	popd
+
+	HASH=$(md5sum ${KERNELDIR}/.config | cut -d' ' -f1)
+	HASH_ORIG=${HASH}
+
+	KERNEL_RELEASE=$(cat ${KERNELDIR}/include/config/kernel.release)
+
+	cd $BASEDIR
+
+	build_probe
 }
 
 if [ -z "$KERNEL_TYPE" ]; then
@@ -637,6 +697,17 @@ if [ -z "$KERNEL_TYPE" ]; then
 	for URL in $URLS
 	do
 		rhel_build $URL
+	done
+
+	#
+	# Minikube build
+	#
+	echo Building Minikube
+	VERSIONS=$(curl https://api.github.com/repos/kubernetes/minikube/releases | jq -r '.[].name' | head -10)
+
+	for VERSION in $VERSIONS
+	do
+	        minikube_build $VERSION
 	done
 
 	#

@@ -78,6 +78,13 @@ static void usage()
 "                    The BPF probe can also be specified via the environment variable\n"
 "                    SYSDIG_BPF_PROBE. If <bpf_probe> is left empty, sysdig will\n"
 "                    try to load one from the sysdig-probe-loader script.\n"
+#ifdef HAS_CAPTURE
+" --cri <path>       Path to CRI socket for container metadata\n"
+"                    Use the specified socket to fetch data from a CRI-compatible runtime\n"
+"\n"
+" --cri-timeout <timeout_ms>\n"
+"                    Wait at most <timeout_ms> milliseconds for response from CRI\n"
+#endif
 " -d <period>, --delay=<period>\n"
 "                    Set the delay between updates, in milliseconds. This works\n"
 "                    similarly to the -d option in top.\n"
@@ -313,6 +320,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	bool list_views = false;
 	bool bpf = false;
 	string bpf_probe;
+#ifdef HAS_CAPTURE
+	string cri_socket_path;
+#endif
 
 #ifndef _WIN32
 	sinsp_table::output_type output_type = sinsp_table::OT_CURSES;
@@ -332,6 +342,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	{
 		{"print-ascii", no_argument, 0, 'A' },
 		{"bpf", optional_argument, 0, 'B' },
+#ifdef HAS_CAPTURE
+		{"cri", required_argument, 0, 0 },
+		{"cri-timeout", required_argument, 0, 0 },
+#endif
 		{"delay", required_argument, 0, 'd' },
 		{"exclude-users", no_argument, 0, 'E' },
 		{"from", required_argument, 0, 0 },
@@ -519,6 +533,16 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					{
 						inspector->set_large_envs(true);
 					}
+#ifdef HAS_CAPTURE
+					else if(optname == "cri")
+					{
+						cri_socket_path = optarg;
+					}
+					else if(optname == "cri-timeout")
+					{
+						inspector->set_cri_timeout(sinsp_numparser::parsed64(optarg));
+					}
+#endif
 					else if(optname == "logfile")
 					{
 						inspector->set_log_file(optarg);
@@ -557,6 +581,13 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 			}
 		}
+
+#ifdef HAS_CAPTURE
+		if(!cri_socket_path.empty())
+		{
+			inspector->set_cri_socket_path(cri_socket_path);
+		}
+#endif
 
 		string filter;
 

@@ -25,15 +25,20 @@ if(NOT WIN32 AND NOT APPLE)
 	include_directories("${B64_INCLUDE}")
 	include_directories("${CURL_INCLUDE_DIR}")
 	include_directories("${CURSES_INCLUDE_DIR}")
+	include_directories("${GRPC_INCLUDE}")
 	include_directories("${JQ_INCLUDE}")
 	include_directories("${OPENSSL_INCLUDE_DIR}")
+	include_directories("${PROTOBUF_INCLUDE}")
 	include_directories("${TBB_INCLUDE}")
+	include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 endif()
 
-add_library(sinsp STATIC
+set(SINSP_SOURCES
 	chisel.cpp
 	chisel_api.cpp
 	container.cpp
+	container_engine/docker_common.cpp
+	container_info.cpp
 	ctext.cpp
 	cyclewriter.cpp
 	cursescomponents.cpp
@@ -43,7 +48,6 @@ add_library(sinsp STATIC
 	event.cpp
 	eventformatter.cpp
 	dns_manager.cpp
-	docker.cpp
 	dumper.cpp
 	fdinfo.cpp
 	filter.cpp
@@ -105,7 +109,30 @@ add_library(sinsp STATIC
 	utils.cpp
 	user_event.cpp
 	value_parser.cpp
-	viewinfo.cpp)
+	viewinfo.cpp
+)
+
+if(WIN32)
+list(APPEND SINSP_SOURCES
+	container_engine/docker_win.cpp)
+else()
+list(APPEND SINSP_SOURCES
+	container_engine/docker_linux.cpp
+	container_engine/libvirt_lxc.cpp
+	container_engine/lxc.cpp
+	container_engine/mesos.cpp
+	container_engine/rkt.cpp)
+endif()
+
+if(NOT WIN32 AND NOT APPLE)
+list(APPEND SINSP_SOURCES
+    cri.cpp
+	container_engine/cri.cpp
+	${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.cc
+	${CMAKE_CURRENT_BINARY_DIR}/cri.pb.cc)
+endif()
+
+add_library(sinsp STATIC ${SINSP_SOURCES})
 
 target_link_libraries(sinsp 
 	scap
@@ -127,7 +154,22 @@ if(NOT WIN32)
 	endif()
 
 	if(NOT APPLE)
+		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.cc
+					${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.h
+					${CMAKE_CURRENT_BINARY_DIR}/cri.pb.cc
+					${CMAKE_CURRENT_BINARY_DIR}/cri.pb.h
+				COMMENT "Generate CRI grpc code"
+				DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cri.proto
+				COMMAND ${PROTOC} -I ${CMAKE_CURRENT_SOURCE_DIR} --cpp_out=. ${CMAKE_CURRENT_SOURCE_DIR}/cri.proto
+				COMMAND ${PROTOC} -I ${CMAKE_CURRENT_SOURCE_DIR} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_SRC}/bins/opt/grpc_cpp_plugin ${CMAKE_CURRENT_SOURCE_DIR}/cri.proto
+				WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+		add_dependencies(sinsp grpc)
 		target_link_libraries(sinsp
+			"${GRPCPP_LIB}"
+			"${GRPC_LIB}"
+			"${PROTOBUF_LIB}"
+			"${CARES_LIB}"
 			"${JQ_LIB}"
 			"${B64_LIB}"
 			"${CURL_LIBRARIES}"

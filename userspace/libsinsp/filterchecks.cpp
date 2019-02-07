@@ -6145,6 +6145,12 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			case sinsp_container_type::CT_MESOS:
 				m_tstr = "mesos";
 				break;
+			case sinsp_container_type::CT_CRI:
+				m_tstr = "cri";
+				break;
+			case sinsp_container_type::CT_CONTAINERD:
+				m_tstr = "containerd";
+				break;
 			case sinsp_container_type::CT_RKT:
 				m_tstr = "rkt";
 				break;
@@ -6171,7 +6177,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			// Only return a true/false value for
 			// container types where we really know the
 			// privileged status.
-			if (container_info->m_type != sinsp_container_type::CT_DOCKER)
+			if (!is_docker_compatible(container_info->m_type))
 			{
 				return NULL;
 			}
