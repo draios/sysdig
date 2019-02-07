@@ -18,6 +18,7 @@ or GPL2.txt for full copies of the license.
 #include <linux/ip.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
+#include <linux/fdtable.h>
 #include <linux/file.h>
 #include <linux/fs_struct.h>
 #include <linux/pid_namespace.h>
@@ -128,6 +129,43 @@ int f_sys_single_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+static inline uint32_t get_fd_dev(int64_t fd)
+{
+	struct files_struct *files;
+	struct fdtable *fdt;
+	struct file *file;
+	struct inode *inode;
+	struct super_block *sb;
+	uint32_t dev = 0;
+
+	if (fd < 0)
+		return dev;
+
+	files = current->files;
+	if (unlikely(!files))
+		return dev;
+
+	spin_lock(&files->file_lock);
+	fdt = files_fdtable(files);
+	if (unlikely(fd > fdt->max_fds))
+		goto out_unlock;
+
+	file = fdt->fd[fd];
+	inode = file->f_inode;
+	if (unlikely(!inode))
+		goto out_unlock;
+
+	sb = inode->i_sb;
+	if (unlikely(!sb))
+		goto out_unlock;
+
+	dev = new_encode_dev(sb->s_dev);
+
+out_unlock:
+	spin_unlock(&files->file_lock);
+	return dev;
+}
+
 int f_sys_open_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -166,6 +204,13 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 2, 1, &modes);
 	res = val_to_ring(args, open_modes_to_scap(flags, modes), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * dev
+	 */
+	res = val_to_ring(args, get_fd_dev(retval), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -2250,6 +2295,47 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+int f_sys_creat_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	unsigned long modes;
+	int res;
+	int64_t retval;
+
+	/*
+	 * fd
+	 */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * name
+	 */
+	syscall_get_arguments(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 *  mode
+	 */
+	syscall_get_arguments(current, args->regs, 1, 1, &modes);
+	res = val_to_ring(args, open_modes_to_scap(O_CREAT, modes), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * dev
+	 */
+	res = val_to_ring(args, get_fd_dev(retval), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
 int f_sys_pipe_x(struct event_filler_arguments *args)
 {
 	int res;
@@ -2718,6 +2804,13 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments(current, args->regs, 3, 1, &modes);
 	res = val_to_ring(args, open_modes_to_scap(flags, modes), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * dev
+	 */
+	res = val_to_ring(args, get_fd_dev(retval), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
