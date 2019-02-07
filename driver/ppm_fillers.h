@@ -56,6 +56,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_recvmsg_x)			\
 	FN(sys_recvmsg_x_2)			\
 	FN(sys_shutdown_e)			\
+	FN(sys_creat_x)				\
 	FN(sys_pipe_x)				\
 	FN(sys_eventfd_e)			\
 	FN(sys_futex_e)				\

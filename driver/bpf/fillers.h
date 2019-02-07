@@ -123,6 +123,8 @@ FILLER(sys_open_x, true)
 	unsigned int flags;
 	unsigned int mode;
 	unsigned long val;
+	unsigned long dev;
+	unsigned long ino;
 	long retval;
 	int res;
 
@@ -157,7 +159,16 @@ FILLER(sys_open_x, true)
 	mode = bpf_syscall_get_argument(data, 2);
 	mode = open_modes_to_scap(val, mode);
 	res = bpf_val_to_ring(data, mode);
+	if (res != PPM_SUCCESS)
+		return res;
 
+	/*
+	 * Device
+	 */
+	if (retval < 0 || !bpf_get_fd_dev_ino(retval, &dev, &ino))
+		dev = 0;
+
+	res = bpf_val_to_ring(data, dev);
 	return res;
 }
 
@@ -2154,6 +2165,8 @@ FILLER(sys_generic, true)
 
 FILLER(sys_openat_x, true)
 {
+	unsigned long dev;
+	unsigned long ino;
 	unsigned long flags;
 	unsigned long val;
 	unsigned long mode;
@@ -2200,7 +2213,16 @@ FILLER(sys_openat_x, true)
 	mode = bpf_syscall_get_argument(data, 3);
 	mode = open_modes_to_scap(val, mode);
 	res = bpf_val_to_ring(data, mode);
+	if (res != PPM_SUCCESS)
+		return res;
 
+	/*
+	 * Device
+	 */
+	if (retval < 0 || !bpf_get_fd_dev_ino(retval, &dev, &ino))
+		dev = 0;
+
+	res = bpf_val_to_ring(data, dev);
 	return res;
 }
 
@@ -2836,6 +2858,47 @@ FILLER(sys_sendmsg_x, true)
 	res = bpf_parse_readv_writev_bufs(data, iov, iovcnt, retval,
 					  PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
 
+	return res;
+}
+
+FILLER(sys_creat_x, true)
+{
+	unsigned long dev;
+	unsigned long ino;
+	unsigned long val;
+	unsigned long mode;
+	long retval;
+	int res;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * name
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * mode
+	 */
+	mode = bpf_syscall_get_argument(data, 1);
+	mode = open_modes_to_scap(O_CREAT, mode);
+	res = bpf_val_to_ring(data, mode);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * Device
+	 */
+	if (retval < 0 || !bpf_get_fd_dev_ino(retval, &dev, &ino))
+		dev = 0;
+
+	res = bpf_val_to_ring(data, dev);
 	return res;
 }
 
