@@ -2842,6 +2842,7 @@ FILLER(sys_sendmsg_x, true)
 FILLER(sys_pipe_x, true)
 {
 	unsigned long ino;
+	unsigned long dev;
 	unsigned long val;
 	long retval;
 	int fds[2];
@@ -2870,7 +2871,7 @@ FILLER(sys_pipe_x, true)
 	if (res != PPM_SUCCESS)
 		return res;
 
-	if (!bpf_get_ino_fd(fds[0], &ino))
+	if (!bpf_get_fd_dev_ino(fds[0], &dev, &ino))
 		ino = 0;
 
 	res = bpf_val_to_ring(data, ino);
