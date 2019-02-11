@@ -498,7 +498,7 @@ if(NOT WIN32 AND NOT APPLE)
 		URL_MD5 "2fc42c182a0ed1b48ad77397f76bb3bc"
 		CONFIGURE_COMMAND ""
 		# TODO what if using system openssl, protobuf or cares?
-		BUILD_COMMAND HAS_SYSTEM_ZLIB=false LDFLAGS=-static PATH=${PROTOC_DIR}:$ENV{PATH} PKG_CONFIG_PATH=${OPENSSL_BUNDLE_DIR}:${PROTOBUF_SRC}:${CARES_SRC} make grpc_cpp_plugin static_cxx static_c
+		BUILD_COMMAND CFLAGS=-Wno-implicit-fallthrough HAS_SYSTEM_ZLIB=false LDFLAGS=-static PATH=${PROTOC_DIR}:$ENV{PATH} PKG_CONFIG_PATH=${OPENSSL_BUNDLE_DIR}:${PROTOBUF_SRC}:${CARES_SRC} make grpc_cpp_plugin static_cxx static_c
 		BUILD_IN_SOURCE 1
 		BUILD_BYPRODUCTS ${GRPC_LIB} ${GRPCPP_LIB}
 		# TODO s390x support
