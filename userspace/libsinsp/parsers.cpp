@@ -1997,6 +1997,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	sinsp_evt *enter_evt = &m_tmp_evt;
 	string sdir;
 	uint16_t etype = evt->get_type();
+	uint32_t dev = 0;
 
 	ASSERT(evt->m_tinfo);
 	if(evt->m_tinfo == nullptr)
@@ -2036,6 +2037,13 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		flags = *(uint32_t *)parinfo->m_val;
 
+		if(evt->get_num_params() > 4)
+		{
+			parinfo = evt->get_param(4);
+			ASSERT(parinfo->m_len == sizeof(uint32_t));
+			dev = *(uint32_t *)parinfo->m_val;
+		}
+
 		sdir = evt->m_tinfo->get_cwd();
 	}
 	else if(etype == PPME_SYSCALL_CREAT_X)
@@ -2045,6 +2053,13 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		namelen = parinfo->m_len;
 
 		flags = 0;
+
+		if(evt->get_num_params() > 3)
+		{
+			parinfo = evt->get_param(3);
+			ASSERT(parinfo->m_len == sizeof(uint32_t));
+			dev = *(uint32_t *)parinfo->m_val;
+		}
 
 		sdir = evt->m_tinfo->get_cwd();
 	}
@@ -2078,6 +2093,13 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		ASSERT(parinfo->m_len == sizeof(int64_t));
 		int64_t dirfd = *(int64_t *)parinfo->m_val;
 
+		if(evt->get_num_params() > 5)
+		{
+			parinfo = evt->get_param(5);
+			ASSERT(parinfo->m_len == sizeof(uint32_t));
+			dev = *(uint32_t *)parinfo->m_val;
+		}
+
 		parse_openat_dir(evt, name, dirfd, &sdir);
 	}
 	else
@@ -2109,6 +2131,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		}
 
 		fdi.m_openflags = flags;
+		fdi.m_dev = dev;
 		fdi.add_filename(fullpath);
 
 		//

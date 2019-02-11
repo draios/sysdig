@@ -134,6 +134,9 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.sip.name", "Domain name associated with the server IP address."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.lip.name", "Domain name associated with the local IP address."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.rip.name", "Domain name associated with the remote IP address."},
+	{PT_INT32, EPF_NONE, PF_HEX, "fd.dev", "device number (major/minor) containing the referenced file"},
+	{PT_INT32, EPF_NONE, PF_DEC, "fd.dev.major", "major device number containing the referenced file"},
+	{PT_INT32, EPF_NONE, PF_DEC, "fd.dev.minor", "minor device number containing the referenced file"},
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -1262,6 +1265,42 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			}
 
 			m_tbool = evt->fdinfo_name_changed();
+
+			RETURN_EXTRACT_VAR(m_tbool);
+		}
+		break;
+	case TYPE_DEV:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			m_tbool = m_fdinfo->get_device();
+
+			RETURN_EXTRACT_VAR(m_tbool);
+		}
+		break;
+	case TYPE_DEV_MAJOR:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			m_tbool = m_fdinfo->get_device_major();
+
+			RETURN_EXTRACT_VAR(m_tbool);
+		}
+		break;
+	case TYPE_DEV_MINOR:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			m_tbool = m_fdinfo->get_device_minor();
 
 			RETURN_EXTRACT_VAR(m_tbool);
 		}
