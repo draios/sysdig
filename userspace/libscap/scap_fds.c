@@ -234,7 +234,8 @@ uint32_t scap_fd_info_len(scap_fdinfo *fdi)
 		break;
 	case SCAP_FD_FILE_V2:
 		res += sizeof(uint32_t) + // open_flags
-			(uint32_t)strnlen(fdi->info.regularinfo.fname, SCAP_MAX_PATH_SIZE) + 2;
+			(uint32_t)strnlen(fdi->info.regularinfo.fname, SCAP_MAX_PATH_SIZE) + 2 +
+			sizeof(uint32_t); // dev
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:
@@ -341,6 +342,11 @@ int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dumper_t *d
 			(stlen > 0 && scap_dump_write(d, fdi->info.regularinfo.fname, stlen) != stlen))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi1)");
+			return SCAP_FAILURE;
+		}
+		if(scap_dump_write(d, &(fdi->info.regularinfo.dev), sizeof(uint32_t)) != sizeof(uint32_t))
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (dev)");
 			return SCAP_FAILURE;
 		}
 		break;
@@ -516,6 +522,16 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 
 		(*nbytes) += sizeof(uint32_t);
 		res = scap_fd_read_fname_from_disk(handle, fdi->info.regularinfo.fname, nbytes, f);
+		if (sub_len && (*nbytes + sizeof(uint32_t)) > sub_len)
+		{
+			break;
+		}
+		if(gzread(f, &(fdi->info.regularinfo.dev), sizeof(uint32_t)) != sizeof(uint32_t))
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file (dev)");
+			return SCAP_FAILURE;
+		}
+		(*nbytes) += sizeof(uint32_t);
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:
