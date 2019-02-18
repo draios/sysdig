@@ -462,6 +462,7 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 	handle->m_devs = NULL;
 	handle->m_ndevs = 0;
 	handle->m_proclist = NULL;
+	handle->m_dev_list = NULL;
 	handle->m_evtcnt = 0;
 	handle->m_file = NULL;
 	handle->m_addrlist = NULL;
@@ -800,6 +801,12 @@ void scap_close(scap_t* handle)
 	if(handle->m_proclist != NULL)
 	{
 		scap_proc_free_table(handle);
+	}
+
+	// Free the device table
+	if(handle->m_dev_list != NULL)
+	{
+		scap_free_device_table(handle);
 	}
 
 	// Free the interface list
