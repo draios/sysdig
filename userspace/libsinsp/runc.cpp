@@ -46,7 +46,7 @@ bool match_one_container_id(const std::string &cgroup, const std::string &prefix
 
 	while((start_pos = cgroup.rfind("/",start_pos)) != std::string::npos) {
 
-		std::string sub_string = cgroups.substr(start_pos, end_pos - start_pos + 1);
+		std::string sub_string = cgroup.substr(start_pos, end_pos - start_pos + 1);
 
 		// Only proceed for those substrings that are of required length
 		if(sub_string.length() >= CONTAINER_ID_LENGTH) {
