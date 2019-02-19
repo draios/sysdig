@@ -37,31 +37,53 @@ static_assert(REPORTED_CONTAINER_ID_LENGTH <= CONTAINER_ID_LENGTH, "Reported con
 // Otherwise return false and leave container_id unchanged
 bool match_one_container_id(const std::string &cgroup, const std::string &prefix, const std::string &suffix, std::string &container_id)
 {
-	size_t start_pos = cgroup.rfind(prefix);
-	if (start_pos == std::string::npos)
-	{
-		return false;
-	}
-	start_pos += prefix.size();
+	// We search the cgroup string from backwards to front; splitting
+	// it using the '/' char delimiter. We use this as the basis for
+	// analysing cgroups. Once we have a string of desired length , we then
+	// analyze it to make sure it matches a container id pattern
+	size_t start_pos = cgroup.size()-1, end_pos = cgroup.size()-1; // These keep track of individual substring postions between '/'
+	size_t start_c_id; // This keeps track of the individual container id start postion
 
-	size_t end_pos = cgroup.rfind(suffix);
-	if (end_pos == std::string::npos)
-	{
-		return false;
+	while((start_pos = cgroup.rfind("/",start_pos)) != std::string::npos) {
+
+		std::string sub_string = cgroups.substr(start_pos, end_pos - start_pos + 1);
+
+		// Only proceed for those substrings that are of required length
+		if(sub_string.length() >= CONTAINER_ID_LENGTH) {
+			// prefix and suffix matching
+			start_c_id = sub_string.find(prefix);
+			size_t end_c_id = sub_string.rfind(suffix);
+
+			// Proceed only if both prefix and suffix are matched
+			if(start_c_id != std::string::npos && end_c_id != std::string::npos) {
+				// both prefix and suffix match
+				start_c_id = start_pos + prefix.size();
+
+				// Now final container id match
+				size_t invalid_ch_pos = cgroup.find_first_not_of(CONTAINER_ID_VALID_CHARACTERS, start_c_id);
+				if ((invalid_ch_pos == std::string::npos) || (invalid_ch_pos - start_c_id == CONTAINER_ID_LENGTH)) {
+					// A container id is likely found because
+					// a.) We went to end of string without finding an invalid char
+					// b.) we found a container id of length CONTAINER_ID_LENGTH
+					break;
+				}
+			}
+		}
+
+		// if the program reaches here; the current
+		// sub_string that we processed does not match
+		// a container id. Continue!
+		end_pos = start_pos - 1;
+		start_pos--;
+		if(end_pos <= CONTAINER_ID_LENGTH) {
+			// Remaining string is too short to find container id
+			// No use continuing.
+			return false;
+		}
 	}
 
-	if (end_pos - start_pos != CONTAINER_ID_LENGTH)
-	{
-		return false;
-	}
-
-	size_t invalid_ch_pos = cgroup.find_first_not_of(CONTAINER_ID_VALID_CHARACTERS, start_pos);
-	if (invalid_ch_pos < CONTAINER_ID_LENGTH)
-	{
-		return false;
-	}
-
-	container_id = cgroup.substr(start_pos, REPORTED_CONTAINER_ID_LENGTH);
+	// return final container id
+	container_id = cgroup.substr(start_c_id, REPORTED_CONTAINER_ID_LENGTH);
 	return true;
 }
 
