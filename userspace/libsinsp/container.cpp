@@ -23,6 +23,7 @@ limitations under the License.
 #include "container_engine/libvirt_lxc.h"
 #include "container_engine/lxc.h"
 #include "container_engine/mesos.h"
+#include "container_engine/bpm.h"
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -445,6 +446,7 @@ void sinsp_container_manager::create_engines()
 	m_container_engines.emplace_back(new container_engine::libvirt_lxc());
 	m_container_engines.emplace_back(new container_engine::mesos());
 	m_container_engines.emplace_back(new container_engine::rkt());
+	m_container_engines.emplace_back(new container_engine::bpm());
 #endif
 }
 
