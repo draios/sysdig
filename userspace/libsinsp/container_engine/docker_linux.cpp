@@ -237,6 +237,11 @@ bool docker::detect_docker(const sinsp_threadinfo *tinfo, std::string &container
 				return true;
 			}
 		}
+
+		if(cgroup.length() > 64) {
+			g_logger.format(sinsp_logger::SEV_INFO, "GS_DEBUG_MSG: Container cgroup with id %s (tid %lu, comm %s) of l > 64 did not have a valid container id.",
+					cgroup.c_str(), tinfo->m_tid, tinfo->m_comm.c_str());
+		}
 	}
 
 	return false;
