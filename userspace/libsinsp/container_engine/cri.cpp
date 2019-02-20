@@ -53,19 +53,19 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 	{
 		if(is_pod_sandbox(container->m_id))
 		{
-			g_logger.format(sinsp_logger::SEV_INFO, "CRI id %s (tid %lu, comm %s) is a pod sandbox",
+			g_logger.format(sinsp_logger::SEV_INFO, "GS_DEBUG_MSG: CRI id %s (tid %lu, comm %s) is a pod sandbox",
 					container->m_id.c_str(), tinfo->m_tid, tinfo->m_comm.c_str());
 			container->m_is_pod_sandbox = true;
 			return true;
 		}
-		g_logger.format(sinsp_logger::SEV_INFO, "CRI id %s (tid %lu, comm %s) is neither a container nor a pod sandbox",
+		g_logger.format(sinsp_logger::SEV_INFO, "GS_DEBUG_MSG: CRI id %s (tid %lu, comm %s) is neither a container nor a pod sandbox",
 				container->m_id.c_str(), tinfo->m_tid, tinfo->m_comm.c_str());
 		return false;
 	}
 
 	if(!resp.has_status())
 	{
-		g_logger.format(sinsp_logger::SEV_INFO, "CRI id %s (tid %lu, comm %s): no container status in CRI response",
+		g_logger.format(sinsp_logger::SEV_INFO, "GS_DEBUG_MSG: CRI id %s (tid %lu, comm %s): no container status in CRI response",
 				container->m_id.c_str(), tinfo->m_tid, tinfo->m_comm.c_str());
 		ASSERT(false);
 		return false;
@@ -86,7 +86,7 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 	const auto &info_it = resp.info().find("info");
 	if(info_it == resp.info().end())
 	{
-		g_logger.format(sinsp_logger::SEV_INFO, "CRI id %s (tid %lu, comm %s): no info in CRI response",
+		g_logger.format(sinsp_logger::SEV_INFO, "GS_DEBUG_MSG: CRI id %s (tid %lu, comm %s): no info in CRI response",
 				container->m_id.c_str(), tinfo->m_tid, tinfo->m_comm.c_str());
 		ASSERT(false);
 		return false;
@@ -95,7 +95,7 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 	Json::Reader reader;
 	if(!reader.parse(info_it->second, root))
 	{
-		g_logger.format(sinsp_logger::SEV_INFO, "CRI id %s (tid %lu, comm %s): failed to parse info JSON",
+		g_logger.format(sinsp_logger::SEV_INFO, "GS_DEBUG_MSG: CRI id %s (tid %lu, comm %s): failed to parse info JSON",
 				container->m_id.c_str(), tinfo->m_tid, tinfo->m_comm.c_str());
 		ASSERT(false);
 		return false;
@@ -174,7 +174,7 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 	if(docker::detect_docker(tinfo, container_info.m_id))
 	{
 		container_info.m_type = s_cri_runtime_type;
-		g_logger.format(sinsp_logger::SEV_INFO, "CRI id %s (tid %lu, comm %s): detected container type %d",
+		g_logger.format(sinsp_logger::SEV_INFO, "GS_DEBUG_MSG: CRI id %s (tid %lu, comm %s): detected container type %d",
 				container_info.m_id.c_str(), tinfo->m_tid, tinfo->m_comm.c_str(), s_cri_runtime_type);
 	}
 	else
@@ -188,7 +188,7 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 		{
 			if (!parse_cri(manager, &container_info, tinfo))
 			{
-				g_logger.format(sinsp_logger::SEV_INFO, "Failed to get CRI metadata for container %s",
+				g_logger.format(sinsp_logger::SEV_INFO, "GS_DEBUG_MSG: Failed to get CRI metadata for container %s",
 						container_info.m_id.c_str());
 				return false;
 			}
