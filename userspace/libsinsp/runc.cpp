@@ -55,12 +55,10 @@ bool match_one_container_id(const std::string &cgroup, const std::string &prefix
 
 		// Only proceed for those substrings that are of required length
 		if(sub_string.length() >= ( CONTAINER_ID_LENGTH + prefix.length() + suffix.length())) {
-			// prefix and suffix matching
-			start_c_id = sub_string.find(prefix);
-			size_t end_c_id = sub_string.rfind(suffix);
-
+			// prefix and suffix matching using strncmp
 			// Proceed only if both prefix and suffix are matched
-			if(start_c_id != std::string::npos && end_c_id != std::string::npos) {
+			if((strncmp(prefix.c_str(),sub_string.c_str(),prefix.size()) == 0)
+			   && (strncmp(suffix.c_str(), (sub_string.c_str() + sub_string.size() - suffix.size()), suffix.size()) == 0)) {
 				// both prefix and suffix match
 				start_c_id = start_pos + prefix.size();
 
