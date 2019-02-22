@@ -69,9 +69,9 @@ public:
 	void set_cri_socket_path(const std::string& path);
 	void set_cri_timeout(int64_t timeout_ms);
 	sinsp* get_inspector() { return m_inspector; }
+	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);
 private:
 	string container_to_json(const sinsp_container_info& container_info);
-	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);
 	string get_docker_env(const Json::Value &env_vars, const string &mti);
 
 	sinsp* m_inspector;

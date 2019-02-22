@@ -48,10 +48,11 @@ constexpr const cgroup_layout DOCKER_CGROUP_LAYOUT[] = {
 };
 }
 
-std::string docker::m_api_version = "/v1.24";
-bool libsinsp::container_engine::docker::m_enabled = true;
+std::string docker_async_source::m_api_version = "/v1.24";
+atomic<bool> docker::m_enabled(true);
 
 docker::docker()
+	: m_docker_info_source(docker_async_source::NO_WAIT_LOOKUP, 0)
 {
 #if defined(HAS_CAPTURE)
 	if(!s_curlm)
@@ -84,11 +85,11 @@ void docker::cleanup()
 	curl_multi_cleanup(s_curlm);
 	s_curlm = NULL;
 
-	m_enabled = true;
+	docker::set_enabled(false);
 #endif
 }
 
-std::string docker::build_request(const std::string &url)
+std::string docker_async_source::build_request(const std::string &url)
 {
 	return "http://localhost" + m_api_version + url;
 }
@@ -111,18 +112,17 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	{
 		return false;
 	}
+	// XXX/mstemm how to prevent a lookup for every event until the container is resolved?
 	if (!manager->container_exists(container_info.m_id))
 	{
 		if (query_os_for_missing_info)
 		{
-			if (!parse_docker(manager, &container_info, tinfo))
-			{
-				// give CRI a chance to return metadata for this container
-				g_logger.format(sinsp_logger::SEV_DEBUG, "Failed to get Docker metadata for container %s",
-					container_info.m_id.c_str());
-				return false;
-			}
+			// XXX/mstemm how to fail this properly now that it's async?
+			// give CRI a chance to return metadata for this container
+			parse_docker_async(manager->get_inspector(), container_info.m_id, manager);
 		}
+		// XXX/mstemm this should probably move to parse_container_evt ?
+#if 0
 		if (mesos::set_mesos_task_id(&container_info, tinfo))
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
@@ -131,11 +131,12 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 		}
 		manager->add_container(container_info, tinfo);
 		manager->notify_new_container(container_info);
+#endif
 	}
 	return true;
 }
 
-docker::docker_response libsinsp::container_engine::docker::get_docker(sinsp_container_manager* manager, const std::string& url, std::string &json)
+docker_async_source::docker_response docker_async_source::get_docker(const std::string& url, std::string &json)
 {
 #ifdef HAS_CAPTURE
 	if(curl_easy_setopt(s_curl, CURLOPT_URL, url.c_str()) != CURLE_OK)
@@ -195,7 +196,7 @@ docker::docker_response libsinsp::container_engine::docker::get_docker(sinsp_con
 	{
 		case 0: /* connection failed, apparently */
 			g_logger.format(sinsp_logger::SEV_NOTICE, "Docker connection failed, disabling Docker container engine");
-			m_enabled = false;
+			docker::set_enabled(false);
 			return docker_response::RESP_ERROR;
 		case 200:
 			return docker_response::RESP_OK;

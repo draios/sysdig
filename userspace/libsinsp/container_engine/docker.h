@@ -22,8 +22,13 @@ limitations under the License.
 #include <memory>
 #include <string>
 #include <vector>
+#include <atomic>
 
 #include "json/json.h"
+
+#include "async_key_value_source.h"
+
+#include "sinsp.h"
 
 #include "container_info.h"
 
@@ -33,7 +38,8 @@ class sinsp_threadinfo;
 
 namespace libsinsp {
 namespace container_engine {
-class docker
+
+class docker_async_source : public sysdig::async_key_value_source<std::string, std::string>
 {
 	enum docker_response
 	{
@@ -43,21 +49,41 @@ class docker
 	};
 
 public:
+	docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms);
+	virtual ~docker_async_source();
+
+	void set_inspector(sinsp *inspector);
+	static void set_query_image_info(bool query_image_info);
+
+protected:
+	void run_impl();
+
+	std::string build_request(const std::string& url);
+
+	docker_response get_docker(const std::string& url, std::string &json);
+	bool parse_docker(std::string &container_id, std::string &json);
+
+	static std::string m_api_version;
+	sinsp *m_inspector;
+
+	static bool m_query_image_info;
+};
+
+class docker
+{
+public:
 	docker();
 
 	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	static void cleanup();
-	static void set_query_image_info(bool query_image_info);
 	static void parse_json_mounts(const Json::Value &mnt_obj, std::vector<sinsp_container_info::container_mount_info> &mounts);
+	static void set_enabled(bool enabled);
 
 protected:
-	docker_response get_docker(sinsp_container_manager* manager, const std::string& url, std::string &json);
-	std::string build_request(const std::string& url);
-	bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
+	void parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager);
 
-	static std::string m_api_version;
-	static bool m_query_image_info;
-	static bool m_enabled;
+	docker_async_source m_docker_info_source;
+	static atomic<bool> m_enabled;
 };
 }
 }

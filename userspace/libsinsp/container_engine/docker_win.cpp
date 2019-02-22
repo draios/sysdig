@@ -27,6 +27,7 @@ using namespace libsinsp::container_engine;
 std::string docker::m_api_version = "/v1.30";
 
 docker::docker()
+	: m_docker_info_source(docker_async_source::NO_WAIT_LOOKUP, 0)
 {
 }
 
@@ -34,7 +35,7 @@ void docker::cleanup()
 {
 }
 
-std::string docker::build_request(const std::string &url)
+std::string docker_async_source::build_request(const std::string &url)
 {
 	return "GET " + m_api_version + url + " HTTP/1.1\r\nHost: docker\r\n\r\n";
 }
@@ -47,6 +48,7 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 		return false;
 	}
 
+	// XXX/mstemm how to pass the type/m_name along in CONTAINER_JSON event?
 	sinsp_container_info container_info;
 	container_info.m_type = CT_DOCKER;
 	container_info.m_id = wcinfo.m_container_id;
@@ -57,18 +59,16 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	{
 		if (query_os_for_missing_info)
 		{
-			parse_docker(manager, &container_info, tinfo);
+			parse_docker_async(manager->get_inspector(), container_info.m_id, manager);
 		}
-		manager->add_container(container_info, tinfo);
-		manager->notify_new_container(container_info);
 	}
 	return true;
 }
 
-docker::docker_response libsinsp::container_engine::docker::get_docker(sinsp_container_manager* manager, const string& url, string &json)
+docker_async_source::docker_response docker_async_source::get_docker(const std::string& url, std::string &json)
 {
 	const char* response = NULL;
-	bool qdres = wh_query_docker(manager->get_inspector()->get_wmi_handle(),
+	bool qdres = wh_query_docker(m_inspector->get_wmi_handle(),
 				     (char*)url.c_str(),
 				     &response);
 	if(qdres == false)

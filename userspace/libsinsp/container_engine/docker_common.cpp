@@ -25,7 +25,40 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
-bool docker::m_query_image_info = true;
+docker_async_source::docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms)
+	: async_key_value_source(max_wait_ms, ttl_ms)
+{
+}
+
+docker_async_source::~docker_async_source()
+{
+}
+
+void docker_async_source::set_inspector(sinsp *inspector)
+{
+	m_inspector = inspector;
+}
+
+void docker_async_source::run_impl()
+{
+	std::string container_id;
+
+	while (dequeue_next_key(container_id))
+	{
+		std::string json;
+		if(parse_docker(container_id, json))
+		{
+			store_value(container_id, json);
+		}
+		else
+		{
+			g_logger.format(sinsp_logger::SEV_DEBUG, "Failed to get Docker metadata for container %s",
+					container_id.c_str());
+		}
+	}
+}
+
+bool docker_async_source::m_query_image_info = true;
 
 void docker::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_container_info::container_mount_info> &mounts)
 {
@@ -41,20 +74,49 @@ void docker::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_containe
 	}
 }
 
-void docker::set_query_image_info(bool query_image_info)
+void docker_async_source::set_query_image_info(bool query_image_info)
 {
 	m_query_image_info = query_image_info;
 }
 
-bool docker::parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
+void docker::set_enabled(bool enabled)
 {
-	string json;
-	docker_response resp = get_docker(manager, build_request("/containers/" + container->m_id + "/json"), json);
+	m_enabled = enabled;
+}
+
+void docker::parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager)
+{
+	auto cb = [&](const std::string &container_id, const std::string &json)
+        {
+		sinsp_evt *evt = new sinsp_evt();
+
+		// Create a CONTAINER_JSON event from jinfo
+		manager->container_to_sinsp_event(json, evt);
+
+		std::shared_ptr<sinsp_evt> cevt(evt);
+		// Enqueue it onto the queue of pending container events for the inspector
+		manager->get_inspector()->m_pending_container_evts.push(cevt);
+	};
+
+	std::string dummy;
+
+	m_docker_info_source.set_inspector(inspector);
+
+	if (m_docker_info_source.lookup(container_id, dummy, cb))
+	{
+		// This should *never* happen, as ttl is 0 (never wait)
+		g_logger.log("Unexpected immediate return from docker_info_source.lookup()", sinsp_logger::SEV_ERROR);
+	}
+}
+
+bool docker_async_source::parse_docker(std::string &container_id, std::string &json)
+{
+	docker_response resp = get_docker(build_request("/containers/" + container_id + "/json"), json);
 	switch(resp) {
 		case docker_response::RESP_BAD_REQUEST:
 			m_api_version = "";
 			json = "";
-			resp = get_docker(manager, build_request("/containers/" + container->m_id + "/json"), json);
+			resp = get_docker(build_request("/containers/" + container_id + "/json"), json);
 			if (resp == docker_response::RESP_OK)
 			{
 				break;
@@ -67,15 +129,18 @@ bool docker::parse_docker(sinsp_container_manager* manager, sinsp_container_info
 			break;
 	}
 
-	Json::Value root;
+	Json::Value jinfo;
 	Json::Reader reader;
-	bool parsingSuccessful = reader.parse(json, root);
+	bool parsingSuccessful = reader.parse(json, jinfo);
 	if(!parsingSuccessful)
 	{
 		ASSERT(false);
 		return false;
 	}
 
+#if 0
+
+	// XXX Verify this matches everything parse_container_evt does.
 	const Json::Value& config_obj = root["Config"];
 
 	container->m_image = config_obj["Image"].asString();
@@ -117,7 +182,7 @@ bool docker::parse_docker(sinsp_container_manager* manager, sinsp_container_info
 	   (no_name || container->m_imagedigest.empty() || (!container->m_imagedigest.empty() && container->m_imagetag.empty())))
 	{
 		string img_json;
-		if(get_docker(manager, build_request("/images/" + container->m_imageid + "/json?digests=1"), img_json) == docker_response::RESP_OK)
+		if(get_docker(build_request("/images/" + container->m_imageid + "/json?digests=1"), img_json) == docker_response::RESP_OK)
 		{
 			Json::Value img_root;
 			if(reader.parse(img_json, img_root))
@@ -285,6 +350,8 @@ bool docker::parse_docker(sinsp_container_manager* manager, sinsp_container_info
 #ifdef HAS_ANALYZER
 	sinsp_utils::find_env(container->m_sysdig_agent_conf, container->get_env(), "SYSDIG_AGENT_CONF");
 	// container->m_sysdig_agent_conf = get_docker_env(env_vars, "SYSDIG_AGENT_CONF");
+#endif
+
 #endif
 	return true;
 }

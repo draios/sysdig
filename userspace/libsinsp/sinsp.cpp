@@ -1045,6 +1045,10 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		evt = m_meta_skipped_evt;
 		m_meta_evt_pending = false;
 	}
+	else if (m_pending_container_evts.try_pop(m_container_evt))
+	{
+		evt = m_container_evt.get();
+	}
 	else
 	{
 		evt = &m_evt;
