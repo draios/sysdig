@@ -48,7 +48,9 @@ bool bpm::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 	}
 
 	if (!matches)
+        {
 		return false;
+        }
 
 	tinfo->m_container_id = container_info.m_id;
 	if (!manager->container_exists(container_info.m_id))
