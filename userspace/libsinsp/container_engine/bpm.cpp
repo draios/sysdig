@@ -17,6 +17,8 @@ limitations under the License.
 
 */
 
+#include <regex>
+
 #include "container_engine/bpm.h"
 #include "sinsp.h"
 
@@ -40,17 +42,25 @@ bool bpm::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 		{
 			auto id_start = pos + sizeof("bpm-") - 1;
 			auto id_end = cgroup.find(".scope", id_start);
-			container_info.m_type = CT_BPM;
-			container_info.m_id = cgroup.substr(id_start, id_end - id_start);
-			matches = true;
-			break;
+			auto id = cgroup.substr(id_start, id_end - id_start);
+
+			// As of BPM v1.0.3, the container ID is only allowed to contain the following chars
+			// see https://github.com/cloudfoundry-incubator/bpm-release/blob/v1.0.3/src/bpm/jobid/encoding.go
+			regex re("[a-zA-Z0-9._-]+");
+			if (regex_match(id, re))
+			{
+				container_info.m_type = CT_BPM;
+				container_info.m_id = id;
+				matches = true;
+				break;
+			}
 		}
 	}
 
 	if (!matches)
-        {
+	{
 		return false;
-        }
+	}
 
 	tinfo->m_container_id = container_info.m_id;
 	if (!manager->container_exists(container_info.m_id))
