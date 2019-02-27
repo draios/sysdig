@@ -128,6 +128,20 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 
 #endif // CYGWING_AGENT
 
+	if (!tinfo->is_main_thread()) {
+		auto main_thread = tinfo->get_main_thread();
+		if (!main_thread)
+		{
+			g_logger.format(sinsp_logger::SEV_WARNING, "GS_DEBUG_MSG: Thread %lu without main process %lu (%s)\n", tinfo->m_tid, tinfo->m_pid, tinfo->m_comm.c_str());
+		}
+		else if (tinfo->m_container_id != main_thread->m_container_id)
+		{
+			g_logger.format(sinsp_logger::SEV_NOTICE, "GS_DEBUG_MSG: Thread %lu is in container %s while main process %lu (%s) is in %s",
+				tinfo->m_tid, tinfo->m_container_id.c_str(),
+				main_thread->m_tid, main_thread->m_comm.c_str(), main_thread->m_container_id.c_str());
+		}
+	}
+
 	// Also identify if this thread is part of a container healthcheck
 	identify_healthcheck(tinfo);
 
