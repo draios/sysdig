@@ -681,17 +681,17 @@ static void *perf_event_mmap(scap_t *handle, int fd)
 	void *tmp = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	if(tmp == MAP_FAILED)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (1)");
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (1): %s", scap_strerror(handle, errno));
+		return MAP_FAILED;
 	}
 
 	// Map the second copy to allow us to handle the wrap case normally
 	void *p1 = mmap(tmp + ring_size, ring_size + header_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
 	if(p1 == MAP_FAILED)
 	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (2): %s", scap_strerror(handle, errno));
 		munmap(tmp, total_size);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (2)");
-		return NULL;
+		return MAP_FAILED;
 	}
 
 	ASSERT(p1 == tmp + ring_size);
@@ -700,9 +700,9 @@ static void *perf_event_mmap(scap_t *handle, int fd)
 	void *p2 = mmap(tmp, ring_size + header_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
 	if(p2 == MAP_FAILED)
 	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (3): %s", scap_strerror(handle, errno));
 		munmap(tmp, total_size);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (3)");
-		return NULL;
+		return MAP_FAILED;
 	}
 
 	ASSERT(p2 == tmp);
@@ -1067,10 +1067,11 @@ int32_t scap_bpf_close(scap_t *handle)
 			munmap(handle->m_devs[j].m_buffer, total_size);
 #endif
 			ASSERT(ret == 0);
-			if(handle->m_devs[j].m_fd > 0)
-			{
-				close(handle->m_devs[j].m_fd);
-			}
+		}
+
+		if(handle->m_devs[j].m_fd > 0)
+		{
+			close(handle->m_devs[j].m_fd);
 		}
 	}
 
@@ -1352,7 +1353,7 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 		// Map the ring buffer
 		//
 		handle->m_devs[online_cpu].m_buffer = perf_event_mmap(handle, pmu_fd);
-		if(!handle->m_devs[online_cpu].m_buffer)
+		if(handle->m_devs[online_cpu].m_buffer == MAP_FAILED)
 		{
 			return SCAP_FAILURE;
 		}
