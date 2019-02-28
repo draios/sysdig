@@ -397,6 +397,6 @@ urls = [
     "linux-modules-4.15.0-29-generic_4.15.0-29.31_amd64.deb"
 ]
 
-if sys.argv[1] == "Ubuntu"
+if sys.argv[1] == "Ubuntu":
     for url in urls:
         print("https://mirrors.kernel.org/ubuntu/pool/main/l/linux/" + url)
