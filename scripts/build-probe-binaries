@@ -93,8 +93,15 @@ function clean_sysdig {
 
 function build_probe {
 
+    if [ $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko = "sysdig-probe-0.24.2-x86_64-4.15.0-29-generic-ea0aa038a6b9bdc4bb42152682bba6ce.ko"  ] ||
+       [ $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko = "sysdigcloud-probe-0.89.0-x86_64-4.15.0-29-generic-ea0aa038a6b9bdc4bb42152682bba6ce.ko" ] ||
+       [ $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko = "falco-probe-0.14.0-x86_64-4.15.0-29-generic-ea0aa038a6b9bdc4bb42152682bba6ce.ko" ]
+    then
+	return
+    fi
+
 	if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] ||
-	   [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
+	       [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
 
 		if [[ -f "${KERNELDIR}/scripts/gcc-plugins/stackleak_plugin.so" ]]; then
 			echo "Rebuilding gcc plugins for ${KERNELDIR}"
