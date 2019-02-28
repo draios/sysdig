@@ -71,7 +71,7 @@ function checkout_sysdig {
 
 	cd sysdig
 
-	git checkout $SYSDIG_TAG
+	git checkout smagent-1292
 
 	cd ..
 }
@@ -327,7 +327,8 @@ function ubuntu_build {
 	if [ ! -f $DEB ]; then
 		echo Downloading $DEB [Ubuntu]
 		wget -nv --timeout=${URL_TIMEOUT} --tries=${RETRY} $URL
-		dpkg -x $DEB ./
+		# dpkg -x $DEB ./
+		ar nx $DEB; tar xvf data.tar.xz
 	fi
 
 	NUM_DEB=$(ls linux-*.deb -1 | wc -l)
