@@ -262,9 +262,12 @@ void sinsp_container_manager::add_container(const sinsp_container_info& containe
 {
 	m_containers[container_info.m_id] = container_info;
 
-	for(const auto &new_cb : m_new_callbacks)
+	if(container_info.m_metadata_complete)
 	{
-		new_cb(m_containers[container_info.m_id], thread_info);
+		for(const auto &new_cb : m_new_callbacks)
+		{
+			new_cb(m_containers[container_info.m_id], thread_info);
+		}
 	}
 }
 

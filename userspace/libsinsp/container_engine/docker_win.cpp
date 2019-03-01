@@ -56,6 +56,13 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	tinfo->m_container_id = container_info.m_id;
 	if (!manager->container_exists(container_info.m_id))
 	{
+		// Add a minimal container_info object where only the
+		// container id is filled in. This may be overidden
+		// later once parse_docker_async completes.
+		container_info.m_metadata_complete = false;
+
+		manager->add_container(container_info, tinfo);
+
 		if (query_os_for_missing_info)
 		{
 			parse_docker_async(manager->get_inspector(), container_info.m_id, tinfo->m_tid, manager);
