@@ -163,6 +163,10 @@ public:
 	std::string m_imagetag;
 	std::string m_imagedigest;
 	uint32_t m_container_ip;
+
+        // If non-empty, contains a container id and implies that
+        // m_container_ip should be the ip of that container.
+	std::string m_indirect_container_ip_id;
 	bool m_privileged;
 	std::vector<container_mount_info> m_mounts;
 	std::vector<container_port_mapping> m_port_mappings;

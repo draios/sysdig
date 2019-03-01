@@ -87,7 +87,7 @@ bool libvirt_lxc::resolve(sinsp_container_manager* manager, sinsp_threadinfo* ti
 	{
 		container_info.m_name = container_info.m_id;
 		manager->add_container(container_info, tinfo);
-		manager->notify_new_container(container_info);
+		manager->notify_new_container(container_info, tinfo->m_tid);
 	}
 	return true;
 }

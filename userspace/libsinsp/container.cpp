@@ -175,6 +175,43 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	inet_ntop(AF_INET, &iph, addrbuff, sizeof(addrbuff));
 	container["ip"] = addrbuff;
 
+	container["indirect_container_ip_id"] = container_info.m_indirect_container_ip_id;
+
+	Json::Value port_mappings = Json::arrayValue;
+
+	for(auto &mapping : container_info.m_port_mappings)
+	{
+		Json::Value jmap;
+		jmap["HostIp"] = mapping.m_host_ip;
+		jmap["HostPort"] = mapping.m_host_port;
+		jmap["ContainerPort"] = mapping.m_container_port;
+
+		port_mappings.append(jmap);
+	}
+
+	container["port_mappings"] = port_mappings;
+
+	Json::Value labels;
+	for (auto &pair : container_info.m_labels)
+	{
+		labels[pair.first] = pair.second;
+	}
+	container["labels"] = labels;
+
+	Json::Value env_vars = Json::arrayValue;
+
+	for (auto &var : container_info.m_env)
+	{
+		env_vars.append(var);
+	}
+	container["env"] = env_vars;
+
+	container["memory_limit"] = (Json::Value::Int64) container_info.m_memory_limit;
+	container["swap_limit"] = (Json::Value::Int64) container_info.m_swap_limit;
+	container["cpu_shares"] = (Json::Value::Int64) container_info.m_cpu_shares;
+	container["cpu_quota"] = (Json::Value::Int64) container_info.m_cpu_quota;
+	container["cpu_period"] = (Json::Value::Int64) container_info.m_cpu_period;
+
 	if(!container_info.m_mesos_task_id.empty())
 	{
 		container["mesos_task_id"] = container_info.m_mesos_task_id;
@@ -182,7 +219,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	return Json::FastWriter().write(obj);
 }
 
-bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp_evt* evt)
+bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp_evt* evt, int64_t tid)
 {
 	// TODO: variable event length
 	size_t evt_len = SP_EVT_BUF_SIZE;
@@ -201,7 +238,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 	scap_evt* scapevt = evt->m_pevt;
 
 	scapevt->ts = m_inspector->m_lastevent_ts;
-	scapevt->tid = 0;
+	scapevt->tid = tid;
 	scapevt->len = (uint32_t)totlen;
 	scapevt->type = PPME_CONTAINER_JSON_E;
 	scapevt->nparams = 1;
@@ -231,11 +268,20 @@ void sinsp_container_manager::add_container(const sinsp_container_info& containe
 	}
 }
 
-void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info)
+void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info, int64_t tid)
 {
-	if(container_to_sinsp_event(container_to_json(container_info), &m_inspector->m_meta_evt))
+	sinsp_evt *evt = new sinsp_evt();
+
+	if(container_to_sinsp_event(container_to_json(container_info), evt, tid))
 	{
-		m_inspector->m_meta_evt_pending = true;
+		std::shared_ptr<sinsp_evt> cevt(evt);
+
+		// Enqueue it onto the queue of pending container events for the inspector
+		m_inspector->m_pending_container_evts.push(cevt);
+	}
+	else
+	{
+		delete evt;
 	}
 }
 

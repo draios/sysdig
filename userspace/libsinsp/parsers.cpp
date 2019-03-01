@@ -33,6 +33,7 @@ limitations under the License.
 #include <fcntl.h>
 #include <limits>
 
+#include "container_engine/mesos.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "../../driver/ppm_ringbuffer.h"
@@ -2261,7 +2262,7 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
  *
  * Preconditions: evt->m_fdinfo == nullptr and
  *                evt->m_tinfo != nullptr
- * 
+ *
  */
 inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt* const evt)
 {
@@ -4499,6 +4500,10 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		if(!name.isNull() && name.isConvertibleTo(Json::stringValue))
 		{
 			container_info.m_name = name.asString();
+			if(container_info.m_type == CT_DOCKER && container_info.m_name.find("k8s_POD") == 0)
+			{
+				container_info.m_is_pod_sandbox = true;
+			}
 		}
 		const Json::Value& image = container["image"];
 		if(!image.isNull() && image.isConvertibleTo(Json::stringValue))
@@ -4534,6 +4539,13 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		libsinsp::container_engine::docker::parse_json_mounts(container["Mounts"], container_info.m_mounts);
 
 		container_info.parse_healthcheck(container["Healthcheck"]);
+
+		const Json::Value& indirect_container_ip_id = container["indirect_container_ip_id"];
+		if(!indirect_container_ip_id.isNull() && indirect_container_ip_id.isConvertibleTo(Json::stringValue))
+		{
+			container_info.m_indirect_container_ip_id = indirect_container_ip_id.asString();
+		}
+
 		const Json::Value& contip = container["ip"];
 		if(!contip.isNull() && contip.isConvertibleTo(Json::stringValue))
 		{
@@ -4546,6 +4558,81 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 
 			container_info.m_container_ip = ntohl(ip);
 		}
+		else if (container_info.m_indirect_container_ip_id != "")
+		{
+			const sinsp_container_info *cinfo = m_inspector->m_container_manager.get_container(container_info.m_indirect_container_ip_id);
+			if(cinfo)
+			{
+				container_info.m_container_ip = cinfo->m_container_ip;
+			}
+			else
+			{
+				// XXX ensure other container is always fetched
+			}
+		}
+
+		const Json::Value &port_mappings = container["port_mappings"];
+
+		if(!port_mappings.isNull() && port_mappings.isConvertibleTo(Json::arrayValue))
+		{
+			for (Json::Value::ArrayIndex i = 0; i != port_mappings.size(); i++)
+			{
+				sinsp_container_info::container_port_mapping map;
+				map.m_host_ip = port_mappings[i]["HostIp"].asInt();
+				map.m_host_port = (uint16_t) port_mappings[i]["HostPort"].asInt();
+				map.m_container_port = (uint16_t) port_mappings[i]["ContainerPort"].asInt();
+
+				container_info.m_port_mappings.push_back(map);
+			}
+		}
+
+		vector<string> labels = container["labels"].getMemberNames();
+		for(vector<string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+		{
+			string val = container["labels"][*it].asString();
+			container_info.m_labels[*it] = val;
+		}
+
+		const Json::Value& env_vars = container["env"];
+
+		for(const auto& env_var : env_vars)
+		{
+			if(env_var.isString())
+			{
+				container_info.m_env.emplace_back(env_var.asString());
+			}
+		}
+
+		const Json::Value& memory_limit = container["memory_limit"];
+		if(!memory_limit.isNull() && memory_limit.isConvertibleTo(Json::uintValue))
+		{
+			container_info.m_memory_limit = memory_limit.asUInt();
+		}
+
+		const Json::Value& swap_limit = container["swap_limit"];
+		if(!swap_limit.isNull() && swap_limit.isConvertibleTo(Json::uintValue))
+		{
+			container_info.m_swap_limit = swap_limit.asUInt();
+		}
+
+		const Json::Value& cpu_shares = container["cpu_shares"];
+		if(!cpu_shares.isNull() && cpu_shares.isConvertibleTo(Json::uintValue))
+		{
+			container_info.m_cpu_shares = cpu_shares.asUInt();
+		}
+
+		const Json::Value& cpu_quota = container["cpu_quota"];
+		if(!cpu_quota.isNull() && cpu_quota.isConvertibleTo(Json::uintValue))
+		{
+			container_info.m_cpu_quota = cpu_quota.asUInt();
+		}
+
+		const Json::Value& cpu_period = container["cpu_period"];
+		if(!cpu_period.isNull() && cpu_period.isConvertibleTo(Json::uintValue))
+		{
+			container_info.m_cpu_period = cpu_period.asUInt();
+		}
+
 		const Json::Value& mesos_task_id = container["mesos_task_id"];
 		if(!mesos_task_id.isNull() && mesos_task_id.isConvertibleTo(Json::stringValue))
 		{
@@ -4559,6 +4646,16 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 					 "\nImage: " + container_info.m_image +
 					 "\nMesos Task ID: " + container_info.m_mesos_task_id, sinsp_logger::SEV_DEBUG);
 		*/
+
+		if(evt->m_tinfo)
+		{
+			if (libsinsp::container_engine::mesos::set_mesos_task_id(&container_info, evt->m_tinfo))
+			{
+				g_logger.format(sinsp_logger::SEV_DEBUG,
+						"Mesos Docker container: [%s], Mesos task ID: [%s]",
+						container_info.m_id.c_str(), container_info.m_mesos_task_id.c_str());
+			}
+		}
 	}
 	else
 	{

@@ -25,6 +25,20 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
+// The tid is intentionally ignored for these operators. The container
+// id is really what matters. The tid is really used to pass along to
+// the eventual successful lookup to add a tid to the CONTAINER_JSON
+// event.
+bool docker_async_req::operator<(const docker_async_req &other) const
+{
+	return m_container_id < other.m_container_id;
+}
+
+bool docker_async_req::operator==(const docker_async_req &other) const
+{
+	return m_container_id== other.m_container_id;
+}
+
 docker_async_source::docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms)
 	: async_key_value_source(max_wait_ms, ttl_ms)
 {
@@ -41,19 +55,20 @@ void docker_async_source::set_inspector(sinsp *inspector)
 
 void docker_async_source::run_impl()
 {
-	std::string container_id;
+	docker_async_req req;
 
-	while (dequeue_next_key(container_id))
+	while (dequeue_next_key(req))
 	{
-		std::string json;
-		if(parse_docker(container_id, json))
+		sinsp_container_info container;
+
+		if(parse_docker(req.m_container_id, &container))
 		{
-			store_value(container_id, json);
+			store_value(req, container);
 		}
 		else
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG, "Failed to get Docker metadata for container %s",
-					container_id.c_str());
+					req.m_container_id.c_str());
 		}
 	}
 }
@@ -84,33 +99,31 @@ void docker::set_enabled(bool enabled)
 	m_enabled = enabled;
 }
 
-void docker::parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager)
+void docker::parse_docker_async(sinsp *inspector, std::string &container_id, int64_t tid, sinsp_container_manager *manager)
 {
-	auto cb = [&](const std::string &container_id, const std::string &json)
+	auto cb = [&](const docker_async_req &req, const sinsp_container_info &container_info)
         {
-		sinsp_evt *evt = new sinsp_evt();
-
-		// Create a CONTAINER_JSON event from jinfo
-		manager->container_to_sinsp_event(json, evt);
-
-		std::shared_ptr<sinsp_evt> cevt(evt);
-		// Enqueue it onto the queue of pending container events for the inspector
-		manager->get_inspector()->m_pending_container_evts.push(cevt);
+		manager->notify_new_container(container_info, req.m_tid);
 	};
 
-	std::string dummy;
+        sinsp_container_info dummy;
+	docker_async_req req;
+	req.m_container_id = container_id;
+	req.m_tid = tid;
 
 	m_docker_info_source.set_inspector(inspector);
 
-	if (m_docker_info_source.lookup(container_id, dummy, cb))
+	if (m_docker_info_source.lookup(req, dummy, cb))
 	{
 		// This should *never* happen, as ttl is 0 (never wait)
 		g_logger.log("Unexpected immediate return from docker_info_source.lookup()", sinsp_logger::SEV_ERROR);
 	}
 }
 
-bool docker_async_source::parse_docker(std::string &container_id, std::string &json)
+bool docker_async_source::parse_docker(std::string &container_id, sinsp_container_info *container)
 {
+	string json;
+
 	docker_response resp = get_docker(build_request("/containers/" + container_id + "/json"), json);
 	switch(resp) {
 		case docker_response::RESP_BAD_REQUEST:
@@ -129,18 +142,15 @@ bool docker_async_source::parse_docker(std::string &container_id, std::string &j
 			break;
 	}
 
-	Json::Value jinfo;
+	Json::Value root;
 	Json::Reader reader;
-	bool parsingSuccessful = reader.parse(json, jinfo);
+	bool parsingSuccessful = reader.parse(json, root);
 	if(!parsingSuccessful)
 	{
 		ASSERT(false);
 		return false;
 	}
 
-#if 0
-
-	// XXX Verify this matches everything parse_container_evt does.
 	const Json::Value& config_obj = root["Config"];
 
 	container->m_image = config_obj["Image"].asString();
@@ -240,14 +250,22 @@ bool docker_async_source::parse_docker(std::string &container_id, std::string &j
 
 	const Json::Value& net_obj = root["NetworkSettings"];
 
+	const Json::Value& hconfig_obj = root["HostConfig"];
+	string net_mode = hconfig_obj["NetworkMode"].asString();
+
 	string ip = net_obj["IPAddress"].asString();
+
 	if(ip.empty())
 	{
-		const Json::Value& hconfig_obj = root["HostConfig"];
+ 		const Json::Value& hconfig_obj = root["HostConfig"];
 		string net_mode = hconfig_obj["NetworkMode"].asString();
+
+		// Make sure this happens in parse_container_json_evt
 		if(strncmp(net_mode.c_str(), "container:", strlen("container:")) == 0)
 		{
 			std::string container_id = net_mode.substr(net_mode.find(":") + 1);
+			container->m_indirect_container_ip_id = container_id;
+#if 0
 			uint32_t container_ip;
 			const sinsp_container_info *container_info = manager->get_container(container_id);
 			if(container_info)
@@ -262,6 +280,7 @@ bool docker_async_source::parse_docker(std::string &container_id, std::string &j
 				container_ip = pcnt.m_container_ip;
 			}
 			container->m_container_ip = container_ip;
+#endif
 		}
 	}
 	else
@@ -345,13 +364,11 @@ bool docker_async_source::parse_docker(std::string &container_id, std::string &j
 		container->m_privileged = privileged.asBool();
 	}
 
-	parse_json_mounts(root["Mounts"], container->m_mounts);
+	docker::parse_json_mounts(root["Mounts"], container->m_mounts);
 
 #ifdef HAS_ANALYZER
 	sinsp_utils::find_env(container->m_sysdig_agent_conf, container->get_env(), "SYSDIG_AGENT_CONF");
 	// container->m_sysdig_agent_conf = get_docker_env(env_vars, "SYSDIG_AGENT_CONF");
-#endif
-
 #endif
 	return true;
 }

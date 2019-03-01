@@ -39,7 +39,7 @@ public:
 	bool remove_inactive_containers();
 	void add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread);
 	sinsp_container_info * get_container(const string &id);
-	void notify_new_container(const sinsp_container_info& container_info);
+	void notify_new_container(const sinsp_container_info& container_info, int64_t tid);
 	template<typename E> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	template<typename E1, typename E2, typename... Args> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	bool resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
@@ -69,9 +69,9 @@ public:
 	void set_cri_socket_path(const std::string& path);
 	void set_cri_timeout(int64_t timeout_ms);
 	sinsp* get_inspector() { return m_inspector; }
-	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);
 private:
 	string container_to_json(const sinsp_container_info& container_info);
+	bool container_to_sinsp_event(const string& json, sinsp_evt* evt, int64_t tid=0);
 	string get_docker_env(const Json::Value &env_vars, const string &mti);
 
 	sinsp* m_inspector;

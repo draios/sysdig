@@ -39,7 +39,14 @@ class sinsp_threadinfo;
 namespace libsinsp {
 namespace container_engine {
 
-class docker_async_source : public sysdig::async_key_value_source<std::string, std::string>
+struct docker_async_req {
+	bool operator<(const docker_async_req &other) const;
+	bool operator==(const docker_async_req &other) const;
+	std::string m_container_id;
+	int64_t m_tid;
+};
+
+class docker_async_source : public sysdig::async_key_value_source<docker_async_req, sinsp_container_info>
 {
 	enum docker_response
 	{
@@ -61,7 +68,7 @@ protected:
 	std::string build_request(const std::string& url);
 
 	docker_response get_docker(const std::string& url, std::string &json);
-	bool parse_docker(std::string &container_id, std::string &json);
+	bool parse_docker(std::string &container_id, sinsp_container_info *container);
 
 	static std::string m_api_version;
 	sinsp *m_inspector;
@@ -80,7 +87,7 @@ public:
 	static void set_enabled(bool enabled);
 
 protected:
-	void parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager);
+	void parse_docker_async(sinsp *inspector, std::string &container_id, int64_t tid, sinsp_container_manager *manager);
 
 	docker_async_source m_docker_info_source;
 	static atomic<bool> m_enabled;

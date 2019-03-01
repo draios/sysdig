@@ -48,7 +48,6 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 		return false;
 	}
 
-	// XXX/mstemm how to pass the type/m_name along in CONTAINER_JSON event?
 	sinsp_container_info container_info;
 	container_info.m_type = CT_DOCKER;
 	container_info.m_id = wcinfo.m_container_id;
@@ -59,7 +58,7 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	{
 		if (query_os_for_missing_info)
 		{
-			parse_docker_async(manager->get_inspector(), container_info.m_id, manager);
+			parse_docker_async(manager->get_inspector(), container_info.m_id, tinfo->m_tid, manager);
 		}
 	}
 	return true;

@@ -119,19 +119,8 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 		{
 			// XXX/mstemm how to fail this properly now that it's async?
 			// give CRI a chance to return metadata for this container
-			parse_docker_async(manager->get_inspector(), container_info.m_id, manager);
+			parse_docker_async(manager->get_inspector(), container_info.m_id, (tinfo ? tinfo->m_tid : 0), manager);
 		}
-		// XXX/mstemm this should probably move to parse_container_evt ?
-#if 0
-		if (mesos::set_mesos_task_id(&container_info, tinfo))
-		{
-			g_logger.format(sinsp_logger::SEV_DEBUG,
-					"Mesos Docker container: [%s], Mesos task ID: [%s]",
-					container_info.m_id.c_str(), container_info.m_mesos_task_id.c_str());
-		}
-		manager->add_container(container_info, tinfo);
-		manager->notify_new_container(container_info);
-#endif
 	}
 	return true;
 }
