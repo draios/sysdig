@@ -103,19 +103,25 @@ void docker::set_enabled(bool enabled)
 
 void docker::parse_docker_async(sinsp *inspector, std::string &container_id, int64_t tid, sinsp_container_manager *manager)
 {
-	auto cb = [&](const docker_async_req &req, const sinsp_container_info &container_info)
+	auto cb = [manager](const docker_async_req &req, const sinsp_container_info &container_info)
         {
 		manager->notify_new_container(container_info, req.m_tid);
 	};
+
+	if(!g_docker_info_source)
+	{
+		uint64_t max_wait_ms = 10000;
+		docker_async_source *src = new docker_async_source(docker_async_source::NO_WAIT_LOOKUP, max_wait_ms);
+		g_docker_info_source.reset(src);
+		g_docker_info_source->set_inspector(inspector);
+	}
 
         sinsp_container_info dummy;
 	docker_async_req req;
 	req.m_container_id = container_id;
 	req.m_tid = tid;
 
-	m_docker_info_source.set_inspector(inspector);
-
-	if (m_docker_info_source.lookup(req, dummy, cb))
+	if (g_docker_info_source->lookup(req, dummy, cb))
 	{
 		// This should *never* happen, as ttl is 0 (never wait)
 		g_logger.log("Unexpected immediate return from docker_info_source.lookup()", sinsp_logger::SEV_ERROR);

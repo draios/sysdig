@@ -89,7 +89,7 @@ public:
 protected:
 	void parse_docker_async(sinsp *inspector, std::string &container_id, int64_t tid, sinsp_container_manager *manager);
 
-	docker_async_source m_docker_info_source;
+	static std::unique_ptr<docker_async_source> g_docker_info_source;
 	static atomic<bool> m_enabled;
 };
 }

@@ -272,6 +272,9 @@ void sinsp_container_manager::add_container(const sinsp_container_info& containe
 void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info, int64_t tid)
 {
 	sinsp_evt *evt = new sinsp_evt();
+	char *buf = new char[SP_EVT_BUF_SIZE];
+	// XXX/mstemm this leaks
+	evt->m_pevt = (scap_evt *) buf;
 
 	if(container_to_sinsp_event(container_to_json(container_info), evt, tid))
 	{

@@ -27,7 +27,6 @@ using namespace libsinsp::container_engine;
 std::string docker::m_api_version = "/v1.30";
 
 docker::docker()
-	: m_docker_info_source(docker_async_source::NO_WAIT_LOOKUP, 0)
 {
 }
 

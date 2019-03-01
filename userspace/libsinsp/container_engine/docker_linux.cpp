@@ -50,9 +50,9 @@ constexpr const cgroup_layout DOCKER_CGROUP_LAYOUT[] = {
 
 std::string docker_async_source::m_api_version = "/v1.24";
 atomic<bool> docker::m_enabled(true);
+std::unique_ptr<docker_async_source> docker::g_docker_info_source;
 
 docker::docker()
-	: m_docker_info_source(docker_async_source::NO_WAIT_LOOKUP, 0)
 {
 #if defined(HAS_CAPTURE)
 	if(!s_curlm)
