@@ -60,16 +60,18 @@ void docker_async_source::run_impl()
 	while (dequeue_next_key(req))
 	{
 		sinsp_container_info container;
+		container.m_type = CT_DOCKER;
+		container.m_id = req.m_container_id;
 
-		if(parse_docker(req.m_container_id, &container))
-		{
-			store_value(req, container);
-		}
-		else
+		if(!parse_docker(req.m_container_id, &container))
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG, "Failed to get Docker metadata for container %s",
 					req.m_container_id.c_str());
 		}
+
+		// Return a container_info object either way, to
+		// ensure any new container callbacks are called.
+		store_value(req, container);
 	}
 }
 

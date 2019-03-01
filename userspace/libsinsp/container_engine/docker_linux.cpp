@@ -123,7 +123,6 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 
 		if (query_os_for_missing_info)
 		{
-			// XXX/mstemm how to fail this properly now that it's async?
 			// give CRI a chance to return metadata for this container
 			parse_docker_async(manager->get_inspector(), container_info.m_id, (tinfo ? tinfo->m_tid : 0), manager);
 		}
