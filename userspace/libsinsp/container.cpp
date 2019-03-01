@@ -175,8 +175,6 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	inet_ntop(AF_INET, &iph, addrbuff, sizeof(addrbuff));
 	container["ip"] = addrbuff;
 
-	container["indirect_container_ip_id"] = container_info.m_indirect_container_ip_id;
-
 	Json::Value port_mappings = Json::arrayValue;
 
 	for(auto &mapping : container_info.m_port_mappings)

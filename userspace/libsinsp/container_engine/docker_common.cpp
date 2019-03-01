@@ -252,9 +252,6 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 
 	const Json::Value& net_obj = root["NetworkSettings"];
 
-	const Json::Value& hconfig_obj = root["HostConfig"];
-	string net_mode = hconfig_obj["NetworkMode"].asString();
-
 	string ip = net_obj["IPAddress"].asString();
 
 	if(ip.empty())
@@ -262,27 +259,18 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
  		const Json::Value& hconfig_obj = root["HostConfig"];
 		string net_mode = hconfig_obj["NetworkMode"].asString();
 
-		// Make sure this happens in parse_container_json_evt
 		if(strncmp(net_mode.c_str(), "container:", strlen("container:")) == 0)
 		{
 			std::string container_id = net_mode.substr(net_mode.find(":") + 1);
-			container->m_indirect_container_ip_id = container_id;
-#if 0
-			uint32_t container_ip;
-			const sinsp_container_info *container_info = manager->get_container(container_id);
-			if(container_info)
-			{
-				container_ip = container_info->m_container_ip;
-			}
-			else
-			{
-				sinsp_container_info pcnt;
-				pcnt.m_id = container_id;
-				parse_docker(manager, &pcnt, tinfo);
-				container_ip = pcnt.m_container_ip;
-			}
-			container->m_container_ip = container_ip;
-#endif
+
+			sinsp_container_info pcnt;
+			pcnt.m_id = container_id;
+
+			// This is a *blocking* fetch of the
+			// secondary container, but we're in a
+			// separate thread so this is ok.
+			parse_docker(container_id, &pcnt);
+			container->m_container_ip = pcnt.m_container_ip;
 		}
 	}
 	else

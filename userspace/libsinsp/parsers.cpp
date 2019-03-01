@@ -4540,12 +4540,6 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 
 		container_info.parse_healthcheck(container["Healthcheck"]);
 
-		const Json::Value& indirect_container_ip_id = container["indirect_container_ip_id"];
-		if(!indirect_container_ip_id.isNull() && indirect_container_ip_id.isConvertibleTo(Json::stringValue))
-		{
-			container_info.m_indirect_container_ip_id = indirect_container_ip_id.asString();
-		}
-
 		const Json::Value& contip = container["ip"];
 		if(!contip.isNull() && contip.isConvertibleTo(Json::stringValue))
 		{
@@ -4557,18 +4551,6 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 			}
 
 			container_info.m_container_ip = ntohl(ip);
-		}
-		else if (container_info.m_indirect_container_ip_id != "")
-		{
-			const sinsp_container_info *cinfo = m_inspector->m_container_manager.get_container(container_info.m_indirect_container_ip_id);
-			if(cinfo)
-			{
-				container_info.m_container_ip = cinfo->m_container_ip;
-			}
-			else
-			{
-				// XXX ensure other container is always fetched
-			}
 		}
 
 		const Json::Value &port_mappings = container["port_mappings"];
