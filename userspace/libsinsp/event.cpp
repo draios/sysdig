@@ -74,6 +74,7 @@ sinsp_evt::sinsp_evt() :
 }
 
 sinsp_evt::sinsp_evt(sinsp *inspector) :
+	m_pevt_storage(NULL),
 	m_paramstr_storage(1024), m_resolved_paramstr_storage(1024)
 {
 	m_inspector = inspector;
@@ -89,7 +90,7 @@ sinsp_evt::~sinsp_evt()
 {
 	if(m_pevt_storage)
 	{
-		delete m_pevt_storage;
+		delete[] m_pevt_storage;
 	}
 }
 

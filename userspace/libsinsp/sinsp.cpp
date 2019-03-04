@@ -1047,6 +1047,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	}
 	else if (m_pending_container_evts.try_pop(m_container_evt))
 	{
+		res = SCAP_SUCCESS;
 		evt = m_container_evt.get();
 	}
 	else
