@@ -24,6 +24,8 @@ limitations under the License.
 #include <vector>
 #include <atomic>
 
+#include "tbb/concurrent_hash_map.h"
+
 #include "json/json.h"
 
 #include "async_key_value_source.h"
@@ -39,14 +41,7 @@ class sinsp_threadinfo;
 namespace libsinsp {
 namespace container_engine {
 
-struct docker_async_req {
-	bool operator<(const docker_async_req &other) const;
-	bool operator==(const docker_async_req &other) const;
-	std::string m_container_id;
-	int64_t m_tid;
-};
-
-class docker_async_source : public sysdig::async_key_value_source<docker_async_req, sinsp_container_info>
+class docker_async_source : public sysdig::async_key_value_source<std::string, sinsp_container_info>
 {
 	enum docker_response
 	{
@@ -62,6 +57,13 @@ public:
 	void set_inspector(sinsp *inspector);
 	static void set_query_image_info(bool query_image_info);
 
+	// Update the mapping from container id to top running tid for
+	// that container.
+	void update_top_tid(std::string &container_id, sinsp_threadinfo *tinfo);
+
+	// Get the thread id of the top thread running in this container.
+	int64_t get_top_tid(const std::string &container_id);
+
 protected:
 	void run_impl();
 
@@ -74,6 +76,16 @@ protected:
 	sinsp *m_inspector;
 
 	static bool m_query_image_info;
+
+	// Maps from container id to the "top" threadinfo in the
+	// process heirarchy having that container id that
+	// exists. These associations are only maintained while an
+	// async lookup of container information is in progress. We
+	// use this to ensure that the tid of the CONTAINER_JSON event
+	// we eventually emit is the top running thread in the
+	// container.
+	typedef tbb::concurrent_hash_map<std::string, int64_t> top_tid_table;
+	top_tid_table m_top_tids;
 };
 
 class docker
@@ -87,10 +99,10 @@ public:
 	static void set_enabled(bool enabled);
 
 protected:
-	void parse_docker_async(sinsp *inspector, std::string &container_id, int64_t tid, sinsp_container_manager *manager);
+	void parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager);
 
 	static std::unique_ptr<docker_async_source> g_docker_info_source;
-	static atomic<bool> m_enabled;
+	static bool m_enabled;
 };
 }
 }

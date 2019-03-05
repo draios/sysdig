@@ -48,24 +48,33 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	}
 
 	sinsp_container_info container_info;
+	sinsp_container_info *existing_container_info;
 	container_info.m_type = CT_DOCKER;
 	container_info.m_id = wcinfo.m_container_id;
 	container_info.m_name = wcinfo.m_container_name;
 
 	tinfo->m_container_id = container_info.m_id;
-	if (!manager->container_exists(container_info.m_id))
+
+	existing_container_info = manager->get_container(container_info.m_id);
+
+	if (!existing_container_info)
 	{
 		// Add a minimal container_info object where only the
 		// container id is filled in. This may be overidden
 		// later once parse_docker_async completes.
 		container_info.m_metadata_complete = false;
+		container_info.m_image="incomplete";
 
 		manager->add_container(container_info, tinfo);
 
 		if (query_os_for_missing_info)
 		{
-			parse_docker_async(manager->get_inspector(), container_info.m_id, tinfo->m_tid, manager);
+			parse_docker_async(manager->get_inspector(), container_info.m_id, manager);
 		}
+	}
+	else if(!existing_container_info->m_metadata_complete && tinfo && g_docker_info_source)
+	{
+		g_docker_info_source->update_top_tid(container_info.m_id, tinfo);
 	}
 	return true;
 }

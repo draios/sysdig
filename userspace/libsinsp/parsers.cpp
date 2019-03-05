@@ -4620,6 +4620,16 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		{
 			container_info.m_mesos_task_id = mesos_task_id.asString();
 		}
+
+#ifdef HAS_ANALYZER
+		const Json::Value& metadata_deadline = container["metadata_deadline"];
+		// isConvertibleTo doesn't seem to work on large 64 bit numbers
+		if(!metadata_deadline.isNull() && metadata_deadline.isUInt64())
+		{
+			container_info.m_metadata_deadline = metadata_deadline.asUInt64();
+		}
+#endif
+
 		m_inspector->m_container_manager.add_container(container_info, evt->get_thread_info(true));
 		/*
 		g_logger.log("Container\n-------\nID:" + container_info.m_id +

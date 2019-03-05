@@ -25,20 +25,6 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
-// The tid is intentionally ignored for these operators. The container
-// id is really what matters. The tid is really used to pass along to
-// the eventual successful lookup to add a tid to the CONTAINER_JSON
-// event.
-bool docker_async_req::operator<(const docker_async_req &other) const
-{
-	return m_container_id < other.m_container_id;
-}
-
-bool docker_async_req::operator==(const docker_async_req &other) const
-{
-	return m_container_id== other.m_container_id;
-}
-
 docker_async_source::docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms)
 	: async_key_value_source(max_wait_ms, ttl_ms)
 {
@@ -55,23 +41,86 @@ void docker_async_source::set_inspector(sinsp *inspector)
 
 void docker_async_source::run_impl()
 {
-	docker_async_req req;
+	std::string container_id;
 
-	while (dequeue_next_key(req))
+	while (dequeue_next_key(container_id))
 	{
 		sinsp_container_info container;
 		container.m_type = CT_DOCKER;
-		container.m_id = req.m_container_id;
+		container.m_id = container_id;
 
-		if(!parse_docker(req.m_container_id, &container))
+		if(!parse_docker(container_id, &container))
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG, "Failed to get Docker metadata for container %s",
-					req.m_container_id.c_str());
+					container_id.c_str());
 		}
 
 		// Return a container_info object either way, to
 		// ensure any new container callbacks are called.
-		store_value(req, container);
+		store_value(container_id, container);
+	}
+}
+
+int64_t docker_async_source::get_top_tid(const std::string &container_id)
+{
+	top_tid_table::const_accessor cacc;
+
+	if(m_top_tids.find(cacc, container_id))
+	{
+		return cacc->second;
+	}
+
+	g_logger.log("Did not find container id->tid mapping for in-progress container metadata lookup?", sinsp_logger::SEV_ERROR);
+	return 0;
+}
+
+void docker_async_source::update_top_tid(std::string &container_id, sinsp_threadinfo *tinfo)
+{
+	// See if the current top tid still exists.
+	top_tid_table::const_accessor cacc;
+	sinsp_threadinfo *top_tinfo;
+
+	int64_t top_tid = get_top_tid(container_id);
+
+	if(((top_tinfo = m_inspector->get_thread(top_tid)) == NULL) ||
+	   top_tinfo->m_flags & PPM_CL_CLOSED)
+	{
+		// The top thread no longer exists. Starting with tinfo,
+		// walk the parent heirarchy to find the top thread in
+		// the same container.
+
+		sinsp_threadinfo::visitor_func_t visitor =
+		[&] (sinsp_threadinfo *ptinfo)
+		{
+			// Stop at the first thread not in this container.
+			if(ptinfo->m_container_id != container_id)
+			{
+				return false;
+			}
+
+			// Ignore exited threads but keep traversing.
+			if(ptinfo->m_flags & PPM_CL_CLOSED)
+			{
+				return true;
+			}
+
+			if(ptinfo->m_container_id == container_id)
+			{
+				top_tinfo = ptinfo;
+			}
+
+			return true;
+		};
+
+		top_tinfo = tinfo;
+		tinfo->traverse_parent_state(visitor);
+
+		// At this point, top_tinfo should point to the top
+		// thread of those running in the container.
+		top_tid_table::accessor acc;
+
+		m_top_tids.insert(acc, container_id);
+		acc->second = top_tinfo->m_tid;
 	}
 }
 
@@ -101,11 +150,12 @@ void docker::set_enabled(bool enabled)
 	m_enabled = enabled;
 }
 
-void docker::parse_docker_async(sinsp *inspector, std::string &container_id, int64_t tid, sinsp_container_manager *manager)
+void docker::parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager)
 {
-	auto cb = [manager](const docker_async_req &req, const sinsp_container_info &container_info)
+	auto cb = [manager](const std::string &container_id, const sinsp_container_info &container_info)
         {
-		manager->notify_new_container(container_info, req.m_tid);
+		int64_t top_tid = docker::g_docker_info_source->get_top_tid(container_id);
+		manager->notify_new_container(container_info, top_tid);
 	};
 
 	if(!g_docker_info_source)
@@ -117,11 +167,8 @@ void docker::parse_docker_async(sinsp *inspector, std::string &container_id, int
 	}
 
         sinsp_container_info dummy;
-	docker_async_req req;
-	req.m_container_id = container_id;
-	req.m_tid = tid;
 
-	if (g_docker_info_source->lookup(req, dummy, cb))
+	if (g_docker_info_source->lookup(container_id, dummy, cb))
 	{
 		// This should *never* happen, as ttl is 0 (never wait)
 		g_logger.log("Unexpected immediate return from docker_info_source.lookup()", sinsp_logger::SEV_ERROR);

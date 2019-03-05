@@ -214,6 +214,10 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	{
 		container["mesos_task_id"] = container_info.m_mesos_task_id;
 	}
+
+#ifdef HAS_ANALYZER
+	container["metadata_deadline"] = (Json::Value::UInt64) container_info.m_metadata_deadline;
+#endif
 	return Json::FastWriter().write(obj);
 }
 
@@ -260,12 +264,9 @@ void sinsp_container_manager::add_container(const sinsp_container_info& containe
 {
 	m_containers[container_info.m_id] = container_info;
 
-	if(container_info.m_metadata_complete)
+	for(const auto &new_cb : m_new_callbacks)
 	{
-		for(const auto &new_cb : m_new_callbacks)
-		{
-			new_cb(m_containers[container_info.m_id], thread_info);
-		}
+		new_cb(m_containers[container_info.m_id], thread_info);
 	}
 }
 

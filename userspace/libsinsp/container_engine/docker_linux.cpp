@@ -49,7 +49,7 @@ constexpr const cgroup_layout DOCKER_CGROUP_LAYOUT[] = {
 }
 
 std::string docker_async_source::m_api_version = "/v1.24";
-atomic<bool> docker::m_enabled(true);
+bool docker::m_enabled = true;
 std::unique_ptr<docker_async_source> docker::g_docker_info_source;
 
 docker::docker()
@@ -85,7 +85,8 @@ void docker::cleanup()
 	curl_multi_cleanup(s_curlm);
 	s_curlm = NULL;
 
-	docker::set_enabled(false);
+	g_docker_info_source.reset(NULL);
+	m_enabled = true;
 #endif
 }
 
@@ -97,6 +98,7 @@ std::string docker_async_source::build_request(const std::string &url)
 bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	sinsp_container_info container_info;
+	sinsp_container_info *existing_container_info;
 
 	if (!m_enabled)
 	{
@@ -112,21 +114,32 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	{
 		return false;
 	}
-	if (!manager->container_exists(container_info.m_id))
+
+	existing_container_info = manager->get_container(container_info.m_id);
+
+	if (!existing_container_info)
 	{
 		// Add a minimal container_info object where only the
-		// container id is filled in. This may be overidden
-		// later once parse_docker_async completes.
+		// container id and a container name=incomplete is
+		// filled in. This may be overidden later once
+		// parse_docker_async completes.
 		container_info.m_metadata_complete = false;
+		container_info.m_name="incomplete";
+		container_info.m_image="incomplete";
 
 		manager->add_container(container_info, tinfo);
 
 		if (query_os_for_missing_info)
 		{
 			// give CRI a chance to return metadata for this container
-			parse_docker_async(manager->get_inspector(), container_info.m_id, (tinfo ? tinfo->m_tid : 0), manager);
+			parse_docker_async(manager->get_inspector(), container_info.m_id, manager);
 		}
 	}
+	else if(!existing_container_info->m_metadata_complete && tinfo && g_docker_info_source)
+	{
+		g_docker_info_source->update_top_tid(container_info.m_id, tinfo);
+	}
+
 	return true;
 }
 
