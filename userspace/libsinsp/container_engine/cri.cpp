@@ -99,7 +99,6 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 
 	const auto &resp_container = resp.status();
 	container->m_name = resp_container.metadata().name();
-	container->m_type = s_cri_runtime_type;
 
 	for(const auto &pair : resp_container.labels())
 	{

@@ -1195,7 +1195,7 @@ int lua_cbacks::get_container_table(lua_State *ls)
 		}
 		else if(it->second.m_type == CT_CRIO)
 		{
-			lua_pushstring(ls, "crio");
+			lua_pushstring(ls, "cri-o");
 		}
 		else
 		{
