@@ -95,54 +95,6 @@ std::string docker_async_source::build_request(const std::string &url)
 	return "http://localhost" + m_api_version + url;
 }
 
-bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
-{
-	sinsp_container_info container_info;
-	sinsp_container_info *existing_container_info;
-
-	if (!m_enabled)
-	{
-		return false;
-	}
-
-	if(matches_runc_cgroups(tinfo, DOCKER_CGROUP_LAYOUT, container_info.m_id))
-	{
-		container_info.m_type = CT_DOCKER;
-		tinfo->m_container_id = container_info.m_id;
-	}
-	else
-	{
-		return false;
-	}
-
-	existing_container_info = manager->get_container(container_info.m_id);
-
-	if (!existing_container_info)
-	{
-		// Add a minimal container_info object where only the
-		// container id and a container name=incomplete is
-		// filled in. This may be overidden later once
-		// parse_docker_async completes.
-		container_info.m_metadata_complete = false;
-		container_info.m_name="incomplete";
-		container_info.m_image="incomplete";
-
-		manager->add_container(container_info, tinfo);
-
-		if (query_os_for_missing_info)
-		{
-			// give CRI a chance to return metadata for this container
-			parse_docker_async(manager->get_inspector(), container_info.m_id, manager);
-		}
-	}
-	else if(!existing_container_info->m_metadata_complete && tinfo && g_docker_info_source)
-	{
-		g_docker_info_source->update_top_tid(container_info.m_id, tinfo);
-	}
-
-	return true;
-}
-
 docker_async_source::docker_response docker_async_source::get_docker(const std::string& url, std::string &json)
 {
 #ifdef HAS_CAPTURE
@@ -217,3 +169,15 @@ docker_async_source::docker_response docker_async_source::get_docker(const std::
 #endif
 }
 
+bool docker::detect_docker(const sinsp_threadinfo *tinfo, std::string &container_id, std::string &container_name)
+{
+	if(matches_runc_cgroups(tinfo, DOCKER_CGROUP_LAYOUT, container_id))
+	{
+		// The container name is only available in windows
+		container_name = "incomplete";
+
+		return true;
+	}
+
+	return false;
+}

@@ -61,6 +61,14 @@ void docker_async_source::run_impl()
 	}
 }
 
+void docker_async_source::set_top_tid(const std::string &container_id, sinsp_threadinfo *tinfo)
+{
+	top_tid_table::accessor acc;
+
+	m_top_tids.insert(acc, container_id);
+	acc->second = tinfo->m_tid;
+}
+
 int64_t docker_async_source::get_top_tid(const std::string &container_id)
 {
 	top_tid_table::const_accessor cacc;
@@ -72,6 +80,13 @@ int64_t docker_async_source::get_top_tid(const std::string &container_id)
 
 	g_logger.log("Did not find container id->tid mapping for in-progress container metadata lookup?", sinsp_logger::SEV_ERROR);
 	return 0;
+}
+
+bool docker_async_source::pending_lookup(std::string &container_id)
+{
+	top_tid_table::const_accessor cacc;
+
+	return m_top_tids.find(cacc, container_id);
 }
 
 void docker_async_source::update_top_tid(std::string &container_id, sinsp_threadinfo *tinfo)
@@ -117,10 +132,7 @@ void docker_async_source::update_top_tid(std::string &container_id, sinsp_thread
 
 		// At this point, top_tinfo should point to the top
 		// thread of those running in the container.
-		top_tid_table::accessor acc;
-
-		m_top_tids.insert(acc, container_id);
-		acc->second = top_tinfo->m_tid;
+		set_top_tid(container_id, top_tinfo);
 	}
 }
 
@@ -150,21 +162,83 @@ void docker::set_enabled(bool enabled)
 	m_enabled = enabled;
 }
 
-void docker::parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager)
+bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
-	auto cb = [manager](const std::string &container_id, const sinsp_container_info &container_info)
-        {
-		int64_t top_tid = docker::g_docker_info_source->get_top_tid(container_id);
-		manager->notify_new_container(container_info, top_tid);
-	};
+	std::string container_id, container_name;
+	sinsp_container_info *existing_container_info;
+
+	if (!m_enabled)
+	{
+		return false;
+	}
 
 	if(!g_docker_info_source)
 	{
 		uint64_t max_wait_ms = 10000;
 		docker_async_source *src = new docker_async_source(docker_async_source::NO_WAIT_LOOKUP, max_wait_ms);
 		g_docker_info_source.reset(src);
-		g_docker_info_source->set_inspector(inspector);
+		g_docker_info_source->set_inspector(manager->get_inspector());
 	}
+
+	if(!detect_docker(tinfo, container_id, container_name))
+	{
+		return false;
+	}
+
+	tinfo->m_container_id = container_id;
+
+	existing_container_info = manager->get_container(container_id);
+
+	if(!existing_container_info)
+	{
+		// Add a minimal container_info object where only the
+		// container id, (possibly) name, and a container
+		// image=incomplete is filled in. This may be
+		// overidden later once parse_docker_async completes.
+		sinsp_container_info container_info;
+
+		container_info.m_type = CT_UNKNOWN;
+		container_info.m_id = container_id;
+		container_info.m_name = container_name;
+		container_info.m_image="incomplete";
+		container_info.m_metadata_complete = false;
+
+		manager->add_container(container_info, tinfo);
+
+		existing_container_info = manager->get_container(container_id);
+	}
+
+	// Possibly start a lookup for this container info
+	if(!existing_container_info->m_metadata_complete &&
+	    query_os_for_missing_info)
+	{
+		if(!g_docker_info_source->pending_lookup(container_id))
+		{
+			// give CRI a chance to return metadata for this container
+			parse_docker_async(manager->get_inspector(), container_id, manager);
+
+			g_docker_info_source->set_top_tid(container_id, tinfo);
+		}
+		else
+		{
+			g_docker_info_source->update_top_tid(container_id, tinfo);
+		}
+	}
+
+	// Returning true will prevent other container engines from
+	// trying to resolve the container, so only return true if we
+	// have complete metadata.
+	return existing_container_info->m_metadata_complete;
+}
+
+void docker::parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager)
+{
+	auto cb = [manager](const std::string &container_id, const sinsp_container_info &container_info)
+        {
+		int64_t top_tid = docker::g_docker_info_source->get_top_tid(container_id);
+		// If here, we know it's a docker container, so set the type
+		manager->notify_new_container(container_info, top_tid);
+	};
 
         sinsp_container_info dummy;
 

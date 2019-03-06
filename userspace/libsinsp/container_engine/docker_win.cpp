@@ -39,7 +39,7 @@ std::string docker_async_source::build_request(const std::string &url)
 	return "GET " + m_api_version + url + " HTTP/1.1\r\nHost: docker\r\n\r\n";
 }
 
-bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+bool docker::detect_docker(sinsp_threadinfo *tinfo, std::string &container_id, std::string &container_name)
 {
 	wh_docker_container_info wcinfo = wh_docker_resolve_pid(manager->get_inspector()->get_wmi_handle(), tinfo->m_pid);
 	if(!wcinfo.m_res)
@@ -47,35 +47,9 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 		return false;
 	}
 
-	sinsp_container_info container_info;
-	sinsp_container_info *existing_container_info;
-	container_info.m_type = CT_DOCKER;
-	container_info.m_id = wcinfo.m_container_id;
-	container_info.m_name = wcinfo.m_container_name;
+	container_id = wcinfo.m_container_id;
+	container_name = wcinfo.m_container_name;
 
-	tinfo->m_container_id = container_info.m_id;
-
-	existing_container_info = manager->get_container(container_info.m_id);
-
-	if (!existing_container_info)
-	{
-		// Add a minimal container_info object where only the
-		// container id is filled in. This may be overidden
-		// later once parse_docker_async completes.
-		container_info.m_metadata_complete = false;
-		container_info.m_image="incomplete";
-
-		manager->add_container(container_info, tinfo);
-
-		if (query_os_for_missing_info)
-		{
-			parse_docker_async(manager->get_inspector(), container_info.m_id, manager);
-		}
-	}
-	else if(!existing_container_info->m_metadata_complete && tinfo && g_docker_info_source)
-	{
-		g_docker_info_source->update_top_tid(container_info.m_id, tinfo);
-	}
 	return true;
 }
 

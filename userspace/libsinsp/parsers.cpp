@@ -4479,7 +4479,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 	ASSERT(parinfo);
 	ASSERT(parinfo->m_len > 0);
 	std::string json(parinfo->m_val, parinfo->m_len);
-	g_logger.log(json, sinsp_logger::SEV_DEBUG);
+	g_logger.format("Parsing Container JSON=%s", json.c_str(), sinsp_logger::SEV_DEBUG);
 	ASSERT(m_inspector);
 	Json::Value root;
 	if(Json::Reader().parse(json, root))

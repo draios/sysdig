@@ -57,12 +57,17 @@ public:
 	void set_inspector(sinsp *inspector);
 	static void set_query_image_info(bool query_image_info);
 
+	// Note that this tid is the current top tid for this container
+	void set_top_tid(const std::string &container_id, sinsp_threadinfo *tinfo);
+
 	// Update the mapping from container id to top running tid for
 	// that container.
 	void update_top_tid(std::string &container_id, sinsp_threadinfo *tinfo);
 
 	// Get the thread id of the top thread running in this container.
 	int64_t get_top_tid(const std::string &container_id);
+
+        bool pending_lookup(std::string &container_id);
 
 protected:
 	void run_impl();
@@ -98,6 +103,8 @@ public:
 	static void parse_json_mounts(const Json::Value &mnt_obj, std::vector<sinsp_container_info::container_mount_info> &mounts);
 	static void set_enabled(bool enabled);
 
+	// Container name only set for windows. For linux name must be fetched via lookup
+	static bool detect_docker(const sinsp_threadinfo* tinfo, std::string& container_id, std::string &container_name);
 protected:
 	void parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager);
 
