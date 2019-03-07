@@ -193,17 +193,24 @@ void cri::set_extra_queries(bool extra_queries) {
 bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	sinsp_container_info container_info;
+	sinsp_container_info *existing_container_info;
 
 	if(matches_runc_cgroups(tinfo, CRI_CGROUP_LAYOUT, container_info.m_id))
 	{
-		container_info.m_type = s_cri_runtime_type;
+		// It might also be a docker container, so set the type
+		// to UNKNOWN for now.
+		container_info.m_type = CT_UNKNOWN;
 	}
 	else
 	{
 		return false;
 	}
 	tinfo->m_container_id = container_info.m_id;
-	if (!manager->container_exists(container_info.m_id))
+
+	existing_container_info = manager->get_container(container_info.m_id);
+
+	if (!existing_container_info ||
+	    existing_container_info->m_type == CT_UNKNOWN)
 	{
 		if (query_os_for_missing_info)
 		{
@@ -213,6 +220,11 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 						container_info.m_id.c_str());
 				return false;
 			}
+
+			// If here, parse_cri succeeded so we can
+			// assign an actual type.
+			container_info.m_type = s_cri_runtime_type;
+
 		}
 		if (mesos::set_mesos_task_id(&container_info, tinfo))
 		{
