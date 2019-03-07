@@ -29,7 +29,7 @@ if(NOT WIN32 AND NOT APPLE)
 	include_directories("${JQ_INCLUDE}")
 	include_directories("${OPENSSL_INCLUDE_DIR}")
 	include_directories("${PROTOBUF_INCLUDE}")
-	include_directories("${TBB_INCLUDE}")
+	include_directories("${TBB_INCLUDE_DIR}")
 	include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 endif()
 
