@@ -411,6 +411,7 @@ VISIBILITY_PRIVATE
 	sinsp* m_inspector;
 	scap_evt* m_pevt;
 	scap_evt* m_poriginal_evt;	// This is used when the original event is replaced by a different one (e.g. in the case of user events)
+	char *m_pevt_storage;           // In some cases an alternate buffer is used to hold m_pevt. This points to that storage.
 	uint16_t m_cpuid;
 	uint64_t m_evtnum;
 	uint32_t m_flags;
