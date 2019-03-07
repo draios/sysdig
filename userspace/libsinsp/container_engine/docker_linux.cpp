@@ -28,10 +28,6 @@ using namespace libsinsp::container_engine;
 using namespace libsinsp::runc;
 
 namespace {
-std::string s_docker_unix_socket_path = "/var/run/docker.sock";
-#if defined(HAS_CAPTURE)
-CURLM *s_curlm = NULL;
-CURL *s_curl = NULL;
 
 size_t docker_curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json)
 {
@@ -39,7 +35,6 @@ size_t docker_curl_write_callback(const char* ptr, size_t size, size_t nmemb, st
 	json->append(ptr, total);
 	return total;
 }
-#endif
 
 constexpr const cgroup_layout DOCKER_CGROUP_LAYOUT[] = {
 	{"/", ""}, // non-systemd docker
@@ -48,108 +43,74 @@ constexpr const cgroup_layout DOCKER_CGROUP_LAYOUT[] = {
 };
 }
 
-std::string docker::m_api_version = "/v1.24";
-bool libsinsp::container_engine::docker::m_enabled = true;
+std::unique_ptr<docker_async_source> docker::g_docker_info_source;
 
 docker::docker()
 {
-#if defined(HAS_CAPTURE)
-	if(!s_curlm)
-	{
-		s_curl = curl_easy_init();
-		s_curlm = curl_multi_init();
-
-		if(s_curlm)
-		{
-			curl_multi_setopt(s_curlm, CURLMOPT_PIPELINING, CURLPIPE_HTTP1|CURLPIPE_MULTIPLEX);
-		}
-
-		if(s_curl)
-		{
-			auto docker_path = scap_get_host_root() + s_docker_unix_socket_path;
-			curl_easy_setopt(s_curl, CURLOPT_UNIX_SOCKET_PATH, docker_path.c_str());
-			curl_easy_setopt(s_curl, CURLOPT_HTTPGET, 1);
-			curl_easy_setopt(s_curl, CURLOPT_FOLLOWLOCATION, 1);
-			curl_easy_setopt(s_curl, CURLOPT_WRITEFUNCTION, docker_curl_write_callback);
-		}
-	}
-#endif
 }
 
 void docker::cleanup()
 {
-#if defined(HAS_CAPTURE)
-	curl_easy_cleanup(s_curl);
-	s_curl = NULL;
-	curl_multi_cleanup(s_curlm);
-	s_curlm = NULL;
-
-	m_enabled = true;
-#endif
+	g_docker_info_source.reset(NULL);
 }
 
-std::string docker::build_request(const std::string &url)
+void docker_async_source::init_docker_conn()
+{
+	if(!m_curlm)
+	{
+		m_curl = curl_easy_init();
+		m_curlm = curl_multi_init();
+
+		if(m_curlm)
+		{
+			curl_multi_setopt(m_curlm, CURLMOPT_PIPELINING, CURLPIPE_HTTP1|CURLPIPE_MULTIPLEX);
+		}
+
+		if(m_curl)
+		{
+			auto docker_path = scap_get_host_root() + m_docker_unix_socket_path;
+			curl_easy_setopt(m_curl, CURLOPT_UNIX_SOCKET_PATH, docker_path.c_str());
+			curl_easy_setopt(m_curl, CURLOPT_HTTPGET, 1);
+			curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
+			curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, docker_curl_write_callback);
+		}
+	}
+}
+
+void docker_async_source::free_docker_conn()
+{
+	if(m_curl)
+	{
+		curl_easy_cleanup(m_curl);
+		m_curl = NULL;
+	}
+
+	if(m_curlm)
+	{
+		curl_multi_cleanup(m_curlm);
+		m_curlm = NULL;
+	}
+}
+
+std::string docker_async_source::build_request(const std::string &url)
 {
 	return "http://localhost" + m_api_version + url;
 }
 
-bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+docker_async_source::docker_response docker_async_source::get_docker(const std::string& url, std::string &json)
 {
-	sinsp_container_info container_info;
-
-	if (!m_enabled)
-	{
-		return false;
-	}
-
-	if(matches_runc_cgroups(tinfo, DOCKER_CGROUP_LAYOUT, container_info.m_id))
-	{
-		container_info.m_type = CT_DOCKER;
-		tinfo->m_container_id = container_info.m_id;
-	}
-	else
-	{
-		return false;
-	}
-	if (!manager->container_exists(container_info.m_id))
-	{
-		if (query_os_for_missing_info)
-		{
-			if (!parse_docker(manager, &container_info, tinfo))
-			{
-				// give CRI a chance to return metadata for this container
-				g_logger.format(sinsp_logger::SEV_DEBUG, "Failed to get Docker metadata for container %s",
-					container_info.m_id.c_str());
-				return false;
-			}
-		}
-		if (mesos::set_mesos_task_id(&container_info, tinfo))
-		{
-			g_logger.format(sinsp_logger::SEV_DEBUG,
-					"Mesos Docker container: [%s], Mesos task ID: [%s]",
-					container_info.m_id.c_str(), container_info.m_mesos_task_id.c_str());
-		}
-		manager->add_container(container_info, tinfo);
-		manager->notify_new_container(container_info);
-	}
-	return true;
-}
-
-docker::docker_response libsinsp::container_engine::docker::get_docker(sinsp_container_manager* manager, const std::string& url, std::string &json)
-{
-#ifdef HAS_CAPTURE
-	if(curl_easy_setopt(s_curl, CURLOPT_URL, url.c_str()) != CURLE_OK)
+	if(curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str()) != CURLE_OK)
 	{
 		ASSERT(false);
 		return docker_response::RESP_ERROR;
 	}
-	if(curl_easy_setopt(s_curl, CURLOPT_WRITEDATA, &json) != CURLE_OK)
+	if(curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &json) != CURLE_OK)
 	{
 		ASSERT(false);
 		return docker_response::RESP_ERROR;
 	}
 
-	if(curl_multi_add_handle(s_curlm, s_curl) != CURLM_OK)
+	if(curl_multi_add_handle(m_curlm, m_curl) != CURLM_OK)
 	{
 		ASSERT(false);
 		return docker_response::RESP_ERROR;
@@ -158,7 +119,7 @@ docker::docker_response libsinsp::container_engine::docker::get_docker(sinsp_con
 	while(true)
 	{
 		int still_running;
-		CURLMcode res = curl_multi_perform(s_curlm, &still_running);
+		CURLMcode res = curl_multi_perform(m_curlm, &still_running);
 		if(res != CURLM_OK)
 		{
 			ASSERT(false);
@@ -171,7 +132,7 @@ docker::docker_response libsinsp::container_engine::docker::get_docker(sinsp_con
 		}
 
 		int numfds;
-		res = curl_multi_wait(s_curlm, NULL, 0, -1, &numfds);
+		res = curl_multi_wait(m_curlm, NULL, 0, -1, &numfds);
 		if(res != CURLM_OK)
 		{
 			ASSERT(false);
@@ -179,14 +140,14 @@ docker::docker_response libsinsp::container_engine::docker::get_docker(sinsp_con
 		}
 	}
 
-	if(curl_multi_remove_handle(s_curlm, s_curl) != CURLM_OK)
+	if(curl_multi_remove_handle(m_curlm, m_curl) != CURLM_OK)
 	{
 		ASSERT(false);
 		return docker_response::RESP_ERROR;
 	}
 
 	long http_code = 0;
-	if(curl_easy_getinfo(s_curl, CURLINFO_RESPONSE_CODE, &http_code) != CURLE_OK)
+	if(curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &http_code) != CURLE_OK)
 	{
 		ASSERT(false);
 		return docker_response::RESP_ERROR;
@@ -195,7 +156,6 @@ docker::docker_response libsinsp::container_engine::docker::get_docker(sinsp_con
 	{
 		case 0: /* connection failed, apparently */
 			g_logger.format(sinsp_logger::SEV_NOTICE, "Docker connection failed, disabling Docker container engine");
-			m_enabled = false;
 			return docker_response::RESP_ERROR;
 		case 200:
 			return docker_response::RESP_OK;
@@ -204,8 +164,17 @@ docker::docker_response libsinsp::container_engine::docker::get_docker(sinsp_con
 	}
 
 	return docker_response::RESP_OK;
-#else
-	return docker_response::RESP_ERROR;
-#endif
 }
 
+bool docker::detect_docker(const sinsp_threadinfo *tinfo, std::string &container_id, std::string &container_name)
+{
+	if(matches_runc_cgroups(tinfo, DOCKER_CGROUP_LAYOUT, container_id))
+	{
+		// The container name is only available in windows
+		container_name = "incomplete";
+
+		return true;
+	}
+
+	return false;
+}

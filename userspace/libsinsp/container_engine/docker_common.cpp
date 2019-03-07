@@ -25,7 +25,127 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
-bool docker::m_query_image_info = true;
+docker_async_source::docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms, sinsp *inspector)
+	: async_key_value_source(max_wait_ms, ttl_ms),
+	  m_inspector(inspector),
+	  m_docker_unix_socket_path("/var/run/docker.sock"),
+#ifdef _WIN32
+	  m_api_version("/v1.30"),
+#else
+	  m_api_version("/v1.24"),
+	  m_curlm(NULL),
+	  m_curl(NULL)
+#endif
+{
+	init_docker_conn();
+}
+
+docker_async_source::~docker_async_source()
+{
+	free_docker_conn();
+}
+
+void docker_async_source::run_impl()
+{
+	std::string container_id;
+
+	while (dequeue_next_key(container_id))
+	{
+		container_lookup_result res;
+
+		res.m_successful = true;
+		res.m_container_info.m_type = CT_DOCKER;
+		res.m_container_info.m_id = container_id;
+
+		if(!parse_docker(container_id, &res.m_container_info))
+		{
+			g_logger.format(sinsp_logger::SEV_ERROR, "Failed to get Docker metadata for container %s",
+					container_id.c_str());
+			res.m_successful = false;
+		}
+
+		// Return a result object either way, to ensure any
+		// new container callbacks are called.
+		store_value(container_id, res);
+	}
+}
+
+void docker_async_source::set_top_tid(const std::string &container_id, sinsp_threadinfo *tinfo)
+{
+	top_tid_table::accessor acc;
+
+	m_top_tids.insert(acc, container_id);
+	acc->second = tinfo->m_tid;
+}
+
+int64_t docker_async_source::get_top_tid(const std::string &container_id)
+{
+	top_tid_table::const_accessor cacc;
+
+	if(m_top_tids.find(cacc, container_id))
+	{
+		return cacc->second;
+	}
+
+	g_logger.log("Did not find container id->tid mapping for in-progress container metadata lookup?", sinsp_logger::SEV_ERROR);
+	return 0;
+}
+
+bool docker_async_source::pending_lookup(std::string &container_id)
+{
+	top_tid_table::const_accessor cacc;
+
+	return m_top_tids.find(cacc, container_id);
+}
+
+void docker_async_source::update_top_tid(std::string &container_id, sinsp_threadinfo *tinfo)
+{
+	// See if the current top tid still exists.
+	top_tid_table::const_accessor cacc;
+	sinsp_threadinfo *top_tinfo;
+
+	int64_t top_tid = get_top_tid(container_id);
+
+	if(((top_tinfo = m_inspector->get_thread(top_tid)) == NULL) ||
+	   top_tinfo->m_flags & PPM_CL_CLOSED)
+	{
+		// The top thread no longer exists. Starting with tinfo,
+		// walk the parent heirarchy to find the top thread in
+		// the same container.
+
+		sinsp_threadinfo::visitor_func_t visitor =
+		[&] (sinsp_threadinfo *ptinfo)
+		{
+			// Stop at the first thread not in this container.
+			if(ptinfo->m_container_id != container_id)
+			{
+				return false;
+			}
+
+			// Ignore exited threads but keep traversing.
+			if(ptinfo->m_flags & PPM_CL_CLOSED)
+			{
+				return true;
+			}
+
+			if(ptinfo->m_container_id == container_id)
+			{
+				top_tinfo = ptinfo;
+			}
+
+			return true;
+		};
+
+		top_tinfo = tinfo;
+		tinfo->traverse_parent_state(visitor);
+
+		// At this point, top_tinfo should point to the top
+		// thread of those running in the container.
+		set_top_tid(container_id, top_tinfo);
+	}
+}
+
+bool docker_async_source::m_query_image_info = true;
 
 void docker::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_container_info::container_mount_info> &mounts)
 {
@@ -41,20 +161,106 @@ void docker::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_containe
 	}
 }
 
-void docker::set_query_image_info(bool query_image_info)
+void docker_async_source::set_query_image_info(bool query_image_info)
 {
 	m_query_image_info = query_image_info;
 }
 
-bool docker::parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo)
+bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+{
+	std::string container_id, container_name;
+	sinsp_container_info *existing_container_info;
+
+	if(!g_docker_info_source)
+	{
+		uint64_t max_wait_ms = 10000;
+		docker_async_source *src = new docker_async_source(docker_async_source::NO_WAIT_LOOKUP, max_wait_ms, manager->get_inspector());
+		g_docker_info_source.reset(src);
+	}
+
+	if(!detect_docker(tinfo, container_id, container_name))
+	{
+		return false;
+	}
+
+	tinfo->m_container_id = container_id;
+
+	existing_container_info = manager->get_container(container_id);
+
+	if(!existing_container_info)
+	{
+		// Add a minimal container_info object where only the
+		// container id, (possibly) name, and a container
+		// image=incomplete is filled in. This may be
+		// overidden later once parse_docker_async completes.
+		sinsp_container_info container_info;
+
+		container_info.m_type = CT_UNKNOWN;
+		container_info.m_id = container_id;
+		container_info.m_name = container_name;
+		container_info.m_image="incomplete";
+		container_info.m_metadata_complete = false;
+
+		manager->add_container(container_info, tinfo);
+
+		existing_container_info = manager->get_container(container_id);
+	}
+
+#ifdef HAS_CAPTURE
+	// Possibly start a lookup for this container info
+	if(!existing_container_info->m_metadata_complete &&
+	    query_os_for_missing_info)
+	{
+		if(!g_docker_info_source->pending_lookup(container_id))
+		{
+			// give CRI a chance to return metadata for this container
+			parse_docker_async(manager->get_inspector(), container_id, manager);
+
+			g_docker_info_source->set_top_tid(container_id, tinfo);
+		}
+		else
+		{
+			g_docker_info_source->update_top_tid(container_id, tinfo);
+		}
+	}
+#endif
+
+	// Returning true will prevent other container engines from
+	// trying to resolve the container, so only return true if we
+	// have complete metadata.
+	return existing_container_info->m_metadata_complete;
+}
+
+void docker::parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager)
+{
+	auto cb = [manager](const std::string &container_id, const container_lookup_result &res)
+        {
+		if(res.m_successful)
+		{
+			int64_t top_tid = docker::g_docker_info_source->get_top_tid(container_id);
+			manager->notify_new_container(res.m_container_info, top_tid);
+		}
+	};
+
+        container_lookup_result dummy;
+
+	if (g_docker_info_source->lookup(container_id, dummy, cb))
+	{
+		// This should *never* happen, as ttl is 0 (never wait)
+		g_logger.log("Unexpected immediate return from docker_info_source.lookup()", sinsp_logger::SEV_ERROR);
+	}
+}
+
+bool docker_async_source::parse_docker(std::string &container_id, sinsp_container_info *container)
 {
 	string json;
-	docker_response resp = get_docker(manager, build_request("/containers/" + container->m_id + "/json"), json);
+
+	docker_response resp = get_docker(build_request("/containers/" + container_id + "/json"), json);
 	switch(resp) {
 		case docker_response::RESP_BAD_REQUEST:
 			m_api_version = "";
 			json = "";
-			resp = get_docker(manager, build_request("/containers/" + container->m_id + "/json"), json);
+			resp = get_docker(build_request("/containers/" + container_id + "/json"), json);
 			if (resp == docker_response::RESP_OK)
 			{
 				break;
@@ -117,7 +323,7 @@ bool docker::parse_docker(sinsp_container_manager* manager, sinsp_container_info
 	   (no_name || container->m_imagedigest.empty() || (!container->m_imagedigest.empty() && container->m_imagetag.empty())))
 	{
 		string img_json;
-		if(get_docker(manager, build_request("/images/" + container->m_imageid + "/json?digests=1"), img_json) == docker_response::RESP_OK)
+		if(get_docker(build_request("/images/" + container->m_imageid + "/json?digests=1"), img_json) == docker_response::RESP_OK)
 		{
 			Json::Value img_root;
 			if(reader.parse(img_json, img_root))
@@ -176,27 +382,24 @@ bool docker::parse_docker(sinsp_container_manager* manager, sinsp_container_info
 	const Json::Value& net_obj = root["NetworkSettings"];
 
 	string ip = net_obj["IPAddress"].asString();
+
 	if(ip.empty())
 	{
-		const Json::Value& hconfig_obj = root["HostConfig"];
+ 		const Json::Value& hconfig_obj = root["HostConfig"];
 		string net_mode = hconfig_obj["NetworkMode"].asString();
+
 		if(strncmp(net_mode.c_str(), "container:", strlen("container:")) == 0)
 		{
 			std::string container_id = net_mode.substr(net_mode.find(":") + 1);
-			uint32_t container_ip;
-			const sinsp_container_info *container_info = manager->get_container(container_id);
-			if(container_info)
-			{
-				container_ip = container_info->m_container_ip;
-			}
-			else
-			{
-				sinsp_container_info pcnt;
-				pcnt.m_id = container_id;
-				parse_docker(manager, &pcnt, tinfo);
-				container_ip = pcnt.m_container_ip;
-			}
-			container->m_container_ip = container_ip;
+
+			sinsp_container_info pcnt;
+			pcnt.m_id = container_id;
+
+			// This is a *blocking* fetch of the
+			// secondary container, but we're in a
+			// separate thread so this is ok.
+			parse_docker(container_id, &pcnt);
+			container->m_container_ip = pcnt.m_container_ip;
 		}
 	}
 	else
@@ -280,7 +483,7 @@ bool docker::parse_docker(sinsp_container_manager* manager, sinsp_container_info
 		container->m_privileged = privileged.asBool();
 	}
 
-	parse_json_mounts(root["Mounts"], container->m_mounts);
+	docker::parse_json_mounts(root["Mounts"], container->m_mounts);
 
 #ifdef HAS_ANALYZER
 	sinsp_utils::find_env(container->m_sysdig_agent_conf, container->get_env(), "SYSDIG_AGENT_CONF");
