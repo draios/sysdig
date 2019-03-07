@@ -37,6 +37,9 @@ enum sinsp_container_type
 	CT_CRI = 6,
 	CT_CONTAINERD = 7,
 	CT_CRIO = 8,
+	// This is used when we are still fetching information about a
+	// container and don't exactly know its type yet.
+	CT_UNKNOWN = 9,
 };
 
 // Docker and CRI-compatible runtimes are very similar
@@ -134,7 +137,8 @@ public:
 		m_cpu_period(100000),
 		m_has_healthcheck(false),
 		m_healthcheck_exe(""),
-		m_is_pod_sandbox(false)
+		m_is_pod_sandbox(false),
+		m_metadata_complete(true)
 #ifdef HAS_ANALYZER
 		,m_metadata_deadline(0)
 #endif
@@ -179,6 +183,11 @@ public:
 	std::string m_healthcheck_exe;
 	std::vector<std::string> m_healthcheck_args;
 	bool m_is_pod_sandbox;
+
+	// If false, this represents incomplete information about the
+	// container that will be filled in later as a result of an
+	// async fetch of container info.
+	bool m_metadata_complete;
 #ifdef HAS_ANALYZER
 	std::string m_sysdig_agent_conf;
 	uint64_t m_metadata_deadline;
