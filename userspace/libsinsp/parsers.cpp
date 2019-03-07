@@ -33,6 +33,7 @@ limitations under the License.
 #include <fcntl.h>
 #include <limits>
 
+#include "container_engine/mesos.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "../../driver/ppm_ringbuffer.h"
@@ -4478,7 +4479,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 	ASSERT(parinfo);
 	ASSERT(parinfo->m_len > 0);
 	std::string json(parinfo->m_val, parinfo->m_len);
-	g_logger.log(json, sinsp_logger::SEV_DEBUG);
+	g_logger.format(sinsp_logger::SEV_DEBUG, "Parsing Container JSON=%s", json.c_str());
 	ASSERT(m_inspector);
 	Json::Value root;
 	if(Json::Reader().parse(json, root))
@@ -4499,6 +4500,10 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		if(!name.isNull() && name.isConvertibleTo(Json::stringValue))
 		{
 			container_info.m_name = name.asString();
+			if(container_info.m_type == CT_DOCKER && container_info.m_name.find("k8s_POD") == 0)
+			{
+				container_info.m_is_pod_sandbox = true;
+			}
 		}
 		const Json::Value& image = container["image"];
 		if(!image.isNull() && image.isConvertibleTo(Json::stringValue))
@@ -4546,11 +4551,84 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 
 			container_info.m_container_ip = ntohl(ip);
 		}
+
+		const Json::Value &port_mappings = container["port_mappings"];
+
+		if(!port_mappings.isNull() && port_mappings.isConvertibleTo(Json::arrayValue))
+		{
+			for (Json::Value::ArrayIndex i = 0; i != port_mappings.size(); i++)
+			{
+				sinsp_container_info::container_port_mapping map;
+				map.m_host_ip = port_mappings[i]["HostIp"].asInt();
+				map.m_host_port = (uint16_t) port_mappings[i]["HostPort"].asInt();
+				map.m_container_port = (uint16_t) port_mappings[i]["ContainerPort"].asInt();
+
+				container_info.m_port_mappings.push_back(map);
+			}
+		}
+
+		vector<string> labels = container["labels"].getMemberNames();
+		for(vector<string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+		{
+			string val = container["labels"][*it].asString();
+			container_info.m_labels[*it] = val;
+		}
+
+		const Json::Value& env_vars = container["env"];
+
+		for(const auto& env_var : env_vars)
+		{
+			if(env_var.isString())
+			{
+				container_info.m_env.emplace_back(env_var.asString());
+			}
+		}
+
+		const Json::Value& memory_limit = container["memory_limit"];
+		if(!memory_limit.isNull() && memory_limit.isConvertibleTo(Json::uintValue))
+		{
+			container_info.m_memory_limit = memory_limit.asUInt();
+		}
+
+		const Json::Value& swap_limit = container["swap_limit"];
+		if(!swap_limit.isNull() && swap_limit.isConvertibleTo(Json::uintValue))
+		{
+			container_info.m_swap_limit = swap_limit.asUInt();
+		}
+
+		const Json::Value& cpu_shares = container["cpu_shares"];
+		if(!cpu_shares.isNull() && cpu_shares.isConvertibleTo(Json::uintValue))
+		{
+			container_info.m_cpu_shares = cpu_shares.asUInt();
+		}
+
+		const Json::Value& cpu_quota = container["cpu_quota"];
+		if(!cpu_quota.isNull() && cpu_quota.isConvertibleTo(Json::uintValue))
+		{
+			container_info.m_cpu_quota = cpu_quota.asUInt();
+		}
+
+		const Json::Value& cpu_period = container["cpu_period"];
+		if(!cpu_period.isNull() && cpu_period.isConvertibleTo(Json::uintValue))
+		{
+			container_info.m_cpu_period = cpu_period.asUInt();
+		}
+
 		const Json::Value& mesos_task_id = container["mesos_task_id"];
 		if(!mesos_task_id.isNull() && mesos_task_id.isConvertibleTo(Json::stringValue))
 		{
 			container_info.m_mesos_task_id = mesos_task_id.asString();
 		}
+
+#ifdef HAS_ANALYZER
+		const Json::Value& metadata_deadline = container["metadata_deadline"];
+		// isConvertibleTo doesn't seem to work on large 64 bit numbers
+		if(!metadata_deadline.isNull() && metadata_deadline.isUInt64())
+		{
+			container_info.m_metadata_deadline = metadata_deadline.asUInt64();
+		}
+#endif
+
 		m_inspector->m_container_manager.add_container(container_info, evt->get_thread_info(true));
 		/*
 		g_logger.log("Container\n-------\nID:" + container_info.m_id +
@@ -4559,6 +4637,16 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 					 "\nImage: " + container_info.m_image +
 					 "\nMesos Task ID: " + container_info.m_mesos_task_id, sinsp_logger::SEV_DEBUG);
 		*/
+
+		if(evt->m_tinfo)
+		{
+			if (libsinsp::container_engine::mesos::set_mesos_task_id(&container_info, evt->m_tinfo))
+			{
+				g_logger.format(sinsp_logger::SEV_DEBUG,
+						"Mesos Docker container: [%s], Mesos task ID: [%s]",
+						container_info.m_id.c_str(), container_info.m_mesos_task_id.c_str());
+			}
+		}
 	}
 	else
 	{

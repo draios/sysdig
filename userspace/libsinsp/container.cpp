@@ -175,10 +175,49 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	inet_ntop(AF_INET, &iph, addrbuff, sizeof(addrbuff));
 	container["ip"] = addrbuff;
 
+	Json::Value port_mappings = Json::arrayValue;
+
+	for(auto &mapping : container_info.m_port_mappings)
+	{
+		Json::Value jmap;
+		jmap["HostIp"] = mapping.m_host_ip;
+		jmap["HostPort"] = mapping.m_host_port;
+		jmap["ContainerPort"] = mapping.m_container_port;
+
+		port_mappings.append(jmap);
+	}
+
+	container["port_mappings"] = port_mappings;
+
+	Json::Value labels;
+	for (auto &pair : container_info.m_labels)
+	{
+		labels[pair.first] = pair.second;
+	}
+	container["labels"] = labels;
+
+	Json::Value env_vars = Json::arrayValue;
+
+	for (auto &var : container_info.m_env)
+	{
+		env_vars.append(var);
+	}
+	container["env"] = env_vars;
+
+	container["memory_limit"] = (Json::Value::Int64) container_info.m_memory_limit;
+	container["swap_limit"] = (Json::Value::Int64) container_info.m_swap_limit;
+	container["cpu_shares"] = (Json::Value::Int64) container_info.m_cpu_shares;
+	container["cpu_quota"] = (Json::Value::Int64) container_info.m_cpu_quota;
+	container["cpu_period"] = (Json::Value::Int64) container_info.m_cpu_period;
+
 	if(!container_info.m_mesos_task_id.empty())
 	{
 		container["mesos_task_id"] = container_info.m_mesos_task_id;
 	}
+
+#ifdef HAS_ANALYZER
+	container["metadata_deadline"] = (Json::Value::UInt64) container_info.m_metadata_deadline;
+#endif
 	return Json::FastWriter().write(obj);
 }
 
