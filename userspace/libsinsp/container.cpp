@@ -182,7 +182,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	return Json::FastWriter().write(obj);
 }
 
-bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp_evt* evt)
+bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp_evt* evt, int64_t tid)
 {
 	// TODO: variable event length
 	size_t evt_len = SP_EVT_BUF_SIZE;
@@ -201,7 +201,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 	scap_evt* scapevt = evt->m_pevt;
 
 	scapevt->ts = m_inspector->m_lastevent_ts;
-	scapevt->tid = 0;
+	scapevt->tid = tid;
 	scapevt->len = (uint32_t)totlen;
 	scapevt->type = PPME_CONTAINER_JSON_E;
 	scapevt->nparams = 1;
@@ -231,11 +231,22 @@ void sinsp_container_manager::add_container(const sinsp_container_info& containe
 	}
 }
 
-void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info)
+void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info, int64_t tid)
 {
-	if(container_to_sinsp_event(container_to_json(container_info), &m_inspector->m_meta_evt))
+	sinsp_evt *evt = new sinsp_evt();
+	evt->m_pevt_storage = new char[SP_EVT_BUF_SIZE];
+	evt->m_pevt = (scap_evt *) evt->m_pevt_storage;
+
+	if(container_to_sinsp_event(container_to_json(container_info), evt, tid))
 	{
-		m_inspector->m_meta_evt_pending = true;
+		std::shared_ptr<sinsp_evt> cevt(evt);
+
+		// Enqueue it onto the queue of pending container events for the inspector
+		m_inspector->m_pending_container_evts.push(cevt);
+	}
+	else
+	{
+		delete evt;
 	}
 }
 
