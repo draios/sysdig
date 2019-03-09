@@ -527,6 +527,7 @@ int32_t scap_proc_fill_loginuid(scap_t *handle, struct scap_threadinfo* tinfo, c
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not read loginuid from %s (%s)",
 			 loginuid_path, scap_strerror(handle, errno));
 		fclose(f);
+		return SCAP_FAILURE;
 	}
 
 	fclose(f);
