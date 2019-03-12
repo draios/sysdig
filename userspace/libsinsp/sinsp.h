@@ -879,6 +879,8 @@ public:
 
 	void set_query_docker_image_info(bool query_image_info);
 
+	void set_cri_extra_queries(bool extra_queries);
+
 	void set_fullcapture_port_range(uint16_t range_start, uint16_t range_end);
 
 	void set_cri_socket_path(const std::string& path);

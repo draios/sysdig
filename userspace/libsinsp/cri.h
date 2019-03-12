@@ -31,8 +31,10 @@ namespace libsinsp {
 namespace cri {
 extern std::string s_cri_unix_socket_path;
 extern std::unique_ptr<runtime::v1alpha2::RuntimeService::Stub> s_cri;
+extern std::unique_ptr<runtime::v1alpha2::ImageService::Stub> s_cri_image;
 extern int64_t s_cri_timeout;
 extern sinsp_container_type s_cri_runtime_type;
+extern bool s_cri_extra_queries;
 
 sinsp_container_type get_cri_runtime_type(const std::string &runtime_name);
 
@@ -49,5 +51,9 @@ bool parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info *conta
 bool is_pod_sandbox(const std::string &container_id);
 
 uint32_t get_pod_sandbox_ip(const std::string &pod_sandbox_id);
+
+uint32_t get_container_ip(const std::string &container_id);
+
+std::string get_container_image_id(const std::string &image_ref);
 }
 }

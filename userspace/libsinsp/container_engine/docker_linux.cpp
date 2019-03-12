@@ -19,15 +19,17 @@ limitations under the License.
 
 #include "container_engine/docker.h"
 
+#include "runc.h"
 #include "container_engine/mesos.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 
 using namespace libsinsp::container_engine;
+using namespace libsinsp::runc;
 
-#if defined(HAS_CAPTURE)
 namespace {
 std::string s_docker_unix_socket_path = "/var/run/docker.sock";
+#if defined(HAS_CAPTURE)
 CURLM *s_curlm = NULL;
 CURL *s_curl = NULL;
 
@@ -37,9 +39,14 @@ size_t docker_curl_write_callback(const char* ptr, size_t size, size_t nmemb, st
 	json->append(ptr, total);
 	return total;
 }
-
-}
 #endif
+
+constexpr const cgroup_layout DOCKER_CGROUP_LAYOUT[] = {
+	{"/", ""}, // non-systemd docker
+	{"/docker-", ".scope"}, // systemd docker
+	{nullptr, nullptr}
+};
+}
 
 std::string docker::m_api_version = "/v1.24";
 bool libsinsp::container_engine::docker::m_enabled = true;
@@ -95,7 +102,7 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 		return false;
 	}
 
-	if(detect_docker(tinfo, container_info.m_id))
+	if(matches_runc_cgroups(tinfo, DOCKER_CGROUP_LAYOUT, container_info.m_id))
 	{
 		container_info.m_type = CT_DOCKER;
 		tinfo->m_container_id = container_info.m_id;
@@ -202,42 +209,3 @@ docker::docker_response libsinsp::container_engine::docker::get_docker(sinsp_con
 #endif
 }
 
-bool docker::detect_docker(const sinsp_threadinfo *tinfo, std::string &container_id)
-{
-	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
-	{
-		std::string cgroup = it->second;
-		size_t pos;
-
-		//
-		// Non-systemd Docker
-		//
-		pos = cgroup.find_last_of("/");
-		if(pos != std::string::npos)
-		{
-			if(cgroup.length() - pos - 1 == 64 &&
-			   cgroup.find_first_not_of("0123456789abcdefABCDEF", pos + 1) == std::string::npos)
-			{
-				container_id = cgroup.substr(pos + 1, 12);
-				return true;
-			}
-		}
-
-		//
-		// systemd Docker
-		//
-		pos = cgroup.find("docker-");
-		if(pos != std::string::npos)
-		{
-			size_t pos2 = cgroup.find(".scope");
-			if(pos2 != std::string::npos &&
-			   pos2 - pos - sizeof("docker-") + 1 == 64)
-			{
-				container_id = cgroup.substr(pos + sizeof("docker-") - 1, 12);
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
