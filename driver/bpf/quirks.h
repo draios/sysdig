@@ -28,4 +28,13 @@ or GPL2.txt for full copies of the license.
 #define BPF_SUPPORTS_RAW_TRACEPOINTS
 #endif
 
+/* Redefine asm_volatile_goto to work around clang not supporting it
+ */
+#include <linux/types.h>
+
+#ifdef asm_volatile_goto
+#undef asm_volatile_goto
+#define asm_volatile_goto(...) asm volatile("invalid use of asm_volatile_goto")
+#endif
+
 #endif
