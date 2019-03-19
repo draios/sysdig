@@ -24,6 +24,7 @@ limitations under the License.
 #include <iostream>
 #include <list>
 #include <string>
+#include <vector>
 
 namespace sysdig
 {
