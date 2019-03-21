@@ -1222,6 +1222,7 @@ static int32_t set_default_settings(scap_t *handle)
 	settings.page_faults = false;
 	settings.dropping_mode = false;
 	settings.is_dropping = false;
+	settings.tracers_enabled = false;
 	settings.fullcapture_port_range_start = 0;
 	settings.fullcapture_port_range_end = 0;
 
