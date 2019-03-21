@@ -3874,8 +3874,8 @@ FILLER(sys_ptrace_x, true)
 			return res;
 
 		res = bpf_val_to_ring_dyn(data, 0, PT_UINT64, 0);
-		if (res != PPM_SUCCESS)
-			return res;
+
+		return res;
 	}
 
 	val = bpf_syscall_get_argument(data, 0);
