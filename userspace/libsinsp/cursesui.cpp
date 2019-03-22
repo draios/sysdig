@@ -112,6 +112,10 @@ void json_spy_renderer::process_event_spy(sinsp_evt* evt, int32_t next_res)
 		Json::Value line;
 		m_linecnt++;
 
+		uint64_t ts = evt->get_ts(); 
+		line["ta"] = to_string(ts);
+		line["td"] = to_string(ts - m_inspector->m_firstevent_ts);
+
 		ppm_event_flags eflags = evt->get_info_flags();
 		if(eflags & EF_READS_FROM_FD)
 		{
@@ -124,15 +128,20 @@ void json_spy_renderer::process_event_spy(sinsp_evt* evt, int32_t next_res)
 
 		line["v"] = argstr;
 		line["l"] = to_string(len);
+
 		string fdname = evt->get_fd_info()->m_name;
 		string tc;
 		tc.push_back(evt->get_fd_info()->get_typechar());
 		int64_t fdnum = evt->get_fd_num();
 
+		line["fd"] = to_string(fdnum);
+		line["ft"] = string(tc);
+
 		if(fdname != "")
 		{
 			sanitize_string(fdname);
 			line["f"] = to_string(fdnum) + "(<" + string(tc) + ">" + fdname + ")";
+			line["fn"] = fdname;
 		}
 		else
 		{
