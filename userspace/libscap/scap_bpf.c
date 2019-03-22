@@ -551,7 +551,7 @@ static int32_t load_bpf_file(scap_t *handle, const char *path)
 		return SCAP_FAILURE;
 	}
 
-	Elf *elf = elf_begin(program_fd, ELF_C_READ, NULL);
+	Elf *elf = elf_begin(program_fd, ELF_C_READ_MMAP_PRIVATE, NULL);
 	if(!elf)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't read ELF format");
@@ -1222,6 +1222,7 @@ static int32_t set_default_settings(scap_t *handle)
 	settings.page_faults = false;
 	settings.dropping_mode = false;
 	settings.is_dropping = false;
+	settings.tracers_enabled = false;
 	settings.fullcapture_port_range_start = 0;
 	settings.fullcapture_port_range_end = 0;
 
