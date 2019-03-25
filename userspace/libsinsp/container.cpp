@@ -147,6 +147,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["imagetag"] = container_info.m_imagetag;
 	container["imagedigest"] = container_info.m_imagedigest;
 	container["privileged"] = container_info.m_privileged;
+	container["is_pod_sandbox"] = container_info.m_is_pod_sandbox;
 
 	Json::Value mounts = Json::arrayValue;
 
