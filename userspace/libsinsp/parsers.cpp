@@ -4500,11 +4500,14 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		if(!name.isNull() && name.isConvertibleTo(Json::stringValue))
 		{
 			container_info.m_name = name.asString();
-			if(container_info.m_type == CT_DOCKER && container_info.m_name.find("k8s_POD") == 0)
-			{
-				container_info.m_is_pod_sandbox = true;
-			}
 		}
+
+		const Json::Value& is_pod_sandbox = container["isPodSandbox"];
+		if(!is_pod_sandbox.isNull() && is_pod_sandbox.isConvertibleTo(Json::booleanValue))
+		{
+			container_info.m_is_pod_sandbox = is_pod_sandbox.asBool();
+		}
+
 		const Json::Value& image = container["image"];
 		if(!image.isNull() && image.isConvertibleTo(Json::stringValue))
 		{
