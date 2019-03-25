@@ -50,10 +50,12 @@ int32_t scap_create_userlist(scap_t* handle)
 	//
 	// First pass: count the number of users and the number of groups
 	//
+	setpwent();
 	p = getpwent();
 	for(usercnt = 0; p; p = getpwent(), usercnt++); 
 	endpwent();
 
+	setgrent();
 	g = getgrent();
 	for(grpcnt = 0; g; g = getgrent(), grpcnt++);
 	endgrent();
@@ -93,6 +95,7 @@ int32_t scap_create_userlist(scap_t* handle)
 	//
 
 	//users
+	setpwent();
 	p = getpwent();
 
 	for(usercnt = 0; p; p = getpwent(), usercnt++)
@@ -139,6 +142,7 @@ int32_t scap_create_userlist(scap_t* handle)
 	endpwent();
 
 	// groups
+	setgrent();
 	g = getgrent();
 
 	for(grpcnt = 0; g; g = getgrent(), grpcnt++)
