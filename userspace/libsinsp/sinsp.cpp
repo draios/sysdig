@@ -63,7 +63,8 @@ void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_thr
 ///////////////////////////////////////////////////////////////////////////////
 sinsp::sinsp() :
 	m_evt(this),
-	m_container_manager(this)
+	m_container_manager(this),
+	m_suppressed_comms()
 {
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	// used by mesos and container_manager
@@ -168,6 +169,7 @@ sinsp::sinsp() :
 #endif
 
 	m_filter_proc_table_when_saving = false;
+
 }
 
 sinsp::~sinsp()
@@ -221,6 +223,7 @@ sinsp::~sinsp()
 	sinsp_dns_manager::get().cleanup();
 #endif
 #endif
+
 }
 
 void sinsp::add_protodecoders()

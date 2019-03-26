@@ -78,25 +78,20 @@ using namespace std;
 #define VISIBILITY_PRIVATE private:
 #endif
 
-#define ONE_SECOND_IN_NS 1000000000LL
+#ifdef DRAIOS_TEST
+#define SINSP_TEST_VIRTUAL virtual
+#else
+#define SINSP_TEST_VIRTUAL
+#endif // DRAIOS_TEST
 
-//
-// Protocol decoder callback type
-//
-typedef enum sinsp_pd_callback_type
-{
-	CT_OPEN,
-	CT_CONNECT,
-	CT_READ,
-	CT_WRITE,
-	CT_TUPLE_CHANGE,
-}sinsp_pd_callback_type;
+#define ONE_SECOND_IN_NS 1000000000LL
 
 #include "tuples.h"
 #include "fdinfo.h"
 #include "threadinfo.h"
 #include "ifinfo.h"
 #include "eventformatter.h"
+#include "sinsp_pd_callback_type.h"
 
 class sinsp_partial_transaction;
 class sinsp_parser;
@@ -236,11 +231,12 @@ public:
 class SINSP_PUBLIC sinsp
 {
 public:
+	typedef std::shared_ptr<sinsp> ptr;
 	typedef std::set<std::string> k8s_ext_list_t;
 	typedef std::shared_ptr<k8s_ext_list_t> k8s_ext_list_ptr_t;
 
 	sinsp();
-	~sinsp();
+	SINSP_TEST_VIRTUAL ~sinsp();
 
 	/*!
 	  \brief Start a live event capture.
@@ -251,7 +247,7 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
-	void open(uint32_t timeout_ms = SCAP_TIMEOUT_MS);
+	SINSP_TEST_VIRTUAL void open(uint32_t timeout_ms = SCAP_TIMEOUT_MS);
 
 	/*!
 	  \brief Start an event capture from a trace file.
@@ -293,9 +289,9 @@ public:
 	   obtain the cause of the error.
 
 	  \note: the returned event can be considered valid only until the next
-	   call to \ref next()
+	   call to \ref)
 	*/
-	int32_t next(OUT sinsp_evt** evt);
+	SINSP_TEST_VIRTUAL int32_t next(OUT sinsp_evt **evt);
 
 	/*!
 	  \brief Get the number of events that have been captured and processed
@@ -548,7 +544,7 @@ public:
 
 	  \note this call won't work on file captures.
 	*/
-	void get_capture_stats(scap_stats* stats);
+	SINSP_TEST_VIRTUAL void get_capture_stats(scap_stats *stats);
 
 	void set_max_thread_table_size(uint32_t value);
 
@@ -886,6 +882,20 @@ public:
 	void set_cri_socket_path(const std::string& path);
 	void set_cri_timeout(int64_t timeout_ms);
 
+protected:
+#ifdef DRAIOS_TEST
+	void inject_machine_info(const scap_machine_info *value)
+	{
+		m_machine_info = value;
+	}
+	void inject_network_interfaces(sinsp_network_interfaces *value)
+	{
+		m_network_interfaces = value;
+	}
+#endif // DRAIOS_TEST
+
+	bool add_thread(const sinsp_threadinfo *ptinfo);
+
 VISIBILITY_PRIVATE
 
         static inline ppm_event_flags falco_skip_flags()
@@ -897,14 +907,13 @@ VISIBILITY_PRIVATE
 private:
 #endif
 
-	void open_int();
 	void init();
+	void open_int();
 	void import_thread_table();
 	void import_ifaddr_list();
 	void import_user_list();
 	void add_protodecoders();
 
-	bool add_thread(const sinsp_threadinfo *ptinfo);
 	void remove_thread(int64_t tid, bool force);
 
 	//
@@ -1179,7 +1188,7 @@ public:
 
 	// Any thread with a comm in this set will not have its events
 	// returned in sinsp::next()
-	std::set<std::string> m_suppressed_comms;
+	std::set<std::string>  m_suppressed_comms;
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;
