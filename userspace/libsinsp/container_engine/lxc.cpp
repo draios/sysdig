@@ -43,6 +43,17 @@ bool lxc::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 			matches = true;
 			break;
 		}
+
+		pos = cgroup.find("/lxc.payload/");
+		if(pos != std::string::npos)
+		{
+			auto id_start = pos + sizeof("/lxc.payload/") - 1;
+			auto id_end = cgroup.find('/', id_start);
+			container_info.m_type = CT_LXC;
+			container_info.m_id = cgroup.substr(id_start, id_end - id_start);
+			matches = true;
+			break;
+		}
 	}
 
 	if (!matches)
