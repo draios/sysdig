@@ -213,7 +213,7 @@ bool parse_cri_json_image(const Json::Value &info, sinsp_container_info *contain
 bool parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info *container)
 {
 	const Json::Value *linux = nullptr;
-	if(!walk_down_json(info, &linux, "runtimeSpec", "linux") || !linux->isArray())
+	if(!walk_down_json(info, &linux, "runtimeSpec", "linux") || !linux->isObject())
 	{
 		return false;
 	}
