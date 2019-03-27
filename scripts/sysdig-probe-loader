@@ -283,14 +283,15 @@ load_bpf_probe() {
 ARCH=$(uname -m)
 KERNEL_RELEASE=$(uname -r)
 SCRIPT_NAME=$(basename "${0}")
-SYSDIG_PROBE_URL=${SYSDIG_PROBE_URL:-https://s3.amazonaws.com/download.draios.com}
+CONFIG_FILE="/etc/sysdig/${SCRIPT_NAME}"
+if [[ -f "${CONFIG_FILE}" ]]; then
+        source "${CONFIG_FILE}"
+fi
+: ${SYSDIG_PROBE_URL:=http://download.draios.com}
+: ${SYSDIG_REPOSITORY:=stable}
 MAX_RMMOD_WAIT=60
 if [[ $# -ge 1 ]]; then
 	MAX_RMMOD_WAIT=$1
-fi
-
-if [ -z "${SYSDIG_REPOSITORY}" ]; then
-	SYSDIG_REPOSITORY="stable"
 fi
 
 if [ "${SCRIPT_NAME}" = "sysdig-probe-loader" ]; then
