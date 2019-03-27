@@ -75,7 +75,7 @@ using namespace std;
 #include "utils.h"
 
 #ifndef VISIBILITY_PRIVATE
-// Some code will predefine these options so that a class has full access to sinsp
+// Some code defines VISIBILITY_PRIVATE to nothing to get private access to sinsp
 #define VISIBILITY_PRIVATE private:
 #define VISIBILITY_PROTECTED protected:
 #else
@@ -1175,7 +1175,7 @@ public:
 
 	// Any thread with a comm in this set will not have its events
 	// returned in sinsp::next()
-	std::set<std::string>  m_suppressed_comms;
+	std::set<std::string> m_suppressed_comms;
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;

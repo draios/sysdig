@@ -169,7 +169,6 @@ sinsp::sinsp() :
 #endif
 
 	m_filter_proc_table_when_saving = false;
-
 }
 
 sinsp::~sinsp()
@@ -223,7 +222,6 @@ sinsp::~sinsp()
 	sinsp_dns_manager::get().cleanup();
 #endif
 #endif
-
 }
 
 void sinsp::add_protodecoders()
