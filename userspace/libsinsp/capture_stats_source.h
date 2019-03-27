@@ -25,7 +25,7 @@ class scap_stats;
 /**
  * Interface to an object that can provide capture statistics.
  *
- * Note that this intention here is to apply the Interface Segregation
+ * Note that the intention here is to apply the Interface Segregation
  * Principle (ISP) to class sinsp.  Some clients of sinsp need only the
  * get_capture_stats() API, and this interface exposes only that API.  Do
  * not add additional APIs here.  If some client of sinsp needs a different
