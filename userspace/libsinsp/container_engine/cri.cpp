@@ -199,13 +199,7 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 	sinsp_container_info container_info;
 	sinsp_container_info *existing_container_info;
 
-	if(matches_runc_cgroups(tinfo, CRI_CGROUP_LAYOUT, container_info.m_id))
-	{
-		// It might also be a docker container, so set the type
-		// to UNKNOWN for now.
-		container_info.m_type = CT_UNKNOWN;
-	}
-	else
+	if(!matches_runc_cgroups(tinfo, CRI_CGROUP_LAYOUT, container_info.m_id))
 	{
 		return false;
 	}
@@ -214,7 +208,7 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 	existing_container_info = manager->get_container(container_info.m_id);
 
 	if (!existing_container_info ||
-	    existing_container_info->m_type == CT_UNKNOWN)
+	    existing_container_info->m_metadata_complete == false)
 	{
 		if (query_os_for_missing_info)
 		{

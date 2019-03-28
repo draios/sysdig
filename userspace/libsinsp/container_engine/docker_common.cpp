@@ -195,7 +195,7 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 		// overidden later once parse_docker_async completes.
 		sinsp_container_info container_info;
 
-		container_info.m_type = CT_UNKNOWN;
+		container_info.m_type = CT_DOCKER;
 		container_info.m_id = container_id;
 		container_info.m_name = container_name;
 		container_info.m_image="incomplete";
