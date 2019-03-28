@@ -46,6 +46,8 @@ limitations under the License.
 #pragma warning(disable: 4251 4200 4221 4190)
 #endif
 
+#include "tbb/concurrent_queue.h"
+
 #include "sinsp_inet.h"
 #include "sinsp_public.h"
 
@@ -1162,6 +1164,14 @@ public:
 	sinsp_evt* m_metaevt;
 	meta_event_callback m_meta_event_callback;
 	void* m_meta_event_callback_data;
+
+	// A queue of pending container events. Written from async
+	// callbacks that occur after looking up container
+	// information, read from sinsp::next().
+	tbb::concurrent_queue<shared_ptr<sinsp_evt>> m_pending_container_evts;
+
+	// Holds an event dequeued from the above queue
+	std::shared_ptr<sinsp_evt> m_container_evt;
 
 	//
 	// End of second housekeeping

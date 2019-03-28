@@ -190,7 +190,7 @@ bool rkt::rkt::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo
 	if (have_rkt)
 	{
 		manager->add_container(container_info, tinfo);
-		manager->notify_new_container(container_info);
+		manager->notify_new_container(container_info, tinfo->m_tid);
 		return true;
 	}
 	else
