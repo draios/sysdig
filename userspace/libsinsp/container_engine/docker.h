@@ -108,8 +108,15 @@ private:
 	// exists. These associations are only maintained while an
 	// async lookup of container information is in progress. We
 	// use this to ensure that the tid of the CONTAINER_JSON event
-	// we eventually emit is the top running thread in the
-	// container.
+	// we eventually emit is a valid thread, and the top running
+	// thread, in the container.
+	//
+        // We want the container event to have a valid thread because
+        // all the container.* filterchecks first look up the
+        // threadinfo for the event and then use the threadinfo's
+        // m_container_id to look up to the container. If the container
+        // event didn't have a valid threadinfo, that lookup would
+        // fail and the container.* filterchecks would not return anything.
 	typedef tbb::concurrent_hash_map<std::string, int64_t> top_tid_table;
 	top_tid_table m_top_tids;
 };
