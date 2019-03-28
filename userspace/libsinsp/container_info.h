@@ -37,9 +37,6 @@ enum sinsp_container_type
 	CT_CRI = 6,
 	CT_CONTAINERD = 7,
 	CT_CRIO = 8,
-	// This is used when we are still fetching information about a
-	// container and don't exactly know its type yet.
-	CT_UNKNOWN = 9,
 };
 
 // Docker and CRI-compatible runtimes are very similar
