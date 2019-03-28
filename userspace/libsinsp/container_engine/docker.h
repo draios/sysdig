@@ -36,10 +36,9 @@ limitations under the License.
 
 #include "async_key_value_source.h"
 
-#include "sinsp.h"
-
 #include "container_info.h"
 
+class sinsp;
 class sinsp_container_manager;
 class sinsp_container_info;
 class sinsp_threadinfo;
