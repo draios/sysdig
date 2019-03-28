@@ -171,16 +171,16 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	std::string container_id, container_name;
 	sinsp_container_info *existing_container_info;
 
+	if(!detect_docker(tinfo, container_id, container_name))
+	{
+		return false;
+	}
+
 	if(!g_docker_info_source)
 	{
 		uint64_t max_wait_ms = 10000;
 		docker_async_source *src = new docker_async_source(docker_async_source::NO_WAIT_LOOKUP, max_wait_ms, manager->get_inspector());
 		g_docker_info_source.reset(src);
-	}
-
-	if(!detect_docker(tinfo, container_id, container_name))
-	{
-		return false;
 	}
 
 	tinfo->m_container_id = container_id;
