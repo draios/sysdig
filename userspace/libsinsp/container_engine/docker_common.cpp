@@ -215,7 +215,7 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	{
 		if(!g_docker_info_source->pending_lookup(container_id))
 		{
-			// give CRI a chance to return metadata for this container
+			// give docker a chance to return metadata for this container
 			parse_docker_async(manager->get_inspector(), container_id, manager);
 
 			g_docker_info_source->set_top_tid(container_id, tinfo);
