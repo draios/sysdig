@@ -162,7 +162,7 @@ if(NOT WIN32)
 				COMMENT "Generate CRI grpc code"
 				DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cri.proto
 				COMMAND ${PROTOC} -I ${CMAKE_CURRENT_SOURCE_DIR} --cpp_out=. ${CMAKE_CURRENT_SOURCE_DIR}/cri.proto
-				COMMAND ${PROTOC} -I ${CMAKE_CURRENT_SOURCE_DIR} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_SRC}/bins/opt/grpc_cpp_plugin ${CMAKE_CURRENT_SOURCE_DIR}/cri.proto
+				COMMAND ${PROTOC} -I ${CMAKE_CURRENT_SOURCE_DIR} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} ${CMAKE_CURRENT_SOURCE_DIR}/cri.proto
 				WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 		add_dependencies(sinsp grpc)
