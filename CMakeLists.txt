@@ -475,7 +475,7 @@ if(NOT WIN32 AND NOT APPLE)
 
 	option(USE_BUNDLED_GRPC "Enable building of the bundled grpc" ${USE_BUNDLED_DEPS})
 	if(NOT USE_BUNDLED_GRPC)
-		find_path(GRPC_INCLUDE grpc++/impl/codegen/rpc_method.h)
+		find_path(GRPC_INCLUDE grpc++/grpc++.h)
 		find_library(GRPC_LIB NAMES grpc_unsecure)
 		find_library(GRPCPP_LIB NAMES grpc++_unsecure)
 		if(GRPC_INCLUDE AND GRPC_LIB AND GRPCPP_LIB)
