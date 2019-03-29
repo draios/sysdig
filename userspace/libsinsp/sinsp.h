@@ -1206,7 +1206,7 @@ public:
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 
-#ifdef DRAIOS_TEST
+#ifdef SYSDIG_TEST
 protected:
 	void inject_machine_info(const scap_machine_info *value)
 	{
@@ -1216,7 +1216,7 @@ protected:
 	{
 		m_network_interfaces = value;
 	}
-#endif // DRAIOS_TEST
+#endif // SYSDIG_TEST
 };
 
 /*@}*/
