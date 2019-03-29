@@ -894,8 +894,8 @@ VISIBILITY_PRIVATE
 private:
 #endif
 
-	void init();
 	void open_int();
+	void init();
 	void import_thread_table();
 	void import_ifaddr_list();
 	void import_user_list();
