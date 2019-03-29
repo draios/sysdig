@@ -34,6 +34,12 @@ limitations under the License.
 typedef class sinsp sinsp;
 typedef class sinsp_threadinfo sinsp_threadinfo;
 
+
+namespace test_helpers {
+	class event_builder;
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // Event arguments
 ///////////////////////////////////////////////////////////////////////////////
@@ -151,6 +157,14 @@ public:
 	sinsp_evt();
 	sinsp_evt(sinsp* inspector);
 	~sinsp_evt();
+
+	/*!
+	  \brief Set the inspector.
+	*/
+	void inspector(sinsp *value)
+	{
+		m_inspector = value;
+	}
 
 	/*!
 	  \brief Get the incremental number of this event.
@@ -371,6 +385,16 @@ private:
 		m_evtnum = 0;
 		m_poriginal_evt = NULL;
 	}
+	inline void init(scap_evt *scap_event,
+			 ppm_event_info * ppm_event,
+			 sinsp_threadinfo *threadinfo,
+			 sinsp_fdinfo_t *fdinfo)
+	{
+		m_pevt = scap_event;
+		m_info = ppm_event;
+		m_tinfo = threadinfo;
+		m_fdinfo = fdinfo;
+	}
 	inline void load_params()
 	{
 		uint32_t j;
@@ -456,6 +480,7 @@ VISIBILITY_PRIVATE
 	friend class capture_job;
 	friend class sinsp_memory_dumper;
 	friend class sinsp_memory_dumper_job;
+	friend class test_helpers::event_builder;
 };
 
 /*@}*/
