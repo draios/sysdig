@@ -18,9 +18,9 @@ limitations under the License.
 */
 
 #pragma once
+#include "sinsp_pd_callback_type.h"
 #include <unordered_map>
 #include <vector>
-#include "sinsp_pd_callback_type.h"
 
 #ifdef _WIN32
 #define CANCELED_FD_NUMBER INT64_MAX

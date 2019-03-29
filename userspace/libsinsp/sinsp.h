@@ -112,7 +112,7 @@ class k8s_handler;
 class k8s_api_handler;
 #endif // HAS_CAPTURE
 
-std::vector<string> sinsp_split(const string &s, char delim);
+std::vector<std::string> sinsp_split(const std::string &s, char delim);
 
 /*!
   \brief Information about a chisel
@@ -121,7 +121,7 @@ class sinsp_chisel_details
 {
 public:
 	std::string m_name;
-	std::vector<pair<string, string>> m_args;
+	std::vector<pair<std::string, std::string>> m_args;
 };
 
 /*!
