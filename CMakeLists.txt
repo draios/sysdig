@@ -422,7 +422,7 @@ endif() # NOT WIN32 AND NOT APPLE
 if(NOT WIN32 AND NOT APPLE)
 	option(USE_BUNDLED_CARES "Enable building of the bundled c-ares" ${USE_BUNDLED_DEPS})
 	if(NOT USE_BUNDLED_CARES)
-		find_path(CARES_INCLUDE NAMES cares/ares.h)
+		find_path(CARES_INCLUDE NAMES cares/ares.h ares.h)
 		find_library(CARES_LIB NAMES cares)
 		if(CARES_INCLUDE AND CARES_LIB)
 			message(STATUS "Found c-ares: include: ${CARES_INCLUDE}, lib: ${CARES_LIB}")
