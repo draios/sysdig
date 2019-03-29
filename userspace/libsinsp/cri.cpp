@@ -20,7 +20,11 @@ limitations under the License.
 #include "cri.h"
 
 #include <chrono>
-#include <grpc++/grpc++.h>
+#ifdef GRPC_INCLUDE_IS_GRPCPP
+#	include <grpcpp/grpcpp.h>
+#else
+#	include <grpc++/grpc++.h>
+#endif
 
 #include "sinsp.h"
 #include "sinsp_int.h"
