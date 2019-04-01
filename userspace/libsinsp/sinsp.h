@@ -75,28 +75,21 @@ using namespace std;
 #include "utils.h"
 
 #ifndef VISIBILITY_PRIVATE
+// Some code defines VISIBILITY_PRIVATE to nothing to get private access to sinsp
 #define VISIBILITY_PRIVATE private:
+#define VISIBILITY_PROTECTED protected:
+#else
+#define VISIBILITY_PROTECTED
 #endif
 
 #define ONE_SECOND_IN_NS 1000000000LL
-
-//
-// Protocol decoder callback type
-//
-typedef enum sinsp_pd_callback_type
-{
-	CT_OPEN,
-	CT_CONNECT,
-	CT_READ,
-	CT_WRITE,
-	CT_TUPLE_CHANGE,
-}sinsp_pd_callback_type;
 
 #include "tuples.h"
 #include "fdinfo.h"
 #include "threadinfo.h"
 #include "ifinfo.h"
 #include "eventformatter.h"
+#include "sinsp_pd_callback_type.h"
 
 class sinsp_partial_transaction;
 class sinsp_parser;
@@ -119,7 +112,7 @@ class k8s_handler;
 class k8s_api_handler;
 #endif // HAS_CAPTURE
 
-vector<string> sinsp_split(const string &s, char delim);
+std::vector<std::string> sinsp_split(const std::string &s, char delim);
 
 /*!
   \brief Information about a chisel
@@ -127,8 +120,8 @@ vector<string> sinsp_split(const string &s, char delim);
 class sinsp_chisel_details
 {
 public:
-	string m_name;
-	vector<pair<string, string>> m_args;
+	std::string m_name;
+	std::vector<pair<std::string, std::string>> m_args;
 };
 
 /*!
@@ -236,11 +229,12 @@ public:
 class SINSP_PUBLIC sinsp
 {
 public:
+	typedef std::shared_ptr<sinsp> ptr;
 	typedef std::set<std::string> k8s_ext_list_t;
 	typedef std::shared_ptr<k8s_ext_list_t> k8s_ext_list_ptr_t;
 
 	sinsp();
-	~sinsp();
+	virtual ~sinsp();
 
 	/*!
 	  \brief Start a live event capture.
@@ -251,7 +245,7 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
-	void open(uint32_t timeout_ms = SCAP_TIMEOUT_MS);
+	virtual void open(uint32_t timeout_ms = SCAP_TIMEOUT_MS);
 
 	/*!
 	  \brief Start an event capture from a trace file.
@@ -293,9 +287,9 @@ public:
 	   obtain the cause of the error.
 
 	  \note: the returned event can be considered valid only until the next
-	   call to \ref next()
+	   call to \ref)
 	*/
-	int32_t next(OUT sinsp_evt** evt);
+	virtual int32_t next(OUT sinsp_evt **evt);
 
 	/*!
 	  \brief Get the number of events that have been captured and processed
@@ -454,7 +448,7 @@ public:
 	  \brief Populate the given vector with the full list of filter check fields
 	   that this version of the library supports.
 	*/
-	static void get_filtercheck_fields_info(vector<const filter_check_info*>* list);
+	static void get_filtercheck_fields_info(std::vector<const filter_check_info*>* list);
 
 	bool has_metrics();
 
@@ -548,7 +542,7 @@ public:
 
 	  \note this call won't work on file captures.
 	*/
-	void get_capture_stats(scap_stats* stats);
+	virtual void get_capture_stats(scap_stats *stats);
 
 	void set_max_thread_table_size(uint32_t value);
 
@@ -743,7 +737,7 @@ public:
 
 	  \param the name of the required decoder
 	*/
-	sinsp_protodecoder* require_protodecoder(string decoder_name);
+	sinsp_protodecoder* require_protodecoder(std::string decoder_name);
 
 	/*!
 	  \brief Lets a filter plugin request a protocol decoder.
@@ -756,7 +750,7 @@ public:
 	  \brief If this is an offline capture, return the name of the file that is
 	   being read, otherwise return an empty string.
 	*/
-	string get_input_filename()
+	std::string get_input_filename()
 	{
 		return m_input_filename;
 	}
@@ -790,12 +784,12 @@ public:
 	double get_read_progress();
 
 #ifndef CYGWING_AGENT
-	void init_k8s_ssl(const string *ssl_cert);
-	void init_k8s_client(string* api_server, string* ssl_cert, bool verbose = false);
+	void init_k8s_ssl(const std::string *ssl_cert);
+	void init_k8s_client(std::string* api_server, std::string* ssl_cert, bool verbose = false);
 	void make_k8s_client();
 	k8s* get_k8s_client() const { return m_k8s_client; }
 
-	void init_mesos_client(string* api_server, bool verbose = false);
+	void init_mesos_client(std::string* api_server, bool verbose = false);
 	mesos* get_mesos_client() const { return m_mesos_client; }
 #endif
 
@@ -829,7 +823,7 @@ public:
 
 	sinsp_parser* get_parser();
 
-	bool setup_cycle_writer(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
+	bool setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
 	void add_meta_event(sinsp_evt *metaevt);
 	void add_meta_event_callback(meta_event_callback cback, void* data);
@@ -846,8 +840,8 @@ public:
 		scap_refresh_proc_table(m_h);
 	}
 	void set_simpledriver_mode();
-	vector<long> get_n_tracepoint_hit();
-	void set_bpf_probe(const string& bpf_probe);
+	std::vector<long> get_n_tracepoint_hit();
+	void set_bpf_probe(const std::string& bpf_probe);
 
 	static unsigned num_possible_cpus();
 #ifdef CYGWING_AGENT
@@ -886,6 +880,9 @@ public:
 	void set_cri_socket_path(const std::string& path);
 	void set_cri_timeout(int64_t timeout_ms);
 
+VISIBILITY_PROTECTED
+	bool add_thread(const sinsp_threadinfo *ptinfo);
+
 VISIBILITY_PRIVATE
 
         static inline ppm_event_flags falco_skip_flags()
@@ -904,7 +901,6 @@ private:
 	void import_user_list();
 	void add_protodecoders();
 
-	bool add_thread(const sinsp_threadinfo *ptinfo);
 	void remove_thread(int64_t tid, bool force);
 
 	//
@@ -991,9 +987,9 @@ private:
 	// If non-zero, reading from this fd and m_input_filename contains "fd
 	// <m_input_fd>". Otherwise, reading from m_input_filename.
 	int m_input_fd;
-	string m_input_filename;
+	std::string m_input_filename;
 	bool m_bpf;
-	string m_bpf_probe;
+	std::string m_bpf_probe;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;
 	bool m_isinternal_events_enabled;
@@ -1002,10 +998,10 @@ private:
 	uint32_t m_max_evt_output_len;
 	bool m_compress;
 	sinsp_evt m_evt;
-	string m_lasterr;
+	std::string m_lasterr;
 	int64_t m_tid_to_remove;
 	int64_t m_tid_of_fd_to_remove;
-	vector<int64_t>* m_fds_to_remove;
+	std::vector<int64_t>* m_fds_to_remove;
 	uint64_t m_lastevent_ts;
 	// the parsing engine
 	sinsp_parser* m_parser;
@@ -1033,8 +1029,8 @@ public:
 	// Kubernetes
 	//
 #ifndef CYGWING_AGENT
-	string* m_k8s_api_server;
-	string* m_k8s_api_cert;
+	std::string* m_k8s_api_server;
+	std::string* m_k8s_api_cert;
 #ifdef HAS_CAPTURE
 	std::shared_ptr<sinsp_ssl> m_k8s_ssl;
 	std::shared_ptr<sinsp_bearer_token> m_k8s_bt;
@@ -1052,8 +1048,8 @@ public:
 	//
 	// Mesos/Marathon
 	//
-	string m_mesos_api_server;
-	vector<string> m_marathon_api_server;
+	std::string m_mesos_api_server;
+	std::vector<std::string> m_marathon_api_server;
 	mesos* m_mesos_client;
 	uint64_t m_mesos_last_watch_time_ns;
 
@@ -1073,7 +1069,7 @@ public:
 	uint64_t m_firstevent_ts;
 	sinsp_filter* m_filter;
 	sinsp_evttype_filter *m_evttype_filter;
-	string m_filterstring;
+	std::string m_filterstring;
 
 #endif
 
@@ -1088,7 +1084,7 @@ public:
 	int32_t m_max_n_proc_lookups = -1;
 	int32_t m_max_n_proc_socket_lookups = -1;
 #ifdef HAS_ANALYZER
-	vector<uint64_t> m_tid_collisions;
+	std::vector<uint64_t> m_tid_collisions;
 #endif
 
 	//
@@ -1144,7 +1140,7 @@ public:
 	//
 	// Protocol decoding state
 	//
-	vector<sinsp_protodecoder*> m_decoders_reset_list;
+	std::vector<sinsp_protodecoder*> m_decoders_reset_list;
 
 	//
 	// Containers meta event management
@@ -1209,6 +1205,18 @@ public:
 	friend class sinsp_network_interfaces;
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
+
+#ifdef SYSDIG_TEST
+protected:
+	void inject_machine_info(const scap_machine_info *value)
+	{
+		m_machine_info = value;
+	}
+	void inject_network_interfaces(sinsp_network_interfaces *value)
+	{
+		m_network_interfaces = value;
+	}
+#endif // SYSDIG_TEST
 };
 
 /*@}*/

@@ -63,7 +63,8 @@ void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_thr
 ///////////////////////////////////////////////////////////////////////////////
 sinsp::sinsp() :
 	m_evt(this),
-	m_container_manager(this)
+	m_container_manager(this),
+	m_suppressed_comms()
 {
 #if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	// used by mesos and container_manager

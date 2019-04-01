@@ -20,7 +20,11 @@ limitations under the License.
 #include "container_engine/cri.h"
 
 #include <sys/stat.h>
-#include <grpc++/grpc++.h>
+#ifdef GRPC_INCLUDE_IS_GRPCPP
+#	include <grpcpp/grpcpp.h>
+#else
+#	include <grpc++/grpc++.h>
+#endif
 #include "cri.pb.h"
 #include "cri.grpc.pb.h"
 
