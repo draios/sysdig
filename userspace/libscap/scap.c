@@ -1973,6 +1973,8 @@ bool scap_get_bpf_enabled(scap_t *handle)
 	{
 		return handle->m_bpf;
 	}
+
+	return false;
 }
 
 int32_t scap_suppress_events_comm(scap_t *handle, const char *comm)
