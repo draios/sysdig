@@ -2432,6 +2432,8 @@ bool sinsp::is_bpf_enabled()
 	{
 		return scap_get_bpf_enabled(m_h);
 	}
+
+	return false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
