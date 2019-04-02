@@ -462,7 +462,7 @@ if(NOT WIN32 AND NOT APPLE)
 		set(PROTOBUF_LIB "${PROTOBUF_SRC}/target/lib/libprotobuf.a")
 		ExternalProject_Add(protobuf
 		DEPENDS openssl zlib
-		URL "http://github.com/google/protobuf/releases/download/v3.5.0/protobuf-cpp-3.5.0.tar.gz"
+		URL "http://download.sysdig.com/dependencies/protobuf-cpp-3.5.0.tar.gz"
 		URL_MD5 "e4ba8284a407712168593e79e6555eb2"
 		# TODO what if using system zlib?
 		CONFIGURE_COMMAND /usr/bin/env CPPFLAGS=-I${ZLIB_INCLUDE} LDFLAGS=-L${ZLIB_SRC} ./configure --with-zlib --prefix=${PROTOBUF_SRC}/target
