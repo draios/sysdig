@@ -843,6 +843,8 @@ public:
 	std::vector<long> get_n_tracepoint_hit();
 	void set_bpf_probe(const std::string& bpf_probe);
 
+	bool is_bpf_enabled();
+
 	static unsigned num_possible_cpus();
 #ifdef CYGWING_AGENT
 	wh_t* get_wmi_handle()
