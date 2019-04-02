@@ -2422,6 +2422,18 @@ void sinsp::set_bpf_probe(const string& bpf_probe)
 	m_bpf_probe = bpf_probe;
 }
 
+bool sinsp::is_bpf_enabled()
+{
+	// At the inspector level, bpf can be explicitly enabled via
+	// sinsp::set_bpf_probe, but what's most important is whether
+	// it's enabled at the libscap level, which can also be done
+	// via the environment.
+	if(m_h)
+	{
+		return scap_get_bpf_enabled(m_h);
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Note: this is defined here so we can inline it in sinso::next
 ///////////////////////////////////////////////////////////////////////////////
