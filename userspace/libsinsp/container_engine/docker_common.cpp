@@ -201,6 +201,10 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 		container_info.m_id = container_id;
 		container_info.m_name = container_name;
 		container_info.m_image = s_incomplete_info_name;
+		container_info.m_imageid = s_incomplete_info_name;
+		container_info.m_imagerepo = s_incomplete_info_name;
+		container_info.m_imagetag = s_incomplete_info_name;
+		container_info.m_imagedigest = s_incomplete_info_name;
 		container_info.m_metadata_complete = false;
 
 		manager->add_container(container_info, tinfo);
