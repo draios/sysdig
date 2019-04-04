@@ -1967,6 +1967,16 @@ const char *scap_get_bpf_probe_from_env()
 	return getenv(SYSDIG_BPF_PROBE_ENV);
 }
 
+bool scap_get_bpf_enabled(scap_t *handle)
+{
+	if(handle)
+	{
+		return handle->m_bpf;
+	}
+
+	return false;
+}
+
 int32_t scap_suppress_events_comm(scap_t *handle, const char *comm)
 {
 	// If the comm is already present in the list, do nothing
