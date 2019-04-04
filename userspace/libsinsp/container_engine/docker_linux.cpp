@@ -30,8 +30,8 @@ using namespace libsinsp::runc;
 namespace {
 std::string s_docker_unix_socket_path = "/var/run/docker.sock";
 #if defined(HAS_CAPTURE)
-CURLM *s_curlm = NULL;
-CURL *s_curl = NULL;
+thread_local CURLM *s_curlm = NULL;
+thread_local CURL *s_curl = NULL;
 
 size_t docker_curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json)
 {
