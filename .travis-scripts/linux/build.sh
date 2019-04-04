@@ -22,7 +22,7 @@ export CXX="g++-4.8"
 wget https://s3.amazonaws.com/download.draios.com/dependencies/cmake-3.3.2.tar.gz
 tar -xzf cmake-3.3.2.tar.gz
 cd cmake-3.3.2
-./bootstrap --prefix=/usr
+./bootstrap --prefix=/usr --system-curl
 make
 sudo make install
 cd ..
