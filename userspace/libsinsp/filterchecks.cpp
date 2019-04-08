@@ -2741,6 +2741,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT64, EPF_NONE, PF_ID, "evt.num", "event number."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.time", "event timestamp as a time string that includes the nanosecond part."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.time.s", "event timestamp as a time string with no nanoseconds."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.time.iso8601", "event timestamp in ISO 8601 format, including nanoseconds and time zone offset (in UTC)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.datetime", "event timestamp as a time string that includes the date."},
 	{PT_ABSTIME, EPF_NONE, PF_DEC, "evt.rawtime", "absolute event timestamp, i.e. nanoseconds from epoch."},
 	{PT_ABSTIME, EPF_NONE, PF_DEC, "evt.rawtime.s", "integer part of the event timestamp (e.g. seconds since epoch)."},
@@ -3281,6 +3282,7 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	{
 	case TYPE_TIME:
 	case TYPE_TIME_S:
+	case TYPE_TIME_ISO8601:
 	case TYPE_DATETIME:
 	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
 		return (Json::Value::Int64)evt->get_ts();
@@ -3367,6 +3369,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		RETURN_EXTRACT_STRING(m_strstorage);
 	case TYPE_TIME_S:
 		sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, false, false);
+		RETURN_EXTRACT_STRING(m_strstorage);
+	case TYPE_TIME_ISO8601:
+		sinsp_utils::ts_to_iso_8601(evt->get_ts(), &m_strstorage);
 		RETURN_EXTRACT_STRING(m_strstorage);
 	case TYPE_DATETIME:
 		sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, true, true);
