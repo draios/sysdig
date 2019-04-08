@@ -949,7 +949,8 @@ void sinsp_utils::ts_to_string(uint64_t ts, OUT string* res, bool date, bool ns)
 void sinsp_utils::ts_to_iso_8601(uint64_t ts, OUT string* res)
 {
 	static const char *fmt = "YYYY-MM-DDTHH:MM:SS-0000";
-	char buf[sizeof(fmt)];
+	static const uint32_t fmtlen = strlen(fmt);
+	char buf[fmtlen];
 	uint64_t ns = ts % ONE_SECOND_IN_NS;
 	time_t sec = ts / ONE_SECOND_IN_NS;
 
