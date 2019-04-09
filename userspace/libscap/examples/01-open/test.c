@@ -22,10 +22,21 @@ limitations under the License.
 #include <scap.h>
 
 uint64_t g_nevts = 0;
+scap_t* g_h = NULL;
 
 static void signal_callback(int signal)
 {
+	scap_stats s;
 	printf("events captured: %" PRIu64 "\n", g_nevts);
+	scap_get_stats(g_h, &s);
+	printf("seen by driver: %" PRIu64 "\n", s.n_evts);
+	printf("Number of dropped events: %" PRIu64 "\n", s.n_drops);
+	printf("Number of dropped events caused by full buffer: %" PRIu64 "\n", s.n_drops_buffer);
+	printf("Number of dropped events caused by invalid memory access: %" PRIu64 "\n", s.n_drops_pf);
+	printf("Number of dropped events caused by an invalid condition in the kernel instrumentation: %" PRIu64 "\n", s.n_drops_bug);
+	printf("Number of preemptions: %" PRIu64 "\n", s.n_preemptions);
+	printf("Number of events skipped due to the tid being in a set of suppressed tids: %" PRIu64 "\n", s.n_suppressed);
+	printf("Number of threads currently being suppressed: %" PRIu64 "\n", s.n_tids_suppressed);
 	exit(0);
 }
 
@@ -42,8 +53,8 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	scap_t* h = scap_open_live(error, &res);
-	if(h == NULL)
+	g_h = scap_open_live(error, &res);
+	if(g_h == NULL)
 	{
 		fprintf(stderr, "%s (%d)\n", error, res);
 		return -1;
@@ -51,12 +62,12 @@ int main(int argc, char** argv)
 	
 	while(1)
 	{
-		res = scap_next(h, &ev, &cpuid);
+		res = scap_next(g_h, &ev, &cpuid);
 
 		if(res > 0)
 		{
-			fprintf(stderr, "%s\n", scap_getlasterr(h));
-			scap_close(h);
+			fprintf(stderr, "%s\n", scap_getlasterr(g_h));
+			scap_close(g_h);
 			return -1;
 		}
 
@@ -66,6 +77,6 @@ int main(int argc, char** argv)
 		}
 	}
 
-	scap_close(h);
+	scap_close(g_h);
 	return 0;
 }
