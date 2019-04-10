@@ -129,6 +129,8 @@ public:
 
 	static void ts_to_string(uint64_t ts, OUT std::string* res, bool date, bool ns);
 
+	static void ts_to_iso_8601(uint64_t ts, OUT std::string* res);
+
         // Limited version of iso 8601 time string parsing, that assumes a
         // timezone of Z for UTC, but does support parsing fractional seconds,
         // unlike get_epoch_utc_seconds_* below.
