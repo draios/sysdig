@@ -95,7 +95,6 @@ set(SINSP_SOURCES
 	mesos_http.cpp
 	mesos_state.cpp
 	internal_metrics.cpp
-	"${JSONCPP_LIB_SRC}"
 	logger.cpp
 	parsers.cpp
 	prefix_search.cpp
@@ -117,6 +116,12 @@ set(SINSP_SOURCES
 	value_parser.cpp
 	viewinfo.cpp
 )
+
+if(USE_BUNDLED_JSONCPP)
+list(APPEND SINSP_SOURCES "${JSONCPP_LIB_SRC}")
+else()
+target_link_libraries(sinsp "${JSONCPP_LIB}")
+endif()
 
 if(WIN32)
 list(APPEND SINSP_SOURCES
@@ -143,9 +148,7 @@ endif()
 
 add_library(sinsp STATIC ${SINSP_SOURCES})
 
-target_link_libraries(sinsp 
-	scap
-	"${JSONCPP_LIB}")
+target_link_libraries(sinsp scap)
 
 if(USE_BUNDLED_LUAJIT)
 	add_dependencies(sinsp luajit)
@@ -177,7 +180,9 @@ if(NOT WIN32)
 				COMMAND ${PROTOC} -I ${CMAKE_CURRENT_SOURCE_DIR} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} ${CMAKE_CURRENT_SOURCE_DIR}/cri.proto
 				WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-		add_dependencies(sinsp grpc)
+		if(USE_BUNDLED_GRPC)
+			add_dependencies(sinsp grpc)
+		endif()
 		target_link_libraries(sinsp
 			"${GRPCPP_LIB}"
 			"${GRPC_LIB}"
@@ -189,7 +194,7 @@ if(NOT WIN32)
 			anl)
 	endif()
 
-        if(USE_BUNDLED_OPENSSL)
+        if(OPENSSL_LIBRARY_SSL AND OPENSSL_LIBRARY_CRYPTO)
 		target_link_libraries(sinsp
 			"${OPENSSL_LIBRARY_SSL}"
 			"${OPENSSL_LIBRARY_CRYPTO}")
