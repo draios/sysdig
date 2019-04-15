@@ -79,6 +79,8 @@ private:
 	uint64_t m_last_flush_time_ns;
 	list<new_container_cb> m_new_callbacks;
 	list<remove_container_cb> m_remove_callbacks;
+
+	friend class test_helper;
 };
 
 template<typename E> bool sinsp_container_manager::resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
