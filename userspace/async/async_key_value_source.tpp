@@ -288,4 +288,27 @@ void async_key_value_source<key_type, value_type>::prune_stale_requests()
 	}
 }
 
+template<typename key_type, typename value_type>
+std::unordered_map<key_type, value_type> async_key_value_source<key_type, value_type>::get_complete_results()
+{
+	std::unordered_map<key_type, value_type> results;
+
+	std::lock_guard<std::mutex> guard(m_mutex);
+
+	for(const auto& it : m_value_map)
+	{
+		if(it.second.m_available)
+		{
+			results[it.first] = it.second.m_value;
+		}
+	}
+
+	for(const auto& it : results)
+	{
+		m_value_map.erase(it.first);
+	}
+
+	return results;
+}
+
 } // end namespace sysdig
