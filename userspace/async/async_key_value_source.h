@@ -59,7 +59,7 @@ namespace sysdig
  * <li>If the client did not supply a handler, then the value will be stored,
  *     and the next call to the lookup() method with the same key will return
  *     the previously collected value.  If lookup() is not called with the
- *     specified ttl time, then this compoment will prune the stored value.</li>
+ *     specified ttl time, then this component will prune the stored value.</li>
  * </ol>
  *
  * @tparam key_type   The type of the keys for which concrete subclasses will
@@ -123,7 +123,7 @@ public:
 	 * for the desired value(s) to be available.
 	 *
 	 * @param[in] key       The key to the value for which the client
-	 *                      wishs to query.
+	 *                      wishes to query.
 	 * @param[out] value    If this method is able to fetch the desired
 	 *                      value within the max_wait_ms specified at
 	 *                      construction time, then this output parameter
@@ -150,7 +150,7 @@ public:
                     const callback_handler& handler = callback_handler());
 
 	/**
-	 * Determines if the async thread assocaited with this
+	 * Determines if the async thread associated with this
 	 * async_key_value_source is running.
 	 *
 	 * <b>Note:</b> This API is for information only.  Clients should
@@ -165,7 +165,7 @@ public:
 
 protected:
 	/**
-	 * Stops the thread assocaited with this async_key_value_source, if
+	 * Stops the thread associated with this async_key_value_source, if
 	 * it is running; otherwise, does nothing.  The only use for this is
 	 * in a destructor to ensure that the async thread stops when the
 	 * object is destroyed.
@@ -193,7 +193,7 @@ protected:
 	/**
 	 * Stores a value for the given key.  Concrete subclasses will call
 	 * this method from their run_impl() method to save (or otherwise
-	 * notifiy the client about) an available value.
+	 * notify the client about) an available value.
 	 *
 	 * @param[in] key   The key for which the client asked for the value.
 	 * @param[in] value The collected value.
@@ -270,7 +270,7 @@ private:
 	/**
 	 * Protects the state of instances of this class.  This protected does
 	 * not extend to subclasses (i.e., this mutex should not be held when
-	 * dispatching to overridden methbods).
+	 * dispatching to overridden methods).
 	 */
 	mutable std::mutex m_mutex;
 
