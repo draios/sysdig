@@ -21,9 +21,9 @@ limitations under the License.
 #include <chrono>
 #include <condition_variable>
 #include <functional>
-#include <list>
 #include <map>
 #include <mutex>
+#include <queue>
 #include <set>
 #include <thread>
 #include <unordered_map>
@@ -147,7 +147,19 @@ public:
 	 *          value synchronously; false otherwise.
 	 */
 	bool lookup(const key_type& key,
+		    value_type& value,
+		    const callback_handler& handler = callback_handler());
+
+	/**
+	 * Lookup a value based on the specified key, after an initial delay.
+	 * This method behaves identically to `lookup()`, except that the request
+	 * is dispatched `delay` milliseconds after the call.
+	 *
+	 * @see lookup() for details
+	 */
+	bool lookup_delayed(const key_type& key,
                     value_type& value,
+                    std::chrono::milliseconds delay,
                     const callback_handler& handler = callback_handler());
 
 	/**
@@ -240,6 +252,14 @@ protected:
 	 */
 	virtual void run_impl() = 0;
 
+	/**
+	 * Determine the time to wait for the next request
+	 *
+	 * @return the absolute time until which run() may block while waiting
+	 * for an incoming request
+	 */
+	std::chrono::steady_clock::time_point get_deadline() const;
+
 private:
 	/**
 	 * Holds information associated with a single lookup() request.
@@ -304,7 +324,9 @@ private:
 	 * non-empty.
 	 */
 	std::condition_variable m_queue_not_empty_condition;
-	std::list<key_type> m_request_queue;
+
+	using queue_item_t = std::pair<std::chrono::time_point<std::chrono::steady_clock>, key_type>;
+	std::priority_queue<queue_item_t, std::vector<queue_item_t>, std::greater<queue_item_t>> m_request_queue;
 	std::set<key_type> m_request_set;
 	value_map m_value_map;
 };
