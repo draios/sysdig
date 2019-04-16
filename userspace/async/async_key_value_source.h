@@ -26,6 +26,7 @@ limitations under the License.
 #include <mutex>
 #include <set>
 #include <thread>
+#include <unordered_map>
 #include <stdint.h>
 
 namespace sysdig
@@ -162,6 +163,30 @@ public:
 	 * @returns true if the async thread is running, false otherwise.
 	 */
 	bool is_running() const;
+
+	/**
+	 * Return all results available so far
+	 *
+	 * All available results are moved from the internal map to the returned map
+	 * so subsequent `lookup()` and/or `get_complete_results()` calls won't
+	 * return them again.
+	 *
+	 * Sometimes there's no good place to call `lookup()` again
+	 * on the async data source -- e.g. the container detection engine
+	 * may never be called again for a particular container (if the only
+	 * process in that container never calls `execve()` or `chroot()`
+	 * or `clone()`).
+	 *
+	 * The best solution in that case is to supply a callback to be ran
+	 * from the async lookup, but that introduces thread safety issues
+	 * to the involved data.
+	 *
+	 * `get_complete_results()` allows batch processing of lookup results
+	 * in the main thread.
+	 *
+	 * @return a map of lookup key -> result
+	 */
+	std::unordered_map<key_type, value_type> get_complete_results();
 
 protected:
 	/**
