@@ -118,10 +118,23 @@ void async_key_value_source<key_type, value_type>::run()
 		{
 			std::unique_lock<std::mutex> guard(m_mutex);
 
-			while(!m_terminate && m_request_queue.empty())
+			while(!m_terminate)
 			{
 				// Wait for something to show up on the queue
-				m_queue_not_empty_condition.wait(guard);
+				auto deadline = get_deadline();
+				if (deadline == std::chrono::steady_clock::time_point::min())
+				{
+					break;
+				}
+				else if (deadline == std::chrono::steady_clock::time_point::max())
+				{
+					// https://stackoverflow.com/questions/39041450/stdcondition-variable-wait-until-surprising-behaviour
+					m_queue_not_empty_condition.wait(guard);
+				}
+				else
+				{
+					m_queue_not_empty_condition.wait_until(guard, deadline);
+				}
 			}
 
 			prune_stale_requests();
@@ -137,10 +150,11 @@ void async_key_value_source<key_type, value_type>::run()
 }
 
 template<typename key_type, typename value_type>
-bool async_key_value_source<key_type, value_type>::lookup(
+bool async_key_value_source<key_type, value_type>::lookup_delayed(
 		const key_type& key,
 		value_type& value,
-		const callback_handler& callback)
+		std::chrono::milliseconds delay,
+		const callback_handler& handler)
 {
 	std::unique_lock<std::mutex> guard(m_mutex);
 
@@ -163,7 +177,8 @@ bool async_key_value_source<key_type, value_type>::lookup(
 		              m_request_set.end(),
 		              key) == m_request_set.end())
 		{
-			m_request_queue.push_back(key);
+			auto start_time = std::chrono::steady_clock::now() + delay;
+			m_request_queue.push(std::make_pair(start_time, key));
 			m_request_set.insert(key);
 			m_queue_not_empty_condition.notify_one();
 		}
@@ -200,10 +215,19 @@ bool async_key_value_source<key_type, value_type>::lookup(
 	}
 	else
 	{
-		m_value_map[key].m_callback = callback;
+		m_value_map[key].m_callback = handler;
 	}
 
 	return request_complete;
+}
+
+template<typename key_type, typename value_type>
+bool async_key_value_source<key_type, value_type>::lookup(
+	const key_type& key,
+	value_type& value,
+	const callback_handler& handler)
+{
+	return lookup_delayed(key, value, std::chrono::milliseconds::zero(), handler);
 }
 
 template<typename key_type, typename value_type>
@@ -212,13 +236,16 @@ bool async_key_value_source<key_type, value_type>::dequeue_next_key(key_type& ke
 	std::lock_guard<std::mutex> guard(m_mutex);
 	bool key_found = false;
 
-	if(m_request_queue.size() > 0)
+	if(!m_request_queue.empty())
 	{
-		key_found = true;
-
-		key = m_request_queue.front();
-		m_request_queue.pop_front();
-		m_request_set.erase(key);
+		auto top_element = m_request_queue.top();
+		if(top_element.first < std::chrono::steady_clock::now())
+		{
+			key_found = true;
+			key = std::move(top_element.second);
+			m_request_queue.pop();
+			m_request_set.erase(key);
+		}
 	}
 
 	return key_found;
@@ -309,6 +336,24 @@ std::unordered_map<key_type, value_type> async_key_value_source<key_type, value_
 	}
 
 	return results;
+}
+
+// called with m_mutex held
+template<typename key_type, typename value_type>
+std::chrono::steady_clock::time_point async_key_value_source<key_type, value_type>::get_deadline() const
+{
+	if (m_request_queue.empty())
+	{
+		return std::chrono::steady_clock::time_point::max();
+	}
+
+	auto next_request = m_request_queue.top();
+	if (next_request.first <= std::chrono::steady_clock::now())
+	{
+		return std::chrono::steady_clock::time_point::min();
+	}
+
+	return next_request.first;
 }
 
 } // end namespace sysdig
