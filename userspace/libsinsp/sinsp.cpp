@@ -366,6 +366,17 @@ void sinsp::init()
 			}
 		}
 
+
+#ifdef HAS_ANALYZER
+		//
+		// Notify the analyzer that we're starting
+		//
+		if(m_analyzer)
+		{
+			m_analyzer->on_capture_start();
+		}
+#endif
+
 		//
 		// Rewind, reset the event count, and consume the exact number of events
 		//
@@ -677,9 +688,9 @@ void sinsp::open_int()
 	init();
 }
 
-void sinsp::open(string filename)
+void sinsp::open(const std::string &filename)
 {
-	if(filename == "")
+	if(filename.empty())
 	{
 		open();
 		return;
