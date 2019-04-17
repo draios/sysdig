@@ -48,6 +48,7 @@ mkdir -p ${HOME}/.sysdig
 #    symlinks into /usr/lib/linux-kbuild* and these directories need to be present.
 
 docker build -t ebpf-probe-builder:latest --pull .
+docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi -f
 docker run --rm -i -v ${OUT_DIR}:/out -v ${DRIVER_DIR}:/driver -v ${KERNEL_DIR}:/kernel -v /lib/modules:/host/lib/modules:ro -v /usr:/host/usr:ro -e BPF_PROBE_FILENAME=bpf_probe.o ebpf-probe-builder:latest
 
 echo "Probe is in ${OUT_DIR}/"
