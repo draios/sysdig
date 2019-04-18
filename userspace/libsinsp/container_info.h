@@ -135,10 +135,8 @@ public:
 		m_has_healthcheck(false),
 		m_healthcheck_exe(""),
 		m_is_pod_sandbox(false),
-		m_metadata_complete(true)
-#ifdef HAS_ANALYZER
-		,m_metadata_deadline(0)
-#endif
+		m_metadata_complete(true),
+		m_metadata_deadline(0)
 	{
 	}
 
@@ -187,6 +185,6 @@ public:
 	bool m_metadata_complete;
 #ifdef HAS_ANALYZER
 	std::string m_sysdig_agent_conf;
-	uint64_t m_metadata_deadline;
 #endif
+	uint64_t m_metadata_deadline;
 };

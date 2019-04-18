@@ -216,9 +216,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 		container["mesos_task_id"] = container_info.m_mesos_task_id;
 	}
 
-#ifdef HAS_ANALYZER
 	container["metadata_deadline"] = (Json::Value::UInt64) container_info.m_metadata_deadline;
-#endif
 	return Json::FastWriter().write(obj);
 }
 
