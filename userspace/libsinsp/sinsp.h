@@ -258,7 +258,7 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
-	void open(string filename);
+	void open(const std::string &filename);
 
 	/*!
 	  \brief Start an event capture from a file descriptor.
