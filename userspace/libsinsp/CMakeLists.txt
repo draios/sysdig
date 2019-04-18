@@ -57,6 +57,7 @@ set(SINSP_SOURCES
 	filter.cpp
 	filterchecks.cpp
 	gen_filter.cpp
+	grpc_channel_registry.cpp
 	http_parser.c
 	http_reason.cpp
 	ifinfo.cpp

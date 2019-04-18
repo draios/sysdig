@@ -30,6 +30,7 @@ limitations under the License.
 
 #include "runc.h"
 #include "container_engine/mesos.h"
+#include "grpc_channel_registry.h"
 #include <cri.h>
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -147,7 +148,7 @@ cri::cri()
 		return;
 	}
 
-	auto channel = grpc::CreateChannel("unix://" + cri_path, grpc::InsecureChannelCredentials());
+	std::shared_ptr<grpc::Channel> channel = libsinsp::grpc_channel_registry::get_channel("unix://" + cri_path);
 	s_cri = runtime::v1alpha2::RuntimeService::NewStub(channel);
 	s_cri_image = runtime::v1alpha2::ImageService::NewStub(channel);
 
