@@ -128,6 +128,11 @@ limitations under the License.
 #define FALCOBL_FULL_PROCESSING
 
 //
+// Port range to enable larger snaplen on
+//
+#define DEFAULT_INCREASE_SNAPLEN_PORT_RANGE {0, 0}
+
+//
 // FD class customized with the storage we need
 //
 #ifdef HAS_ANALYZER

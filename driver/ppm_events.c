@@ -349,7 +349,17 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 						dport = 0;
 					}
 
-					if (sport == PPM_PORT_MYSQL || dport == PPM_PORT_MYSQL) {
+					if (args->consumer->fullcapture_port_range_end != 0 &&
+								((sport >= args->consumer->fullcapture_port_range_start && sport <= args->consumer->fullcapture_port_range_end) ||
+								(dport >= args->consumer->fullcapture_port_range_start && dport <= args->consumer->fullcapture_port_range_end))
+						) {
+						/*
+						 * Before checking the well-known ports, see if the user has requested
+						 * an increased snaplen for the port in question.
+						 */
+						sockfd_put(sock);
+						return RW_MAX_FULLCAPTURE_PORT_SNAPLEN;
+					} else if (sport == PPM_PORT_MYSQL || dport == PPM_PORT_MYSQL) {
 						if (lookahead_size >= 5) {
 							if (buf[0] == 3 || buf[1] == 3 || buf[2] == 3 || buf[3] == 3 || buf[4] == 3) {
 								sockfd_put(sock);
@@ -362,7 +372,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 					} else if (sport == PPM_PORT_POSTGRES || dport == PPM_PORT_POSTGRES) {
 						if (lookahead_size >= 2) {
 							if ((buf[0] == 'Q' && buf[1] == 0) || /* SimpleQuery command */
-								(buf[0] == 'P' && buf[1] == 0) || /* Prepare statement commmand */
+								(buf[0] == 'P' && buf[1] == 0) || /* Prepare statement command */
 								(buf[4] == 0 && buf[5] == 3 && buf[6] == 0) || /* startup command */
 								(buf[0] == 'E' && buf[1] == 0) /* error or execute command */
 							) {
@@ -386,15 +396,6 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 					} else if (dport == PPM_PORT_STATSD) {
 						sockfd_put(sock);
 						return 2000;
-					} else if (args->consumer->fullcapture_port_range_end != 0 &&
-								((sport >= args->consumer->fullcapture_port_range_start && sport <= args->consumer->fullcapture_port_range_end) ||
-								(dport >= args->consumer->fullcapture_port_range_start && dport <= args->consumer->fullcapture_port_range_end)
-							)) {
-						/*
-						 * mpegts detection
-						 */
-						sockfd_put(sock);
-						return RW_MAX_FULLCAPTURE_PORT_SNAPLEN;
 					} else {
 						if (lookahead_size >= 5) {
 							if (*(u32 *)buf == g_http_get_intval ||
