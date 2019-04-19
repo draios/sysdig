@@ -54,8 +54,9 @@ typedef struct wh_t wh_t;
 //
 // Read buffer timeout constants
 //
-#define BUFFER_EMPTY_WAIT_TIME_MS 30
-#define MAX_N_CONSECUTIVE_WAITS 4
+#define BUFFER_EMPTY_WAIT_TIME_US_START 500
+#define BUFFER_EMPTY_WAIT_TIME_US_MAX (30 * 1000)
+#define BUFFER_EMPTY_THRESHOLD_B 20000
 
 //
 // Process flags
@@ -127,7 +128,7 @@ struct scap
 	scap_addrlist* m_addrlist;
 	scap_machine_info m_machine_info;
 	scap_userlist* m_userlist;
-	uint32_t m_n_consecutive_waits;
+	uint64_t m_buffer_empty_wait_time_us;
 	proc_entry_callback m_proc_callback;
 	void* m_proc_callback_context;
 	struct ppm_proclist_info* m_driver_procinfo;
