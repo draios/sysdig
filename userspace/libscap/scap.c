@@ -278,6 +278,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	handle->m_num_suppressed_comms = 0;
 	handle->m_suppressed_tids = NULL;
 	handle->m_num_suppressed_evts = 0;
+	handle->m_buffer_empty_wait_time_us = BUFFER_EMPTY_WAIT_TIME_US_START;
 
 	if ((*rc = copy_comms(handle, suppressed_comms)) != SCAP_SUCCESS)
 	{
@@ -402,7 +403,6 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		//
 		handle->m_devs[j].m_lastreadsize = 0;
 		handle->m_devs[j].m_sn_len = 0;
-		handle->m_n_consecutive_waits = 0;
 		scap_stop_dropping_mode(handle);
 	}
 
@@ -897,16 +897,14 @@ void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uin
 	}
 }
 
-int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_t* len)
+static void scap_advance_tail(scap_t* handle, uint32_t cpuid)
 {
+	uint32_t ttail;
+
 	if(handle->m_bpf)
 	{
-		return scap_bpf_readbuf(handle, cpuid, buf, len);
+		return scap_bpf_advance_tail(handle, cpuid);
 	}
-
-	uint32_t thead;
-	uint32_t ttail;
-	uint64_t read_size;
 
 	//
 	// Update the tail based on the amount of data read in the *previous* call.
@@ -932,6 +930,20 @@ int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_
 		handle->m_devs[cpuid].m_bufinfo->tail = ttail - RING_BUF_SIZE;
 	}
 
+	handle->m_devs[cpuid].m_lastreadsize = 0;
+}
+
+int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_t* len)
+{
+	uint32_t thead;
+	uint32_t ttail;
+	uint64_t read_size;
+
+	if(handle->m_bpf)
+	{
+		return scap_bpf_readbuf(handle, cpuid, buf, len);
+	}
+
 	//
 	// Read the pointers.
 	//
@@ -954,10 +966,9 @@ int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_
 	return SCAP_SUCCESS;
 }
 
-bool check_scap_next_wait(scap_t* handle)
+static bool are_buffers_empty(scap_t* handle)
 {
 	uint32_t j;
-	bool res = true;
 
 	for(j = 0; j < handle->m_ndevs; j++)
 	{
@@ -969,7 +980,6 @@ bool check_scap_next_wait(scap_t* handle)
 			uint64_t ttail;
 
 			scap_bpf_get_buf_pointers(handle->m_devs[j].m_buffer, &thead, &ttail, &read_size);
-
 		}
 		else
 		{
@@ -979,27 +989,13 @@ bool check_scap_next_wait(scap_t* handle)
 			get_buf_pointers(handle->m_devs[j].m_bufinfo, &thead, &ttail, &read_size);
 		}
 
-		if(read_size > 20000)
+		if(read_size > BUFFER_EMPTY_THRESHOLD_B)
 		{
-			handle->m_n_consecutive_waits = 0;
-			res = false;
+			return false;
 		}
 	}
 
-	if(res == false)
-	{
-		return false;
-	}
-
-	if(handle->m_n_consecutive_waits >= MAX_N_CONSECUTIVE_WAITS)
-	{
-		handle->m_n_consecutive_waits = 0;
-		return false;
-	}
-	else
-	{
-		return true;
-	}
+	return true;
 }
 
 int32_t refill_read_buffers(scap_t* handle)
@@ -1007,15 +1003,21 @@ int32_t refill_read_buffers(scap_t* handle)
 	uint32_t j;
 	uint32_t ndevs = handle->m_ndevs;
 
-	if(check_scap_next_wait(handle))
+	if(are_buffers_empty(handle))
 	{
-		usleep(BUFFER_EMPTY_WAIT_TIME_MS * 1000);
-		handle->m_n_consecutive_waits++;
+		usleep(handle->m_buffer_empty_wait_time_us);
+		handle->m_buffer_empty_wait_time_us = MIN(handle->m_buffer_empty_wait_time_us * 2,
+							  BUFFER_EMPTY_WAIT_TIME_US_MAX);
+	}
+	else
+	{
+		handle->m_buffer_empty_wait_time_us = BUFFER_EMPTY_WAIT_TIME_US_START;
 	}
 
 	//
 	// Refill our data for each of the devices
 	//
+
 	for(j = 0; j < ndevs; j++)
 	{
 		struct scap_device *dev = &(handle->m_devs[j]);
@@ -1065,40 +1067,49 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 	{
 		scap_device* dev = &(handle->m_devs[j]);
 
-		//
-		// Make sure that we have data from this ring
-		//
-		if(dev->m_sn_len != 0)
+		if(dev->m_sn_len == 0)
 		{
 			//
-			// We want to consume the event with the lowest timestamp
+			// If we don't have data from this ring, but we are
+			// still occupying, free the resources for the
+			// producer rather than sitting on them.
 			//
-			if(handle->m_bpf)
+			if(dev->m_lastreadsize > 0)
 			{
-				pe = scap_bpf_evt_from_perf_sample(dev->m_sn_next_event);
-			}
-			else
-			{
-				pe = (scap_evt *) dev->m_sn_next_event;
+				scap_advance_tail(handle, j);
 			}
 
-			if(pe->ts < max_ts)
+			continue;
+		}
+
+		if(handle->m_bpf)
+		{
+			pe = scap_bpf_evt_from_perf_sample(dev->m_sn_next_event);
+		}
+		else
+		{
+			pe = (scap_evt *) dev->m_sn_next_event;
+		}
+
+		//
+		// We want to consume the event with the lowest timestamp
+		//
+		if(pe->ts < max_ts)
+		{
+			if(pe->len > dev->m_sn_len)
 			{
-				if(pe->len > dev->m_sn_len)
-				{
-					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_next buffer corruption");
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_next buffer corruption");
 
-					//
-					// if you get the following assertion, first recompile the driver and libscap
-					//
-					ASSERT(false);
-					return SCAP_FAILURE;
-				}
-
-				*pevent = pe;
-				*pcpuid = j;
-				max_ts = pe->ts;
+				//
+				// if you get the following assertion, first recompile the driver and libscap
+				//
+				ASSERT(false);
+				return SCAP_FAILURE;
 			}
+
+			*pevent = pe;
+			*pcpuid = j;
+			max_ts = pe->ts;
 		}
 	}
 
