@@ -20,7 +20,11 @@ limitations under the License.
 #pragma once
 
 #include <memory>
-#include <grpc++/grpc++.h>
+#ifdef GRPC_INCLUDE_IS_GRPCPP
+#	include <grpcpp/grpcpp.h>
+#else
+#	include <grpc++/grpc++.h>
+#endif
 
 namespace libsinsp
 {
