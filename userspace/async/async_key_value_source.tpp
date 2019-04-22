@@ -32,7 +32,7 @@ namespace sysdig
 template<typename key_type, typename value_type>
 async_key_value_source<key_type, value_type>::async_key_value_source(
 		const uint64_t max_wait_ms,
-		const uint64_t ttl_ms):
+		const uint64_t ttl_ms) noexcept:
 	m_max_wait_ms(max_wait_ms),
 	m_ttl_ms(ttl_ms),
 	m_thread(),
