@@ -28,6 +28,7 @@ limitations under the License.
 #include "cri.pb.h"
 #include "cri.grpc.pb.h"
 
+#include "async_cgroup.h"
 #include "runc.h"
 #include "container_engine/mesos.h"
 #include "grpc_channel_registry.h"
@@ -40,6 +41,14 @@ using namespace libsinsp::container_engine;
 using namespace libsinsp::runc;
 
 namespace {
+// how long do we wait
+constexpr uint64_t CGROUP_LOOKUP_DELAY_MS = 1000;
+
+// how long do we wait on cgroup lookup result before giving up
+// Note: this value includes the initial delay
+constexpr uint64_t CGROUP_MAX_DELAY_MS = 2000;
+libsinsp::async_cgroup::delayed_cgroup_lookup s_async_cgroups(0, CGROUP_MAX_DELAY_MS);
+
 bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info *container, sinsp_threadinfo *tinfo)
 {
 	const auto &info_it = status.info().find("info");
@@ -138,6 +147,31 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 		return true;
 	}
 
+	libsinsp::async_cgroup::delayed_cgroup_key key(
+		container->m_id,
+		tinfo->get_cgroup("cpu"),
+		tinfo->get_cgroup("memory"));
+	libsinsp::async_cgroup::delayed_cgroup_value limits;
+	bool found_all = libsinsp::async_cgroup::get_cgroup_resource_limits(key, limits);
+
+	container->m_memory_limit = limits.m_memory_limit;
+	container->m_cpu_shares = limits.m_cpu_shares;
+	container->m_cpu_quota = limits.m_cpu_quota;
+	container->m_cpu_period = limits.m_cpu_period;
+
+	if(!found_all)
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+			"cri (%s) not all limits read from cgroups, will retry in %d ms",
+			container->m_id.c_str(), CGROUP_LOOKUP_DELAY_MS);
+
+		auto cb = [manager](const libsinsp::async_cgroup::delayed_cgroup_key& key, const libsinsp::async_cgroup::delayed_cgroup_value& value) {
+			libsinsp::async_cgroup::delayed_cgroup_lookup::update(manager, key, value);
+		};
+
+		s_async_cgroups.lookup_delayed(key, limits, std::chrono::milliseconds(CGROUP_LOOKUP_DELAY_MS), cb);
+	}
+
 	if(s_cri_extra_queries)
 	{
 		container->m_container_ip = get_container_ip(container->m_id);
@@ -196,6 +230,7 @@ cri::cri()
 
 void cri::cleanup()
 {
+	s_async_cgroups.quiesce();
 	s_cri.reset(nullptr);
 	s_cri_image.reset(nullptr);
 	s_cri_extra_queries = true;

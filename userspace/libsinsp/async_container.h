@@ -47,7 +47,7 @@ public:
 	/**
 	 * \brief Wait for all pending lookups to complete
 	 */
-	void quiesce() {
+	virtual void quiesce() {
 		this->stop();
 	}
 };
