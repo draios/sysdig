@@ -270,7 +270,7 @@ void async_key_value_source<key_type, value_type>::prune_stale_requests()
 	{
 		const auto now = std::chrono::steady_clock::now();
 
-		const auto age_ms =
+		const uint64_t age_ms =
 			std::chrono::duration_cast<std::chrono::milliseconds>(
 					now - i->second.m_start_time).count();
 
