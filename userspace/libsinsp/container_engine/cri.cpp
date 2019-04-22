@@ -28,6 +28,7 @@ limitations under the License.
 #include "cri.pb.h"
 #include "cri.grpc.pb.h"
 
+#include "cgroup_limits.h"
 #include "runc.h"
 #include "container_engine/mesos.h"
 #include "grpc_channel_registry.h"
@@ -128,6 +129,18 @@ bool cri::parse_cri(sinsp_container_info &container, sinsp_threadinfo *tinfo)
 	{
 		return true;
 	}
+
+	libsinsp::cgroup_limits::cgroup_limits_key key(
+		container.m_id,
+		tinfo->get_cgroup("cpu"),
+		tinfo->get_cgroup("memory"));
+	libsinsp::cgroup_limits::cgroup_limits_value limits;
+	libsinsp::cgroup_limits::get_cgroup_resource_limits(key, limits);
+
+	container.m_memory_limit = limits.m_memory_limit;
+	container.m_cpu_shares = limits.m_cpu_shares;
+	container.m_cpu_quota = limits.m_cpu_quota;
+	container.m_cpu_period = limits.m_cpu_period;
 
 	if(s_cri_extra_queries)
 	{
