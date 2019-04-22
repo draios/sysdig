@@ -35,6 +35,6 @@ public:
 	static std::shared_ptr<grpc::Channel> get_channel(const std::string &url);
 
 private:
-	static std::map<std::string, std::shared_ptr<grpc::Channel>> s_channels;
+	static std::map<std::string, std::weak_ptr<grpc::Channel>> s_channels;
 };
 }
