@@ -98,7 +98,7 @@ public:
 	 *                        value will live before being considered
 	 *                        "too old" and being pruned.
 	 */
-	async_key_value_source(uint64_t max_wait_ms, uint64_t ttl_ms);
+	async_key_value_source(uint64_t max_wait_ms, uint64_t ttl_ms) noexcept;
 
 	async_key_value_source(const async_key_value_source&) = delete;
 	async_key_value_source(async_key_value_source&&) = delete;
