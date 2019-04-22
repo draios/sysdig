@@ -893,6 +893,21 @@ uint64_t sinsp_threadinfo::get_fd_limit()
 	return get_main_thread()->m_fdlimit;
 }
 
+const std::string& sinsp_threadinfo::get_cgroup(const std::string& subsys) const
+{
+	static const std::string notfound = "/";
+
+	for(const auto& it : m_cgroups)
+	{
+		if(it.first == subsys)
+		{
+			return it.second;
+		}
+	}
+
+	return notfound;
+}
+
 void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
 {
 	// Use two pointers starting at this, traversing the parent
