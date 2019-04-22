@@ -226,6 +226,11 @@ public:
 	*/
 	uint64_t get_fd_limit();
 
+	/*!
+	  \brief Return the cgroup name for a specific subsystem
+	 */
+	 const std::string& get_cgroup(const std::string& subsys) const;
+
 	//
 	// Walk up the parent process hierarchy, calling the provided
 	// function for each node. If the function returns false, the
