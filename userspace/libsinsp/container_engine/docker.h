@@ -30,8 +30,6 @@ limitations under the License.
 #include <curl/multi.h>
 #endif
 
-#include "tbb/concurrent_hash_map.h"
-
 #include "json/json.h"
 
 #include "async_key_value_source.h"
@@ -67,18 +65,6 @@ public:
 
 	static void set_query_image_info(bool query_image_info);
 
-	// Note that this tid is the current top tid for this container
-	void set_top_tid(const std::string &container_id, sinsp_threadinfo *tinfo);
-
-	// Update the mapping from container id to top running tid for
-	// that container.
-	void update_top_tid(std::string &container_id, sinsp_threadinfo *tinfo);
-
-	// Get the thread id of the top thread running in this container.
-	int64_t get_top_tid(const std::string &container_id);
-
-        bool pending_lookup(std::string &container_id);
-
 protected:
 	void run_impl();
 
@@ -102,23 +88,6 @@ private:
 #endif
 
 	static bool m_query_image_info;
-
-	// Maps from container id to the "top" threadinfo in the
-	// process heirarchy having that container id that
-	// exists. These associations are only maintained while an
-	// async lookup of container information is in progress. We
-	// use this to ensure that the tid of the CONTAINER_JSON event
-	// we eventually emit is a valid thread, and the top running
-	// thread, in the container.
-	//
-        // We want the container event to have a valid thread because
-        // all the container.* filterchecks first look up the
-        // threadinfo for the event and then use the threadinfo's
-        // m_container_id to look up to the container. If the container
-        // event didn't have a valid threadinfo, that lookup would
-        // fail and the container.* filterchecks would not return anything.
-	typedef tbb::concurrent_hash_map<std::string, int64_t> top_tid_table;
-	top_tid_table m_top_tids;
 };
 
 class docker

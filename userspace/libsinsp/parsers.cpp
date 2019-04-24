@@ -601,7 +601,15 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		query_os = true;
 	}
 
-	evt->m_tinfo = m_inspector->get_thread(evt->m_pevt->tid, query_os, false);
+	if(etype == PPME_CONTAINER_JSON_E)
+	{
+		evt->m_tinfo = nullptr;
+		return true;
+	}
+	else
+	{
+		evt->m_tinfo = m_inspector->get_thread(evt->m_pevt->tid, query_os, false);
+	}
 
 	if(etype == PPME_SCHEDSWITCH_6_E)
 	{
@@ -4653,6 +4661,8 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 			container_info.m_metadata_deadline = metadata_deadline.asUInt64();
 		}
 
+		evt->m_tinfo_ref = container_info.get_tinfo(m_inspector);
+		evt->m_tinfo = evt->m_tinfo_ref.get();
 		m_inspector->m_container_manager.add_container(container_info, evt->get_thread_info(true));
 		/*
 		g_logger.log("Container\n-------\nID:" + container_info.m_id +
@@ -4661,16 +4671,6 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 					 "\nImage: " + container_info.m_image +
 					 "\nMesos Task ID: " + container_info.m_mesos_task_id, sinsp_logger::SEV_DEBUG);
 		*/
-
-		if(evt->m_tinfo)
-		{
-			if (libsinsp::container_engine::mesos::set_mesos_task_id(&container_info, evt->m_tinfo))
-			{
-				g_logger.format(sinsp_logger::SEV_DEBUG,
-						"Mesos Docker container: [%s], Mesos task ID: [%s]",
-						container_info.m_id.c_str(), container_info.m_mesos_task_id.c_str());
-			}
-		}
 	}
 	else
 	{

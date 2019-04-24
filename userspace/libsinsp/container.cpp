@@ -220,7 +220,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	return Json::FastWriter().write(obj);
 }
 
-bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp_evt* evt, int64_t tid)
+bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp_evt* evt, shared_ptr<sinsp_threadinfo> tinfo)
 {
 	// TODO: variable event length
 	size_t evt_len = SP_EVT_BUF_SIZE;
@@ -239,7 +239,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 	scap_evt* scapevt = evt->m_pevt;
 
 	scapevt->ts = m_inspector->m_lastevent_ts;
-	scapevt->tid = tid;
+	scapevt->tid = -1;
 	scapevt->len = (uint32_t)totlen;
 	scapevt->type = PPME_CONTAINER_JSON_E;
 	scapevt->nparams = 1;
@@ -251,6 +251,9 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 	memcpy(valptr, json.c_str(), *lens);
 
 	evt->init();
+	evt->m_tinfo_ref = tinfo;
+	evt->m_tinfo = tinfo.get();
+
 	return true;
 }
 
@@ -269,13 +272,13 @@ void sinsp_container_manager::add_container(const sinsp_container_info& containe
 	}
 }
 
-void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info, int64_t tid)
+void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info)
 {
 	sinsp_evt *evt = new sinsp_evt();
 	evt->m_pevt_storage = new char[SP_EVT_BUF_SIZE];
 	evt->m_pevt = (scap_evt *) evt->m_pevt_storage;
 
-	if(container_to_sinsp_event(container_to_json(container_info), evt, tid))
+	if(container_to_sinsp_event(container_to_json(container_info), evt, container_info.get_tinfo(m_inspector)))
 	{
 		std::shared_ptr<sinsp_evt> cevt(evt);
 
@@ -292,7 +295,7 @@ void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)
 {
 	for(unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.begin(); it != m_containers.end(); ++it)
 	{
-		if(container_to_sinsp_event(container_to_json(it->second), &m_inspector->m_meta_evt))
+		if(container_to_sinsp_event(container_to_json(it->second), &m_inspector->m_meta_evt, it->second.get_tinfo(m_inspector)))
 		{
 			int32_t res = scap_dump(m_inspector->m_h, dumper, m_inspector->m_meta_evt.m_pevt, m_inspector->m_meta_evt.m_cpuid, 0);
 			if(res != SCAP_SUCCESS)

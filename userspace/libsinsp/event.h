@@ -366,6 +366,7 @@ private:
 	{
 		m_flags = EF_NONE;
 		m_info = &(m_event_info_table[m_pevt->type]);
+		m_tinfo_ref.reset();
 		m_tinfo = NULL;
 		m_fdinfo = NULL;
 		m_fdinfo_name_changed = false;
@@ -377,6 +378,7 @@ private:
 		m_flags = EF_NONE;
 		m_pevt = (scap_evt *)evdata;
 		m_info = &(m_event_info_table[m_pevt->type]);
+		m_tinfo_ref.reset();
 		m_tinfo = NULL;
 		m_fdinfo = NULL;
 		m_fdinfo_name_changed = false;
@@ -392,6 +394,7 @@ private:
 	{
 		m_pevt = scap_event;
 		m_info = ppm_event;
+		m_tinfo_ref.reset(); // we don't own the threadinfo so don't try to manage its lifetime
 		m_tinfo = threadinfo;
 		m_fdinfo = fdinfo;
 	}
@@ -446,6 +449,9 @@ VISIBILITY_PRIVATE
 	std::vector<char> m_paramstr_storage;
 	std::vector<char> m_resolved_paramstr_storage;
 
+	// reference to keep threadinfo alive. currently only used for synthetic container event thread info
+	// it should either be null, or point to the same place as m_tinfo
+	std::shared_ptr<sinsp_threadinfo> m_tinfo_ref;
 	sinsp_threadinfo* m_tinfo;
 	sinsp_fdinfo_t* m_fdinfo;
 
