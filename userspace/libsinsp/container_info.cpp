@@ -109,3 +109,17 @@ void sinsp_container_info::parse_healthcheck(const Json::Value &healthcheck_obj)
 		}
 	}
 }
+
+std::shared_ptr<sinsp_threadinfo> sinsp_container_info::get_tinfo(sinsp* inspector) const
+{
+	auto tinfo = make_shared<sinsp_threadinfo>(inspector);
+	tinfo->m_tid = -1;
+	tinfo->m_pid = -1;
+	tinfo->m_vtid = -2;
+	tinfo->m_vpid = -2;
+	tinfo->m_comm = "container:" + m_id;
+	tinfo->m_container_id = m_id;
+
+	return tinfo;
+}
+

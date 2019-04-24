@@ -70,81 +70,6 @@ void docker_async_source::run_impl()
 	}
 }
 
-void docker_async_source::set_top_tid(const std::string &container_id, sinsp_threadinfo *tinfo)
-{
-	top_tid_table::accessor acc;
-
-	m_top_tids.insert(acc, container_id);
-	acc->second = tinfo->m_tid;
-}
-
-int64_t docker_async_source::get_top_tid(const std::string &container_id)
-{
-	top_tid_table::const_accessor cacc;
-
-	if(m_top_tids.find(cacc, container_id))
-	{
-		return cacc->second;
-	}
-
-	g_logger.log("Did not find container id->tid mapping for in-progress container metadata lookup?", sinsp_logger::SEV_ERROR);
-	return 0;
-}
-
-bool docker_async_source::pending_lookup(std::string &container_id)
-{
-	top_tid_table::const_accessor cacc;
-
-	return m_top_tids.find(cacc, container_id);
-}
-
-void docker_async_source::update_top_tid(std::string &container_id, sinsp_threadinfo *tinfo)
-{
-	// See if the current top tid still exists.
-	top_tid_table::const_accessor cacc;
-	sinsp_threadinfo *top_tinfo;
-
-	int64_t top_tid = get_top_tid(container_id);
-
-	if(((top_tinfo = m_inspector->get_thread(top_tid)) == NULL) ||
-	   top_tinfo->m_flags & PPM_CL_CLOSED)
-	{
-		// The top thread no longer exists. Starting with tinfo,
-		// walk the parent heirarchy to find the top thread in
-		// the same container.
-
-		sinsp_threadinfo::visitor_func_t visitor =
-		[&] (sinsp_threadinfo *ptinfo)
-		{
-			// Stop at the first thread not in this container.
-			if(ptinfo->m_container_id != container_id)
-			{
-				return false;
-			}
-
-			// Ignore exited threads but keep traversing.
-			if(ptinfo->m_flags & PPM_CL_CLOSED)
-			{
-				return true;
-			}
-
-			if(ptinfo->m_container_id == container_id)
-			{
-				top_tinfo = ptinfo;
-			}
-
-			return true;
-		};
-
-		top_tinfo = tinfo;
-		tinfo->traverse_parent_state(visitor);
-
-		// At this point, top_tinfo should point to the top
-		// thread of those running in the container.
-		set_top_tid(container_id, top_tinfo);
-	}
-}
-
 bool docker_async_source::m_query_image_info = true;
 
 void docker::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_container_info::container_mount_info> &mounts)
@@ -217,17 +142,8 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	if(!existing_container_info->m_metadata_complete &&
 	    query_os_for_missing_info)
 	{
-		if(!g_docker_info_source->pending_lookup(container_id))
-		{
-			// give docker a chance to return metadata for this container
-			parse_docker_async(manager->get_inspector(), container_id, manager);
-
-			g_docker_info_source->set_top_tid(container_id, tinfo);
-		}
-		else
-		{
-			g_docker_info_source->update_top_tid(container_id, tinfo);
-		}
+		// give docker a chance to return metadata for this container
+		parse_docker_async(manager->get_inspector(), container_id, manager);
 	}
 #endif
 
@@ -243,17 +159,16 @@ void docker::parse_docker_async(sinsp *inspector, std::string &container_id, sin
         {
 		if(res.m_successful)
 		{
-			int64_t top_tid = docker::g_docker_info_source->get_top_tid(container_id);
-			manager->notify_new_container(res.m_container_info, top_tid);
+			manager->notify_new_container(res.m_container_info);
 		}
 	};
 
-        container_lookup_result dummy;
+        container_lookup_result result;
 
-	if (g_docker_info_source->lookup(container_id, dummy, cb))
+	if (g_docker_info_source->lookup(container_id, result, cb))
 	{
-		// This should *never* happen, as ttl is 0 (never wait)
-		g_logger.log("Unexpected immediate return from docker_info_source.lookup()", sinsp_logger::SEV_ERROR);
+		// if a previous lookup call already found the metadata, process it now
+		cb(container_id, result);
 	}
 }
 
