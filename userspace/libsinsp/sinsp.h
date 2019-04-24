@@ -985,6 +985,12 @@ private:
 
 	void add_suppressed_comms(scap_open_args &oargs);
 
+	bool increased_snaplen_port_range_set() const
+	{
+		return m_increased_snaplen_port_range.range_start > 0 &&
+		       m_increased_snaplen_port_range.range_end > 0;
+	}
+
 	scap_t* m_h;
 	uint32_t m_nevts;
 	int64_t m_filesize;
@@ -1098,6 +1104,15 @@ public:
 	// Saved snaplen
 	//
 	uint32_t m_snaplen;
+
+	//
+	// Saved increased capture range
+	//
+	struct
+	{
+		uint16_t range_start;
+		uint16_t range_end;
+	} m_increased_snaplen_port_range;
 
 	//
 	// Some thread table limits
