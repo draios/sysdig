@@ -201,7 +201,14 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 
 	for (auto &var : container_info.m_env)
 	{
-		env_vars.append(var);
+		// Only append a limited set of mesos/marathon-related
+		// environment variables.
+		if(var.find("MESOS") != std::string::npos ||
+		   var.find("MARATHON") != std::string::npos ||
+		   var.find("mesos") != std::string::npos)
+		{
+			env_vars.append(var);
+		}
 	}
 	container["env"] = env_vars;
 
