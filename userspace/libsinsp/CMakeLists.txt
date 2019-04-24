@@ -131,7 +131,8 @@ endif()
 
 if(NOT WIN32 AND NOT APPLE)
 list(APPEND SINSP_SOURCES
-    cri.cpp
+	grpc_channel_registry.cpp
+	cri.cpp
 	container_engine/cri.cpp
 	${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.cc
 	${CMAKE_CURRENT_BINARY_DIR}/cri.pb.cc)
