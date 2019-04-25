@@ -22,6 +22,7 @@ limitations under the License.
 #include <user_event.h>
 #include <logger.h>
 
+#include "user_event_logger.h"
 #include "json_error_log.h"
 
 json_error_log g_json_error_log;
@@ -96,7 +97,7 @@ void json_error_log::log(const std::string &json, const std::string &errstr,
 
 		g_logger.log("Logging user event: " + evtstr, sinsp_logger::SEV_DEBUG);
 
-		g_logger.log(evtstr, sinsp_logger::SEV_EVT_WARNING);
+		user_event_logger::log(evtstr, user_event_logger::SEV_EVT_WARNING);
 	}
 }
 

@@ -793,7 +793,7 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	time_t      epoch_time_now_s = get_epoch_utc_seconds_now();
 	std::string event_name;
 	std::string description;
-	severity_t  severity = sinsp_logger::SEV_EVT_INFORMATION;
+	severity_t  severity = user_event_logger::SEV_EVT_INFORMATION;
 	event_scope scope;
 	tag_map_t   tags;
 
@@ -806,8 +806,8 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	{
 		std::string sev = get_json_string(item, "type");
 		// currently, only "Normal" and "Warning"
-		severity = sinsp_logger::SEV_EVT_INFORMATION;
-		if(sev == "Warning") { severity = sinsp_logger::SEV_EVT_WARNING; }
+		severity = user_event_logger::SEV_EVT_INFORMATION;
+		if(sev == "Warning") { severity = user_event_logger::SEV_EVT_WARNING; }
 		if(g_logger.get_severity() >= sinsp_logger::SEV_TRACE)
 		{
 			g_logger.log("K8s EVENT:"
@@ -909,8 +909,12 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	}
 
 	tags["source"] = "kubernetes";
-	g_logger.log(sinsp_user_event::to_string(epoch_time_evt_s, std::move(event_name), std::move(description),
-											 std::move(scope), std::move(tags)), severity);
+	user_event_logger::log(sinsp_user_event::to_string(epoch_time_evt_s,
+	                                                   std::move(event_name),
+	                                                   std::move(description),
+	                                                   std::move(scope),
+	                                                   std::move(tags)),
+	                  severity);
 
 	// TODO: sysdig capture?
 #endif // _WIN32

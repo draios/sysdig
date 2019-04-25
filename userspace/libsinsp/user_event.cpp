@@ -20,6 +20,7 @@ limitations under the License.
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "user_event.h"
+#include "user_event_logger.h"
 
 //
 // event_scope
@@ -441,6 +442,10 @@ void sinsp_user_event::emit_event_overflow(const std::string& component,
 		scope.append("host.mac=").append(machine_id);
 	}
 	tag_map_t tags{{"source", source}};
-	g_logger.log(sinsp_user_event::to_string(get_epoch_utc_seconds_now(), std::move(event_name),
-				 description.str(), std::move(scope), std::move(tags)), sinsp_logger::SEV_EVT_WARNING);
+	user_event_logger::log(sinsp_user_event::to_string(get_epoch_utc_seconds_now(),
+	                                                   std::move(event_name),
+	                                                   description.str(),
+	                                                   std::move(scope),
+	                                                   std::move(tags)),
+	                  user_event_logger::SEV_EVT_WARNING);
 }
