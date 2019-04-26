@@ -18,6 +18,7 @@ limitations under the License.
 */
 #include "user_event_logger.h"
 #include <memory>
+#include <string>
 
 namespace
 {
