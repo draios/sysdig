@@ -150,16 +150,13 @@ bool async_key_value_source<key_type, value_type>::lookup(
 	}
 
 	typename value_map::const_iterator itr = m_value_map.find(key);
-	bool request_complete = (itr != m_value_map.end()) && itr->second.m_available;
+	bool request_complete;
 
-	if(!request_complete)
+	if (itr == m_value_map.end())
 	{
 		// Haven't made the request yet
-		if (itr == m_value_map.end())
-		{
-			m_value_map[key].m_available = false;
-			m_value_map[key].m_value = value;
-		}
+		m_value_map[key].m_available = false;
+		m_value_map[key].m_value = value;
 
 		// Make request to API and let the async thread know about it
 		if (std::find(m_request_set.begin(),
@@ -170,7 +167,15 @@ bool async_key_value_source<key_type, value_type>::lookup(
 			m_request_set.insert(key);
 			m_queue_not_empty_condition.notify_one();
 		}
+		request_complete = false;
+	}
+	else
+	{
+		request_complete = itr->second.m_available;
+	}
 
+	if(!request_complete && m_max_wait_ms > 0)
+	{
 		//
 		// If the client code is willing to wait a short amount of time
 		// to satisfy the request, then wait for the async thread to
@@ -180,15 +185,12 @@ bool async_key_value_source<key_type, value_type>::lookup(
 		// and the async thread will continue handling the request so
 		// that it'll be available on the next call.
 		//
-		if (m_max_wait_ms > 0)
-		{
-			m_value_map[key].m_available_condition.wait_for(
-					guard,
-					std::chrono::milliseconds(m_max_wait_ms));
+		m_value_map[key].m_available_condition.wait_for(
+				guard,
+				std::chrono::milliseconds(m_max_wait_ms));
 
-			itr = m_value_map.find(key);
-			request_complete = (itr != m_value_map.end()) && itr->second.m_available;
-		}
+		itr = m_value_map.find(key);
+		request_complete = (itr != m_value_map.end()) && itr->second.m_available;
 	}
 
 	if(request_complete)
