@@ -174,7 +174,9 @@ if(NOT WIN32)
 				COMMAND ${PROTOC} -I ${CMAKE_CURRENT_SOURCE_DIR} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} ${CMAKE_CURRENT_SOURCE_DIR}/cri.proto
 				WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-		add_dependencies(sinsp grpc)
+		if(USE_BUNDLED_GRPC)
+			add_dependencies(sinsp grpc)
+		endif()
 		target_link_libraries(sinsp
 			"${GRPCPP_LIB}"
 			"${GRPC_LIB}"
