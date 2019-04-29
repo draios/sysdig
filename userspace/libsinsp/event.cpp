@@ -130,6 +130,12 @@ sinsp_threadinfo* sinsp_evt::get_thread_info(bool query_os_if_not_found)
 	{
 		return m_tinfo;
 	}
+	else if(m_tinfo_ref)
+	{
+		m_tinfo = m_tinfo_ref.get();
+
+		return m_tinfo;
+	}
 
 	return m_inspector->get_thread(m_pevt->tid, query_os_if_not_found, false);
 }
