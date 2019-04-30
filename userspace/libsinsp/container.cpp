@@ -29,10 +29,22 @@ limitations under the License.
 #include "container.h"
 #include "utils.h"
 
+using namespace libsinsp;
+
 sinsp_container_manager::sinsp_container_manager(sinsp* inspector) :
 	m_inspector(inspector),
 	m_last_flush_time_ns(0)
 {
+	m_container_engines.emplace_back(new container_engine::docker());
+#ifndef CYGWING_AGENT
+#if defined(HAS_CAPTURE)
+	m_container_engines.emplace_back(new container_engine::cri());
+#endif
+	m_container_engines.emplace_back(new container_engine::lxc());
+	m_container_engines.emplace_back(new container_engine::libvirt_lxc());
+	m_container_engines.emplace_back(new container_engine::mesos());
+	m_container_engines.emplace_back(new container_engine::rkt());
+#endif
 }
 
 sinsp_container_manager::~sinsp_container_manager()
@@ -111,22 +123,15 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		matches = m_inspector->m_parser->m_fd_listener->on_resolve_container(this, tinfo, query_os_for_missing_info);
 	}
 
-#ifdef CYGWING_AGENT
-	matches = matches || resolve_container_impl<sinsp_container_engine_docker>(tinfo, query_os_for_missing_info);
+	for(auto &eng : m_container_engines)
+	{
+		matches = matches || eng->resolve(this, tinfo, query_os_for_missing_info);
 
-#else
-	matches = matches || resolve_container_impl<
-		libsinsp::container_engine::docker,
-#if defined(HAS_CAPTURE)
-		libsinsp::container_engine::cri,
-#endif
-		libsinsp::container_engine::lxc,
-		libsinsp::container_engine::libvirt_lxc,
-		libsinsp::container_engine::mesos,
-		libsinsp::container_engine::rkt
-	>(tinfo, query_os_for_missing_info);
-
-#endif // CYGWING_AGENT
+		if(matches)
+		{
+			break;
+		}
+	}
 
 	// Also identify if this thread is part of a container healthcheck
 	identify_healthcheck(tinfo);
@@ -424,10 +429,10 @@ void sinsp_container_manager::subscribe_on_remove_container(remove_container_cb 
 
 void sinsp_container_manager::cleanup()
 {
-	libsinsp::container_engine::docker::cleanup();
-#if defined(HAS_CAPTURE)
-	libsinsp::container_engine::cri::cleanup();
-#endif
+	for(auto &eng : m_container_engines)
+	{
+		eng->cleanup();
+	}
 }
 
 void sinsp_container_manager::set_query_docker_image_info(bool query_image_info)

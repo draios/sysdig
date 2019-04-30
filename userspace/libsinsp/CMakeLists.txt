@@ -41,6 +41,7 @@ set(SINSP_SOURCES
 	chisel.cpp
 	chisel_api.cpp
 	container.cpp
+	container_engine/container_engine.cpp
 	container_engine/docker_common.cpp
 	container_info.cpp
 	ctext.cpp

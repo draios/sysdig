@@ -119,13 +119,13 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 		return false;
 	}
 
-	if(!g_docker_info_source)
+	if(!m_docker_info_source)
 	{
 		g_logger.log("docker_async: Creating docker async source",
 			     sinsp_logger::SEV_DEBUG);
 		uint64_t max_wait_ms = 10000;
 		docker_async_source *src = new docker_async_source(docker_async_source::NO_WAIT_LOOKUP, max_wait_ms, manager->get_inspector());
-		g_docker_info_source.reset(src);
+		m_docker_info_source.reset(src);
 	}
 
 	tinfo->m_container_id = container_id;
@@ -192,7 +192,7 @@ void docker::parse_docker_async(sinsp *inspector, std::string &container_id, sin
 
         container_lookup_result result;
 
-	if (g_docker_info_source->lookup(container_id, result, cb))
+	if (m_docker_info_source->lookup(container_id, result, cb))
 	{
 		// if a previous lookup call already found the metadata, process it now
 		cb(container_id, result);
