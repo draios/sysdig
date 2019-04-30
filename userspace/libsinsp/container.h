@@ -64,6 +64,7 @@ public:
 	void subscribe_on_new_container(new_container_cb callback);
 	void subscribe_on_remove_container(remove_container_cb callback);
 
+	void create_engines();
 	void cleanup();
 
 	void set_query_docker_image_info(bool query_image_info);
