@@ -522,7 +522,7 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 
 		(*nbytes) += sizeof(uint32_t);
 		res = scap_fd_read_fname_from_disk(handle, fdi->info.regularinfo.fname, nbytes, f);
-		if (sub_len && (*nbytes + sizeof(uint32_t)) > sub_len)
+		if (!sub_len || (sub_len < *nbytes + sizeof(uint32_t)))
 		{
 			break;
 		}
