@@ -788,6 +788,19 @@ public:
 	*/
 	double get_read_progress();
 
+
+	virtual int /*SCAP_X*/ dynamic_snaplen(bool enable)
+	{
+		if(enable)
+		{
+			return scap_enable_dynamic_snaplen(m_h);
+		}
+		else
+		{
+			return scap_disable_dynamic_snaplen(m_h);
+		}
+	}
+
 #ifndef CYGWING_AGENT
 	void init_k8s_ssl(const std::string *ssl_cert);
 	void init_k8s_client(std::string* api_server, std::string* ssl_cert, bool verbose = false);
@@ -995,7 +1008,7 @@ private:
 	uint32_t m_nevts;
 	int64_t m_filesize;
 
-	scap_mode_t m_mode;
+	scap_mode_t m_mode = SCAP_MODE_LIVE;
 
 	// If non-zero, reading from this fd and m_input_filename contains "fd
 	// <m_input_fd>". Otherwise, reading from m_input_filename.
@@ -1015,7 +1028,7 @@ private:
 	int64_t m_tid_to_remove;
 	int64_t m_tid_of_fd_to_remove;
 	std::vector<int64_t>* m_fds_to_remove;
-	uint64_t m_lastevent_ts;
+	uint64_t m_lastevent_ts = 0;
 	// the parsing engine
 	sinsp_parser* m_parser;
 	// the statistics analysis engine
