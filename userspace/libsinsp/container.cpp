@@ -201,7 +201,14 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 
 	for (auto &var : container_info.m_env)
 	{
-		env_vars.append(var);
+		// Only append a limited set of mesos/marathon-related
+		// environment variables.
+		if(var.find("MESOS") != std::string::npos ||
+		   var.find("MARATHON") != std::string::npos ||
+		   var.find("mesos") != std::string::npos)
+		{
+			env_vars.append(var);
+		}
 	}
 	container["env"] = env_vars;
 
@@ -228,6 +235,9 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 
 	if(totlen > evt_len)
 	{
+		g_logger.format(sinsp_logger::SEV_ERROR,
+				"container_to_sinsp_event: event len %d > max len %d w/ json \"%s\", returning false",
+				totlen, evt_len, json.c_str());
 		ASSERT(false);
 		return false;
 	}
@@ -280,6 +290,10 @@ void sinsp_container_manager::notify_new_container(const sinsp_container_info& c
 
 	if(container_to_sinsp_event(container_to_json(container_info), evt, container_info.get_tinfo(m_inspector)))
 	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"notify_new_container (%s): created CONTAINER_JSON event, queuing to inspector",
+				container_info.m_id.c_str());
+
 		std::shared_ptr<sinsp_evt> cevt(evt);
 
 		// Enqueue it onto the queue of pending container events for the inspector
@@ -287,6 +301,9 @@ void sinsp_container_manager::notify_new_container(const sinsp_container_info& c
 	}
 	else
 	{
+		g_logger.format(sinsp_logger::SEV_ERROR,
+				"notify_new_container (%s): could not create CONTAINER_JSON event, dropping",
+				container_info.m_id.c_str());
 		delete evt;
 	}
 }
