@@ -788,7 +788,10 @@ public:
 	*/
 	double get_read_progress();
 
-
+	/*!
+	  \brief Make the amount of data gathered for a syscall to be
+	  determined by the number of parameters.
+	*/
 	virtual int /*SCAP_X*/ dynamic_snaplen(bool enable)
 	{
 		if(enable)
