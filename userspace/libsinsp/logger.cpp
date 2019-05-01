@@ -230,7 +230,7 @@ const char* sinsp_logger::format(const severity sev, const char* const fmt, ...)
 	va_list ap;
 
 	va_start(ap, fmt);
-	vsnprintf(s_tbuf, sizeof(s_tbuf), fmt, ap);
+	vsnprintf(s_tbuf, sizeof s_tbuf, fmt, ap);
 	va_end(ap);
 
 	log(s_tbuf, sev);
@@ -243,7 +243,7 @@ const char* sinsp_logger::format(const char* const fmt, ...)
 	va_list ap;
 
 	va_start(ap, fmt);
-	vsnprintf(s_tbuf, sizeof(s_tbuf), fmt, ap);
+	vsnprintf(s_tbuf, sizeof s_tbuf, fmt, ap);
 	va_end(ap);
 
 	log(s_tbuf, SEV_INFO);
