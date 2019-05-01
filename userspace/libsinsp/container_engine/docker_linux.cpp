@@ -49,6 +49,10 @@ docker::docker()
 
 void docker::cleanup()
 {
+	if (m_docker_info_source)
+	{
+		m_docker_info_source->quiesce();
+	}
 	m_docker_info_source.reset(NULL);
 }
 
