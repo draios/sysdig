@@ -343,7 +343,7 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 	uint16_t min_port = data->settings->fullcapture_port_range_start;
 	uint16_t max_port = data->settings->fullcapture_port_range_end;
 
-	if (min_port > 0 &&
+	if (max_port > 0 &&
 		(in_port_range(sport, min_port, max_port) ||
 		 in_port_range(dport, min_port, max_port))) {
 		/*

@@ -65,7 +65,7 @@ static void memory_dump(char *p, size_t size)
 
 static inline bool in_port_range(uint16_t port, uint16_t min, uint16_t max)
 {
-    return port >= min && port <= max;
+	return port >= min && port <= max;
 }
 
 /*
