@@ -338,12 +338,10 @@ void docker_async_source::set_query_image_info(bool query_image_info)
 	m_query_image_info = query_image_info;
 }
 
-std::string docker::s_incomplete_info_name = "incomplete";
-
 bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	std::string container_id, container_name;
-	sinsp_container_info *existing_container_info;
+	sinsp_container_info *container_info;
 
 	if(!detect_docker(tinfo, container_id, container_name))
 	{
@@ -360,39 +358,11 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	}
 
 	tinfo->m_container_id = container_id;
-
-	existing_container_info = manager->get_container(container_id);
-
-	if(!existing_container_info)
-	{
-		// Add a minimal container_info object where only the
-		// container id, (possibly) name, and a container
-		// image = incomplete is filled in. This may be
-		// overidden later once parse_docker_async completes.
-		sinsp_container_info container_info;
-
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"docker_async (%s): No existing container info, creating initial stub info",
-				container_id.c_str());
-
-		container_info.m_type = CT_DOCKER;
-		container_info.m_id = container_id;
-		container_info.m_name = container_name;
-		container_info.m_image = s_incomplete_info_name;
-		container_info.m_imageid = s_incomplete_info_name;
-		container_info.m_imagerepo = s_incomplete_info_name;
-		container_info.m_imagetag = s_incomplete_info_name;
-		container_info.m_imagedigest = s_incomplete_info_name;
-		container_info.m_metadata_complete = false;
-
-		manager->add_container(container_info, tinfo);
-
-		existing_container_info = manager->get_container(container_id);
-	}
+	container_info = manager->get_or_create_container(CT_DOCKER, container_id, container_name, tinfo);
 
 #ifdef HAS_CAPTURE
 	// Possibly start a lookup for this container info
-	if(!existing_container_info->m_metadata_complete &&
+	if(!container_info->m_metadata_complete &&
 	    query_os_for_missing_info)
 	{
 		// give docker a chance to return metadata for this container
@@ -403,7 +373,7 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	// Returning true will prevent other container engines from
 	// trying to resolve the container, so only return true if we
 	// have complete metadata.
-	return existing_container_info->m_metadata_complete;
+	return container_info->m_metadata_complete;
 }
 
 void docker::parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager)

@@ -215,7 +215,7 @@ bool docker::detect_docker(const sinsp_threadinfo *tinfo, std::string &container
 	if(matches_runc_cgroups(tinfo, DOCKER_CGROUP_LAYOUT, container_id))
 	{
 		// The container name is only available in windows
-		container_name = s_incomplete_info_name;
+		container_name = "";
 
 		return true;
 	}

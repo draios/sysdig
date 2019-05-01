@@ -50,6 +50,7 @@ public:
 	void add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread);
 	void add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread, libsinsp::MutexGuard<std::unordered_map<std::string, sinsp_container_info>>& containers);
 	sinsp_container_info * get_container(const std::string &id);
+	sinsp_container_info * get_or_create_container(sinsp_container_type type, const std::string &id, const std::string& name, sinsp_threadinfo* tinfo);
 	void notify_new_container(const sinsp_container_info& container_info);
 	template<typename E> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	template<typename E1, typename E2, typename... Args> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
@@ -93,6 +94,8 @@ private:
 	uint64_t m_last_flush_time_ns;
 	std::list<new_container_cb> m_new_callbacks;
 	std::list<remove_container_cb> m_remove_callbacks;
+
+	static std::string s_incomplete_info_name;
 
 	friend class test_helper;
 };
