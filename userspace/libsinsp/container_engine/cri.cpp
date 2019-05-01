@@ -73,7 +73,11 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 {
 	if(!s_cri)
 	{
-		g_logger.format(sinsp_logger::SEV_ERROR,
+		// This isn't an error in the case where the
+		// configured unix domain socket doesn't exist. In
+		// that case, s_cri isn't initialized at all. Hence,
+		// the DEBUG.
+		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"cri (%s): Could not parse cri (no s_cri object)",
 				container->m_id.c_str());
 		return false;
