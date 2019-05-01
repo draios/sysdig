@@ -34,6 +34,8 @@ limitations under the License.
 
 using namespace libsinsp;
 
+std::string sinsp_container_manager::s_incomplete_info_name = "incomplete";
+
 sinsp_container_manager::sinsp_container_manager(sinsp* inspector) :
 	m_inspector(inspector),
 	m_last_flush_time_ns(0)
@@ -105,6 +107,40 @@ sinsp_container_info* sinsp_container_manager::get_container(const string& conta
 	}
 
 	return nullptr;
+}
+
+sinsp_container_info* sinsp_container_manager::get_or_create_container(
+	sinsp_container_type type, const string& id, const std::string& name, sinsp_threadinfo* tinfo)
+{
+	auto containers = m_containers.lock();
+	auto it = containers->find(id);
+	if(it != containers->end())
+	{
+		return &it->second;
+	}
+
+	// Add a minimal container_info object where only the
+	// container id, (possibly) name, and a container
+	// image = incomplete is filled in. This may be
+	// overridden later once async lookup completes.
+	sinsp_container_info container_info;
+
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"container_manager (%s): No existing container info, creating initial stub info with type=%d",
+			id.c_str(), type);
+
+	container_info.m_type = type;
+	container_info.m_id = id;
+	container_info.m_name = name.empty() ? s_incomplete_info_name : name;
+	container_info.m_image = s_incomplete_info_name;
+	container_info.m_imageid = s_incomplete_info_name;
+	container_info.m_imagerepo = s_incomplete_info_name;
+	container_info.m_imagetag = s_incomplete_info_name;
+	container_info.m_imagedigest = s_incomplete_info_name;
+	container_info.m_metadata_complete = false;
+
+	add_container(container_info, tinfo, containers);
+	return &(*containers)[id];
 }
 
 bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
