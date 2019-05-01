@@ -343,7 +343,7 @@ FILLER(sys_poll_x, true)
 	return res;
 }
 
-#define MAX_IOVCNT 8
+#define MAX_IOVCNT 32
 
 static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 						       const struct iovec __user *iovsrc,
