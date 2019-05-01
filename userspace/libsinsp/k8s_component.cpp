@@ -914,7 +914,7 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	                                                   std::move(description),
 	                                                   std::move(scope),
 	                                                   std::move(tags)),
-	                  severity);
+	                       severity);
 
 	// TODO: sysdig capture?
 #endif // _WIN32

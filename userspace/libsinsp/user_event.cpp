@@ -447,5 +447,5 @@ void sinsp_user_event::emit_event_overflow(const std::string& component,
 	                                                   description.str(),
 	                                                   std::move(scope),
 	                                                   std::move(tags)),
-	                  user_event_logger::SEV_EVT_WARNING);
+	                       user_event_logger::SEV_EVT_WARNING);
 }
