@@ -43,15 +43,13 @@ constexpr const cgroup_layout DOCKER_CGROUP_LAYOUT[] = {
 };
 }
 
-std::unique_ptr<docker_async_source> docker::g_docker_info_source;
-
 docker::docker()
 {
 }
 
 void docker::cleanup()
 {
-	g_docker_info_source.reset(NULL);
+	m_docker_info_source.reset(NULL);
 }
 
 void docker_async_source::init_docker_conn()

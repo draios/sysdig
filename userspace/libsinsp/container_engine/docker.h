@@ -36,6 +36,8 @@ limitations under the License.
 
 #include "container_info.h"
 
+#include "container_engine/container_engine.h"
+
 class sinsp;
 class sinsp_container_manager;
 class sinsp_container_info;
@@ -90,13 +92,13 @@ private:
 	static bool m_query_image_info;
 };
 
-class docker
+class docker : public resolver
 {
 public:
 	docker();
 
-	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
-	static void cleanup();
+	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info) override;
+	void cleanup() override;
 	static void parse_json_mounts(const Json::Value &mnt_obj, std::vector<sinsp_container_info::container_mount_info> &mounts);
 
 	// Container name only set for windows. For linux name must be fetched via lookup
@@ -104,7 +106,7 @@ public:
 protected:
 	void parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager);
 
-	static std::unique_ptr<docker_async_source> g_docker_info_source;
+	std::unique_ptr<docker_async_source> m_docker_info_source;
 
 	static std::string s_incomplete_info_name;
 };

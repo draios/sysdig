@@ -29,6 +29,8 @@ limitations under the License.
 #include <curl/multi.h>
 #endif
 
+#include "container_engine/container_engine.h"
+
 class sinsp_container_manager
 {
 public:
@@ -62,6 +64,7 @@ public:
 	void subscribe_on_new_container(new_container_cb callback);
 	void subscribe_on_remove_container(remove_container_cb callback);
 
+	void create_engines();
 	void cleanup();
 
 	void set_query_docker_image_info(bool query_image_info);
@@ -74,6 +77,8 @@ private:
 	bool container_to_sinsp_event(const string& json, sinsp_evt* evt, shared_ptr<sinsp_threadinfo> tinfo);
 	string get_docker_env(const Json::Value &env_vars, const string &mti);
 
+	std::list<std::unique_ptr<libsinsp::container_engine::resolver>> m_container_engines;
+
 	sinsp* m_inspector;
 	unordered_map<string, sinsp_container_info> m_containers;
 	uint64_t m_last_flush_time_ns;
@@ -82,18 +87,3 @@ private:
 
 	friend class test_helper;
 };
-
-template<typename E> bool sinsp_container_manager::resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
-{
-	E engine;
-	return engine.resolve(this, tinfo, query_os_for_missing_info);
-}
-
-template<typename E1, typename E2, typename... Args> bool sinsp_container_manager::resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
-{
-	if (resolve_container_impl<E1>(tinfo, query_os_for_missing_info))
-	{
-		return true;
-	}
-	return resolve_container_impl<E2, Args...>(tinfo, query_os_for_missing_info);
-}
