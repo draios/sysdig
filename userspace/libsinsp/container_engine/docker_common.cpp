@@ -104,6 +104,210 @@ void docker::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_containe
 	}
 }
 
+bool docker_async_source::get_k8s_pod_spec(const Json::Value &config_obj,
+					   Json::Value &spec)
+{
+	std::string cfg_str;
+	Json::Reader reader;
+	std::string k8s_label = "annotation.kubectl.kubernetes.io/last-applied-configuration";
+
+	if(config_obj.isNull() ||
+	   !config_obj.isMember("Labels") ||
+	   !config_obj["Labels"].isMember(k8s_label))
+	{
+		return false;
+	}
+
+	// The pod spec is stored as a stringified json label on the container
+	cfg_str = config_obj["Labels"][k8s_label].asString();
+
+	if(cfg_str == "")
+	{
+		return false;
+	}
+
+	Json::Value cfg;
+	if(!reader.parse(cfg_str.c_str(), cfg))
+	{
+		g_logger.format(sinsp_logger::SEV_WARNING, "Could not parse pod config '%s'", cfg_str.c_str());
+		return false;
+	}
+
+	if(!cfg.isMember("spec") ||
+	   !cfg["spec"].isMember("containers") ||
+	   !cfg["spec"]["containers"].isArray())
+	{
+		return false;
+	}
+
+	// XXX/mstemm how will this work with init containers?
+	spec = cfg["spec"]["containers"][0];
+
+	return true;
+}
+
+std::string docker_async_source::normalize_arg(const std::string &arg)
+{
+	std::string ret = arg;
+
+	if(ret.empty())
+	{
+		return ret;
+	}
+
+	// Remove pairs of leading/trailing " or ' chars, if present
+	while(ret.front() == '"' || ret.front() == '\'')
+	{
+		if(ret.back() == ret.front())
+		{
+			ret.pop_back();
+			ret.erase(0, 1);
+		}
+	}
+
+	return ret;
+}
+
+void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
+					    sinsp_container_info *container)
+{
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"docker (%s): Trying to parse healthcheck from %s",
+			container->m_id.c_str(), Json::FastWriter().write(healthcheck_obj).c_str());
+
+	if(healthcheck_obj.isNull() ||
+	   !healthcheck_obj.isMember("Test"))
+	{
+		g_logger.format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s",
+				Json::FastWriter().write(healthcheck_obj).c_str());
+
+		return;
+	}
+
+	const Json::Value &test_obj = healthcheck_obj["Test"];
+
+	if(!test_obj.isArray() || test_obj.size() < 2)
+	{
+		g_logger.format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s",
+				Json::FastWriter().write(healthcheck_obj).c_str());
+		return;
+	}
+
+	if(test_obj[0].asString() == "CMD")
+	{
+		std::string exe = normalize_arg(test_obj[1].asString());
+		std::vector<std::string> args;
+
+		for(uint32_t i = 2; i < test_obj.size(); i++)
+		{
+			args.push_back(normalize_arg(test_obj[i].asString()));
+		}
+
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"docker (%s): Setting PT_HEALTHCHECK exe=%s nargs=%d",
+				container->m_id.c_str(), exe.c_str(), args.size());
+
+		container->m_health_probes.emplace_back(sinsp_container_info::container_health_probe::PT_HEALTHCHECK,
+							std::move(exe),
+							std::move(args));
+	}
+	else if(test_obj[0].asString() == "CMD-SHELL")
+	{
+		std::string exe = "/bin/sh";
+		std::vector<std::string> args;
+
+		args.push_back("-c");
+		args.push_back(test_obj[1].asString());
+
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"docker (%s): Setting PT_HEALTHCHECK exe=%s nargs=%d",
+				container->m_id.c_str(), exe.c_str(), args.size());
+
+		container->m_health_probes.emplace_back(sinsp_container_info::container_health_probe::PT_HEALTHCHECK,
+							std::move(exe),
+							std::move(args));
+	}
+
+	// This occurs when HEALTHCHECK is NONE. No warning log in this case.
+}
+
+bool docker_async_source::parse_liveness_readiness_probe(const Json::Value &probe_obj,
+							 sinsp_container_info::container_health_probe::probe_type ptype,
+							 sinsp_container_info *container)
+{
+	if(probe_obj.isNull() ||
+	   !probe_obj.isMember("exec") ||
+	   !probe_obj["exec"].isMember("command"))
+	{
+		g_logger.format(sinsp_logger::SEV_WARNING, "Could not parse liveness/readiness probe from %s",
+				Json::FastWriter().write(probe_obj).c_str());
+		return false;
+	}
+
+	const Json::Value command_obj = probe_obj["exec"]["command"];
+
+	if(!command_obj.isNull() && command_obj.isArray())
+	{
+		std::string exe;
+		std::vector<std::string> args;
+
+		exe = normalize_arg(command_obj[0].asString());
+		for(uint32_t i = 1; i < command_obj.size(); i++)
+		{
+			args.push_back(normalize_arg(command_obj[i].asString()));
+		}
+
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"docker (%s): Setting %s exe=%s nargs=%d",
+				container->m_id.c_str(),
+				sinsp_container_info::container_health_probe::probe_type_names[ptype].c_str(),
+				exe.c_str(), args.size());
+
+		container->m_health_probes.emplace_back(ptype, std::move(exe), std::move(args));
+	}
+
+	return true;
+}
+
+void docker_async_source::parse_health_probes(const Json::Value &config_obj,
+					      sinsp_container_info *container)
+{
+	Json::Value spec;
+	bool liveness_readiness_added = false;
+
+	// When parsing the full container json for live containers, a label contains stringified json that
+	// contains the probes.
+	if (get_k8s_pod_spec(config_obj, spec))
+	{
+		if(spec.isMember("livenessProbe"))
+		{
+			if(parse_liveness_readiness_probe(spec["livenessProbe"],
+							  sinsp_container_info::container_health_probe::PT_LIVENESS_PROBE,
+							  container))
+			{
+				liveness_readiness_added = true;
+			}
+		}
+		else if(spec.isMember("readinessProbe"))
+		{
+			if(parse_liveness_readiness_probe(spec["readinessProbe"],
+							  sinsp_container_info::container_health_probe::PT_READINESS_PROBE,
+							  container))
+			{
+				liveness_readiness_added = true;
+			}
+		}
+	}
+
+	// To avoid any confusion about containers that both refer to
+	// a healthcheck and liveness/readiness probe, we only
+	// consider a healthcheck if no liveness/readiness was added.
+	if(!liveness_readiness_added && config_obj.isMember("Healthcheck"))
+	{
+		parse_healthcheck(config_obj["Healthcheck"], container);
+	}
+}
+
 void docker_async_source::set_query_image_info(bool query_image_info)
 {
 	g_logger.format(sinsp_logger::SEV_DEBUG,
@@ -274,19 +478,16 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 		container->m_imageid = imgstr.substr(cpos + 1);
 	}
 
-	container->parse_healthcheck(config_obj["Healthcheck"]);
-
-	// Saving full healthcheck for container event parsing/writing
-	container->m_healthcheck_obj = config_obj["Healthcheck"];
+	parse_health_probes(config_obj, container);
 
 	// containers can be spawned using just the imageID as image name,
 	// with or without the hash prefix (e.g. sha256:)
 	bool no_name = !container->m_imageid.empty() &&
-		       strncmp(container->m_image.c_str(), container->m_imageid.c_str(),
-			       MIN(container->m_image.length(), container->m_imageid.length())) == 0;
+		strncmp(container->m_image.c_str(), container->m_imageid.c_str(),
+			MIN(container->m_image.length(), container->m_imageid.length())) == 0;
 	no_name |= !imgstr.empty() &&
-		   strncmp(container->m_image.c_str(), imgstr.c_str(),
-			   MIN(container->m_image.length(), imgstr.length())) == 0;
+		strncmp(container->m_image.c_str(), imgstr.c_str(),
+			MIN(container->m_image.length(), imgstr.length())) == 0;
 
 	if(!no_name || !m_query_image_info)
 	{
@@ -534,3 +735,4 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 			container_id.c_str());
 	return true;
 }
+
