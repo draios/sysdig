@@ -19,6 +19,11 @@ or GPL2.txt for full copies of the license.
 
 #include "../ppm_flag_helpers.h"
 
+static __always_inline bool in_port_range(uint16_t port, uint16_t min, uint16_t max)
+{
+	return port >= min && port <= max;
+}
+
 static __always_inline struct file *bpf_fget(int fd)
 {
 	struct task_struct *task;
@@ -335,7 +340,18 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 		dport = 0;
 	}
 
-	if (sport == PPM_PORT_MYSQL || dport == PPM_PORT_MYSQL) {
+	uint16_t min_port = data->settings->fullcapture_port_range_start;
+	uint16_t max_port = data->settings->fullcapture_port_range_end;
+
+	if (max_port > 0 &&
+		(in_port_range(sport, min_port, max_port) ||
+		 in_port_range(dport, min_port, max_port))) {
+		/*
+		 * Before checking the well-known ports, see if the user has requested
+		 * an increased snaplen for the port in question.
+		 */
+		return RW_MAX_FULLCAPTURE_PORT_SNAPLEN;
+	} else if (sport == PPM_PORT_MYSQL || dport == PPM_PORT_MYSQL) {
 		if (lookahead_size >= 5) {
 			if (get_buf(0) == 3 ||
 			    get_buf(1) == 3 ||
@@ -369,14 +385,6 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 		return 2000;
 	} else if (dport == PPM_PORT_STATSD) {
 		return 2000;
-	} else if (data->settings->fullcapture_port_range_end != 0 &&
-				((sport >= data->settings->fullcapture_port_range_start && sport <= data->settings->fullcapture_port_range_end) ||
-				(dport >= data->settings->fullcapture_port_range_start && dport <= data->settings->fullcapture_port_range_end)
-			)) {
-		/*
-		* mpegts detection
-		*/
-		return RW_MAX_FULLCAPTURE_PORT_SNAPLEN;
 	} else {
 		if (lookahead_size >= 5) {
 			u32 buf = *(u32 *)&get_buf(0);

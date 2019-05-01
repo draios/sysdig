@@ -65,7 +65,7 @@ static void memory_dump(char *p, size_t size)
 
 static inline bool in_port_range(uint16_t port, uint16_t min, uint16_t max)
 {
-    return port >= min && port <= max;
+	return port >= min && port <= max;
 }
 
 /*
@@ -356,8 +356,9 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 						dport = 0;
 					}
 
-					if (in_port_range(sport, min_port, max_port) ||
-						in_port_range(dport, min_port, max_port)) {
+					if (max_port > 0 &&
+						(in_port_range(sport, min_port, max_port) ||
+						 in_port_range(dport, min_port, max_port))) {
 						/*
 						 * Before checking the well-known ports, see if the user has requested
 						 * an increased snaplen for the port in question.
