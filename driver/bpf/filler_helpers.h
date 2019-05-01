@@ -19,9 +19,9 @@ or GPL2.txt for full copies of the license.
 
 #include "../ppm_flag_helpers.h"
 
-static inline bool in_port_range(uint16_t port, uint16_t min, uint16_t max)
+static __always_inline bool in_port_range(uint16_t port, uint16_t min, uint16_t max)
 {
-    return port >= min && port <= max;
+	return port >= min && port <= max;
 }
 
 static __always_inline struct file *bpf_fget(int fd)
