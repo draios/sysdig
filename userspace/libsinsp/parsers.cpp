@@ -4533,7 +4533,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 			container_info.m_name = name.asString();
 		}
 
-		const Json::Value& is_pod_sandbox = container["isPodSandbox"];
+		const Json::Value& is_pod_sandbox = container["is_pod_sandbox"];
 		if(!is_pod_sandbox.isNull() && is_pod_sandbox.isConvertibleTo(Json::booleanValue))
 		{
 			container_info.m_is_pod_sandbox = is_pod_sandbox.asBool();
