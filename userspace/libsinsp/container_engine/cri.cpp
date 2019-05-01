@@ -49,6 +49,44 @@ constexpr uint64_t CGROUP_LOOKUP_DELAY_MS = 1000;
 constexpr uint64_t CGROUP_MAX_DELAY_MS = 2000;
 libsinsp::async_cgroup::delayed_cgroup_lookup s_async_cgroups(0, CGROUP_MAX_DELAY_MS);
 
+void init_cri()
+{
+	if(s_cri || s_cri_unix_socket_path.empty()) {
+		return;
+	}
+
+	auto cri_path = scap_get_host_root() + s_cri_unix_socket_path;
+	struct stat s = {};
+	if(stat(cri_path.c_str(), &s) != 0 || (s.st_mode & S_IFMT) != S_IFSOCK) {
+		return;
+	}
+
+	std::shared_ptr<grpc::Channel> channel = libsinsp::grpc_channel_registry::get_channel("unix://" + cri_path);
+	s_cri = runtime::v1alpha2::RuntimeService::NewStub(channel);
+	s_cri_image = runtime::v1alpha2::ImageService::NewStub(channel);
+
+	runtime::v1alpha2::VersionRequest vreq;
+	runtime::v1alpha2::VersionResponse vresp;
+
+	vreq.set_version("v1alpha2");
+	grpc::ClientContext context;
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
+	context.set_deadline(deadline);
+	grpc::Status status = s_cri->Version(&context, vreq, &vresp);
+
+	if (!status.ok())
+	{
+		g_logger.format(sinsp_logger::SEV_NOTICE, "cri: CRI runtime returned an error after version check at %s: %s",
+				s_cri_unix_socket_path.c_str(), status.error_message().c_str());
+		s_cri.reset(nullptr);
+		s_cri_unix_socket_path = "";
+		return;
+	}
+
+	g_logger.format(sinsp_logger::SEV_INFO, "cri: CRI runtime: %s %s", vresp.runtime_name().c_str(), vresp.runtime_version().c_str());
+	s_cri_runtime_type = get_cri_runtime_type(vresp.runtime_name());
+}
+
 bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info *container, sinsp_threadinfo *tinfo)
 {
 	const auto &info_it = status.info().find("info");
@@ -192,40 +230,7 @@ constexpr const cgroup_layout CRI_CGROUP_LAYOUT[] = {
 
 cri::cri()
 {
-	if(s_cri || s_cri_unix_socket_path.empty()) {
-		return;
-	}
-
-	auto cri_path = scap_get_host_root() + s_cri_unix_socket_path;
-	struct stat s = {};
-	if(stat(cri_path.c_str(), &s) != 0 || (s.st_mode & S_IFMT) != S_IFSOCK) {
-		return;
-	}
-
-	std::shared_ptr<grpc::Channel> channel = libsinsp::grpc_channel_registry::get_channel("unix://" + cri_path);
-	s_cri = runtime::v1alpha2::RuntimeService::NewStub(channel);
-	s_cri_image = runtime::v1alpha2::ImageService::NewStub(channel);
-
-	runtime::v1alpha2::VersionRequest vreq;
-	runtime::v1alpha2::VersionResponse vresp;
-
-	vreq.set_version("v1alpha2");
-	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
-	context.set_deadline(deadline);
-	grpc::Status status = s_cri->Version(&context, vreq, &vresp);
-
-	if (!status.ok())
-	{
-		g_logger.format(sinsp_logger::SEV_NOTICE, "cri: CRI runtime returned an error after version check at %s: %s",
-			s_cri_unix_socket_path.c_str(), status.error_message().c_str());
-		s_cri.reset(nullptr);
-		s_cri_unix_socket_path = "";
-		return;
-	}
-
-	g_logger.format(sinsp_logger::SEV_INFO, "cri: CRI runtime: %s %s", vresp.runtime_name().c_str(), vresp.runtime_version().c_str());
-	s_cri_runtime_type = get_cri_runtime_type(vresp.runtime_name());
+	init_cri();
 }
 
 void cri::cleanup()
