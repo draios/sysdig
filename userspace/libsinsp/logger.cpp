@@ -65,12 +65,6 @@ bool sinsp_logger::is_callback() const
 	 return (m_flags & sinsp_logger::OT_CALLBACK) != 0;
 }
 
-bool sinsp_logger::is_event_severity(const severity sev)
-{
-	 return (static_cast<int>(sev) >= static_cast<int>(SEV_EVT_MIN) &&
-			static_cast<int>(sev) <= static_cast<int>(SEV_EVT_MAX));
-}
-
 uint32_t sinsp_logger::get_log_output_type() const
 {
 	return m_flags;
@@ -143,26 +137,11 @@ sinsp_logger::severity sinsp_logger::get_severity() const
 	return m_sev;
 }
 
-void sinsp_logger::log(std::string msg, const event_severity sev)
-{
-	sinsp_logger_callback cb = nullptr;
-
-	if(is_callback())
-	{
-		cb = m_callback;
-	}
-
-	if(cb != nullptr)
-	{
-		cb(std::move(msg), static_cast<uint32_t>(sev));
-	}
-}
-
 void sinsp_logger::log(std::string msg, const severity sev)
 {
 	sinsp_logger_callback cb = nullptr;
 
-	if((sev > m_sev) || is_event_severity(sev))
+	if(sev > m_sev)
 	{
 		return;
 	}
@@ -208,7 +187,7 @@ void sinsp_logger::log(std::string msg, const severity sev)
 
 	if(cb != nullptr)
 	{
-		cb(std::move(msg), static_cast<uint32_t>(sev));
+		cb(std::move(msg), sev);
 	}
 	else if((m_flags & sinsp_logger::OT_FILE) && m_file)
 	{
@@ -229,12 +208,6 @@ void sinsp_logger::log(std::string msg, const severity sev)
 
 const char* sinsp_logger::format(const severity sev, const char* const fmt, ...)
 {
-	if(!is_callback() && is_event_severity(sev))
-	{
-		s_tbuf[0] = '\0';
-		return s_tbuf;
-	}
-
 	va_list ap;
 
 	va_start(ap, fmt);
