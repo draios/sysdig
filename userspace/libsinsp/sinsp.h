@@ -905,6 +905,10 @@ public:
 
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
+	void set_mode(scap_mode_t value)
+	{
+		m_mode = value;
+	}
 
 VISIBILITY_PRIVATE
 
@@ -1031,7 +1035,7 @@ private:
 	int64_t m_tid_to_remove;
 	int64_t m_tid_of_fd_to_remove;
 	std::vector<int64_t>* m_fds_to_remove;
-	uint64_t m_lastevent_ts = 0;
+	uint64_t m_lastevent_ts;
 	// the parsing engine
 	sinsp_parser* m_parser;
 	// the statistics analysis engine

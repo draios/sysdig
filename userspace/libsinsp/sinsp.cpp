@@ -63,6 +63,7 @@ void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_thr
 ///////////////////////////////////////////////////////////////////////////////
 sinsp::sinsp() :
 	m_evt(this),
+	m_lastevent_ts(0),
 	m_container_manager(this),
 	m_suppressed_comms()
 {
