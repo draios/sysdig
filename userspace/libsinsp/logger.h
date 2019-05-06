@@ -207,14 +207,14 @@ extern sinsp_logger g_logger;
 #define SINSP_STR_TRACE(str)     SINSP_LOG_STR_(sinsp_logger::SEV_TRACE,   (str))
 
 #if _DEBUG
-#    define DBG_SINSP_FATAL(...)    SINSP_FATAL(   ##__VA_ARGS__)
-#    define DBG_SINSP_CRITICAL(...) SINSP_CRITICAL(##__VA_ARGS__)
-#    define DBG_SINSP_ERROR(...)    SINSP_ERROR(   ##__VA_ARGS__)
-#    define DBG_SINSP_WARNING(...)  SINSP_WARNING( ##__VA_ARGS__)
-#    define DBG_SINSP_NOTICE(...)   SINSP_NOTICE(  ##__VA_ARGS__)
-#    define DBG_SINSP_INFO(...)     SINSP_INFO(    ##__VA_ARGS__)
-#    define DBG_SINSP_DEBUG(...)    SINSP_DEBUG(   ##__VA_ARGS__)
-#    define DBG_SINSP_TRACE(...)    SINSP_TRACE(   ##__VA_ARGS__)
+#    define DBG_SINSP_FATAL(...)    SINSP_FATAL(   __VA_ARGS__)
+#    define DBG_SINSP_CRITICAL(...) SINSP_CRITICAL(__VA_ARGS__)
+#    define DBG_SINSP_ERROR(...)    SINSP_ERROR(   __VA_ARGS__)
+#    define DBG_SINSP_WARNING(...)  SINSP_WARNING( __VA_ARGS__)
+#    define DBG_SINSP_NOTICE(...)   SINSP_NOTICE(  __VA_ARGS__)
+#    define DBG_SINSP_INFO(...)     SINSP_INFO(    __VA_ARGS__)
+#    define DBG_SINSP_DEBUG(...)    SINSP_DEBUG(   __VA_ARGS__)
+#    define DBG_SINSP_TRACE(...)    SINSP_TRACE(   __VA_ARGS__)
 
 #    define DBG_SINSP_STR_FATAL(str)     SINSP_STR_FATAL(str)
 #    define DBG_SINSP_STR_CRITICAL(str)  SINSP_STR_CRITICAL(str)
