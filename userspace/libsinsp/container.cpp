@@ -250,7 +250,17 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 
 	scap_evt* scapevt = evt->m_pevt;
 
-	scapevt->ts = m_inspector->m_lastevent_ts;
+	if(m_inspector->m_lastevent_ts == 0)
+	{
+		// This can happen at startup when containers are
+		// being created as a part of the initial process
+		// scan.
+		scapevt->ts = sinsp_utils::get_current_time_ns();
+	}
+	else
+	{
+		scapevt->ts = m_inspector->m_lastevent_ts;
+	}
 	scapevt->tid = -1;
 	scapevt->len = (uint32_t)totlen;
 	scapevt->type = PPME_CONTAINER_JSON_E;
