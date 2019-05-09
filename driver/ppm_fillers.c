@@ -151,6 +151,9 @@ static inline uint32_t get_fd_dev(int64_t fd)
 		goto out_unlock;
 
 	file = fdt->fd[fd];
+	if (unlikely(!file))
+		goto out_unlock;
+
 	inode = file->f_inode;
 	if (unlikely(!inode))
 		goto out_unlock;
