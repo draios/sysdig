@@ -30,6 +30,7 @@ limitations under the License.
 
 #include "runc.h"
 #include "container_engine/mesos.h"
+#include "grpc_channel_registry.h"
 #include <cri.h>
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -72,6 +73,13 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 {
 	if(!s_cri)
 	{
+		// This isn't an error in the case where the
+		// configured unix domain socket doesn't exist. In
+		// that case, s_cri isn't initialized at all. Hence,
+		// the DEBUG.
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"cri (%s): Could not parse cri (no s_cri object)",
+				container->m_id.c_str());
 		return false;
 	}
 
@@ -83,6 +91,12 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
 	context.set_deadline(deadline);
 	grpc::Status status = s_cri->ContainerStatus(&context, req, &resp);
+
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"cri (%s): Status from ContainerStatus: (%s)",
+			container->m_id.c_str(),
+			status.error_message().c_str());
+
 	if(!status.ok())
 	{
 		if(is_pod_sandbox(container->m_id))
@@ -90,7 +104,7 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 			container->m_is_pod_sandbox = true;
 			return true;
 		}
-		g_logger.format(sinsp_logger::SEV_DEBUG, "id %s is neither a container nor a pod sandbox",
+		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): id is neither a container nor a pod sandbox",
 			container->m_id.c_str());
 		return false;
 	}
@@ -147,7 +161,7 @@ cri::cri()
 		return;
 	}
 
-	auto channel = grpc::CreateChannel("unix://" + cri_path, grpc::InsecureChannelCredentials());
+	std::shared_ptr<grpc::Channel> channel = libsinsp::grpc_channel_registry::get_channel("unix://" + cri_path);
 	s_cri = runtime::v1alpha2::RuntimeService::NewStub(channel);
 	s_cri_image = runtime::v1alpha2::ImageService::NewStub(channel);
 
@@ -162,14 +176,14 @@ cri::cri()
 
 	if (!status.ok())
 	{
-		g_logger.format(sinsp_logger::SEV_NOTICE, "CRI runtime returned an error after version check at %s: %s",
+		g_logger.format(sinsp_logger::SEV_NOTICE, "cri: CRI runtime returned an error after version check at %s: %s",
 			s_cri_unix_socket_path.c_str(), status.error_message().c_str());
 		s_cri.reset(nullptr);
 		s_cri_unix_socket_path = "";
 		return;
 	}
 
-	g_logger.format(sinsp_logger::SEV_INFO, "CRI runtime: %s %s", vresp.runtime_name().c_str(), vresp.runtime_version().c_str());
+	g_logger.format(sinsp_logger::SEV_INFO, "cri: CRI runtime: %s %s", vresp.runtime_name().c_str(), vresp.runtime_version().c_str());
 	s_cri_runtime_type = get_cri_runtime_type(vresp.runtime_name());
 }
 
@@ -197,31 +211,41 @@ void cri::set_extra_queries(bool extra_queries) {
 bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	sinsp_container_info container_info;
+	sinsp_container_info *existing_container_info;
 
-	if(matches_runc_cgroups(tinfo, CRI_CGROUP_LAYOUT, container_info.m_id))
-	{
-		container_info.m_type = s_cri_runtime_type;
-	}
-	else
+	if(!matches_runc_cgroups(tinfo, CRI_CGROUP_LAYOUT, container_info.m_id))
 	{
 		return false;
 	}
 	tinfo->m_container_id = container_info.m_id;
-	if (!manager->container_exists(container_info.m_id))
+
+	existing_container_info = manager->get_container(container_info.m_id);
+
+	if (!existing_container_info ||
+	    existing_container_info->m_metadata_complete == false)
 	{
 		if (query_os_for_missing_info)
 		{
+			g_logger.format(sinsp_logger::SEV_DEBUG,
+					"cri (%s): Performing lookup",
+					container_info.m_id.c_str());
+
 			if (!parse_cri(manager, &container_info, tinfo))
 			{
-				g_logger.format(sinsp_logger::SEV_DEBUG, "Failed to get CRI metadata for container %s",
+				g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to get CRI metadata for container",
 						container_info.m_id.c_str());
 				return false;
 			}
+
+			// If here, parse_cri succeeded so we can
+			// assign an actual type.
+			container_info.m_type = s_cri_runtime_type;
+
 		}
 		if (mesos::set_mesos_task_id(&container_info, tinfo))
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
-					"Mesos CRI container: [%s], Mesos task ID: [%s]",
+					"cri (%s) Mesos CRI container, Mesos task ID: [%s]",
 					container_info.m_id.c_str(), container_info.m_mesos_task_id.c_str());
 		}
 		manager->add_container(container_info, tinfo);

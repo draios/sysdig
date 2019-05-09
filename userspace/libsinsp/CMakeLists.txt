@@ -18,25 +18,30 @@
 include_directories(./)
 include_directories(../../common)
 include_directories(../libscap)
+include_directories(../async)
 include_directories("${JSONCPP_INCLUDE}")
 include_directories("${LUAJIT_INCLUDE}")
+include_directories("${TBB_INCLUDE_DIR}")
 
 if(NOT WIN32 AND NOT APPLE)
 	include_directories("${B64_INCLUDE}")
-	include_directories("${CURL_INCLUDE_DIR}")
 	include_directories("${CURSES_INCLUDE_DIR}")
 	include_directories("${GRPC_INCLUDE}")
 	include_directories("${JQ_INCLUDE}")
 	include_directories("${OPENSSL_INCLUDE_DIR}")
 	include_directories("${PROTOBUF_INCLUDE}")
-	include_directories("${TBB_INCLUDE_DIR}")
 	include_directories("${CMAKE_CURRENT_BINARY_DIR}")
+endif()
+
+if(NOT WIN32)
+	include_directories("${CURL_INCLUDE_DIR}")
 endif()
 
 set(SINSP_SOURCES
 	chisel.cpp
 	chisel_api.cpp
 	container.cpp
+	container_engine/container_engine.cpp
 	container_engine/docker_common.cpp
 	container_info.cpp
 	ctext.cpp
@@ -106,6 +111,7 @@ set(SINSP_SOURCES
 	stopwatch.cpp
 	uri_parser.c
 	uri.cpp
+	user_event_logger.cpp
 	utils.cpp
 	user_event.cpp
 	value_parser.cpp
@@ -127,7 +133,8 @@ endif()
 
 if(NOT WIN32 AND NOT APPLE)
 list(APPEND SINSP_SOURCES
-    cri.cpp
+	grpc_channel_registry.cpp
+	cri.cpp
 	container_engine/cri.cpp
 	${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.cc
 	${CMAKE_CURRENT_BINARY_DIR}/cri.pb.cc)
@@ -149,9 +156,13 @@ if(NOT WIN32)
 	endif()
 	if(USE_BUNDLED_CURL)
 		add_dependencies(sinsp curl)
+		target_link_libraries(sinsp
+			"${CURL_LIBRARIES}")
 	endif()
 	if(USE_BUNDLED_TBB)
 		add_dependencies(sinsp tbb)
+		target_link_libraries(sinsp
+			"${TBB_LIB}")
 	endif()
 
 	if(NOT APPLE)
@@ -173,8 +184,6 @@ if(NOT WIN32)
 			"${CARES_LIB}"
 			"${JQ_LIB}"
 			"${B64_LIB}"
-			"${CURL_LIBRARIES}"
-			"${TBB_LIB}"
 			rt
 			anl)
 	endif()

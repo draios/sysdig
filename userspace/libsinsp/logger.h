@@ -24,8 +24,6 @@ limitations under the License.
 #include <atomic>
 #include <string>
 
-using sinsp_logger_callback = void (*)(std::string&& str, uint32_t sev);
-
 /**
  * Sysdig component logging API.  This API exposes the ability to log to a
  * variety of log sinks.  sinsp_logger will use only one enabled log* sink;
@@ -51,24 +49,7 @@ public:
 	const static severity SEV_MIN = SEV_FATAL;
 	const static severity SEV_MAX = SEV_TRACE;
 
-	enum event_severity
-	{
-		SEV_EVT_EMERGENCY = 10,
-		SEV_EVT_FATAL = 11,
-		SEV_EVT_CRITICAL = 12,
-		SEV_EVT_ERROR = 13,
-		SEV_EVT_WARNING = 14,
-		SEV_EVT_NOTICE = 15,
-		SEV_EVT_INFORMATION = 16,
-		SEV_EVT_DEBUG = 17,
-	};
-	const static event_severity SEV_EVT_MIN = SEV_EVT_EMERGENCY;
-	const static event_severity SEV_EVT_MAX = SEV_EVT_DEBUG;
-
-	enum event_memdump_severity
-	{
-		SEV_EVT_MDUMP = SEV_EVT_MAX + 1
-	};
+	using callback_t = void (*)(std::string&& str, severity sev);
 
 	const static uint32_t OT_NONE;
 	const static uint32_t OT_STDOUT;
@@ -76,6 +57,7 @@ public:
 	const static uint32_t OT_FILE;
 	const static uint32_t OT_CALLBACK;
 	const static uint32_t OT_NOTS;
+	const static uint32_t OT_ENCODE_SEV;
 
 	/**
 	 * Initialize this sinsp_logger with no output sinks enabled.
@@ -107,12 +89,15 @@ public:
 	/** Disables tagging logs with the current timestamp. */
 	void disable_timestamps();
 
+	/** Adds encoded severity to log messages */
+	void add_encoded_severity();
+
 	/**
 	 * Registered the given callback as the logging callback.
 	 *
 	 * Note: the given callback must be thread-safe.
 	 */
-	void add_callback_log(sinsp_logger_callback callback);
+	void add_callback_log(callback_t callback);
 
 	/** Deregister any registered logging callbacks.  */
 	void remove_callback_log();
@@ -134,8 +119,6 @@ public:
 	 */
 	void log(std::string msg, severity sev = SEV_INFO);
 
-	void log(std::string msg, event_severity sev);
-
 	/**
 	 * Write the given printf-style log message of the given severity
 	 * with the given format to the configured log sink.
@@ -154,23 +137,25 @@ public:
 	 */
 	const char* format(const char* fmt, ...);
 
+	/** Sets `sev` to the decoded severity or SEV_MAX+1 for errors.
+	 *  Returns the length of the severity string on success
+	 *  and 0 in case of errors
+	 */
+	static size_t decode_severity(const std::string &s, severity& sev);
+
 private:
 	/** Returns true if the callback log sync is enabled, false otherwise. */
 	bool is_callback() const;
 
-	/**
-	 * Returns true if the given severity is an event.  The type here
-	 * doesn't match the behavior; the implementation checks for a value
-	 * of type event_severity even though the parameter is of type
-	 * severity.  This component seems to treat the two distinct types
-	 * as a single type.
-	 */
-	static bool is_event_severity(severity sev);
 
+	/** Returns a string containing encoded severity, for OT_ENCODE_SEV. */
+	static const char* encode_severity(severity sev);
 	std::atomic<FILE*> m_file;
-	std::atomic<sinsp_logger_callback> m_callback;
+	std::atomic<callback_t> m_callback;
 	std::atomic<uint32_t> m_flags;
 	std::atomic<severity> m_sev;
 };
+
+using sinsp_logger_callback = sinsp_logger::callback_t;
 
 extern sinsp_logger g_logger;

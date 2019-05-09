@@ -17,20 +17,29 @@ limitations under the License.
 
 */
 
-#pragma once
+#include "grpc_channel_registry.h"
 
-class sinsp_container_manager;
-class sinsp_container_info;
-class sinsp_threadinfo;
 
-#include "container_engine/container_engine.h"
+std::map<std::string, std::weak_ptr<grpc::Channel>> libsinsp::grpc_channel_registry::s_channels;
 
-namespace libsinsp {
-namespace container_engine {
-class lxc : public resolver
+std::shared_ptr<grpc::Channel> libsinsp::grpc_channel_registry::get_channel(const std::string &url)
 {
-public:
-	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info) override;
-};
-}
+	auto it = s_channels.find(url);
+	if(it == s_channels.end())
+	{
+		auto chan = grpc::CreateChannel(url, grpc::InsecureChannelCredentials());
+		s_channels[url] = chan;
+
+		return chan;
+	}
+	else
+	{
+		auto chan = it->second.lock();
+		if(chan == nullptr)
+		{
+			chan = grpc::CreateChannel(url, grpc::InsecureChannelCredentials());
+			s_channels[url] = chan;
+		}
+		return chan;
+	}
 }

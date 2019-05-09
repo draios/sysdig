@@ -128,6 +128,7 @@ sinsp::sinsp() :
 	m_flush_memory_dump = false;
 	m_next_stats_print_time_ns = 0;
 	m_large_envs_enabled = false;
+	m_increased_snaplen_port_range = DEFAULT_INCREASE_SNAPLEN_PORT_RANGE;
 
 	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
 	m_print_container_data = false;
@@ -366,6 +367,17 @@ void sinsp::init()
 			}
 		}
 
+
+#ifdef HAS_ANALYZER
+		//
+		// Notify the analyzer that we're starting
+		//
+		if(m_analyzer)
+		{
+			m_analyzer->on_capture_start();
+		}
+#endif
+
 		//
 		// Rewind, reset the event count, and consume the exact number of events
 		//
@@ -413,6 +425,15 @@ void sinsp::init()
 	if(m_snaplen != DEFAULT_SNAPLEN)
 	{
 		set_snaplen(m_snaplen);
+	}
+
+	//
+	// If the port range for increased snaplen was modified, set it now
+	//
+	if(increased_snaplen_port_range_set())
+	{
+		set_fullcapture_port_range(m_increased_snaplen_port_range.range_start,
+		                           m_increased_snaplen_port_range.range_end);
 	}
 
 #if defined(HAS_CAPTURE)
@@ -677,9 +698,9 @@ void sinsp::open_int()
 	init();
 }
 
-void sinsp::open(string filename)
+void sinsp::open(const std::string &filename)
 {
-	if(filename == "")
+	if(filename.empty())
 	{
 		open();
 		return;
@@ -1045,6 +1066,11 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		res = m_meta_skipped_evt_res;
 		evt = m_meta_skipped_evt;
 		m_meta_evt_pending = false;
+	}
+	else if (m_pending_container_evts.try_pop(m_container_evt))
+	{
+		res = SCAP_SUCCESS;
+		evt = m_container_evt.get();
 	}
 	else
 	{
@@ -1633,12 +1659,13 @@ void sinsp::set_snaplen(uint32_t snaplen)
 void sinsp::set_fullcapture_port_range(uint16_t range_start, uint16_t range_end)
 {
 	//
-	// If set_snaplen is called before opening of the inspector,
+	// If set_fullcapture_port_range is called before opening of the inspector,
 	// we register the value to be set after its initialization.
 	//
 	if(m_h == NULL)
 	{
-		throw sinsp_exception("set_fullcapture_port_range called before capture start");
+		m_increased_snaplen_port_range = {range_start, range_end};
+		return;
 	}
 
 	if(!is_live())

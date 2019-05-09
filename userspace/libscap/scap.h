@@ -199,6 +199,7 @@ typedef struct scap_fdinfo
 		{
 			uint32_t open_flags; ///< Flags associated with the file
 			char fname[SCAP_MAX_PATH_SIZE]; ///< Name associated to this file
+			uint32_t dev; ///< Major/minor number of the device containing this file
 		} regularinfo; ///< Information specific to regular files
 		char fname[SCAP_MAX_PATH_SIZE];  ///< The name for file system FDs
 	}info;
@@ -245,6 +246,15 @@ typedef struct scap_threadinfo
 
 	UT_hash_handle hh; ///< makes this structure hashable
 }scap_threadinfo;
+
+/*!
+  \brief Mount information
+*/
+typedef struct {
+	uint64_t mount_id; ///< mount id from /proc/self/mountinfo
+	uint32_t dev; ///< device number
+	UT_hash_handle hh; ///< makes this structure hashable
+} scap_mountinfo;
 
 typedef void (*proc_entry_callback)(void* context,
 									scap_t* handle,
@@ -969,11 +979,13 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid);
 
 struct scap_threadinfo *scap_proc_alloc(scap_t* handle);
 void scap_proc_free(scap_t* handle, struct scap_threadinfo* procinfo);
+void scap_dev_delete(scap_t* handle, scap_mountinfo* dev);
 int32_t scap_stop_dropping_mode(scap_t* handle);
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);
 int32_t scap_enable_dynamic_snaplen(scap_t* handle);
 int32_t scap_disable_dynamic_snaplen(scap_t* handle);
 void scap_proc_free_table(scap_t* handle);
+void scap_free_device_table(scap_t* handle);
 void scap_refresh_iflist(scap_t* handle);
 void scap_refresh_proc_table(scap_t* handle);
 void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh);

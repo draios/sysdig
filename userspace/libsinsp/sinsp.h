@@ -42,9 +42,14 @@ limitations under the License.
 */
 
 #pragma once
+
+#include "capture_stats_source.h"
+
 #ifdef _WIN32
 #pragma warning(disable: 4251 4200 4221 4190)
 #endif
+
+#include "tbb/concurrent_queue.h"
 
 #include "sinsp_inet.h"
 #include "sinsp_public.h"
@@ -226,7 +231,7 @@ public:
   - event retrieval
   - setting capture filters
 */
-class SINSP_PUBLIC sinsp
+class SINSP_PUBLIC sinsp : public capture_stats_source
 {
 public:
 	typedef std::shared_ptr<sinsp> ptr;
@@ -255,7 +260,7 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
-	void open(string filename);
+	void open(const std::string &filename);
 
 	/*!
 	  \brief Start an event capture from a file descriptor.
@@ -542,7 +547,7 @@ public:
 
 	  \note this call won't work on file captures.
 	*/
-	virtual void get_capture_stats(scap_stats *stats);
+	void get_capture_stats(scap_stats* stats) override;
 
 	void set_max_thread_table_size(uint32_t value);
 
@@ -980,6 +985,12 @@ private:
 
 	void add_suppressed_comms(scap_open_args &oargs);
 
+	bool increased_snaplen_port_range_set() const
+	{
+		return m_increased_snaplen_port_range.range_start > 0 &&
+		       m_increased_snaplen_port_range.range_end > 0;
+	}
+
 	scap_t* m_h;
 	uint32_t m_nevts;
 	int64_t m_filesize;
@@ -1095,6 +1106,15 @@ public:
 	uint32_t m_snaplen;
 
 	//
+	// Saved increased capture range
+	//
+	struct
+	{
+		uint16_t range_start;
+		uint16_t range_end;
+	} m_increased_snaplen_port_range;
+
+	//
 	// Some thread table limits
 	//
 	uint32_t m_max_thread_table_size;
@@ -1160,6 +1180,14 @@ public:
 	sinsp_evt* m_metaevt;
 	meta_event_callback m_meta_event_callback;
 	void* m_meta_event_callback_data;
+
+	// A queue of pending container events. Written from async
+	// callbacks that occur after looking up container
+	// information, read from sinsp::next().
+	tbb::concurrent_queue<shared_ptr<sinsp_evt>> m_pending_container_evts;
+
+	// Holds an event dequeued from the above queue
+	std::shared_ptr<sinsp_evt> m_container_evt;
 
 	//
 	// End of second housekeeping

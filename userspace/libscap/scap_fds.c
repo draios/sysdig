@@ -234,7 +234,8 @@ uint32_t scap_fd_info_len(scap_fdinfo *fdi)
 		break;
 	case SCAP_FD_FILE_V2:
 		res += sizeof(uint32_t) + // open_flags
-			(uint32_t)strnlen(fdi->info.regularinfo.fname, SCAP_MAX_PATH_SIZE) + 2;
+			(uint32_t)strnlen(fdi->info.regularinfo.fname, SCAP_MAX_PATH_SIZE) + 2 +
+			sizeof(uint32_t); // dev
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:
@@ -341,6 +342,11 @@ int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dumper_t *d
 			(stlen > 0 && scap_dump_write(d, fdi->info.regularinfo.fname, stlen) != stlen))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi1)");
+			return SCAP_FAILURE;
+		}
+		if(scap_dump_write(d, &(fdi->info.regularinfo.dev), sizeof(uint32_t)) != sizeof(uint32_t))
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (dev)");
 			return SCAP_FAILURE;
 		}
 		break;
@@ -516,6 +522,16 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 
 		(*nbytes) += sizeof(uint32_t);
 		res = scap_fd_read_fname_from_disk(handle, fdi->info.regularinfo.fname, nbytes, f);
+		if (!sub_len || (sub_len < *nbytes + sizeof(uint32_t)))
+		{
+			break;
+		}
+		if(gzread(f, &(fdi->info.regularinfo.dev), sizeof(uint32_t)) != sizeof(uint32_t))
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file (dev)");
+			return SCAP_FAILURE;
+		}
+		(*nbytes) += sizeof(uint32_t);
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:
@@ -674,6 +690,35 @@ int32_t scap_add_fd_to_proc_table(scap_t *handle, scap_threadinfo *tinfo, scap_f
 	return SCAP_SUCCESS;
 }
 
+//
+// Delete a device entry
+//
+void scap_dev_delete(scap_t* handle, scap_mountinfo* dev)
+{
+	//
+	// First, remove the process descriptor from the table
+	//
+	HASH_DEL(handle->m_dev_list, dev);
+
+	//
+	// Second, free the memory
+	//
+	free(dev);
+}
+
+//
+// Free the device table
+//
+void scap_free_device_table(scap_t* handle)
+{
+	scap_mountinfo *dev, *tdev;
+
+	HASH_ITER(hh, handle->m_dev_list, dev, tdev)
+	{
+		scap_dev_delete(handle, dev);
+	}
+}
+
 #if defined(HAS_CAPTURE)
 
 int32_t scap_fd_handle_pipe(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, char *error)
@@ -769,10 +814,59 @@ static inline uint32_t open_flags_to_scap(unsigned long flags)
 	return res;
 }
 
+static uint32_t scap_get_device_by_mount_id(scap_t *handle, const char *procdir, unsigned long requested_mount_id)
+{
+	char fd_dir_name[SCAP_MAX_PATH_SIZE];
+	char line[SCAP_MAX_PATH_SIZE];
+	FILE *finfo;
+	scap_mountinfo *mountinfo;
+
+	HASH_FIND_INT64(handle->m_dev_list, &requested_mount_id, mountinfo);
+	if(mountinfo != NULL)
+	{
+		return mountinfo->dev;
+	}
+
+	snprintf(fd_dir_name, SCAP_MAX_PATH_SIZE, "%smountinfo", procdir);
+	finfo = fopen(fd_dir_name, "r");
+	if(finfo == NULL)
+	{
+		return 0;
+	}
+
+	while(fgets(line, sizeof(line), finfo) != NULL)
+	{
+		uint32_t mount_id, major, minor;
+		if(sscanf(line, "%u %*u %u:%u", &mount_id, &major, &minor) != 3)
+		{
+			continue;
+		}
+
+		if(mount_id == requested_mount_id)
+		{
+			uint32_t dev = makedev(major, minor);
+			mountinfo = malloc(sizeof(*mountinfo));
+			if(mountinfo)
+			{
+				int32_t uth_status = SCAP_SUCCESS;
+				mountinfo->mount_id = mount_id;
+				mountinfo->dev = dev;
+				HASH_ADD_INT64(handle->m_dev_list, mount_id, mountinfo);
+				if(uth_status != SCAP_SUCCESS)
+				{
+					free(mountinfo);
+				}
+			}
+			fclose(finfo);
+			return dev;
+		}
+	}
+	fclose(finfo);
+	return 0;
+}
+
 void scap_fd_flags_file(scap_t *handle, scap_fdinfo *fdi, const char *procdir)
 {
-	int is_first_line = true;
-	const char *delimiters = " \t";
 	char fd_dir_name[SCAP_MAX_PATH_SIZE];
 	char line[SCAP_MAX_PATH_SIZE];
 	FILE *finfo;
@@ -786,50 +880,47 @@ void scap_fd_flags_file(scap_t *handle, scap_fdinfo *fdi, const char *procdir)
 
 	while(fgets(line, sizeof(line), finfo) != NULL)
 	{
-		// We are just interested in the flags.
+		// We are interested in the flags and the mnt_id.
 		//
 		// The format of the file is:
 		// pos:    XXXX
 		// flags:  YYYYYYYY
 		// mnt_id: ZZZ
 
-		char *scratch;
-		char *token;
-
-		if(is_first_line)
+		if(!strncmp(line, "flags:\t", sizeof("flags:\t") - 1))
 		{
-			is_first_line = false;
-			continue;
-		}
+			uint32_t open_flags;
+			errno = 0;
+			unsigned long flags = strtoul(line + sizeof("flags:\t") - 1, NULL, 8);
 
-		token = strtok_r(line, delimiters, &scratch);
-		if(token == NULL)
+			if(errno == ERANGE)
+			{
+				open_flags = PPM_O_NONE;
+			}
+			else
+			{
+				open_flags = open_flags_to_scap(flags);
+			}
+
+			fdi->info.regularinfo.open_flags = open_flags;
+		}
+		else if(!strncmp(line, "mnt_id:\t", sizeof("mnt_id:\t") - 1))
 		{
-			ASSERT(false);
-			continue;
-		}
+			uint32_t dev;
+			errno = 0;
+			unsigned long mount_id = strtoul(line + sizeof("mnt_id:\t") - 1, NULL, 10);
 
-		token = strtok_r(NULL, delimiters, &scratch);
-		if(token == NULL)
-		{
-			ASSERT(false);
-			continue;
-		}
+			if(errno == ERANGE)
+			{
+				dev = 0;
+			}
+			else
+			{
+				dev = scap_get_device_by_mount_id(handle, procdir, mount_id);
+			}
 
-		uint32_t open_flags;
-		unsigned long flags = strtoul(token, NULL, 8);
-
-		if(errno == ERANGE)
-		{
-			open_flags = PPM_O_NONE;
+			fdi->info.regularinfo.dev = dev;
 		}
-		else
-		{
-			open_flags = open_flags_to_scap(flags);
-		}
-
-		fdi->info.regularinfo.open_flags = open_flags;
-		break;
 	}
 
 	fclose(finfo);

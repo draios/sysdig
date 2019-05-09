@@ -19,26 +19,22 @@ limitations under the License.
 
 #pragma once
 
-#include <string>
+#include <memory>
+#ifdef GRPC_INCLUDE_IS_GRPCPP
+#	include <grpcpp/grpcpp.h>
+#else
+#	include <grpc++/grpc++.h>
+#endif
 
-class sinsp_container_manager;
-class sinsp_container_info;
-class sinsp_threadinfo;
-
-#include "container_engine/container_engine.h"
-
-namespace libsinsp {
-namespace container_engine {
-class mesos : public resolver {
+namespace libsinsp
+{
+class grpc_channel_registry
+{
 public:
-	bool resolve(sinsp_container_manager *manager, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
+	// Return a (shared) grpc::Channel for the provided url.
+	static std::shared_ptr<grpc::Channel> get_channel(const std::string &url);
 
-	static bool set_mesos_task_id(sinsp_container_info *container, sinsp_threadinfo *tinfo);
-
-protected:
-	bool match(sinsp_threadinfo *tinfo, sinsp_container_info *container_info);
-
-	static std::string get_env_mesos_task_id(sinsp_threadinfo *tinfo);
+private:
+	static std::map<std::string, std::weak_ptr<grpc::Channel>> s_channels;
 };
-}
 }

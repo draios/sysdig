@@ -32,14 +32,17 @@ namespace
 
 thread_local char s_tbuf[16384];
 
+const size_t ENCODE_LEN = sizeof(uint64_t);
+
 } // end namespace
 
-const uint32_t sinsp_logger::OT_NONE     = 0;
-const uint32_t sinsp_logger::OT_STDOUT   = 1;
-const uint32_t sinsp_logger::OT_STDERR   = (OT_STDOUT   << 1);
-const uint32_t sinsp_logger::OT_FILE     = (OT_STDERR   << 1);
-const uint32_t sinsp_logger::OT_CALLBACK = (OT_FILE     << 1);
-const uint32_t sinsp_logger::OT_NOTS     = (OT_CALLBACK << 1);
+const uint32_t sinsp_logger::OT_NONE       = 0;
+const uint32_t sinsp_logger::OT_STDOUT     = 1;
+const uint32_t sinsp_logger::OT_STDERR     = (OT_STDOUT   << 1);
+const uint32_t sinsp_logger::OT_FILE       = (OT_STDERR   << 1);
+const uint32_t sinsp_logger::OT_CALLBACK   = (OT_FILE     << 1);
+const uint32_t sinsp_logger::OT_NOTS       = (OT_CALLBACK << 1);
+const uint32_t sinsp_logger::OT_ENCODE_SEV = (OT_NOTS     << 1);
 
 sinsp_logger::sinsp_logger():
 	m_file(nullptr),
@@ -60,12 +63,6 @@ sinsp_logger::~sinsp_logger()
 bool sinsp_logger::is_callback() const
 {
 	 return (m_flags & sinsp_logger::OT_CALLBACK) != 0;
-}
-
-bool sinsp_logger::is_event_severity(const severity sev)
-{
-	 return (static_cast<int>(sev) >= static_cast<int>(SEV_EVT_MIN) &&
-			static_cast<int>(sev) <= static_cast<int>(SEV_EVT_MAX));
 }
 
 uint32_t sinsp_logger::get_log_output_type() const
@@ -99,6 +96,11 @@ void sinsp_logger::add_file_log(const std::string& filename)
 void sinsp_logger::disable_timestamps()
 {
 	m_flags |= sinsp_logger::OT_NOTS;
+}
+
+void sinsp_logger::add_encoded_severity()
+{
+	m_flags |= sinsp_logger::OT_ENCODE_SEV;
 }
 
 void sinsp_logger::add_callback_log(const sinsp_logger_callback callback)
@@ -135,26 +137,11 @@ sinsp_logger::severity sinsp_logger::get_severity() const
 	return m_sev;
 }
 
-void sinsp_logger::log(std::string msg, const event_severity sev)
-{
-	sinsp_logger_callback cb = nullptr;
-
-	if(is_callback())
-	{
-		cb = m_callback;
-	}
-
-	if(cb != nullptr)
-	{
-		cb(std::move(msg), static_cast<uint32_t>(sev));
-	}
-}
-
 void sinsp_logger::log(std::string msg, const severity sev)
 {
 	sinsp_logger_callback cb = nullptr;
 
-	if((sev > m_sev) || is_event_severity(sev))
+	if(sev > m_sev)
 	{
 		return;
 	}
@@ -165,19 +152,11 @@ void sinsp_logger::log(std::string msg, const severity sev)
 
 		if(gettimeofday(&ts, nullptr) == 0)
 		{
-			const std::string::size_type ts_length = 22;
-			char ts_buf[ts_length + 1];
+			const std::string::size_type ts_length = sizeof("31-12 23:59:59.999999 ");
+			char ts_buf[ts_length];
 			struct tm time_info = {};
 
 			gmtime_r(&ts.tv_sec, &time_info);
-
-			//
-			// This formatted string is ts_length bytes long:
-			//
-			//           1         2
-			// "1234567890123456789012
-			// "xx-xx xx:xx:xx.xxxxxx "
-			//
 			snprintf(ts_buf,
 				 sizeof(ts_buf),
 				 "%.2d-%.2d %.2d:%.2d:%.2d.%.6d ",
@@ -189,8 +168,16 @@ void sinsp_logger::log(std::string msg, const severity sev)
 				 (int)ts.tv_usec);
 
 			ts_buf[sizeof(ts_buf) - 1] = '\0';
-			msg.insert(0, ts_buf, ts_length);
+			msg.insert(0, ts_buf);
 		}
+	}
+
+	if(m_flags & sinsp_logger::OT_ENCODE_SEV)
+	{
+		char sev_buf[ENCODE_LEN + 1];
+		strncpy(sev_buf, encode_severity(sev), sizeof(sev_buf));
+		sev_buf[sizeof(sev_buf) - 1] = 0;
+		msg.insert(0, sev_buf);
 	}
 
 	if(is_callback())
@@ -200,7 +187,7 @@ void sinsp_logger::log(std::string msg, const severity sev)
 
 	if(cb != nullptr)
 	{
-		cb(std::move(msg), static_cast<uint32_t>(sev));
+		cb(std::move(msg), sev);
 	}
 	else if((m_flags & sinsp_logger::OT_FILE) && m_file)
 	{
@@ -221,12 +208,6 @@ void sinsp_logger::log(std::string msg, const severity sev)
 
 const char* sinsp_logger::format(const severity sev, const char* const fmt, ...)
 {
-	if(!is_callback() && is_event_severity(sev))
-	{
-		s_tbuf[0] = '\0';
-		return s_tbuf;
-	}
-
 	va_list ap;
 
 	va_start(ap, fmt);
@@ -249,4 +230,58 @@ const char* sinsp_logger::format(const char* const fmt, ...)
 	log(s_tbuf, SEV_INFO);
 
 	return s_tbuf;
+}
+
+namespace {
+// All severity strings should be ENCODE_LEN chars long
+const char* SEV_LEVELS[] = {
+	"SEV_DEF ",
+	"SEV_FAT ",
+	"SEV_CRI ",
+	"SEV_ERR ",
+	"SEV_WAR ",
+	"SEV_NOT ",
+	"SEV_INF ",
+	"SEV_DEB ",
+	"SEV_TRA "
+};
+
+static_assert(sizeof(SEV_LEVELS) == sizeof(*SEV_LEVELS) * ((size_t)(sinsp_logger::SEV_MAX) + 1),
+	      "severity array must have SEV_MAX+1 elements");
+}
+
+const char* sinsp_logger::encode_severity(const sinsp_logger::severity sev)
+{
+	const char* ret;
+	auto sev_int = (size_t)sev;
+	if (sev_int > SEV_MAX)
+	{
+		sev_int = 0;
+	}
+
+	ret = SEV_LEVELS[sev_int];
+	assert(strlen(ret) == ENCODE_LEN);
+	return ret;
+}
+
+size_t sinsp_logger::decode_severity(const std::string &str, severity& sev)
+{
+	if(str.length() < ENCODE_LEN)
+	{
+		return 0;
+	}
+
+	const char* msg = str.c_str();
+
+	// we don't really expect "SEV_DEF " messages so skip severity 0
+	for(size_t i = SEV_MIN; i <= SEV_MAX; ++i)
+	{
+		if(!strncmp(msg, SEV_LEVELS[i], ENCODE_LEN))
+		{
+			sev = static_cast<severity>(i);
+			return ENCODE_LEN;
+		}
+	}
+
+	return 0;
 }

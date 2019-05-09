@@ -26,15 +26,17 @@ class sinsp_container_manager;
 class sinsp_container_info;
 class sinsp_threadinfo;
 
+#include "container_engine/container_engine.h"
+
 namespace libsinsp {
 namespace container_engine {
-class cri
+class cri : public resolver
 {
 public:
 	cri();
 
-	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
-	static void cleanup();
+	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info) override;
+	void cleanup() override;
 	static void set_cri_socket_path(const std::string& path);
 	static void set_cri_timeout(int64_t timeout_ms);
 	static void set_extra_queries(bool extra_queries);

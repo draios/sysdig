@@ -21,11 +21,12 @@ limitations under the License.
 #include <chrono>
 #include <condition_variable>
 #include <functional>
-#include <list>
 #include <map>
 #include <mutex>
+#include <queue>
 #include <set>
 #include <thread>
+#include <unordered_map>
 #include <stdint.h>
 
 namespace sysdig
@@ -59,7 +60,7 @@ namespace sysdig
  * <li>If the client did not supply a handler, then the value will be stored,
  *     and the next call to the lookup() method with the same key will return
  *     the previously collected value.  If lookup() is not called with the
- *     specified ttl time, then this compoment will prune the stored value.</li>
+ *     specified ttl time, then this component will prune the stored value.</li>
  * </ol>
  *
  * @tparam key_type   The type of the keys for which concrete subclasses will
@@ -97,7 +98,7 @@ public:
 	 *                        value will live before being considered
 	 *                        "too old" and being pruned.
 	 */
-	async_key_value_source(uint64_t max_wait_ms, uint64_t ttl_ms);
+	async_key_value_source(uint64_t max_wait_ms, uint64_t ttl_ms) noexcept;
 
 	async_key_value_source(const async_key_value_source&) = delete;
 	async_key_value_source(async_key_value_source&&) = delete;
@@ -123,7 +124,7 @@ public:
 	 * for the desired value(s) to be available.
 	 *
 	 * @param[in] key       The key to the value for which the client
-	 *                      wishs to query.
+	 *                      wishes to query.
 	 * @param[out] value    If this method is able to fetch the desired
 	 *                      value within the max_wait_ms specified at
 	 *                      construction time, then this output parameter
@@ -146,11 +147,23 @@ public:
 	 *          value synchronously; false otherwise.
 	 */
 	bool lookup(const key_type& key,
+		    value_type& value,
+		    const callback_handler& handler = callback_handler());
+
+	/**
+	 * Lookup a value based on the specified key, after an initial delay.
+	 * This method behaves identically to `lookup()`, except that the request
+	 * is dispatched `delay` milliseconds after the call.
+	 *
+	 * @see lookup() for details
+	 */
+	bool lookup_delayed(const key_type& key,
                     value_type& value,
+                    std::chrono::milliseconds delay,
                     const callback_handler& handler = callback_handler());
 
 	/**
-	 * Determines if the async thread assocaited with this
+	 * Determines if the async thread associated with this
 	 * async_key_value_source is running.
 	 *
 	 * <b>Note:</b> This API is for information only.  Clients should
@@ -163,9 +176,33 @@ public:
 	 */
 	bool is_running() const;
 
+	/**
+	 * Return all results available so far
+	 *
+	 * All available results are moved from the internal map to the returned map
+	 * so subsequent `lookup()` and/or `get_complete_results()` calls won't
+	 * return them again.
+	 *
+	 * Sometimes there's no good place to call `lookup()` again
+	 * on the async data source -- e.g. the container detection engine
+	 * may never be called again for a particular container (if the only
+	 * process in that container never calls `execve()` or `chroot()`
+	 * or `clone()`).
+	 *
+	 * The best solution in that case is to supply a callback to be ran
+	 * from the async lookup, but that introduces thread safety issues
+	 * to the involved data.
+	 *
+	 * `get_complete_results()` allows batch processing of lookup results
+	 * in the main thread.
+	 *
+	 * @return a map of lookup key -> result
+	 */
+	std::unordered_map<key_type, value_type> get_complete_results();
+
 protected:
 	/**
-	 * Stops the thread assocaited with this async_key_value_source, if
+	 * Stops the thread associated with this async_key_value_source, if
 	 * it is running; otherwise, does nothing.  The only use for this is
 	 * in a destructor to ensure that the async thread stops when the
 	 * object is destroyed.
@@ -193,7 +230,7 @@ protected:
 	/**
 	 * Stores a value for the given key.  Concrete subclasses will call
 	 * this method from their run_impl() method to save (or otherwise
-	 * notifiy the client about) an available value.
+	 * notify the client about) an available value.
 	 *
 	 * @param[in] key   The key for which the client asked for the value.
 	 * @param[in] value The collected value.
@@ -214,6 +251,14 @@ protected:
 	 * </ul>
 	 */
 	virtual void run_impl() = 0;
+
+	/**
+	 * Determine the time to wait for the next request
+	 *
+	 * @return the absolute time until which run() may block while waiting
+	 * for an incoming request
+	 */
+	std::chrono::steady_clock::time_point get_deadline() const;
 
 private:
 	/**
@@ -270,7 +315,7 @@ private:
 	/**
 	 * Protects the state of instances of this class.  This protected does
 	 * not extend to subclasses (i.e., this mutex should not be held when
-	 * dispatching to overridden methbods).
+	 * dispatching to overridden methods).
 	 */
 	mutable std::mutex m_mutex;
 
@@ -279,7 +324,9 @@ private:
 	 * non-empty.
 	 */
 	std::condition_variable m_queue_not_empty_condition;
-	std::list<key_type> m_request_queue;
+
+	using queue_item_t = std::pair<std::chrono::time_point<std::chrono::steady_clock>, key_type>;
+	std::priority_queue<queue_item_t, std::vector<queue_item_t>, std::greater<queue_item_t>> m_request_queue;
 	std::set<key_type> m_request_set;
 	value_map m_value_map;
 };
