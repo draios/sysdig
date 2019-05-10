@@ -14,6 +14,8 @@ KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 
 # DEBUG = -DBPF_DEBUG
 
+KBUILD_CPPFLAGS += -fno-stack-protector
+
 all:
 	$(MAKE) -C $(KERNELDIR) M=$$PWD
 
