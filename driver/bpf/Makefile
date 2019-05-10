@@ -14,8 +14,6 @@ KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 
 # DEBUG = -DBPF_DEBUG
 
-KBUILD_CPPFLAGS += -fno-stack-protector
-
 all:
 	$(MAKE) -C $(KERNELDIR) M=$$PWD
 
@@ -40,6 +38,7 @@ $(obj)/probe.o: $(src)/probe.c \
 		-Wno-gnu-variable-sized-type-not-at-end \
 		-Wno-address-of-packed-member \
 		-fno-jump-tables \
+		-fno-stack-protector \
 		-Wno-tautological-compare \
 		-O2 -g -emit-llvm -c $< -o $(patsubst %.o,%.ll,$@)
 	$(LLC) -march=bpf -filetype=obj -o $@ $(patsubst %.o,%.ll,$@)
