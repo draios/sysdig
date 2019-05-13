@@ -241,13 +241,13 @@ endif()
 #
 # Intel tbb
 #
-if(NOT WIN32 AND NOT APPLE)
+if(NOT WIN32)
 	option(USE_BUNDLED_TBB "Enable building of the bundled tbb" ${USE_BUNDLED_DEPS})
 	if(NOT USE_BUNDLED_TBB)
-		find_path(TBB_INCLUDE tbb.h PATH_SUFFIXES tbb)
+		find_path(TBB_INCLUDE_DIR tbb.h PATH_SUFFIXES tbb)
 		find_library(TBB_LIB NAMES tbb)
-		if(TBB_INCLUDE AND TBB_LIB)
-			message(STATUS "Found tbb: include: ${TBB_INCLUDE}, lib: ${TBB_LIB}")
+		if(TBB_INCLUDE_DIR AND TBB_LIB)
+			message(STATUS "Found tbb: include: ${TBB_INCLUDE_DIR}, lib: ${TBB_LIB}")
 		else()
 			message(FATAL_ERROR "Couldn't find system tbb")
 		endif()
@@ -256,7 +256,7 @@ if(NOT WIN32 AND NOT APPLE)
 
 		message(STATUS "Using bundled tbb in '${TBB_SRC}'")
 
-		set(TBB_INCLUDE "${TBB_SRC}/include/")
+		set(TBB_INCLUDE_DIR "${TBB_SRC}/include/")
 		set(TBB_LIB "${TBB_SRC}/build/lib_release/libtbb.a")
 		ExternalProject_Add(tbb
 			URL "http://s3.amazonaws.com/download.draios.com/dependencies/tbb-2018_U5.tar.gz"
@@ -411,7 +411,7 @@ if(NOT WIN32)
 			DEPENDS openssl
 			URL "http://download.draios.com/dependencies/curl-7.61.0.tar.bz2"
 			URL_MD5 "31d0a9f48dc796a7db351898a1e5058a"
-			CONFIGURE_COMMAND ./configure ${CURL_SSL_OPTION} --disable-threaded-resolver --disable-shared --enable-optimize --disable-curldebug --disable-rt --enable-http --disable-ftp --disable-file --disable-ldap --disable-ldaps --disable-rtsp --disable-telnet --disable-tftp --disable-pop3 --disable-imap --disable-smb --disable-smtp --disable-gopher --disable-sspi --disable-ntlm-wb --disable-tls-srp --without-winssl --without-darwinssl --without-polarssl --without-cyassl --without-nss --without-axtls --without-ca-path --without-ca-bundle --without-libmetalink --without-librtmp --without-winidn --without-libidn --without-nghttp2 --without-libssh2
+			CONFIGURE_COMMAND ./configure ${CURL_SSL_OPTION} --disable-threaded-resolver --disable-shared --enable-optimize --disable-curldebug --disable-rt --enable-http --disable-ftp --disable-file --disable-ldap --disable-ldaps --disable-rtsp --disable-telnet --disable-tftp --disable-pop3 --disable-imap --disable-smb --disable-smtp --disable-gopher --disable-sspi --disable-ntlm-wb --disable-tls-srp --without-winssl --without-darwinssl --without-polarssl --without-cyassl --without-nss --without-axtls --without-ca-path --without-ca-bundle --without-libmetalink --without-librtmp --without-winidn --without-libidn --without-libidn2 --without-nghttp2 --without-libssh2
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${CURL_LIBRARIES}
@@ -422,8 +422,8 @@ endif() # NOT WIN32 AND NOT APPLE
 if(NOT WIN32 AND NOT APPLE)
 	option(USE_BUNDLED_CARES "Enable building of the bundled c-ares" ${USE_BUNDLED_DEPS})
 	if(NOT USE_BUNDLED_CARES)
-		find_path(CARES_INCLUDE NAMES cares/ares.h)
-		find_library(CARES_LIB NAMES libcares.a)
+		find_path(CARES_INCLUDE NAMES cares/ares.h ares.h)
+		find_library(CARES_LIB NAMES cares)
 		if(CARES_INCLUDE AND CARES_LIB)
 			message(STATUS "Found c-ares: include: ${CARES_INCLUDE}, lib: ${CARES_LIB}")
 		else()
@@ -435,7 +435,7 @@ if(NOT WIN32 AND NOT APPLE)
 		set(CARES_INCLUDE "${CARES_SRC}/target/include")
 		set(CARES_LIB "${CARES_SRC}/target/lib/libcares.a")
 		ExternalProject_Add(c-ares
-		URL "https://download.sysdig.com/dependencies/c-ares-1.13.0.tar.gz"
+		URL "http://download.sysdig.com/dependencies/c-ares-1.13.0.tar.gz"
 		URL_MD5 "d2e010b43537794d8bedfb562ae6bba2"
 		CONFIGURE_COMMAND ./configure --prefix=${CARES_SRC}/target
 		BUILD_COMMAND ${CMD_MAKE}
@@ -448,7 +448,7 @@ if(NOT WIN32 AND NOT APPLE)
 	if(NOT USE_BUNDLED_PROTOBUF)
 		find_program(PROTOC NAMES protoc)
 		find_path(PROTOBUF_INCLUDE NAMES google/protobuf/message.h)
-		find_library(PROTOBUF_LIB NAMES libprotobuf.a)
+		find_library(PROTOBUF_LIB NAMES protobuf)
 		if(PROTOC AND PROTOBUF_INCLUDE AND PROTOBUF_LIB)
 			message(STATUS "Found protobuf: compiler: ${PROTOC}, include: ${PROTOBUF_INCLUDE}, lib: ${PROTOBUF_LIB}")
 		else()
@@ -462,7 +462,7 @@ if(NOT WIN32 AND NOT APPLE)
 		set(PROTOBUF_LIB "${PROTOBUF_SRC}/target/lib/libprotobuf.a")
 		ExternalProject_Add(protobuf
 		DEPENDS openssl zlib
-		URL "https://github.com/google/protobuf/releases/download/v3.5.0/protobuf-cpp-3.5.0.tar.gz"
+		URL "http://download.sysdig.com/dependencies/protobuf-cpp-3.5.0.tar.gz"
 		URL_MD5 "e4ba8284a407712168593e79e6555eb2"
 		# TODO what if using system zlib?
 		CONFIGURE_COMMAND /usr/bin/env CPPFLAGS=-I${ZLIB_INCLUDE} LDFLAGS=-L${ZLIB_SRC} ./configure --with-zlib --prefix=${PROTOBUF_SRC}/target
@@ -475,13 +475,24 @@ if(NOT WIN32 AND NOT APPLE)
 
 	option(USE_BUNDLED_GRPC "Enable building of the bundled grpc" ${USE_BUNDLED_DEPS})
 	if(NOT USE_BUNDLED_GRPC)
-		find_path(GRPC_INCLUDE grpc++/impl/codegen/rpc_method.h)
-		find_library(GRPC_LIB NAMES libgrpc_unsecure.a)
-		find_library(GRPCPP_LIB NAMES libgrpc++_unsecure.a)
+		find_path(GRPCXX_INCLUDE NAMES grpc++/grpc++.h)
+		if(GRPCXX_INCLUDE)
+			set(GRPC_INCLUDE ${GRPCXX_INCLUDE})
+		else()
+			find_path(GRPCPP_INCLUDE NAMES grpcpp/grpcpp.h)
+			set(GRPC_INCLUDE ${GRPCPP_INCLUDE})
+			add_definitions(-DGRPC_INCLUDE_IS_GRPCPP=1)
+		endif()
+		find_library(GRPC_LIB NAMES grpc_unsecure)
+		find_library(GRPCPP_LIB NAMES grpc++_unsecure)
 		if(GRPC_INCLUDE AND GRPC_LIB AND GRPCPP_LIB)
-			message(STATUS "Found grpc: include: ${GRPC_INCLUDE}, C lib: ${GRPC_LIB}, C++ lib: ${GRPC_PP_LIB}")
+			message(STATUS "Found grpc: include: ${GRPC_INCLUDE}, C lib: ${GRPC_LIB}, C++ lib: ${GRPCPP_LIB}")
 		else()
 			message(FATAL_ERROR "Couldn't find system grpc")
+		endif()
+		find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin)
+		if(NOT GRPC_CPP_PLUGIN)
+			message(FATAL_ERROR "System grpc_cpp_plugin not found")
 		endif()
 	else()
 		set(GRPC_SRC "${PROJECT_BINARY_DIR}/grpc-prefix/src/grpc")
@@ -489,6 +500,7 @@ if(NOT WIN32 AND NOT APPLE)
 		set(GRPC_INCLUDE "${GRPC_SRC}/include")
 		set(GRPC_LIB "${GRPC_SRC}/libs/opt/libgrpc_unsecure.a")
 		set(GRPCPP_LIB "${GRPC_SRC}/libs/opt/libgrpc++_unsecure.a")
+		set(GRPC_CPP_PLUGIN "${GRPC_SRC}/bins/opt/grpc_cpp_plugin")
 
 		get_filename_component(PROTOC_DIR ${PROTOC} PATH)
 
@@ -498,7 +510,7 @@ if(NOT WIN32 AND NOT APPLE)
 		URL_MD5 "2fc42c182a0ed1b48ad77397f76bb3bc"
 		CONFIGURE_COMMAND ""
 		# TODO what if using system openssl, protobuf or cares?
-		BUILD_COMMAND HAS_SYSTEM_ZLIB=false LDFLAGS=-static PATH=${PROTOC_DIR}:$ENV{PATH} PKG_CONFIG_PATH=${OPENSSL_BUNDLE_DIR}:${PROTOBUF_SRC}:${CARES_SRC} make grpc_cpp_plugin static_cxx static_c
+		BUILD_COMMAND CFLAGS=-Wno-implicit-fallthrough HAS_SYSTEM_ZLIB=false LDFLAGS=-static PATH=${PROTOC_DIR}:$ENV{PATH} PKG_CONFIG_PATH=${OPENSSL_BUNDLE_DIR}:${PROTOBUF_SRC}:${CARES_SRC} make grpc_cpp_plugin static_cxx static_c
 		BUILD_IN_SOURCE 1
 		BUILD_BYPRODUCTS ${GRPC_LIB} ${GRPCPP_LIB}
 		# TODO s390x support

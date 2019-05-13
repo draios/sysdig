@@ -33,6 +33,7 @@ limitations under the License.
 #include <fcntl.h>
 #include <limits>
 
+#include "container_engine/mesos.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "../../driver/ppm_ringbuffer.h"
@@ -600,7 +601,15 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		query_os = true;
 	}
 
-	evt->m_tinfo = m_inspector->get_thread(evt->m_pevt->tid, query_os, false);
+	if(etype == PPME_CONTAINER_JSON_E)
+	{
+		evt->m_tinfo = nullptr;
+		return true;
+	}
+	else
+	{
+		evt->m_tinfo = m_inspector->get_thread(evt->m_pevt->tid, query_os, false);
+	}
 
 	if(etype == PPME_SCHEDSWITCH_6_E)
 	{
@@ -1996,6 +2005,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	sinsp_evt *enter_evt = &m_tmp_evt;
 	string sdir;
 	uint16_t etype = evt->get_type();
+	uint32_t dev = 0;
 
 	ASSERT(evt->m_tinfo);
 	if(evt->m_tinfo == nullptr)
@@ -2035,6 +2045,13 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		flags = *(uint32_t *)parinfo->m_val;
 
+		if(evt->get_num_params() > 4)
+		{
+			parinfo = evt->get_param(4);
+			ASSERT(parinfo->m_len == sizeof(uint32_t));
+			dev = *(uint32_t *)parinfo->m_val;
+		}
+
 		sdir = evt->m_tinfo->get_cwd();
 	}
 	else if(etype == PPME_SYSCALL_CREAT_X)
@@ -2044,6 +2061,13 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		namelen = parinfo->m_len;
 
 		flags = 0;
+
+		if(evt->get_num_params() > 3)
+		{
+			parinfo = evt->get_param(3);
+			ASSERT(parinfo->m_len == sizeof(uint32_t));
+			dev = *(uint32_t *)parinfo->m_val;
+		}
 
 		sdir = evt->m_tinfo->get_cwd();
 	}
@@ -2077,6 +2101,13 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		ASSERT(parinfo->m_len == sizeof(int64_t));
 		int64_t dirfd = *(int64_t *)parinfo->m_val;
 
+		if(evt->get_num_params() > 5)
+		{
+			parinfo = evt->get_param(5);
+			ASSERT(parinfo->m_len == sizeof(uint32_t));
+			dev = *(uint32_t *)parinfo->m_val;
+		}
+
 		parse_openat_dir(evt, name, dirfd, &sdir);
 	}
 	else
@@ -2108,6 +2139,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		}
 
 		fdi.m_openflags = flags;
+		fdi.m_dev = dev;
 		fdi.add_filename(fullpath);
 
 		//
@@ -2261,7 +2293,7 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
  *
  * Preconditions: evt->m_fdinfo == nullptr and
  *                evt->m_tinfo != nullptr
- * 
+ *
  */
 inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt* const evt)
 {
@@ -4478,7 +4510,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 	ASSERT(parinfo);
 	ASSERT(parinfo->m_len > 0);
 	std::string json(parinfo->m_val, parinfo->m_len);
-	g_logger.log(json, sinsp_logger::SEV_DEBUG);
+	g_logger.format(sinsp_logger::SEV_DEBUG, "Parsing Container JSON=%s", json.c_str());
 	ASSERT(m_inspector);
 	Json::Value root;
 	if(Json::Reader().parse(json, root))
@@ -4500,6 +4532,13 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		{
 			container_info.m_name = name.asString();
 		}
+
+		const Json::Value& is_pod_sandbox = container["is_pod_sandbox"];
+		if(!is_pod_sandbox.isNull() && is_pod_sandbox.isConvertibleTo(Json::booleanValue))
+		{
+			container_info.m_is_pod_sandbox = is_pod_sandbox.asBool();
+		}
+
 		const Json::Value& image = container["image"];
 		if(!image.isNull() && image.isConvertibleTo(Json::stringValue))
 		{
@@ -4546,11 +4585,84 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 
 			container_info.m_container_ip = ntohl(ip);
 		}
+
+		const Json::Value &port_mappings = container["port_mappings"];
+
+		if(!port_mappings.isNull() && port_mappings.isConvertibleTo(Json::arrayValue))
+		{
+			for (Json::Value::ArrayIndex i = 0; i != port_mappings.size(); i++)
+			{
+				sinsp_container_info::container_port_mapping map;
+				map.m_host_ip = port_mappings[i]["HostIp"].asInt();
+				map.m_host_port = (uint16_t) port_mappings[i]["HostPort"].asInt();
+				map.m_container_port = (uint16_t) port_mappings[i]["ContainerPort"].asInt();
+
+				container_info.m_port_mappings.push_back(map);
+			}
+		}
+
+		vector<string> labels = container["labels"].getMemberNames();
+		for(vector<string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+		{
+			string val = container["labels"][*it].asString();
+			container_info.m_labels[*it] = val;
+		}
+
+		const Json::Value& env_vars = container["env"];
+
+		for(const auto& env_var : env_vars)
+		{
+			if(env_var.isString())
+			{
+				container_info.m_env.emplace_back(env_var.asString());
+			}
+		}
+
+		const Json::Value& memory_limit = container["memory_limit"];
+		if(!memory_limit.isNull() && memory_limit.isConvertibleTo(Json::uintValue))
+		{
+			container_info.m_memory_limit = memory_limit.asUInt();
+		}
+
+		const Json::Value& swap_limit = container["swap_limit"];
+		if(!swap_limit.isNull() && swap_limit.isConvertibleTo(Json::uintValue))
+		{
+			container_info.m_swap_limit = swap_limit.asUInt();
+		}
+
+		const Json::Value& cpu_shares = container["cpu_shares"];
+		if(!cpu_shares.isNull() && cpu_shares.isConvertibleTo(Json::uintValue))
+		{
+			container_info.m_cpu_shares = cpu_shares.asUInt();
+		}
+
+		const Json::Value& cpu_quota = container["cpu_quota"];
+		if(!cpu_quota.isNull() && cpu_quota.isConvertibleTo(Json::uintValue))
+		{
+			container_info.m_cpu_quota = cpu_quota.asUInt();
+		}
+
+		const Json::Value& cpu_period = container["cpu_period"];
+		if(!cpu_period.isNull() && cpu_period.isConvertibleTo(Json::uintValue))
+		{
+			container_info.m_cpu_period = cpu_period.asUInt();
+		}
+
 		const Json::Value& mesos_task_id = container["mesos_task_id"];
 		if(!mesos_task_id.isNull() && mesos_task_id.isConvertibleTo(Json::stringValue))
 		{
 			container_info.m_mesos_task_id = mesos_task_id.asString();
 		}
+
+		const Json::Value& metadata_deadline = container["metadata_deadline"];
+		// isConvertibleTo doesn't seem to work on large 64 bit numbers
+		if(!metadata_deadline.isNull() && metadata_deadline.isUInt64())
+		{
+			container_info.m_metadata_deadline = metadata_deadline.asUInt64();
+		}
+
+		evt->m_tinfo_ref = container_info.get_tinfo(m_inspector);
+		evt->m_tinfo = evt->m_tinfo_ref.get();
 		m_inspector->m_container_manager.add_container(container_info, evt->get_thread_info(true));
 		/*
 		g_logger.log("Container\n-------\nID:" + container_info.m_id +

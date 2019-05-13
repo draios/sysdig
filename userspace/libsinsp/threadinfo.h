@@ -33,6 +33,10 @@ struct iovec {
 #endif
 
 #include <functional>
+#include <memory>
+#include <set>
+#include "fdinfo.h"
+#include "internal_metrics.h"
 
 class sinsp_delays_info;
 class sinsp_threadtable_listener;
@@ -75,34 +79,34 @@ public:
 	/*!
 	  \brief Return the name of the process containing this thread, e.g. "top".
 	*/
-	string get_comm();
+	std::string get_comm();
 
 	/*!
 	  \brief Return the name of the process containing this thread from argv[0], e.g. "/bin/top".
 	*/
-	string get_exe();
+	std::string get_exe();
 
 	/*!
 	  \brief Return the full executable path of the process containing this thread, e.g. "/bin/top".
 	*/
-	string get_exepath();
+	std::string get_exepath();
 
 	/*!
 	  \brief Return the working directory of the process containing this thread.
 	*/
-	string get_cwd();
+	std::string get_cwd();
 
 	/*!
 	  \brief Return the values of all environment variables for the process
 	  containing this thread.
 	*/
-	const vector<string>& get_env();
+	const std::vector<std::string>& get_env();
 
 	/*!
 	  \brief Return the value of the specified environment variable for the process
 	  containing this thread. Returns empty string if variable is not found.
 	*/
-	string get_env(const string& name);
+	std::string get_env(const std::string& name);
 
 	/*!
 	  \brief Return true if this is a process' main thread.
@@ -230,7 +234,7 @@ public:
 	typedef std::function<bool (sinsp_threadinfo *)> visitor_func_t;
 	void traverse_parent_state(visitor_func_t &visitor);
 
-	static void populate_cmdline(string &cmdline, sinsp_threadinfo *tinfo);
+	static void populate_cmdline(std::string &cmdline, sinsp_threadinfo *tinfo);
 
 	//
 	// Core state
@@ -239,13 +243,13 @@ public:
 	int64_t m_pid; ///< The id of the process containing this thread. In single thread threads, this is equal to tid.
 	int64_t m_ptid; ///< The id of the process that started this thread.
 	int64_t m_sid; ///< The session id of the process containing this thread.
-	string m_comm; ///< Command name (e.g. "top")
-	string m_exe; ///< argv[0] (e.g. "sshd: user@pts/4")
-	string m_exepath; ///< full executable path
-	vector<string> m_args; ///< Command line arguments (e.g. "-d1")
-	vector<string> m_env; ///< Environment variables
-	vector<pair<string, string>> m_cgroups; ///< subsystem-cgroup pairs
-	string m_container_id; ///< heuristic-based container id
+	std::string m_comm; ///< Command name (e.g. "top")
+	std::string m_exe; ///< argv[0] (e.g. "sshd: user@pts/4")
+	std::string m_exepath; ///< full executable path
+	std::vector<std::string> m_args; ///< Command line arguments (e.g. "-d1")
+	std::vector<std::string> m_env; ///< Environment variables
+	std::vector<std::pair<std::string, std::string>> m_cgroups; ///< subsystem-cgroup pairs
+	std::string m_container_id; ///< heuristic-based container id
 	uint32_t m_flags; ///< The thread flags. See the PPM_CL_* declarations in ppm_events_public.h.
 	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open
 	uint32_t m_uid; ///< user id
@@ -259,7 +263,7 @@ public:
 	int64_t m_vtid;  ///< The virtual id of this thread.
 	int64_t m_vpid; ///< The virtual id of the process containing this thread. In single thread threads, this is equal to vtid.
 	int64_t m_vpgid; // The virtual process group id, as seen from its pid namespace
-	string m_root;
+	std::string m_root;
 	size_t m_program_hash;
 	size_t m_program_hash_falco;
 	int32_t m_tty;
@@ -357,14 +361,14 @@ VISIBILITY_PRIVATE
 	}
 	void allocate_private_state();
 	void compute_program_hash();
-	shared_ptr<sinsp_threadinfo> lookup_thread();
+	std::shared_ptr<sinsp_threadinfo> lookup_thread();
 
-	size_t strvec_len(const vector<string> &strs) const;
-	void strvec_to_iovec(const vector<string> &strs,
+	size_t strvec_len(const std::vector<std::string> &strs) const;
+	void strvec_to_iovec(const std::vector<std::string> &strs,
 			     struct iovec **iov, int *iovcnt,
 			     std::string &rem) const;
 
-	void add_to_iovec(const string &str,
+	void add_to_iovec(const std::string &str,
 			  const bool include_trailing_null,
 			  struct iovec &iov,
 			  uint32_t &alen,
@@ -381,10 +385,10 @@ VISIBILITY_PRIVATE
 	// parent thread info
 	//
 	sinsp_fdtable m_fdtable; // The fd table of this thread
-	string m_cwd; // current working directory
-	weak_ptr<sinsp_threadinfo> m_main_thread;
+	std::string m_cwd; // current working directory
+	std::weak_ptr<sinsp_threadinfo> m_main_thread;
 	uint8_t* m_lastevent_data; // Used by some event parsers to store the last enter event
-	vector<void*> m_private_state;
+	std::vector<void*> m_private_state;
 
 	uint16_t m_lastevent_type;
 	uint16_t m_lastevent_cpuid;
@@ -466,7 +470,7 @@ public:
 	}
 
 protected:
-	unordered_map<int64_t, ptr_t> m_threads;
+	std::unordered_map<int64_t, ptr_t> m_threads;
 };
 
 
@@ -491,7 +495,7 @@ public:
 	}
 
 private:
-	vector<uint32_t> m_memory_sizes;
+	std::vector<uint32_t> m_memory_sizes;
 
 	friend class sinsp_threadinfo;
 };
@@ -530,12 +534,12 @@ public:
 		return &m_threadtable;
 	}
 
-	set<uint16_t> m_server_ports;
+	std::set<uint16_t> m_server_ports;
 
 private:
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
-	void free_dump_fdinfos(vector<scap_fdinfo*>* fdinfos_to_free);
+	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);
 	void thread_to_scap(sinsp_threadinfo& tinfo, scap_threadinfo* sctinfo);
 
 	sinsp* m_inspector;

@@ -93,8 +93,15 @@ function clean_sysdig {
 
 function build_probe {
 
-	if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] ||
-	   [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
+    # Skip Kernel 4.15.0-29 because probe does not build against it
+    if [ $KERNEL_RELEASE-$HASH = "4.15.0-29-generic-ea0aa038a6b9bdc4bb42152682bba6ce"  ]
+    then
+	echo "Temporarily skipping " $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko
+	return
+    fi
+
+    if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] ||
+	       [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
 
 		if [[ -f "${KERNELDIR}/scripts/gcc-plugins/stackleak_plugin.so" ]]; then
 			echo "Rebuilding gcc plugins for ${KERNELDIR}"
@@ -325,7 +332,7 @@ function ubuntu_build {
 
 	NUM_DEB=$(ls linux-*.deb -1 | wc -l)
 
-	if [ $NUM_DEB -eq 3 ]; then
+	if [ $NUM_DEB -eq 4 ]; then
 
 		local KERNEL_FOLDER=$KERNEL_RELEASE
 		KERNEL_RELEASE=$(ls -1 linux-image-* | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+-[0-9]+-[a-z]+")

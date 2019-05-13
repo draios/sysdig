@@ -139,7 +139,7 @@ load_kernel_probe() {
 	URL=$(echo "${SYSDIG_PROBE_URL}/${SYSDIG_REPOSITORY}/sysdig-probe-binaries/${SYSDIG_PROBE_FILENAME}" | sed s/+/%2B/g)
 
 	echo "* Trying to download precompiled module from ${URL}"
-	if curl --create-dirs -f -s -o "${HOME}/.sysdig/${SYSDIG_PROBE_FILENAME}" "${URL}"; then
+	if curl --create-dirs "${SYSDIG_PROBE_CURL_OPTIONS}" -o "${HOME}/.sysdig/${SYSDIG_PROBE_FILENAME}" "${URL}"; then
 		echo "Download succeeded, loading module"
 		insmod "${HOME}/.sysdig/${SYSDIG_PROBE_FILENAME}"
 		exit $?
@@ -183,7 +183,7 @@ load_bpf_probe() {
 
 			mkdir -p /tmp/kernel
 			cd /tmp/kernel
-			if ! curl --create-dirs -s -S -f -O "${download_url}"; then
+			if ! curl --create-dirs "${SYSDIG_PROBE_CURL_OPTIONS}" -O "${download_url}"; then
 				exit 1;
 			fi
 
@@ -221,7 +221,7 @@ load_bpf_probe() {
 
 			mkdir -p /tmp/kernel
 			cd /tmp/kernel
-			if ! curl --create-dirs -s -S -f -O "${download_url}"; then
+			if ! curl --create-dirs "${SYSDIG_PROBE_CURL_OPTIONS}" -O "${download_url}"; then
 				exit 1;
 			fi
 
@@ -257,7 +257,7 @@ load_bpf_probe() {
 
 		echo "* Trying to download precompiled BPF probe from ${URL}"
 
-		curl --create-dirs -f -s -S -o "${HOME}/.sysdig/${BPF_PROBE_FILENAME}" "${URL}"
+		curl --create-dirs "${SYSDIG_PROBE_CURL_OPTIONS}" -o "${HOME}/.sysdig/${BPF_PROBE_FILENAME}" "${URL}"
 	fi
 
 	if [ -f "${HOME}/.sysdig/${BPF_PROBE_FILENAME}" ]; then
@@ -284,6 +284,13 @@ ARCH=$(uname -m)
 KERNEL_RELEASE=$(uname -r)
 SCRIPT_NAME=$(basename "${0}")
 SYSDIG_PROBE_URL=${SYSDIG_PROBE_URL:-https://s3.amazonaws.com/download.draios.com}
+if [ -n "$SYSDIG_PROBE_INSECURE_DOWNLOAD" ]
+then
+	SYSDIG_PROBE_CURL_OPTIONS=-fsSk
+else
+	SYSDIG_PROBE_CURL_OPTIONS=-fsS
+fi
+
 MAX_RMMOD_WAIT=60
 if [[ $# -ge 1 ]]; then
 	MAX_RMMOD_WAIT=$1

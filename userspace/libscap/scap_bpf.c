@@ -551,7 +551,7 @@ static int32_t load_bpf_file(scap_t *handle, const char *path)
 		return SCAP_FAILURE;
 	}
 
-	Elf *elf = elf_begin(program_fd, ELF_C_READ, NULL);
+	Elf *elf = elf_begin(program_fd, ELF_C_READ_MMAP_PRIVATE, NULL);
 	if(!elf)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't read ELF format");
@@ -681,17 +681,17 @@ static void *perf_event_mmap(scap_t *handle, int fd)
 	void *tmp = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	if(tmp == MAP_FAILED)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (1)");
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (1): %s", scap_strerror(handle, errno));
+		return MAP_FAILED;
 	}
 
 	// Map the second copy to allow us to handle the wrap case normally
 	void *p1 = mmap(tmp + ring_size, ring_size + header_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
 	if(p1 == MAP_FAILED)
 	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (2): %s", scap_strerror(handle, errno));
 		munmap(tmp, total_size);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (2)");
-		return NULL;
+		return MAP_FAILED;
 	}
 
 	ASSERT(p1 == tmp + ring_size);
@@ -700,9 +700,9 @@ static void *perf_event_mmap(scap_t *handle, int fd)
 	void *p2 = mmap(tmp, ring_size + header_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
 	if(p2 == MAP_FAILED)
 	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (3): %s", scap_strerror(handle, errno));
 		munmap(tmp, total_size);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (3)");
-		return NULL;
+		return MAP_FAILED;
 	}
 
 	ASSERT(p2 == tmp);
@@ -1067,10 +1067,11 @@ int32_t scap_bpf_close(scap_t *handle)
 			munmap(handle->m_devs[j].m_buffer, total_size);
 #endif
 			ASSERT(ret == 0);
-			if(handle->m_devs[j].m_fd > 0)
-			{
-				close(handle->m_devs[j].m_fd);
-			}
+		}
+
+		if(handle->m_devs[j].m_fd > 0)
+		{
+			close(handle->m_devs[j].m_fd);
 		}
 	}
 
@@ -1221,6 +1222,7 @@ static int32_t set_default_settings(scap_t *handle)
 	settings.page_faults = false;
 	settings.dropping_mode = false;
 	settings.is_dropping = false;
+	settings.tracers_enabled = false;
 	settings.fullcapture_port_range_start = 0;
 	settings.fullcapture_port_range_end = 0;
 
@@ -1352,7 +1354,7 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 		// Map the ring buffer
 		//
 		handle->m_devs[online_cpu].m_buffer = perf_event_mmap(handle, pmu_fd);
-		if(!handle->m_devs[online_cpu].m_buffer)
+		if(handle->m_devs[online_cpu].m_buffer == MAP_FAILED)
 		{
 			return SCAP_FAILURE;
 		}

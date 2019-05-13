@@ -25,11 +25,13 @@ class sinsp_container_manager;
 class sinsp_container_info;
 class sinsp_threadinfo;
 
+#include "container_engine/container_engine.h"
+
 namespace libsinsp {
 namespace container_engine {
-class rkt {
+class rkt : public resolver {
 public:
-	bool resolve(sinsp_container_manager *manager, sinsp_threadinfo *tinfo, bool query_os_for_missing_info);
+	bool resolve(sinsp_container_manager *manager, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 
 protected:
 	bool match(sinsp_container_manager *manager, sinsp_threadinfo *tinfo, sinsp_container_info *container_info,

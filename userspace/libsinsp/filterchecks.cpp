@@ -134,6 +134,9 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.sip.name", "Domain name associated with the server IP address."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.lip.name", "Domain name associated with the local IP address."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.rip.name", "Domain name associated with the remote IP address."},
+	{PT_INT32, EPF_NONE, PF_HEX, "fd.dev", "device number (major/minor) containing the referenced file"},
+	{PT_INT32, EPF_NONE, PF_DEC, "fd.dev.major", "major device number containing the referenced file"},
+	{PT_INT32, EPF_NONE, PF_DEC, "fd.dev.minor", "minor device number containing the referenced file"},
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -1236,6 +1239,10 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 		break;
 	case TYPE_UID:
 		{
+			if(evt->get_type() == PPME_CONTAINER_JSON_E)
+			{
+				return NULL;
+			}
 			ASSERT(m_tinfo != NULL);
 
 			m_tstr = to_string(m_tinfo->m_tid) + to_string(m_tinfo->m_lastevent_fd);
@@ -1262,6 +1269,42 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			}
 
 			m_tbool = evt->fdinfo_name_changed();
+
+			RETURN_EXTRACT_VAR(m_tbool);
+		}
+		break;
+	case TYPE_DEV:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			m_tbool = m_fdinfo->get_device();
+
+			RETURN_EXTRACT_VAR(m_tbool);
+		}
+		break;
+	case TYPE_DEV_MAJOR:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			m_tbool = m_fdinfo->get_device_major();
+
+			RETURN_EXTRACT_VAR(m_tbool);
+		}
+		break;
+	case TYPE_DEV_MINOR:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			m_tbool = m_fdinfo->get_device_minor();
 
 			RETURN_EXTRACT_VAR(m_tbool);
 		}
@@ -2741,6 +2784,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT64, EPF_NONE, PF_ID, "evt.num", "event number."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.time", "event timestamp as a time string that includes the nanosecond part."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.time.s", "event timestamp as a time string with no nanoseconds."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.time.iso8601", "event timestamp in ISO 8601 format, including nanoseconds and time zone offset (in UTC)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.datetime", "event timestamp as a time string that includes the date."},
 	{PT_ABSTIME, EPF_NONE, PF_DEC, "evt.rawtime", "absolute event timestamp, i.e. nanoseconds from epoch."},
 	{PT_ABSTIME, EPF_NONE, PF_DEC, "evt.rawtime.s", "integer part of the event timestamp (e.g. seconds since epoch)."},
@@ -3281,6 +3325,7 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	{
 	case TYPE_TIME:
 	case TYPE_TIME_S:
+	case TYPE_TIME_ISO8601:
 	case TYPE_DATETIME:
 	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
 		return (Json::Value::Int64)evt->get_ts();
@@ -3367,6 +3412,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		RETURN_EXTRACT_STRING(m_strstorage);
 	case TYPE_TIME_S:
 		sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, false, false);
+		RETURN_EXTRACT_STRING(m_strstorage);
+	case TYPE_TIME_ISO8601:
+		sinsp_utils::ts_to_iso_8601(evt->get_ts(), &m_strstorage);
 		RETURN_EXTRACT_STRING(m_strstorage);
 	case TYPE_DATETIME:
 		sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, true, true);
@@ -6150,6 +6198,9 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 				break;
 			case sinsp_container_type::CT_CONTAINERD:
 				m_tstr = "containerd";
+				break;
+			case sinsp_container_type::CT_CRIO:
+				m_tstr = "cri-o";
 				break;
 			case sinsp_container_type::CT_RKT:
 				m_tstr = "rkt";

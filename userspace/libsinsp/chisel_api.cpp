@@ -1193,6 +1193,10 @@ int lua_cbacks::get_container_table(lua_State *ls)
 		{
 			lua_pushstring(ls, "containerd");
 		}
+		else if(it->second.m_type == CT_CRIO)
+		{
+			lua_pushstring(ls, "cri-o");
+		}
 		else
 		{
 			ASSERT(false);

@@ -22,18 +22,37 @@ limitations under the License.
 #include <memory>
 #include <string>
 #include <vector>
+#include <atomic>
+
+#if !defined(_WIN32)
+#include <curl/curl.h>
+#include <curl/easy.h>
+#include <curl/multi.h>
+#endif
 
 #include "json/json.h"
 
+#include "async_key_value_source.h"
+
 #include "container_info.h"
 
+#include "container_engine/container_engine.h"
+
+class sinsp;
 class sinsp_container_manager;
 class sinsp_container_info;
 class sinsp_threadinfo;
 
 namespace libsinsp {
 namespace container_engine {
-class docker
+
+struct container_lookup_result
+{
+	bool m_successful;
+	sinsp_container_info m_container_info;
+};
+
+class docker_async_source : public sysdig::async_key_value_source<std::string, container_lookup_result>
 {
 	enum docker_response
 	{
@@ -43,25 +62,53 @@ class docker
 	};
 
 public:
-	docker();
+	docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms, sinsp *inspector);
+	virtual ~docker_async_source();
 
-	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
-	static void cleanup();
 	static void set_query_image_info(bool query_image_info);
-	static void parse_json_mounts(const Json::Value &mnt_obj, std::vector<sinsp_container_info::container_mount_info> &mounts);
-
-#if !defined(_WIN32)
-	static bool detect_docker(const sinsp_threadinfo* tinfo, std::string& container_id);
-#endif
 
 protected:
-	docker_response get_docker(sinsp_container_manager* manager, const std::string& url, std::string &json);
-	std::string build_request(const std::string& url);
-	bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
+	void run_impl();
 
-	static std::string m_api_version;
+private:
+	// These 4 methods are OS-dependent and defined in docker_{linux,win}.cpp
+	void init_docker_conn();
+	void free_docker_conn();
+	std::string build_request(const std::string& url);
+	docker_response get_docker(const std::string& url, std::string &json);
+
+	bool parse_docker(std::string &container_id, sinsp_container_info *container);
+
+	sinsp *m_inspector;
+
+	std::string m_docker_unix_socket_path;
+	std::string m_api_version;
+
+#ifndef _WIN32
+	CURLM *m_curlm;
+	CURL *m_curl;
+#endif
+
 	static bool m_query_image_info;
-	static bool m_enabled;
+};
+
+class docker : public resolver
+{
+public:
+	docker();
+
+	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info) override;
+	void cleanup() override;
+	static void parse_json_mounts(const Json::Value &mnt_obj, std::vector<sinsp_container_info::container_mount_info> &mounts);
+
+	// Container name only set for windows. For linux name must be fetched via lookup
+	static bool detect_docker(const sinsp_threadinfo* tinfo, std::string& container_id, std::string &container_name);
+protected:
+	void parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager);
+
+	std::unique_ptr<docker_async_source> m_docker_info_source;
+
+	static std::string s_incomplete_info_name;
 };
 }
 }

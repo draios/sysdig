@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2019 Draios Inc dba Sysdig.
+Copyright (C) 2019 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
@@ -19,18 +19,14 @@ limitations under the License.
 
 #pragma once
 
-class sinsp_container_manager;
-class sinsp_container_info;
-class sinsp_threadinfo;
-
-#include "container_engine/container_engine.h"
-
-namespace libsinsp {
-namespace container_engine {
-class lxc : public resolver
+//
+// Protocol decoder callback type
+//
+typedef enum sinsp_pd_callback_type
 {
-public:
-	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info) override;
-};
-}
-}
+	CT_OPEN,
+	CT_CONNECT,
+	CT_READ,
+	CT_WRITE,
+	CT_TUPLE_CHANGE,
+}sinsp_pd_callback_type;

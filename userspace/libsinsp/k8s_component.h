@@ -30,6 +30,7 @@ limitations under the License.
 #include "sinsp_int.h"
 #include "logger.h"
 #include "user_event.h"
+#include "user_event_logger.h"
 #include <vector>
 #include <unordered_set>
 
@@ -537,7 +538,7 @@ public:
 
 private:
 	typedef sinsp_user_event::tag_map_t tag_map_t;
-	typedef sinsp_logger::event_severity severity_t;
+	typedef user_event_logger::severity severity_t;
 	typedef std::unordered_map<std::string, std::string> name_translation_map_t;
 
 	void make_scope(const Json::Value& obj, event_scope& scope);

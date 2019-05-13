@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2013-2019 Sysdig, Inc.
 
 This file is part of sysdig.
 
@@ -21,16 +21,20 @@ limitations under the License.
 
 #include "sinsp_public.h"
 
-///////////////////////////////////////////////////////////////////////////////
-// The logger class
-///////////////////////////////////////////////////////////////////////////////
-typedef void (*sinsp_logger_callback)(std::string&& str, uint32_t sev);
+#include <atomic>
+#include <string>
 
+/**
+ * Sysdig component logging API.  This API exposes the ability to log to a
+ * variety of log sinks.  sinsp_logger will use only one enabled log* sink;
+ * if multiple are enabled, then it will use the first available one it
+ * finds.  The order in which log sinks is considered is: (1) a registered
+ * callback function, (2) a registered file, (3) standard output, and
+ * (4) standard error.
+ */
 class SINSP_PUBLIC sinsp_logger
 {
 public:
-	static const uint32_t SEVERITY_NONE = (uint32_t)-1;
-
 	enum severity
 	{
 		SEV_FATAL = 1,
@@ -41,81 +45,117 @@ public:
 		SEV_INFO = 6,
 		SEV_DEBUG = 7,
 		SEV_TRACE = 8,
-		SEV_MIN = SEV_FATAL,
-		SEV_MAX = SEV_TRACE
 	};
+	const static severity SEV_MIN = SEV_FATAL;
+	const static severity SEV_MAX = SEV_TRACE;
 
-	enum event_severity
-	{
-		SEV_EVT_EMERGENCY = 10,
-		SEV_EVT_FATAL = 11,
-		SEV_EVT_CRITICAL = 12,
-		SEV_EVT_ERROR = 13,
-		SEV_EVT_WARNING = 14,
-		SEV_EVT_NOTICE = 15,
-		SEV_EVT_INFORMATION = 16,
-		SEV_EVT_DEBUG = 17,
-		SEV_EVT_MIN = SEV_EVT_EMERGENCY,
-		SEV_EVT_MAX = SEV_EVT_DEBUG
-	};
+	using callback_t = void (*)(std::string&& str, severity sev);
 
-	enum event_memdump_severity
-	{
-		SEV_EVT_MDUMP = SEV_EVT_MAX + 1
-	};
+	const static uint32_t OT_NONE;
+	const static uint32_t OT_STDOUT;
+	const static uint32_t OT_STDERR;
+	const static uint32_t OT_FILE;
+	const static uint32_t OT_CALLBACK;
+	const static uint32_t OT_NOTS;
+	const static uint32_t OT_ENCODE_SEV;
 
-	enum output_type
-	{
-		OT_NONE = 0,
-		OT_STDOUT = 1,
-		OT_STDERR = 2,
-		OT_FILE = 4,
-		OT_CALLBACK = 8,
-		OT_NOTS = 256,
-	};
-
+	/**
+	 * Initialize this sinsp_logger with no output sinks enabled.
+	 */
 	sinsp_logger();
 	~sinsp_logger();
 
-	void set_log_output_type(sinsp_logger::output_type log_output_type);
+	/**
+	 * Get the currently configured output type, which includes the
+	 * configured output sinks as well as whether timestamps are enabled
+	 * or not.
+	 */
+	uint32_t get_log_output_type() const;
+
+	/** Enable the standard output log sink. */
 	void add_stdout_log();
+
+	/** Enable the standard error log sink. */
 	void add_stderr_log();
-	void add_file_log(std::string filename);
-	void add_file_log(FILE* f);
-	void add_callback_log(sinsp_logger_callback callback);
+
+	/**
+	 * Enable the file log sink.
+	 *
+	 * @param[in] filename The filename to which sinsp_logger should write
+	 *                     logs.
+	 */
+	void add_file_log(const std::string& filename);
+
+	/** Disables tagging logs with the current timestamp. */
+	void disable_timestamps();
+
+	/** Adds encoded severity to log messages */
+	void add_encoded_severity();
+
+	/**
+	 * Registered the given callback as the logging callback.
+	 *
+	 * Note: the given callback must be thread-safe.
+	 */
+	void add_callback_log(callback_t callback);
+
+	/** Deregister any registered logging callbacks.  */
 	void remove_callback_log();
 
+	/**
+	 * Set the minimum severity of logs that this sinsp_logger will emit.
+	 */
 	void set_severity(severity sev);
+
+	/**
+	 * Returns the minimum severity of logs that this sinsp_logger
+	 * will emit.
+	 */
 	severity get_severity() const;
 
-	void log(std::string msg, severity sev=SEV_INFO);
-	void log(std::string msg, event_severity sev);
+	/**
+	 * Emit the given msg to the configured log sink if the given sev
+	 * is greater than or equal to the minimum configured logging severity.
+	 */
+	void log(std::string msg, severity sev = SEV_INFO);
 
-	// Log functions that accept printf syntax and return the formatted buffer.
-	char* format(severity sev, const char* fmt, ...);
-	char* format(const char* fmt, ...);
+	/**
+	 * Write the given printf-style log message of the given severity
+	 * with the given format to the configured log sink.
+	 *
+	 * @returns a pointer to static thread-local storage containing the
+	 *          formatted log message.
+	 */
+	const char* format(severity sev, const char* fmt, ...);
+
+	/**
+	 * Write the given printf-style log message of SEV_INFO severity
+	 * with the given format to the configured log sink.
+	 *
+	 * @returns a pointer to static thread-local storage containing the
+	 *          formatted log message.
+	 */
+	const char* format(const char* fmt, ...);
+
+	/** Sets `sev` to the decoded severity or SEV_MAX+1 for errors.
+	 *  Returns the length of the severity string on success
+	 *  and 0 in case of errors
+	 */
+	static size_t decode_severity(const std::string &s, severity& sev);
 
 private:
+	/** Returns true if the callback log sync is enabled, false otherwise. */
 	bool is_callback() const;
-	bool is_user_event(severity sev) const;
 
-	FILE* m_file;
-	sinsp_logger_callback m_callback;
-	uint32_t m_flags;
-	severity m_sev;
-	char m_tbuf[32768];
+
+	/** Returns a string containing encoded severity, for OT_ENCODE_SEV. */
+	static const char* encode_severity(severity sev);
+	std::atomic<FILE*> m_file;
+	std::atomic<callback_t> m_callback;
+	std::atomic<uint32_t> m_flags;
+	std::atomic<severity> m_sev;
 };
 
+using sinsp_logger_callback = sinsp_logger::callback_t;
+
 extern sinsp_logger g_logger;
-
-inline bool sinsp_logger::is_callback() const
-{
-	 return (m_flags & sinsp_logger::OT_CALLBACK) != 0;
-}
-
-inline bool sinsp_logger::is_user_event(severity sev) const
-{
-	 return (static_cast<int>(sev) >= static_cast<int>(SEV_EVT_MIN) &&
-			static_cast<int>(sev) <= static_cast<int>(SEV_EVT_MAX));
-}
-

@@ -62,6 +62,7 @@ extern sinsp_evttables g_infotables;
 // sinsp_evt implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_evt::sinsp_evt() :
+	m_pevt_storage(NULL),
 	m_paramstr_storage(256), m_resolved_paramstr_storage(1024)
 {
 	m_flags = EF_NONE;
@@ -73,6 +74,7 @@ sinsp_evt::sinsp_evt() :
 }
 
 sinsp_evt::sinsp_evt(sinsp *inspector) :
+	m_pevt_storage(NULL),
 	m_paramstr_storage(1024), m_resolved_paramstr_storage(1024)
 {
 	m_inspector = inspector;
@@ -86,6 +88,10 @@ sinsp_evt::sinsp_evt(sinsp *inspector) :
 
 sinsp_evt::~sinsp_evt()
 {
+	if(m_pevt_storage)
+	{
+		delete[] m_pevt_storage;
+	}
 }
 
 uint32_t sinsp_evt::get_dump_flags()
@@ -122,6 +128,12 @@ sinsp_threadinfo* sinsp_evt::get_thread_info(bool query_os_if_not_found)
 {
 	if(NULL != m_tinfo)
 	{
+		return m_tinfo;
+	}
+	else if(m_tinfo_ref)
+	{
+		m_tinfo = m_tinfo_ref.get();
+
 		return m_tinfo;
 	}
 

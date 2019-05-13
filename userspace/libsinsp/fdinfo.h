@@ -18,6 +18,9 @@ limitations under the License.
 */
 
 #pragma once
+#include "sinsp_pd_callback_type.h"
+#include <unordered_map>
+#include <vector>
 
 #ifdef _WIN32
 #define CANCELED_FD_NUMBER INT64_MAX
@@ -62,8 +65,8 @@ typedef union _sinsp_sockinfo
 class fd_callbacks_info
 {
 public:
-	vector<sinsp_protodecoder*> m_write_callbacks;
-	vector<sinsp_protodecoder*> m_read_callbacks;
+	std::vector<sinsp_protodecoder*> m_write_callbacks;
+	std::vector<sinsp_protodecoder*> m_read_callbacks;
 };
 
 /*!
@@ -104,7 +107,7 @@ public:
 	}
 
 	void reset();
-	string* tostring();
+	std::string* tostring();
 
 	inline void copy(const sinsp_fdinfo &other, bool free_state)
 	{
@@ -114,6 +117,7 @@ public:
 		m_name = other.m_name;
 		m_oldname = other.m_oldname;
 		m_flags = other.m_flags;
+		m_dev = other.m_dev;
 		m_ino = other.m_ino;
 
 		if(free_state)
@@ -166,7 +170,7 @@ public:
 	/*!
 	  \brief Return the fd name, after removing unprintable or invalid characters from it.
 	*/
-	string tostring_clean();
+	std::string tostring_clean();
 
 	/*!
 	  \brief Returns true if this is a unix socket.
@@ -248,6 +252,23 @@ public:
 		}
 	}
 
+	uint32_t get_device() const
+	{
+		return m_dev;
+	}
+
+	// see new_encode_dev in include/linux/kdev_t.h
+	uint32_t get_device_major() const
+	{
+		return (m_dev & 0xfff00) >> 8;
+	}
+
+	// see new_encode_dev in include/linux/kdev_t.h
+	uint32_t get_device_minor() const
+	{
+		return (m_dev & 0xff) | ((m_dev >> 12) & 0xfff00);
+	}
+
 	/*!
 	  \brief If this is a socket, returns the IP protocol. Otherwise, return SCAP_FD_UNKNOWN.
 	*/
@@ -316,8 +337,8 @@ public:
 	*/
 	sinsp_sockinfo m_sockinfo;
 
-	string m_name; ///< Human readable rendering of this FD. For files, this is the full file name. For sockets, this is the tuple. And so on.
-	string m_oldname; // The name of this fd at the beginning of event parsing. Used to detect name changes that result from parsing an event.
+	std::string m_name; ///< Human readable rendering of this FD. For files, this is the full file name. For sockets, this is the tuple. And so on.
+	std::string m_oldname; // The name of this fd at the beginning of event parsing. Used to detect name changes that result from parsing an event.
 
 	inline bool has_decoder_callbacks()
 	{
@@ -460,6 +481,7 @@ private:
 
 	T* m_usrstate;
 	uint32_t m_flags;
+	uint32_t m_dev;
 	uint64_t m_ino;
 
 	fd_callbacks_info* m_callbaks;
@@ -490,7 +512,7 @@ public:
 
 	inline sinsp_fdinfo_t* find(int64_t fd)
 	{
-		unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
+		std::unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 
 		//
 		// Try looking up in our simple cache
@@ -535,7 +557,7 @@ public:
 	void reset_cache();
 
 	sinsp* m_inspector;
-	unordered_map<int64_t, sinsp_fdinfo_t> m_table;
+	std::unordered_map<int64_t, sinsp_fdinfo_t> m_table;
 
 	//
 	// Simple fd cache

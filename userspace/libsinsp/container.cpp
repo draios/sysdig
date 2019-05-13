@@ -29,6 +29,8 @@ limitations under the License.
 #include "container.h"
 #include "utils.h"
 
+using namespace libsinsp;
+
 sinsp_container_manager::sinsp_container_manager(sinsp* inspector) :
 	m_inspector(inspector),
 	m_last_flush_time_ns(0)
@@ -111,22 +113,22 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		matches = m_inspector->m_parser->m_fd_listener->on_resolve_container(this, tinfo, query_os_for_missing_info);
 	}
 
-#ifdef CYGWING_AGENT
-	matches = matches || resolve_container_impl<sinsp_container_engine_docker>(tinfo, query_os_for_missing_info);
+	// Delayed so there's a chance to set alternate socket paths,
+	// timeouts, after creation but before inspector open.
+	if(m_container_engines.size() == 0)
+	{
+		create_engines();
+	}
 
-#else
-	matches = matches || resolve_container_impl<
-		libsinsp::container_engine::docker,
-#if defined(HAS_CAPTURE)
-		libsinsp::container_engine::cri,
-#endif
-		libsinsp::container_engine::lxc,
-		libsinsp::container_engine::libvirt_lxc,
-		libsinsp::container_engine::mesos,
-		libsinsp::container_engine::rkt
-	>(tinfo, query_os_for_missing_info);
+	for(auto &eng : m_container_engines)
+	{
+		matches = matches || eng->resolve(this, tinfo, query_os_for_missing_info);
 
-#endif // CYGWING_AGENT
+		if(matches)
+		{
+			break;
+		}
+	}
 
 	// Also identify if this thread is part of a container healthcheck
 	identify_healthcheck(tinfo);
@@ -147,6 +149,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["imagetag"] = container_info.m_imagetag;
 	container["imagedigest"] = container_info.m_imagedigest;
 	container["privileged"] = container_info.m_privileged;
+	container["is_pod_sandbox"] = container_info.m_is_pod_sandbox;
 
 	Json::Value mounts = Json::arrayValue;
 
@@ -175,14 +178,58 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	inet_ntop(AF_INET, &iph, addrbuff, sizeof(addrbuff));
 	container["ip"] = addrbuff;
 
+	Json::Value port_mappings = Json::arrayValue;
+
+	for(auto &mapping : container_info.m_port_mappings)
+	{
+		Json::Value jmap;
+		jmap["HostIp"] = mapping.m_host_ip;
+		jmap["HostPort"] = mapping.m_host_port;
+		jmap["ContainerPort"] = mapping.m_container_port;
+
+		port_mappings.append(jmap);
+	}
+
+	container["port_mappings"] = port_mappings;
+
+	Json::Value labels;
+	for (auto &pair : container_info.m_labels)
+	{
+		labels[pair.first] = pair.second;
+	}
+	container["labels"] = labels;
+
+	Json::Value env_vars = Json::arrayValue;
+
+	for (auto &var : container_info.m_env)
+	{
+		// Only append a limited set of mesos/marathon-related
+		// environment variables.
+		if(var.find("MESOS") != std::string::npos ||
+		   var.find("MARATHON") != std::string::npos ||
+		   var.find("mesos") != std::string::npos)
+		{
+			env_vars.append(var);
+		}
+	}
+	container["env"] = env_vars;
+
+	container["memory_limit"] = (Json::Value::Int64) container_info.m_memory_limit;
+	container["swap_limit"] = (Json::Value::Int64) container_info.m_swap_limit;
+	container["cpu_shares"] = (Json::Value::Int64) container_info.m_cpu_shares;
+	container["cpu_quota"] = (Json::Value::Int64) container_info.m_cpu_quota;
+	container["cpu_period"] = (Json::Value::Int64) container_info.m_cpu_period;
+
 	if(!container_info.m_mesos_task_id.empty())
 	{
 		container["mesos_task_id"] = container_info.m_mesos_task_id;
 	}
+
+	container["metadata_deadline"] = (Json::Value::UInt64) container_info.m_metadata_deadline;
 	return Json::FastWriter().write(obj);
 }
 
-bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp_evt* evt)
+bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp_evt* evt, shared_ptr<sinsp_threadinfo> tinfo)
 {
 	// TODO: variable event length
 	size_t evt_len = SP_EVT_BUF_SIZE;
@@ -190,6 +237,9 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 
 	if(totlen > evt_len)
 	{
+		g_logger.format(sinsp_logger::SEV_ERROR,
+				"container_to_sinsp_event: event len %d > max len %d w/ json \"%s\", returning false",
+				totlen, evt_len, json.c_str());
 		ASSERT(false);
 		return false;
 	}
@@ -200,8 +250,18 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 
 	scap_evt* scapevt = evt->m_pevt;
 
-	scapevt->ts = m_inspector->m_lastevent_ts;
-	scapevt->tid = 0;
+	if(m_inspector->m_lastevent_ts == 0)
+	{
+		// This can happen at startup when containers are
+		// being created as a part of the initial process
+		// scan.
+		scapevt->ts = sinsp_utils::get_current_time_ns();
+	}
+	else
+	{
+		scapevt->ts = m_inspector->m_lastevent_ts;
+	}
+	scapevt->tid = -1;
 	scapevt->len = (uint32_t)totlen;
 	scapevt->type = PPME_CONTAINER_JSON_E;
 	scapevt->nparams = 1;
@@ -213,6 +273,9 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 	memcpy(valptr, json.c_str(), *lens);
 
 	evt->init();
+	evt->m_tinfo_ref = tinfo;
+	evt->m_tinfo = tinfo.get();
+
 	return true;
 }
 
@@ -233,9 +296,27 @@ void sinsp_container_manager::add_container(const sinsp_container_info& containe
 
 void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info)
 {
-	if(container_to_sinsp_event(container_to_json(container_info), &m_inspector->m_meta_evt))
+	sinsp_evt *evt = new sinsp_evt();
+	evt->m_pevt_storage = new char[SP_EVT_BUF_SIZE];
+	evt->m_pevt = (scap_evt *) evt->m_pevt_storage;
+
+	if(container_to_sinsp_event(container_to_json(container_info), evt, container_info.get_tinfo(m_inspector)))
 	{
-		m_inspector->m_meta_evt_pending = true;
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"notify_new_container (%s): created CONTAINER_JSON event, queuing to inspector",
+				container_info.m_id.c_str());
+
+		std::shared_ptr<sinsp_evt> cevt(evt);
+
+		// Enqueue it onto the queue of pending container events for the inspector
+		m_inspector->m_pending_container_evts.push(cevt);
+	}
+	else
+	{
+		g_logger.format(sinsp_logger::SEV_ERROR,
+				"notify_new_container (%s): could not create CONTAINER_JSON event, dropping",
+				container_info.m_id.c_str());
+		delete evt;
 	}
 }
 
@@ -243,7 +324,7 @@ void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)
 {
 	for(unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.begin(); it != m_containers.end(); ++it)
 	{
-		if(container_to_sinsp_event(container_to_json(it->second), &m_inspector->m_meta_evt))
+		if(container_to_sinsp_event(container_to_json(it->second), &m_inspector->m_meta_evt, it->second.get_tinfo(m_inspector)))
 		{
 			int32_t res = scap_dump(m_inspector->m_h, dumper, m_inspector->m_meta_evt.m_pevt, m_inspector->m_meta_evt.m_cpuid, 0);
 			if(res != SCAP_SUCCESS)
@@ -353,17 +434,38 @@ void sinsp_container_manager::subscribe_on_remove_container(remove_container_cb 
 	m_remove_callbacks.emplace_back(callback);
 }
 
+void sinsp_container_manager::create_engines()
+{
+	m_container_engines.emplace_back(new container_engine::docker());
+#ifndef CYGWING_AGENT
+#if defined(HAS_CAPTURE)
+	m_container_engines.emplace_back(new container_engine::cri());
+#endif
+	m_container_engines.emplace_back(new container_engine::lxc());
+	m_container_engines.emplace_back(new container_engine::libvirt_lxc());
+	m_container_engines.emplace_back(new container_engine::mesos());
+	m_container_engines.emplace_back(new container_engine::rkt());
+#endif
+}
+
 void sinsp_container_manager::cleanup()
 {
-	libsinsp::container_engine::docker::cleanup();
-#if defined(HAS_CAPTURE)
-	libsinsp::container_engine::cri::cleanup();
-#endif
+	for(auto &eng : m_container_engines)
+	{
+		eng->cleanup();
+	}
 }
 
 void sinsp_container_manager::set_query_docker_image_info(bool query_image_info)
 {
-	libsinsp::container_engine::docker::set_query_image_info(query_image_info);
+	libsinsp::container_engine::docker_async_source::set_query_image_info(query_image_info);
+}
+
+void sinsp_container_manager::set_cri_extra_queries(bool extra_queries)
+{
+#if defined(HAS_CAPTURE)
+	libsinsp::container_engine::cri::set_extra_queries(extra_queries);
+#endif
 }
 
 void sinsp_container_manager::set_cri_socket_path(const std::string &path)
