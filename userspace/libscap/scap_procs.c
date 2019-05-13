@@ -71,6 +71,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 	uint32_t nfound = 0;
 	int64_t tmp;
 	uint32_t uid;
+	uint64_t tgid;
 	uint64_t ppid;
 	uint64_t vpid;
 	uint64_t vtid;
@@ -112,6 +113,19 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 
 	while(fgets(line, sizeof(line), f) != NULL)
 	{
+		if(strstr(line, "Tgid") == line)
+		{
+			nfound++;
+
+			if(sscanf(line, "Tgid: %" PRIu64, &tgid) == 1)
+			{
+				tinfo->pid = tgid;
+			}
+			else
+			{
+				ASSERT(false);
+			}
+		}
 		if(strstr(line, "Uid") == line)
 		{
 			nfound++;
@@ -223,13 +237,13 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 			}
 		}
 
-		if(nfound == 9)
+		if(nfound == 10)
 		{
 			break;
 		}
 	}
 
-	ASSERT(nfound == 9 || nfound == 6 || nfound == 5);
+	ASSERT(nfound == 10 || nfound == 7 || nfound == 6);
 
 	fclose(f);
 
@@ -631,21 +645,6 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 	tinfo->fdlist = NULL;
 
 	//
-	// If tid is different from pid, assume this is a thread and that the FDs are shared, and set the
-	// corresponding process flags.
-	// XXX we should see if the process creation flags are stored somewhere in /proc and handle this
-	// properly instead of making assumptions.
-	//
-	if(tinfo->tid == tinfo->pid)
-	{
-		tinfo->flags = 0;
-	}
-	else
-	{
-		tinfo->flags = PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES;
-	}
-
-	//
 	// Gathers the exepath
 	//
 	snprintf(tinfo->exepath, sizeof(tinfo->exepath), "%s", target_name);
@@ -854,6 +853,20 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 		tinfo->clone_ts = dirstat.st_ctim.tv_sec*1000000000 + dirstat.st_ctim.tv_nsec;
 	}
 
+	// If tid is different from pid, assume this is a thread and that the FDs are shared, and set the
+	// corresponding process flags.
+	// XXX we should see if the process creation flags are stored somewhere in /proc and handle this
+	// properly instead of making assumptions.
+	//
+	if(tinfo->tid == tinfo->pid)
+	{
+		tinfo->flags = 0;
+	}
+	else
+	{
+		tinfo->flags = PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES;
+	}
+
 	//
 	// if tid_to_scan is set we assume this is a runtime lookup so no
 	// need to use the table
@@ -894,6 +907,30 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 	if(free_tinfo)
 	{
 		free(tinfo);
+	}
+
+	return res;
+}
+
+//
+// Read a single thread info from /proc
+//
+int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, struct scap_threadinfo** pi, char *error, bool scan_sockets)
+{
+	struct scap_ns_socket_list* sockets_by_ns = NULL;
+
+	int32_t res;
+	char add_error[SCAP_LASTERR_SIZE];
+
+	if(!scan_sockets)
+	{
+		sockets_by_ns = (void*)-1;
+	}
+
+	res = scap_proc_add_from_proc(handle, tid, -1, tid, procdirname, &sockets_by_ns, pi, add_error);
+	if(res != SCAP_SUCCESS)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "cannot add proc tid = %"PRIu64", dirname = %s, error=%s", tid, procdirname, add_error);
 	}
 
 	return res;
@@ -1124,7 +1161,7 @@ struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_soc
 	struct scap_threadinfo* tinfo = NULL;
 	char filename[SCAP_MAX_PATH_SIZE];
 	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-	if(scap_proc_scan_proc_dir(handle, filename, -1, tid, &tinfo, handle->m_lasterr, scan_sockets) != SCAP_SUCCESS)
+	if(scap_proc_read_thread(handle, filename, tid, &tinfo, handle->m_lasterr, scan_sockets) != SCAP_SUCCESS)
 	{
 		return NULL;
 	}
