@@ -825,7 +825,7 @@ int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fname)
 		scap_proc_free_table(handle);
 		char filename[SCAP_MAX_PATH_SIZE];
 		snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-		if(scap_proc_scan_proc_dir(handle, filename, -1, -1, NULL, handle->m_lasterr, true) != SCAP_SUCCESS)
+		if(scap_proc_scan_proc_dir(handle, filename, handle->m_lasterr) != SCAP_SUCCESS)
 		{
 			handle->m_proc_callback = tcb;
 			return SCAP_FAILURE;
