@@ -37,6 +37,7 @@ typedef class sinsp_threadinfo sinsp_threadinfo;
 
 namespace test_helpers {
 	class event_builder;
+	class sinsp_mock;
 }
 
 
@@ -488,6 +489,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp_memory_dumper;
 	friend class sinsp_memory_dumper_job;
 	friend class test_helpers::event_builder;
+	friend class test_helpers::sinsp_mock;
 };
 
 /*@}*/
