@@ -200,7 +200,7 @@ struct scap_ns_socket_list
 // Read the full event buffer for the given processor
 int32_t scap_readbuf(scap_t* handle, uint32_t proc, OUT char** buf, OUT uint32_t* len);
 // Scan a directory containing process information
-int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid, int tid_to_scan, struct scap_threadinfo** pi, char *error, bool scan_sockets);
+int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, char *error);
 // Remove an entry from the process list by parsing a PPME_PROC_EXIT event
 // void scap_proc_schedule_removal(scap_t* handle, scap_evt* e);
 // Remove the process that was scheduled for deletion for this handle
