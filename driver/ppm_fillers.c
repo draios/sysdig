@@ -47,6 +47,13 @@ or GPL2.txt for full copies of the license.
 #include <linux/bpf.h>
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
+static inline struct inode *file_inode(struct file *f)
+{
+	return f->f_path.dentry->d_inode;
+}
+#endif
+
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
 
 int f_sys_generic(struct event_filler_arguments *args)
@@ -151,7 +158,10 @@ static inline uint32_t get_fd_dev(int64_t fd)
 		goto out_unlock;
 
 	file = fdt->fd[fd];
-	inode = file->f_inode;
+	if (unlikely(!file))
+		goto out_unlock;
+
+	inode = file_inode(file);
 	if (unlikely(!inode))
 		goto out_unlock;
 

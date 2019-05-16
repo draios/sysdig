@@ -111,6 +111,7 @@ set(SINSP_SOURCES
 	stopwatch.cpp
 	uri_parser.c
 	uri.cpp
+	user_event_logger.cpp
 	utils.cpp
 	user_event.cpp
 	value_parser.cpp

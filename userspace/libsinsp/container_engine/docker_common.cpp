@@ -66,7 +66,12 @@ void docker_async_source::run_impl()
 
 		if(!parse_docker(container_id, &res.m_container_info))
 		{
-			g_logger.format(sinsp_logger::SEV_ERROR,
+			// This is not always an error e.g. when using
+			// containerd as the runtime. Since the cgroup
+			// names are often identical between
+			// containerd and docker, we have to try to
+			// fetch both.
+			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s): Failed to get Docker metadata, returning successful=false",
 					container_id.c_str());
 			res.m_successful = false;

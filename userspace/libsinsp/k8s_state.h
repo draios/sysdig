@@ -354,6 +354,7 @@ private:
 	static const std::string m_docker_prefix; // "docker://"
 	static const std::string m_rkt_prefix; // "rkt://"
 	static const std::string m_containerd_prefix; // "containerd://"
+	static const std::string m_crio_prefix; // "cri-o://"
 	static const unsigned    m_id_length; // portion of the ID to be cached (=12)
 
 #ifndef HAS_ANALYZER
