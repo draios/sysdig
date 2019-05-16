@@ -1103,7 +1103,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	#ifdef HAS_ANALYZER
 				if(m_analyzer)
 				{
-					m_analyzer->process_event(NULL, sinsp_analyzer::DF_TIMEOUT);
+					m_analyzer->process_event(NULL, analyzer_emitter::DF_TIMEOUT);
 				}
 	#endif
 				*puevt = NULL;
@@ -1114,7 +1114,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	#ifdef HAS_ANALYZER
 				if(m_analyzer)
 				{
-					m_analyzer->process_event(NULL, sinsp_analyzer::DF_EOF);
+					m_analyzer->process_event(NULL, analyzer_emitter::DF_EOF);
 				}
 	#endif
 			}
@@ -1398,19 +1398,19 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		{
 			if(m_isdropping)
 			{
-				m_analyzer->process_event(evt, sinsp_analyzer::DF_FORCE_FLUSH);
+				m_analyzer->process_event(evt, analyzer_emitter::DF_FORCE_FLUSH);
 			}
 			else if(sw)
 			{
-				m_analyzer->process_event(evt, sinsp_analyzer::DF_FORCE_FLUSH_BUT_DONT_EMIT);
+				m_analyzer->process_event(evt, analyzer_emitter::DF_FORCE_FLUSH_BUT_DONT_EMIT);
 			}
 			else
 			{
-				m_analyzer->process_event(evt, sinsp_analyzer::DF_FORCE_NOFLUSH);
+				m_analyzer->process_event(evt, analyzer_emitter::DF_FORCE_NOFLUSH);
 			}
 		}
 #else // SIMULATE_DROP_MODE
-		m_analyzer->process_event(evt, sinsp_analyzer::DF_NONE);
+		m_analyzer->process_event(evt, analyzer_emitter::DF_NONE);
 #endif // SIMULATE_DROP_MODE
 	}
 #endif
