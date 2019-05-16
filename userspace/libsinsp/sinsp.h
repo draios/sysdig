@@ -1253,6 +1253,7 @@ public:
 	friend class sinsp_baseliner;
 	friend class sinsp_memory_dumper;
 	friend class sinsp_network_interfaces;
+	friend class test_helper;
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 
