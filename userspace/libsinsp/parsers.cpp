@@ -23,8 +23,6 @@ limitations under the License.
 #else
 #include <sys/socket.h>
 #include <netinet/in.h>
-#ifdef _DEBUG
-#endif // _DEBUG
 #include <unistd.h>
 #endif // _WIN32
 
@@ -1513,11 +1511,9 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 #ifdef HAS_ANALYZER
 		m_inspector->m_tid_collisions.push_back(tinfo->m_tid);
 #endif
-#ifdef _DEBUG
-		g_logger.format(sinsp_logger::SEV_INFO,
-			"tid collision for %" PRIu64 "(%s)",
-			tinfo->m_tid, tinfo->m_comm.c_str());
-#endif
+		DBG_SINSP_INFO("tid collision for %" PRIu64 "(%s)",
+		               tinfo->m_tid,
+		               tinfo->m_comm.c_str());
 	}
 
 	if (!thread_added) {
@@ -1898,9 +1894,10 @@ void schedule_more_evts(sinsp* inspector, void* data, T* client, ppm_event_type 
 	ASSERT(client);
 	if(!client->get_capture_events().size())
 	{
-		g_logger.log(std::string("An event scheduled but no events available."
-					"All pending event requests for "
-					"[") + typeid(T).name() + "] are cancelled.", sinsp_logger::SEV_ERROR);
+		SINSP_STR_ERROR(
+			std::string("An event scheduled but no events available."
+			            "All pending event requests for "
+			            "[") + typeid(T).name() + "] are cancelled.");
 		state->m_new_group = false;
 		state->m_n_additional_events_to_add = 0;
 		inspector->remove_meta_event_callback();
@@ -2263,13 +2260,12 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 
 	if(fdi.m_type == SCAP_FD_UNKNOWN)
 	{
-		g_logger.log("Unknown fd fd=" + to_string(fd) +
-			     " domain=" + to_string(domain) +
-			     " type=" + to_string(type) +
-			     " protocol=" + to_string(protocol) +
-			     " pid=" + to_string(evt->m_tinfo->m_pid) +
-			     " comm=" + evt->m_tinfo->m_comm,
-			     sinsp_logger::SEV_DEBUG);
+		SINSP_STR_DEBUG("Unknown fd fd=" + to_string(fd) +
+		                " domain=" + to_string(domain) +
+		                " type=" + to_string(type) +
+		                " protocol=" + to_string(protocol) +
+		                " pid=" + to_string(evt->m_tinfo->m_pid) +
+		                " comm=" + evt->m_tinfo->m_comm);
 	}
 
 #ifndef INCLUDE_UNKNOWN_SOCKET_FDS
@@ -2329,15 +2325,14 @@ inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt* const evt)
 		                        ? PPM_AF_INET
 		                        : PPM_AF_INET6;
 
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-		                "Call to sendto() with fd=%d; missing socket() "
-		                "data. Adding socket %s/SOCK_DGRAM/IPPROTO_UDP "
-				"for command '%s', pid %d",
-		                fd,
-		                (domain == PPM_AF_INET)
-		                        ? "PPM_AF_INET" : "PPM_AF_INET6",
-			        evt->m_tinfo->get_comm().c_str(),
-			        evt->m_tinfo->m_pid);
+		SINSP_DEBUG("Call to sendto() with fd=%d; missing socket() "
+		            "data. Adding socket %s/SOCK_DGRAM/IPPROTO_UDP "
+		            "for command '%s', pid %d",
+		            fd,
+		            (domain == PPM_AF_INET) ? "PPM_AF_INET"
+		                                    : "PPM_AF_INET6",
+		            evt->m_tinfo->get_comm().c_str(),
+		            evt->m_tinfo->m_pid);
 
 		// Here we're assuming sendto() means SOCK_DGRAM/UDP, but it
 		// can be used with TCP.  We have no way to know for sure at
@@ -4510,7 +4505,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 	ASSERT(parinfo);
 	ASSERT(parinfo->m_len > 0);
 	std::string json(parinfo->m_val, parinfo->m_len);
-	g_logger.format(sinsp_logger::SEV_DEBUG, "Parsing Container JSON=%s", json.c_str());
+	SINSP_DEBUG("Parsing Container JSON=%s", json.c_str());
 	ASSERT(m_inspector);
 	Json::Value root;
 	if(Json::Reader().parse(json, root))
@@ -4665,11 +4660,11 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		evt->m_tinfo = evt->m_tinfo_ref.get();
 		m_inspector->m_container_manager.add_container(container_info, evt->get_thread_info(true));
 		/*
-		g_logger.log("Container\n-------\nID:" + container_info.m_id +
-					 "\nType: " + std::to_string(container_info.m_type) +
-					 "\nName: " + container_info.m_name +
-					 "\nImage: " + container_info.m_image +
-					 "\nMesos Task ID: " + container_info.m_mesos_task_id, sinsp_logger::SEV_DEBUG);
+		SINSP_STR_DEBUG("Container\n-------\nID:" + container_info.m_id +
+		                "\nType: " + std::to_string(container_info.m_type) +
+		                "\nName: " + container_info.m_name +
+		                "\nImage: " + container_info.m_image +
+		                "\nMesos Task ID: " + container_info.m_mesos_task_id);
 		*/
 	}
 	else
@@ -4729,15 +4724,16 @@ int sinsp_parser::get_k8s_version(const std::string& json)
 {
 	if(m_k8s_capture_version == k8s_state_t::CAPTURE_VERSION_NONE)
 	{
-		g_logger.log(json, sinsp_logger::SEV_DEBUG);
+		SINSP_STR_DEBUG(json);
 		Json::Value root;
 		if(Json::Reader().parse(json, root))
 		{
 			const Json::Value& items = root["items"]; // new
 			if(!items.isNull())
 			{
-				g_logger.log("K8s capture version " + std::to_string(k8s_state_t::CAPTURE_VERSION_2) + " detected.",
-							 sinsp_logger::SEV_DEBUG);
+				SINSP_STR_DEBUG("K8s capture version " +
+				                std::to_string(k8s_state_t::CAPTURE_VERSION_2) +
+				                " detected.");
 				m_k8s_capture_version = k8s_state_t::CAPTURE_VERSION_2;
 				return m_k8s_capture_version;
 			}
@@ -4745,8 +4741,9 @@ int sinsp_parser::get_k8s_version(const std::string& json)
 			const Json::Value& object = root["object"]; // old
 			if(!object.isNull())
 			{
-				g_logger.log("K8s capture version " + std::to_string(k8s_state_t::CAPTURE_VERSION_2) + " detected.",
-							 sinsp_logger::SEV_DEBUG);
+				SINSP_STR_DEBUG("K8s capture version " +
+				                std::to_string(k8s_state_t::CAPTURE_VERSION_2) +
+				                " detected.");
 				m_k8s_capture_version = k8s_state_t::CAPTURE_VERSION_1;
 				return m_k8s_capture_version;
 			}
@@ -4769,7 +4766,7 @@ void sinsp_parser::parse_k8s_evt(sinsp_evt *evt)
 	ASSERT(parinfo);
 	ASSERT(parinfo->m_len > 0);
 	std::string json(parinfo->m_val, parinfo->m_len);
-	//g_logger.log(json, sinsp_logger::SEV_DEBUG);
+	//SINSP_STR_DEBUG(json);
 	ASSERT(m_inspector);
 	if(!m_inspector)
 	{
@@ -4795,7 +4792,7 @@ void sinsp_parser::parse_mesos_evt(sinsp_evt *evt)
 	ASSERT(parinfo);
 	ASSERT(parinfo->m_len > 0);
 	std::string json(parinfo->m_val, parinfo->m_len);
-	//g_logger.log(json, sinsp_logger::SEV_DEBUG);
+	//SINSP_STR_DEBUG(json);
 	ASSERT(m_inspector);
 	ASSERT(m_inspector->m_mesos_client);
 	m_inspector->m_mesos_client->simulate_event(json);
