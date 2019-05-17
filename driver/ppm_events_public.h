@@ -163,6 +163,8 @@ or GPL2.txt for full copies of the license.
 #define PPM_CL_CLONE_STOPPED (1 << 26)
 #define PPM_CL_CLONE_VFORK (1 << 27)
 #define PPM_CL_CLONE_NEWCGROUP (1 << 28)
+#define PPM_CL_CHILD_IN_PIDNS (1<<29)			/* true if the thread created by clone() is *not*
+									in the init pid namespace */
 
 /*
  * Futex Operations

@@ -983,7 +983,8 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		ASSERT(false);
 	}
 
-	if(tid != vtid)
+	// the flag check should always suffice but leave the tid/vtid check for older driver versions
+	if(flags & PPM_CL_CHILD_IN_PIDNS || tid != vtid)
 	{
 		in_container = true;
 	}
