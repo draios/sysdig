@@ -1896,6 +1896,8 @@ FILLER(proc_startupdate_3, true)
 		kgid_t egid;
 		pid_t vtid;
 		pid_t vpid;
+		struct pid_namespace *pidns = bpf_task_active_pid_ns(task);
+		int pidns_level = _READ(pidns->level);
 
 		/*
 		 * flags
@@ -1906,6 +1908,18 @@ FILLER(proc_startupdate_3, true)
 			flags = 0;
 
 		flags = clone_flags_to_scap(flags);
+
+		if(pidns_level != 0) {
+			flags |= PPM_CL_CHILD_IN_PIDNS;
+		} else {
+			struct nsproxy *nsproxy = _READ(task->nsproxy);
+			if(nsproxy) {
+				struct pid_namespace *pid_ns_for_children = _READ(nsproxy->pid_ns_for_children);
+				if(pid_ns_for_children != pidns) {
+					flags |= PPM_CL_CHILD_IN_PIDNS;
+				}
+			}
+		}
 
 		res = bpf_val_to_ring_type(data, flags, PT_FLAGS32);
 		if (res != PPM_SUCCESS)
