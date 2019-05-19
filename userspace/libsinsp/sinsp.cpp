@@ -113,6 +113,8 @@ sinsp::sinsp() :
 	m_hostname_and_port_resolution_enabled = false;
 	m_output_time_flag = 'h';
 	m_max_evt_output_len = 0;
+	m_compress_container_json = true;
+	m_trim_container_json = true;
 	m_filesize = -1;
 	m_track_tracers_state = false;
 	m_import_users = true;
@@ -1920,6 +1922,26 @@ void sinsp::set_log_stderr()
 void sinsp::set_min_log_severity(sinsp_logger::severity sev)
 {
 	g_logger.set_severity(sev);
+}
+
+void sinsp::set_compress_container_json(bool enabled)
+{
+	m_compress_container_json = enabled;
+}
+
+bool sinsp::get_compress_container_json()
+{
+	return m_compress_container_json;
+}
+
+void sinsp::set_trim_container_json(bool enabled)
+{
+	m_trim_container_json = enabled;
+}
+
+bool sinsp::get_trim_container_json()
+{
+	return m_trim_container_json;
 }
 
 sinsp_evttables* sinsp::get_event_info_tables()

@@ -73,6 +73,20 @@ public:
 	void set_cri_timeout(int64_t timeout_ms);
 	sinsp* get_inspector() { return m_inspector; }
 private:
+
+	size_t container_json_evt_len(size_t size);
+	bool serialize_json_fits_in_event(size_t size);
+
+	void serialize_container_json(const Json::Value &obj, std::string &json);
+
+	enum trim_level {
+		LEVEL_SOME_LABELS = 0,
+		LEVEL_ALL_LABELS,
+		LEVEL_MIN_INFO,
+		LEVEL_END
+	};
+
+	void trim_container_json(Json::Value &obj, trim_level level);
 	string container_to_json(const sinsp_container_info& container_info);
 	bool container_to_sinsp_event(const string& json, sinsp_evt* evt, shared_ptr<sinsp_threadinfo> tinfo);
 	string get_docker_env(const Json::Value &env_vars, const string &mti);

@@ -417,6 +417,15 @@ public:
 	*/
 	void set_min_log_severity(sinsp_logger::severity sev);
 
+	// Whether to compress container info in CONTAINER_JSON events
+	void set_compress_container_json(bool enabled);
+	bool get_compress_container_json();
+
+	// Whether to try to drop properties from container info when
+	// creating CONTAINER_JSON events
+	void set_trim_container_json(bool enabled);
+	bool get_trim_container_json();
+
 	/*!
 	  \brief Start writing the captured events to file.
 
@@ -1030,6 +1039,8 @@ private:
 	char m_output_time_flag;
 	uint32_t m_max_evt_output_len;
 	bool m_compress;
+	bool m_compress_container_json;
+	bool m_trim_container_json;
 	sinsp_evt m_evt;
 	std::string m_lasterr;
 	int64_t m_tid_to_remove;

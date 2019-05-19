@@ -17,6 +17,8 @@ limitations under the License.
 
 */
 
+#include "zlib.h"
+
 #include "container_engine/cri.h"
 #include "container_engine/docker.h"
 #include "container_engine/rkt.h"
@@ -136,9 +138,136 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	return matches;
 }
 
+size_t sinsp_container_manager::container_json_evt_len(size_t json_size)
+{
+	return sizeof(scap_evt) +  sizeof(uint16_t) + json_size + 1;
+}
+
+bool sinsp_container_manager::serialize_json_fits_in_event(size_t size)
+{
+	return (container_json_evt_len(size) > SP_EVT_BUF_SIZE);
+}
+
+void sinsp_container_manager::serialize_container_json(const Json::Value &obj, std::string &json)
+{
+	json = Json::FastWriter().write(obj);
+
+	if(m_inspector->get_compress_container_json())
+	{
+		uLong clen = compressBound(json.size());
+		uLong dlen;
+
+		Bytef *dest = new Bytef[clen];
+
+		int res = compress2(dest, &dlen, (const Bytef *) json.c_str(), json.size(), Z_DEFAULT_COMPRESSION);
+
+		if(res != Z_OK)
+		{
+			g_logger.format(sinsp_logger::SEV_WARNING,
+					"serialize_container_json: Could not compress buffer (error %d)", res);
+		}
+		else
+		{
+			json.assign((char *) dest, dlen);
+		}
+
+		delete(dest);
+	}
+}
+
+void sinsp_container_manager::trim_container_json(Json::Value &obj, trim_level level)
+{
+	switch(level)
+	{
+	case LEVEL_SOME_LABELS:
+	{
+		// Try dropping the following labels:
+
+		// - "url"
+		// - "summary"
+		// - "vcs-type"
+		// - "vcs-ref"
+		// - "description"
+		// - "io.k8s.description"
+
+		if(obj.isMember("labels"))
+		{
+			Json::Value &labels = obj["labels"];
+
+			labels.removeMember("url");
+			labels.removeMember("summary");
+			labels.removeMember("vcs-type");
+			labels.removeMember("vcs-ref");
+			labels.removeMember("description");
+			labels.removeMember("io.k8s.description");
+		}
+
+		// Any Mounts with a Source prefix of
+		// "/var/lib/origin/openshift..."
+		if(obj.isMember("Mounts"))
+		{
+			Json::Value &oldmounts = obj["Mounts"];
+			Json::Value newmounts = Json::Value(Json::arrayValue);
+
+			if(oldmounts.isArray())
+			{
+				for(uint32_t i=0; i<oldmounts.size(); i++)
+				{
+					const Json::Value &mount = oldmounts[i];
+
+					if(mount.isMember("Source") &&
+					   mount["Source"].isConvertibleTo(Json::stringValue) &&
+					   mount["Source"].asString().find("/var/lib/origin/openshift") != 0)
+					{
+						newmounts.append(mount);
+					}
+				}
+
+				obj["Mounts"] = newmounts;
+			}
+		}
+
+		break;
+	}
+	case LEVEL_ALL_LABELS:
+	{
+		// Remove all labels
+		obj.removeMember("labels");
+
+		break;
+	}
+
+	case LEVEL_MIN_INFO:
+	{
+		// only keep name, type, "image*", id, Healthcheck
+		Json::Value newobj;
+
+		std::list<const char *> props = {"name", "type", "imagetag", "imagerepo", "imageid", "imagedigest", "image", "id", "Healthcheck"};
+
+		for(auto &prop : props)
+		{
+			if(obj.isMember(prop))
+			{
+				newobj[prop] = obj[prop];
+			}
+		}
+
+		obj = newobj;
+
+		break;
+	}
+
+	case LEVEL_END:
+	default:
+		break;
+	}
+}
+
 string sinsp_container_manager::container_to_json(const sinsp_container_info& container_info)
 {
 	Json::Value obj;
+	std::string json;
+
 	Json::Value& container = obj["container"];
 	container["id"] = container_info.m_id;
 	container["type"] = container_info.m_type;
@@ -226,16 +355,37 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	}
 
 	container["metadata_deadline"] = (Json::Value::UInt64) container_info.m_metadata_deadline;
-	return Json::FastWriter().write(obj);
+
+	serialize_container_json(obj, json);
+
+	// Ensure that the json representation will fit in a ~4k event.
+	if(m_inspector->get_trim_container_json())
+	{
+		for(int level = LEVEL_SOME_LABELS;
+		    (level != LEVEL_END &&
+		     !serialize_json_fits_in_event(json.length()));
+		    level++)
+		{
+			trim_container_json(obj, (trim_level) level);
+			serialize_container_json(obj, json);
+		}
+
+		// There's a very very rare possibility that even
+		// after applying all levels, the resulting event is
+		// still too large. That will be noted in
+		// container_to_sinsp_event.
+	}
+
+	return json;
 }
 
 bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp_evt* evt, shared_ptr<sinsp_threadinfo> tinfo)
 {
 	// TODO: variable event length
 	size_t evt_len = SP_EVT_BUF_SIZE;
-	size_t totlen = sizeof(scap_evt) +  sizeof(uint16_t) + json.length() + 1;
+	size_t totlen = container_json_evt_len(json.length());
 
-	if(totlen > evt_len)
+	if(!serialize_json_fits_in_event(json.length()))
 	{
 		g_logger.format(sinsp_logger::SEV_ERROR,
 				"container_to_sinsp_event: event len %d > max len %d w/ json \"%s\", returning false",
