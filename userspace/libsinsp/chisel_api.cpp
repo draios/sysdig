@@ -919,7 +919,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 		//
 		lua_pushstring(ls, "fdtable");
 		lua_newtable(ls);
-		
+
 		if(include_fds)
 		{
 			for(fdit = fdtable->m_table.begin(); fdit != fdtable->m_table.end(); ++fdit)
@@ -1196,6 +1196,10 @@ int lua_cbacks::get_container_table(lua_State *ls)
 		else if(it->second.m_type == CT_CRIO)
 		{
 			lua_pushstring(ls, "cri-o");
+		}
+		else if(it->second.m_type == CT_BPM)
+		{
+			lua_pushstring(ls, "bpm");
 		}
 		else
 		{

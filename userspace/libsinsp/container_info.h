@@ -41,6 +41,7 @@ enum sinsp_container_type
 	CT_CRI = 6,
 	CT_CONTAINERD = 7,
 	CT_CRIO = 8,
+	CT_BPM = 9,
 };
 
 // Docker and CRI-compatible runtimes are very similar
