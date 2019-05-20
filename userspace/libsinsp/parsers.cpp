@@ -4505,10 +4505,24 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 	ASSERT(parinfo);
 	ASSERT(parinfo->m_len > 0);
 	std::string json(parinfo->m_val, parinfo->m_len);
-	SINSP_DEBUG("Parsing Container JSON=%s", json.c_str());
 	ASSERT(m_inspector);
 	Json::Value root;
-	if(Json::Reader().parse(json, root))
+	bool ret = false;
+	std::string action = "parsing";
+
+	// If compression is not enabled, don't ever try to uncompress, only parse
+	if(m_inspector->get_compress_container_json())
+	{
+		action="decompressing and parsing";
+		ret = sinsp_container_manager::deserialize_container_json(json, root);
+	}
+	else
+	{
+		SINSP_DEBUG("Parsing Container JSON=%s", json.c_str());
+		ret = Json::Reader().parse(json, root);
+	}
+
+	if(ret)
 	{
 		sinsp_container_info container_info;
 		const Json::Value& container = root["container"];
@@ -4671,7 +4685,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 	{
 		std::string errstr;
 		errstr = Json::Reader().getFormattedErrorMessages();
-		throw sinsp_exception("Invalid JSON encountered while parsing container info: " + json + "error=" + errstr);
+		throw sinsp_exception("Invalid content encountered while " + action + " container info: " + json + "error=" + errstr);
 	}
 }
 

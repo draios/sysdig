@@ -72,7 +72,19 @@ public:
 	void set_cri_socket_path(const std::string& path);
 	void set_cri_timeout(int64_t timeout_ms);
 	sinsp* get_inspector() { return m_inspector; }
+
+	static bool deserialize_container_json(const std::string &json, Json::Value &obj);
+
+	static uint32_t s_compress_json_magic;
+
 private:
+
+	// In cases where the container json is compressed, this
+	// struct holds a magic number + the uncompressed length.
+	struct compress_json_hdr {
+		uint32_t m_magic;
+		uint32_t m_uncompress_len;
+	};
 
 	size_t container_json_evt_len(size_t size);
 	bool serialize_json_fits_in_event(size_t size);

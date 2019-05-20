@@ -145,21 +145,33 @@ size_t sinsp_container_manager::container_json_evt_len(size_t json_size)
 
 bool sinsp_container_manager::serialize_json_fits_in_event(size_t size)
 {
-	return (container_json_evt_len(size) > SP_EVT_BUF_SIZE);
+	return (container_json_evt_len(size) <= SP_EVT_BUF_SIZE);
 }
 
 void sinsp_container_manager::serialize_container_json(const Json::Value &obj, std::string &json)
 {
 	json = Json::FastWriter().write(obj);
 
-	if(m_inspector->get_compress_container_json())
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"serialize_container_json: serialized json size %d", json.length());
+
+	// Only compress if enabled and if the data wouldn't fit in an event
+	if(m_inspector->get_compress_container_json() &&
+	   !serialize_json_fits_in_event(json.length()))
 	{
-		uLong clen = compressBound(json.size());
+		compress_json_hdr hdr;
+		hdr.m_magic = htonl(sinsp_container_manager::s_compress_json_magic);
+		hdr.m_uncompress_len = htonl(json.length());
+
+		uLong clen = compressBound(json.length());
 		uLong dlen;
+
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"serialize_container_json: compressing to size %u", clen);
 
 		Bytef *dest = new Bytef[clen];
 
-		int res = compress2(dest, &dlen, (const Bytef *) json.c_str(), json.size(), Z_DEFAULT_COMPRESSION);
+		int res = compress2(dest, &dlen, (const Bytef *) json.data(), json.size(), Z_DEFAULT_COMPRESSION);
 
 		if(res != Z_OK)
 		{
@@ -168,15 +180,62 @@ void sinsp_container_manager::serialize_container_json(const Json::Value &obj, s
 		}
 		else
 		{
-			json.assign((char *) dest, dlen);
+			json.assign((char *) &hdr, sizeof(hdr));
+			json.append((char *) dest, dlen);
 		}
 
 		delete(dest);
 	}
 }
 
+// If compressed, decompress the provided string
+uint32_t sinsp_container_manager::s_compress_json_magic = 0xfeadaceb;
+
+bool sinsp_container_manager::deserialize_container_json(const std::string &json, Json::Value &obj)
+{
+	// Note: decompression isn't controlled by the flag
+	if(json.length() <= sizeof(compress_json_hdr))
+	{
+		return Json::Reader().parse(json, obj);
+	}
+
+	// See if the buffer is compressed
+	struct compress_json_hdr *hdr = (struct compress_json_hdr *) json.data();
+
+	if(ntohl(hdr->m_magic) != s_compress_json_magic)
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"deserialize_container_json: Container json buffer \"%s\" not compressed, simply parsing", json.c_str());
+		return Json::Reader().parse(json, obj);
+	}
+
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"deserialize_container_json: Container json buffer compressed, decompressing first");
+
+	size_t buf_len = ntohl(hdr->m_uncompress_len);
+	char *buf = new char[buf_len];
+
+	if(uncompress((Bytef *) buf,
+		       &buf_len,
+		       (Bytef *) (json.data() + sizeof(struct compress_json_hdr)),
+		       json.length() - sizeof(compress_json_hdr)) != Z_OK)
+	{
+		return false;
+	}
+
+	bool ret = Json::Reader().parse(buf, buf + buf_len, obj);
+
+	delete buf;
+	return ret;
+}
+
 void sinsp_container_manager::trim_container_json(Json::Value &obj, trim_level level)
 {
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"trim_container_json: trimming at level %d",
+			(int) level);
+
+	Json::Value &cobj = obj["container"];
 	switch(level)
 	{
 	case LEVEL_SOME_LABELS:
@@ -190,9 +249,9 @@ void sinsp_container_manager::trim_container_json(Json::Value &obj, trim_level l
 		// - "description"
 		// - "io.k8s.description"
 
-		if(obj.isMember("labels"))
+		if(cobj.isMember("labels"))
 		{
-			Json::Value &labels = obj["labels"];
+			Json::Value &labels = cobj["labels"];
 
 			labels.removeMember("url");
 			labels.removeMember("summary");
@@ -204,9 +263,9 @@ void sinsp_container_manager::trim_container_json(Json::Value &obj, trim_level l
 
 		// Any Mounts with a Source prefix of
 		// "/var/lib/origin/openshift..."
-		if(obj.isMember("Mounts"))
+		if(cobj.isMember("Mounts"))
 		{
-			Json::Value &oldmounts = obj["Mounts"];
+			Json::Value &oldmounts = cobj["Mounts"];
 			Json::Value newmounts = Json::Value(Json::arrayValue);
 
 			if(oldmounts.isArray())
@@ -223,7 +282,7 @@ void sinsp_container_manager::trim_container_json(Json::Value &obj, trim_level l
 					}
 				}
 
-				obj["Mounts"] = newmounts;
+				cobj["Mounts"] = newmounts;
 			}
 		}
 
@@ -232,7 +291,7 @@ void sinsp_container_manager::trim_container_json(Json::Value &obj, trim_level l
 	case LEVEL_ALL_LABELS:
 	{
 		// Remove all labels
-		obj.removeMember("labels");
+		cobj.removeMember("labels");
 
 		break;
 	}
@@ -246,13 +305,13 @@ void sinsp_container_manager::trim_container_json(Json::Value &obj, trim_level l
 
 		for(auto &prop : props)
 		{
-			if(obj.isMember(prop))
+			if(cobj.isMember(prop))
 			{
 				newobj[prop] = obj[prop];
 			}
 		}
 
-		obj = newobj;
+		obj["container"] = newobj;
 
 		break;
 	}
