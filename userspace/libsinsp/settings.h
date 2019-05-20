@@ -28,7 +28,7 @@ limitations under the License.
 // Memory storage size for an entry in the event storage LIFO.
 // Events bigger than SP_EVT_BUF_SIZE won't be be stored in the LIFO.
 //
-#define SP_EVT_BUF_SIZE 4096
+#define SP_EVT_BUF_SIZE 40960
 
 //
 // If defined, the filtering system is compiled
