@@ -515,7 +515,7 @@ if(NOT WIN32 AND NOT APPLE)
 		BUILD_BYPRODUCTS ${GRPC_LIB} ${GRPCPP_LIB}
 		# TODO s390x support
 		# TODO what if using system zlib
-		PATCH_COMMAND rm -rf third_party/zlib && ln -s ${ZLIB_SRC} third_party/zlib && wget https://download.sysdig.com/dependencies/grpc-1.1.4-Makefile.patch && patch < grpc-1.1.4-Makefile.patch
+		PATCH_COMMAND rm -rf third_party/zlib && ln -s ${ZLIB_SRC} third_party/zlib && wget https://download.sysdig.com/dependencies/grpc-1.8.1-Makefile.patch && patch < grpc-1.8.1-Makefile.patch
 		INSTALL_COMMAND "")
 	endif()
 endif()
