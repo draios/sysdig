@@ -788,6 +788,22 @@ public:
 	*/
 	double get_read_progress();
 
+	/*!
+	  \brief Make the amount of data gathered for a syscall to be
+	  determined by the number of parameters.
+	*/
+	virtual int /*SCAP_X*/ dynamic_snaplen(bool enable)
+	{
+		if(enable)
+		{
+			return scap_enable_dynamic_snaplen(m_h);
+		}
+		else
+		{
+			return scap_disable_dynamic_snaplen(m_h);
+		}
+	}
+
 #ifndef CYGWING_AGENT
 	void init_k8s_ssl(const std::string *ssl_cert);
 	void init_k8s_client(std::string* api_server, std::string* ssl_cert, bool verbose = false);
@@ -889,6 +905,10 @@ public:
 
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
+	void set_mode(scap_mode_t value)
+	{
+		m_mode = value;
+	}
 
 VISIBILITY_PRIVATE
 
@@ -995,7 +1015,7 @@ private:
 	uint32_t m_nevts;
 	int64_t m_filesize;
 
-	scap_mode_t m_mode;
+	scap_mode_t m_mode = SCAP_MODE_LIVE;
 
 	// If non-zero, reading from this fd and m_input_filename contains "fd
 	// <m_input_fd>". Otherwise, reading from m_input_filename.
@@ -1233,6 +1253,7 @@ public:
 	friend class sinsp_baseliner;
 	friend class sinsp_memory_dumper;
 	friend class sinsp_network_interfaces;
+	friend class test_helper;
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 

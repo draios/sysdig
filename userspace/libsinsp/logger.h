@@ -114,6 +114,14 @@ public:
 	severity get_severity() const;
 
 	/**
+	 * Returns true if logs generated at the given severity will be written
+	 * to the logging sink, false otherwise.
+	 *
+	 * Note that this is intentionally inline.
+	 */
+	bool is_enabled(const severity sev) const { return (sev <= m_sev); }
+
+	/**
 	 * Emit the given msg to the configured log sink if the given sev
 	 * is greater than or equal to the minimum configured logging severity.
 	 */
@@ -159,3 +167,79 @@ private:
 using sinsp_logger_callback = sinsp_logger::callback_t;
 
 extern sinsp_logger g_logger;
+
+#define SINSP_LOG_(severity, fmt, ...)                                         \
+	do                                                                     \
+	{                                                                      \
+		if(g_logger.is_enabled(severity))                              \
+		{                                                              \
+			g_logger.format((severity), ("" fmt), ##__VA_ARGS__);  \
+		}                                                              \
+	}                                                                      \
+	while(false)
+
+#define SINSP_LOG_STR_(severity, msg)                                          \
+	do                                                                     \
+	{                                                                      \
+		if(g_logger.is_enabled(severity))                              \
+		{                                                              \
+			g_logger.log((msg), (severity));                       \
+		}                                                              \
+	}                                                                      \
+	while(false)
+
+#define SINSP_FATAL(...)    SINSP_LOG_(sinsp_logger::SEV_FATAL,    ##__VA_ARGS__)
+#define SINSP_CRITICAL(...) SINSP_LOG_(sinsp_logger::SEV_CRITICAL, ##__VA_ARGS__)
+#define SINSP_ERROR(...)    SINSP_LOG_(sinsp_logger::SEV_ERROR,    ##__VA_ARGS__)
+#define SINSP_WARNING(...)  SINSP_LOG_(sinsp_logger::SEV_WARNING,  ##__VA_ARGS__)
+#define SINSP_NOTICE(...)   SINSP_LOG_(sinsp_logger::SEV_NOTICE,   ##__VA_ARGS__)
+#define SINSP_INFO(...)     SINSP_LOG_(sinsp_logger::SEV_INFO,     ##__VA_ARGS__)
+#define SINSP_DEBUG(...)    SINSP_LOG_(sinsp_logger::SEV_DEBUG,    ##__VA_ARGS__)
+#define SINSP_TRACE(...)    SINSP_LOG_(sinsp_logger::SEV_TRACE,    ##__VA_ARGS__)
+
+#define SINSP_STR_FATAL(str)     SINSP_LOG_STR_(sinsp_logger::SEV_FATAL,   (str))
+#define SINSP_STR_CRITICAL(str)  SINSP_LOG_STR_(sinsp_logger::SEV_CRITICAL,(str))
+#define SINSP_STR_ERROR(str)     SINSP_LOG_STR_(sinsp_logger::SEV_ERROR,   (str))
+#define SINSP_STR_WARNING(str)   SINSP_LOG_STR_(sinsp_logger::SEV_WARNING, (str))
+#define SINSP_STR_NOTICE(str)    SINSP_LOG_STR_(sinsp_logger::SEV_NOTICE,  (str))
+#define SINSP_STR_INFO(str)      SINSP_LOG_STR_(sinsp_logger::SEV_INFO,    (str))
+#define SINSP_STR_DEBUG(str)     SINSP_LOG_STR_(sinsp_logger::SEV_DEBUG,   (str))
+#define SINSP_STR_TRACE(str)     SINSP_LOG_STR_(sinsp_logger::SEV_TRACE,   (str))
+
+#if _DEBUG
+#    define DBG_SINSP_FATAL(...)    SINSP_FATAL(   __VA_ARGS__)
+#    define DBG_SINSP_CRITICAL(...) SINSP_CRITICAL(__VA_ARGS__)
+#    define DBG_SINSP_ERROR(...)    SINSP_ERROR(   __VA_ARGS__)
+#    define DBG_SINSP_WARNING(...)  SINSP_WARNING( __VA_ARGS__)
+#    define DBG_SINSP_NOTICE(...)   SINSP_NOTICE(  __VA_ARGS__)
+#    define DBG_SINSP_INFO(...)     SINSP_INFO(    __VA_ARGS__)
+#    define DBG_SINSP_DEBUG(...)    SINSP_DEBUG(   __VA_ARGS__)
+#    define DBG_SINSP_TRACE(...)    SINSP_TRACE(   __VA_ARGS__)
+
+#    define DBG_SINSP_STR_FATAL(str)     SINSP_STR_FATAL(str)
+#    define DBG_SINSP_STR_CRITICAL(str)  SINSP_STR_CRITICAL(str)
+#    define DBG_SINSP_STR_ERROR(str)     SINSP_STR_ERROR(str)
+#    define DBG_SINSP_STR_WARNING(str)   SINSP_STR_WARNING(str)
+#    define DBG_SINSP_STR_NOTICE(str)    SINSP_STR_NOTICE(str)
+#    define DBG_SINSP_STR_INFO(str)      SINSP_STR_INFO(str)
+#    define DBG_SINSP_STR_DEBUG(str)     SINSP_STR_DEBUG(str)
+#    define DBG_SINSP_STR_TRACE(str)     SINSP_STR_TRACE(str)
+#else
+#    define DBG_SINSP_FATAL(fmt, ...)
+#    define DBG_SINSP_CRITICAL(fmt, ...)
+#    define DBG_SINSP_ERROR(fmt, ...)
+#    define DBG_SINSP_WARNING(fmt, ...)
+#    define DBG_SINSP_NOTICE(fmt, ...)
+#    define DBG_SINSP_INFO(fmt, ...)
+#    define DBG_SINSP_DEBUG(fmt, ...)
+#    define DBG_SINSP_TRACE(fmt, ...) 
+
+#    define DBG_SINSP_STR_FATAL(str)
+#    define DBG_SINSP_STR_CRITICAL(str)
+#    define DBG_SINSP_STR_ERROR(str)
+#    define DBG_SINSP_STR_WARNING(str)
+#    define DBG_SINSP_STR_NOTICE(str)
+#    define DBG_SINSP_STR_INFO(str)
+#    define DBG_SINSP_STR_DEBUG(str)
+#    define DBG_SINSP_STR_TRACE(str)
+#endif

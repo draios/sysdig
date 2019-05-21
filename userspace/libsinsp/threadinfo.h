@@ -120,7 +120,7 @@ public:
 	  \brief Get the main thread of the process containing this thread.
 	*/
 #ifndef _WIN32
-	inline sinsp_threadinfo* get_main_thread()
+	inline sinsp_threadinfo* get_main_thread() 
 	{
 		auto main_thread = m_main_thread.lock();
 		if(!main_thread)
@@ -313,6 +313,21 @@ public:
 	// Global state
 	//
 	sinsp *m_inspector;
+
+public: // types required for use in sets
+	struct hasher {
+		size_t operator()(sinsp_threadinfo* tinfo) const
+		{
+			return tinfo->get_main_thread()->m_program_hash;
+		}
+	};
+
+	struct comparer {
+		size_t operator()(sinsp_threadinfo* lhs, sinsp_threadinfo* rhs) const
+		{
+			return lhs->get_main_thread()->m_program_hash == rhs->get_main_thread()->m_program_hash;
+		}
+	};
 
 VISIBILITY_PRIVATE
 	void init();
