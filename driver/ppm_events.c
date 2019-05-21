@@ -249,14 +249,20 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 			if (err == 0) {
 				if(args->event_type == PPME_SOCKET_SENDTO_X)
 				{
+					unsigned long syscall_args[6] = {};
 					unsigned long val;
 					struct sockaddr __user * usrsockaddr;
 					/*
 					 * Get the address
 					 */
-					if (!args->is_socketcall)
-						syscall_get_arguments(current, args->regs, 4, 1, &val);
-					else
+					if (!args->is_socketcall) {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
+						syscall_get_arguments(current, args->regs, 0, 6, syscall_args);
+#else
+						syscall_get_arguments(current, args->regs, syscall_args);
+#endif
+						val = syscall_args[4];
+					} else
 						val = args->socketcall_args[4];
 
 					usrsockaddr = (struct sockaddr __user *)val;
@@ -270,9 +276,14 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 						/*
 						 * Get the address len
 						 */
-						if (!args->is_socketcall)
-							syscall_get_arguments(current, args->regs, 5, 1, &val);
-						else
+						if (!args->is_socketcall) {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
+							syscall_get_arguments(current, args->regs, 0, 6, syscall_args);
+#else
+							syscall_get_arguments(current, args->regs, syscall_args);
+#endif
+							val = syscall_args[5];
+						} else
 							val = args->socketcall_args[5];
 
 						if (val != 0) {
@@ -288,6 +299,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 						}
 					}
 				} else if (args->event_type == PPME_SOCKET_SENDMSG_X) {
+					unsigned long syscall_args[6] = {};
 					unsigned long val;
 					struct sockaddr __user * usrsockaddr;
 					int addrlen;
@@ -300,9 +312,14 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 					struct msghdr mh;
 #endif
 
-					if (!args->is_socketcall)
-						syscall_get_arguments(current, args->regs, 1, 1, &val);
-					else
+					if (!args->is_socketcall) {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
+						syscall_get_arguments(current, args->regs, 0, 6, syscall_args);
+#else
+						syscall_get_arguments(current, args->regs, syscall_args);
+#endif
+						val = syscall_args[1];
+					} else
 						val = args->socketcall_args[1];
 
 #ifdef CONFIG_COMPAT
@@ -1113,6 +1130,7 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 	unsigned long bufsize;
 	char *targetbuf = args->str_storage;
 	u32 targetbuflen = STR_STORAGE_SIZE;
+	unsigned long syscall_args[6] = {};
 	unsigned long val;
 	u32 notcopied_len;
 	size_t tocopy_len;
@@ -1158,9 +1176,14 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 			/*
 			 * Retrieve the FD. It will be used for dynamic snaplen calculation.
 			 */
-			if (!args->is_socketcall)
-				syscall_get_arguments(current, args->regs, 0, 1, &val);
-			else
+			if (!args->is_socketcall) {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
+				syscall_get_arguments(current, args->regs, 0, 6, syscall_args);
+#else
+				syscall_get_arguments(current, args->regs, syscall_args);
+#endif
+				val = syscall_args[0];
+			} else
 				val = args->socketcall_args[0];
 			args->fd = (int)val;
 
@@ -1244,6 +1267,7 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 	unsigned long bufsize;
 	char *targetbuf = args->str_storage;
 	u32 targetbuflen = STR_STORAGE_SIZE;
+	unsigned long syscall_args[6] = {};
 	unsigned long val;
 	u32 notcopied_len;
 	compat_size_t tocopy_len;
@@ -1289,9 +1313,14 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 			/*
 			 * Retrieve the FD. It will be used for dynamic snaplen calculation.
 			 */
-			if (!args->is_socketcall)
-				syscall_get_arguments(current, args->regs, 0, 1, &val);
-			else
+			if (!args->is_socketcall) {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
+				syscall_get_arguments(current, args->regs, 0, 6, syscall_args);
+#else
+				syscall_get_arguments(current, args->regs, syscall_args);
+#endif
+				val = syscall_args[0];
+			} else
 				val = args->socketcall_args[0];
 			args->fd = (int)val;
 
@@ -1375,6 +1404,7 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 int f_sys_autofill(struct event_filler_arguments *args)
 {
 	int res;
+	unsigned long syscall_args[6] = {};
 	unsigned long val;
 	u32 j;
 	int64_t retval;
@@ -1393,11 +1423,12 @@ int f_sys_autofill(struct event_filler_arguments *args)
 				/*
 				 * Regular argument
 				 */
-				syscall_get_arguments(current,
-						args->regs,
-						evinfo->autofill_args[j].id,
-						1,
-						&val);
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
+				syscall_get_arguments(current, args->regs, 0, 6, syscall_args);
+#else
+				syscall_get_arguments(current, args->regs, syscall_args);
+#endif
+				val = syscall_args[evinfo->autofill_args[j].id];
 			}
 
 			res = val_to_ring(args, val, 0, true, 0);
