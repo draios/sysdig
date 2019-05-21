@@ -1284,7 +1284,7 @@ static const unsigned char compat_nas[21] = {
 #ifdef _HAS_SOCKETCALL
 static enum ppm_event_type parse_socketcall(struct event_filler_arguments *filler_args, struct pt_regs *regs)
 {
-	unsigned long __user args[5] = {};
+	unsigned long __user args[6] = {};
 	unsigned long __user *scargs;
 	int socketcall_id;
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
