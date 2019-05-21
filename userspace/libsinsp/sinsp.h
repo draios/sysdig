@@ -1185,16 +1185,6 @@ public:
 	std::vector<sinsp_protodecoder*> m_decoders_reset_list;
 
 	//
-	// Containers meta event management
-	//
-	sinsp_evt m_meta_evt; // XXX this should go away
-	char* m_meta_evt_buf; // XXX this should go away
-	bool m_meta_evt_pending; // XXX this should go away
-
-	int32_t m_meta_skipped_evt_res;
-	sinsp_evt* m_meta_skipped_evt;
-
-	//
 	// meta event management for other sources like k8s, mesos.
 	//
 	sinsp_evt* m_metaevt;
