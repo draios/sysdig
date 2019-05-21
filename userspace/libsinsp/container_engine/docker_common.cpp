@@ -319,11 +319,17 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 			Json::Value img_root;
 			if(reader.parse(img_json, img_root))
 			{
+			    string prevdigest = "";
+			    bool foundsingledigest = true;
 				for(const auto& rdig : img_root["RepoDigests"])
 				{
 					if(rdig.isString())
 					{
 						string repodigest = rdig.asString();
+						string currentdigest = repodigest.substr(repodigest.find("@")+1);
+						if(prevdigest != "" && (currentdigest != prevdigest)) {
+						    foundsingledigest = false;
+						}
 						if(container->m_imagerepo.empty())
 						{
 							container->m_imagerepo = repodigest.substr(0, repodigest.find("@"));
@@ -332,6 +338,9 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 						{
 							container->m_imagedigest = repodigest.substr(repodigest.find("@")+1);
 							break;
+						}
+						if(prevdigest == "") {
+						    prevdigest = currentdigest;
 						}
 					}
 				}
@@ -350,6 +359,14 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 							break;
 						}
 					}
+				}
+				// fix image digest for locally tagged images or multiple repo digests
+				if(container->m_imagedigest.empty()) {
+				    if(img_root["RepoDigests"].size() == 1) {
+				        container->m_imagedigest = prevdigest.substr(prevdigest.find("@")+1);
+				    } else if(foundsingledigest && img_root["RepoDigests"].size() > 1) {
+				        container->m_imagedigest = prevdigest.substr(prevdigest.find("@")+1);
+				    }
 				}
 			}
 			else
