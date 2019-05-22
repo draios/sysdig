@@ -930,7 +930,10 @@ void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
 				if(!m_parent_loop_detected)
 				{
 					g_logger.log(string("Loop in parent thread state detected for pid ") +
-						     std::to_string(m_pid), sinsp_logger::SEV_WARNING);
+						     std::to_string(m_pid) +
+						     ". stopped at tid= " + std::to_string(slow->m_tid) +
+						     " ptid=" + std::to_string(slow->m_ptid),
+						     sinsp_logger::SEV_WARNING);
 					m_parent_loop_detected = true;
 				}
 				return;
