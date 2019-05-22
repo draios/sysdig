@@ -68,6 +68,18 @@ static inline bool in_port_range(uint16_t port, uint16_t min, uint16_t max)
 	return port >= min && port <= max;
 }
 
+static inline void get_syscall_args(struct event_filler_arguments *args, unsigned long **syscall_args)
+{
+	if(args->is_socketcall)
+	{
+		*syscall_args = args->socketcall_args;
+	}
+	else
+	{
+		ppm_syscall_get_arguments(current, args->regs, *syscall_args);
+	}
+}
+
 /*
  * Globals
  */
@@ -250,17 +262,15 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 				if(args->event_type == PPME_SOCKET_SENDTO_X)
 				{
 					unsigned long syscall_args[6] = {};
+					unsigned long *actual_args = syscall_args;
 					unsigned long val;
 					struct sockaddr __user * usrsockaddr;
+
 					/*
 					 * Get the address
 					 */
-					if (!args->is_socketcall) {
-						ppm_syscall_get_arguments(current, args->regs, syscall_args);
-						val = syscall_args[4];
-					} else
-						val = args->socketcall_args[4];
-
+					get_syscall_args(args, &actual_args);
+					val = actual_args[4];
 					usrsockaddr = (struct sockaddr __user *)val;
 
 					if(usrsockaddr == NULL) {
@@ -272,11 +282,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 						/*
 						 * Get the address len
 						 */
-						if (!args->is_socketcall) {
-							ppm_syscall_get_arguments(current, args->regs, syscall_args);
-							val = syscall_args[5];
-						} else
-							val = args->socketcall_args[5];
+						val = actual_args[5];
 
 						if (val != 0) {
 							/*
@@ -292,9 +298,11 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 					}
 				} else if (args->event_type == PPME_SOCKET_SENDMSG_X) {
 					unsigned long syscall_args[6] = {};
+					unsigned long *actual_args = syscall_args;
 					unsigned long val;
 					struct sockaddr __user * usrsockaddr;
 					int addrlen;
+
 #ifdef CONFIG_COMPAT
 					struct compat_msghdr compat_mh;
 #endif
@@ -303,12 +311,8 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 #else
 					struct msghdr mh;
 #endif
-
-					if (!args->is_socketcall) {
-						ppm_syscall_get_arguments(current, args->regs, syscall_args);
-						val = syscall_args[1];
-					} else
-						val = args->socketcall_args[1];
+					get_syscall_args(args, &actual_args);
+					val = actual_args[1];
 
 #ifdef CONFIG_COMPAT
 					if (!args->compat) {
@@ -1119,6 +1123,7 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 	char *targetbuf = args->str_storage;
 	u32 targetbuflen = STR_STORAGE_SIZE;
 	unsigned long syscall_args[6] = {};
+	unsigned long *actual_args = syscall_args;
 	unsigned long val;
 	u32 notcopied_len;
 	size_t tocopy_len;
@@ -1164,11 +1169,8 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 			/*
 			 * Retrieve the FD. It will be used for dynamic snaplen calculation.
 			 */
-			if (!args->is_socketcall) {
-				ppm_syscall_get_arguments(current, args->regs, syscall_args);
-				val = syscall_args[0];
-			} else
-				val = args->socketcall_args[0];
+			get_syscall_args(args, &actual_args);
+			val = actual_args[0];
 			args->fd = (int)val;
 
 			/*
@@ -1252,6 +1254,7 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 	char *targetbuf = args->str_storage;
 	u32 targetbuflen = STR_STORAGE_SIZE;
 	unsigned long syscall_args[6] = {};
+	unsigned long *actual_args = syscall_args;
 	unsigned long val;
 	u32 notcopied_len;
 	compat_size_t tocopy_len;
@@ -1297,11 +1300,8 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 			/*
 			 * Retrieve the FD. It will be used for dynamic snaplen calculation.
 			 */
-			if (!args->is_socketcall) {
-				ppm_syscall_get_arguments(current, args->regs, syscall_args);
-				val = syscall_args[0];
-			} else
-				val = args->socketcall_args[0];
+			get_syscall_args(args, &actual_args);
+			val = actual_args[0];
 			args->fd = (int)val;
 
 			/*
@@ -1392,6 +1392,8 @@ int f_sys_autofill(struct event_filler_arguments *args)
 	const struct ppm_event_entry *evinfo = &g_ppm_events[args->event_type];
 	ASSERT(evinfo->n_autofill_args <= PPM_MAX_AUTOFILL_ARGS);
 
+	ppm_syscall_get_arguments(current, args->regs, syscall_args);
+
 	for (j = 0; j < evinfo->n_autofill_args; j++) {
 		if (evinfo->autofill_args[j].id >= 0) {
 #ifdef _HAS_SOCKETCALL
@@ -1403,7 +1405,6 @@ int f_sys_autofill(struct event_filler_arguments *args)
 				/*
 				 * Regular argument
 				 */
-				ppm_syscall_get_arguments(current, args->regs, syscall_args);
 				val = syscall_args[evinfo->autofill_args[j].id];
 			}
 
