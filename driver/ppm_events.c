@@ -256,11 +256,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 					 * Get the address
 					 */
 					if (!args->is_socketcall) {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
-						syscall_get_arguments(current, args->regs, 0, 6, syscall_args);
-#else
-						syscall_get_arguments(current, args->regs, syscall_args);
-#endif
+						ppm_syscall_get_arguments(current, args->regs, syscall_args);
 						val = syscall_args[4];
 					} else
 						val = args->socketcall_args[4];
@@ -277,11 +273,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 						 * Get the address len
 						 */
 						if (!args->is_socketcall) {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
-							syscall_get_arguments(current, args->regs, 0, 6, syscall_args);
-#else
-							syscall_get_arguments(current, args->regs, syscall_args);
-#endif
+							ppm_syscall_get_arguments(current, args->regs, syscall_args);
 							val = syscall_args[5];
 						} else
 							val = args->socketcall_args[5];
@@ -313,11 +305,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 #endif
 
 					if (!args->is_socketcall) {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
-						syscall_get_arguments(current, args->regs, 0, 6, syscall_args);
-#else
-						syscall_get_arguments(current, args->regs, syscall_args);
-#endif
+						ppm_syscall_get_arguments(current, args->regs, syscall_args);
 						val = syscall_args[1];
 					} else
 						val = args->socketcall_args[1];
@@ -1177,11 +1165,7 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 			 * Retrieve the FD. It will be used for dynamic snaplen calculation.
 			 */
 			if (!args->is_socketcall) {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
-				syscall_get_arguments(current, args->regs, 0, 6, syscall_args);
-#else
-				syscall_get_arguments(current, args->regs, syscall_args);
-#endif
+				ppm_syscall_get_arguments(current, args->regs, syscall_args);
 				val = syscall_args[0];
 			} else
 				val = args->socketcall_args[0];
@@ -1314,11 +1298,7 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 			 * Retrieve the FD. It will be used for dynamic snaplen calculation.
 			 */
 			if (!args->is_socketcall) {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
-				syscall_get_arguments(current, args->regs, 0, 6, syscall_args);
-#else
-				syscall_get_arguments(current, args->regs, syscall_args);
-#endif
+				ppm_syscall_get_arguments(current, args->regs, syscall_args);
 				val = syscall_args[0];
 			} else
 				val = args->socketcall_args[0];
@@ -1423,11 +1403,7 @@ int f_sys_autofill(struct event_filler_arguments *args)
 				/*
 				 * Regular argument
 				 */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
-				syscall_get_arguments(current, args->regs, 0, 6, syscall_args);
-#else
-				syscall_get_arguments(current, args->regs, syscall_args);
-#endif
+				ppm_syscall_get_arguments(current, args->regs, syscall_args);
 				val = syscall_args[evinfo->autofill_args[j].id];
 			}
 

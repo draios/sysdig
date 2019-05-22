@@ -216,6 +216,15 @@ do {								\
 		pr_info(fmt, ##__VA_ARGS__);			\
 } while (0)
 
+inline void ppm_syscall_get_arguments(struct task_struct *task, struct pt_regs *regs, unsigned long *args)
+{
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
+    syscall_get_arguments(task, regs, 0, 6, args);
+#else
+    syscall_get_arguments(task, regs, args);
+#endif
+}
+
 /* compat tracepoint functions */
 static int compat_register_trace(void *func, const char *probename, struct tracepoint *tp)
 {
@@ -1287,11 +1296,7 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 	unsigned long __user args[6] = {};
 	unsigned long __user *scargs;
 	int socketcall_id;
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
-	syscall_get_arguments(current, regs, 0, 6, args);
-#else
-	syscall_get_arguments(current, regs, args);
-#endif
+	ppm_syscall_get_arguments(current, regs, args);
 	socketcall_id = args[0];
 	scargs = (unsigned long __user *)args[1];
 
@@ -1428,11 +1433,7 @@ static inline int drop_nostate_event(enum ppm_event_type event_type,
 		 * The invalid fd events don't matter to userspace in dropping mode,
 		 * so we do this before the UF_NEVER_DROP check
 		 */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
-		syscall_get_arguments(current, regs, 0, 6, args);
-#else
-		syscall_get_arguments(current, regs, args);
-#endif
+		ppm_syscall_get_arguments(current, regs, args);
 		arg = args[0];
 		close_fd = (int)arg;
 
@@ -1453,11 +1454,7 @@ static inline int drop_nostate_event(enum ppm_event_type event_type,
 	case PPME_SYSCALL_FCNTL_E:
 	case PPME_SYSCALL_FCNTL_X:
 		// cmd arg
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
-		syscall_get_arguments(current, regs, 0, 6, args);
-#else
-		syscall_get_arguments(current, regs, args);
-#endif
+		ppm_syscall_get_arguments(current, regs, args);
 		arg = args[1];
 		if (arg != F_DUPFD && arg != F_DUPFD_CLOEXEC)
 			drop = true;

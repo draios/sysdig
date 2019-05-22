@@ -113,4 +113,6 @@ extern const struct syscall_evt_pair g_syscall_ia32_table[];
 extern const enum ppm_syscall_code g_syscall_ia32_code_routing_table[];
 #endif
 
+extern void ppm_syscall_get_arguments(struct task_struct *task, struct pt_regs *regs, unsigned long *args);
+
 #endif /* PPM_H_ */
