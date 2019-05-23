@@ -4502,24 +4502,24 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt *evt)
 static string convert_to_string(Json::ValueType other) {
 	std::string value_type("Not a valide type");
 	switch(other) {
-	case nullValue:
+	case Json::ValueType::nullValue:
 		return "nullValue";
-	case intValue:
+	case Json::ValueType::intValue:
 		return "intValue";
-	case uintValue:
+	case Json::ValueType::uintValue:
 		return "uintValue";
-	case realValue:
+	case Json::ValueType::realValue:
 		return "realValue";
-	case stringValue:
+	case Json::ValueType::stringValue:
 		return "stringValue";
-	case booleanValue:
+	case Json::ValueType::booleanValue:
 		return "booleanValue";
-	case arrayValue:
+	case Json::ValueType::arrayValue:
 		return "arrayValue";
-	case objectValue:
+	case Json::ValueType::objectValue:
 		return "objectValue";
 	default:
-		// fall through
+		break;
 	}
 	return value_type;
 }
