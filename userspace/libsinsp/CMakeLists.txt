@@ -165,6 +165,9 @@ if(NOT WIN32)
 	if(USE_BUNDLED_TBB)
 		add_dependencies(sinsp tbb)
 	endif()
+	if(USE_BUNDLED_GRPC)
+		add_dependencies(sinsp grpc)
+	endif()
 
 	if(NOT APPLE)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.cc
@@ -177,7 +180,6 @@ if(NOT WIN32)
 				COMMAND ${PROTOC} -I ${CMAKE_CURRENT_SOURCE_DIR} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} ${CMAKE_CURRENT_SOURCE_DIR}/cri.proto
 				WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-		add_dependencies(sinsp grpc)
 		target_link_libraries(sinsp
 			"${GRPCPP_LIB}"
 			"${GRPC_LIB}"
