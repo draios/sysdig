@@ -145,7 +145,9 @@ add_library(sinsp STATIC ${SINSP_SOURCES})
 
 target_link_libraries(sinsp 
 	scap
-	"${JSONCPP_LIB}")
+	"${CURL_LIBRARIES}"
+	"${JSONCPP_LIB}"
+	"${TBB_LIB}")
 
 if(USE_BUNDLED_LUAJIT)
 	add_dependencies(sinsp luajit)
@@ -157,13 +159,9 @@ if(NOT WIN32)
 	endif()
 	if(USE_BUNDLED_CURL)
 		add_dependencies(sinsp curl)
-		target_link_libraries(sinsp
-			"${CURL_LIBRARIES}")
 	endif()
 	if(USE_BUNDLED_TBB)
 		add_dependencies(sinsp tbb)
-		target_link_libraries(sinsp
-			"${TBB_LIB}")
 	endif()
 
 	if(NOT APPLE)
