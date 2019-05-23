@@ -128,6 +128,7 @@ list(APPEND SINSP_SOURCES
 	container_engine/lxc.cpp
 	container_engine/mesos.cpp
 	container_engine/rkt.cpp
+	container_engine/bpm.cpp
 	runc.cpp)
 endif()
 
