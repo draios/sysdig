@@ -9,8 +9,7 @@ or GPL2.txt for full copies of the license.
 
 #ifndef PPM_FLAG_HELPERS_H_
 #define PPM_FLAG_HELPERS_H_
-
-#include <asm/mman.h>
+#include <linux/mman.h>
 #include <linux/futex.h>
 #include <linux/ptrace.h>
 
