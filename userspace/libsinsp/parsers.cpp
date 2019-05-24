@@ -4499,8 +4499,8 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt *evt)
 	}
 }
 
-static string convert_to_string(Json::ValueType other) {
-	std::string value_type("Not a valide type");
+static std::string convert_to_string(Json::ValueType other) {
+	std::string value_type("Not a valid json type");
 	switch(other) {
 	case Json::ValueType::nullValue:
 		return "nullValue";
@@ -4527,8 +4527,8 @@ static string convert_to_string(Json::ValueType other) {
 bool sinsp_parser::check_is_convertible(const Json::Value& value, Json::ValueType other, std::string field, bool log_message)
 {
 	if(!value.isConvertibleTo(other)) {
-		std::string valueAsString = value.isConvertibleTo(Json::stringValue) ? value.asString() : "value not convertible to string";
-		std::string err_msg = "Unable to convert json value '" + valueAsString + "' of type '" + convert_to_string(value.type()) + "' into type '" + convert_to_string(other) + "' for the field: '" + field +"'";
+		std::string value_as_string = value.isConvertibleTo(Json::stringValue) ? value.asString() : "value not convertible to string";
+		std::string err_msg = "Unable to convert json value '" + value_as_string + "' of type '" + convert_to_string(value.type()) + "' into type '" + convert_to_string(other) + "' for the field: '" + field +"'";
 		if(log_message) {
 			SINSP_WARNING("%s",err_msg.c_str());
 		} else {
