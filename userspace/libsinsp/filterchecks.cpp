@@ -4442,7 +4442,8 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 							vector<string> subelements = sinsp_split(e, ':');
 							ASSERT(subelements.size() == 2);
 							m_strstorage = trim(subelements[1]);
-							if (m_strstorage.length() >= 12) {
+							if(m_strstorage.length() > 12)
+							{
 								m_strstorage = m_strstorage.substr(0, 12);
 							}
 							RETURN_EXTRACT_STRING(m_strstorage);
@@ -4466,12 +4467,14 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 							ASSERT(subelements.size() == 2);
 							m_strstorage = subelements[1];
 
-							if (m_strstorage.find("@") != string::npos) {
+							if(m_strstorage.find("@") != string::npos)
+							{
 								m_strstorage = m_strstorage.substr(0, m_strstorage.find("@"));
-							} else if (m_strstorage.find("sha") != string::npos) {
+							}
+							else if(m_strstorage.find("sha256") != string::npos)
+							{
 								m_strstorage = e.substr(e.find(":") + 1);
 							}
-
 							m_strstorage = trim(m_strstorage);
 							RETURN_EXTRACT_STRING(m_strstorage);
 						}
