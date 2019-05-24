@@ -4524,11 +4524,14 @@ static string convert_to_string(Json::ValueType other) {
 	return value_type;
 }
 
-bool check_is_convertible_and_log_msg(const Json::Value& value, Json::ValueType other)
+bool sinsp_parser::check_is_convertible(const Json::Value& value, Json::ValueType other)
 {
 	if(!value.isConvertibleTo(other)) {
-		string value_type_as_string = convert_to_string(other);
-		SINSP_WARNING("Unable to convert json value %s into type %s",value.asString().c_str(), value_type_as_string.c_str());
+		SINSP_WARNING("Unable to convert json value %s of type %s into type %s",
+			      value.asString().c_str(),
+			      convert_to_string(value.type()).c_str(),
+			      convert_to_string(other).c_str());
+		return false;
 	}
 	return true;
 }
@@ -4622,11 +4625,16 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 			for (Json::Value::ArrayIndex i = 0; i != port_mappings.size(); i++)
 			{
 				sinsp_container_info::container_port_mapping map;
-				check_is_convertible_and_log_msg(port_mappings[i]["HostIp"] , Json::objectValue);
-				map.m_host_ip = port_mappings[i]["HostIp"].asInt();
-				map.m_host_port = (uint16_t) port_mappings[i]["HostPort"].asInt();
-				map.m_container_port = (uint16_t) port_mappings[i]["ContainerPort"].asInt();
+				if(check_is_convertible(port_mappings[i]["HostIp"] , Json::intValue)) {
+					map.m_host_ip = port_mappings[i]["HostIp"].asInt();
+				}
 
+				if(check_is_convertible(port_mappings[i]["HostPort"], Json::intValue)) {
+					map.m_host_port = (uint16_t) port_mappings[i]["HostPort"].asInt();
+				}
+				if(check_is_convertible(port_mappings[i]["ContainerPort"], Json::intValue)) {
+					map.m_container_port = (uint16_t) port_mappings[i]["ContainerPort"].asInt();
+				}
 				container_info.m_port_mappings.push_back(map);
 			}
 		}
