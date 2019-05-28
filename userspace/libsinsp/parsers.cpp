@@ -4520,8 +4520,8 @@ bool sinsp_parser::check_json_val_is_convertible(const Json::Value& value, Json:
 		} else {
 			if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG) {
 				err_msg = generate_error_message(value, field);
+				SINSP_DEBUG("%s",err_msg.c_str());
 			}
-			SINSP_DEBUG("%s",err_msg.c_str());
 		}			
 		return false;
 	}
