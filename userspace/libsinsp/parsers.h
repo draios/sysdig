@@ -161,6 +161,8 @@ private:
 	uint8_t* reserve_event_buffer();
 	void free_event_buffer(uint8_t*);
 
+	bool check_json_val_is_convertible(const Json::Value& value, Json::ValueType other, const char* field, bool log_message=false);
+
 	//
 	// Pointers to inspector context
 	//

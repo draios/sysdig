@@ -4499,6 +4499,35 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt *evt)
 	}
 }
 
+namespace
+{
+	std::string generate_error_message(const Json::Value& value, const char* field) {
+		std::string val_as_string = value.isConvertibleTo(Json::stringValue) ? value.asString().c_str() : "value not convertible to string";
+		std::string err_msg = "Unable to convert json value '" + val_as_string + "' for the field: '" + field +"'";
+
+		return std::move(err_msg);
+	}
+}
+
+bool sinsp_parser::check_json_val_is_convertible(const Json::Value& value, Json::ValueType other, const char* field, bool log_message)
+{
+	if(!value.isNull() && !value.isConvertibleTo(other)) {
+		std::string err_msg;
+		
+		if(log_message) {
+			err_msg = generate_error_message(value, field);
+			SINSP_WARNING("%s",err_msg.c_str());
+		} else {
+			if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG) {
+				err_msg = generate_error_message(value, field);
+				SINSP_DEBUG("%s",err_msg.c_str());
+			}
+		}			
+		return false;
+	}
+	return true;
+}
+
 void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 {
 	sinsp_evt_param *parinfo = evt->get_param(0);
@@ -4513,54 +4542,54 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		sinsp_container_info container_info;
 		const Json::Value& container = root["container"];
 		const Json::Value& id = container["id"];
-		if(!id.isNull() && id.isConvertibleTo(Json::stringValue))
+		if(check_json_val_is_convertible(id, Json::stringValue, "id"))
 		{
 			container_info.m_id = id.asString();
 		}
 		const Json::Value& type = container["type"];
-		if(!type.isNull() && type.isConvertibleTo(Json::uintValue))
+		if(check_json_val_is_convertible(type, Json::uintValue, "type"))
 		{
 			container_info.m_type = static_cast<sinsp_container_type>(type.asUInt());
 		}
 		const Json::Value& name = container["name"];
-		if(!name.isNull() && name.isConvertibleTo(Json::stringValue))
+		if(check_json_val_is_convertible(name, Json::stringValue, "name"))
 		{
 			container_info.m_name = name.asString();
 		}
 
 		const Json::Value& is_pod_sandbox = container["is_pod_sandbox"];
-		if(!is_pod_sandbox.isNull() && is_pod_sandbox.isConvertibleTo(Json::booleanValue))
+		if(check_json_val_is_convertible(is_pod_sandbox, Json::booleanValue, "is_pod_sandbox"))
 		{
 			container_info.m_is_pod_sandbox = is_pod_sandbox.asBool();
 		}
 
 		const Json::Value& image = container["image"];
-		if(!image.isNull() && image.isConvertibleTo(Json::stringValue))
+		if(check_json_val_is_convertible(image, Json::stringValue, "image"))
 		{
 			container_info.m_image = image.asString();
 		}
 		const Json::Value& imageid = container["imageid"];
-		if(!imageid.isNull() && imageid.isConvertibleTo(Json::stringValue))
+		if(check_json_val_is_convertible(imageid, Json::stringValue, "imageid"))
 		{
 			container_info.m_imageid = imageid.asString();
 		}
 		const Json::Value& imagerepo = container["imagerepo"];
-		if(!imagerepo.isNull() && imagerepo.isConvertibleTo(Json::stringValue))
+		if(check_json_val_is_convertible(imagerepo, Json::stringValue, "imagerepo"))
 		{
 			container_info.m_imagerepo = imagerepo.asString();
 		}
 		const Json::Value& imagetag = container["imagetag"];
-		if(!imagetag.isNull() && imagetag.isConvertibleTo(Json::stringValue))
+		if(check_json_val_is_convertible(imagetag, Json::stringValue, "imagetag"))
 		{
 			container_info.m_imagetag = imagetag.asString();
 		}
 		const Json::Value& imagedigest = container["imagedigest"];
-		if(!imagedigest.isNull() && imagedigest.isConvertibleTo(Json::stringValue))
+		if(check_json_val_is_convertible(imagedigest, Json::stringValue, "imagedigest"))
 		{
 			container_info.m_imagedigest = imagedigest.asString();
 		}
 		const Json::Value& privileged = container["privileged"];
-		if(!privileged.isNull() && privileged.isConvertibleTo(Json::booleanValue))
+		if(check_json_val_is_convertible(privileged, Json::booleanValue, "privileged"))
 		{
 			container_info.m_privileged = privileged.asBool();
 		}
@@ -4569,7 +4598,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 
 		container_info.parse_healthcheck(container["Healthcheck"]);
 		const Json::Value& contip = container["ip"];
-		if(!contip.isNull() && contip.isConvertibleTo(Json::stringValue))
+		if(check_json_val_is_convertible(contip, Json::stringValue, "ip"))
 		{
 			uint32_t ip;
 
@@ -4583,15 +4612,26 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 
 		const Json::Value &port_mappings = container["port_mappings"];
 
-		if(!port_mappings.isNull() && port_mappings.isConvertibleTo(Json::arrayValue))
+		if(check_json_val_is_convertible(port_mappings, Json::arrayValue, "port_mappings"))
 		{
 			for (Json::Value::ArrayIndex i = 0; i != port_mappings.size(); i++)
 			{
 				sinsp_container_info::container_port_mapping map;
-				map.m_host_ip = port_mappings[i]["HostIp"].asInt();
-				map.m_host_port = (uint16_t) port_mappings[i]["HostPort"].asInt();
-				map.m_container_port = (uint16_t) port_mappings[i]["ContainerPort"].asInt();
-
+				const Json::Value &host_ip = port_mappings[i]["HostIp"];
+				// We log message for HostIp conversion failure at Warning level
+				if(check_json_val_is_convertible(host_ip, Json::intValue, "HostIp", true)) {
+					map.m_host_ip = host_ip.asInt();
+				}
+				const Json::Value& host_port = port_mappings[i]["HostPort"];
+				// We log message for HostPort conversion failure at Warning level
+				if(check_json_val_is_convertible(host_port, Json::intValue, "HostPort", true)) {
+					map.m_host_port = (uint16_t) host_port.asInt();
+				}
+				const Json::Value& container_port = port_mappings[i]["ContainerPort"];
+				// We log message for ContainerPort conversion failure at Warning level
+				if(check_json_val_is_convertible(container_port, Json::intValue, "ContainerPort", true)) {
+					map.m_container_port = (uint16_t) container_port.asInt();
+				}
 				container_info.m_port_mappings.push_back(map);
 			}
 		}
@@ -4614,46 +4654,50 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		}
 
 		const Json::Value& memory_limit = container["memory_limit"];
-		if(!memory_limit.isNull() && memory_limit.isConvertibleTo(Json::uintValue))
+		if(check_json_val_is_convertible(memory_limit, Json::uintValue, "memory_limit"))
 		{
 			container_info.m_memory_limit = memory_limit.asUInt();
 		}
 
 		const Json::Value& swap_limit = container["swap_limit"];
-		if(!swap_limit.isNull() && swap_limit.isConvertibleTo(Json::uintValue))
+		if(check_json_val_is_convertible(swap_limit, Json::uintValue, "swap_limit"))
 		{
 			container_info.m_swap_limit = swap_limit.asUInt();
 		}
 
 		const Json::Value& cpu_shares = container["cpu_shares"];
-		if(!cpu_shares.isNull() && cpu_shares.isConvertibleTo(Json::uintValue))
+		if(check_json_val_is_convertible(cpu_shares, Json::uintValue, "cpu_shares"))
 		{
 			container_info.m_cpu_shares = cpu_shares.asUInt();
 		}
 
 		const Json::Value& cpu_quota = container["cpu_quota"];
-		if(!cpu_quota.isNull() && cpu_quota.isConvertibleTo(Json::uintValue))
+		if(check_json_val_is_convertible(cpu_quota, Json::uintValue, "cpu_quota"))
 		{
 			container_info.m_cpu_quota = cpu_quota.asUInt();
 		}
 
 		const Json::Value& cpu_period = container["cpu_period"];
-		if(!cpu_period.isNull() && cpu_period.isConvertibleTo(Json::uintValue))
+		if(check_json_val_is_convertible(cpu_period, Json::uintValue, "cpu_period"))
 		{
 			container_info.m_cpu_period = cpu_period.asUInt();
 		}
 
 		const Json::Value& mesos_task_id = container["mesos_task_id"];
-		if(!mesos_task_id.isNull() && mesos_task_id.isConvertibleTo(Json::stringValue))
+		if(check_json_val_is_convertible(mesos_task_id, Json::stringValue, "mesos_task_id"))
 		{
 			container_info.m_mesos_task_id = mesos_task_id.asString();
 		}
 
 		const Json::Value& metadata_deadline = container["metadata_deadline"];
-		// isConvertibleTo doesn't seem to work on large 64 bit numbers
-		if(!metadata_deadline.isNull() && metadata_deadline.isUInt64())
+		if(!metadata_deadline.isNull())
 		{
-			container_info.m_metadata_deadline = metadata_deadline.asUInt64();
+			// isConvertibleTo doesn't seem to work on large 64 bit numbers
+			if(metadata_deadline.isUInt64()) {
+				container_info.m_metadata_deadline = metadata_deadline.asUInt64();
+			} else {
+				SINSP_DEBUG("Unable to convert json value for field: %s", "metadata_deadline");
+			}
 		}
 
 		evt->m_tinfo_ref = container_info.get_tinfo(m_inspector);
