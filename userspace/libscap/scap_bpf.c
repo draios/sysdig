@@ -36,7 +36,7 @@ limitations under the License.
 #include "scap.h"
 #include "scap-int.h"
 #include "scap_bpf.h"
-#include "../../driver/driver_config.h"
+#include "driver_config.h"
 #include "../../driver/bpf/types.h"
 #include "compat/misc.h"
 #include "compat/bpf.h"
