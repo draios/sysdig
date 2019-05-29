@@ -4511,7 +4511,11 @@ namespace
 
 bool sinsp_parser::check_json_val_is_convertible(const Json::Value& value, Json::ValueType other, const char* field, bool log_message)
 {
-	if(!value.isNull() && !value.isConvertibleTo(other)) {
+	if(value.isNull()) {
+		return false;
+	}
+	
+	if(!value.isConvertibleTo(other)) {
 		std::string err_msg;
 		
 		if(log_message) {
