@@ -53,7 +53,7 @@ add_executable(sysdig ${SOURCE_FILES})
 add_executable(csysdig ${SOURCE_FILES_CSYSDIG})
 
 if(NOT WIN32)
-
+	include_directories(${PROJECT_BINARY_DIR}/driver/src)
 	target_link_libraries(sysdig
 		sinsp)
 
