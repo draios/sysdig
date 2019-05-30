@@ -1,7 +1,7 @@
 sysdig
 ======
 
-[![Build Status](https://travis-ci.org/draios/sysdig.png?branch=master)](https://travis-ci.org/draios/sysdig)
+[![Build Status](https://travis-ci.com/draios/sysdig.png?branch=master)](https://travis-ci.com/draios/sysdig)
 
 # Welcome to **sysdig**!
 
