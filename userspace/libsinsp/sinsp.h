@@ -1015,7 +1015,7 @@ private:
 	uint32_t m_nevts;
 	int64_t m_filesize;
 
-	scap_mode_t m_mode = SCAP_MODE_LIVE;
+	scap_mode_t m_mode = SCAP_MODE_NONE;
 
 	// If non-zero, reading from this fd and m_input_filename contains "fd
 	// <m_input_fd>". Otherwise, reading from m_input_filename.
