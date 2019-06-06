@@ -331,7 +331,7 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 					{
 						string repodigest = rdig.asString();
 						string digest = repodigest.substr(repodigest.find('@')+1);
-                        imageDigestSet.insert(digest);
+						imageDigestSet.insert(digest);
 						if(container->m_imagerepo.empty())
 						{
 							container->m_imagerepo = repodigest.substr(0, repodigest.find('@'));
