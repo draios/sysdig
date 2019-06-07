@@ -28,14 +28,14 @@
 cos_version_greater()
 {
 	if [[ $cos_ver == $base_ver ]]; then
-        return 0
-    fi
+		return 0
+	fi
 
 	#
 	# COS build numbers are in the format x.y.z
 	#
 
-    local IFS=.
+	local IFS=.
 
 	echo $cos_ver | read -r a b c
 	echo $base_ver | read -r d e f
@@ -63,7 +63,7 @@ cos_version_greater()
 
 	# If we get here, probably malformatted version string?
 
-    return 0
+	return 0
 }
 
 
@@ -253,9 +253,7 @@ load_bpf_probe() {
 			base_ver=11553.0.0
 
 			if [[ cos_version_greater -eq 1 ]]; then
-				pushd "/usr/src/${PACKAGE_NAME}-${SYSDIG_VERSION}/bpf" > /dev/null
-				sed -i 's/^\/\/#define COS_73_WORKAROUND/#define COS_73_WORKAROUND/'
-				popd > /dev/null
+				export KBUILD_EXTRA_CPPFLAGS=-DCOS_73_WORKAROUND
 			fi
 		fi
 
