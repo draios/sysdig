@@ -163,6 +163,8 @@ load_bpf_probe() {
 
 		if [ "${ID}" == "cos" ]; then
 			COS=1
+		elif [ "${ID}" == "amzn" ]; then
+			AMZN=1
 		fi
 	fi
 
@@ -202,6 +204,35 @@ load_bpf_probe() {
 			make modules_prepare > /dev/null
 
 			export KERNELDIR=/tmp/kernel
+		fi
+
+		if [ -n "${AMZN}" ]; then
+			echo "* Amazon Linux detected ($NAME $VERSION), downloading and setting up kernel headers"
+			local -r kernel_version_major=$(uname -r | cut -d. -f1)
+			local -r kernel_version=$(uname -r | cut -d- -f1)
+
+			local -r download_url="http://mirrors.edge.kernel.org/pub/linux/kernel/v${kernel_version_major}.x/linux-${kernel_version}.tar.gz"
+
+			echo "* Downloading ${download_url}"
+
+			mkdir -p /tmp/kernel
+			cd /tmp/kernel
+			if ! curl --create-dirs "${SYSDIG_PROBE_CURL_OPTIONS}" -O "${download_url}"; then
+				exit 1;
+			fi
+
+			echo "* Extracting kernel sources"
+
+			tar xf linux-${kernel_version}.tar.gz
+			cat ${SYSDIG_HOST_ROOT}/boot/config-$(uname -r) > linux-${kernel_version}/.config
+
+			echo "* Configuring kernel"
+
+			cd linux-${kernel_version}
+			make olddefconfig > /dev/null
+			make modules_prepare > /dev/null
+
+			export KERNELDIR=/tmp/kernel/linux-${kernel_version}
 		fi
 
 		if [ -n "${MINIKUBE}" ]; then
