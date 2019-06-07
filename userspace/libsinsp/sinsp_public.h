@@ -34,7 +34,7 @@ __, __LINE__); \
                 assert(X); \
         }
 #else
-#define ASSERT(X) assert(X)
+#define ASSERT(X) assert(X);
 #endif // ASSERT_TO_LOG
 #else // _DEBUG
 #define ASSERT(X)
