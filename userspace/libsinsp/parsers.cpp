@@ -23,8 +23,6 @@ limitations under the License.
 #else
 #include <sys/socket.h>
 #include <netinet/in.h>
-#ifdef _DEBUG
-#endif // _DEBUG
 #include <unistd.h>
 #endif // _WIN32
 
@@ -1513,11 +1511,9 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 #ifdef HAS_ANALYZER
 		m_inspector->m_tid_collisions.push_back(tinfo->m_tid);
 #endif
-#ifdef _DEBUG
-		g_logger.format(sinsp_logger::SEV_INFO,
-			"tid collision for %" PRIu64 "(%s)",
-			tinfo->m_tid, tinfo->m_comm.c_str());
-#endif
+		DBG_SINSP_INFO("tid collision for %" PRIu64 "(%s)",
+		               tinfo->m_tid,
+		               tinfo->m_comm.c_str());
 	}
 
 	if (!thread_added) {
@@ -1898,9 +1894,10 @@ void schedule_more_evts(sinsp* inspector, void* data, T* client, ppm_event_type 
 	ASSERT(client);
 	if(!client->get_capture_events().size())
 	{
-		g_logger.log(std::string("An event scheduled but no events available."
-					"All pending event requests for "
-					"[") + typeid(T).name() + "] are cancelled.", sinsp_logger::SEV_ERROR);
+		SINSP_STR_ERROR(
+			std::string("An event scheduled but no events available."
+			            "All pending event requests for "
+			            "[") + typeid(T).name() + "] are cancelled.");
 		state->m_new_group = false;
 		state->m_n_additional_events_to_add = 0;
 		inspector->remove_meta_event_callback();
@@ -2263,13 +2260,12 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 
 	if(fdi.m_type == SCAP_FD_UNKNOWN)
 	{
-		g_logger.log("Unknown fd fd=" + to_string(fd) +
-			     " domain=" + to_string(domain) +
-			     " type=" + to_string(type) +
-			     " protocol=" + to_string(protocol) +
-			     " pid=" + to_string(evt->m_tinfo->m_pid) +
-			     " comm=" + evt->m_tinfo->m_comm,
-			     sinsp_logger::SEV_DEBUG);
+		SINSP_STR_DEBUG("Unknown fd fd=" + to_string(fd) +
+		                " domain=" + to_string(domain) +
+		                " type=" + to_string(type) +
+		                " protocol=" + to_string(protocol) +
+		                " pid=" + to_string(evt->m_tinfo->m_pid) +
+		                " comm=" + evt->m_tinfo->m_comm);
 	}
 
 #ifndef INCLUDE_UNKNOWN_SOCKET_FDS
@@ -2329,15 +2325,14 @@ inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt* const evt)
 		                        ? PPM_AF_INET
 		                        : PPM_AF_INET6;
 
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-		                "Call to sendto() with fd=%d; missing socket() "
-		                "data. Adding socket %s/SOCK_DGRAM/IPPROTO_UDP "
-				"for command '%s', pid %d",
-		                fd,
-		                (domain == PPM_AF_INET)
-		                        ? "PPM_AF_INET" : "PPM_AF_INET6",
-			        evt->m_tinfo->get_comm().c_str(),
-			        evt->m_tinfo->m_pid);
+		SINSP_DEBUG("Call to sendto() with fd=%d; missing socket() "
+		            "data. Adding socket %s/SOCK_DGRAM/IPPROTO_UDP "
+		            "for command '%s', pid %d",
+		            fd,
+		            (domain == PPM_AF_INET) ? "PPM_AF_INET"
+		                                    : "PPM_AF_INET6",
+		            evt->m_tinfo->get_comm().c_str(),
+		            evt->m_tinfo->m_pid);
 
 		// Here we're assuming sendto() means SOCK_DGRAM/UDP, but it
 		// can be used with TCP.  We have no way to know for sure at
@@ -4504,13 +4499,46 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt *evt)
 	}
 }
 
+namespace
+{
+	std::string generate_error_message(const Json::Value& value, const char* field) {
+		std::string val_as_string = value.isConvertibleTo(Json::stringValue) ? value.asString().c_str() : "value not convertible to string";
+		std::string err_msg = "Unable to convert json value '" + val_as_string + "' for the field: '" + field +"'";
+
+		return std::move(err_msg);
+	}
+}
+
+bool sinsp_parser::check_json_val_is_convertible(const Json::Value& value, Json::ValueType other, const char* field, bool log_message)
+{
+	if(value.isNull()) {
+		return false;
+	}
+	
+	if(!value.isConvertibleTo(other)) {
+		std::string err_msg;
+		
+		if(log_message) {
+			err_msg = generate_error_message(value, field);
+			SINSP_WARNING("%s",err_msg.c_str());
+		} else {
+			if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG) {
+				err_msg = generate_error_message(value, field);
+				SINSP_DEBUG("%s",err_msg.c_str());
+			}
+		}			
+		return false;
+	}
+	return true;
+}
+
 void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 {
 	sinsp_evt_param *parinfo = evt->get_param(0);
 	ASSERT(parinfo);
 	ASSERT(parinfo->m_len > 0);
 	std::string json(parinfo->m_val, parinfo->m_len);
-	g_logger.format(sinsp_logger::SEV_DEBUG, "Parsing Container JSON=%s", json.c_str());
+	SINSP_DEBUG("Parsing Container JSON=%s", json.c_str());
 	ASSERT(m_inspector);
 	Json::Value root;
 	if(Json::Reader().parse(json, root))
@@ -4518,54 +4546,54 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		sinsp_container_info container_info;
 		const Json::Value& container = root["container"];
 		const Json::Value& id = container["id"];
-		if(!id.isNull() && id.isConvertibleTo(Json::stringValue))
+		if(check_json_val_is_convertible(id, Json::stringValue, "id"))
 		{
 			container_info.m_id = id.asString();
 		}
 		const Json::Value& type = container["type"];
-		if(!type.isNull() && type.isConvertibleTo(Json::uintValue))
+		if(check_json_val_is_convertible(type, Json::uintValue, "type"))
 		{
 			container_info.m_type = static_cast<sinsp_container_type>(type.asUInt());
 		}
 		const Json::Value& name = container["name"];
-		if(!name.isNull() && name.isConvertibleTo(Json::stringValue))
+		if(check_json_val_is_convertible(name, Json::stringValue, "name"))
 		{
 			container_info.m_name = name.asString();
 		}
 
 		const Json::Value& is_pod_sandbox = container["is_pod_sandbox"];
-		if(!is_pod_sandbox.isNull() && is_pod_sandbox.isConvertibleTo(Json::booleanValue))
+		if(check_json_val_is_convertible(is_pod_sandbox, Json::booleanValue, "is_pod_sandbox"))
 		{
 			container_info.m_is_pod_sandbox = is_pod_sandbox.asBool();
 		}
 
 		const Json::Value& image = container["image"];
-		if(!image.isNull() && image.isConvertibleTo(Json::stringValue))
+		if(check_json_val_is_convertible(image, Json::stringValue, "image"))
 		{
 			container_info.m_image = image.asString();
 		}
 		const Json::Value& imageid = container["imageid"];
-		if(!imageid.isNull() && imageid.isConvertibleTo(Json::stringValue))
+		if(check_json_val_is_convertible(imageid, Json::stringValue, "imageid"))
 		{
 			container_info.m_imageid = imageid.asString();
 		}
 		const Json::Value& imagerepo = container["imagerepo"];
-		if(!imagerepo.isNull() && imagerepo.isConvertibleTo(Json::stringValue))
+		if(check_json_val_is_convertible(imagerepo, Json::stringValue, "imagerepo"))
 		{
 			container_info.m_imagerepo = imagerepo.asString();
 		}
 		const Json::Value& imagetag = container["imagetag"];
-		if(!imagetag.isNull() && imagetag.isConvertibleTo(Json::stringValue))
+		if(check_json_val_is_convertible(imagetag, Json::stringValue, "imagetag"))
 		{
 			container_info.m_imagetag = imagetag.asString();
 		}
 		const Json::Value& imagedigest = container["imagedigest"];
-		if(!imagedigest.isNull() && imagedigest.isConvertibleTo(Json::stringValue))
+		if(check_json_val_is_convertible(imagedigest, Json::stringValue, "imagedigest"))
 		{
 			container_info.m_imagedigest = imagedigest.asString();
 		}
 		const Json::Value& privileged = container["privileged"];
-		if(!privileged.isNull() && privileged.isConvertibleTo(Json::booleanValue))
+		if(check_json_val_is_convertible(privileged, Json::booleanValue, "privileged"))
 		{
 			container_info.m_privileged = privileged.asBool();
 		}
@@ -4574,7 +4602,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 
 		container_info.parse_healthcheck(container["Healthcheck"]);
 		const Json::Value& contip = container["ip"];
-		if(!contip.isNull() && contip.isConvertibleTo(Json::stringValue))
+		if(check_json_val_is_convertible(contip, Json::stringValue, "ip"))
 		{
 			uint32_t ip;
 
@@ -4588,15 +4616,26 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 
 		const Json::Value &port_mappings = container["port_mappings"];
 
-		if(!port_mappings.isNull() && port_mappings.isConvertibleTo(Json::arrayValue))
+		if(check_json_val_is_convertible(port_mappings, Json::arrayValue, "port_mappings"))
 		{
 			for (Json::Value::ArrayIndex i = 0; i != port_mappings.size(); i++)
 			{
 				sinsp_container_info::container_port_mapping map;
-				map.m_host_ip = port_mappings[i]["HostIp"].asInt();
-				map.m_host_port = (uint16_t) port_mappings[i]["HostPort"].asInt();
-				map.m_container_port = (uint16_t) port_mappings[i]["ContainerPort"].asInt();
-
+				const Json::Value &host_ip = port_mappings[i]["HostIp"];
+				// We log message for HostIp conversion failure at Warning level
+				if(check_json_val_is_convertible(host_ip, Json::intValue, "HostIp", true)) {
+					map.m_host_ip = host_ip.asInt();
+				}
+				const Json::Value& host_port = port_mappings[i]["HostPort"];
+				// We log message for HostPort conversion failure at Warning level
+				if(check_json_val_is_convertible(host_port, Json::intValue, "HostPort", true)) {
+					map.m_host_port = (uint16_t) host_port.asInt();
+				}
+				const Json::Value& container_port = port_mappings[i]["ContainerPort"];
+				// We log message for ContainerPort conversion failure at Warning level
+				if(check_json_val_is_convertible(container_port, Json::intValue, "ContainerPort", true)) {
+					map.m_container_port = (uint16_t) container_port.asInt();
+				}
 				container_info.m_port_mappings.push_back(map);
 			}
 		}
@@ -4619,57 +4658,61 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		}
 
 		const Json::Value& memory_limit = container["memory_limit"];
-		if(!memory_limit.isNull() && memory_limit.isConvertibleTo(Json::uintValue))
+		if(check_json_val_is_convertible(memory_limit, Json::uintValue, "memory_limit"))
 		{
 			container_info.m_memory_limit = memory_limit.asUInt();
 		}
 
 		const Json::Value& swap_limit = container["swap_limit"];
-		if(!swap_limit.isNull() && swap_limit.isConvertibleTo(Json::uintValue))
+		if(check_json_val_is_convertible(swap_limit, Json::uintValue, "swap_limit"))
 		{
 			container_info.m_swap_limit = swap_limit.asUInt();
 		}
 
 		const Json::Value& cpu_shares = container["cpu_shares"];
-		if(!cpu_shares.isNull() && cpu_shares.isConvertibleTo(Json::uintValue))
+		if(check_json_val_is_convertible(cpu_shares, Json::uintValue, "cpu_shares"))
 		{
 			container_info.m_cpu_shares = cpu_shares.asUInt();
 		}
 
 		const Json::Value& cpu_quota = container["cpu_quota"];
-		if(!cpu_quota.isNull() && cpu_quota.isConvertibleTo(Json::uintValue))
+		if(check_json_val_is_convertible(cpu_quota, Json::uintValue, "cpu_quota"))
 		{
 			container_info.m_cpu_quota = cpu_quota.asUInt();
 		}
 
 		const Json::Value& cpu_period = container["cpu_period"];
-		if(!cpu_period.isNull() && cpu_period.isConvertibleTo(Json::uintValue))
+		if(check_json_val_is_convertible(cpu_period, Json::uintValue, "cpu_period"))
 		{
 			container_info.m_cpu_period = cpu_period.asUInt();
 		}
 
 		const Json::Value& mesos_task_id = container["mesos_task_id"];
-		if(!mesos_task_id.isNull() && mesos_task_id.isConvertibleTo(Json::stringValue))
+		if(check_json_val_is_convertible(mesos_task_id, Json::stringValue, "mesos_task_id"))
 		{
 			container_info.m_mesos_task_id = mesos_task_id.asString();
 		}
 
 		const Json::Value& metadata_deadline = container["metadata_deadline"];
-		// isConvertibleTo doesn't seem to work on large 64 bit numbers
-		if(!metadata_deadline.isNull() && metadata_deadline.isUInt64())
+		if(!metadata_deadline.isNull())
 		{
-			container_info.m_metadata_deadline = metadata_deadline.asUInt64();
+			// isConvertibleTo doesn't seem to work on large 64 bit numbers
+			if(metadata_deadline.isUInt64()) {
+				container_info.m_metadata_deadline = metadata_deadline.asUInt64();
+			} else {
+				SINSP_DEBUG("Unable to convert json value for field: %s", "metadata_deadline");
+			}
 		}
 
 		evt->m_tinfo_ref = container_info.get_tinfo(m_inspector);
 		evt->m_tinfo = evt->m_tinfo_ref.get();
 		m_inspector->m_container_manager.add_container(container_info, evt->get_thread_info(true));
 		/*
-		g_logger.log("Container\n-------\nID:" + container_info.m_id +
-					 "\nType: " + std::to_string(container_info.m_type) +
-					 "\nName: " + container_info.m_name +
-					 "\nImage: " + container_info.m_image +
-					 "\nMesos Task ID: " + container_info.m_mesos_task_id, sinsp_logger::SEV_DEBUG);
+		SINSP_STR_DEBUG("Container\n-------\nID:" + container_info.m_id +
+		                "\nType: " + std::to_string(container_info.m_type) +
+		                "\nName: " + container_info.m_name +
+		                "\nImage: " + container_info.m_image +
+		                "\nMesos Task ID: " + container_info.m_mesos_task_id);
 		*/
 	}
 	else
@@ -4729,15 +4772,16 @@ int sinsp_parser::get_k8s_version(const std::string& json)
 {
 	if(m_k8s_capture_version == k8s_state_t::CAPTURE_VERSION_NONE)
 	{
-		g_logger.log(json, sinsp_logger::SEV_DEBUG);
+		SINSP_STR_DEBUG(json);
 		Json::Value root;
 		if(Json::Reader().parse(json, root))
 		{
 			const Json::Value& items = root["items"]; // new
 			if(!items.isNull())
 			{
-				g_logger.log("K8s capture version " + std::to_string(k8s_state_t::CAPTURE_VERSION_2) + " detected.",
-							 sinsp_logger::SEV_DEBUG);
+				SINSP_STR_DEBUG("K8s capture version " +
+				                std::to_string(k8s_state_t::CAPTURE_VERSION_2) +
+				                " detected.");
 				m_k8s_capture_version = k8s_state_t::CAPTURE_VERSION_2;
 				return m_k8s_capture_version;
 			}
@@ -4745,8 +4789,9 @@ int sinsp_parser::get_k8s_version(const std::string& json)
 			const Json::Value& object = root["object"]; // old
 			if(!object.isNull())
 			{
-				g_logger.log("K8s capture version " + std::to_string(k8s_state_t::CAPTURE_VERSION_2) + " detected.",
-							 sinsp_logger::SEV_DEBUG);
+				SINSP_STR_DEBUG("K8s capture version " +
+				                std::to_string(k8s_state_t::CAPTURE_VERSION_2) +
+				                " detected.");
 				m_k8s_capture_version = k8s_state_t::CAPTURE_VERSION_1;
 				return m_k8s_capture_version;
 			}
@@ -4769,7 +4814,7 @@ void sinsp_parser::parse_k8s_evt(sinsp_evt *evt)
 	ASSERT(parinfo);
 	ASSERT(parinfo->m_len > 0);
 	std::string json(parinfo->m_val, parinfo->m_len);
-	//g_logger.log(json, sinsp_logger::SEV_DEBUG);
+	//SINSP_STR_DEBUG(json);
 	ASSERT(m_inspector);
 	if(!m_inspector)
 	{
@@ -4795,7 +4840,7 @@ void sinsp_parser::parse_mesos_evt(sinsp_evt *evt)
 	ASSERT(parinfo);
 	ASSERT(parinfo->m_len > 0);
 	std::string json(parinfo->m_val, parinfo->m_len);
-	//g_logger.log(json, sinsp_logger::SEV_DEBUG);
+	//SINSP_STR_DEBUG(json);
 	ASSERT(m_inspector);
 	ASSERT(m_inspector->m_mesos_client);
 	m_inspector->m_mesos_client->simulate_event(json);

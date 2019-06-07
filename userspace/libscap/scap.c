@@ -39,7 +39,7 @@ limitations under the License.
 #include "scap.h"
 #ifdef HAS_CAPTURE
 #ifndef CYGWING_AGENT
-#include "../../driver/driver_config.h"
+#include "driver_config.h"
 #endif // CYGWING_AGENT
 #endif // HAS_CAPTURE
 #include "../../driver/ppm_ringbuffer.h"
@@ -732,11 +732,15 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 		return scap_open_nodriver_int(error, rc, args.proc_callback,
 					      args.proc_callback_context,
 					      args.import_users);
-	default:
-		snprintf(error, SCAP_LASTERR_SIZE, "incorrect mode %d", args.mode);
-		*rc = SCAP_FAILURE;
-		return NULL;
+	case SCAP_MODE_NONE:
+		// error
+		break;
 	}
+
+
+	snprintf(error, SCAP_LASTERR_SIZE, "incorrect mode %d", args.mode);
+	*rc = SCAP_FAILURE;
+	return NULL;
 }
 
 void scap_close(scap_t* handle)
@@ -1179,7 +1183,7 @@ static int32_t scap_next_nodriver(scap_t* handle, OUT scap_evt** pevent, OUT uin
 
 int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
-	int32_t res;
+	int32_t res = SCAP_FAILURE;
 
 	switch(handle->m_mode)
 	{
@@ -1194,7 +1198,7 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 		res = scap_next_nodriver(handle, pevent, pcpuid);
 		break;
 #endif
-	default:
+	case SCAP_MODE_NONE:
 		res = SCAP_FAILURE;
 	}
 
@@ -1905,9 +1909,6 @@ int32_t scap_enable_simpledriver_mode(scap_t* handle)
 	return SCAP_FAILURE;
 #else
 
-	//
-	// Tell the driver to change the snaplen
-	//
 	if(handle->m_bpf)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "setting simpledriver mode not supported on bpf");

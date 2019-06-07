@@ -23,6 +23,7 @@ limitations under the License.
 #include "container_engine/libvirt_lxc.h"
 #include "container_engine/lxc.h"
 #include "container_engine/mesos.h"
+#include "container_engine/bpm.h"
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -231,18 +232,11 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 
 bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp_evt* evt, shared_ptr<sinsp_threadinfo> tinfo)
 {
-	// TODO: variable event length
-	size_t evt_len = SP_EVT_BUF_SIZE;
 	size_t totlen = sizeof(scap_evt) +  sizeof(uint16_t) + json.length() + 1;
 
-	if(totlen > evt_len)
-	{
-		g_logger.format(sinsp_logger::SEV_ERROR,
-				"container_to_sinsp_event: event len %d > max len %d w/ json \"%s\", returning false",
-				totlen, evt_len, json.c_str());
-		ASSERT(false);
-		return false;
-	}
+	ASSERT(evt->m_pevt_storage == nullptr);
+	evt->m_pevt_storage = new char[totlen];
+	evt->m_pevt = (scap_evt *) evt->m_pevt_storage;
 
 	evt->m_cpuid = 0;
 	evt->m_evtnum = 0;
@@ -297,8 +291,6 @@ void sinsp_container_manager::add_container(const sinsp_container_info& containe
 void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info)
 {
 	sinsp_evt *evt = new sinsp_evt();
-	evt->m_pevt_storage = new char[SP_EVT_BUF_SIZE];
-	evt->m_pevt = (scap_evt *) evt->m_pevt_storage;
 
 	if(container_to_sinsp_event(container_to_json(container_info), evt, container_info.get_tinfo(m_inspector)))
 	{
@@ -324,9 +316,10 @@ void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)
 {
 	for(unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.begin(); it != m_containers.end(); ++it)
 	{
-		if(container_to_sinsp_event(container_to_json(it->second), &m_inspector->m_meta_evt, it->second.get_tinfo(m_inspector)))
+		sinsp_evt evt;
+		if(container_to_sinsp_event(container_to_json(it->second), &evt, it->second.get_tinfo(m_inspector)))
 		{
-			int32_t res = scap_dump(m_inspector->m_h, dumper, m_inspector->m_meta_evt.m_pevt, m_inspector->m_meta_evt.m_cpuid, 0);
+			int32_t res = scap_dump(m_inspector->m_h, dumper, evt.m_pevt, evt.m_cpuid, 0);
 			if(res != SCAP_SUCCESS)
 			{
 				throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
@@ -445,6 +438,7 @@ void sinsp_container_manager::create_engines()
 	m_container_engines.emplace_back(new container_engine::libvirt_lxc());
 	m_container_engines.emplace_back(new container_engine::mesos());
 	m_container_engines.emplace_back(new container_engine::rkt());
+	m_container_engines.emplace_back(new container_engine::bpm());
 #endif
 }
 

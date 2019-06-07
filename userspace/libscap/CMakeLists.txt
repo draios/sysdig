@@ -39,6 +39,8 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 		scap_bpf.c
 		../../driver/syscall_table.c
 		../../driver/fillers_table.c)
+
+    include_directories(${PROJECT_BINARY_DIR}/driver/src)
 endif()
 
 if(CYGWIN)

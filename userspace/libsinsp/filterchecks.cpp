@@ -4442,12 +4442,16 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 							vector<string> subelements = sinsp_split(e, ':');
 							ASSERT(subelements.size() == 2);
 							m_strstorage = trim(subelements[1]);
+							if(m_strstorage.length() > 12)
+							{
+								m_strstorage = m_strstorage.substr(0, 12);
+							}
 							RETURN_EXTRACT_STRING(m_strstorage);
 						}
 					}
 					else if(m_field_id == TYPE_INFRA_DOCKER_CONTAINER_NAME)
 					{
-						if(e.substr(0, sizeof("Name") - 1) == "Name")
+						if(e.substr(0, sizeof("name") - 1) == "name")
 						{
 							vector<string> subelements = sinsp_split(e, ':');
 							ASSERT(subelements.size() == 2);
@@ -4461,7 +4465,17 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 						{
 							vector<string> subelements = sinsp_split(e, ':');
 							ASSERT(subelements.size() == 2);
-							m_strstorage = trim(subelements[1]);
+							m_strstorage = subelements[1];
+
+							if(m_strstorage.find("@") != string::npos)
+							{
+								m_strstorage = m_strstorage.substr(0, m_strstorage.find("@"));
+							}
+							else if(m_strstorage.find("sha256") != string::npos)
+							{
+								m_strstorage = e.substr(e.find(":") + 1);
+							}
+							m_strstorage = trim(m_strstorage);
 							RETURN_EXTRACT_STRING(m_strstorage);
 						}
 					}
@@ -6204,6 +6218,9 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 				break;
 			case sinsp_container_type::CT_RKT:
 				m_tstr = "rkt";
+				break;
+			case sinsp_container_type::CT_BPM:
+				m_tstr = "bpm";
 				break;
 			default:
 				ASSERT(false);

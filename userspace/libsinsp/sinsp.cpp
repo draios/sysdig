@@ -63,6 +63,7 @@ void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_thr
 ///////////////////////////////////////////////////////////////////////////////
 sinsp::sinsp() :
 	m_evt(this),
+	m_lastevent_ts(0),
 	m_container_manager(this),
 	m_suppressed_comms()
 {
@@ -115,11 +116,6 @@ sinsp::sinsp() :
 	m_filesize = -1;
 	m_track_tracers_state = false;
 	m_import_users = true;
-	m_meta_evt_buf = new char[SP_EVT_BUF_SIZE];
-	m_meta_evt.m_pevt = (scap_evt*) m_meta_evt_buf;
-	m_meta_evt_pending = false;
-	m_meta_skipped_evt_res = 0;
-	m_meta_skipped_evt = NULL;
 	m_next_flush_time_ns = 0;
 	m_last_procrequest_tod = 0;
 	m_get_procs_cpu_from_driver = false;
@@ -197,12 +193,6 @@ sinsp::~sinsp()
 	{
 		delete m_cycle_writer;
 		m_cycle_writer = NULL;
-	}
-
-	if(m_meta_evt_buf)
-	{
-		delete[] m_meta_evt_buf;
-		m_meta_evt_buf = NULL;
 	}
 
 	if(m_meinfo.m_piscapevt)
@@ -1061,12 +1051,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			m_meta_event_callback(this, m_meta_event_callback_data);
 		}
 	}
-	else if (m_meta_evt_pending && m_meta_skipped_evt != NULL)
-	{
-		res = m_meta_skipped_evt_res;
-		evt = m_meta_skipped_evt;
-		m_meta_evt_pending = false;
-	}
 	else if (m_pending_container_evts.try_pop(m_container_evt))
 	{
 		res = SCAP_SUCCESS;
@@ -1102,7 +1086,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	#ifdef HAS_ANALYZER
 				if(m_analyzer)
 				{
-					m_analyzer->process_event(NULL, sinsp_analyzer::DF_TIMEOUT);
+					m_analyzer->process_event(NULL, analyzer_emitter::DF_TIMEOUT);
 				}
 	#endif
 				*puevt = NULL;
@@ -1113,7 +1097,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	#ifdef HAS_ANALYZER
 				if(m_analyzer)
 				{
-					m_analyzer->process_event(NULL, sinsp_analyzer::DF_EOF);
+					m_analyzer->process_event(NULL, analyzer_emitter::DF_EOF);
 				}
 	#endif
 			}
@@ -1284,10 +1268,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	sd = should_drop(evt, &m_isdropping, &sw);
 #endif
 
-	// No meta event is pending unless it's set in process_event
-	// below.
-	m_meta_evt_pending = false;
-
 	//
 	// Run the state engine
 	//
@@ -1305,24 +1285,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 #else
 	m_parser->process_event(evt);
 #endif
-
-	// A side-effect of parsing this event may have generated a
-	// meta event. For example, parsing an execve or clone into a
-	// new cgroup may have created a container event.
-	//
-	// We want that meta event to be returned/written to files
-	// *before* the original system event. So save the system
-	// event so it can be returned/written in the next call to
-	// sinsp::next() and make the meta event the current event.
-
-	if(m_meta_evt_pending)
-	{
-		m_meta_evt.m_evtnum = evt->m_evtnum;
-		m_meta_skipped_evt = evt;
-		m_meta_skipped_evt_res = res;
-		res = SCAP_SUCCESS;
-		evt = &m_meta_evt;
-	}
 
 	//
 	// If needed, dump the event to file
@@ -1397,19 +1359,19 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		{
 			if(m_isdropping)
 			{
-				m_analyzer->process_event(evt, sinsp_analyzer::DF_FORCE_FLUSH);
+				m_analyzer->process_event(evt, analyzer_emitter::DF_FORCE_FLUSH);
 			}
 			else if(sw)
 			{
-				m_analyzer->process_event(evt, sinsp_analyzer::DF_FORCE_FLUSH_BUT_DONT_EMIT);
+				m_analyzer->process_event(evt, analyzer_emitter::DF_FORCE_FLUSH_BUT_DONT_EMIT);
 			}
 			else
 			{
-				m_analyzer->process_event(evt, sinsp_analyzer::DF_FORCE_NOFLUSH);
+				m_analyzer->process_event(evt, analyzer_emitter::DF_FORCE_NOFLUSH);
 			}
 		}
 #else // SIMULATE_DROP_MODE
-		m_analyzer->process_event(evt, sinsp_analyzer::DF_NONE);
+		m_analyzer->process_event(evt, analyzer_emitter::DF_NONE);
 #endif // SIMULATE_DROP_MODE
 	}
 #endif
