@@ -62,6 +62,7 @@ void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_thr
 // sinsp implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp::sinsp() :
+	m_external_event_processors(),
 	m_evt(this),
 	m_lastevent_ts(0),
 	m_container_manager(this),
@@ -87,9 +88,6 @@ sinsp::sinsp() :
 	m_inactive_container_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_cycle_writer = NULL;
 	m_write_cycling = false;
-#ifdef HAS_ANALYZER
-	m_analyzer = NULL;
-#endif
 
 #ifdef HAS_FILTERING
 	m_filter = NULL;
@@ -358,15 +356,11 @@ void sinsp::init()
 		}
 
 
-#ifdef HAS_ANALYZER
-		//
-		// Notify the analyzer that we're starting
-		//
-		if(m_analyzer)
+		// Notify external listeners we're starting
+		for (auto i : m_external_event_processors)
 		{
-			m_analyzer->on_capture_start();
+			i->on_capture_start();
 		}
-#endif
 
 		//
 		// Rewind, reset the event count, and consume the exact number of events
@@ -399,15 +393,11 @@ void sinsp::init()
 	//
 	m_thread_manager->fix_sockets_coming_from_proc();
 
-#ifdef HAS_ANALYZER
-	//
-	// Notify the analyzer that we're starting
-	//
-	if(m_analyzer)
+	// Notify external listeners we're starting
+	for (auto i : m_external_event_processors)
 	{
-		m_analyzer->on_capture_start();
+		i->on_capture_start();
 	}
-#endif
 
 	//
 	// If m_snaplen was modified, we set snaplen now
@@ -1083,23 +1073,20 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		{
 			if(res == SCAP_TIMEOUT)
 			{
-	#ifdef HAS_ANALYZER
-				if(m_analyzer)
+				for (auto i : m_external_event_processors)
 				{
-					m_analyzer->process_event(NULL, analyzer_emitter::DF_TIMEOUT);
+					i->process_event(NULL, libsinsp::EVENT_RETURN_TIMEOUT);
 				}
-	#endif
+
 				*puevt = NULL;
 				return res;
 			}
 			else if(res == SCAP_EOF)
 			{
-	#ifdef HAS_ANALYZER
-				if(m_analyzer)
+				for (auto i : m_external_event_processors)
 				{
-					m_analyzer->process_event(NULL, analyzer_emitter::DF_EOF);
+					i->process_event(NULL, libsinsp::EVENT_RETURN_EOF);
 				}
-	#endif
 			}
 			else if(res == SCAP_UNEXPECTED_BLOCK)
 			{
@@ -1260,11 +1247,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	bool sd = false;
 	bool sw = false;
 
-	if(m_analyzer)
-	{
-		m_analyzer->m_configuration->set_analyzer_sample_len_ns(500000000);
-	}
-
 	sd = should_drop(evt, &m_isdropping, &sw);
 #endif
 
@@ -1349,32 +1331,12 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 #endif
 
 	//
-	// Run the analysis engine
+	// Run external processors
 	//
-#ifdef HAS_ANALYZER
-	if(m_analyzer)
+	for (auto i : m_external_event_processors)
 	{
-#ifdef SIMULATE_DROP_MODE
-		if(!sd || m_isdropping || sw)
-		{
-			if(m_isdropping)
-			{
-				m_analyzer->process_event(evt, analyzer_emitter::DF_FORCE_FLUSH);
-			}
-			else if(sw)
-			{
-				m_analyzer->process_event(evt, analyzer_emitter::DF_FORCE_FLUSH_BUT_DONT_EMIT);
-			}
-			else
-			{
-				m_analyzer->process_event(evt, analyzer_emitter::DF_FORCE_NOFLUSH);
-			}
-		}
-#else // SIMULATE_DROP_MODE
-		m_analyzer->process_event(evt, analyzer_emitter::DF_NONE);
-#endif // SIMULATE_DROP_MODE
+		i->process_event(NULL, libsinsp::EVENT_RETURN_NONE);
 	}
-#endif
 
 	// Clean parse related event data after analyzer did its parsing too
 	m_parser->event_cleanup(evt);

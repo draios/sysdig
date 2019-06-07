@@ -753,7 +753,6 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 				// Remove the fd from the different tables
 				//
 				eparams.m_remove_from_table = true;
-				eparams.m_inspector = m_inspector;
 				eparams.m_tinfo = tinfo;
 				eparams.m_ts = evt->get_ts();
 
@@ -2832,8 +2831,8 @@ void sinsp_parser::erase_fd(erase_fd_params* params)
 	//
 	if(params->m_remove_from_table)
 	{
-		params->m_inspector->m_tid_of_fd_to_remove = params->m_tinfo->m_tid;
-		params->m_inspector->m_fds_to_remove->push_back(params->m_fd);
+		m_inspector->m_tid_of_fd_to_remove = params->m_tinfo->m_tid;
+		m_inspector->m_fds_to_remove->push_back(params->m_fd);
 	}
 
 	if(m_fd_listener)
@@ -2886,7 +2885,6 @@ void sinsp_parser::parse_close_exit(sinsp_evt *evt)
 		// Remove the fd from the different tables
 		//
 		eparams.m_remove_from_table = true;
-		eparams.m_inspector = m_inspector;
 		eparams.m_tinfo = evt->m_tinfo;
 		eparams.m_ts = evt->get_ts();
 
@@ -4006,7 +4004,6 @@ void sinsp_parser::parse_dup_exit(sinsp_evt *evt)
 			eparams.m_fd = retval;
 			eparams.m_fdinfo = oldfdinfo;
 			eparams.m_remove_from_table = false;
-			eparams.m_inspector = m_inspector;
 			eparams.m_tinfo = evt->m_tinfo;
 			eparams.m_ts = evt->get_ts();
 

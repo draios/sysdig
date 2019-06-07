@@ -1580,7 +1580,10 @@ int lua_cbacks::push_metric(lua_State *ls)
 		throw sinsp_exception("chisel error");
 	}
 
-	inspector->m_analyzer->add_chisel_metric(&metric);
+	for (auto i : inspector->m_external_event_processors)
+	{
+		i->add_chisel_metric(&metric);
+	}
 
 	return 0;
 }

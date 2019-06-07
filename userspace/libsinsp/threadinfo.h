@@ -47,7 +47,6 @@ class blprogram;
 typedef struct erase_fd_params
 {
 	bool m_remove_from_table;
-	sinsp* m_inspector;
 	int64_t m_fd;
 	sinsp_threadinfo* m_tinfo;
 	sinsp_fdinfo_t* m_fdinfo;
