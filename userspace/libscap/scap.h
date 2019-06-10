@@ -1041,6 +1041,13 @@ wh_t* scap_get_wmi_handle(scap_t* handle);
 #endif
 int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, uint16_t range_end);
 
+/**
+ * By default we have an expanded snaplen for the default statsd port. If the
+ * statsd port is non-standard, communicate that port value to the kernel to
+ * get the expanded snaplen for the correct port.
+ */
+int32_t scap_set_statsd_port(scap_t* handle, uint16_t port);
+
 #ifdef __cplusplus
 }
 #endif

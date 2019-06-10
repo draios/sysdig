@@ -39,6 +39,7 @@ int32_t scap_bpf_stop_capture(scap_t *handle);
 int32_t scap_bpf_close(scap_t *handle);
 int32_t scap_bpf_set_snaplen(scap_t* handle, uint32_t snaplen);
 int32_t scap_bpf_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, uint16_t range_end);
+int32_t scap_bpf_set_statsd_port(scap_t* handle, uint16_t port);
 int32_t scap_bpf_enable_dynamic_snaplen(scap_t* handle);
 int32_t scap_bpf_disable_dynamic_snaplen(scap_t* handle);
 int32_t scap_bpf_enable_page_faults(scap_t* handle);
