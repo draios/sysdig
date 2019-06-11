@@ -9,9 +9,20 @@ or GPL2.txt for full copies of the license.
 #ifndef __FILLERS_H
 #define __FILLERS_H
 
+/*
+ * https://chromium.googlesource.com/chromiumos/third_party/kernel/+/096925a44076ba5c52faa84d255a847130ff341e%5E%21/#F2
+ * This commit diverged the ChromiumOS kernel from stock in the area of audit
+ * information, which this probe accesses.
+ *
+ * If running on a patched version of COS, enable this #define to get the
+ * probe to build.
+ */
+//#define COS_73_WORKAROUND
+
 #include "../ppm_flag_helpers.h"
 
 #include <linux/tty.h>
+#include <linux/audit.h>
 
 #define FILLER_RAW(x)							\
 static __always_inline int __bpf_##x(struct filler_data *data);		\
@@ -2014,7 +2025,19 @@ FILLER(proc_startupdate_3, true)
 		 * loginuid
 		 */
 		/* TODO: implement user namespace support */
+#ifdef COS_73_WORKAROUND
+		{
+			struct audit_task_info* audit = _READ(task->audit);
+			if (audit) {
+				loginuid = _READ(audit->loginuid);
+			} else {
+				loginuid = INVALID_UID;
+			}
+		}
+#else
 		loginuid = _READ(task->loginuid);
+#endif
+
 		res = bpf_val_to_ring_type(data, loginuid.val, PT_INT32);
 		if (res != PPM_SUCCESS)
 			return res;

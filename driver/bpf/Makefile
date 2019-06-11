@@ -32,6 +32,7 @@ $(obj)/probe.o: $(src)/probe.c \
 		$(src)/types.h
 	$(CLANG) $(LINUXINCLUDE) \
 		$(KBUILD_CPPFLAGS) \
+		$(KBUILD_EXTRA_CPPFLAGS) \
 		$(DEBUG) \
 		-D__KERNEL__ \
 		-D__BPF_TRACING__ \
