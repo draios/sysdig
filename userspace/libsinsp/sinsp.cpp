@@ -125,6 +125,7 @@ sinsp::sinsp() :
 	m_next_stats_print_time_ns = 0;
 	m_large_envs_enabled = false;
 	m_increased_snaplen_port_range = DEFAULT_INCREASE_SNAPLEN_PORT_RANGE;
+	m_statsd_port = -1;
 
 	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
 	m_print_container_data = false;
@@ -424,6 +425,14 @@ void sinsp::init()
 	{
 		set_fullcapture_port_range(m_increased_snaplen_port_range.range_start,
 		                           m_increased_snaplen_port_range.range_end);
+	}
+
+	//
+	// If the statsd port was modified, push it to the kernel now.
+	//
+	if(m_statsd_port != -1)
+	{
+		set_statsd_port(m_statsd_port);
 	}
 
 #if defined(HAS_CAPTURE)
@@ -1636,6 +1645,29 @@ void sinsp::set_fullcapture_port_range(uint16_t range_start, uint16_t range_end)
 	}
 
 	if(scap_set_fullcapture_port_range(m_h, range_start, range_end) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+}
+
+void sinsp::set_statsd_port(const uint16_t port)
+{
+	//
+	// If this method is called before opening of the inspector,
+	// we register the value to be set after its initialization.
+	//
+	if(m_h == NULL)
+	{
+		m_statsd_port = port;
+		return;
+	}
+
+	if(!is_live())
+	{
+		throw sinsp_exception("set_statsd_port called on a trace file");
+	}
+
+	if(scap_set_statsd_port(m_h, port) != SCAP_SUCCESS)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
 	}

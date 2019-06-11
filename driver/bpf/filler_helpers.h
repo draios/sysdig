@@ -383,7 +383,7 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 						  *(s32 *)&get_buf(12) == 2006 ||
 						  *(s32 *)&get_buf(12) == 2007))) {
 		return 2000;
-	} else if (dport == PPM_PORT_STATSD) {
+	} else if (dport == data->settings->statsd_port) {
 		return 2000;
 	} else {
 		if (lookahead_size >= 5) {

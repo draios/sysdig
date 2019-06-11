@@ -1454,6 +1454,7 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_GET_N_TRACEPOINT_HIT _IO(PPM_IOCTL_MAGIC, 20)
 #define PPM_IOCTL_GET_PROBE_VERSION _IO(PPM_IOCTL_MAGIC, 21)
 #define PPM_IOCTL_SET_FULLCAPTURE_PORT_RANGE _IO(PPM_IOCTL_MAGIC, 22)
+#define PPM_IOCTL_SET_STATSD_PORT _IO(PPM_IOCTL_MAGIC, 23)
 #endif // CYGWING_AGENT
 
 extern const struct ppm_name_value socket_families[];

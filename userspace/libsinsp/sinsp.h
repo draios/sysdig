@@ -900,6 +900,8 @@ public:
 
 	void set_fullcapture_port_range(uint16_t range_start, uint16_t range_end);
 
+	void set_statsd_port(uint16_t port);
+
 	void set_cri_socket_path(const std::string& path);
 	void set_cri_timeout(int64_t timeout_ms);
 
@@ -1133,6 +1135,8 @@ public:
 		uint16_t range_start;
 		uint16_t range_end;
 	} m_increased_snaplen_port_range;
+
+	int32_t m_statsd_port;
 
 	//
 	// Some thread table limits

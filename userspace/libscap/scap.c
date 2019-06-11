@@ -2088,3 +2088,65 @@ int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, ui
 	return SCAP_SUCCESS;
 #endif
 }
+
+int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
+{
+	//
+	// Not supported on files
+	//
+	if(handle->m_mode != SCAP_MODE_LIVE)
+	{
+		snprintf(handle->m_lasterr,
+		         SCAP_LASTERR_SIZE,
+		         "scap_set_statsd_port not supported on this scap mode");
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
+	snprintf(handle->m_lasterr,
+	         SCAP_LASTERR_SIZE,
+	         "live capture not supported on %s",
+	         PLATFORM_NAME);
+	return SCAP_FAILURE;
+#else
+
+	if(handle->m_bpf)
+	{
+		return scap_bpf_set_statsd_port(handle, port);
+	}
+	else
+	{
+		//
+		// Beam the value down to the module
+		//
+		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_STATSD_PORT, port))
+		{
+			snprintf(handle->m_lasterr,
+			         SCAP_LASTERR_SIZE,
+			         "scap_set_statsd_port: ioctl failed");
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
+
+		{
+			uint32_t j;
+
+			//
+			// Force a flush of the read buffers, so we don't
+			// capture events with the old snaplen
+			//
+			for(j = 0; j < handle->m_ndevs; j++)
+			{
+				scap_readbuf(handle,
+				             j,
+				             &handle->m_devs[j].m_sn_next_event,
+				             &handle->m_devs[j].m_sn_len);
+
+				handle->m_devs[j].m_sn_len = 0;
+			}
+		}
+	}
+
+	return SCAP_SUCCESS;
+#endif
+}
