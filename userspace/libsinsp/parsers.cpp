@@ -4508,29 +4508,43 @@ namespace
 
 		return std::move(err_msg);
 	}
-}
 
-bool sinsp_parser::check_json_val_is_convertible(const Json::Value& value, Json::ValueType other, const char* field, bool log_message)
-{
-	if(value.isNull()) {
+	bool check_int64_json_is_convertible(const Json::Value& value, const char* field) {
+		if(!value.isNull())
+		{
+			// isConvertibleTo doesn't seem to work on large 64 bit numbers
+			if(value.isInt64()) {
+				return true;
+			} else {
+				std::string err_msg = generate_error_message(value, field);
+				SINSP_DEBUG("%s",err_msg.c_str());
+			}
+		}
 		return false;
 	}
 	
-	if(!value.isConvertibleTo(other)) {
-		std::string err_msg;
+	bool check_json_val_is_convertible(const Json::Value& value, Json::ValueType other, const char* field, bool log_message=false)
+	{
+		if(value.isNull()) {
+			return false;
+		}
+	
+		if(!value.isConvertibleTo(other)) {
+			std::string err_msg;
 		
-		if(log_message) {
-			err_msg = generate_error_message(value, field);
-			SINSP_WARNING("%s",err_msg.c_str());
-		} else {
-			if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG) {
+			if(log_message) {
 				err_msg = generate_error_message(value, field);
-				SINSP_DEBUG("%s",err_msg.c_str());
-			}
-		}			
-		return false;
+				SINSP_WARNING("%s",err_msg.c_str());
+			} else {
+				if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG) {
+					err_msg = generate_error_message(value, field);
+					SINSP_DEBUG("%s",err_msg.c_str());
+				}
+			}			
+			return false;
+		}
+		return true;
 	}
-	return true;
 }
 
 void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
@@ -4659,33 +4673,33 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		}
 
 		const Json::Value& memory_limit = container["memory_limit"];
-		if(check_json_val_is_convertible(memory_limit, Json::uintValue, "memory_limit"))
+		if(check_int64_json_is_convertible(memory_limit, "memory_limit"))
 		{
-			container_info.m_memory_limit = memory_limit.asUInt();
+			container_info.m_memory_limit = memory_limit.asInt64();
 		}
 
 		const Json::Value& swap_limit = container["swap_limit"];
-		if(check_json_val_is_convertible(swap_limit, Json::uintValue, "swap_limit"))
+		if(check_int64_json_is_convertible(swap_limit, "swap_limit"))
 		{
-			container_info.m_swap_limit = swap_limit.asUInt();
+			container_info.m_swap_limit = swap_limit.asInt64();
 		}
 
 		const Json::Value& cpu_shares = container["cpu_shares"];
-		if(check_json_val_is_convertible(cpu_shares, Json::uintValue, "cpu_shares"))
+		if(check_int64_json_is_convertible(cpu_shares, "cpu_shares"))
 		{
-			container_info.m_cpu_shares = cpu_shares.asUInt();
+			container_info.m_cpu_shares = cpu_shares.asInt64();
 		}
 
 		const Json::Value& cpu_quota = container["cpu_quota"];
-		if(check_json_val_is_convertible(cpu_quota, Json::uintValue, "cpu_quota"))
+		if(check_int64_json_is_convertible(cpu_quota, "cpu_quota"))
 		{
-			container_info.m_cpu_quota = cpu_quota.asUInt();
+			container_info.m_cpu_quota = cpu_quota.asInt64();
 		}
 
 		const Json::Value& cpu_period = container["cpu_period"];
-		if(check_json_val_is_convertible(cpu_period, Json::uintValue, "cpu_period"))
+		if(check_int64_json_is_convertible(cpu_period, "cpu_period"))
 		{
-			container_info.m_cpu_period = cpu_period.asUInt();
+			container_info.m_cpu_period = cpu_period.asInt64();
 		}
 
 		const Json::Value& mesos_task_id = container["mesos_task_id"];
