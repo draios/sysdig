@@ -439,6 +439,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	consumer->need_to_insert_drop_x = 0;
 	consumer->fullcapture_port_range_start = 0;
 	consumer->fullcapture_port_range_end = 0;
+	consumer->statsd_port = PPM_PORT_STATSD;
 	bitmap_fill(g_events_mask, PPM_EVENT_MAX); /* Enable all syscall to be passed to userspace */
 	reset_ring_buffer(ring);
 	ring->open = true;
@@ -906,6 +907,15 @@ cleanup_ioctl_procinfo:
 
 		pr_info("new fullcapture_port_range_start: %d\n", (int)consumer->fullcapture_port_range_start);
 		pr_info("new fullcapture_port_range_end: %d\n", (int)consumer->fullcapture_port_range_end);
+
+		ret = 0;
+		goto cleanup_ioctl;
+	}
+	case PPM_IOCTL_SET_STATSD_PORT:
+	{
+		consumer->statsd_port = (u16)arg;
+
+		pr_info("new statsd_port: %d\n", (int)consumer->statsd_port);
 
 		ret = 0;
 		goto cleanup_ioctl;
