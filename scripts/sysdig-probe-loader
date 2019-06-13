@@ -34,11 +34,13 @@ cos_version_greater()
 	#
 	# COS build numbers are in the format x.y.z
 	#
+	a=`echo $cos_ver | cut -d. -f1`
+	b=`echo $cos_ver | cut -d. -f2`
+	c=`echo $cos_ver | cut -d. -f3`
 
-	local IFS=.
-
-	echo $cos_ver | read -r a b c
-	echo $base_ver | read -r d e f
+	d=`echo $base_ver | cut -d. -f1`
+	e=`echo $base_ver | cut -d. -f2`
+	f=`echo $base_ver | cut -d. -f3`
 
 	# Test the first component
 	if [[ $a -gt $d ]]; then
@@ -251,7 +253,10 @@ load_bpf_probe() {
 			cos_ver=${BUILD_ID}
 			base_ver=11553.0.0
 
-			if [[ cos_version_greater -eq 1 ]]; then
+			cos_version_greater
+			greater_ret=$?
+
+			if [[ greater_ret -eq 1 ]]; then
 				export KBUILD_EXTRA_CPPFLAGS=-DCOS_73_WORKAROUND
 			fi
 		fi
