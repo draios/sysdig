@@ -44,10 +44,8 @@ cos_version_greater()
 
 	# Test the first component
 	if [[ $a -gt $d ]]; then
-		echo "${a} > ${d}"
 		return 1
 	elif [[ $d -gt $a ]]; then
-		echo "${d} > ${a}"
 		return 0
 	fi
 
