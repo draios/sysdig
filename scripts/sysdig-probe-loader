@@ -43,7 +43,7 @@ cos_version_greater()
 	# Test the first component
 	if [[ $a -gt $d ]]; then
 		return 1
-	elif [[ $d -gt $d ]]; then
+	elif [[ $d -gt $a ]]; then
 		return 0
 	fi
 
