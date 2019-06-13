@@ -900,6 +900,8 @@ public:
 
 	void set_fullcapture_port_range(uint16_t range_start, uint16_t range_end);
 
+	void set_statsd_port(uint16_t port);
+
 	void set_cri_socket_path(const std::string& path);
 	void set_cri_timeout(int64_t timeout_ms);
 
@@ -1015,7 +1017,7 @@ private:
 	uint32_t m_nevts;
 	int64_t m_filesize;
 
-	scap_mode_t m_mode = SCAP_MODE_LIVE;
+	scap_mode_t m_mode = SCAP_MODE_NONE;
 
 	// If non-zero, reading from this fd and m_input_filename contains "fd
 	// <m_input_fd>". Otherwise, reading from m_input_filename.
@@ -1134,6 +1136,8 @@ public:
 		uint16_t range_end;
 	} m_increased_snaplen_port_range;
 
+	int32_t m_statsd_port;
+
 	//
 	// Some thread table limits
 	//
@@ -1183,16 +1187,6 @@ public:
 	// Protocol decoding state
 	//
 	std::vector<sinsp_protodecoder*> m_decoders_reset_list;
-
-	//
-	// Containers meta event management
-	//
-	sinsp_evt m_meta_evt; // XXX this should go away
-	char* m_meta_evt_buf; // XXX this should go away
-	bool m_meta_evt_pending; // XXX this should go away
-
-	int32_t m_meta_skipped_evt_res;
-	sinsp_evt* m_meta_skipped_evt;
 
 	//
 	// meta event management for other sources like k8s, mesos.

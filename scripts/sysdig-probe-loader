@@ -22,6 +22,51 @@
 # a container or in other weird environments.
 #
 
+#
+# Returns 1 if $cos_ver > $base_ver, 0 otherwise
+#
+cos_version_greater()
+{
+	if [[ $cos_ver == $base_ver ]]; then
+		return 0
+	fi
+
+	#
+	# COS build numbers are in the format x.y.z
+	#
+
+	local IFS=.
+
+	echo $cos_ver | read -r a b c
+	echo $base_ver | read -r d e f
+
+	# Test the first component
+	if [[ $a -gt $d ]]; then
+		return 1
+	elif [[ $d -gt $d ]]; then
+		return 0
+	fi
+
+	# Test the second component
+	if [[ $b -gt $e ]]; then
+		return 1
+	elif [[ $e -gt $b ]]; then
+		return 0
+	fi
+
+	# Test the third component
+	if [[ $c -gt $f ]]; then
+		return 1
+	elif [[ $f -gt $c ]]; then
+		return 0
+	fi
+
+	# If we get here, probably malformatted version string?
+
+	return 0
+}
+
+
 get_kernel_config() {
 	if [ -f /proc/config.gz ]; then
 		echo "Found kernel config at /proc/config.gz"
@@ -177,31 +222,38 @@ load_bpf_probe() {
 		if [ -n "${COS}" ]; then
 			echo "* COS detected (build ${BUILD_ID}), downloading and setting up kernel headers"
 
-			local -r download_url="https://storage.googleapis.com/cos-tools/${BUILD_ID}/kernel-src.tar.gz"
+			local -r download_url="https://storage.googleapis.com/cos-tools/${BUILD_ID}/kernel-headers.tgz"
 
 			echo "* Downloading ${download_url}"
 
 			mkdir -p /tmp/kernel
 			cd /tmp/kernel
+			cd `mktemp -d`
 			if ! curl --create-dirs "${SYSDIG_PROBE_CURL_OPTIONS}" -O "${download_url}"; then
 				exit 1;
 			fi
 
 			echo "* Extracting kernel sources"
 
-			tar xf kernel-src.tar.gz
+			tar xf kernel-headers.tgz
 			zcat /proc/config.gz > .config
 			sed -i 's/LOCALVERSION=""/LOCALVERSION="+"/' .config
+
+			pushd usr/src/* > /dev/null
+			export KERNELDIR=`pwd`
 
 			sed -i '/^#define randomized_struct_fields_start	struct {$/d' include/linux/compiler-clang.h
 			sed -i '/^#define randomized_struct_fields_end	};$/d' include/linux/compiler-clang.h
 
-			echo "* Configuring kernel"
+			popd > /dev/null
 
-			make olddefconfig > /dev/null
-			make modules_prepare > /dev/null
+			# Might need to configure our own sources depending on COS version
+			cos_ver=${BUILD_ID}
+			base_ver=11553.0.0
 
-			export KERNELDIR=/tmp/kernel
+			if [[ cos_version_greater -eq 1 ]]; then
+				export KBUILD_EXTRA_CPPFLAGS=-DCOS_73_WORKAROUND
+			fi
 		fi
 
 		if [ -n "${MINIKUBE}" ]; then

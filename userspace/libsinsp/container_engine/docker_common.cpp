@@ -22,6 +22,7 @@ limitations under the License.
 #include "sinsp_int.h"
 #include "container.h"
 #include "utils.h"
+#include <unordered_set>
 
 using namespace libsinsp::container_engine;
 
@@ -319,18 +320,25 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 			Json::Value img_root;
 			if(reader.parse(img_json, img_root))
 			{
+				// img_root["RepoDigests"] contains only digests for images pulled from registries.
+				// If an image gets retagged and is never pushed to any registry, we will not find
+				// that entry in container->m_imagerepo. Also, for locally built images we have the
+				// same issue. This leads to container->m_imagedigest being empty as well.
+				unordered_set<std::string> imageDigestSet;
 				for(const auto& rdig : img_root["RepoDigests"])
 				{
 					if(rdig.isString())
 					{
 						string repodigest = rdig.asString();
+						string digest = repodigest.substr(repodigest.find('@')+1);
+						imageDigestSet.insert(digest);
 						if(container->m_imagerepo.empty())
 						{
-							container->m_imagerepo = repodigest.substr(0, repodigest.find("@"));
+							container->m_imagerepo = repodigest.substr(0, repodigest.find('@'));
 						}
 						if(repodigest.find(container->m_imagerepo) != string::npos)
 						{
-							container->m_imagedigest = repodigest.substr(repodigest.find("@")+1);
+							container->m_imagedigest = digest;
 							break;
 						}
 					}
@@ -350,6 +358,12 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 							break;
 						}
 					}
+				}
+				// fix image digest for locally tagged images or multiple repo digests.
+				// Case 1: One repo digest with many tags.
+				// Case 2: Many repo digests with the same digest value.
+				if(container->m_imagedigest.empty() && imageDigestSet.size() == 1) {
+					container->m_imagedigest = *imageDigestSet.begin();
 				}
 			}
 			else

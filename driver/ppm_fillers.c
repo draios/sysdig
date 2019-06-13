@@ -73,6 +73,15 @@ static inline struct inode *file_inode(struct file *f)
 	} while(0)
 #endif
 
+static inline struct pid_namespace *pid_ns_for_children(struct task_struct *task)
+{
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 11, 0))
+	return task->nsproxy->pid_ns;
+#else
+	return task->nsproxy->pid_ns_for_children;
+#endif
+}
+
 int f_sys_generic(struct event_filler_arguments *args)
 {
 	int res;
@@ -931,6 +940,10 @@ cgroups_error:
 		uint64_t euid = current->euid;
 		uint64_t egid = current->egid;
 #endif
+		int64_t in_pidns = 0;
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		struct pid_namespace *pidns = task_active_pid_ns(current);
+#endif
 
 		/*
 		 * flags
@@ -944,7 +957,11 @@ cgroups_error:
 		} else
 			val = 0;
 
-		res = val_to_ring(args, (uint64_t)clone_flags_to_scap(val), 0, false, 0);
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		if(pidns != &init_pid_ns || pid_ns_for_children(current) != pidns)
+			in_pidns = PPM_CL_CHILD_IN_PIDNS;
+#endif
+		res = val_to_ring(args, (uint64_t)clone_flags_to_scap(val) | in_pidns, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 

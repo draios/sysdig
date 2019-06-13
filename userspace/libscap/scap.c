@@ -39,7 +39,7 @@ limitations under the License.
 #include "scap.h"
 #ifdef HAS_CAPTURE
 #ifndef CYGWING_AGENT
-#include "../../driver/driver_config.h"
+#include "driver_config.h"
 #endif // CYGWING_AGENT
 #endif // HAS_CAPTURE
 #include "../../driver/ppm_ringbuffer.h"
@@ -732,11 +732,15 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 		return scap_open_nodriver_int(error, rc, args.proc_callback,
 					      args.proc_callback_context,
 					      args.import_users);
-	default:
-		snprintf(error, SCAP_LASTERR_SIZE, "incorrect mode %d", args.mode);
-		*rc = SCAP_FAILURE;
-		return NULL;
+	case SCAP_MODE_NONE:
+		// error
+		break;
 	}
+
+
+	snprintf(error, SCAP_LASTERR_SIZE, "incorrect mode %d", args.mode);
+	*rc = SCAP_FAILURE;
+	return NULL;
 }
 
 void scap_close(scap_t* handle)
@@ -1179,7 +1183,7 @@ static int32_t scap_next_nodriver(scap_t* handle, OUT scap_evt** pevent, OUT uin
 
 int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
-	int32_t res;
+	int32_t res = SCAP_FAILURE;
 
 	switch(handle->m_mode)
 	{
@@ -1194,7 +1198,7 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 		res = scap_next_nodriver(handle, pevent, pcpuid);
 		break;
 #endif
-	default:
+	case SCAP_MODE_NONE:
 		res = SCAP_FAILURE;
 	}
 
@@ -1905,9 +1909,6 @@ int32_t scap_enable_simpledriver_mode(scap_t* handle)
 	return SCAP_FAILURE;
 #else
 
-	//
-	// Tell the driver to change the snaplen
-	//
 	if(handle->m_bpf)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "setting simpledriver mode not supported on bpf");
@@ -2078,6 +2079,68 @@ int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, ui
 							j,
 							&handle->m_devs[j].m_sn_next_event,
 							&handle->m_devs[j].m_sn_len);
+
+				handle->m_devs[j].m_sn_len = 0;
+			}
+		}
+	}
+
+	return SCAP_SUCCESS;
+#endif
+}
+
+int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
+{
+	//
+	// Not supported on files
+	//
+	if(handle->m_mode != SCAP_MODE_LIVE)
+	{
+		snprintf(handle->m_lasterr,
+		         SCAP_LASTERR_SIZE,
+		         "scap_set_statsd_port not supported on this scap mode");
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
+	snprintf(handle->m_lasterr,
+	         SCAP_LASTERR_SIZE,
+	         "live capture not supported on %s",
+	         PLATFORM_NAME);
+	return SCAP_FAILURE;
+#else
+
+	if(handle->m_bpf)
+	{
+		return scap_bpf_set_statsd_port(handle, port);
+	}
+	else
+	{
+		//
+		// Beam the value down to the module
+		//
+		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_STATSD_PORT, port))
+		{
+			snprintf(handle->m_lasterr,
+			         SCAP_LASTERR_SIZE,
+			         "scap_set_statsd_port: ioctl failed");
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
+
+		{
+			uint32_t j;
+
+			//
+			// Force a flush of the read buffers, so we don't
+			// capture events with the old snaplen
+			//
+			for(j = 0; j < handle->m_ndevs; j++)
+			{
+				scap_readbuf(handle,
+				             j,
+				             &handle->m_devs[j].m_sn_next_event,
+				             &handle->m_devs[j].m_sn_len);
 
 				handle->m_devs[j].m_sn_len = 0;
 			}

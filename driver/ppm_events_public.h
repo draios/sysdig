@@ -163,6 +163,8 @@ or GPL2.txt for full copies of the license.
 #define PPM_CL_CLONE_STOPPED (1 << 26)
 #define PPM_CL_CLONE_VFORK (1 << 27)
 #define PPM_CL_CLONE_NEWCGROUP (1 << 28)
+#define PPM_CL_CHILD_IN_PIDNS (1<<29)			/* true if the thread created by clone() is *not*
+									in the init pid namespace */
 
 /*
  * Futex Operations
@@ -1454,6 +1456,7 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_GET_N_TRACEPOINT_HIT _IO(PPM_IOCTL_MAGIC, 20)
 #define PPM_IOCTL_GET_PROBE_VERSION _IO(PPM_IOCTL_MAGIC, 21)
 #define PPM_IOCTL_SET_FULLCAPTURE_PORT_RANGE _IO(PPM_IOCTL_MAGIC, 22)
+#define PPM_IOCTL_SET_STATSD_PORT _IO(PPM_IOCTL_MAGIC, 23)
 #endif // CYGWING_AGENT
 
 extern const struct ppm_name_value socket_families[];

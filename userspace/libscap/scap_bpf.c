@@ -36,7 +36,7 @@ limitations under the License.
 #include "scap.h"
 #include "scap-int.h"
 #include "scap_bpf.h"
-#include "../../driver/driver_config.h"
+#include "driver_config.h"
 #include "../../driver/bpf/types.h"
 #include "compat/misc.h"
 #include "compat/bpf.h"
@@ -903,6 +903,28 @@ int32_t scap_bpf_set_fullcapture_port_range(scap_t* handle, uint16_t range_start
 	return SCAP_SUCCESS;
 }
 
+int32_t scap_bpf_set_statsd_port(scap_t* const handle, const uint16_t port)
+{
+	struct sysdig_bpf_settings settings = {};
+	int k = 0;
+
+	if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SYSDIG_SETTINGS_MAP], &k, &settings) != 0)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SYSDIG_SETTINGS_MAP bpf_map_lookup_elem < 0");
+		return SCAP_FAILURE;
+	}
+
+	settings.statsd_port = port;
+
+	if(bpf_map_update_elem(handle->m_bpf_map_fds[SYSDIG_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SYSDIG_SETTINGS_MAP bpf_map_update_elem < 0");
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+}
+
 int32_t scap_bpf_disable_dynamic_snaplen(scap_t* handle)
 {
 	struct sysdig_bpf_settings settings;
@@ -1225,6 +1247,7 @@ static int32_t set_default_settings(scap_t *handle)
 	settings.tracers_enabled = false;
 	settings.fullcapture_port_range_start = 0;
 	settings.fullcapture_port_range_end = 0;
+	settings.statsd_port = 8125;
 
 	int k = 0;
 	if(bpf_map_update_elem(handle->m_bpf_map_fds[SYSDIG_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)

@@ -21,7 +21,7 @@ limitations under the License.
 
 #include <config_sysdig.h>
 #ifdef HAS_CAPTURE
-#include "../../driver/driver_config.h"
+#include "driver_config.h"
 #endif // HAS_CAPTURE
 
 //

@@ -266,8 +266,23 @@ typedef void (*proc_entry_callback)(void* context,
   \brief Arguments for scap_open
 */
 typedef enum {
+	/*!
+	 * Default value that mostly exists so that sinsp can have a valid value
+	 * before it is initialized.
+	 */
+	SCAP_MODE_NONE = 0,
+	/*!
+	 * Read system call data from a capture file.
+	 */
 	SCAP_MODE_CAPTURE,
+	/*!
+	 * Read system call data from the underlying operating system.
+	 */
 	SCAP_MODE_LIVE,
+	/*!
+	 * Do not read system call data. If next is called, a dummy event is
+	 * returned.
+	 */
 	SCAP_MODE_NODRIVER
 } scap_mode_t;
 
@@ -1015,6 +1030,9 @@ int32_t scap_write_proclist_entry_bufs(scap_t *handle, scap_dumper_t *d, struct 
 				       const char *cwd,
 				       const struct iovec *cgroups, int cgroupscnt,
 				       const char *root);
+
+// Turn on processing only a subset syscalls. This is only appliable when scap
+// is in LIVE mode.
 int32_t scap_enable_simpledriver_mode(scap_t* handle);
 int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret);
 #ifdef CYGWING_AGENT
@@ -1022,6 +1040,13 @@ typedef struct wh_t wh_t;
 wh_t* scap_get_wmi_handle(scap_t* handle);
 #endif
 int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, uint16_t range_end);
+
+/**
+ * By default we have an expanded snaplen for the default statsd port. If the
+ * statsd port is non-standard, communicate that port value to the kernel to
+ * get the expanded snaplen for the correct port.
+ */
+int32_t scap_set_statsd_port(scap_t* handle, uint16_t port);
 
 #ifdef __cplusplus
 }

@@ -116,11 +116,6 @@ sinsp::sinsp() :
 	m_filesize = -1;
 	m_track_tracers_state = false;
 	m_import_users = true;
-	m_meta_evt_buf = new char[SP_EVT_BUF_SIZE];
-	m_meta_evt.m_pevt = (scap_evt*) m_meta_evt_buf;
-	m_meta_evt_pending = false;
-	m_meta_skipped_evt_res = 0;
-	m_meta_skipped_evt = NULL;
 	m_next_flush_time_ns = 0;
 	m_last_procrequest_tod = 0;
 	m_get_procs_cpu_from_driver = false;
@@ -130,6 +125,7 @@ sinsp::sinsp() :
 	m_next_stats_print_time_ns = 0;
 	m_large_envs_enabled = false;
 	m_increased_snaplen_port_range = DEFAULT_INCREASE_SNAPLEN_PORT_RANGE;
+	m_statsd_port = -1;
 
 	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
 	m_print_container_data = false;
@@ -198,12 +194,6 @@ sinsp::~sinsp()
 	{
 		delete m_cycle_writer;
 		m_cycle_writer = NULL;
-	}
-
-	if(m_meta_evt_buf)
-	{
-		delete[] m_meta_evt_buf;
-		m_meta_evt_buf = NULL;
 	}
 
 	if(m_meinfo.m_piscapevt)
@@ -435,6 +425,14 @@ void sinsp::init()
 	{
 		set_fullcapture_port_range(m_increased_snaplen_port_range.range_start,
 		                           m_increased_snaplen_port_range.range_end);
+	}
+
+	//
+	// If the statsd port was modified, push it to the kernel now.
+	//
+	if(m_statsd_port != -1)
+	{
+		set_statsd_port(m_statsd_port);
 	}
 
 #if defined(HAS_CAPTURE)
@@ -1062,12 +1060,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			m_meta_event_callback(this, m_meta_event_callback_data);
 		}
 	}
-	else if (m_meta_evt_pending && m_meta_skipped_evt != NULL)
-	{
-		res = m_meta_skipped_evt_res;
-		evt = m_meta_skipped_evt;
-		m_meta_evt_pending = false;
-	}
 	else if (m_pending_container_evts.try_pop(m_container_evt))
 	{
 		res = SCAP_SUCCESS;
@@ -1285,10 +1277,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	sd = should_drop(evt, &m_isdropping, &sw);
 #endif
 
-	// No meta event is pending unless it's set in process_event
-	// below.
-	m_meta_evt_pending = false;
-
 	//
 	// Run the state engine
 	//
@@ -1306,24 +1294,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 #else
 	m_parser->process_event(evt);
 #endif
-
-	// A side-effect of parsing this event may have generated a
-	// meta event. For example, parsing an execve or clone into a
-	// new cgroup may have created a container event.
-	//
-	// We want that meta event to be returned/written to files
-	// *before* the original system event. So save the system
-	// event so it can be returned/written in the next call to
-	// sinsp::next() and make the meta event the current event.
-
-	if(m_meta_evt_pending)
-	{
-		m_meta_evt.m_evtnum = evt->m_evtnum;
-		m_meta_skipped_evt = evt;
-		m_meta_skipped_evt_res = res;
-		res = SCAP_SUCCESS;
-		evt = &m_meta_evt;
-	}
 
 	//
 	// If needed, dump the event to file
@@ -1675,6 +1645,29 @@ void sinsp::set_fullcapture_port_range(uint16_t range_start, uint16_t range_end)
 	}
 
 	if(scap_set_fullcapture_port_range(m_h, range_start, range_end) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+}
+
+void sinsp::set_statsd_port(const uint16_t port)
+{
+	//
+	// If this method is called before opening of the inspector,
+	// we register the value to be set after its initialization.
+	//
+	if(m_h == NULL)
+	{
+		m_statsd_port = port;
+		return;
+	}
+
+	if(!is_live())
+	{
+		throw sinsp_exception("set_statsd_port called on a trace file");
+	}
+
+	if(scap_set_statsd_port(m_h, port) != SCAP_SUCCESS)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
 	}
