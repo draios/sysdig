@@ -79,6 +79,30 @@ private:
 
 	bool parse_docker(std::string &container_id, sinsp_container_info *container);
 
+	// Look for a pod specification in this container's labels and
+	// if found set spec to the pod spec.
+	bool get_k8s_pod_spec(const Json::Value &config_obj,
+			      Json::Value &spec);
+
+	std::string normalize_arg(const std::string &arg);
+
+	// Parse a healthcheck out of the provided healthcheck object,
+	// updating the container info with any healthcheck found.
+	void parse_healthcheck(const Json::Value &healthcheck_obj,
+			       sinsp_container_info *container);
+
+	// Parse either a readiness or liveness probe out of the
+	// provided object, updating the container info with any probe
+	// found.
+	bool parse_liveness_readiness_probe(const Json::Value &probe_obj,
+					    sinsp_container_info::container_health_probe::probe_type ptype,
+					    sinsp_container_info *container);
+
+	// Parse all healthchecks/liveness probes/readiness probes out
+	// of the provided object, updating the container info as required.
+	void parse_health_probes(const Json::Value &config_obj,
+				 sinsp_container_info *container);
+
 	sinsp *m_inspector;
 
 	std::string m_docker_unix_socket_path;
