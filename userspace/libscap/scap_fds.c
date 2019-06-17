@@ -49,6 +49,7 @@ limitations under the License.
 #include <errno.h>
 #include <netinet/tcp.h>
 #if defined(__linux__)
+#include <sys/sysmacros.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 //#include <linux/sock_diag.h>
