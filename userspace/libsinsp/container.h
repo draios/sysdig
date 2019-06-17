@@ -83,6 +83,8 @@ public:
 	void set_cri_extra_queries(bool extra_queries);
 	void set_cri_socket_path(const std::string& path);
 	void set_cri_timeout(int64_t timeout_ms);
+	void set_cri_async(bool async);
+	void set_cri_async_limits(bool async_limits);
 	sinsp* get_inspector() { return m_inspector; }
 private:
 	std::string container_to_json(const sinsp_container_info& container_info);
