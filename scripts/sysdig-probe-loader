@@ -284,7 +284,7 @@ load_bpf_probe() {
 			BPF_KERNEL_SOURCES_URL="http://mirrors.edge.kernel.org/pub/linux/kernel/v${kernel_version_major}.x/linux-${kernel_version}.tar.gz"
 		fi
 
-		if [ -n "${BPF_USE_LOCAL_KERNEL_SOURCES}" ]; then
+		if [ -n "${SYSDIG_BPF_USE_LOCAL_KERNEL_SOURCES}" ]; then
 		        local -r kernel_version_major=$(uname -r | cut -d. -f1)
 			local -r kernel_version=$(uname -r | cut -d- -f1)
 			KERNEL_EXTRA_VERSION="-$(uname -r | cut -d- -f2)"
