@@ -72,29 +72,35 @@ cos_version_greater()
 get_kernel_config() {
 	if [ -f /proc/config.gz ]; then
 		echo "Found kernel config at /proc/config.gz"
-		HASH=$(zcat /proc/config.gz | md5sum - | cut -d' ' -f1)
+		KERNEL_CONFIG_PATH=/proc/config.gz
 	elif [ -f "/boot/config-${KERNEL_RELEASE}" ]; then
 		echo "Found kernel config at /boot/config-${KERNEL_RELEASE}"
-		HASH=$(md5sum "/boot/config-${KERNEL_RELEASE}" | cut -d' ' -f1)
+		KERNEL_CONFIG_PATH=/boot/config-${KERNEL_RELEASE}
 	elif [ ! -z "${SYSDIG_HOST_ROOT}" ] && [ -f "${SYSDIG_HOST_ROOT}/boot/config-${KERNEL_RELEASE}" ]; then
 		echo "Found kernel config at ${SYSDIG_HOST_ROOT}/boot/config-${KERNEL_RELEASE}"
-		HASH=$(md5sum "${SYSDIG_HOST_ROOT}/boot/config-${KERNEL_RELEASE}" | cut -d' ' -f1)
+		KERNEL_CONFIG_PATH="${SYSDIG_HOST_ROOT}/boot/config-${KERNEL_RELEASE}"
 	elif [ -f "/usr/lib/ostree-boot/config-${KERNEL_RELEASE}" ]; then
 		echo "Found kernel config at /usr/lib/ostree-boot/config-${KERNEL_RELEASE}"
-		HASH=$(md5sum "/usr/lib/ostree-boot/config-${KERNEL_RELEASE}" | cut -d' ' -f1)
+		KERNEL_CONFIG_PATH="/usr/lib/ostree-boot/config-${KERNEL_RELEASE}"
 	elif [ ! -z "${SYSDIG_HOST_ROOT}" ] && [ -f "${SYSDIG_HOST_ROOT}/usr/lib/ostree-boot/config-${KERNEL_RELEASE}" ]; then
 		echo "Found kernel config at ${SYSDIG_HOST_ROOT}/usr/lib/ostree-boot/config-${KERNEL_RELEASE}"
-		HASH=$(md5sum "${SYSDIG_HOST_ROOT}/usr/lib/ostree-boot/config-${KERNEL_RELEASE}" | cut -d' ' -f1)
+		KERNEL_CONFIG_PATH="${SYSDIG_HOST_ROOT}/usr/lib/ostree-boot/config-${KERNEL_RELEASE}"
 	elif [ -f /lib/modules/${KERNEL_RELEASE}/config ]; then
 		# this code works both for native host and agent container assuming that
 		# Dockerfile sets up the desired symlink /lib/modules -> $SYSDIG_HOST_ROOT/lib/modules
 		echo "Found kernel config at /lib/modules/${KERNEL_RELEASE}/config"
-		HASH=$(md5sum "/lib/modules/${KERNEL_RELEASE}/config" | cut -d' ' -f1)
+		KERNEL_CONFIG_PATH="/lib/modules/${KERNEL_RELEASE}/config"
 	fi
 
-	if [ -z "${HASH}" ]; then
+	if [ -z "${KERNEL_CONFIG_PATH}" ]; then
 		echo "Cannot find kernel config"
 		exit 1
+	fi
+
+	if [[ "${KERNEL_CONFIG_PATH}" == *.gz ]]; then
+	    HASH=$(zcat "${KERNEL_CONFIG_PATH}" | md5sum - | cut -d' ' -f1)
+	else
+	    HASH=$(md5sum "${KERNEL_CONFIG_PATH}" | cut -d' ' -f1)
 	fi
 }
 
@@ -221,48 +227,51 @@ load_bpf_probe() {
 	local BPF_PROBE_FILENAME="${BPF_PROBE_NAME}-${SYSDIG_VERSION}-${ARCH}-${KERNEL_RELEASE}-${HASH}.o"
 
 	if [ ! -f "${HOME}/.sysdig/${BPF_PROBE_FILENAME}" ]; then
+
+	        local BPF_KERNEL_SOURCES_URL=""
+		local STRIP_COMPONENTS=1
+		
+	        customize_kernel_build() {
+		    if [ -n "${KERNEL_EXTRA_VERSION}" ]; then
+			sed -i "s/LOCALVERSION=\"\"/LOCALVERSION=\"${KERNEL_EXTRA_VERSION}\"/" .config
+		    fi
+		    make olddefconfig > /dev/null
+		    make modules_prepare > /dev/null
+		}
+
 		if [ -n "${COS}" ]; then
-			echo "* COS detected (build ${BUILD_ID}), downloading and setting up kernel headers"
+			echo "* COS detected (build ${BUILD_ID}), using cos kernel headers..."
 
-			local -r download_url="https://storage.googleapis.com/cos-tools/${BUILD_ID}/kernel-headers.tgz"
+			BPF_KERNEL_SOURCES_URL="https://storage.googleapis.com/cos-tools/${BUILD_ID}/kernel-headers.tgz"
+			KERNEL_EXTRA_VERSION="+"
+			STRIP_COMPONENTS=0
 
-			echo "* Downloading ${download_url}"
+			customize_kernel_build() {
+			    pushd usr/src/* > /dev/null
 
-			mkdir -p /tmp/kernel
-			cd /tmp/kernel
-			cd `mktemp -d`
-			if ! curl --create-dirs "${SYSDIG_PROBE_CURL_OPTIONS}" -O "${download_url}"; then
-				exit 1;
-			fi
+			    # Note: this overrides the KERNELDIR set while untarring the tarball
+			    export KERNELDIR=`pwd`
 
-			echo "* Extracting kernel sources"
+			    sed -i '/^#define randomized_struct_fields_start	struct {$/d' include/linux/compiler-clang.h
+			    sed -i '/^#define randomized_struct_fields_end	};$/d' include/linux/compiler-clang.h
 
-			tar xf kernel-headers.tgz
-			zcat /proc/config.gz > .config
-			sed -i 's/LOCALVERSION=""/LOCALVERSION="+"/' .config
+			    popd > /dev/null
 
-			pushd usr/src/* > /dev/null
-			export KERNELDIR=`pwd`
+			    # Might need to configure our own sources depending on COS version
+			    cos_ver=${BUILD_ID}
+			    base_ver=11553.0.0
 
-			sed -i '/^#define randomized_struct_fields_start	struct {$/d' include/linux/compiler-clang.h
-			sed -i '/^#define randomized_struct_fields_end	};$/d' include/linux/compiler-clang.h
+			    cos_version_greater
+			    greater_ret=$?
 
-			popd > /dev/null
-
-			# Might need to configure our own sources depending on COS version
-			cos_ver=${BUILD_ID}
-			base_ver=11553.0.0
-
-			cos_version_greater
-			greater_ret=$?
-
-			if [[ greater_ret -eq 1 ]]; then
+			    if [[ greater_ret -eq 1 ]]; then
 				export KBUILD_EXTRA_CPPFLAGS=-DCOS_73_WORKAROUND
-			fi
+			    fi
+                        }
 		fi
 
 		if [ -n "${MINIKUBE}" ]; then
-			echo "* Minikube detected (${MINIKUBE_VERSION}), downloading and setting up kernel headers"
+			echo "* Minikube detected (${MINIKUBE_VERSION}), using linux kernel sources for minikube kernel"
 			local kernel_version=$(uname -r)
 			local -r kernel_version_major=$(echo ${kernel_version} | cut -d. -f1)
 			local -r kernel_version_minor=$(echo ${kernel_version} | cut -d. -f2)
@@ -272,28 +281,44 @@ load_bpf_probe() {
 				kernel_version="${kernel_version_major}.${kernel_version_minor}"
 			fi
 
-			local -r download_url="http://mirrors.edge.kernel.org/pub/linux/kernel/v${kernel_version_major}.x/linux-${kernel_version}.tar.gz"
+			BPF_KERNEL_SOURCES_URL="http://mirrors.edge.kernel.org/pub/linux/kernel/v${kernel_version_major}.x/linux-${kernel_version}.tar.gz"
+		fi
 
-			echo "* Downloading ${download_url}"
+		if [ -n "${SYSDIG_BPF_USE_LOCAL_KERNEL_SOURCES}" ]; then
+		        local -r kernel_version_major=$(uname -r | cut -d. -f1)
+			local -r kernel_version=$(uname -r | cut -d- -f1)
+			KERNEL_EXTRA_VERSION="-$(uname -r | cut -d- -f2)"
+
+			echo "* Using downloaded kernel sources for kernel version ${kernel_version}..."
+
+			BPF_KERNEL_SOURCES_URL="http://mirrors.edge.kernel.org/pub/linux/kernel/v${kernel_version_major}.x/linux-${kernel_version}.tar.gz"
+		fi
+
+		if [ -n "${BPF_KERNEL_SOURCES_URL}" ]; then
+			echo "* Downloading ${BPF_KERNEL_SOURCES_URL}"
 
 			mkdir -p /tmp/kernel
 			cd /tmp/kernel
-			if ! curl --create-dirs "${SYSDIG_PROBE_CURL_OPTIONS}" -O "${download_url}"; then
+			cd `mktemp -d -p /tmp/kernel`
+			if ! curl -o kernel-sources.tgz --create-dirs "${SYSDIG_PROBE_CURL_OPTIONS}" "${BPF_KERNEL_SOURCES_URL}"; then
 				exit 1;
 			fi
 
 			echo "* Extracting kernel sources"
 
-			tar xf linux-${kernel_version}.tar.gz
-			zcat /proc/config.gz > linux-${kernel_version}/.config
+			mkdir kernel-sources && tar xf kernel-sources.tgz -C kernel-sources --strip-components "${STRIP_COMPONENTS}"
+
+			cd kernel-sources
+			export KERNELDIR=`pwd`
+
+			if [[ "${KERNEL_CONFIG_PATH}" == *.gz ]]; then
+			    zcat "${KERNEL_CONFIG_PATH}" > .config
+			else
+			    cat "${KERNEL_CONFIG_PATH}" > .config
+			fi
 
 			echo "* Configuring kernel"
-
-			cd linux-${kernel_version}
-			make olddefconfig > /dev/null
-			make modules_prepare > /dev/null
-
-			export KERNELDIR=/tmp/kernel/linux-${kernel_version}
+			customize_kernel_build
 		fi
 
 		echo "* Trying to compile BPF probe ${BPF_PROBE_NAME} (${BPF_PROBE_FILENAME})"
@@ -303,7 +328,7 @@ load_bpf_probe() {
 		mkdir -p ~/.sysdig
 		mv "/usr/src/${PACKAGE_NAME}-${SYSDIG_VERSION}/bpf/probe.o" "${HOME}/.sysdig/${BPF_PROBE_FILENAME}"
 
-		if [ -n "${COS}" ] || [ -n "${MINIKUBE}" ]; then
+		if [ -n "${BPF_KERNEL_SOURCES_URL}" ]; then
 			rm -r /tmp/kernel
 		fi
 	fi
