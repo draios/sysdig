@@ -4719,6 +4719,26 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 				SINSP_DEBUG("Unable to convert json value for field: %s", "metadata_deadline");
 			}
 		}
+		const Json::Value& successful = container["successful"];
+		if(!successful.isNull()) // otherwise, the default is `true`, which is fine
+		{
+			if(successful.isUInt64()) {
+				container_info.m_successful = successful.asUInt64();
+			} else {
+				SINSP_DEBUG("Unable to convert json value for field: %s", "successful");
+			}
+		}
+
+		if(!container_info.m_successful)
+		{
+			auto existing_container = m_inspector->m_container_manager.get_container(container_info.m_id);
+			if(existing_container && existing_container->m_successful)
+			{
+				SINSP_DEBUG("Ignoring failed metadata for container %s, successful metadata already present (got: %s)",
+					container_info.m_id.c_str(), json.c_str());
+				return;
+			}
+		}
 
 		evt->m_tinfo_ref = container_info.get_tinfo(m_inspector);
 		evt->m_tinfo = evt->m_tinfo_ref.get();

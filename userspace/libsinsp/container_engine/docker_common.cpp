@@ -358,15 +358,18 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	}
 
 	tinfo->m_container_id = container_id;
-	container_info = manager->get_or_create_container(CT_DOCKER, container_id, container_name, tinfo);
+	container_info = manager->get_container(container_id);
 
 #ifdef HAS_CAPTURE
 	// Possibly start a lookup for this container info
-	if(!container_info->m_metadata_complete &&
-	    query_os_for_missing_info)
+	if(container_info == nullptr || container_info->query_anyway(CT_DOCKER))
 	{
-		// give docker a chance to return metadata for this container
-		m_docker_info_source->lookup_container(container_id, manager);
+		container_info = manager->get_or_create_container(CT_DOCKER, container_id, container_name, tinfo);
+		if (query_os_for_missing_info)
+		{
+			// give docker a chance to return metadata for this container
+			m_docker_info_source->lookup_container(container_id, manager);
+		}
 	}
 #endif
 
