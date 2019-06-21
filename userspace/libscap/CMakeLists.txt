@@ -81,4 +81,6 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
         add_subdirectory(examples/01-open)
         add_subdirectory(examples/02-validatebuffer)
     endif()
+
+	include(FindMakedev)
 endif()
