@@ -93,6 +93,17 @@ if(NOT WIN32)
 			set(PROBE_DEVICE_NAME "sysdig")
 		endif()
 
+		include(${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
+		check_include_file("sys/mkdev.h" HAVE_SYS_MKDEV_H)
+		check_include_file("sys/sysmacros.h" HAVE_SYS_SYSMACROS_H)
+
+		if (HAVE_SYS_MKDEV_H)
+			add_definitions(-DHAVE_SYS_MKDEV_H)
+		endif()
+		if (HAVE_SYS_SYSMACROS_H)
+			add_definitions(-DHAVE_SYS_SYSMACROS_H)
+		endif()
+
 		add_subdirectory(driver)
 		add_definitions(-DHAS_CAPTURE)
 	endif()
