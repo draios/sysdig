@@ -83,6 +83,13 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 		return false;
 	}
 
+	container->m_name = "";
+	container->m_image = "";
+	container->m_imageid = "";
+	container->m_imagerepo = "";
+	container->m_imagetag = "";
+	container->m_imagedigest = "";
+
 	runtime::v1alpha2::ContainerStatusRequest req;
 	runtime::v1alpha2::ContainerStatusResponse resp;
 	req.set_container_id(container->m_id);
@@ -222,7 +229,7 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 	existing_container_info = manager->get_container(container_info.m_id);
 
 	if (!existing_container_info ||
-	    existing_container_info->m_metadata_complete == false)
+	    existing_container_info->query_anyway(s_cri_runtime_type))
 	{
 		if (query_os_for_missing_info)
 		{
@@ -230,7 +237,8 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 					"cri (%s): Performing lookup",
 					container_info.m_id.c_str());
 
-			if (!parse_cri(manager, &container_info, tinfo))
+			container_info.m_successful = parse_cri(manager, &container_info, tinfo);
+			if (!container_info.m_successful)
 			{
 				g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to get CRI metadata for container",
 						container_info.m_id.c_str());

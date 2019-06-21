@@ -199,6 +199,13 @@ public:
 		return m_is_pod_sandbox;
 	}
 
+	// should we start a query for this container id but with type `type`?
+	// yes, if the container as we know it is of another type
+	// and it's either in flight (i.e. may yet fail) or unsuccessful
+	bool query_anyway(sinsp_container_type type) const {
+		return m_type != type && (!m_successful || !m_metadata_complete);
+	}
+
 	std::shared_ptr<sinsp_threadinfo> get_tinfo(sinsp* inspector) const;
 
 	// Match a process against the set of health probes
