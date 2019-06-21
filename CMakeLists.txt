@@ -37,6 +37,10 @@ cmake_minimum_required(VERSION 2.8.2)
 
 project(sysdig)
 
+# Add path for custom CMake modules.
+list(APPEND CMAKE_MODULE_PATH
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
+
 if(NOT DEFINED SYSDIG_VERSION)
 	set(SYSDIG_VERSION "0.1.1dev")
 endif()
@@ -91,17 +95,6 @@ if(NOT WIN32)
 
 		if(NOT DEFINED PROBE_DEVICE_NAME)
 			set(PROBE_DEVICE_NAME "sysdig")
-		endif()
-
-		include(${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
-		check_include_file("sys/mkdev.h" HAVE_SYS_MKDEV_H)
-		check_include_file("sys/sysmacros.h" HAVE_SYS_SYSMACROS_H)
-
-		if (HAVE_SYS_MKDEV_H)
-			add_definitions(-DHAVE_SYS_MKDEV_H)
-		endif()
-		if (HAVE_SYS_SYSMACROS_H)
-			add_definitions(-DHAVE_SYS_SYSMACROS_H)
 		endif()
 
 		add_subdirectory(driver)
