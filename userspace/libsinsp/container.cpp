@@ -74,15 +74,16 @@ bool sinsp_container_manager::remove_inactive_containers()
 			return true;
 		});
 
-		for(unordered_map<string, sinsp_container_info>::iterator it = m_containers.begin(); it != m_containers.end();)
+		auto containers = m_containers.lock();
+		for(auto it = containers->begin(); it != containers->end();)
 		{
 			if(containers_in_use.find(it->first) == containers_in_use.end())
 			{
 				for(const auto &remove_cb : m_remove_callbacks)
 				{
-					remove_cb(m_containers[it->first]);
+					remove_cb((*containers)[it->first]);
 				}
-				m_containers.erase(it++);
+				containers->erase(it++);
 			}
 			else
 			{
@@ -96,8 +97,9 @@ bool sinsp_container_manager::remove_inactive_containers()
 
 sinsp_container_info* sinsp_container_manager::get_container(const string& container_id)
 {
-	auto it = m_containers.find(container_id);
-	if(it != m_containers.end())
+	auto containers = m_containers.lock();
+	auto it = containers->find(container_id);
+	if(it != containers->end())
 	{
 		return &it->second;
 	}
@@ -272,18 +274,25 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 	return true;
 }
 
-const unordered_map<string, sinsp_container_info>* sinsp_container_manager::get_containers()
+ConstMutexGuard<unordered_map<string, sinsp_container_info>> sinsp_container_manager::get_containers()
 {
-	return &m_containers;
+	return m_containers.lock();
 }
 
 void sinsp_container_manager::add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread_info)
 {
-	m_containers[container_info.m_id] = container_info;
+	auto containers = m_containers.lock();
+	add_container(container_info, thread_info, containers);
+}
+
+void sinsp_container_manager::add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread_info,
+	libsinsp::MutexGuard<std::unordered_map<std::string, sinsp_container_info>>& containers)
+{
+	(*containers)[container_info.m_id] = container_info;
 
 	for(const auto &new_cb : m_new_callbacks)
 	{
-		new_cb(m_containers[container_info.m_id], thread_info);
+		new_cb((*containers)[container_info.m_id], thread_info);
 	}
 }
 
@@ -313,10 +322,10 @@ void sinsp_container_manager::notify_new_container(const sinsp_container_info& c
 
 void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)
 {
-	for(unordered_map<string, sinsp_container_info>::const_iterator it = m_containers.begin(); it != m_containers.end(); ++it)
+	for(const auto& it : (*m_containers.lock()))
 	{
 		sinsp_evt evt;
-		if(container_to_sinsp_event(container_to_json(it->second), &evt, it->second.get_tinfo(m_inspector)))
+		if(container_to_sinsp_event(container_to_json(it.second), &evt, it.second.get_tinfo(m_inspector)))
 		{
 			int32_t res = scap_dump(m_inspector->m_h, dumper, evt.m_pevt, evt.m_cpuid, 0);
 			if(res != SCAP_SUCCESS)
