@@ -49,6 +49,7 @@ public:
 	bool remove_inactive_containers();
 	void add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread);
 	void add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread, libsinsp::MutexGuard<std::unordered_map<std::string, sinsp_container_info>>& containers);
+	bool update_container(const sinsp_container_info& container_info);
 	sinsp_container_info * get_container(const std::string &id);
 	sinsp_container_info * get_or_create_container(sinsp_container_type type, const std::string &id, const std::string& name, sinsp_threadinfo* tinfo);
 	void notify_new_container(const sinsp_container_info& container_info);
