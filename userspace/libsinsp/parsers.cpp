@@ -543,13 +543,23 @@ void sinsp_parser::event_cleanup(sinsp_evt *evt)
 //
 bool sinsp_parser::reset(sinsp_evt *evt)
 {
+	uint16_t etype = evt->get_type();
+
 	//
 	// Before anything can happen, the event needs to be initialized
 	//
-	evt->init();
+	if (etype == PPME_CONTAINER_JSON_E && evt->m_tinfo_ref != nullptr)
+	{
+		// the threadinfo should already be set properly
+		evt->init_keep_threadinfo();
+		return true;
+	}
+	else
+	{
+		evt->init();
+	}
 
 	ppm_event_flags eflags = evt->get_info_flags();
-	uint16_t etype = evt->get_type();
 
 	evt->m_fdinfo = NULL;
 	evt->m_errorcode = 0;
@@ -4549,6 +4559,11 @@ namespace
 
 void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 {
+	if(evt->m_tinfo_ref != nullptr)
+	{
+		return;
+	}
+
 	sinsp_evt_param *parinfo = evt->get_param(0);
 	ASSERT(parinfo);
 	ASSERT(parinfo->m_len > 0);
@@ -4717,26 +4732,6 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 				container_info.m_metadata_deadline = metadata_deadline.asUInt64();
 			} else {
 				SINSP_DEBUG("Unable to convert json value for field: %s", "metadata_deadline");
-			}
-		}
-		const Json::Value& successful = container["successful"];
-		if(!successful.isNull()) // otherwise, the default is `true`, which is fine
-		{
-			if(successful.isUInt64()) {
-				container_info.m_successful = successful.asUInt64();
-			} else {
-				SINSP_DEBUG("Unable to convert json value for field: %s", "successful");
-			}
-		}
-
-		if(!container_info.m_successful)
-		{
-			auto existing_container = m_inspector->m_container_manager.get_container(container_info.m_id);
-			if(existing_container && existing_container->m_successful)
-			{
-				SINSP_DEBUG("Ignoring failed metadata for container %s, successful metadata already present (got: %s)",
-					container_info.m_id.c_str(), json.c_str());
-				return;
 			}
 		}
 

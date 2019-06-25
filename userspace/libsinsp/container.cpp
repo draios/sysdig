@@ -265,13 +265,6 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	}
 
 	container["metadata_deadline"] = (Json::Value::UInt64) container_info.m_metadata_deadline;
-
-	// Allow the container engine to report failed lookups as well.
-	// These will not overwrite any successful lookups that may have
-	// happened (e.g. with a different container engine, as Docker/CRI
-	// cgroups overlap) but they will overwrite any incomplete containers.
-	container["successful"] = (Json::Value::UInt64) container_info.m_successful;
-
 	return Json::FastWriter().write(obj);
 }
 
@@ -337,6 +330,23 @@ void sinsp_container_manager::add_container(const sinsp_container_info& containe
 	for(const auto &new_cb : m_new_callbacks)
 	{
 		new_cb((*containers)[container_info.m_id], thread_info);
+	}
+}
+
+bool sinsp_container_manager::update_container(const sinsp_container_info& container_info)
+{
+	auto containers = m_containers.lock();
+	auto it = containers->find(container_info.m_id);
+	if(it == containers->end() ||
+		(container_info.m_metadata_complete && !it->second.m_successful))
+	{
+		auto thread_info = container_info.get_tinfo(m_inspector);
+		add_container(container_info, thread_info.get(), containers);
+		return true;
+	}
+	else
+	{
+		return false;
 	}
 }
 

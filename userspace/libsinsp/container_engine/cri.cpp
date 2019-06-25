@@ -256,8 +256,10 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 					"cri (%s) Mesos CRI container, Mesos task ID: [%s]",
 					container_info.m_id.c_str(), container_info.m_mesos_task_id.c_str());
 		}
-		manager->add_container(container_info, tinfo);
-		manager->notify_new_container(container_info);
+		if (manager->update_container(container_info) && container_info.m_successful)
+		{
+			manager->notify_new_container(container_info);
+		}
 	}
 	return true;
 }
