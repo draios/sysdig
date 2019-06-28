@@ -175,10 +175,17 @@ void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
 			"docker (%s): Trying to parse healthcheck from %s",
 			container->m_id.c_str(), Json::FastWriter().write(healthcheck_obj).c_str());
 
-	if(healthcheck_obj.isNull() ||
-	   !healthcheck_obj.isMember("Test"))
+	if(healthcheck_obj.isNull())
 	{
-		g_logger.format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s",
+		g_logger.format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (No Healthcheck property)",
+				Json::FastWriter().write(healthcheck_obj).c_str());
+
+		return;
+	}
+
+	if(!healthcheck_obj.isMember("Test"))
+	{
+		g_logger.format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (Healthcheck does not have Test property)",
 				Json::FastWriter().write(healthcheck_obj).c_str());
 
 		return;
@@ -186,11 +193,21 @@ void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
 
 	const Json::Value &test_obj = healthcheck_obj["Test"];
 
-	if(!test_obj.isArray() || test_obj.size() < 2)
+	if(!test_obj.isArray())
 	{
-		g_logger.format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s",
+		g_logger.format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (Healthcheck Test property is not array)",
 				Json::FastWriter().write(healthcheck_obj).c_str());
 		return;
+	}
+
+	if(test_obj.size() == 1)
+	{
+		if(test_obj[0].asString() != "NONE")
+		{
+			g_logger.format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (Expected NONE for single-element Test array)",
+					Json::FastWriter().write(healthcheck_obj).c_str());
+			return;
+		}
 	}
 
 	if(test_obj[0].asString() == "CMD")
@@ -227,8 +244,12 @@ void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
 							std::move(exe),
 							std::move(args));
 	}
-
-	// This occurs when HEALTHCHECK is NONE. No warning log in this case.
+	else
+	{
+		g_logger.format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (Expected CMD/CMD-SHELL for multi-element Test array)",
+				Json::FastWriter().write(healthcheck_obj).c_str());
+		return;
+	}
 }
 
 bool docker_async_source::parse_liveness_readiness_probe(const Json::Value &probe_obj,
