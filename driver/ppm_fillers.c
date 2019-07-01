@@ -9,6 +9,7 @@ or GPL2.txt for full copies of the license.
 
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
 
+#ifndef UDIG
 #include <linux/compat.h>
 #include <linux/cdev.h>
 #include <asm/unistd.h>
@@ -37,12 +38,49 @@ or GPL2.txt for full copies of the license.
 #else
 #include <asm/syscall.h>
 #endif
+#else // UDIG
+#define _GNU_SOURCE
+#include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+#include <stdarg.h>
+#include <limits.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <signal.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/syscall.h>
+#include <time.h>
+#include <netinet/in.h>
+#include <sys/param.h>
+#include <sched.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <poll.h>
+#include <sys/sem.h>
+#include <sys/file.h>
+#include <sys/quota.h>
+#include <sys/ptrace.h>
+
+#include "infector_capture.h"
+#include "ppm_ringbuffer.h"
+#include "ppm_events_public.h"
+#include "ppm_events.h"
+#include "ppm.h"
+
+#include "infector.h"
+#endif // UDIG
 
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
 #include "ppm_events.h"
 #include "ppm.h"
 #include "ppm_flag_helpers.h"
+#ifndef UDIG
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
 #include <linux/bpf.h>
 #endif
@@ -53,6 +91,7 @@ static inline struct inode *file_inode(struct file *f)
 	return f->f_path.dentry->d_inode;
 }
 #endif
+#endif // UDIG
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
 
@@ -62,6 +101,7 @@ static inline struct inode *file_inode(struct file *f)
  * arguments are desired. This wrapper replicates the original
  * functionality.
  */
+#ifndef UDIG
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
 #define syscall_get_arguments_deprecated syscall_get_arguments
 #else
@@ -72,7 +112,9 @@ static inline struct inode *file_inode(struct file *f)
 		memcpy(_args, &_sga_args[_start], _len); \
 	} while(0)
 #endif
+#endif
 
+#ifndef UDIG
 static inline struct pid_namespace *pid_ns_for_children(struct task_struct *task)
 {
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 11, 0))
@@ -81,6 +123,7 @@ static inline struct pid_namespace *pid_ns_for_children(struct task_struct *task
 	return task->nsproxy->pid_ns_for_children;
 #endif
 }
+#endif
 
 int f_sys_generic(struct event_filler_arguments *args)
 {
@@ -149,6 +192,8 @@ int f_sys_single(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#if 0
+
 int f_sys_single_x(struct event_filler_arguments *args)
 {
 	int res;
@@ -162,6 +207,7 @@ int f_sys_single_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#ifndef UDIG
 static inline uint32_t get_fd_dev(int64_t fd)
 {
 	struct files_struct *files;
@@ -524,6 +570,8 @@ if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - 
 
 #endif
 
+#endif // UDIG
+
 /* Takes in a NULL-terminated array of pointers to strings in userspace, and
  * concatenates them to a single \0-separated string. Return the length of this
  * string, or <0 on error */
@@ -540,8 +588,10 @@ static int accumulate_argv_or_env(const char __user * __user *argv,
 	for (;;) {
 		const char __user *p;
 
+#ifndef UDIG
 		if (unlikely(ppm_get_user(p, argv)))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
+#endif
 
 		if (p == NULL)
 			break;
@@ -628,6 +678,7 @@ static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 #endif
 
 // probe_kernel_read() only added in kernel 2.6.26
+#ifndef UDIG
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 26)
 long probe_kernel_read(void *dst, const void *src, size_t size)
 {
@@ -690,13 +741,17 @@ static int ppm_get_tty(void)
 	return tty_nr;
 }
 
+#endif // UDIG
+
 int f_proc_startupdate(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res = 0;
 	unsigned int exe_len = 0;  /* the length of the executable string */
 	int args_len = 0; /*the combined length of the arguments string + executable string */
+#ifndef UDIG
 	struct mm_struct *mm = current->mm;
+#endif	
 	int64_t retval;
 	int ptid;
 	char *spwd = "";
@@ -4806,3 +4861,4 @@ int f_sys_mkdirat_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+#endif

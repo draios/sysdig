@@ -10,11 +10,14 @@ or GPL2.txt for full copies of the license.
 #ifndef PPM_H_
 #define PPM_H_
 
+#ifndef UDIG
 #include <linux/version.h>
+#endif
 
 /*
  * Our Own ASSERT implementation, so we can easily switch among BUG_ON, WARN_ON and nothing
  */
+#ifndef UDIG
 #ifdef _DEBUG
 #define ASSERT(expr) WARN_ON(!(expr))
 #else
@@ -33,6 +36,7 @@ or GPL2.txt for full copies of the license.
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 12, 0)) && defined(CONFIG_X86)
 #define CAPTURE_PAGE_FAULTS
 #endif
+#endif // UDIG
 #define RW_SNAPLEN_EVENT 4096
 #define DPI_LOOKAHEAD_SIZE 16
 #define PPM_NULL_RDEV MKDEV(1, 3)
@@ -52,10 +56,13 @@ struct ppm_ring_buffer_context {
 	char *buffer;
 	struct timespec last_print_time;
 	u32 nevents;
+#ifndef UDIG
 	atomic_t preempt_count;
+#endif	
 	char *str_storage;	/* String storage. Size is one page. */
 };
 
+#ifndef UDIG
 struct ppm_consumer_t {
 	struct task_struct *consumer_id;
 #ifdef __percpu
@@ -76,6 +83,7 @@ struct ppm_consumer_t {
 	uint16_t fullcapture_port_range_end;
 	uint16_t statsd_port;
 };
+#endif // UDIG
 
 #define STR_STORAGE_SIZE PAGE_SIZE
 
@@ -85,9 +93,24 @@ struct ppm_consumer_t {
  * These are analogous to get_user(), copy_from_user() and strncpy_from_user(),
  * but they can't sleep, barf on page fault or be preempted
  */
+#ifdef UDIG
+static unsigned long ppm_copy_from_user(void *to, const void __user *from, unsigned long n)
+{
+	memcpy(to, from, n);
+	return 0;
+}
+
+static long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n)
+{
+	strncpy(to, from, n);
+	return strlen(to);
+}
+
+#else
 #define ppm_get_user(x, ptr) ({ ppm_copy_from_user(&x, ptr, sizeof(x)) ? -EFAULT : 0; })
 unsigned long ppm_copy_from_user(void *to, const void __user *from, unsigned long n);
 long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n);
+#endif // UDIG
 
 /*
  * Global tables
@@ -114,6 +137,8 @@ extern const struct syscall_evt_pair g_syscall_ia32_table[];
 extern const enum ppm_syscall_code g_syscall_ia32_code_routing_table[];
 #endif
 
+#ifndef UDIG
 extern void ppm_syscall_get_arguments(struct task_struct *task, struct pt_regs *regs, unsigned long *args);
+#endif
 
 #endif /* PPM_H_ */

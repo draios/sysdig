@@ -35,7 +35,7 @@ limitations under the License.
 //
 // Import/typedef in userspace the kernel types
 //
-#if defined(__linux__)
+#if defined(__linux__) && !defined(UDIG)
 #include <linux/types.h>
 #else 
 typedef uint64_t __u64;
