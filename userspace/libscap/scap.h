@@ -521,6 +521,18 @@ struct ppm_syscall_desc {
 #define IN
 #define OUT
 
+//
+// udig stuff
+//
+#define UDIG_RING_SM_FNAME "udig_buf"
+#define UDIG_RING_DESCS_SM_FNAME "udig_descs"
+#define UDIG_RING_SIZE (8 * 1024 * 1024)
+
+struct udig_ring_buffer_status {
+	volatile uint32_t m_reader_active;
+	struct timespec m_last_print_time;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // API functions
 ///////////////////////////////////////////////////////////////////////////////
