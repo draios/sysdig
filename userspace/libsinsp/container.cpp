@@ -514,6 +514,13 @@ void sinsp_container_manager::cleanup()
 	}
 }
 
+void sinsp_container_manager::set_docker_socket_path(std::string socket_path)
+{
+#if defined(HAS_CAPTURE)
+	libsinsp::container_engine::docker::set_docker_sock(std::move(socket_path));
+#endif
+}
+
 void sinsp_container_manager::set_query_docker_image_info(bool query_image_info)
 {
 	libsinsp::container_engine::docker_async_source::set_query_image_info(query_image_info);
