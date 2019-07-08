@@ -364,7 +364,7 @@ void sinsp_container_manager::identify_category(sinsp_threadinfo *tinfo)
 
 	sinsp_container_info *cinfo = get_container(tinfo->m_container_id);
 
-	if(!cinfo)
+	if(!cinfo || !cinfo->m_metadata_complete)
 	{
 		return;
 	}
