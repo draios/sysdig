@@ -206,8 +206,8 @@ void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
 		{
 			g_logger.format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (Expected NONE for single-element Test array)",
 					Json::FastWriter().write(healthcheck_obj).c_str());
-			return;
 		}
+		return;
 	}
 
 	if(test_obj[0].asString() == "CMD")
