@@ -236,6 +236,10 @@ public:
 
 	static void populate_cmdline(std::string &cmdline, sinsp_threadinfo *tinfo);
 
+	// Return true if this thread is a part of a healthcheck,
+	// readiness probe, or liveness probe.
+	bool is_health_probe();
+
 	//
 	// Core state
 	//
@@ -269,8 +273,23 @@ public:
 	int32_t m_tty;
 	int32_t m_loginuid; ///< loginuid (auid)
 
-	// If true, this thread is part of a container health check
-	bool m_is_container_healthcheck;
+	// In some cases, a threadinfo has a category that identfies
+	// why it was run. Descriptions:
+	// CAT_NONE: no specific category
+	// CAT_CONTAINER: a process run in a container and *not* any
+	//                of the following more specific categories.
+	// CAT_HEALTHCHECK: part of a container healthcheck
+	// CAT_LIVENESS_PROBE: part of a k8s liveness probe
+	// CAT_READINESS_PROBE: part of a k8s readiness probe
+	enum command_category {
+		CAT_NONE = 0,
+		CAT_CONTAINER,
+		CAT_HEALTHCHECK,
+		CAT_LIVENESS_PROBE,
+		CAT_READINESS_PROBE
+	};
+
+	command_category m_category;
 
 	//
 	// State for multi-event processing

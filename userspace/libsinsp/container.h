@@ -48,12 +48,11 @@ public:
 	void dump_containers(scap_dumper_t* dumper);
 	string get_container_name(sinsp_threadinfo* tinfo);
 
-	// Set tinfo's is_container_healthcheck attribute to true if
-	// it is identified as a container healthcheck. It will *not*
-	// set it to false by default, so a threadinfo that is
-	// initially identified as a health check will remain one
+	// Set tinfo's m_category based on the container context.  It
+	// will *not* change any category to NONE, so a threadinfo
+	// that initially has a category will retain its category
 	// across execs e.g. "sh -c /bin/true" execing /bin/true.
-	void identify_healthcheck(sinsp_threadinfo *tinfo);
+	void identify_category(sinsp_threadinfo *tinfo);
 
 	bool container_exists(const string& container_id) const {
 		return m_containers.find(container_id) != m_containers.end();

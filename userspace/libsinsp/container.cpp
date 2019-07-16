@@ -17,6 +17,8 @@ limitations under the License.
 
 */
 
+#include <algorithm>
+
 #include "container_engine/cri.h"
 #include "container_engine/docker.h"
 #include "container_engine/rkt.h"
@@ -131,8 +133,8 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 		}
 	}
 
-	// Also identify if this thread is part of a container healthcheck
-	identify_healthcheck(tinfo);
+	// Also possibly set the category for the threadinfo
+	identify_category(tinfo);
 
 	return matches;
 }
@@ -169,10 +171,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 
 	container["Mounts"] = mounts;
 
-	if(!container_info.m_healthcheck_obj.isNull())
-	{
-		container["Healthcheck"] = container_info.m_healthcheck_obj;
-	}
+	sinsp_container_info::container_health_probe::add_health_probes(container_info.m_health_probes, container);
 
 	char addrbuff[100];
 	uint32_t iph = htonl(container_info.m_container_ip);
@@ -356,15 +355,10 @@ string sinsp_container_manager::get_container_name(sinsp_threadinfo* tinfo)
 	return res;
 }
 
-void sinsp_container_manager::identify_healthcheck(sinsp_threadinfo *tinfo)
+void sinsp_container_manager::identify_category(sinsp_threadinfo *tinfo)
 {
-	// This thread is a part of a container healthcheck if its
-	// parent thread is part of a health check.
-	sinsp_threadinfo* ptinfo = tinfo->get_parent_thread();
-
-	if(ptinfo && ptinfo->m_is_container_healthcheck)
+	if(tinfo->m_container_id.empty())
 	{
-		tinfo->m_is_container_healthcheck = true;
 		return;
 	}
 
@@ -375,23 +369,65 @@ void sinsp_container_manager::identify_healthcheck(sinsp_threadinfo *tinfo)
 		return;
 	}
 
-	// Otherwise, the thread is a part of a container healthcheck if:
-	//
-	// 1. the comm and args match the container's healthcheck
-	// 2. we traverse the parent state and do *not* find vpid=1,
-	//    or find a process not in a container
-	//
-	// This indicates the initial process of the healthcheck.
-
-	if(!cinfo->m_has_healthcheck ||
-	   cinfo->m_healthcheck_exe != tinfo->m_exe ||
-	   cinfo->m_healthcheck_args != tinfo->m_args)
+	if(tinfo->m_vpid == 1)
 	{
+		if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG)
+		{
+			g_logger.format(sinsp_logger::SEV_DEBUG,
+					"identify_category (%ld) (%s): initial process for container, assigning CAT_CONTAINER",
+					tinfo->m_tid, tinfo->m_comm.c_str());
+		}
+
+		tinfo->m_category = sinsp_threadinfo::CAT_CONTAINER;
+
 		return;
 	}
 
-	if(tinfo->m_vpid == 1)
+	// Categories are passed from parent to child threads
+	sinsp_threadinfo* ptinfo = tinfo->get_parent_thread();
+
+	if(ptinfo && ptinfo->m_category != sinsp_threadinfo::CAT_NONE)
 	{
+		if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG)
+		{
+			g_logger.format(sinsp_logger::SEV_DEBUG,
+					"identify_category (%ld) (%s): taking parent category %d",
+					tinfo->m_tid, tinfo->m_comm.c_str(), ptinfo->m_category);
+		}
+
+		tinfo->m_category = ptinfo->m_category;
+		return;
+	}
+
+	if(!cinfo->m_metadata_complete)
+	{
+		if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG)
+		{
+			g_logger.format(sinsp_logger::SEV_DEBUG,
+					"identify_category (%ld) (%s): container metadata incomplete",
+					tinfo->m_tid, tinfo->m_comm.c_str());
+		}
+
+		return;
+	}
+
+	// Otherwise, the thread is a part of a container health probe if:
+	//
+	// 1. the comm and args match one of the container's health probes
+	// 2. we traverse the parent state and do *not* find vpid=1,
+	//    or find a process not in a container
+	//
+	// This indicates the initial process of the health probe.
+
+	sinsp_container_info::container_health_probe::probe_type ptype =
+		cinfo->match_health_probe(tinfo);
+
+	if(ptype == sinsp_container_info::container_health_probe::PT_NONE)
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"identify_category (%ld) (%s): container health probe PT_NONE",
+				tinfo->m_tid, tinfo->m_comm.c_str());
+
 		return;
 	}
 
@@ -413,7 +449,27 @@ void sinsp_container_manager::identify_healthcheck(sinsp_threadinfo *tinfo)
 
 	if(!found_container_init)
 	{
-		tinfo->m_is_container_healthcheck = true;
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"identify_category (%ld) (%s): not under container init, assigning category %s",
+				tinfo->m_tid, tinfo->m_comm.c_str(),
+				sinsp_container_info::container_health_probe::probe_type_names[ptype].c_str());
+
+		// Each health probe type maps to a command category
+		switch(ptype)
+		{
+		case sinsp_container_info::container_health_probe::PT_NONE:
+		case sinsp_container_info::container_health_probe::PT_END:
+			break;
+		case sinsp_container_info::container_health_probe::PT_HEALTHCHECK:
+			tinfo->m_category = sinsp_threadinfo::CAT_HEALTHCHECK;
+			break;
+		case sinsp_container_info::container_health_probe::PT_LIVENESS_PROBE:
+			tinfo->m_category = sinsp_threadinfo::CAT_LIVENESS_PROBE;
+			break;
+		case sinsp_container_info::container_health_probe::PT_READINESS_PROBE:
+			tinfo->m_category = sinsp_threadinfo::CAT_READINESS_PROBE;
+			break;
+		}
 	}
 }
 

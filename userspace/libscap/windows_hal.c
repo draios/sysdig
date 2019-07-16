@@ -27,7 +27,7 @@ limitations under the License.
 #include "scap-int.h"
 #include "windows_hal.h"
 
-int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, struct scap_threadinfo** procinfo, char *error)
+static int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, char *error)
 {
 	struct scap_threadinfo* tinfo;
 
@@ -99,7 +99,7 @@ int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, struct scap_threadi
 
 typedef int (CALLBACK* LPFNDLLFUNC1)();
 
-int32_t scap_proc_scan_proc_dir_windows(scap_t* handle, struct scap_threadinfo** procinfo, char *error)
+int32_t scap_proc_scan_proc_dir_windows(scap_t* handle, char *error)
 {
 	wh_proclist wgpres;
 
@@ -138,7 +138,7 @@ int32_t scap_proc_scan_proc_dir_windows(scap_t* handle, struct scap_threadinfo**
 	{
 		wh_procinfo* wpi = &(wgpres.m_procs[j]);
 
-		if(addprocess_windows(wpi, handle, procinfo, error) != SCAP_SUCCESS)
+		if(addprocess_windows(wpi, handle, error) != SCAP_SUCCESS)
 		{
 			return SCAP_FAILURE;
 		}

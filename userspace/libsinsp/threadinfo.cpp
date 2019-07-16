@@ -90,7 +90,7 @@ void sinsp_threadinfo::init()
 	m_lastevent_data = NULL;
 	m_parent_loop_detected = false;
 	m_tty = 0;
-	m_is_container_healthcheck = false;
+	m_category = CAT_NONE;
 	m_blprogram = NULL;
 	m_loginuid = 0;
 }
@@ -425,7 +425,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_clone_ts = pi->clone_ts;
 	m_tty = pi->tty;
 	m_loginuid = pi->loginuid;
-	m_is_container_healthcheck = false;
+	m_category = CAT_NONE;
 
 	set_cgroups(pi->cgroups, pi->cgroups_len);
 	m_root = pi->root;
@@ -953,6 +953,13 @@ void sinsp_threadinfo::populate_cmdline(string &cmdline, sinsp_threadinfo *tinfo
 	{
 		cmdline += " " + tinfo->m_args[j];
 	}
+}
+
+bool sinsp_threadinfo::is_health_probe()
+{
+	return (m_category == sinsp_threadinfo::CAT_HEALTHCHECK ||
+		m_category == sinsp_threadinfo::CAT_LIVENESS_PROBE ||
+		m_category == sinsp_threadinfo::CAT_READINESS_PROBE);
 }
 
 shared_ptr<sinsp_threadinfo> sinsp_threadinfo::lookup_thread()

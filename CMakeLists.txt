@@ -37,6 +37,10 @@ cmake_minimum_required(VERSION 2.8.2)
 
 project(sysdig)
 
+# Add path for custom CMake modules.
+list(APPEND CMAKE_MODULE_PATH
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
+
 if(NOT DEFINED SYSDIG_VERSION)
 	set(SYSDIG_VERSION "0.1.1dev")
 endif()
