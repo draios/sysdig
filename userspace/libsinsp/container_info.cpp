@@ -17,9 +17,96 @@ limitations under the License.
 
 */
 
+#include <utility>
+
 #include "container_info.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
+
+std::vector<std::string> sinsp_container_info::container_health_probe::probe_type_names = {
+	"None",
+	"Healthcheck",
+	"LivenessProbe",
+	"ReadinessProbe",
+	"End"
+};
+
+sinsp_container_info::container_health_probe::container_health_probe()
+{
+}
+
+sinsp_container_info::container_health_probe::container_health_probe(const probe_type ptype,
+								     const std::string &&exe,
+								     const std::vector<std::string> &&args)
+	: m_probe_type(ptype),
+	  m_health_probe_exe(exe),
+	  m_health_probe_args(args)
+{
+}
+
+sinsp_container_info::container_health_probe::~container_health_probe()
+{
+}
+
+void sinsp_container_info::container_health_probe::parse_health_probes(const Json::Value &config_obj,
+								       std::list<container_health_probe> &probes)
+{
+	// Add any health checks described in the container config/labels.
+	for(int i=PT_NONE; i != PT_END; i++)
+	{
+		string key = probe_type_names[i];
+		const Json::Value& probe_obj = config_obj[key];
+
+		if(!probe_obj.isNull() && probe_obj.isObject())
+		{
+			const Json::Value& probe_exe_obj = probe_obj["exe"];
+
+			if(!probe_exe_obj.isNull() && probe_exe_obj.isConvertibleTo(Json::stringValue))
+			{
+				const Json::Value& probe_args_obj = probe_obj["args"];
+
+				std::string probe_exe = probe_exe_obj.asString();
+				std::vector<std::string> probe_args;
+
+				if(!probe_args_obj.isNull() && probe_args_obj.isArray())
+				{
+					for(const auto &item : probe_args_obj)
+					{
+						if(item.isConvertibleTo(Json::stringValue))
+						{
+							probe_args.push_back(item.asString());
+						}
+					}
+				}
+				g_logger.format(sinsp_logger::SEV_DEBUG,
+						"add_health_probes: adding %s %s %d",
+						probe_type_names[i].c_str(),
+						probe_exe.c_str(),
+						probe_args.size());
+
+				probes.emplace_back(static_cast<probe_type>(i), std::move(probe_exe), std::move(probe_args));
+			}
+		}
+	}
+}
+
+void sinsp_container_info::container_health_probe::add_health_probes(const std::list<container_health_probe> &probes,
+								     Json::Value &config_obj)
+{
+	for(auto &probe : probes)
+	{
+		string key = probe_type_names[probe.m_probe_type];
+		Json::Value args;
+
+		config_obj[key]["exe"] = probe.m_health_probe_exe;
+		for(auto &arg : probe.m_health_probe_args)
+		{
+			args.append(arg);
+		}
+
+		config_obj[key]["args"] = args;
+	}
+}
 
 const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_idx(uint32_t idx) const
 {
@@ -59,57 +146,6 @@ const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by
 	return NULL;
 }
 
-std::string sinsp_container_info::normalize_healthcheck_arg(const std::string &arg)
-{
-	std::string ret = arg;
-
-	if(ret.empty())
-	{
-		return ret;
-	}
-
-	// Remove pairs of leading/trailing " or ' chars, if present
-	while(ret.front() == '"' || ret.front() == '\'')
-	{
-		if(ret.back() == ret.front())
-		{
-			ret.pop_back();
-			ret.erase(0, 1);
-		}
-	}
-
-	return ret;
-}
-
-void sinsp_container_info::parse_healthcheck(const Json::Value &healthcheck_obj)
-{
-	if(!healthcheck_obj.isNull())
-	{
-		const Json::Value &test_obj = healthcheck_obj["Test"];
-
-		if(!test_obj.isNull() && test_obj.isArray() && test_obj.size() >= 2)
-		{
-			if(test_obj[0].asString() == "CMD")
-			{
-				m_has_healthcheck = true;
-				m_healthcheck_exe = normalize_healthcheck_arg(test_obj[1].asString());
-
-				for(uint32_t i = 2; i < test_obj.size(); i++)
-				{
-					m_healthcheck_args.push_back(normalize_healthcheck_arg(test_obj[i].asString()));
-				}
-			}
-			else if(test_obj[0].asString() == "CMD-SHELL")
-			{
-				m_has_healthcheck = true;
-				m_healthcheck_exe = "/bin/sh";
-				m_healthcheck_args.push_back("-c");
-				m_healthcheck_args.push_back(test_obj[1].asString());
-			}
-		}
-	}
-}
-
 std::shared_ptr<sinsp_threadinfo> sinsp_container_info::get_tinfo(sinsp* inspector) const
 {
 	auto tinfo = make_shared<sinsp_threadinfo>(inspector);
@@ -123,3 +159,31 @@ std::shared_ptr<sinsp_threadinfo> sinsp_container_info::get_tinfo(sinsp* inspect
 	return tinfo;
 }
 
+sinsp_container_info::container_health_probe::probe_type sinsp_container_info::match_health_probe(sinsp_threadinfo *tinfo)
+{
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"match_health_probe (%s): %u health probes to consider",
+			m_id.c_str(), m_health_probes.size());
+
+	auto pred = [&] (container_health_probe &p) {
+                g_logger.format(sinsp_logger::SEV_DEBUG,
+				"match_health_probe (%s): Matching tinfo %s %d against %s %d",
+				m_id.c_str(),
+				tinfo->m_exe.c_str(), tinfo->m_args.size(),
+				p.m_health_probe_exe.c_str(), p.m_health_probe_args.size());
+
+                return (p.m_health_probe_exe == tinfo->m_exe &&
+			p.m_health_probe_args == tinfo->m_args);
+        };
+
+	auto match = std::find_if(m_health_probes.begin(),
+				  m_health_probes.end(),
+				  pred);
+
+	if(match == m_health_probes.end())
+	{
+		return container_health_probe::PT_NONE;
+	}
+
+	return match->m_probe_type;
+}
