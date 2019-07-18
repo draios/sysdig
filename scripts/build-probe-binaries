@@ -28,13 +28,20 @@ PROBE_NAME=$1
 PROBE_VERSION=$2
 REPOSITORY_NAME=$3
 KERNEL_TYPE=
+INTERNAL_ARTIFACTORY_API_KEY=
 BASEDIR=$(pwd)
 ARCH=$(uname -m)
 URL_TIMEOUT=300
 RETRY=10
 
-if [ $# -eq 4 ]; then
+if [ $# -ge 4 ]; then
 	KERNEL_TYPE=$4
+
+	echo KERNEL TYPE is $KERNEL_TYPE
+
+	if [ "RHEL" = "$KERNEL_TYPE" ]; then
+		INTERNAL_ARTIFACTORY_API_KEY=$5
+	fi
 fi
 
 if [ ! -d $BASEDIR/output ]; then
@@ -216,7 +223,6 @@ function coreos_build_new {
 		LOOPDEV=$(sudo kpartx -asv coreos_developer_container.bin | cut -d\  -f 3)
 		sudo mkdir /tmp/loop || true
 		sudo mount /dev/mapper/$LOOPDEV /tmp/loop
-		
 		# Copy kernel headers
 		cp -r /tmp/loop/lib/modules .
 
@@ -272,10 +278,10 @@ function boot2docker_build {
 		cd $DIR_NAME
 		make distclean
 		git clone -b "$AUFS_BRANCH" "$AUFS_REPO" aufs-standalone
-		cd aufs-standalone 
+		cd aufs-standalone
 		git checkout -q "$AUFS_COMMIT"
 		cd ..
-		cp -r aufs-standalone/Documentation . 
+		cp -r aufs-standalone/Documentation .
 		cp -r aufs-standalone/fs .
 		cp -r aufs-standalone/include/uapi/linux/aufs_type.h include/uapi/linux/
 		set -e && for patch in \
@@ -357,6 +363,10 @@ function rhel_build {
 
 	# Get all the parameters needed
 	URL=$1
+
+	# Optionally take an artifactory api key.
+	ARTIFACTORY_API_KEY="${2:-""}"
+
 	RPM=$(echo $URL | grep -o '[^/]*$')
 	KERNEL_RELEASE=$(echo $RPM | awk 'match($0, /[^kernel\-(uek\-)?(core\-|devel\-)?].*[^(\.rpm)]/){ print substr($0, RSTART, RLENGTH) }')
 
@@ -368,12 +378,18 @@ function rhel_build {
 
 	if [ ! -f $RPM ]; then
 		echo Downloading $RPM [RHEL and CentOS]
-		wget -nv --timeout=${URL_TIMEOUT} --tries=${RETRY} $URL
+
+		if [ -z "$ARTIFACTORY_API_KEY" ]; then
+			wget -nv --timeout=${URL_TIMEOUT} --tries=${RETRY} $URL
+		else
+			curl -H "X-JFrog-Art-Api:$ARTIFACTORY_API_KEY" -O $URL
+		fi
 		rpm2cpio $RPM | cpio -idm
 	fi
 
 	NUM_RPM=$(ls kernel-*.rpm -1 | wc -l)
 
+	# We need two rpms (devel and core) to get what we need
 	if [ $NUM_RPM -eq 2 ]; then
 
 		#echo Building $KERNEL_RELEASE
@@ -550,10 +566,10 @@ if [ -z "$KERNEL_TYPE" ]; then
 	done
 
 	#
-	# RHEL build
+	# RHEL build through CentOS
 	#
 
-	echo Building RHEL
+	echo Building CentOS
 	DIR=$(dirname $(readlink -f $0))
 	URLS="$($DIR/kernel-crawler.py CentOS)"
 
@@ -581,7 +597,6 @@ if [ -z "$KERNEL_TYPE" ]; then
 	echo Building Fedora Atomic
 	DIR=$(dirname $(readlink -f $0))
 	URLS="$($DIR/kernel-crawler.py Fedora-Atomic)"
-	
 	for URL in $URLS
 	do
 		rhel_build $URL
@@ -725,6 +740,27 @@ if [ -z "$KERNEL_TYPE" ]; then
 	#fi
 
 	echo "Success."
+
+
+elif [ "RHEL" = "$KERNEL_TYPE" ]; then
+	#
+	# RHEL build from Stored Sources
+	#
+
+        checkout_sysdig
+
+	echo Building RHEL from Stored Sources
+
+	# We're using aql to query for all of the objects in the repo
+	JSON_RESULT=$(curl -H 'Content-Type: text/plain' -H "X-JFrog-Art-Api:$INTERNAL_ARTIFACTORY_API_KEY" -X POST -d 'items.find({"repo":"redhat-sources"})' https:///artifactory.internal.sysdig.com/artifactory/api/search/aql)
+
+	# Use jq to parse the json to get the rpms
+	URLS=$(echo "$JSON_RESULT"| jq -r '.results[].name as $o | $o | select(endswith(".rpm")) | "https://artifactory.internal.sysdig.com/artifactory/redhat-sources/" + $o')
+
+	for URL in $URLS
+	do
+		rhel_build $URL $INTERNAL_ARTIFACTORY_API_KEY
+	done
 
 elif [ "OL6-UEK" = "$KERNEL_TYPE" ]; then
 	# This should only run in the ol6-builder container context
