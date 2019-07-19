@@ -752,7 +752,7 @@ elif [ "RHEL" = "$KERNEL_TYPE" ]; then
 	echo Building RHEL from Stored Sources
 
 	# We're using aql to query for all of the objects in the repo
-	JSON_RESULT=$(curl -H 'Content-Type: text/plain' -H "X-JFrog-Art-Api:$INTERNAL_ARTIFACTORY_API_KEY" -X POST -d 'items.find({"repo":"redhat-sources"})' https:///artifactory.internal.sysdig.com/artifactory/api/search/aql)
+	JSON_RESULT=$(curl -H 'Content-Type: text/plain' -H "X-JFrog-Art-Api:$INTERNAL_ARTIFACTORY_API_KEY" -X POST -d 'items.find({"repo":"redhat-sources"})' https://artifactory.internal.sysdig.com/artifactory/api/search/aql)
 
 	# Use jq to parse the json to get the rpms
 	URLS=$(echo "$JSON_RESULT"| jq -r '.results[].name as $o | $o | select(endswith(".rpm")) | "https://artifactory.internal.sysdig.com/artifactory/redhat-sources/" + $o')
