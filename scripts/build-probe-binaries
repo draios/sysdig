@@ -41,6 +41,7 @@ if [ $# -ge 4 ]; then
 
 	if [ "RHEL" = "$KERNEL_TYPE" ]; then
 		INTERNAL_ARTIFACTORY_API_KEY=$5
+		INTERNAL_ARTIFACTORY_SERVER=$6
 	fi
 fi
 
@@ -752,14 +753,14 @@ elif [ "RHEL" = "$KERNEL_TYPE" ]; then
 	echo Building RHEL from Stored Sources
 
 	# We're using aql to query for all of the objects in the repo
-	JSON_RESULT=$(curl -H 'Content-Type: text/plain' -H "X-JFrog-Art-Api:$INTERNAL_ARTIFACTORY_API_KEY" -X POST -d 'items.find({"repo":"redhat-sources"})' https://artifactory.internal.sysdig.com/artifactory/api/search/aql)
+	JSON_RESULT=$(curl -H 'Content-Type: text/plain' -H "X-JFrog-Art-Api:$INTERNAL_ARTIFACTORY_API_KEY" -X POST -d 'items.find({"repo":"redhat-sources"})' https://$INTERNAL_ARTIFACTORY_SERVER/artifactory/api/search/aql)
 
 	# Use jq to parse the json to get the rpms
-	URLS=$(echo "$JSON_RESULT"| jq -r '.results[].name as $o | $o | select(endswith(".rpm")) | "https://artifactory.internal.sysdig.com/artifactory/redhat-sources/" + $o')
+	URLS=$(echo "$JSON_RESULT"| jq -r '.results[].name as $o | $o | select(endswith(".rpm")) | $o')
 
 	for URL in $URLS
 	do
-		rhel_build $URL $INTERNAL_ARTIFACTORY_API_KEY
+		rhel_build https://$INTERNAL_ARTIFACTORY_SERVER/artifactory/redhat-sources/$URL $INTERNAL_ARTIFACTORY_API_KEY
 	done
 
 elif [ "OL6-UEK" = "$KERNEL_TYPE" ]; then
