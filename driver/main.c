@@ -1598,9 +1598,6 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 			ASSERT(event_datap->event_info.context_data.sched_next != NULL);
 			ring_info->n_context_switches++;
 		}
-	} else if (event_datap->category == PPMC_SIGNAL) {
-		if (event_type == PPME_SIGNALDELIVER_E)
-			ASSERT(event_datap->event_info.signal_data.info != NULL);
 	}
 
 	/*
@@ -1737,8 +1734,9 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 
 		if (event_datap->category == PPMC_SIGNAL) {
 			args.signo = event_datap->event_info.signal_data.sig;
-
-			if (args.signo == SIGKILL) {
+			if (event_datap->event_info.signal_data.info == NULL) {
+				args.spid = (__kernel_pid_t) 0;
+			} else if (args.signo == SIGKILL) {
 				args.spid = event_datap->event_info.signal_data.info->_sifields._kill._pid;
 			} else if (args.signo == SIGTERM || args.signo == SIGHUP || args.signo == SIGINT ||
 					args.signo == SIGTSTP || args.signo == SIGQUIT) {
@@ -2095,7 +2093,10 @@ TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_s
 
 	event_data.category = PPMC_SIGNAL;
 	event_data.event_info.signal_data.sig = sig;
-	event_data.event_info.signal_data.info = info;
+	if (info == SEND_SIG_NOINFO || info == SEND_SIG_PRIV)
+		event_data.event_info.signal_data.info = NULL;
+	else
+		event_data.event_info.signal_data.info = info;
 	event_data.event_info.signal_data.ka = ka;
 
 	record_event_all_consumers(PPME_SIGNALDELIVER_E, UF_USED | UF_ALWAYS_DROP, &event_data);
