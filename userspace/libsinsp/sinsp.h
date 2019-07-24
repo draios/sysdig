@@ -229,6 +229,7 @@ public:
 	*/
 	void fdopen(int fd);
 
+	void open_udig(uint32_t timeout_ms = SCAP_TIMEOUT_MS);
 	void open_nodriver();
 
 	/*!
@@ -912,6 +913,7 @@ private:
 #endif
 
 	void open_int();
+	void open_live_common(uint32_t timeout_ms, scap_mode_t mode);
 	void init();
 	void import_thread_table();
 	void import_ifaddr_list();
