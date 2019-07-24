@@ -283,7 +283,11 @@ typedef enum {
 	 * Do not read system call data. If next is called, a dummy event is
 	 * returned.
 	 */
-	SCAP_MODE_NODRIVER
+	SCAP_MODE_NODRIVER,
+	/*!
+	 * Read system call data from the udig instrumentation.
+	 */
+	SCAP_MODE_UDIG
 } scap_mode_t;
 
 typedef struct scap_open_args
@@ -530,8 +534,20 @@ struct ppm_syscall_desc {
 
 struct udig_ring_buffer_status {
 	volatile uint32_t m_reader_active;
-	struct timespec m_last_print_time;
+	volatile int m_buffer_lock;
+	volatile struct timespec m_last_print_time;
 };
+
+typedef struct ppm_ring_buffer_info ppm_ring_buffer_info;
+
+int32_t udig_alloc_ring(int* ring_fd, uint8_t** ring, uint32_t *ringsize, char *error);
+int32_t udig_alloc_ring_descriptors(int* ring_descs_fd, 
+	struct ppm_ring_buffer_info** ring_info, 
+	struct udig_ring_buffer_status** ring_status, 
+	char *error);
+void udig_free_ring(uint8_t* addr, uint32_t size);
+void udig_free_ring_descriptiors(uint8_t* addr);
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // API functions
