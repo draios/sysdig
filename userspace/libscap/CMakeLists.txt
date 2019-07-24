@@ -28,6 +28,7 @@ list(APPEND targetfiles
 	scap_iflist.c
 	scap_savefile.c
 	scap_procs.c
+	scap_udig.c
 	scap_userlist.c
 	syscall_info_table.c
 	../../driver/dynamic_params_table.c

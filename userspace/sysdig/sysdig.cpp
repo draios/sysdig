@@ -784,6 +784,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #ifdef HAS_CAPTURE
 	string cri_socket_path;
 #endif
+	bool udig = false;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -834,6 +835,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"snaplen", required_argument, 0, 's' },
 		{"summary", no_argument, 0, 'S' },
 		{"suppress-comm", required_argument, 0, 'U' },
+		{"udig", required_argument, 0, 'u' },
 		{"timetype", required_argument, 0, 't' },
 		{"force-tracers-capture", required_argument, 0, 'T'},
 		{"unbuffered", no_argument, 0, 0 },
@@ -866,7 +868,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "C:"
                                         "dDEe:F"
                                         "G:"
-                                        "hi:jk:K:lLm:M:n:Pp:qRr:Ss:t:TU:v"
+                                        "hi:jk:K:lLm:M:n:Pp:qRr:Ss:t:TU:uv"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
@@ -1133,9 +1135,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			case 'T':
 				force_tracers_capture = true;
 				break;
-
 			case 'U':
 				suppress_comms.insert(string(optarg));
+				break;
+			case 'u':
+				udig = true;
 				break;
 			case 'v':
 				verbose = true;
@@ -1451,7 +1455,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 				try
 				{
-					inspector->open("");
+					if(udig)
+					{
+						inspector->open_udig();
+					}
+					else
+					{
+						inspector->open("");
+					}
 				}
 				catch(sinsp_exception e)
 				{
