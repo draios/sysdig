@@ -71,6 +71,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 	uint32_t nfound = 0;
 	int64_t tmp;
 	uint32_t uid;
+	uint64_t tgid;
 	uint64_t ppid;
 	uint64_t vpid;
 	uint64_t vtid;
@@ -112,6 +113,19 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 
 	while(fgets(line, sizeof(line), f) != NULL)
 	{
+		if(strstr(line, "Tgid") == line)
+		{
+			nfound++;
+
+			if(sscanf(line, "Tgid: %" PRIu64, &tgid) == 1)
+			{
+				tinfo->pid = tgid;
+			}
+			else
+			{
+				ASSERT(false);
+			}
+		}
 		if(strstr(line, "Uid") == line)
 		{
 			nfound++;
@@ -223,13 +237,13 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 			}
 		}
 
-		if(nfound == 9)
+		if(nfound == 10)
 		{
 			break;
 		}
 	}
 
-	ASSERT(nfound == 9 || nfound == 6 || nfound == 5);
+	ASSERT(nfound == 10 || nfound == 7 || nfound == 6);
 
 	fclose(f);
 
@@ -549,7 +563,7 @@ int32_t scap_proc_fill_loginuid(scap_t *handle, struct scap_threadinfo* tinfo, c
 //
 // Add a process to the list by parsing its entry under /proc
 //
-static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int tid_to_scan, char* procdirname, struct scap_ns_socket_list** sockets_by_ns, scap_threadinfo** procinfo, char *error)
+static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procdirname, struct scap_ns_socket_list** sockets_by_ns, scap_threadinfo** procinfo, char *error)
 {
 	char dir_name[256];
 	char target_name[SCAP_MAX_PATH_SIZE];
@@ -619,31 +633,8 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 	}
 
 	tinfo->tid = tid;
-	if(parenttid != -1)
-	{
-		tinfo->pid = parenttid;
-	}
-	else
-	{
-		tinfo->pid = tid;
-	}
 
 	tinfo->fdlist = NULL;
-
-	//
-	// If tid is different from pid, assume this is a thread and that the FDs are shared, and set the
-	// corresponding process flags.
-	// XXX we should see if the process creation flags are stored somewhere in /proc and handle this
-	// properly instead of making assumptions.
-	//
-	if(tinfo->tid == tinfo->pid)
-	{
-		tinfo->flags = 0;
-	}
-	else
-	{
-		tinfo->flags = PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES;
-	}
 
 	//
 	// Gathers the exepath
@@ -688,7 +679,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 		return res;
 	}
 
-	if (suppressed && tid_to_scan == -1)
+	if (suppressed && !procinfo)
 	{
 		free(tinfo);
 		return SCAP_SUCCESS;
@@ -854,11 +845,25 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 		tinfo->clone_ts = dirstat.st_ctim.tv_sec*1000000000 + dirstat.st_ctim.tv_nsec;
 	}
 
+	// If tid is different from pid, assume this is a thread and that the FDs are shared, and set the
+	// corresponding process flags.
+	// XXX we should see if the process creation flags are stored somewhere in /proc and handle this
+	// properly instead of making assumptions.
 	//
-	// if tid_to_scan is set we assume this is a runtime lookup so no
+	if(tinfo->tid == tinfo->pid)
+	{
+		tinfo->flags = 0;
+	}
+	else
+	{
+		tinfo->flags = PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES;
+	}
+
+	//
+	// if procinfo is set we assume this is a runtime lookup so no
 	// need to use the table
 	//
-	if(tid_to_scan == -1)
+	if(!procinfo)
 	{
 		//
 		// Done. Add the entry to the process table, or fire the notification callback
@@ -886,7 +891,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 	//
 	// Only add fds for processes, not threads
 	//
-	if(parenttid == -1)
+	if(tinfo->pid == tinfo->tid)
 	{
 		res = scap_fd_scan_fd_dir(handle, dir_name, tinfo, sockets_by_ns, error);
 	}
@@ -900,9 +905,33 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 }
 
 //
+// Read a single thread info from /proc
+//
+int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, struct scap_threadinfo** pi, char *error, bool scan_sockets)
+{
+	struct scap_ns_socket_list* sockets_by_ns = NULL;
+
+	int32_t res;
+	char add_error[SCAP_LASTERR_SIZE];
+
+	if(!scan_sockets)
+	{
+		sockets_by_ns = (void*)-1;
+	}
+
+	res = scap_proc_add_from_proc(handle, tid, procdirname, &sockets_by_ns, pi, add_error);
+	if(res != SCAP_SUCCESS)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "cannot add proc tid = %"PRIu64", dirname = %s, error=%s", tid, procdirname, add_error);
+	}
+
+	return res;
+}
+
+//
 // Scan a directory containing multiple processes under /proc
 //
-int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid, int tid_to_scan, struct scap_threadinfo** procinfo, char *error, bool scan_sockets)
+static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, int parenttid, char *error)
 {
 	DIR *dir_p;
 	struct dirent *dir_entry_p;
@@ -913,7 +942,6 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 
 	struct scap_ns_socket_list* sockets_by_ns = NULL;
 
-	tid = 0;
 	dir_p = opendir(procdirname);
 
 	if(dir_p == NULL)
@@ -921,19 +949,6 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 		snprintf(error, SCAP_LASTERR_SIZE, "error opening the %s directory (%s)",
 			 procdirname, scap_strerror(handle, errno));
 		return SCAP_NOTFOUND;
-	}
-
-	if(-1 == parenttid)
-	{
-		if(!scan_sockets)
-		{
-			sockets_by_ns = (void*)-1;
-		}
-	}
-
-	if(tid_to_scan != -1)
-	{
-		*procinfo = NULL;
 	}
 
 	while((dir_entry_p = readdir(dir_p)) != NULL)
@@ -957,45 +972,29 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 		}
 
 		//
-		// if tid_to_scan is set we assume is a runtime lookup so no
-		// need to use the table
+		// This is the initial /proc scan so duplicate threads
+		// are an error, or at least unexpected. Check the process
+		// list to see if we've encountered this tid already
 		//
-		if(tid_to_scan == -1)
+		HASH_FIND_INT64(handle->m_proclist, &tid, tinfo);
+		if(tinfo != NULL)
 		{
-			HASH_FIND_INT64(handle->m_proclist, &tid, tinfo);
-			if(tinfo != NULL)
-			{
-				ASSERT(false);
-				snprintf(error, SCAP_LASTERR_SIZE, "duplicate process %"PRIu64, tid);
-				res = SCAP_FAILURE;
-				break;
-			}
+			ASSERT(false);
+			snprintf(error, SCAP_LASTERR_SIZE, "duplicate process %"PRIu64, tid);
+			res = SCAP_FAILURE;
+			break;
 		}
 
-		if(tid_to_scan == -1 || tid_to_scan == tid)
+		char add_error[SCAP_LASTERR_SIZE];
+
+		//
+		// We have a process that needs to be explored
+		//
+		res = scap_proc_add_from_proc(handle, tid, procdirname, &sockets_by_ns, NULL, add_error);
+		if(res != SCAP_SUCCESS)
 		{
-			char add_error[SCAP_LASTERR_SIZE];
-
-			//
-			// We have a process that needs to be explored
-			//
-			res = scap_proc_add_from_proc(handle, tid, parenttid, tid_to_scan, procdirname, &sockets_by_ns, procinfo, add_error);
-			if(res != SCAP_SUCCESS)
-			{
-				snprintf(error, SCAP_LASTERR_SIZE, "cannot add procs tid = %"PRIu64", parenttid = %"PRIi32", dirname = %s, error=%s", tid, parenttid, procdirname, add_error);
-				break;
-			}
-
-			if(tid_to_scan != -1)
-			{
-				//
-				// procinfo should be filled, except when
-				// the main thread already terminated and
-				// the various proc files were not readable
-				//
-				// ASSERT(*procinfo);
-				break;
-			}
+			snprintf(error, SCAP_LASTERR_SIZE, "cannot add procs tid = %"PRIu64", parenttid = %"PRIi32", dirname = %s, error=%s", tid, parenttid, procdirname, add_error);
+			break;
 		}
 
 		//
@@ -1004,19 +1003,11 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 		if(parenttid == -1 && handle->m_mode != SCAP_MODE_NODRIVER)
 		{
 			snprintf(childdir, sizeof(childdir), "%s/%u/task", procdirname, (int)tid);
-			if(scap_proc_scan_proc_dir(handle, childdir, tid, tid_to_scan, procinfo, error, scan_sockets) == SCAP_FAILURE)
+			if(_scap_proc_scan_proc_dir_impl(handle, childdir, tid, error) == SCAP_FAILURE)
 			{
 				res = SCAP_FAILURE;
 				break;
 			}
-		}
-
-		if(tid_to_scan != -1 && *procinfo)
-		{
-			//
-			// We found the process we were looking for, no need to keep iterating
-			//
-			break;
 		}
 	}
 
@@ -1026,6 +1017,11 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid
 		scap_fd_free_ns_sockets_list(handle, &sockets_by_ns);
 	}
 	return res;
+}
+
+int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, char *error)
+{
+	return _scap_proc_scan_proc_dir_impl(handle, procdirname, -1, error);
 }
 
 #endif // CYGWING_AGENT
@@ -1098,9 +1094,9 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 #endif // HAS_CAPTURE
 
 #ifdef CYGWING_AGENT
-int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid, int tid_to_scan, struct scap_threadinfo** procinfo, char *error, bool scan_sockets)
+int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, char *error)
 {
-	return scap_proc_scan_proc_dir_windows(handle, procinfo, error);
+	return scap_proc_scan_proc_dir_windows(handle, error);
 }
 #endif
 
@@ -1156,7 +1152,7 @@ struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_soc
 	struct scap_threadinfo* tinfo = NULL;
 	char filename[SCAP_MAX_PATH_SIZE];
 	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-	if(scap_proc_scan_proc_dir(handle, filename, -1, tid, &tinfo, handle->m_lasterr, scan_sockets) != SCAP_SUCCESS)
+	if(scap_proc_read_thread(handle, filename, tid, &tinfo, handle->m_lasterr, scan_sockets) != SCAP_SUCCESS)
 	{
 		return NULL;
 	}
@@ -1230,7 +1226,7 @@ int scap_proc_scan_proc_table(scap_t *handle)
 	handle->m_lasterr[0] = '\0';
 
 	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-	return scap_proc_scan_proc_dir(handle, filename, -1, -1, NULL, handle->m_lasterr, true);
+	return scap_proc_scan_proc_dir(handle, filename, handle->m_lasterr);
 }
 
 void scap_refresh_proc_table(scap_t* handle)
