@@ -253,7 +253,7 @@ bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr, sinsp
 				// host interfaces.
 				//
 
-				if(!container_info->m_metadata_complete)
+				if(container_info->m_status != sinsp_container_lookup_state::SUCCESSFUL)
 				{
 					g_logger.format(sinsp_logger::SEV_DEBUG, "Checking IP address of container %s with incomplete metadata",
 						tinfo->m_container_id.c_str());
@@ -263,7 +263,7 @@ bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr, sinsp
 
 				for(auto it = clist->begin(); it != clist->end(); ++it)
 				{
-					if(!it->second.m_metadata_complete)
+					if(it->second.m_status != sinsp_container_lookup_state::SUCCESSFUL)
 					{
 						g_logger.format(sinsp_logger::SEV_DEBUG, "Checking IP address of container %s with incomplete metadata (in context of %s)",
 								it->second.m_id.c_str(), tinfo->m_container_id.c_str());

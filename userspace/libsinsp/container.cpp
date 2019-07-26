@@ -139,8 +139,7 @@ sinsp_container_info* sinsp_container_manager::get_or_create_container(
 	container_info.m_imagerepo = s_incomplete_info_name;
 	container_info.m_imagetag = s_incomplete_info_name;
 	container_info.m_imagedigest = s_incomplete_info_name;
-	container_info.m_metadata_complete = false;
-	container_info.m_status = sinsp_container_lookup_result::STARTED;
+	container_info.m_status = sinsp_container_lookup_state::STARTED;
 
 	set_lookup_status(id, type, sinsp_container_lookup_state::STARTED);
 	add_container(container_info, tinfo, containers);
@@ -344,7 +343,8 @@ bool sinsp_container_manager::update_container(const sinsp_container_info& conta
 
 	auto it = containers->find(container_info.m_id);
 	if(it == containers->end() ||
-		(container_info.m_metadata_complete && it->second.m_status != sinsp_container_lookup_result::SUCCESSFUL))
+		(container_info.m_status != sinsp_container_lookup_state::STARTED &&
+		 it->second.m_status != sinsp_container_lookup_state::SUCCESSFUL))
 	{
 		auto thread_info = container_info.get_tinfo(m_inspector);
 		add_container(container_info, thread_info.get(), containers);
@@ -468,7 +468,7 @@ void sinsp_container_manager::identify_category(sinsp_threadinfo *tinfo)
 		return;
 	}
 
-	if(!cinfo->m_metadata_complete)
+	if(cinfo->m_status != sinsp_container_lookup_state::SUCCESSFUL)
 	{
 		if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG)
 		{
