@@ -315,6 +315,7 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 	}
 	sinsp_container_info *container_info = manager->get_container(container_id);
 	sinsp_container_info sync_container_info;
+	bool success = true;
 
 	if (!container_info || manager->should_lookup(container_id, s_cri_runtime_type))
 	{
@@ -338,7 +339,7 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 						"cri (%s): Performing sync lookup",
 						container_id.c_str());
 
-				bool success = m_cri_info_source->parse_cri(
+				success = m_cri_info_source->parse_cri(
 					&sync_container_info, key);
 
 				sync_container_info.m_type = s_cri_runtime_type;
@@ -351,7 +352,6 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 					"cri (%s) sync lookup done, successful=%s",
 					container_id.c_str(), success ? "true" : "false");
 
-				sync_container_info.m_metadata_complete = true;
 				if(manager->update_container(sync_container_info) && success)
 				{
 					manager->notify_new_container(sync_container_info);
@@ -366,5 +366,5 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 		}
 	}
 
-	return container_info ? container_info->m_metadata_complete : true;
+	return success;
 }
