@@ -45,6 +45,15 @@ enum sinsp_container_type
 	CT_BPM = 9,
 };
 
+namespace std {
+template<> struct hash<sinsp_container_type> {
+	std::size_t operator()(const sinsp_container_type& h) const {
+		return std::hash<int>{}(static_cast<int>(h));
+	}
+};
+}
+
+
 class sinsp_threadinfo;
 
 // Docker and CRI-compatible runtimes are very similar
@@ -55,6 +64,24 @@ static inline bool is_docker_compatible(sinsp_container_type t)
 		t == CT_CONTAINERD ||
 		t == CT_CRIO;
 }
+
+/**
+ * \brief the state of a container metadata lookup
+ *
+ * Some container engines (Docker, CRI) do external API calls to find container
+ * metadata. This value stores the state of the lookup (a separate value is kept
+ * for each container_id/engine pair). The purpose is to avoid repeated lookups
+ * after failure, especially when multiple engines match against the same process
+ * (e.g. Docker and containerd may use the same cgroup layout).
+ *
+ * If all engines fail to find metadata for a container, we need to remember that
+ * for each engine individually and there's only one sinsp_container_info->m_type
+ */
+enum class sinsp_container_lookup_state {
+	STARTED = 0,
+	SUCCESSFUL = 1,
+	FAILED = 2
+};
 
 class sinsp_container_info
 {
@@ -197,13 +224,6 @@ public:
 
 	bool is_pod_sandbox() const {
 		return m_is_pod_sandbox;
-	}
-
-	// should we start a query for this container id but with type `type`?
-	// yes, if the container as we know it is of another type
-	// and it's either in flight (i.e. may yet fail) or unsuccessful
-	bool query_anyway(sinsp_container_type type) const {
-		return m_type != type && (!m_successful || !m_metadata_complete);
 	}
 
 	std::shared_ptr<sinsp_threadinfo> get_tinfo(sinsp* inspector) const;
