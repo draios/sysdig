@@ -239,7 +239,7 @@ void cri_async_source::run_impl()
 	{
 		sinsp_container_info res;
 
-		res.m_successful = true;
+		res.m_status = sinsp_container_lookup_state::SUCCESSFUL;
 		res.m_id = key.m_container_id;
 		res.m_type = s_cri_runtime_type;
 
@@ -247,7 +247,7 @@ void cri_async_source::run_impl()
 		{
 			g_logger.format(sinsp_logger::SEV_ERROR, "Failed to get CRI metadata for container %s",
 					key.m_container_id.c_str());
-			res.m_successful = false;
+			res.m_status = sinsp_container_lookup_state::FAILED;
 		}
 
 		// Return a result object either way, to ensure any
@@ -338,17 +338,21 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 						"cri (%s): Performing sync lookup",
 						container_id.c_str());
 
+				bool success = m_cri_info_source->parse_cri(
+					&sync_container_info, key);
+
 				sync_container_info.m_type = s_cri_runtime_type;
 				sync_container_info.m_id = container_id;
-				sync_container_info.m_successful = m_cri_info_source->parse_cri(
-					&sync_container_info, key);
+				sync_container_info.m_status = success ?
+							       sinsp_container_lookup_state::SUCCESSFUL :
+							       sinsp_container_lookup_state::FAILED;
 
 				g_logger.format(sinsp_logger::SEV_DEBUG,
 					"cri (%s) sync lookup done, successful=%s",
-					container_id.c_str(), sync_container_info.m_successful ? "true" : "false");
+					container_id.c_str(), success ? "true" : "false");
 
 				sync_container_info.m_metadata_complete = true;
-				if(manager->update_container(sync_container_info) && sync_container_info.m_successful)
+				if(manager->update_container(sync_container_info) && success)
 				{
 					manager->notify_new_container(sync_container_info);
 				}
