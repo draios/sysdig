@@ -428,7 +428,11 @@ end
 
 function update_docker_cats(evt_type)
 	local cat = 'dockerEvtsCount' .. evt_type
-	ssummary[cat].tot = ssummary[cat].tot + 1
+
+	if ssummary[cat] ~= nil then
+		-- Update category only if the container event is included in the list container_evt_types
+		ssummary[cat].tot = ssummary[cat].tot + 1
+	end
 end
 
 -------------------------------------------------------------------------------
