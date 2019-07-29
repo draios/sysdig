@@ -533,7 +533,7 @@ struct ppm_syscall_desc {
 #define UDIG_RING_SIZE (8 * 1024 * 1024)
 
 struct udig_ring_buffer_status {
-	volatile uint32_t m_reader_active;
+	volatile int m_initialized;
 	volatile int m_buffer_lock;
 	volatile struct timespec m_last_print_time;
 };
@@ -546,7 +546,9 @@ int32_t udig_alloc_ring_descriptors(int* ring_descs_fd,
 	struct udig_ring_buffer_status** ring_status, 
 	char *error);
 void udig_free_ring(uint8_t* addr, uint32_t size);
-void udig_free_ring_descriptiors(uint8_t* addr);
+void udig_free_ring_descriptors(uint8_t* addr);
+void ud_lock(volatile int *futexp);
+void ud_unlock(volatile int *futexp);
 
 
 ///////////////////////////////////////////////////////////////////////////////
