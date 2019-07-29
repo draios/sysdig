@@ -82,6 +82,7 @@ local container_evt_types =
 	{'Container', 'Created'       },
 	{'Container', 'Destroyed'     },
 	{'Container', 'Died'          },
+	{'Container', 'exec_die'      },
 	{'Container', 'Exec Created'  },
 	{'Container', 'Exec Started'  },
 	{'Container', 'Exported'      },
