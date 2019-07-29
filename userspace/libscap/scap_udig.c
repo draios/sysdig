@@ -15,12 +15,12 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/syscall.h>
-//#include <linux/futex.h>
-	   
+#include <pthread.h>
+
 #include "scap.h"
 #include "../../driver/ppm_ringbuffer.h"
 
-#ifndef UDIG
+#ifndef UDIG_INSTRUMENTER
 #define ud_shm_open shm_open
 #else
 int ud_shm_open(const char *name, int flag, mode_t mode);
@@ -140,14 +140,15 @@ int32_t udig_alloc_ring_descriptors(int* ring_descs_fd,
 	if(*ring_descs_fd < 0)
 	{
 		//
-		// No shared mem found, allocate a new one.
-		// Note that, according to the man page, the content of the buffer will
-		// be initialized to 0.
+		// No existing ring file found in /dev/shm, create a new one.
 		//
 		*ring_descs_fd = ud_shm_open(UDIG_RING_DESCS_SM_FNAME, O_CREAT | O_RDWR | O_EXCL, 
 				S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 		if(*ring_descs_fd >= 0)
 		{
+			//
+			// Ring created, set its size
+			//
 			if(ftruncate(*ring_descs_fd, mem_size) < 0)
 			{
 				close(*ring_descs_fd);
@@ -182,7 +183,16 @@ int32_t udig_alloc_ring_descriptors(int* ring_descs_fd,
 	*ring_status = (struct udig_ring_buffer_status*)((uint64_t)*ring_info + 
 		sizeof(struct ppm_ring_buffer_info));
 
-	(*ring_status)->m_reader_active = false;
+	//
+	// If we are the original creators of the shared buffer, proceed to
+	// initialize it.
+	// Note that, according to the man page of ud_shm_open, we are guaranteed that 
+	// the content of the buffer will initiually be initialized to 0.
+	//
+	if(__sync_bool_compare_and_swap(&((*ring_status)->m_initialized), 0, 1))
+	{
+		(*ring_status)->m_buffer_lock = 0;
+	}
 
 	return SCAP_SUCCESS;
 }
@@ -196,58 +206,33 @@ void udig_free_ring(uint8_t* addr, uint32_t size)
 	munmap(addr + size / 2, size / 2);
 }
 
-void udig_free_ring_descriptiors(uint8_t* addr)
+void udig_free_ring_descriptors(uint8_t* addr)
 {
 	uint32_t mem_size = sizeof(struct ppm_ring_buffer_info) + sizeof(struct udig_ring_buffer_status);;
 	munmap(addr, mem_size);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Mutex implementation coming from the futex man page.
+// Naive lock implementation.
 ///////////////////////////////////////////////////////////////////////////////
-#if 0
-static int futex(int *uaddr, int futex_op, int val,
-		const struct timespec *timeout, int *uaddr2, int val3)
+void ud_lock(volatile int *futexp)
 {
-	return syscall(SYS_futex, uaddr, futex_op, val,
-					timeout, uaddr, val3);
-}
-
-//
-// Acquire the futex pointed to by 'futexp': wait for its value to
-// become 1, and then set the value to 0.
-//
-int ud_lock(int *futexp)
-{
-	while (1) 
+	while(true)
 	{
-		// Is the futex available?
-		if(__sync_val_compare_and_swap(futexp, 0, 1))
+		// Is the lock available?
+		if(__sync_bool_compare_and_swap(futexp, 0, 1))
 		{
 			break;
 		}
 
-		// Futex is not available; wait
-		return futex(futexp, FUTEX_WAIT, 0, NULL, NULL, 0);
+		// Lock is not available; wait
+		usleep(100);
 	}
-
-	return 0;
 }
 
-//
-// Release the futex pointed to by 'futexp': if the futex currently
-// has the value 0, set its value to 1 and the wake any futex waiters,
-// so that if the peer is blocked in fpost(), it can proceed.
-//
-int ud_unlock(int *futexp)
+void ud_unlock(volatile int *futexp)
 {
-	if(__sync_val_compare_and_swap(futexp, 1, 0)) 
-	{
-		return futex(futexp, FUTEX_WAKE, 1, NULL, NULL, 0);
-	}
-
-	return 0;
+	__sync_bool_compare_and_swap(futexp, 1, 0);
 }
-#endif // 0
 
 #endif // _WIN32
