@@ -29,6 +29,7 @@ limitations under the License.
 #include "cri.grpc.pb.h"
 
 #include "async_cgroup.h"
+#include "async_key_value_source.h"
 #include "runc.h"
 #include "container_engine/mesos.h"
 #include "grpc_channel_registry.h"
@@ -40,25 +41,24 @@ using namespace libsinsp::cri;
 using namespace libsinsp::container_engine;
 using namespace libsinsp::runc;
 
+constexpr const uint64_t cri_async_source::CGROUP_LOOKUP_DELAY_MS;
+
 namespace {
-// how long do we wait
-constexpr uint64_t CGROUP_LOOKUP_DELAY_MS = 1000;
-
-// how long do we wait on cgroup lookup result before giving up
-// Note: this value includes the initial delay
-constexpr uint64_t CGROUP_MAX_DELAY_MS = 2000;
-libsinsp::async_cgroup::delayed_cgroup_lookup s_async_cgroups(0, CGROUP_MAX_DELAY_MS);
-
-void init_cri()
+bool init_cri()
 {
-	if(s_cri || s_cri_unix_socket_path.empty()) {
-		return;
+	if(s_cri)
+	{
+		return true;
+	}
+
+	if(s_cri_unix_socket_path.empty()) {
+		return false;
 	}
 
 	auto cri_path = scap_get_host_root() + s_cri_unix_socket_path;
 	struct stat s = {};
 	if(stat(cri_path.c_str(), &s) != 0 || (s.st_mode & S_IFMT) != S_IFSOCK) {
-		return;
+		return false;
 	}
 
 	std::shared_ptr<grpc::Channel> channel = libsinsp::grpc_channel_registry::get_channel("unix://" + cri_path);
@@ -80,14 +80,24 @@ void init_cri()
 				s_cri_unix_socket_path.c_str(), status.error_message().c_str());
 		s_cri.reset(nullptr);
 		s_cri_unix_socket_path = "";
-		return;
+		return false;
 	}
 
 	g_logger.format(sinsp_logger::SEV_INFO, "cri: CRI runtime: %s %s", vresp.runtime_name().c_str(), vresp.runtime_version().c_str());
 	s_cri_runtime_type = get_cri_runtime_type(vresp.runtime_name());
+	return true;
 }
 
-bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info *container, sinsp_threadinfo *tinfo)
+constexpr const cgroup_layout CRI_CGROUP_LAYOUT[] = {
+	{"/", ""}, // non-systemd containerd
+	{"/crio-", ""}, // non-systemd cri-o
+	{"/cri-containerd-", ".scope"}, // systemd containerd
+	{"/crio-", ".scope"}, // systemd cri-o
+	{nullptr, nullptr}
+};
+}
+
+bool cri_async_source::parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info *container)
 {
 	const auto &info_it = status.info().find("info");
 	if(info_it == status.info().end())
@@ -116,7 +126,7 @@ bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, 
 	return true;
 }
 
-bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container, sinsp_threadinfo *tinfo)
+bool cri_async_source::parse_cri(sinsp_container_info *container, const libsinsp::async_cgroup::delayed_cgroup_key& key)
 {
 	if(!s_cri)
 	{
@@ -180,15 +190,11 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 	parse_cri_image(resp_container, container);
 	parse_cri_mounts(resp_container, container);
 
-	if(parse_containerd(resp, container, tinfo))
+	if(parse_containerd(resp, container))
 	{
 		return true;
 	}
 
-	libsinsp::async_cgroup::delayed_cgroup_key key(
-		container->m_id,
-		tinfo->get_cgroup("cpu"),
-		tinfo->get_cgroup("memory"));
 	libsinsp::async_cgroup::delayed_cgroup_value limits;
 	bool found_all = libsinsp::async_cgroup::get_cgroup_resource_limits(key, limits);
 
@@ -203,11 +209,12 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 			"cri (%s) not all limits read from cgroups, will retry in %d ms",
 			container->m_id.c_str(), CGROUP_LOOKUP_DELAY_MS);
 
+		auto manager = m_container_manager;
 		auto cb = [manager](const libsinsp::async_cgroup::delayed_cgroup_key& key, const libsinsp::async_cgroup::delayed_cgroup_value& value) {
 			libsinsp::async_cgroup::delayed_cgroup_lookup::update(manager, key, value);
 		};
 
-		s_async_cgroups.lookup_delayed(key, limits, std::chrono::milliseconds(CGROUP_LOOKUP_DELAY_MS), cb);
+		m_async_cgroups.lookup_delayed(key, limits, std::chrono::milliseconds(CGROUP_LOOKUP_DELAY_MS), cb);
 	}
 
 	if(s_cri_extra_queries)
@@ -219,23 +226,38 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 	return true;
 }
 
-constexpr const cgroup_layout CRI_CGROUP_LAYOUT[] = {
-	{"/", ""}, // non-systemd containerd
-	{"/crio-", ""}, // non-systemd cri-o
-	{"/cri-containerd-", ".scope"}, // systemd containerd
-	{"/crio-", ".scope"}, // systemd cri-o
-	{nullptr, nullptr}
-};
-}
-
-cri::cri()
+void cri_async_source::run_impl()
 {
-	init_cri();
+	libsinsp::async_cgroup::delayed_cgroup_key key;
+
+	while (dequeue_next_key(key))
+	{
+		sinsp_container_info res;
+
+		res.m_successful = true;
+		res.m_id = key.m_container_id;
+		res.m_type = s_cri_runtime_type;
+
+		if(!parse_cri(&res, key))
+		{
+			g_logger.format(sinsp_logger::SEV_ERROR, "Failed to get CRI metadata for container %s",
+					key.m_container_id.c_str());
+			res.m_successful = false;
+		}
+
+		// Return a result object either way, to ensure any
+		// new container callbacks are called.
+		store_value(key, res);
+	}
 }
 
 void cri::cleanup()
 {
-	s_async_cgroups.quiesce();
+	if (m_cri_info_source)
+	{
+		m_cri_info_source->quiesce();
+	}
+	m_cri_info_source.reset(nullptr);
 	s_cri.reset(nullptr);
 	s_cri_image.reset(nullptr);
 	s_cri_extra_queries = true;
@@ -265,6 +287,18 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 	}
 	tinfo->m_container_id = container_id;
 
+	if(!init_cri())
+	{
+		return false;
+	}
+
+	if(!m_cri_info_source)
+	{
+		// we do 4 gRPC requests so set the timeout to 5x the individual request timeout
+		// s_cri_timeout is in milliseconds and we want nanoseconds -- that's where the 1000000 factor comes from
+		auto cri_source = new cri_async_source(manager, s_cri_timeout * 5 * 1000000);
+		m_cri_info_source.reset(cri_source);
+	}
 	sinsp_container_info *container_info = manager->get_container(container_id);
 
 	if (!container_info ||
@@ -279,18 +313,11 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 					"cri (%s): Performing lookup",
 					container_id.c_str());
 
-			container_info->m_successful = parse_cri(manager, container_info, tinfo);
-			if (!container_info->m_successful)
-			{
-				g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to get CRI metadata for container",
-						container_id.c_str());
-				return false;
-			}
-
-			// If here, parse_cri succeeded so we can
-			// assign an actual type.
-			container_info->m_type = s_cri_runtime_type;
-			container_info->m_metadata_complete = true;
+			libsinsp::async_cgroup::delayed_cgroup_key key(
+				container_id,
+				tinfo->get_cgroup("cpu"),
+				tinfo->get_cgroup("memory"));
+			m_cri_info_source->lookup_container(key, manager);
 		}
 		if (mesos::set_mesos_task_id(container_info, tinfo))
 		{
@@ -298,11 +325,7 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 					"cri (%s) Mesos CRI container, Mesos task ID: [%s]",
 					container_id.c_str(), container_info->m_mesos_task_id.c_str());
 		}
-
-		if (manager->update_container(*container_info) && container_info->m_successful)
-		{
-			manager->notify_new_container(*container_info);
-		}
 	}
-	return true;
+
+	return container_info->m_metadata_complete;
 }
