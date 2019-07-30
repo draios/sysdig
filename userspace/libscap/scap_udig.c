@@ -271,10 +271,6 @@ int cprintf(const char* format, ...);
 
 void ud_lock(volatile int *lockp)
 {
-return;
-#ifdef UDIG_INSTRUMENTER
-cprintf("@\n");
-#endif
 	while(true)
 	{
 		// Is the lock available?
@@ -290,7 +286,6 @@ cprintf("@\n");
 
 void ud_unlock(volatile int *lockp)
 {
-return;
 	__sync_bool_compare_and_swap(lockp, 1, 0);
 }
 

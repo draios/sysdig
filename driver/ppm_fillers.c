@@ -192,13 +192,11 @@ int f_sys_single(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#if 0
-
 int f_sys_single_x(struct event_filler_arguments *args)
 {
 	int res;
 	int64_t retval;
-
+cprintf(">1\n");
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -206,6 +204,8 @@ int f_sys_single_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+#if 0
 
 #ifndef UDIG
 static inline uint32_t get_fd_dev(int64_t fd)
@@ -2745,6 +2745,8 @@ int f_sys_poll_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#endif // 0
+
 static int timespec_parse(struct event_filler_arguments *args, unsigned long val)
 {
 	uint64_t longtime;
@@ -2779,6 +2781,8 @@ static int timespec_parse(struct event_filler_arguments *args, unsigned long val
 
 	return val_to_ring(args, longtime, 0, false, 0);
 }
+
+#if 0
 
 int f_sys_ppoll_e(struct event_filler_arguments *args)
 {
@@ -3383,6 +3387,8 @@ int f_sys_pwritev_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#endif // 0
+
 int f_sys_nanosleep_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -3395,6 +3401,8 @@ int f_sys_nanosleep_e(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+#if 0
 
 int f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args)
 {
