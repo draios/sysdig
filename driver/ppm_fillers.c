@@ -220,7 +220,7 @@ int f_sys_single_x(struct event_filler_arguments *args)
 {
 	int res;
 	int64_t retval;
-cprintf(">1\n");
+
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
