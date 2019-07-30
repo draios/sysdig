@@ -1453,22 +1453,22 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					goto exit;
 				}
 
-				try
+				if(udig)
 				{
-					if(udig)
-					{
-						inspector->open_udig();
-					}
-					else
+					inspector->open_udig();
+				}
+				else
+				{
+					try
 					{
 						inspector->open("");
 					}
+					catch(sinsp_exception e)
+					{
+						open_success = false;
+					}
 				}
-				catch(sinsp_exception e)
-				{
-					open_success = false;
-				}
-
+				
 				//
 				// Starting the live capture failed, try to load the driver with
 				// modprobe.

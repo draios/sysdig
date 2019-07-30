@@ -535,6 +535,7 @@ struct ppm_syscall_desc {
 struct udig_ring_buffer_status {
 	volatile int m_initialized;
 	volatile int m_buffer_lock;
+	volatile int m_capturing_pid;
 	volatile struct timespec m_last_print_time;
 };
 
