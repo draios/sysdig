@@ -615,7 +615,7 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	//
 	// Now that sysdig has done all its /proc parsing, start the capture
 	//
-	if((*rc = scap_start_capture(handle)) != SCAP_SUCCESS)
+	if(udig_start_capture(handle, error) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		return NULL;
@@ -954,7 +954,7 @@ void scap_close(scap_t* handle)
 	{
 		gzclose(handle->m_file);
 	}
-	else if(handle->m_mode == SCAP_MODE_LIVE)
+	else if(handle->m_mode == SCAP_MODE_LIVE || handle->m_mode == SCAP_MODE_UDIG)
 	{
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 		uint32_t j;
@@ -970,6 +970,29 @@ void scap_close(scap_t* handle)
 					ASSERT(false);
 				}
 			}
+			else if(handle->m_mode == SCAP_MODE_UDIG)
+			{
+				ASSERT(handle->m_ndevs == 1)
+				
+				udig_stop_capture(handle);
+
+				if(handle->m_devs[0].m_buffer != MAP_FAILED)
+				{
+					udig_free_ring((uint8_t*)handle->m_devs[0].m_buffer, handle->m_devs[0].m_buffer_size);
+				}
+				if(handle->m_devs[0].m_bufinfo != MAP_FAILED)
+				{
+					udig_free_ring_descriptors((uint8_t*)handle->m_devs[0].m_bufinfo);
+				}
+				if(handle->m_devs[0].m_fd != -1)
+				{
+					close(handle->m_devs[0].m_fd);
+				}
+				if(handle->m_devs[0].m_bufinfo_fd != -1)
+				{
+					close(handle->m_devs[0].m_bufinfo_fd);
+				}
+			}
 			else
 			{
 				//
@@ -977,33 +1000,11 @@ void scap_close(scap_t* handle)
 				//
 				for(j = 0; j < handle->m_ndevs; j++)
 				{
-					if(handle->m_mode == SCAP_MODE_UDIG)
+					if(handle->m_devs[j].m_buffer != MAP_FAILED)
 					{
-						if(handle->m_devs[j].m_buffer != MAP_FAILED)
-						{
-							udig_free_ring((uint8_t*)handle->m_devs[j].m_buffer, handle->m_devs[j].m_buffer_size);
-						}
-						if(handle->m_devs[j].m_bufinfo != MAP_FAILED)
-						{
-							udig_free_ring_descriptiors((uint8_t*)handle->m_devs[j].m_bufinfo);
-						}
-						if(handle->m_devs[j].m_fd != -1)
-						{
-							close(handle->m_devs[j].m_fd);
-						}
-						if(handle->m_devs[j].m_bufinfo_fd != -1)
-						{
-							close(handle->m_devs[j].m_bufinfo_fd);
-						}
-					}
-					else
-					{
-						if(handle->m_devs[j].m_buffer != MAP_FAILED)
-						{
-							munmap(handle->m_devs[j].m_bufinfo, sizeof(struct ppm_ring_buffer_info));
-							munmap(handle->m_devs[j].m_buffer, RING_BUF_SIZE * 2);
-							close(handle->m_devs[j].m_fd);
-						}
+						munmap(handle->m_devs[j].m_bufinfo, sizeof(struct ppm_ring_buffer_info));
+						munmap(handle->m_devs[j].m_buffer, RING_BUF_SIZE * 2);
+						close(handle->m_devs[j].m_fd);
 					}
 				}
 			}
