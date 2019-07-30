@@ -103,7 +103,7 @@ static unsigned long ppm_copy_from_user(void *to, const void __user *from, unsig
 static long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n)
 {
 	strncpy(to, from, n);
-	return strlen(to);
+	return strlen(to) + 1;
 }
 
 #else
