@@ -18,6 +18,7 @@
 #include <pthread.h>
 
 #include "scap.h"
+#include "scap-int.h"
 #include "../../driver/ppm_ringbuffer.h"
 
 #ifndef UDIG_INSTRUMENTER
@@ -131,7 +132,7 @@ int32_t udig_alloc_ring_descriptors(int* ring_descs_fd,
 	struct udig_ring_buffer_status** ring_status,
 	char *error)
 {
-	uint32_t mem_size = sizeof(struct ppm_ring_buffer_info) + sizeof(struct udig_ring_buffer_status);;
+	uint32_t mem_size = sizeof(struct ppm_ring_buffer_info) + sizeof(struct udig_ring_buffer_status);
 
 	//
 	// First, try to open an existing ring
@@ -192,6 +193,9 @@ int32_t udig_alloc_ring_descriptors(int* ring_descs_fd,
 	if(__sync_bool_compare_and_swap(&((*ring_status)->m_initialized), 0, 1))
 	{
 		(*ring_status)->m_buffer_lock = 0;
+		(*ring_status)->m_capturing_pid = 0;
+		(*ring_status)->m_last_print_time.tv_sec = 0;
+		(*ring_status)->m_last_print_time.tv_nsec = 0;
 	}
 
 	return SCAP_SUCCESS;
@@ -208,19 +212,73 @@ void udig_free_ring(uint8_t* addr, uint32_t size)
 
 void udig_free_ring_descriptors(uint8_t* addr)
 {
-	uint32_t mem_size = sizeof(struct ppm_ring_buffer_info) + sizeof(struct udig_ring_buffer_status);;
+	uint32_t mem_size = sizeof(struct ppm_ring_buffer_info) + sizeof(struct udig_ring_buffer_status);
 	munmap(addr, mem_size);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Capture control helpers.
+///////////////////////////////////////////////////////////////////////////////
+int32_t udig_start_capture(scap_t* handle, char *error)
+{
+	struct ppm_ring_buffer_info* rbi = handle->m_devs[0].m_bufinfo;
+	rbi->head = 0;
+	rbi->tail = 0;
+	rbi->n_evts = 0;
+	rbi->n_drops_buffer = 0;
+
+	struct udig_ring_buffer_status* rbs = handle->m_devs[0].m_bufstatus;
+
+	if(rbs->m_capturing_pid != 0)
+	{
+		//
+		// Looks like there is already a consumer, but ther variable might still
+		// be set by a previous crashed consumer. To understand that, we check if
+		// there is an alive process with that pid. If not, we reset the variable.
+		//
+		char fbuf[48];
+		snprintf(fbuf, sizeof(fbuf), "/proc/%d/comm", rbs->m_capturing_pid);
+		FILE* f = fopen(fbuf, "r");
+		if(f == NULL)
+		{
+			rbs->m_capturing_pid = 0;
+		}
+		else
+		{
+			fclose(f);
+		}
+	}
+
+	if(__sync_bool_compare_and_swap(&(rbs->m_capturing_pid), 0, getpid()))
+	{
+		return SCAP_SUCCESS;
+	}
+
+	snprintf(error, SCAP_LASTERR_SIZE, "another udig capture is already active");
+	return SCAP_FAILURE;
+}
+
+void udig_stop_capture(scap_t* handle)
+{
+	struct udig_ring_buffer_status* rbs = handle->m_devs[0].m_bufstatus;
+	__sync_bool_compare_and_swap(&(rbs->m_capturing_pid), getpid(), 0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Naive lock implementation.
 ///////////////////////////////////////////////////////////////////////////////
-void ud_lock(volatile int *futexp)
+int cprintf(const char* format, ...);
+
+void ud_lock(volatile int *lockp)
 {
+return;
+#ifdef UDIG_INSTRUMENTER
+cprintf("@\n");
+#endif
 	while(true)
 	{
 		// Is the lock available?
-		if(__sync_bool_compare_and_swap(futexp, 0, 1))
+		if(__sync_bool_compare_and_swap(lockp, 0, 1))
 		{
 			break;
 		}
@@ -230,9 +288,10 @@ void ud_lock(volatile int *futexp)
 	}
 }
 
-void ud_unlock(volatile int *futexp)
+void ud_unlock(volatile int *lockp)
 {
-	__sync_bool_compare_and_swap(futexp, 1, 0);
+return;
+	__sync_bool_compare_and_swap(lockp, 1, 0);
 }
 
 #endif // _WIN32

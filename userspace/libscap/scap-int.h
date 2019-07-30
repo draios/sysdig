@@ -37,7 +37,7 @@ typedef struct wh_t wh_t;
 #include <crtdbg.h>
 #endif
 #include <assert.h>
-#ifdef USE_ZLIB
+#if defined(USE_ZLIB) && !defined(UDIG)
 #include <zlib.h>
 #else
 #define	gzFile FILE*
@@ -353,6 +353,12 @@ extern const struct ppm_event_info g_event_info[];
 extern const struct ppm_syscall_desc g_syscall_info_table[];
 extern const struct ppm_event_entry g_ppm_events[];
 extern bool validate_info_table_size();
+
+//
+// udig stuff
+//
+int32_t udig_start_capture(scap_t* handle, char *error);
+void udig_stop_capture(scap_t* handle);
 
 #ifdef __cplusplus
 }
