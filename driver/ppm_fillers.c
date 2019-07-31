@@ -229,11 +229,11 @@ int f_sys_single_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#if 0
-
-#ifndef UDIG
 static inline uint32_t get_fd_dev(int64_t fd)
 {
+#ifdef UDIG
+	return 0;
+#else
 	struct files_struct *files;
 	struct fdtable *fdt;
 	struct file *file;
@@ -270,6 +270,7 @@ static inline uint32_t get_fd_dev(int64_t fd)
 out_unlock:
 	spin_unlock(&files->file_lock);
 	return dev;
+#endif /* UDIG */
 }
 
 int f_sys_open_x(struct event_filler_arguments *args)
@@ -413,6 +414,8 @@ int f_sys_write_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+#if 0
 
 /*
  * get_mm_counter was not inline and exported between 3.0 and 3.4
@@ -593,8 +596,6 @@ if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - 
 #endif
 
 #endif
-
-#endif // UDIG
 
 /* Takes in a NULL-terminated array of pointers to strings in userspace, and
  * concatenates them to a single \0-separated string. Return the length of this
@@ -2421,6 +2422,8 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#endif // 0
+
 int f_sys_creat_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -2461,6 +2464,8 @@ int f_sys_creat_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+#if 0
 
 int f_sys_pipe_x(struct event_filler_arguments *args)
 {
@@ -2521,6 +2526,8 @@ int f_sys_pipe_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#endif // 0
+
 int f_sys_eventfd_e(struct event_filler_arguments *args)
 {
 	int res;
@@ -2557,8 +2564,10 @@ int f_sys_shutdown_e(struct event_filler_arguments *args)
 	 */
 	if (!args->is_socketcall)
 		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+#ifndef UDIG
 	else
 		val = args->socketcall_args[0];
+#endif
 
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -2569,8 +2578,10 @@ int f_sys_shutdown_e(struct event_filler_arguments *args)
 	 */
 	if (!args->is_socketcall)
 		syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+#ifndef UDIG
 	else
 		val = args->socketcall_args[1];
+#endif
 
 	res = val_to_ring(args, (unsigned long)shutdown_how_to_scap(val), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -2680,6 +2691,8 @@ int f_sys_llseek_e(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+#if 0
 
 static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
 {
@@ -2868,6 +2881,8 @@ int f_sys_poll_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#endif // 0
+
 int f_sys_mount_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -3053,6 +3068,8 @@ int f_sys_linkat_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+#if 0
 
 #ifndef _64BIT_ARGS_SINGLE_REGISTER
 int f_sys_pread64_e(struct event_filler_arguments *args)
@@ -3428,8 +3445,6 @@ int f_sys_nanosleep_e(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
-
-#if 0
 
 int f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args)
 {
@@ -3899,6 +3914,8 @@ int f_sys_ptrace_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#if 0
+
 int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args)
 {
 	int64_t retval;
@@ -3942,6 +3959,8 @@ int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+#endif // 0
 
 int f_sys_mmap_e(struct event_filler_arguments *args)
 {
@@ -4095,6 +4114,7 @@ int f_sys_symlinkat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#ifndef UDIG
 int f_sys_procexit_e(struct event_filler_arguments *args)
 {
 	int res;
@@ -4113,6 +4133,7 @@ int f_sys_procexit_e(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+#endif
 
 int f_sys_sendfile_e(struct event_filler_arguments *args)
 {
@@ -4270,6 +4291,8 @@ int f_sys_quotactl_e(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+#if 0
 
 int f_sys_quotactl_x(struct event_filler_arguments *args)
 {
@@ -4447,6 +4470,8 @@ int f_sys_quotactl_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#endif // 0
+
 int f_sys_sysdigevent_e(struct event_filler_arguments *args)
 {
 	int res;
@@ -4594,6 +4619,8 @@ int f_sys_unshare_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#if 0
+
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 int f_sys_signaldeliver_e(struct event_filler_arguments *args)
 {
@@ -4644,6 +4671,8 @@ int f_sys_pagefault_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 #endif
+
+#endif // 0
 
 int f_cpu_hotplug_e(struct event_filler_arguments *args)
 {
@@ -4816,6 +4845,8 @@ int f_sys_access_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#if 0
+
 int f_sys_bpf_x(struct event_filler_arguments *args)
 {
 	int64_t retval;
@@ -4854,6 +4885,8 @@ int f_sys_bpf_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+#endif // 0
 
 int f_sys_mkdirat_x(struct event_filler_arguments *args)
 {
@@ -4999,4 +5032,3 @@ int f_sys_fchmod_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
-#endif
