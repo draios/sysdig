@@ -184,6 +184,7 @@ public:
 		m_cpu_period(100000),
 		m_is_pod_sandbox(false),
 		m_metadata_complete(true),
+		m_successful(true),
 		m_metadata_deadline(0)
 	{
 	}
@@ -196,6 +197,13 @@ public:
 
 	bool is_pod_sandbox() const {
 		return m_is_pod_sandbox;
+	}
+
+	// should we start a query for this container id but with type `type`?
+	// yes, if the container as we know it is of another type
+	// and it's either in flight (i.e. may yet fail) or unsuccessful
+	bool query_anyway(sinsp_container_type type) const {
+		return m_type != type && (!m_successful || !m_metadata_complete);
 	}
 
 	std::shared_ptr<sinsp_threadinfo> get_tinfo(sinsp* inspector) const;
@@ -231,6 +239,9 @@ public:
 	// container that will be filled in later as a result of an
 	// async fetch of container info.
 	bool m_metadata_complete;
+
+	// if false, the lookup finished unsuccessfully
+	bool m_successful;
 #ifdef HAS_ANALYZER
 	std::string m_sysdig_agent_conf;
 #endif
