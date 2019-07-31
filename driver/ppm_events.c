@@ -967,7 +967,6 @@ u16 pack_addr(struct sockaddr *usrsockaddr,
 	return size;
 }
 
-#ifndef UDIG
 /*
  * Convert a connection tuple into our tuple representation and copy it to
  * targetbuf
@@ -1000,6 +999,7 @@ u16 fd_to_socktuple(int fd,
 	struct sockaddr_storage sock_address;
 	struct sockaddr_storage peer_address;
 
+#ifndef UDIG
 	/*
 	 * Get the socket from the fd
 	 * NOTE: sockfd_lookup() locks the socket, so we don't need to worry when we dig in it
@@ -1015,11 +1015,24 @@ u16 fd_to_socktuple(int fd,
 			sockfd_put(sock);
 		return 0;
 	}
+#endif
 
+#ifdef UDIG
+	socklen_t alen = sizeof(struct sockaddr_storage);
+	err = udig_getsockname(fd, (struct sockaddr *)&sock_address, &alen);
+	ASSERT(err == 0);
+	if(err < 0)
+	{
+		return 0;
+	}
+
+	family = sock_address.ss_family;
+#else
 	err = sock_getname(sock, (struct sockaddr *)&sock_address, 0);
 	ASSERT(err == 0);
 
 	family = sock->sk->sk_family;
+#endif
 
 	/*
 	 * Extract and pack the info, based on the family
@@ -1027,7 +1040,12 @@ u16 fd_to_socktuple(int fd,
 	switch (family) {
 	case AF_INET:
 		if (!use_userdata) {
+#ifdef UDIG
+			socklen_t palen = sizeof(struct sockaddr_storage);
+			err = udig_getpeername(fd, (struct sockaddr *)&peer_address, &palen);
+#else
 			err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
+#endif
 			if (err == 0) {
 				if (is_inbound) {
 					sip = ((struct sockaddr_in *) &peer_address)->sin_addr.s_addr;
@@ -1079,7 +1097,12 @@ u16 fd_to_socktuple(int fd,
 		break;
 	case AF_INET6:
 		if (!use_userdata) {
+#ifdef UDIG
+			socklen_t palen = sizeof(struct sockaddr_storage);
+			err = udig_getpeername(fd, (struct sockaddr *)&peer_address, &palen);
+#else
 			err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
+#endif
 			ASSERT(err == 0);
 
 			if (is_inbound) {
@@ -1129,6 +1152,10 @@ u16 fd_to_socktuple(int fd,
 
 		break;
 	case AF_UNIX:
+#ifdef UDIG
+		ASSERT(false);
+		size = 0;
+#else
 		/*
 		 * Retrieve the addresses
 		 */
@@ -1187,21 +1214,22 @@ u16 fd_to_socktuple(int fd,
 
 		dest[UNIX_PATH_MAX - 1] = 0;
 		size += strlen(dest) + 1;
+	#endif /* UDIG */
 		break;
 	default:
 		size = 0;
 		break;
 	}
 
+#ifndef UDIG
 	/*
 	 * Digging finished. We can release the fd.
 	 */
 	sockfd_put(sock);
+#endif
 
 	return size;
 }
-
-#endif /* UDIG */
 
 int addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr)
 {
