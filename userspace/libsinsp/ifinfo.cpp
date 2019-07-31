@@ -259,7 +259,7 @@ bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr, sinsp
 						tinfo->m_container_id.c_str());
 				}
 
-				const unordered_map<string, sinsp_container_info>* clist = m_inspector->m_container_manager.get_containers();
+				const auto clist = m_inspector->m_container_manager.get_containers();
 
 				for(auto it = clist->begin(); it != clist->end(); ++it)
 				{

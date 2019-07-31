@@ -32,10 +32,8 @@ limitations under the License.
 
 #include "json/json.h"
 
-#include "async_key_value_source.h"
-
+#include "async_container.h"
 #include "container_info.h"
-
 #include "container_engine/container_engine.h"
 
 class sinsp;
@@ -46,13 +44,7 @@ class sinsp_threadinfo;
 namespace libsinsp {
 namespace container_engine {
 
-struct container_lookup_result
-{
-	bool m_successful;
-	sinsp_container_info m_container_info;
-};
-
-class docker_async_source : public sysdig::async_key_value_source<std::string, container_lookup_result>
+class docker_async_source : public sysdig::async_container_source<std::string>
 {
 	enum docker_response
 	{
@@ -62,7 +54,11 @@ class docker_async_source : public sysdig::async_key_value_source<std::string, c
 	};
 
 public:
+#ifdef _WIN32
 	docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms, sinsp *inspector);
+#else
+	docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms, sinsp *inspector, std::string socket_path);
+#endif
 	virtual ~docker_async_source();
 
 	static void set_query_image_info(bool query_image_info);
@@ -105,10 +101,10 @@ private:
 
 	sinsp *m_inspector;
 
-	std::string m_docker_unix_socket_path;
 	std::string m_api_version;
 
 #ifndef _WIN32
+	std::string m_docker_unix_socket_path;
 	CURLM *m_curlm;
 	CURL *m_curl;
 #endif
@@ -127,12 +123,17 @@ public:
 
 	// Container name only set for windows. For linux name must be fetched via lookup
 	static bool detect_docker(const sinsp_threadinfo* tinfo, std::string& container_id, std::string &container_name);
+
+#ifndef _WIN32
+	static void set_docker_sock(std::string docker_sock) {
+		m_docker_sock = std::move(docker_sock);
+	}
+#endif
 protected:
-	void parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager);
-
 	std::unique_ptr<docker_async_source> m_docker_info_source;
-
-	static std::string s_incomplete_info_name;
+#ifndef _WIN32
+	static std::string m_docker_sock;
+#endif
 };
 }
 }
