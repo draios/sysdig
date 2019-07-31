@@ -62,15 +62,15 @@ or GPL2.txt for full copies of the license.
 #include <sys/ptrace.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <errno.h>
 
-
-#include "infector_capture.h"
+#include "udig_capture.h"
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
 #include "ppm_events.h"
 #include "ppm.h"
 
-#include "infector.h"
+#include "udig_inf.h"
 #endif // UDIG
 
 #include "ppm_ringbuffer.h"
@@ -1145,6 +1145,8 @@ u16 fd_to_socktuple(int fd,
 	return size;
 }
 
+#endif /* UDIG */
+
 int addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr)
 {
 	if (unlikely(ulen < 0 || ulen > sizeof(struct sockaddr_storage)))
@@ -1222,8 +1224,11 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 			if (!args->is_socketcall) {
 				ppm_syscall_get_arguments(current, args->regs, syscall_args);
 				val = syscall_args[0];
-			} else
+			}
+#ifndef UDIG
+			else
 				val = args->socketcall_args[0];
+#endif
 			args->fd = (int)val;
 
 			/*
@@ -1290,6 +1295,8 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 
 	return PPM_SUCCESS;
 }
+
+#ifndef UDIG
 
 #ifdef CONFIG_COMPAT
 /*

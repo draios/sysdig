@@ -66,13 +66,13 @@ or GPL2.txt for full copies of the license.
 #include <sys/quota.h>
 #include <sys/ptrace.h>
 
-#include "infector_capture.h"
+#include "udig_capture.h"
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
 #include "ppm_events.h"
 #include "ppm.h"
 
-#include "infector.h"
+#include "udig_inf.h"
 #endif // UDIG
 
 #include "ppm_ringbuffer.h"
@@ -1146,6 +1146,8 @@ cgroups_error:
 	return add_sentinel(args);
 }
 
+#endif // 0
+
 int f_sys_execve_e(struct event_filler_arguments *args)
 {
 	int res;
@@ -1187,8 +1189,10 @@ int f_sys_socket_bind_x(struct event_filler_arguments *args)
 	 */
 	if (!args->is_socketcall)
 		syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+#ifndef UDIG
 	else
 		val = args->socketcall_args[1];
+#endif
 
 	usrsockaddr = (struct sockaddr __user *)val;
 
@@ -1197,8 +1201,10 @@ int f_sys_socket_bind_x(struct event_filler_arguments *args)
 	 */
 	if (!args->is_socketcall)
 		syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+#ifndef UDIG
 	else
 		val = args->socketcall_args[2];
+#endif
 
 	if (usrsockaddr != NULL && val != 0) {
 		/*
@@ -1230,6 +1236,8 @@ int f_sys_socket_bind_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#if 0
+
 int f_sys_connect_x(struct event_filler_arguments *args)
 {
 	int res;
@@ -1256,8 +1264,11 @@ int f_sys_connect_x(struct event_filler_arguments *args)
 	if (!args->is_socketcall) {
 		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
 		fd = (int)val;
-	} else
+	}
+#ifndef UDIG
+	else
 		fd = (int)args->socketcall_args[0];
+#endif
 
 	if (fd >= 0) {
 		/*
@@ -1265,8 +1276,10 @@ int f_sys_connect_x(struct event_filler_arguments *args)
 		 */
 		if (!args->is_socketcall)
 			syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+#ifndef UDIG
 		else
 			val = args->socketcall_args[1];
+#endif
 
 		usrsockaddr = (struct sockaddr __user *)val;
 
@@ -1275,8 +1288,10 @@ int f_sys_connect_x(struct event_filler_arguments *args)
 		 */
 		if (!args->is_socketcall)
 			syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+#ifndef UDIG
 		else
 			val = args->socketcall_args[2];
+#endif
 
 		if (usrsockaddr != NULL && val != 0) {
 			/*
@@ -1395,6 +1410,8 @@ int f_sys_socketpair_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+#endif // 0
 
 static int parse_sockopt(struct event_filler_arguments *args, int level, int optname, const void __user *optval, int optlen)
 {
@@ -1657,6 +1674,8 @@ int f_sys_getsockopt_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#if 0
+
 int f_sys_accept4_e(struct event_filler_arguments *args)
 {
 	int res;
@@ -1752,6 +1771,8 @@ int f_sys_accept_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#endif // 0
+
 int f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
 {
 	int res;
@@ -1763,8 +1784,10 @@ int f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
 	 */
 	if (!args->is_socketcall)
 		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+#ifndef UDIG
 	else
 		val = args->socketcall_args[0];
+#endif
 
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -1777,8 +1800,10 @@ int f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
 	 */
 	if (!args->is_socketcall)
 		syscall_get_arguments_deprecated(current, args->regs, 2, 1, &size);
+#ifndef UDIG
 	else
 		size = args->socketcall_args[2];
+#endif
 
 	res = val_to_ring(args, size, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -1798,6 +1823,8 @@ int f_sys_send_e(struct event_filler_arguments *args)
 		return add_sentinel(args);
 	return res;
 }
+
+#if 0
 
 int f_sys_sendto_e(struct event_filler_arguments *args)
 {
@@ -1824,8 +1851,10 @@ int f_sys_sendto_e(struct event_filler_arguments *args)
 	 */
 	if (!args->is_socketcall)
 		syscall_get_arguments_deprecated(current, args->regs, 4, 1, &val);
+#ifndef UDIG
 	else
 		val = args->socketcall_args[4];
+#endif
 
 	usrsockaddr = (struct sockaddr __user *)val;
 
@@ -1834,8 +1863,10 @@ int f_sys_sendto_e(struct event_filler_arguments *args)
 	 */
 	if (!args->is_socketcall)
 		syscall_get_arguments_deprecated(current, args->regs, 5, 1, &val);
+#ifndef UDIG
 	else
 		val = args->socketcall_args[5];
+#endif
 
 	if (usrsockaddr != NULL && val != 0) {
 		/*
@@ -1870,6 +1901,8 @@ int f_sys_sendto_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#endif // 0
+
 int f_sys_send_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -1882,8 +1915,10 @@ int f_sys_send_x(struct event_filler_arguments *args)
 	 */
 	if (!args->is_socketcall)
 		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+#ifndef UDIG
 	else
 		val = args->socketcall_args[0];
+#endif
 
 	args->fd = (int)val;
 
@@ -1907,8 +1942,10 @@ int f_sys_send_x(struct event_filler_arguments *args)
 	} else {
 		if (!args->is_socketcall)
 			syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+#ifndef UDIG
 		else
 			val = args->socketcall_args[1];
+#endif
 
 		/*
 		 * The return value can be lower than the value provided by the user,
@@ -1936,8 +1973,10 @@ int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *retval)
 	 */
 	if (!args->is_socketcall)
 		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+#ifndef UDIG
 	else
 		val = args->socketcall_args[1];
+#endif
 
 	args->fd = (int)val;
 
@@ -1961,8 +2000,10 @@ int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *retval)
 	} else {
 		if (!args->is_socketcall)
 			syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+#ifndef UDIG
 		else
 			val = args->socketcall_args[1];
+#endif
 
 		/*
 		 * The return value can be lower than the value provided by the user,
@@ -1990,6 +2031,8 @@ int f_sys_recv_x(struct event_filler_arguments *args)
 		return add_sentinel(args);
 	return res;
 }
+
+#if 0
 
 int f_sys_recvfrom_x(struct event_filler_arguments *args)
 {
@@ -2206,6 +2249,8 @@ int f_sys_sendmsg_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#endif // 0
+
 int f_sys_sendmsg_x(struct event_filler_arguments *args)
 {
 	int res;
@@ -2217,11 +2262,16 @@ int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	struct compat_msghdr compat_mh;
 #endif
 	unsigned long iovcnt;
+
+#ifndef UDIG
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
 	struct user_msghdr mh;
 #else
 	struct msghdr mh;
 #endif
+#else /* UDIG */
+	struct msghdr mh;
+#endif /* UDIG */
 
 	/*
 	 * res
@@ -2236,8 +2286,10 @@ int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	 */
 	if (!args->is_socketcall)
 		syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+#ifndef UDIG
 	else
 		val = args->socketcall_args[1];
+#endif
 
 	/*
 	 * data
@@ -2271,6 +2323,8 @@ int f_sys_sendmsg_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+#if 0
 
 int f_sys_recvmsg_x(struct event_filler_arguments *args)
 {
@@ -2438,8 +2492,6 @@ int f_sys_creat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#if 0
-
 int f_sys_pipe_x(struct event_filler_arguments *args)
 {
 	int res;
@@ -2481,8 +2533,9 @@ int f_sys_pipe_x(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	file = fget(fds[0]);
 	val = 0;
+#ifndef UDIG
+	file = fget(fds[0]);
 	if (likely(file != NULL)) {
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		val = file->f_path.dentry->d_inode->i_ino;
@@ -2491,6 +2544,7 @@ int f_sys_pipe_x(struct event_filler_arguments *args)
 #endif
 		fput(file);
 	}
+#endif
 
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -2498,8 +2552,6 @@ int f_sys_pipe_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
-
-#endif // 0
 
 int f_sys_eventfd_e(struct event_filler_arguments *args)
 {
@@ -2665,8 +2717,6 @@ int f_sys_llseek_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#if 0
-
 static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
 {
 	struct pollfd *fds;
@@ -2758,8 +2808,6 @@ int f_sys_poll_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#endif // 0
-
 static int timespec_parse(struct event_filler_arguments *args, unsigned long val)
 {
 	uint64_t longtime;
@@ -2794,8 +2842,6 @@ static int timespec_parse(struct event_filler_arguments *args, unsigned long val
 
 	return val_to_ring(args, longtime, 0, false, 0);
 }
-
-#if 0
 
 int f_sys_ppoll_e(struct event_filler_arguments *args)
 {
@@ -2853,8 +2899,6 @@ int f_sys_poll_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
-
-#endif // 0
 
 int f_sys_mount_e(struct event_filler_arguments *args)
 {
@@ -3153,6 +3197,8 @@ int f_sys_pwrite64_e(struct event_filler_arguments *args)
 }
 #endif
 
+#endif // 0
+
 int f_sys_readv_preadv_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -3403,8 +3449,6 @@ int f_sys_pwritev_e(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
-
-#endif // 0
 
 int f_sys_nanosleep_e(struct event_filler_arguments *args)
 {
@@ -3887,13 +3931,13 @@ int f_sys_ptrace_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#if 0
-
 int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args)
 {
 	int64_t retval;
 	int res = 0;
+#ifndef UDIG	
 	struct mm_struct *mm = current->mm;
+#endif
 	long total_vm = 0;
 	long total_rss = 0;
 	long swap = 0;
@@ -3903,11 +3947,13 @@ int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
+#ifndef UDIG	
 	if (mm) {
 		total_vm = mm->total_vm << (PAGE_SHIFT-10);
 		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT-10);
 		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT-10);
 	}
+#endif
 
 	/*
 	 * vm_size
@@ -3932,8 +3978,6 @@ int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
-
-#endif // 0
 
 int f_sys_mmap_e(struct event_filler_arguments *args)
 {
@@ -4265,8 +4309,6 @@ int f_sys_quotactl_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#if 0
-
 int f_sys_quotactl_x(struct event_filler_arguments *args)
 {
 	unsigned long val, len;
@@ -4442,8 +4484,6 @@ int f_sys_quotactl_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
-
-#endif // 0
 
 int f_sys_sysdigevent_e(struct event_filler_arguments *args)
 {
@@ -4818,8 +4858,6 @@ int f_sys_access_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#if 0
-
 int f_sys_bpf_x(struct event_filler_arguments *args)
 {
 	int64_t retval;
@@ -4841,11 +4879,15 @@ int f_sys_bpf_x(struct event_filler_arguments *args)
 	 * fd, depending on cmd
 	 */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &cmd);
+#if UDIG
+	if(0)
+#else /* UDIG */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
 	if(cmd == BPF_MAP_CREATE || cmd == BPF_PROG_LOAD)
 #else
 	if(0)
 #endif
+#endif /* UDIG */
 	{
 		res = val_to_ring(args, retval, 0, false, PPM_BPF_IDX_FD);
 	}
@@ -4858,8 +4900,6 @@ int f_sys_bpf_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
-
-#endif // 0
 
 int f_sys_mkdirat_x(struct event_filler_arguments *args)
 {
