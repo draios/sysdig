@@ -29,7 +29,7 @@ namespace
 class null_callback : public user_event_logger::callback
 {
 public:
-	void log(std::string&& str,
+	void log(const sinsp_user_event& evt,
 	         const user_event_logger::severity severity) override
 	{ }
 
@@ -41,10 +41,10 @@ user_event_logger::callback::ptr_t s_callback = std::make_shared<null_callback>(
 
 } // end namespace
 
-void user_event_logger::log(std::string msg,
+void user_event_logger::log(const sinsp_user_event& evt,
                             const user_event_logger::severity severity)
 {
-	s_callback->log(std::move(msg), severity);
+	s_callback->log(evt, severity);
 }
 
 void user_event_logger::register_callback(callback::ptr_t callback)

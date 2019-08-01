@@ -74,7 +74,6 @@ void json_error_log::log(const std::string &json, const std::string &errstr,
 
 	if(bucket.claim(1, ts_ns))
 	{
-		sinsp_user_event evt;
 		sinsp_user_event::tag_map_t tags;
 		tags["source"] = "json_parser";
 		tags["uri"] = uri;
@@ -89,15 +88,16 @@ void json_error_log::log(const std::string &json, const std::string &errstr,
 		}
 
 		// Also emit a custom event noting the json parse failure.
-		std::string evtstr = sinsp_user_event::to_string(now,
-								 std::move(event_name),
-								 std::move(desc),
-								 std::move(scope),
-								 std::move(tags));
+		auto evt = sinsp_user_event(now,
+					       std::move(event_name),
+					       std::move(desc),
+					       std::move(scope.get_ref()),
+					       std::move(tags),
+					       user_event_logger::SEV_EVT_WARNING);
 
-		g_logger.log("Logging user event: " + evtstr, sinsp_logger::SEV_DEBUG);
+		g_logger.log("Logging user event: " + evt.to_string(), sinsp_logger::SEV_DEBUG);
 
-		user_event_logger::log(evtstr, user_event_logger::SEV_EVT_WARNING);
+		user_event_logger::log(evt, user_event_logger::SEV_EVT_WARNING);
 	}
 }
 

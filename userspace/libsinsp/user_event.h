@@ -280,12 +280,15 @@ public:
 	const std::string& scope() const;
 	const tag_map_t& tags() const;
 
-	static std::string to_string(uint64_t timestamp,
-								std::string&& name,
-								std::string&& description,
-								event_scope&& scope,
-								tag_map_t&& tags,
-								uint32_t sev = UNKNOWN_SEVERITY);
+	/**
+	 * \brief Format the event as a YAML-like human readable string
+	 * @return the formatted string
+	 *
+	 * Note: While the format looks superficially similar to YAML, it's not.
+	 * This method does not generate valid YAML, especially when characters
+	 * like quotes, backslashes or newlines are found in any of the fields
+	 */
+	std::string to_string();
 
 	static void emit_event_overflow(const std::string& component,
 									const std::string& machine_id,
