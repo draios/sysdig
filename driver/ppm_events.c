@@ -1112,7 +1112,7 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 {
 	int32_t res;
 	const struct iovec *iov;
-	u32 copylen;
+	u64 copylen;
 	u32 j;
 	u64 size = 0;
 	unsigned long bufsize;
@@ -1124,6 +1124,9 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 	size_t tocopy_len;
 
 	copylen = iovcnt * sizeof(struct iovec);
+
+	if (unlikely(iovcnt >= 0xffffffff))
+		return PPM_FAILURE_BUFFER_FULL;
 
 	if (unlikely(copylen >= STR_STORAGE_SIZE))
 		return PPM_FAILURE_BUFFER_FULL;
@@ -1245,7 +1248,7 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 {
 	int32_t res;
 	const struct compat_iovec *iov;
-	u32 copylen;
+	u64 copylen;
 	u32 j;
 	u64 size = 0;
 	unsigned long bufsize;
@@ -1257,6 +1260,9 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 	compat_size_t tocopy_len;
 
 	copylen = iovcnt * sizeof(struct compat_iovec);
+
+	if (unlikely(iovcnt >= 0xffffffff))
+		return PPM_FAILURE_BUFFER_FULL;
 
 	if (unlikely(copylen >= STR_STORAGE_SIZE))
 		return PPM_FAILURE_BUFFER_FULL;
