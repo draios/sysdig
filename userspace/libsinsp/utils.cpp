@@ -78,7 +78,7 @@ char* realpath_ex(const char *path, char *buff)
 	if(*path=='~' && (home = getenv("HOME")))
 	{
 		char s[PATH_MAX];
-		return realpath(strcat(strcpy(s, home), path+1), buff);
+		return realpath(strcat(strncpy(s, home, sizeof(s)), path+1), buff);
 		}
 	else
 	{
