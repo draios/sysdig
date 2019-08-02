@@ -4267,6 +4267,11 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt *evt)
 				tid = *(int64_t *)parinfo->m_val;
 				ASSERT(parinfo->m_len == sizeof(int64_t));
 
+				if(tid == 0)
+				{
+					tid = evt->get_tid();
+				}
+
 				sinsp_threadinfo* ptinfo = m_inspector->get_thread(tid, true, true);
 				if(ptinfo == NULL)
 				{
