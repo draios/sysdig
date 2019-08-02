@@ -667,7 +667,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 		}
 
 		line[SCAP_MAX_PATH_SIZE - 1] = 0;
-		sscanf(line, "Name:%s", tinfo->comm);
+		sscanf(line, "Name:%1024s", tinfo->comm);
 		fclose(f);
 	}
 
