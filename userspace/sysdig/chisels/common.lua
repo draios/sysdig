@@ -83,6 +83,17 @@ function split(s, delimiter)
 end
 
 --[[
+Substring matching.
+]]--
+function starts_with(str, prefix)
+	return prefix == "" or str:sub(1, #prefix) == prefix
+end
+
+function ends_with(str, suffix)
+	return suffix == "" or str:sub(-#suffix) == suffix
+end
+
+--[[
 convert a number into a byte representation.
 E.g. 1230 becomes 1.23K
 ]]--
