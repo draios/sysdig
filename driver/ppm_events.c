@@ -522,7 +522,11 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 			return PPM_FAILURE_BUG;
 		}
 
+#ifdef UDIG
+		dyn_params = (const struct ppm_param_info *)patch_pointer((uint8_t*)param_info->info);
+#else
 		dyn_params = (const struct ppm_param_info *)param_info->info;
+#endif
 
 		param_info = &dyn_params[dyn_idx];
 		if (likely(max_arg_size >= sizeof(u8)))	{
