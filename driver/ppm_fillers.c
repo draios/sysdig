@@ -768,8 +768,13 @@ static int ppm_get_tty(void)
 
 #endif // UDIG
 
+#endif // 0
+
 int f_proc_startupdate(struct event_filler_arguments *args)
 {
+#ifdef UDIG
+	return PPM_FAILURE_BUFFER_FULL;
+#else /* UDIG */
 	unsigned long val;
 	int res = 0;
 	unsigned int exe_len = 0;  /* the length of the executable string */
@@ -1168,9 +1173,8 @@ cgroups_error:
 	}
 
 	return add_sentinel(args);
+#endif /* UDIG */
 }
-
-#endif // 0
 
 int f_sys_execve_e(struct event_filler_arguments *args)
 {
@@ -1349,8 +1353,6 @@ int f_sys_connect_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#if 0
-
 int f_sys_socketpair_x(struct event_filler_arguments *args)
 {
 	int res;
@@ -1373,6 +1375,7 @@ int f_sys_socketpair_x(struct event_filler_arguments *args)
 	/*
 	 * If the call was successful, copy the FDs
 	 */
+#ifndef UDIG
 	if (likely(retval >= 0)) {
 		/*
 		 * fds
@@ -1423,6 +1426,7 @@ int f_sys_socketpair_x(struct event_filler_arguments *args)
 			return err;
 		}
 	} else {
+#endif /* UDIG */
 		res = val_to_ring(args, 0, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
@@ -1430,12 +1434,20 @@ int f_sys_socketpair_x(struct event_filler_arguments *args)
 		res = val_to_ring(args, 0, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
+
+		res = val_to_ring(args, 0, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+
+		res = val_to_ring(args, 0, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+#ifndef UDIG
 	}
+#endif
 
 	return add_sentinel(args);
 }
-
-#endif // 0
 
 static int parse_sockopt(struct event_filler_arguments *args, int level, int optname, const void __user *optval, int optlen)
 {
