@@ -1948,7 +1948,7 @@ void sinsp::add_chisel_dir(string dirname, bool front_add)
 
 	chiseldir_info ncdi;
 
-	strcpy(ncdi.m_dir, dirname.c_str());
+	ncdi.m_dir = std::move(dirname);
 	ncdi.m_need_to_resolve = false;
 
 	if(front_add)
