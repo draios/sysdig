@@ -38,7 +38,7 @@ typedef struct lua_State lua_State;
 typedef struct chiseldir_info
 {
 	bool m_need_to_resolve;
-	char m_dir[1024];
+	std::string m_dir;
 }chiseldir_info;
 
 class chiselarg_desc

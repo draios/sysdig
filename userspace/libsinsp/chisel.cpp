@@ -1106,7 +1106,7 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 
 		tinydir_dir dir = {};
 
-		tinydir_open(&dir, it->m_dir);
+		tinydir_open(&dir, it->m_dir.c_str());
 
 		while(dir.has_next)
 		{
