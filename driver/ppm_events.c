@@ -38,6 +38,7 @@ or GPL2.txt for full copies of the license.
 #include "ppm_events.h"
 #include "ppm.h"
 #include "ppm_flag_helpers.h"
+#include "ppm_version.h"
 
 /*
  * The kernel patched with grsecurity makes the default access_ok trigger a
@@ -46,10 +47,10 @@ or GPL2.txt for full copies of the license.
 #ifdef access_ok_noprefault
 #define ppm_access_ok access_ok_noprefault
 #else
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
-#define ppm_access_ok(type, addr, size)	access_ok(type, addr, size)
-#else
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)) || (PPM_RHEL_RELEASE_CODE > 0 && PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 1))
 #define ppm_access_ok(type, addr, size)	access_ok(addr, size)
+#else
+#define ppm_access_ok(type, addr, size)	access_ok(type, addr, size)
 #endif
 #endif
 
