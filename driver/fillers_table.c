@@ -286,5 +286,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_LINKAT_2_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_LINKAT_2_X] = {FILLER_REF(sys_linkat_x)},
 	[PPME_SYSCALL_FCHMODAT_E] = {FILLER_REF(sys_empty)},
-	[PPME_SYSCALL_FCHMODAT_X] = {FILLER_REF(sys_fchmodat_x)}
+	[PPME_SYSCALL_FCHMODAT_X] = {FILLER_REF(sys_fchmodat_x)},
+	[PPME_SYSCALL_CHMOD_E] = {FILLER_REF(sys_empty)},
+	[PPME_SYSCALL_CHMOD_X] = {FILLER_REF(sys_chmod_x)}
 };
