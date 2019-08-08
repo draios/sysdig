@@ -109,6 +109,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_bpf_x)				\
 	FN(sys_unlinkat_x)			\
 	FN(sys_fchmodat_x)			\
+	FN(sys_chmod_x)				\
 	FN(sys_mkdirat_x)			\
 	FN(sys_openat_x)			\
 	FN(sys_linkat_x)			\
