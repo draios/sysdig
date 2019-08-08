@@ -3224,6 +3224,11 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 		dirfdarg = "dirfd";
 		patharg = "path";
 	}
+	else if(etype == PPME_SYSCALL_FCHMODAT_X)
+	{
+		dirfdarg = "dirfd";
+		patharg = "filename";
+	}
 
 	if(!dirfdarg || !patharg)
 	{

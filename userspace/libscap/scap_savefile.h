@@ -49,10 +49,10 @@ typedef struct _block_header
 // is not able anymore to read older captures
 #define CURRENT_MAJOR_VERSION	1
 // Minor version of the file format supported by this library.
-// We used to bump it every time the event table was updated, but
-// after adding {retro,forward} captures compatibility support
-// this is not required anymore.
-#define CURRENT_MINOR_VERSION	2
+// Must be increased every time we change the capture format
+// (e.g. most of the changes in the event table, like adding
+// a syscall)
+#define CURRENT_MINOR_VERSION	3
 
 typedef struct _section_header_block
 {
