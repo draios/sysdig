@@ -58,6 +58,7 @@ set(DRIVER_SOURCES
 	syscall_table.c
 	ppm_cputime.c
 	ppm_compat_unistd_32.h
+	ppm_version.h
 )
 
 foreach(FILENAME IN LISTS DRIVER_SOURCES)
