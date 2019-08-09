@@ -328,8 +328,8 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_FCHMODAT_X */{"fchmodat", EC_FILE, EF_MODIFIES_STATE, 4, {{"res", PT_ERRNO, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"filename", PT_FSPATH, PF_NA}, {"mode", PT_UINT32, PF_HEX} } },
 	/* PPME_SYSCALL_CHMOD_E */{"chmod", EC_FILE, EF_MODIFIES_STATE, 0},
 	/* PPME_SYSCALL_CHMOD_X */{"chmod", EC_FILE, EF_MODIFIES_STATE, 3, {{"res", PT_ERRNO, PF_DEC}, {"filename", PT_FSPATH, PF_NA}, {"mode", PT_UINT32, PF_HEX} } },
-	/* PPME_SYSCALL_FCHMOD_E */{"fchmod", EC_FILE, EF_USES_FD | EF_MODIFIES_STATE, 0},
-	/* PPME_SYSCALL_FCHMOD_X */{"fchmod", EC_FILE, EF_USES_FD | EF_MODIFIES_STATE, 3, {{"res", PT_ERRNO, PF_DEC}, {"fd", PT_FD, PF_DEC}, {"mode", PT_UINT32, PF_HEX} } }
+	/* PPME_SYSCALL_FCHMOD_E */{"fchmod", EC_FILE, EF_MODIFIES_STATE, 0},
+	/* PPME_SYSCALL_FCHMOD_X */{"fchmod", EC_FILE, EF_MODIFIES_STATE, 3, {{"res", PT_ERRNO, PF_DEC}, {"fd", PT_FD, PF_DEC}, {"mode", PT_UINT32, PF_HEX} } }
 
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
 	 *     New event types are allowed only for new syscalls or new internal events.
