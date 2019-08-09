@@ -4178,4 +4178,99 @@ FILLER(sys_autofill, true)
 	return res;
 }
 
+FILLER(sys_fchmodat_x, true)
+{
+	unsigned long val;
+	int res;
+	long retval;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * dirfd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * filename
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * mode
+	 */
+	val = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring(data, val);
+
+	return res;
+}
+
+FILLER(sys_chmod_x, true)
+{
+	unsigned long val;
+	int res;
+	long retval;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * filename
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * mode
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
+
+	return res;
+}
+
+FILLER(sys_fchmod_x, true)
+{
+	unsigned long val;
+	int res;
+	long retval;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * fd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * mode
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
+
+	return res;
+}
+
 #endif

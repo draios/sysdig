@@ -4819,7 +4819,7 @@ int f_sys_fchmodat_x(struct event_filler_arguments *args)
 		return res;
 
 	/*
-	 * dfd
+	 * dirfd
 	 */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
 
