@@ -467,6 +467,7 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 		return flt_compare_uint64(op, (uint64_t)*(uint16_t*)operand1, (uint64_t)*(uint16_t*)operand2);
 	case PT_UINT32:
 	case PT_FLAGS32:
+	case PT_MODE:
 	case PT_BOOL:
 	case PT_IPV4ADDR:
 		return flt_compare_uint64(op, (uint64_t)*(uint32_t*)operand1, (uint64_t)*(uint32_t*)operand2);
@@ -598,6 +599,7 @@ bool flt_compare_avg(cmpop op,
 		return flt_compare_uint64(op, u641, u642);
 	case PT_UINT32:
 	case PT_FLAGS32:
+	case PT_MODE:
 	case PT_BOOL:
 	case PT_IPV4ADDR:
 	case PT_IPV6ADDR:

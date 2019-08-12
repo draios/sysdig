@@ -1290,6 +1290,8 @@ const char* param_type_to_string(ppm_param_type pt)
 		return "FLAGS16";
 	case PT_FLAGS32:
 		return "FLAGS32";
+	case PT_MODE:
+		return "MODE";
 	case PT_UID:
 		return "UID";
 	case PT_GID:
