@@ -4183,6 +4183,7 @@ FILLER(sys_fchmodat_x, true)
 	unsigned long val;
 	int res;
 	long retval;
+	unsigned int mode;
 
 	retval = bpf_syscall_get_retval(data->ctx);
 	res = bpf_val_to_ring(data, retval);
@@ -4211,8 +4212,9 @@ FILLER(sys_fchmodat_x, true)
 	/*
 	 * mode
 	 */
-	val = bpf_syscall_get_argument(data, 2);
-	res = bpf_val_to_ring(data, val);
+	mode = bpf_syscall_get_argument(data, 2);
+	mode = chmod_mode_to_scap(mode);
+	res = bpf_val_to_ring(data, mode);
 
 	return res;
 }

@@ -1364,7 +1364,8 @@ enum ppm_param_type {
 	PT_IPV6NET = 39, /* An IPv6 network. */
 	PT_IPADDR = 40,  /* Either an IPv4 or IPv6 address. The length indicates which one it is. */
 	PT_IPNET = 41,  /* Either an IPv4 or IPv6 network. The length indicates which one it is. */
-	PT_MAX = 42 /* array size */
+	PT_MAX = 42, /* array size */
+	PT_MODE = 43 /* a 32 bit bitmask to represent file modes. */
 };
 
 enum ppm_print_format {
@@ -1494,6 +1495,7 @@ extern const struct ppm_name_value access_flags[];
 extern const struct ppm_name_value pf_flags[];
 extern const struct ppm_name_value unlinkat_flags[];
 extern const struct ppm_name_value linkat_flags[];
+extern const struct ppm_name_value chmod_mode[];
 
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];

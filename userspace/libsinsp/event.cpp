@@ -1187,6 +1187,37 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 
 			break;
 		}
+	case PT_MODE:
+		{
+			uint32_t val = *(uint32_t *)payload & (((uint64_t)1 << payload_len * 8) - 1);
+			ret["val"] = val;
+			ret["mode"] = Json::arrayValue;
+
+			const struct ppm_name_value *mode = (const struct ppm_name_value *)m_info->params[id].info;
+			uint32_t initial_val = val;
+
+			while(mode != NULL && mode->name != NULL && mode->value != initial_val)
+			{
+				// If mode is 0, then initial_val needs to be 0 for the mode to be resolved
+				if((mode->value == 0 && initial_val == 0) ||
+				   (mode->value != 0 && (val & mode->value) == mode->value && val != 0))
+				{
+					ret["mode"].append(mode->name);
+
+					// We remove current mode value to avoid duplicates
+					val &= ~mode->value;
+				}
+
+				mode++;
+			}
+
+			if(mode != NULL && mode->name != NULL)
+			{
+				ret["mode"].append(mode->name);
+			}
+
+			break;
+		}
 	case PT_UID:
 	case PT_GID:
 	{
@@ -2005,6 +2036,55 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 							  "%s%s",
 							  separator,
 							  flags->name);
+			}
+
+			break;
+		}
+	case PT_MODE:
+		{
+			uint32_t val = *(uint32_t *)payload;
+			SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIo32, PRId32, PRIX32);
+			snprintf(&m_paramstr_storage[0],
+					m_paramstr_storage.size(),
+					prfmt, val);
+
+			const struct ppm_name_value *mode = (const struct ppm_name_value *)m_info->params[id].info;
+			const char *separator = "";
+			uint32_t initial_val = val;
+			uint32_t j = 0;
+
+			while(mode != NULL && mode->name != NULL && mode->value != initial_val)
+			{
+				// If mode is 0, then initial_val needs to be 0 for the mode to be resolved
+				if((mode->value == 0 && initial_val == 0) ||
+				   (mode->value != 0 && (val & mode->value) == mode->value && val != 0))
+				{
+					if(m_resolved_paramstr_storage.size() < j + strlen(separator) + strlen(mode->name))
+					{
+						m_resolved_paramstr_storage.resize(m_resolved_paramstr_storage.size() * 2);
+					}
+
+					j += snprintf(&m_resolved_paramstr_storage[j],
+								m_resolved_paramstr_storage.size(),
+								"%s%s",
+								separator,
+								mode->name);
+
+					separator = "|";
+					// We remove current mode value to avoid duplicates
+					val &= ~mode->value;
+				}
+
+				mode++;
+			}
+
+			if(mode != NULL && mode->name != NULL)
+			{
+				j += snprintf(&m_resolved_paramstr_storage[j],
+							  m_resolved_paramstr_storage.size(),
+							  "%s%s",
+							  separator,
+							  mode->name);
 			}
 
 			break;
