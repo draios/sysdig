@@ -92,7 +92,7 @@ fetch_task_cputime(struct task_struct *t,
 			*s_dst = *s_src;
 
 		/* Task is sleeping, nothing to add */
-		if (t->vtime.state == VTIME_SLEEPING ||
+		if (ppm_vtime_state(t) == VTIME_SLEEPING ||
 		    is_idle_task(t))
 			continue;
 
@@ -102,10 +102,10 @@ fetch_task_cputime(struct task_struct *t,
 		 * Task runs either in user or kernel space, add pending nohz time to
 		 * the right place.
 		 */
-		if (t->vtime.state == VTIME_USER || t->flags & PF_VCPU) {
+		if (ppm_vtime_state(t) == VTIME_USER || t->flags & PF_VCPU) {
 			*udelta = delta;
 		} else {
-			if (t->vtime.state == VTIME_SYS)
+			if (ppm_vtime_state(t) == VTIME_SYS)
 				*sdelta = delta;
 		}
 	} while (read_seqretry(ppm_vtime_seqlock(t), seq));
