@@ -134,18 +134,22 @@ endif()
 
 if(NOT WIN32 AND NOT APPLE)
 list(APPEND SINSP_SOURCES
-	grpc_channel_registry.cpp
+	async_cgroup.cpp
 	cri.cpp
 	container_engine/cri.cpp
 	${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.cc
-	${CMAKE_CURRENT_BINARY_DIR}/cri.pb.cc)
+	${CMAKE_CURRENT_BINARY_DIR}/cri.pb.cc
+	grpc_channel_registry.cpp
+)
 endif()
 
 add_library(sinsp STATIC ${SINSP_SOURCES})
 
 target_link_libraries(sinsp 
 	scap
-	"${JSONCPP_LIB}")
+	"${CURL_LIBRARIES}"
+	"${JSONCPP_LIB}"
+	"${TBB_LIB}")
 
 if(USE_BUNDLED_LUAJIT)
 	add_dependencies(sinsp luajit)
@@ -157,13 +161,12 @@ if(NOT WIN32)
 	endif()
 	if(USE_BUNDLED_CURL)
 		add_dependencies(sinsp curl)
-		target_link_libraries(sinsp
-			"${CURL_LIBRARIES}")
 	endif()
 	if(USE_BUNDLED_TBB)
 		add_dependencies(sinsp tbb)
-		target_link_libraries(sinsp
-			"${TBB_LIB}")
+	endif()
+	if(USE_BUNDLED_GRPC)
+		add_dependencies(sinsp grpc)
 	endif()
 
 	if(NOT APPLE)
@@ -177,7 +180,6 @@ if(NOT WIN32)
 				COMMAND ${PROTOC} -I ${CMAKE_CURRENT_SOURCE_DIR} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} ${CMAKE_CURRENT_SOURCE_DIR}/cri.proto
 				WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-		add_dependencies(sinsp grpc)
 		target_link_libraries(sinsp
 			"${GRPCPP_LIB}"
 			"${GRPC_LIB}"

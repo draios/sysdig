@@ -867,6 +867,10 @@ public:
 	bool is_bpf_enabled();
 
 	static unsigned num_possible_cpus();
+
+#ifdef HAS_CAPTURE
+	static std::shared_ptr<std::string> lookup_cgroup_dir(const std::string& subsys);
+#endif
 #ifdef CYGWING_AGENT
 	wh_t* get_wmi_handle()
 	{
@@ -894,6 +898,7 @@ public:
 
 	bool check_suppressed(int64_t tid);
 
+	void set_docker_socket_path(std::string socket_path);
 	void set_query_docker_image_info(bool query_image_info);
 
 	void set_cri_extra_queries(bool extra_queries);
@@ -904,6 +909,8 @@ public:
 
 	void set_cri_socket_path(const std::string& path);
 	void set_cri_timeout(int64_t timeout_ms);
+	void set_cri_async(bool async);
+	void set_cri_async_limits(bool async_limits);
 
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);

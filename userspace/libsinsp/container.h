@@ -20,7 +20,12 @@ limitations under the License.
 #pragma once
 
 #include <functional>
+#include <list>
+#include <memory>
+#include <string>
+#include <unordered_map>
 
+#include "mutex.h"
 #include "container_info.h"
 
 #if !defined(_WIN32) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
@@ -31,22 +36,35 @@ limitations under the License.
 
 #include "container_engine/container_engine.h"
 
+struct scap_dumper;
+class sinsp_evt;
+
+/**
+ * \brief Repository of known containers
+ *
+ * This class is responsible for
+ * - keeping metadata about known containers. This includes container name,
+ *   type (underlying runtime), image information (image id, name etc.)
+ * - detecting containers for new processes (by delegating to
+ *   libsinsp::container_engine::resolver objects)
+ */
 class sinsp_container_manager
 {
 public:
 	sinsp_container_manager(sinsp* inspector);
 	virtual ~sinsp_container_manager();
 
-	const unordered_map<string, sinsp_container_info>* get_containers();
+	libsinsp::ConstMutexGuard<std::unordered_map<std::string, sinsp_container_info>> get_containers();
 	bool remove_inactive_containers();
 	void add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread);
-	sinsp_container_info * get_container(const string &id);
+	void add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread, libsinsp::MutexGuard<std::unordered_map<std::string, sinsp_container_info>>& containers);
+	bool update_container(const sinsp_container_info& container_info);
+	sinsp_container_info * get_container(const std::string &id);
+	sinsp_container_info * get_or_create_container(sinsp_container_type type, const std::string &id, const std::string& name, sinsp_threadinfo* tinfo);
 	void notify_new_container(const sinsp_container_info& container_info);
-	template<typename E> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
-	template<typename E1, typename E2, typename... Args> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	bool resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
-	void dump_containers(scap_dumper_t* dumper);
-	string get_container_name(sinsp_threadinfo* tinfo);
+	void dump_containers(struct scap_dumper* dumper);
+	std::string get_container_name(sinsp_threadinfo* tinfo);
 
 	// Set tinfo's m_category based on the container context.  It
 	// will *not* change any category to NONE, so a threadinfo
@@ -54,8 +72,9 @@ public:
 	// across execs e.g. "sh -c /bin/true" execing /bin/true.
 	void identify_category(sinsp_threadinfo *tinfo);
 
-	bool container_exists(const string& container_id) const {
-		return m_containers.find(container_id) != m_containers.end();
+	bool container_exists(const std::string& container_id) const {
+		const auto containers = m_containers.lock();
+		return containers->find(container_id) != containers->end();
 	}
 
 	typedef std::function<void(const sinsp_container_info&, sinsp_threadinfo *)> new_container_cb;
@@ -66,23 +85,68 @@ public:
 	void create_engines();
 	void cleanup();
 
+	void set_docker_socket_path(std::string socket_path);
 	void set_query_docker_image_info(bool query_image_info);
 	void set_cri_extra_queries(bool extra_queries);
 	void set_cri_socket_path(const std::string& path);
 	void set_cri_timeout(int64_t timeout_ms);
+	void set_cri_async(bool async);
+	void set_cri_async_limits(bool async_limits);
 	sinsp* get_inspector() { return m_inspector; }
+
+	/**
+	 * \brief set the status of an async container metadata lookup
+	 * @param container_id the container id we're looking up
+	 * @param ctype the container engine that is doing the lookup
+	 * @param state the state of the lookup
+	 *
+	 * Container engines that do not do any lookups in external services need not
+	 * bother with this. Otherwise, the engine needs to maintain the current
+	 * state of the lookup via this method and call should_lookup() before
+	 * starting a new lookup.
+	 */
+	void set_lookup_status(const std::string& container_id, sinsp_container_type ctype, sinsp_container_lookup_state state)
+	{
+		auto lookups = m_lookups.lock();
+		(*lookups)[container_id][ctype] = state;
+	}
+
+	/**
+	 * \brief do we want to start a new lookup for container metadata?
+	 * @param container_id the container id we want to look up
+	 * @param ctype the container engine that is doing the lookup
+	 * @return true if there's no lookup in progress and we're free to start
+	 * a new one, false otherwise
+	 *
+	 * This method effectively checks if m_lookups[container_id][ctype]
+	 * exists, without creating unnecessary map entries along the way.
+	 */
+	bool should_lookup(const std::string& container_id, sinsp_container_type ctype)
+	{
+		auto lookups = m_lookups.lock();
+		auto container_lookups = lookups->find(container_id);
+		if(container_lookups == lookups->end())
+		{
+			return true;
+		}
+		auto engine_lookup = container_lookups->second.find(ctype);
+		return engine_lookup == container_lookups->second.end();
+	}
 private:
-	string container_to_json(const sinsp_container_info& container_info);
-	bool container_to_sinsp_event(const string& json, sinsp_evt* evt, shared_ptr<sinsp_threadinfo> tinfo);
-	string get_docker_env(const Json::Value &env_vars, const string &mti);
+	std::string container_to_json(const sinsp_container_info& container_info);
+	bool container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::shared_ptr<sinsp_threadinfo> tinfo);
 
 	std::list<std::unique_ptr<libsinsp::container_engine::resolver>> m_container_engines;
 
 	sinsp* m_inspector;
-	unordered_map<string, sinsp_container_info> m_containers;
+	libsinsp::Mutex<std::unordered_map<std::string, sinsp_container_info>> m_containers;
+	libsinsp::Mutex<std::unordered_map<std::string, std::unordered_map<sinsp_container_type, sinsp_container_lookup_state>>> m_lookups;
+
 	uint64_t m_last_flush_time_ns;
-	list<new_container_cb> m_new_callbacks;
-	list<remove_container_cb> m_remove_callbacks;
+	std::list<new_container_cb> m_new_callbacks;
+	std::list<remove_container_cb> m_remove_callbacks;
+
+	static std::string s_incomplete_info_name;
 
 	friend class test_helper;
 };

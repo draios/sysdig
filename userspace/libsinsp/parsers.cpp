@@ -543,13 +543,23 @@ void sinsp_parser::event_cleanup(sinsp_evt *evt)
 //
 bool sinsp_parser::reset(sinsp_evt *evt)
 {
+	uint16_t etype = evt->get_type();
+
 	//
 	// Before anything can happen, the event needs to be initialized
 	//
-	evt->init();
+	if (etype == PPME_CONTAINER_JSON_E && evt->m_tinfo_ref != nullptr)
+	{
+		// the threadinfo should already be set properly
+		evt->init_keep_threadinfo();
+		return true;
+	}
+	else
+	{
+		evt->init();
+	}
 
 	ppm_event_flags eflags = evt->get_info_flags();
-	uint16_t etype = evt->get_type();
 
 	evt->m_fdinfo = NULL;
 	evt->m_errorcode = 0;
@@ -4257,6 +4267,11 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt *evt)
 				tid = *(int64_t *)parinfo->m_val;
 				ASSERT(parinfo->m_len == sizeof(int64_t));
 
+				if(tid == 0)
+				{
+					tid = evt->get_tid();
+				}
+
 				sinsp_threadinfo* ptinfo = m_inspector->get_thread(tid, true, true);
 				if(ptinfo == NULL)
 				{
@@ -4549,6 +4564,11 @@ namespace
 
 void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 {
+	if(evt->m_tinfo_ref != nullptr)
+	{
+		return;
+	}
+
 	sinsp_evt_param *parinfo = evt->get_param(0);
 	ASSERT(parinfo);
 	ASSERT(parinfo->m_len > 0);

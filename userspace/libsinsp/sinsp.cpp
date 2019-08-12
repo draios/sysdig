@@ -42,6 +42,7 @@ limitations under the License.
 #include "k8s_api_handler.h"
 #ifdef HAS_CAPTURE
 #include <curl/curl.h>
+#include <mntent.h>
 #endif
 #endif
 
@@ -1589,6 +1590,11 @@ void sinsp::add_suppressed_comms(scap_open_args &oargs)
 	oargs.suppressed_comms[i++] = NULL;
 }
 
+void sinsp::set_docker_socket_path(std::string socket_path)
+{
+	m_container_manager.set_docker_socket_path(std::move(socket_path));
+}
+
 void sinsp::set_query_docker_image_info(bool query_image_info)
 {
 	m_container_manager.set_query_docker_image_info(query_image_info);
@@ -1607,6 +1613,16 @@ void sinsp::set_cri_socket_path(const std::string& path)
 void sinsp::set_cri_timeout(int64_t timeout_ms)
 {
 	m_container_manager.set_cri_timeout(timeout_ms);
+}
+
+void sinsp::set_cri_async(bool async)
+{
+	m_container_manager.set_cri_async(async);
+}
+
+void sinsp::set_cri_async_limits(bool async_limits)
+{
+	m_container_manager.set_cri_async_limits(async_limits);
 }
 
 void sinsp::set_snaplen(uint32_t snaplen)
@@ -1932,7 +1948,7 @@ void sinsp::add_chisel_dir(string dirname, bool front_add)
 
 	chiseldir_info ncdi;
 
-	strcpy(ncdi.m_dir, dirname.c_str());
+	ncdi.m_dir = std::move(dirname);
 	ncdi.m_need_to_resolve = false;
 
 	if(front_add)
@@ -2532,3 +2548,56 @@ bool sinsp_thread_manager::remove_inactive_threads()
 
 	return res;
 }
+
+#ifdef HAS_CAPTURE
+std::shared_ptr<std::string> sinsp::lookup_cgroup_dir(const string& subsys)
+{
+	shared_ptr<string> cgroup_dir;
+	static std::unordered_map<std::string, std::shared_ptr<std::string>> cgroup_dir_cache;
+
+	const auto& it = cgroup_dir_cache.find(subsys);
+	if(it != cgroup_dir_cache.end())
+	{
+		return it->second;
+	}
+
+	// Look for mount point of cgroup filesystem
+	// It should be already mounted on the host or by
+	// our docker-entrypoint.sh script
+	if(strcmp(scap_get_host_root(), "") != 0)
+	{
+		// We are inside our container, so we should use the directory
+		// mounted by it
+		auto cgroup = std::string(scap_get_host_root()) + "/cgroup/" + subsys;
+		cgroup_dir = std::make_shared<std::string>(cgroup);
+	}
+	else
+	{
+		struct mntent mntent_buf = {};
+		char mntent_string_buf[4096];
+		FILE* fp = setmntent("/proc/mounts", "r");
+		struct mntent* entry = getmntent_r(fp, &mntent_buf,
+			mntent_string_buf, sizeof(mntent_string_buf));
+		while(entry != nullptr)
+		{
+			if(strcmp(entry->mnt_type, "cgroup") == 0 &&
+			   hasmntopt(entry, subsys.c_str()) != NULL)
+			{
+				cgroup_dir = std::make_shared<std::string>(entry->mnt_dir);
+				break;
+			}
+			entry = getmntent(fp);
+		}
+		endmntent(fp);
+	}
+	if(!cgroup_dir)
+	{
+		return std::make_shared<std::string>();
+	}
+	else
+	{
+		cgroup_dir_cache[subsys] = cgroup_dir;
+		return cgroup_dir;
+	}
+}
+#endif

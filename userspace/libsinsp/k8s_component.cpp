@@ -909,12 +909,15 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 	}
 
 	tags["source"] = "kubernetes";
-	user_event_logger::log(sinsp_user_event::to_string(epoch_time_evt_s,
-	                                                   std::move(event_name),
-	                                                   std::move(description),
-	                                                   std::move(scope),
-	                                                   std::move(tags)),
-	                       severity);
+
+	auto evt = sinsp_user_event(epoch_time_evt_s,
+				    std::move(event_name),
+				    std::move(description),
+				    std::move(scope.get_ref()),
+				    std::move(tags),
+				    severity);
+
+	user_event_logger::log(evt, severity);
 
 	// TODO: sysdig capture?
 #endif // _WIN32

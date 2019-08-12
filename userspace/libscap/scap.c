@@ -314,7 +314,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			//
 			// Open the device
 			//
-			sprintf(filename, "%s/dev/" PROBE_DEVICE_NAME "%d", scap_get_host_root(), all_scanned_devs);
+			snprintf(filename, sizeof(filename), "%s/dev/" PROBE_DEVICE_NAME "%d", scap_get_host_root(), all_scanned_devs);
 
 			if((handle->m_devs[j].m_fd = open(filename, O_RDWR | O_SYNC)) < 0)
 			{
