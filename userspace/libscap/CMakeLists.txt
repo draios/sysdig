@@ -32,8 +32,7 @@ list(APPEND targetfiles
 	syscall_info_table.c
 	../../driver/dynamic_params_table.c
 	../../driver/event_table.c
-	../../driver/flags_table.c
-	../../driver/modes_table.c)
+	../../driver/flags_table.c)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	list(APPEND targetfiles
