@@ -2059,9 +2059,10 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				if((mode->value == 0 && initial_val == 0) ||
 				   (mode->value != 0 && (val & mode->value) == mode->value && val != 0))
 				{
-					if(m_resolved_paramstr_storage.size() < j + strlen(separator) + strlen(mode->name))
+					size_t params_len = j + strlen(separator) + strlen(mode->name);
+					if(m_resolved_paramstr_storage.size() < params_len)
 					{
-						m_resolved_paramstr_storage.resize(m_resolved_paramstr_storage.size() * 2);
+						m_resolved_paramstr_storage.resize(params_len + 1);
 					}
 
 					j += snprintf(&m_resolved_paramstr_storage[j],
