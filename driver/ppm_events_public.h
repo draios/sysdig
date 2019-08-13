@@ -1364,8 +1364,8 @@ enum ppm_param_type {
 	PT_IPV6NET = 39, /* An IPv6 network. */
 	PT_IPADDR = 40,  /* Either an IPv4 or IPv6 address. The length indicates which one it is. */
 	PT_IPNET = 41,  /* Either an IPv4 or IPv6 network. The length indicates which one it is. */
-	PT_MAX = 42, /* array size */
-	PT_MODE = 43 /* a 32 bit bitmask to represent file modes. */
+	PT_MODE = 42, /* a 32 bit bitmask to represent file modes. */
+	PT_MAX = 43 /* array size */
 };
 
 enum ppm_print_format {
