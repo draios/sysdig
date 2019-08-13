@@ -964,7 +964,7 @@ bool sinsp_threadinfo::is_health_probe()
 
 shared_ptr<sinsp_threadinfo> sinsp_threadinfo::lookup_thread()
 {
-	return m_inspector->get_thread_ref(m_pid, true, true);
+	return m_inspector->get_thread_ref(m_pid, true, true, true);
 }
 
 //
