@@ -3528,12 +3528,15 @@ FILLER(sys_signaldeliver_e, false)
 	ctx = (struct signal_deliver_args *)data->ctx;
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 	struct siginfo *info = (struct siginfo *)ctx->info;
-
 	sig = ctx->sig;
-	if (sig == SIGKILL) {
+
+	if (info == SEND_SIG_NOINFO || info == SEND_SIG_PRIV || info == SEND_SIG_FORCED) {
+		info = NULL;
+		spid = 0;
+	} else if (sig == SIGKILL) {
 		spid = _READ(info->_sifields._kill._pid);
 	} else if (sig == SIGTERM || sig == SIGHUP || sig == SIGINT ||
-		   sig == SIGTSTP || sig == SIGQUIT) {
+	           sig == SIGTSTP || sig == SIGQUIT) {
 		int si_code = _READ(info->si_code);
 
 		if (si_code == SI_USER ||
