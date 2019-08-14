@@ -44,11 +44,6 @@ using namespace libsinsp::runc;
 constexpr const uint64_t cri_async_source::CGROUP_LOOKUP_DELAY_MS;
 
 namespace {
-// use asynchronous lookups?
-bool s_async = true;
-// get resource limits asynchronously?
-bool s_async_limits = true;
-
 bool init_cri()
 {
 	if(s_cri)
@@ -208,7 +203,7 @@ bool cri_async_source::parse_cri(sinsp_container_info *container, const libsinsp
 	container->m_cpu_quota = limits.m_cpu_quota;
 	container->m_cpu_period = limits.m_cpu_period;
 
-	if(s_async_limits && !found_all)
+	if(!found_all)
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 			"cri (%s) not all limits read from cgroups, will retry in %d ms",
@@ -278,17 +273,8 @@ void cri::set_cri_timeout(int64_t timeout_ms)
 	s_cri_timeout = timeout_ms;
 }
 
-void cri::set_extra_queries(bool extra_queries)
-{
+void cri::set_extra_queries(bool extra_queries) {
 	s_cri_extra_queries = extra_queries;
-}
-
-void cri::set_async(bool async) {
-	s_async = async;
-}
-
-void cri::set_async_limits(bool async_limits) {
-	s_async_limits = async_limits;
 }
 
 bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
@@ -314,48 +300,26 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 		m_cri_info_source.reset(cri_source);
 	}
 	sinsp_container_info *container_info = manager->get_container(container_id);
-	sinsp_container_info sync_container_info;
 
 	if (!container_info ||
 	    container_info->query_anyway(s_cri_runtime_type))
 	{
+		container_info = manager->get_or_create_container(
+			s_cri_runtime_type, container_id, "", tinfo);
+
 		if (query_os_for_missing_info)
 		{
+			g_logger.format(sinsp_logger::SEV_DEBUG,
+					"cri (%s): Performing lookup",
+					container_id.c_str());
+
 			libsinsp::async_cgroup::delayed_cgroup_key key(
 				container_id,
 				tinfo->get_cgroup("cpu"),
 				tinfo->get_cgroup("memory"));
-			if(s_async)
-			{
-				container_info = manager->get_or_create_container(
-					s_cri_runtime_type, container_id, "", tinfo);
-
-				m_cri_info_source->lookup_container(key, manager);
-			}
-			else
-			{
-				container_info = &sync_container_info;
-				g_logger.format(sinsp_logger::SEV_DEBUG,
-						"cri (%s): Performing sync lookup",
-						container_id.c_str());
-
-				sync_container_info.m_type = s_cri_runtime_type;
-				sync_container_info.m_id = container_id;
-				sync_container_info.m_successful = m_cri_info_source->parse_cri(
-					&sync_container_info, key);
-
-				g_logger.format(sinsp_logger::SEV_DEBUG,
-					"cri (%s) sync lookup done, successful=%s",
-					container_id.c_str(), sync_container_info.m_successful ? "true" : "false");
-
-				sync_container_info.m_metadata_complete = true;
-				if(manager->update_container(sync_container_info) && sync_container_info.m_successful)
-				{
-					manager->notify_new_container(sync_container_info);
-				}
-			}
+			m_cri_info_source->lookup_container(key, manager);
 		}
-		if (container_info && mesos::set_mesos_task_id(container_info, tinfo))
+		if (mesos::set_mesos_task_id(container_info, tinfo))
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"cri (%s) Mesos CRI container, Mesos task ID: [%s]",
@@ -363,5 +327,5 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 		}
 	}
 
-	return container_info ? container_info->m_metadata_complete : true;
+	return container_info->m_metadata_complete;
 }
