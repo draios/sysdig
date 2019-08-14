@@ -77,7 +77,6 @@ bool sinsp_container_manager::remove_inactive_containers()
 		});
 
 		auto containers = m_containers.lock();
-		auto lookups = m_lookups.lock();
 		for(auto it = containers->begin(); it != containers->end();)
 		{
 			if(containers_in_use.find(it->first) == containers_in_use.end())
@@ -86,7 +85,6 @@ bool sinsp_container_manager::remove_inactive_containers()
 				{
 					remove_cb((*containers)[it->first]);
 				}
-				lookups->erase(it->first);
 				it = containers->erase(it);
 			}
 			else
@@ -142,7 +140,6 @@ sinsp_container_info* sinsp_container_manager::get_or_create_container(
 	container_info.m_metadata_complete = false;
 	container_info.m_successful = false;
 
-	set_lookup_status(id, type, sinsp_container_lookup_state::STARTED);
 	add_container(container_info, tinfo, containers);
 	return &(*containers)[id];
 }
@@ -339,21 +336,6 @@ void sinsp_container_manager::add_container(const sinsp_container_info& containe
 bool sinsp_container_manager::update_container(const sinsp_container_info& container_info)
 {
 	auto containers = m_containers.lock();
-
-	if(container_info.m_metadata_complete)
-	{
-		sinsp_container_lookup_result result;
-		if(container_info.m_successful)
-		{
-			result = sinsp_container_lookup_result::SUCCESSFUL;
-		}
-		else
-		{
-			result = sinsp_container_lookup_result::FAILED;
-		}
-		set_lookup_status(container_info.m_id, container_info.m_type, result);
-	}
-
 	auto it = containers->find(container_info.m_id);
 	if(it == containers->end() ||
 		(container_info.m_metadata_complete && !it->second.m_successful))

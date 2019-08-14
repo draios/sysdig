@@ -371,7 +371,7 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 
 #ifdef HAS_CAPTURE
 	// Possibly start a lookup for this container info
-	if(container_info == nullptr || manager->should_lookup(container_id, CT_DOCKER))
+	if(container_info == nullptr || container_info->query_anyway(CT_DOCKER))
 	{
 		container_info = manager->get_or_create_container(CT_DOCKER, container_id, container_name, tinfo);
 		if (query_os_for_missing_info)
