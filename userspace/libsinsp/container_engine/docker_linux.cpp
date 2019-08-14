@@ -43,8 +43,6 @@ constexpr const cgroup_layout DOCKER_CGROUP_LAYOUT[] = {
 };
 }
 
-std::string docker::m_docker_sock = "/var/run/docker.sock";
-
 docker::docker()
 {
 }
