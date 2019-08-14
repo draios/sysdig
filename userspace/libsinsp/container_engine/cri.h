@@ -95,8 +95,6 @@ public:
 	static void set_cri_socket_path(const std::string& path);
 	static void set_cri_timeout(int64_t timeout_ms);
 	static void set_extra_queries(bool extra_queries);
-	static void set_async(bool async);
-	static void set_async_limits(bool async_limits);
 
 private:
 	std::unique_ptr<cri_async_source> m_cri_info_source;

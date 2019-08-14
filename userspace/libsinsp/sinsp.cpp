@@ -1615,16 +1615,6 @@ void sinsp::set_cri_timeout(int64_t timeout_ms)
 	m_container_manager.set_cri_timeout(timeout_ms);
 }
 
-void sinsp::set_cri_async(bool async)
-{
-	m_container_manager.set_cri_async(async);
-}
-
-void sinsp::set_cri_async_limits(bool async_limits)
-{
-	m_container_manager.set_cri_async_limits(async_limits);
-}
-
 void sinsp::set_snaplen(uint32_t snaplen)
 {
 	//
