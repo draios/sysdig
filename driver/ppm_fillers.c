@@ -4871,7 +4871,7 @@ int f_sys_chmod_x(struct event_filler_arguments *args)
 	/*
 	 * mode
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
 	res = val_to_ring(args, chmod_mode_to_scap(val), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -4902,7 +4902,7 @@ int f_sys_fchmod_x(struct event_filler_arguments *args)
 	/*
 	 * mode
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
 	res = val_to_ring(args, chmod_mode_to_scap(val), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
