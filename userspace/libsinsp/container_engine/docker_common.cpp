@@ -27,7 +27,7 @@ limitations under the License.
 using namespace libsinsp::container_engine;
 
 docker_async_source::docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms, sinsp *inspector)
-	: sysdig::async_container_source<std::string>(max_wait_ms, ttl_ms),
+	: async_key_value_source(max_wait_ms, ttl_ms),
 	  m_inspector(inspector),
 	  m_docker_unix_socket_path("/var/run/docker.sock"),
 #ifdef _WIN32
@@ -59,13 +59,13 @@ void docker_async_source::run_impl()
 				"docker_async (%s): Source dequeued key",
 				container_id.c_str());
 
-		sinsp_container_info res;
+		container_lookup_result res;
 
 		res.m_successful = true;
-		res.m_type = CT_DOCKER;
-		res.m_id = container_id;
+		res.m_container_info.m_type = CT_DOCKER;
+		res.m_container_info.m_id = container_id;
 
-		if(!parse_docker(container_id, &res))
+		if(!parse_docker(container_id, &res.m_container_info))
 		{
 			// This is not always an error e.g. when using
 			// containerd as the runtime. Since the cgroup
@@ -366,7 +366,7 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	    query_os_for_missing_info)
 	{
 		// give docker a chance to return metadata for this container
-		m_docker_info_source->lookup_container(container_id, manager);
+		parse_docker_async(manager->get_inspector(), container_id, manager);
 	}
 #endif
 
@@ -374,6 +374,35 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	// trying to resolve the container, so only return true if we
 	// have complete metadata.
 	return container_info->m_metadata_complete;
+}
+
+void docker::parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager)
+{
+	auto cb = [manager](const std::string &container_id, const container_lookup_result &res)
+        {
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"docker_async (%s): Source callback result successful=%s",
+				container_id.c_str(),
+				(res.m_successful ? "true" : "false"));
+
+		if(res.m_successful)
+		{
+			manager->notify_new_container(res.m_container_info);
+		}
+	};
+
+        container_lookup_result result;
+
+	if (m_docker_info_source->lookup(container_id, result, cb))
+	{
+		// if a previous lookup call already found the metadata, process it now
+		cb(container_id, result);
+
+		// This should *never* happen, as ttl is 0 (never wait)
+		g_logger.format(sinsp_logger::SEV_ERROR,
+				"docker_async (%s): Unexpected immediate return from docker_info_source.lookup()",
+				container_id.c_str());
+	}
 }
 
 bool docker_async_source::parse_docker(std::string &container_id, sinsp_container_info *container)
