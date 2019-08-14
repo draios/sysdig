@@ -66,7 +66,7 @@ void docker_async_source::run_impl()
 
 		sinsp_container_info res;
 
-		res.m_status = sinsp_container_lookup_state::SUCCESSFUL;
+		res.m_successful = true;
 		res.m_type = CT_DOCKER;
 		res.m_id = container_id;
 
@@ -80,7 +80,7 @@ void docker_async_source::run_impl()
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s): Failed to get Docker metadata, returning successful=false",
 					container_id.c_str());
-			res.m_status = sinsp_container_lookup_state::FAILED;
+			res.m_successful = false;
 		}
 
 		g_logger.format(sinsp_logger::SEV_DEBUG,
