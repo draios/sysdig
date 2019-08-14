@@ -385,7 +385,7 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	// Returning true will prevent other container engines from
 	// trying to resolve the container, so only return true if we
 	// have complete metadata.
-	return container_info->m_status == sinsp_container_lookup_state::SUCCESSFUL;
+	return container_info->m_metadata_complete;
 }
 
 bool docker_async_source::parse_docker(std::string &container_id, sinsp_container_info *container)
