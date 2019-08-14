@@ -83,7 +83,6 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 		return false;
 	}
 
-	container->m_id = key.m_container_id;
 	container->m_name = "";
 	container->m_image = "";
 	container->m_imageid = "";
