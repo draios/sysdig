@@ -62,19 +62,7 @@ void async_container_source<key_type>::lookup_container(const key_type& key, sin
 				static_cast<const std::string&>(key).c_str(),
 				(res.m_successful ? "true" : "false"));
 
-		// store the container metadata in container_manager regardless of the result
-		// this ensures that we don't get stuck with incomplete containers
-		// when all async lookups fail
-		//
-		// the manager will ignore any lookup results reported after the first
-		// successful one and return false
-		//
-		// if we did use the metadata and the lookup succeeded,
-		// generate a container event for libsinsp consumers
-		if(manager->update_container(res) && res.m_successful)
-		{
-			manager->notify_new_container(res);
-		}
+		manager->notify_new_container(res);
 	};
 
 	sinsp_container_info result;
