@@ -131,6 +131,8 @@ protected:
 	void parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager);
 
 	std::unique_ptr<docker_async_source> m_docker_info_source;
+
+	static std::string s_incomplete_info_name;
 };
 }
 }
