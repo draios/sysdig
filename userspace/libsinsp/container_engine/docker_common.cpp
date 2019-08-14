@@ -26,19 +26,14 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
-docker_async_source::docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms,
-	sinsp *inspector
-#ifndef _WIN32
-	, std::string socket_path
-#endif
-	)
+docker_async_source::docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms, sinsp *inspector)
 	: sysdig::async_container_source<std::string>(max_wait_ms, ttl_ms),
 	  m_inspector(inspector),
+	  m_docker_unix_socket_path("/var/run/docker.sock"),
 #ifdef _WIN32
 	  m_api_version("/v1.30"),
 #else
 	  m_api_version("/v1.24"),
-	  m_docker_unix_socket_path(std::move(socket_path)),
 	  m_curlm(NULL),
 	  m_curl(NULL)
 #endif
@@ -358,11 +353,7 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 		g_logger.log("docker_async: Creating docker async source",
 			     sinsp_logger::SEV_DEBUG);
 		uint64_t max_wait_ms = 10000;
-#ifdef _WIN32
 		docker_async_source *src = new docker_async_source(docker_async_source::NO_WAIT_LOOKUP, max_wait_ms, manager->get_inspector());
-#else
-		docker_async_source *src = new docker_async_source(docker_async_source::NO_WAIT_LOOKUP, max_wait_ms, manager->get_inspector(), m_docker_sock);
-#endif
 		m_docker_info_source.reset(src);
 	}
 

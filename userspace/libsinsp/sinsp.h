@@ -894,7 +894,6 @@ public:
 
 	bool check_suppressed(int64_t tid);
 
-	void set_docker_socket_path(std::string socket_path);
 	void set_query_docker_image_info(bool query_image_info);
 
 	void set_cri_extra_queries(bool extra_queries);

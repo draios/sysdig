@@ -78,7 +78,6 @@ public:
 	void create_engines();
 	void cleanup();
 
-	void set_docker_socket_path(std::string socket_path);
 	void set_query_docker_image_info(bool query_image_info);
 	void set_cri_extra_queries(bool extra_queries);
 	void set_cri_socket_path(const std::string& path);
