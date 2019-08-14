@@ -25,7 +25,6 @@ limitations under the License.
 #include <string>
 #include <unordered_map>
 
-#include "mutex.h"
 #include "container_info.h"
 
 #if !defined(_WIN32) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
@@ -45,10 +44,9 @@ public:
 	sinsp_container_manager(sinsp* inspector);
 	virtual ~sinsp_container_manager();
 
-	libsinsp::ConstMutexGuard<std::unordered_map<std::string, sinsp_container_info>> get_containers();
+	const std::unordered_map<std::string, sinsp_container_info>* get_containers();
 	bool remove_inactive_containers();
 	void add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread);
-	void add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread, libsinsp::MutexGuard<std::unordered_map<std::string, sinsp_container_info>>& containers);
 	sinsp_container_info * get_container(const std::string &id);
 	void notify_new_container(const sinsp_container_info& container_info);
 	template<typename E> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
@@ -64,8 +62,7 @@ public:
 	void identify_category(sinsp_threadinfo *tinfo);
 
 	bool container_exists(const std::string& container_id) const {
-		const auto containers = m_containers.lock();
-		return containers->find(container_id) != containers->end();
+		return m_containers.find(container_id) != m_containers.end();
 	}
 
 	typedef std::function<void(const sinsp_container_info&, sinsp_threadinfo *)> new_container_cb;
@@ -89,7 +86,7 @@ private:
 	std::list<std::unique_ptr<libsinsp::container_engine::resolver>> m_container_engines;
 
 	sinsp* m_inspector;
-	libsinsp::Mutex<std::unordered_map<std::string, sinsp_container_info>> m_containers;
+	std::unordered_map<std::string, sinsp_container_info> m_containers;
 	uint64_t m_last_flush_time_ns;
 	std::list<new_container_cb> m_new_callbacks;
 	std::list<remove_container_cb> m_remove_callbacks;
