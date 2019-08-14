@@ -317,7 +317,8 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 	sinsp_container_info *container_info = manager->get_container(container_id);
 	sinsp_container_info sync_container_info;
 
-	if (!container_info || manager->should_lookup(container_id, s_cri_runtime_type))
+	if (!container_info ||
+	    container_info->query_anyway(s_cri_runtime_type))
 	{
 		if (query_os_for_missing_info)
 		{
