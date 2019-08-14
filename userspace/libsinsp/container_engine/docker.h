@@ -90,10 +90,22 @@ private:
 
 	// Parse either a readiness or liveness probe out of the
 	// provided object, updating the container info with any probe
-	// found.
+	// found. Returns true if the healthcheck/livenesss/readiness
+	// probe info was found and could be parsed.
 	bool parse_liveness_readiness_probe(const Json::Value &probe_obj,
 					    sinsp_container_info::container_health_probe::probe_type ptype,
 					    sinsp_container_info &container);
+
+	// See if this config has a io.kubernetes.sandbox.id label
+	// referring to a different container. (NOTE: this is not the
+	// same as docker's sandbox id, which refers to networks.) If
+	// it does, try to copy the health checks from that container
+	// to the provided container_info pointer. Returns true if a
+	// sandbox container id was found, the corresponding container
+	// was found, and if the health checks could be copied from
+	// that container.
+	bool get_sandbox_liveness_readiness_probes(const Json::Value &config_obj,
+						   sinsp_container_info *container);
 
 	// Parse all healthchecks/liveness probes/readiness probes out
 	// of the provided object, updating the container info as required.
