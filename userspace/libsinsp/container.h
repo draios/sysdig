@@ -62,6 +62,8 @@ public:
 	sinsp_container_info * get_container(const std::string &id);
 	sinsp_container_info * get_or_create_container(sinsp_container_type type, const std::string &id, const std::string& name, sinsp_threadinfo* tinfo);
 	void notify_new_container(const sinsp_container_info& container_info);
+	template<typename E> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+	template<typename E1, typename E2, typename... Args> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	bool resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	void dump_containers(struct scap_dumper* dumper);
 	std::string get_container_name(sinsp_threadinfo* tinfo);
