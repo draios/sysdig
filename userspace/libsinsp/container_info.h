@@ -213,6 +213,7 @@ public:
 		// sync lookups can basically only return success
 		// so make it a little bit easier for them
 		m_status(sinsp_container_lookup_state::SUCCESSFUL),
+		m_metadata_complete(true),
 		m_metadata_deadline(0)
 	{
 	}
@@ -257,6 +258,10 @@ public:
 	bool m_is_pod_sandbox;
 
 	sinsp_container_lookup_state m_status;
+	// If false, this represents incomplete information about the
+	// container that will be filled in later as a result of an
+	// async fetch of container info.
+	bool m_metadata_complete;
 #ifdef HAS_ANALYZER
 	std::string m_sysdig_agent_conf;
 #endif
