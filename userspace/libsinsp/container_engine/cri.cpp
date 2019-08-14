@@ -230,7 +230,7 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 	existing_container_info = manager->get_container(container_info.m_id);
 
 	if (!existing_container_info ||
-	    existing_container_info->query_anyway(s_cri_runtime_type))
+	    existing_container_info->m_metadata_complete == false)
 	{
 		if (query_os_for_missing_info)
 		{
@@ -238,8 +238,7 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 					"cri (%s): Performing lookup",
 					container_info.m_id.c_str());
 
-			container_info.m_successful = parse_cri(manager, &container_info, tinfo);
-			if (!container_info.m_successful)
+			if (!parse_cri(manager, &container_info, tinfo))
 			{
 				g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to get CRI metadata for container",
 						container_info.m_id.c_str());
