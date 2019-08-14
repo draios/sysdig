@@ -145,7 +145,6 @@ bool cri_async_source::parse_cri(sinsp_container_info *container, const libsinsp
 		return false;
 	}
 
-	container->m_id = key.m_container_id;
 	container->m_name = "";
 	container->m_image = "";
 	container->m_imageid = "";
