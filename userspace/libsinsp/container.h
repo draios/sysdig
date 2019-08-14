@@ -39,15 +39,6 @@ limitations under the License.
 struct scap_dumper;
 class sinsp_evt;
 
-/**
- * \brief Repository of known containers
- *
- * This class is responsible for
- * - keeping metadata about known containers. This includes container name,
- *   type (underlying runtime), image information (image id, name etc.)
- * - detecting containers for new processes (by delegating to
- *   libsinsp::container_engine::resolver objects)
- */
 class sinsp_container_manager
 {
 public:
@@ -98,6 +89,7 @@ public:
 private:
 	std::string container_to_json(const sinsp_container_info& container_info);
 	bool container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::shared_ptr<sinsp_threadinfo> tinfo);
+	std::string get_docker_env(const Json::Value &env_vars, const std::string &mti);
 
 	std::list<std::unique_ptr<libsinsp::container_engine::resolver>> m_container_engines;
 
