@@ -85,7 +85,7 @@ bool sinsp_container_manager::remove_inactive_containers()
 				{
 					remove_cb((*containers)[it->first]);
 				}
-				it = containers->erase(it);
+				containers->erase(it++);
 			}
 			else
 			{
@@ -97,7 +97,7 @@ bool sinsp_container_manager::remove_inactive_containers()
 	return res;
 }
 
-sinsp_container_info* sinsp_container_manager::get_container(const std::string& container_id)
+sinsp_container_info* sinsp_container_manager::get_container(const string& container_id)
 {
 	auto containers = m_containers.lock();
 	auto it = containers->find(container_id);
