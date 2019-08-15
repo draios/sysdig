@@ -26,19 +26,14 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
-docker_async_source::docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms,
-	sinsp *inspector
-#ifndef _WIN32
-	, std::string socket_path
-#endif
-	)
-	: sysdig::async_container_source<std::string>(max_wait_ms, ttl_ms),
+docker_async_source::docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms, sinsp *inspector)
+	: async_key_value_source(max_wait_ms, ttl_ms),
 	  m_inspector(inspector),
+	  m_docker_unix_socket_path("/var/run/docker.sock"),
 #ifdef _WIN32
 	  m_api_version("/v1.30"),
 #else
 	  m_api_version("/v1.24"),
-	  m_docker_unix_socket_path(std::move(socket_path)),
 	  m_curlm(NULL),
 	  m_curl(NULL)
 #endif
@@ -64,13 +59,13 @@ void docker_async_source::run_impl()
 				"docker_async (%s): Source dequeued key",
 				container_id.c_str());
 
-		sinsp_container_info res;
+		container_lookup_result res;
 
-		res.m_status = sinsp_container_lookup_state::SUCCESSFUL;
-		res.m_type = CT_DOCKER;
-		res.m_id = container_id;
+		res.m_successful = true;
+		res.m_container_info.m_type = CT_DOCKER;
+		res.m_container_info.m_id = container_id;
 
-		if(!parse_docker(container_id, &res))
+		if(!parse_docker(container_id, &res.m_container_info))
 		{
 			// This is not always an error e.g. when using
 			// containerd as the runtime. Since the cgroup
@@ -80,7 +75,7 @@ void docker_async_source::run_impl()
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s): Failed to get Docker metadata, returning successful=false",
 					container_id.c_str());
-			res.m_status = sinsp_container_lookup_state::FAILED;
+			res.m_successful = false;
 		}
 
 		g_logger.format(sinsp_logger::SEV_DEBUG,
@@ -343,10 +338,12 @@ void docker_async_source::set_query_image_info(bool query_image_info)
 	m_query_image_info = query_image_info;
 }
 
+std::string docker::s_incomplete_info_name = "incomplete";
+
 bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	std::string container_id, container_name;
-	sinsp_container_info *container_info;
+	sinsp_container_info *existing_container_info;
 
 	if(!detect_docker(tinfo, container_id, container_name))
 	{
@@ -358,34 +355,84 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 		g_logger.log("docker_async: Creating docker async source",
 			     sinsp_logger::SEV_DEBUG);
 		uint64_t max_wait_ms = 10000;
-#ifdef _WIN32
 		docker_async_source *src = new docker_async_source(docker_async_source::NO_WAIT_LOOKUP, max_wait_ms, manager->get_inspector());
-#else
-		docker_async_source *src = new docker_async_source(docker_async_source::NO_WAIT_LOOKUP, max_wait_ms, manager->get_inspector(), m_docker_sock);
-#endif
 		m_docker_info_source.reset(src);
 	}
 
 	tinfo->m_container_id = container_id;
-	container_info = manager->get_container(container_id);
+
+	existing_container_info = manager->get_container(container_id);
+
+	if(!existing_container_info)
+	{
+		// Add a minimal container_info object where only the
+		// container id, (possibly) name, and a container
+		// image = incomplete is filled in. This may be
+		// overidden later once parse_docker_async completes.
+		sinsp_container_info container_info;
+
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"docker_async (%s): No existing container info, creating initial stub info",
+				container_id.c_str());
+
+		container_info.m_type = CT_DOCKER;
+		container_info.m_id = container_id;
+		container_info.m_name = container_name;
+		container_info.m_image = s_incomplete_info_name;
+		container_info.m_imageid = s_incomplete_info_name;
+		container_info.m_imagerepo = s_incomplete_info_name;
+		container_info.m_imagetag = s_incomplete_info_name;
+		container_info.m_imagedigest = s_incomplete_info_name;
+		container_info.m_metadata_complete = false;
+
+		manager->add_container(container_info, tinfo);
+
+		existing_container_info = manager->get_container(container_id);
+	}
 
 #ifdef HAS_CAPTURE
 	// Possibly start a lookup for this container info
-	if(container_info == nullptr || manager->should_lookup(container_id, CT_DOCKER))
+	if(!existing_container_info->m_metadata_complete &&
+	    query_os_for_missing_info)
 	{
-		container_info = manager->get_or_create_container(CT_DOCKER, container_id, container_name, tinfo);
-		if (query_os_for_missing_info)
-		{
-			// give docker a chance to return metadata for this container
-			m_docker_info_source->lookup_container(container_id, manager);
-		}
+		// give docker a chance to return metadata for this container
+		parse_docker_async(manager->get_inspector(), container_id, manager);
 	}
 #endif
 
 	// Returning true will prevent other container engines from
 	// trying to resolve the container, so only return true if we
 	// have complete metadata.
-	return container_info->m_status == sinsp_container_lookup_state::SUCCESSFUL;
+	return existing_container_info->m_metadata_complete;
+}
+
+void docker::parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager)
+{
+	auto cb = [manager](const std::string &container_id, const container_lookup_result &res)
+        {
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"docker_async (%s): Source callback result successful=%s",
+				container_id.c_str(),
+				(res.m_successful ? "true" : "false"));
+
+		if(res.m_successful)
+		{
+			manager->notify_new_container(res.m_container_info);
+		}
+	};
+
+        container_lookup_result result;
+
+	if (m_docker_info_source->lookup(container_id, result, cb))
+	{
+		// if a previous lookup call already found the metadata, process it now
+		cb(container_id, result);
+
+		// This should *never* happen, as ttl is 0 (never wait)
+		g_logger.format(sinsp_logger::SEV_ERROR,
+				"docker_async (%s): Unexpected immediate return from docker_info_source.lookup()",
+				container_id.c_str());
+	}
 }
 
 bool docker_async_source::parse_docker(std::string &container_id, sinsp_container_info *container)
