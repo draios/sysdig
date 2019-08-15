@@ -134,13 +134,11 @@ endif()
 
 if(NOT WIN32 AND NOT APPLE)
 list(APPEND SINSP_SOURCES
-	async_cgroup.cpp
+	grpc_channel_registry.cpp
 	cri.cpp
 	container_engine/cri.cpp
 	${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.cc
-	${CMAKE_CURRENT_BINARY_DIR}/cri.pb.cc
-	grpc_channel_registry.cpp
-)
+	${CMAKE_CURRENT_BINARY_DIR}/cri.pb.cc)
 endif()
 
 add_library(sinsp STATIC ${SINSP_SOURCES})
