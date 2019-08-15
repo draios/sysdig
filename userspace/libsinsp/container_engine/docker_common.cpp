@@ -43,6 +43,7 @@ docker_async_source::docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms, 
 
 docker_async_source::~docker_async_source()
 {
+	this->stop();
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"docker_async: Source destructor");
 
