@@ -46,7 +46,7 @@ bool parse_cri_env(const Json::Value &info, sinsp_container_info &container);
 
 bool parse_cri_json_image(const Json::Value &info, sinsp_container_info &container);
 
-bool parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info *container);
+bool parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info &container);
 
 bool is_pod_sandbox(const std::string &container_id);
 
