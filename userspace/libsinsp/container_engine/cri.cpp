@@ -57,7 +57,7 @@ bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, 
 	}
 
 	parse_cri_env(root, *container);
-	parse_cri_json_image(root, container);
+	parse_cri_json_image(root, *container);
 	parse_cri_runtime_spec(root, container);
 
 	if(root.isMember("sandboxID") && root["sandboxID"].isString())
