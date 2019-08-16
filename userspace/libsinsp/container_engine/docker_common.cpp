@@ -256,7 +256,7 @@ void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
 
 bool docker_async_source::parse_liveness_readiness_probe(const Json::Value &probe_obj,
 							 sinsp_container_info::container_health_probe::probe_type ptype,
-							 sinsp_container_info *container)
+							 sinsp_container_info &container)
 {
 	if(probe_obj.isNull() ||
 	   !probe_obj.isMember("exec") ||
@@ -282,11 +282,11 @@ bool docker_async_source::parse_liveness_readiness_probe(const Json::Value &prob
 
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): Setting %s exe=%s nargs=%d",
-				container->m_id.c_str(),
+				container.m_id.c_str(),
 				sinsp_container_info::container_health_probe::probe_type_names[ptype].c_str(),
 				exe.c_str(), args.size());
 
-		container->m_health_probes.emplace_back(ptype, std::move(exe), std::move(args));
+		container.m_health_probes.emplace_back(ptype, std::move(exe), std::move(args));
 	}
 
 	return true;
@@ -306,7 +306,7 @@ void docker_async_source::parse_health_probes(const Json::Value &config_obj,
 		{
 			if(parse_liveness_readiness_probe(spec["livenessProbe"],
 							  sinsp_container_info::container_health_probe::PT_LIVENESS_PROBE,
-							  container))
+							  *container))
 			{
 				liveness_readiness_added = true;
 			}
@@ -315,7 +315,7 @@ void docker_async_source::parse_health_probes(const Json::Value &config_obj,
 		{
 			if(parse_liveness_readiness_probe(spec["readinessProbe"],
 							  sinsp_container_info::container_health_probe::PT_READINESS_PROBE,
-							  container))
+							  *container))
 			{
 				liveness_readiness_added = true;
 			}
