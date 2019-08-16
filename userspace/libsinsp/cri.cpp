@@ -102,7 +102,7 @@ bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_con
 	return true;
 }
 
-bool parse_cri_mounts(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info *container)
+bool parse_cri_mounts(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info &container)
 {
 	for(const auto &mount : status.mounts())
 	{
@@ -122,7 +122,7 @@ bool parse_cri_mounts(const runtime::v1alpha2::ContainerStatus &status, sinsp_co
 			propagation = "unknown";
 			break;
 		}
-		container->m_mounts.emplace_back(
+		container.m_mounts.emplace_back(
 			mount.host_path(),
 			mount.container_path(),
 			"",

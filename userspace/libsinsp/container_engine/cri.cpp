@@ -124,7 +124,7 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 	}
 
 	parse_cri_image(resp_container, *container);
-	parse_cri_mounts(resp_container, container);
+	parse_cri_mounts(resp_container, *container);
 
 	if(parse_containerd(resp, container, tinfo))
 	{
