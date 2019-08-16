@@ -345,7 +345,7 @@ std::string docker::s_incomplete_info_name = "incomplete";
 bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	std::string container_id, container_name;
-	sinsp_container_info *existing_container_info;
+	sinsp_container_info::ptr_t existing_container_info;
 
 	if(!detect_docker(tinfo, container_id, container_name))
 	{

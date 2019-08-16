@@ -211,7 +211,7 @@ void cri::set_extra_queries(bool extra_queries) {
 bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	sinsp_container_info container_info;
-	sinsp_container_info *existing_container_info;
+	sinsp_container_info::ptr_t existing_container_info;
 
 	if(!matches_runc_cgroups(tinfo, CRI_CGROUP_LAYOUT, container_info.m_id))
 	{
