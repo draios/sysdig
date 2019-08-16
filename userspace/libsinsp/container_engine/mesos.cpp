@@ -45,7 +45,7 @@ bool libsinsp::container_engine::mesos::match(sinsp_threadinfo* tinfo, sinsp_con
 				// but makes sure that we have task_id parsed properly. Otherwise what happens
 				// is that we'll create a mesos container struct without a mesos_task_id
 				// and for all other processes we'll use it
-				return set_mesos_task_id(container_info, tinfo);
+				return set_mesos_task_id(*container_info, tinfo);
 			}
 		}
 	}
@@ -98,9 +98,8 @@ string libsinsp::container_engine::mesos::get_env_mesos_task_id(sinsp_threadinfo
 	return mtid;
 }
 
-bool libsinsp::container_engine::mesos::set_mesos_task_id(sinsp_container_info* container, sinsp_threadinfo* tinfo)
+bool libsinsp::container_engine::mesos::set_mesos_task_id(sinsp_container_info &container, sinsp_threadinfo* tinfo)
 {
-	ASSERT(container);
 	ASSERT(tinfo);
 
 	// there are applications that do not share their environment in /proc/[PID]/environ
@@ -112,9 +111,9 @@ bool libsinsp::container_engine::mesos::set_mesos_task_id(sinsp_container_info* 
 	//   get_env_mesos_task_id(sinsp_threadinfo*) implementation) environment variable, so we
 	//   peek into the parent process environment to discover it
 
-	if(container && tinfo)
+	if(tinfo)
 	{
-		string& mtid = container->m_mesos_task_id;
+		string& mtid = container.m_mesos_task_id;
 		if(mtid.empty())
 		{
 			mtid = get_env_mesos_task_id(tinfo);
@@ -125,12 +124,12 @@ bool libsinsp::container_engine::mesos::set_mesos_task_id(sinsp_container_info* 
 			if(!mtid.empty() && mtid.length()>=3 &&
 			   (mtid.find_first_of("._") != std::string::npos))
 			{
-				g_logger.log("Mesos native container: [" + container->m_id + "], Mesos task ID: " + mtid, sinsp_logger::SEV_DEBUG);
+				g_logger.log("Mesos native container: [" + container.m_id + "], Mesos task ID: " + mtid, sinsp_logger::SEV_DEBUG);
 				return true;
 			}
 			else
 			{
-				g_logger.log("Mesos container [" + container->m_id + "],"
+				g_logger.log("Mesos container [" + container.m_id + "],"
 										     "thread [" + std::to_string(tinfo->m_tid) +
 					     "], has likely malformed mesos task id [" + mtid + "], ignoring", sinsp_logger::SEV_DEBUG);
 			}

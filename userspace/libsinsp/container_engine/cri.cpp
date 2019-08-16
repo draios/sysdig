@@ -242,7 +242,7 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 			container_info.m_type = s_cri_runtime_type;
 
 		}
-		if (mesos::set_mesos_task_id(&container_info, tinfo))
+		if (mesos::set_mesos_task_id(container_info, tinfo))
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"cri (%s) Mesos CRI container, Mesos task ID: [%s]",
