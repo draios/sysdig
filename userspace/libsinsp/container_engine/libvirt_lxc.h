@@ -32,7 +32,7 @@ class libvirt_lxc : public resolver
 public:
 	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info) override;
 protected:
-	bool match(sinsp_threadinfo* tinfo, sinsp_container_info* container_info);
+	bool match(sinsp_threadinfo* tinfo, sinsp_container_info &container_info);
 };
 }
 }
