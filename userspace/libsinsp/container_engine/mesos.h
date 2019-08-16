@@ -33,7 +33,7 @@ class mesos : public resolver {
 public:
 	bool resolve(sinsp_container_manager *manager, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 
-	static bool set_mesos_task_id(sinsp_container_info *container, sinsp_threadinfo *tinfo);
+	static bool set_mesos_task_id(sinsp_container_info &container, sinsp_threadinfo *tinfo);
 
 protected:
 	bool match(sinsp_threadinfo *tinfo, sinsp_container_info *container_info);
