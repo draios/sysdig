@@ -38,7 +38,7 @@ extern bool s_cri_extra_queries;
 
 sinsp_container_type get_cri_runtime_type(const std::string &runtime_name);
 
-bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info *container);
+bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info &container);
 
 bool parse_cri_mounts(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info *container);
 

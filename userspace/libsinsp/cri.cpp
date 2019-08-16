@@ -60,7 +60,7 @@ sinsp_container_type get_cri_runtime_type(const std::string &runtime_name)
 	}
 }
 
-bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info *container)
+bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info &container)
 {
 	// image_ref may be one of two forms:
 	// host/image@sha256:digest
@@ -84,20 +84,20 @@ bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_con
 	sinsp_utils::split_container_image(status.image().image(),
 					   hostname,
 					   port,
-					   container->m_imagerepo,
-					   container->m_imagetag,
+					   container.m_imagerepo,
+					   container.m_imagetag,
 					   digest,
 					   false);
-	container->m_image = status.image().image();
+	container.m_image = status.image().image();
 
 
 	if(have_digest)
 	{
-		container->m_imagedigest = image_ref.substr(digest_start);
+		container.m_imagedigest = image_ref.substr(digest_start);
 	}
 	else
 	{
-		container->m_imagedigest = digest;
+		container.m_imagedigest = digest;
 	}
 	return true;
 }
