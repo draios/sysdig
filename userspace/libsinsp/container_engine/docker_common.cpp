@@ -171,11 +171,11 @@ std::string docker_async_source::normalize_arg(const std::string &arg)
 }
 
 void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
-					    sinsp_container_info *container)
+					    sinsp_container_info &container)
 {
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"docker (%s): Trying to parse healthcheck from %s",
-			container->m_id.c_str(), Json::FastWriter().write(healthcheck_obj).c_str());
+			container.m_id.c_str(), Json::FastWriter().write(healthcheck_obj).c_str());
 
 	if(healthcheck_obj.isNull())
 	{
@@ -224,9 +224,9 @@ void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
 
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): Setting PT_HEALTHCHECK exe=%s nargs=%d",
-				container->m_id.c_str(), exe.c_str(), args.size());
+				container.m_id.c_str(), exe.c_str(), args.size());
 
-		container->m_health_probes.emplace_back(sinsp_container_info::container_health_probe::PT_HEALTHCHECK,
+		container.m_health_probes.emplace_back(sinsp_container_info::container_health_probe::PT_HEALTHCHECK,
 							std::move(exe),
 							std::move(args));
 	}
@@ -240,9 +240,9 @@ void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
 
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): Setting PT_HEALTHCHECK exe=%s nargs=%d",
-				container->m_id.c_str(), exe.c_str(), args.size());
+				container.m_id.c_str(), exe.c_str(), args.size());
 
-		container->m_health_probes.emplace_back(sinsp_container_info::container_health_probe::PT_HEALTHCHECK,
+		container.m_health_probes.emplace_back(sinsp_container_info::container_health_probe::PT_HEALTHCHECK,
 							std::move(exe),
 							std::move(args));
 	}
@@ -327,7 +327,7 @@ void docker_async_source::parse_health_probes(const Json::Value &config_obj,
 	// consider a healthcheck if no liveness/readiness was added.
 	if(!liveness_readiness_added && config_obj.isMember("Healthcheck"))
 	{
-		parse_healthcheck(config_obj["Healthcheck"], container);
+		parse_healthcheck(config_obj["Healthcheck"], *container);
 	}
 }
 

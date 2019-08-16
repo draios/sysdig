@@ -89,7 +89,7 @@ private:
 	// Parse a healthcheck out of the provided healthcheck object,
 	// updating the container info with any healthcheck found.
 	void parse_healthcheck(const Json::Value &healthcheck_obj,
-			       sinsp_container_info *container);
+			       sinsp_container_info &container);
 
 	// Parse either a readiness or liveness probe out of the
 	// provided object, updating the container info with any probe
