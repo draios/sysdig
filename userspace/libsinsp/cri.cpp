@@ -168,7 +168,7 @@ bool set_numeric(const Json::Value &dict, const std::string &key, int64_t &val)
 	return true;
 }
 
-bool parse_cri_env(const Json::Value &info, sinsp_container_info *container)
+bool parse_cri_env(const Json::Value &info, sinsp_container_info &container)
 {
 	const Json::Value *envs;
 	if(!walk_down_json(info, &envs, "config", "envs") || !envs->isArray())
@@ -186,7 +186,7 @@ bool parse_cri_env(const Json::Value &info, sinsp_container_info *container)
 			auto var = key.asString();
 			var += '=';
 			var += value.asString();
-			container->m_env.emplace_back(var);
+			container.m_env.emplace_back(var);
 		}
 	}
 
