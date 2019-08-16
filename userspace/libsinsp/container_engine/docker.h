@@ -101,7 +101,7 @@ private:
 	// Parse all healthchecks/liveness probes/readiness probes out
 	// of the provided object, updating the container info as required.
 	void parse_health_probes(const Json::Value &config_obj,
-				 sinsp_container_info *container);
+				 sinsp_container_info &container);
 
 	sinsp *m_inspector;
 

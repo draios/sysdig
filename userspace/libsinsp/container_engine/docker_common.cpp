@@ -293,7 +293,7 @@ bool docker_async_source::parse_liveness_readiness_probe(const Json::Value &prob
 }
 
 void docker_async_source::parse_health_probes(const Json::Value &config_obj,
-					      sinsp_container_info *container)
+					      sinsp_container_info &container)
 {
 	Json::Value spec;
 	bool liveness_readiness_added = false;
@@ -306,7 +306,7 @@ void docker_async_source::parse_health_probes(const Json::Value &config_obj,
 		{
 			if(parse_liveness_readiness_probe(spec["livenessProbe"],
 							  sinsp_container_info::container_health_probe::PT_LIVENESS_PROBE,
-							  *container))
+							  container))
 			{
 				liveness_readiness_added = true;
 			}
@@ -315,7 +315,7 @@ void docker_async_source::parse_health_probes(const Json::Value &config_obj,
 		{
 			if(parse_liveness_readiness_probe(spec["readinessProbe"],
 							  sinsp_container_info::container_health_probe::PT_READINESS_PROBE,
-							  *container))
+							  container))
 			{
 				liveness_readiness_added = true;
 			}
@@ -327,7 +327,7 @@ void docker_async_source::parse_health_probes(const Json::Value &config_obj,
 	// consider a healthcheck if no liveness/readiness was added.
 	if(!liveness_readiness_added && config_obj.isMember("Healthcheck"))
 	{
-		parse_healthcheck(config_obj["Healthcheck"], *container);
+		parse_healthcheck(config_obj["Healthcheck"], container);
 	}
 }
 
@@ -501,7 +501,7 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 		container->m_imageid = imgstr.substr(cpos + 1);
 	}
 
-	parse_health_probes(config_obj, container);
+	parse_health_probes(config_obj, *container);
 
 	// containers can be spawned using just the imageID as image name,
 	// with or without the hash prefix (e.g. sha256:)
