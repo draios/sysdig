@@ -77,7 +77,7 @@ private:
 	std::string build_request(const std::string& url);
 	docker_response get_docker(const std::string& url, std::string &json);
 
-	bool parse_docker(std::string &container_id, sinsp_container_info *container);
+	bool parse_docker(std::string &container_id, sinsp_container_info &container);
 
 	// Look for a pod specification in this container's labels and
 	// if found set spec to the pod spec.
