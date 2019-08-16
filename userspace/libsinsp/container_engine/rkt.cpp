@@ -26,7 +26,7 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
-bool rkt::match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp_container_info* container_info, string& rkt_podid, string& rkt_appname, bool query_os_for_missing_info)
+bool rkt::match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp_container_info &container_info, string &rkt_podid, string &rkt_appname, bool query_os_for_missing_info)
 {
 	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
 	{
@@ -81,9 +81,9 @@ bool rkt::match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp
 #endif
 				if(is_rkt_pod_id_valid)
 				{
-					container_info->m_type = CT_RKT;
-					container_info->m_id = rkt_podid + ":" + rkt_appname;
-					container_info->m_name = rkt_appname;
+					container_info.m_type = CT_RKT;
+					container_info.m_id = rkt_podid + ":" + rkt_appname;
+					container_info.m_name = rkt_appname;
 					return true;
 				}
 			}
@@ -116,9 +116,9 @@ bool rkt::match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp
 					if(container_uuid_pos == 0)
 					{
 						rkt_podid = env_var.substr(COREOS_PODID_VAR.size());
-						container_info->m_type = CT_RKT;
-						container_info->m_id = rkt_podid + ":" + rkt_appname;
-						container_info->m_name = rkt_appname;
+						container_info.m_type = CT_RKT;
+						container_info.m_id = rkt_podid + ":" + rkt_appname;
+						container_info.m_name = rkt_appname;
 						valid_id = true;
 						return false;
 					}
@@ -154,9 +154,9 @@ bool rkt::match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp
 				{
 					rkt_appname = tinfo->m_root.substr(podid_suffix + FLY_PODID_SUFFIX.size(),
 									   appname_suffix-podid_suffix-FLY_PODID_SUFFIX.size());
-					container_info->m_type = CT_RKT;
-					container_info->m_id = rkt_podid + ":" + rkt_appname;
-					container_info->m_name = rkt_appname;
+					container_info.m_type = CT_RKT;
+					container_info.m_id = rkt_podid + ":" + rkt_appname;
+					container_info.m_name = rkt_appname;
 					return true;
 				}
 			}
@@ -170,7 +170,7 @@ bool rkt::rkt::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo
 	sinsp_container_info container_info;
 	string rkt_podid, rkt_appname;
 
-	if (!match(manager, tinfo, &container_info, rkt_podid, rkt_appname, query_os_for_missing_info))
+	if (!match(manager, tinfo, container_info, rkt_podid, rkt_appname, query_os_for_missing_info))
 	{
 		return false;
 	}
