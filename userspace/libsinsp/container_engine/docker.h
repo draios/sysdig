@@ -96,7 +96,7 @@ private:
 	// found.
 	bool parse_liveness_readiness_probe(const Json::Value &probe_obj,
 					    sinsp_container_info::container_health_probe::probe_type ptype,
-					    sinsp_container_info *container);
+					    sinsp_container_info &container);
 
 	// Parse all healthchecks/liveness probes/readiness probes out
 	// of the provided object, updating the container info as required.
