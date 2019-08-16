@@ -40,7 +40,7 @@ using namespace libsinsp::container_engine;
 using namespace libsinsp::runc;
 
 namespace {
-bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info *container, sinsp_threadinfo *tinfo)
+bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info &container, sinsp_threadinfo *tinfo)
 {
 	const auto &info_it = status.info().find("info");
 	if(info_it == status.info().end())
@@ -56,14 +56,14 @@ bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, 
 		return false;
 	}
 
-	parse_cri_env(root, *container);
-	parse_cri_json_image(root, *container);
-	parse_cri_runtime_spec(root, *container);
+	parse_cri_env(root, container);
+	parse_cri_json_image(root, container);
+	parse_cri_runtime_spec(root, container);
 
 	if(root.isMember("sandboxID") && root["sandboxID"].isString())
 	{
 		const auto pod_sandbox_id = root["sandboxID"].asString();
-		container->m_container_ip = ntohl(get_pod_sandbox_ip(pod_sandbox_id));
+		container.m_container_ip = ntohl(get_pod_sandbox_ip(pod_sandbox_id));
 	}
 
 	return true;
@@ -126,7 +126,7 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 	parse_cri_image(resp_container, *container);
 	parse_cri_mounts(resp_container, *container);
 
-	if(parse_containerd(resp, container, tinfo))
+	if(parse_containerd(resp, *container, tinfo))
 	{
 		return true;
 	}
