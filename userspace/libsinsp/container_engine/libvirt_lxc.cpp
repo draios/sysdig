@@ -22,7 +22,7 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
-bool libvirt_lxc::match(sinsp_threadinfo* tinfo, sinsp_container_info* container_info)
+bool libvirt_lxc::match(sinsp_threadinfo* tinfo, sinsp_container_info &container_info)
 {
 	for(const auto& it : tinfo->m_cgroups)
 	{
@@ -37,8 +37,8 @@ bool libvirt_lxc::match(sinsp_threadinfo* tinfo, sinsp_container_info* container
 			size_t pos2 = cgroup.find_last_of("/");
 			if(pos2 != std::string::npos)
 			{
-				container_info->m_type = CT_LIBVIRT_LXC;
-				container_info->m_id = cgroup.substr(pos2 + 1, pos - pos2 - 1);
+				container_info.m_type = CT_LIBVIRT_LXC;
+				container_info.m_id = cgroup.substr(pos2 + 1, pos - pos2 - 1);
 				return true;
 			}
 		}
@@ -53,8 +53,8 @@ bool libvirt_lxc::match(sinsp_threadinfo* tinfo, sinsp_container_info* container
 			if(pos2 != std::string::npos &&
 			   pos2 == cgroup.length() - sizeof(".scope") + 1)
 			{
-				container_info->m_type = CT_LIBVIRT_LXC;
-				container_info->m_id = cgroup.substr(pos + sizeof("-lxc\\x2"), pos2 - pos - sizeof("-lxc\\x2"));
+				container_info.m_type = CT_LIBVIRT_LXC;
+				container_info.m_id = cgroup.substr(pos + sizeof("-lxc\\x2"), pos2 - pos - sizeof("-lxc\\x2"));
 				return true;
 			}
 		}
@@ -65,8 +65,8 @@ bool libvirt_lxc::match(sinsp_threadinfo* tinfo, sinsp_container_info* container
 		pos = cgroup.find("/libvirt/lxc/");
 		if(pos != std::string::npos)
 		{
-			container_info->m_type = CT_LIBVIRT_LXC;
-			container_info->m_id = cgroup.substr(pos + sizeof("/libvirt/lxc/") - 1);
+			container_info.m_type = CT_LIBVIRT_LXC;
+			container_info.m_id = cgroup.substr(pos + sizeof("/libvirt/lxc/") - 1);
 			return true;
 		}
 	}
@@ -77,7 +77,7 @@ bool libvirt_lxc::resolve(sinsp_container_manager* manager, sinsp_threadinfo* ti
 {
 	sinsp_container_info container_info;
 
-	if (!match(tinfo, &container_info))
+	if (!match(tinfo, container_info))
 	{
 		return false;
 	}
