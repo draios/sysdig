@@ -69,7 +69,7 @@ bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, 
 	return true;
 }
 
-bool parse_cri(sinsp_container_info *container, sinsp_threadinfo *tinfo)
+bool parse_cri(sinsp_container_info &container, sinsp_threadinfo *tinfo)
 {
 	if(!s_cri)
 	{
@@ -79,13 +79,13 @@ bool parse_cri(sinsp_container_info *container, sinsp_threadinfo *tinfo)
 		// the DEBUG.
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"cri (%s): Could not parse cri (no s_cri object)",
-				container->m_id.c_str());
+				container.m_id.c_str());
 		return false;
 	}
 
 	runtime::v1alpha2::ContainerStatusRequest req;
 	runtime::v1alpha2::ContainerStatusResponse resp;
-	req.set_container_id(container->m_id);
+	req.set_container_id(container.m_id);
 	req.set_verbose(true);
 	grpc::ClientContext context;
 	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
@@ -94,18 +94,18 @@ bool parse_cri(sinsp_container_info *container, sinsp_threadinfo *tinfo)
 
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"cri (%s): Status from ContainerStatus: (%s)",
-			container->m_id.c_str(),
+			container.m_id.c_str(),
 			status.error_message().c_str());
 
 	if(!status.ok())
 	{
-		if(is_pod_sandbox(container->m_id))
+		if(is_pod_sandbox(container.m_id))
 		{
-			container->m_is_pod_sandbox = true;
+			container.m_is_pod_sandbox = true;
 			return true;
 		}
 		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): id is neither a container nor a pod sandbox",
-			container->m_id.c_str());
+			container.m_id.c_str());
 		return false;
 	}
 
@@ -116,25 +116,25 @@ bool parse_cri(sinsp_container_info *container, sinsp_threadinfo *tinfo)
 	}
 
 	const auto &resp_container = resp.status();
-	container->m_name = resp_container.metadata().name();
+	container.m_name = resp_container.metadata().name();
 
 	for(const auto &pair : resp_container.labels())
 	{
-		container->m_labels[pair.first] = pair.second;
+		container.m_labels[pair.first] = pair.second;
 	}
 
-	parse_cri_image(resp_container, *container);
-	parse_cri_mounts(resp_container, *container);
+	parse_cri_image(resp_container, container);
+	parse_cri_mounts(resp_container, container);
 
-	if(parse_containerd(resp, *container, tinfo))
+	if(parse_containerd(resp, container, tinfo))
 	{
 		return true;
 	}
 
 	if(s_cri_extra_queries)
 	{
-		container->m_container_ip = get_container_ip(container->m_id);
-		container->m_imageid = get_container_image_id(resp_container.image_ref());
+		container.m_container_ip = get_container_ip(container.m_id);
+		container.m_imageid = get_container_image_id(resp_container.image_ref());
 	}
 
 	return true;
@@ -230,7 +230,7 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 					"cri (%s): Performing lookup",
 					container_info.m_id.c_str());
 
-			if (!parse_cri(&container_info, tinfo))
+			if (!parse_cri(container_info, tinfo))
 			{
 				g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to get CRI metadata for container",
 						container_info.m_id.c_str());
