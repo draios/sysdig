@@ -69,7 +69,7 @@ bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, 
 	return true;
 }
 
-bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container, sinsp_threadinfo *tinfo)
+bool parse_cri(sinsp_container_info *container, sinsp_threadinfo *tinfo)
 {
 	if(!s_cri)
 	{
@@ -230,7 +230,7 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 					"cri (%s): Performing lookup",
 					container_info.m_id.c_str());
 
-			if (!parse_cri(manager, &container_info, tinfo))
+			if (!parse_cri(&container_info, tinfo))
 			{
 				g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to get CRI metadata for container",
 						container_info.m_id.c_str());
