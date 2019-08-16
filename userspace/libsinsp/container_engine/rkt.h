@@ -37,7 +37,7 @@ protected:
 	bool match(sinsp_container_manager *manager, sinsp_threadinfo *tinfo, sinsp_container_info &container_info,
 		   std::string &rkt_podid, std::string &rkt_appname, bool query_os_for_missing_info);
 
-	bool parse_rkt(sinsp_container_info *container, const std::string &podid, const std::string &appname);
+	bool parse_rkt(sinsp_container_info &container, const std::string &podid, const std::string &appname);
 };
 }
 }
