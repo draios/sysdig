@@ -193,7 +193,7 @@ bool parse_cri_env(const Json::Value &info, sinsp_container_info &container)
 	return true;
 }
 
-bool parse_cri_json_image(const Json::Value &info, sinsp_container_info *container)
+bool parse_cri_json_image(const Json::Value &info, sinsp_container_info &container)
 {
 	const Json::Value *image;
 	if(!walk_down_json(info, &image, "config", "image", "image") || !image->isString())
@@ -205,10 +205,10 @@ bool parse_cri_json_image(const Json::Value &info, sinsp_container_info *contain
 	auto pos = image_str.find(':');
 	if(pos == string::npos)
 	{
-		container->m_imageid = move(image_str);
+		container.m_imageid = move(image_str);
 	} else
 	{
-		container->m_imageid = image_str.substr(pos + 1);
+		container.m_imageid = image_str.substr(pos + 1);
 	}
 
 	return true;
