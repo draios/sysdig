@@ -24,7 +24,7 @@ limitations under the License.
 #include "sinsp.h"
 #include "sinsp_int.h"
 
-bool libsinsp::container_engine::mesos::match(sinsp_threadinfo* tinfo, sinsp_container_info* container_info)
+bool libsinsp::container_engine::mesos::match(sinsp_threadinfo* tinfo, sinsp_container_info &container_info)
 {
 	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
 	{
@@ -38,14 +38,14 @@ bool libsinsp::container_engine::mesos::match(sinsp_threadinfo* tinfo, sinsp_con
 			auto id = cgroup.substr(pos + sizeof("/mesos/") - 1);
 			if(id.size() == 36 && id.find_first_not_of("0123456789abcdefABCDEF-") == string::npos)
 			{
-				container_info->m_type = CT_MESOS;
-				container_info->m_id = move(id);
+				container_info.m_type = CT_MESOS;
+				container_info.m_id = move(id);
 				// Consider a mesos container valid only if we find the mesos_task_id
 				// this will exclude from the container itself the mesos-executor
 				// but makes sure that we have task_id parsed properly. Otherwise what happens
 				// is that we'll create a mesos container struct without a mesos_task_id
 				// and for all other processes we'll use it
-				return set_mesos_task_id(*container_info, tinfo);
+				return set_mesos_task_id(container_info, tinfo);
 			}
 		}
 	}
@@ -56,7 +56,7 @@ bool libsinsp::container_engine::mesos::resolve(sinsp_container_manager* manager
 {
 	sinsp_container_info container_info;
 
-	if (!match(tinfo, &container_info))
+	if (!match(tinfo, container_info))
 		return false;
 
 	tinfo->m_container_id = container_info.m_id;
