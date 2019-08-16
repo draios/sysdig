@@ -42,7 +42,7 @@ bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_con
 
 bool parse_cri_mounts(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info &container);
 
-bool parse_cri_env(const Json::Value &info, sinsp_container_info *container);
+bool parse_cri_env(const Json::Value &info, sinsp_container_info &container);
 
 bool parse_cri_json_image(const Json::Value &info, sinsp_container_info *container);
 
