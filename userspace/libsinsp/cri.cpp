@@ -214,7 +214,7 @@ bool parse_cri_json_image(const Json::Value &info, sinsp_container_info &contain
 	return true;
 }
 
-bool parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info *container)
+bool parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info &container)
 {
 	const Json::Value *linux = nullptr;
 	if(!walk_down_json(info, &linux, "runtimeSpec", "linux") || !linux->isObject())
@@ -225,22 +225,22 @@ bool parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info *conta
 	const Json::Value *memory = nullptr;
 	if(walk_down_json(*linux, &memory, "resources", "memory"))
 	{
-		set_numeric(*memory, "limit", container->m_memory_limit);
-		container->m_swap_limit = container->m_memory_limit;
+		set_numeric(*memory, "limit", container.m_memory_limit);
+		container.m_swap_limit = container.m_memory_limit;
 	}
 
 	const Json::Value *cpu = nullptr;
 	if(walk_down_json(*linux, &cpu, "resources", "cpu") && cpu->isObject())
 	{
-		set_numeric(*cpu, "shares", container->m_cpu_shares);
-		set_numeric(*cpu, "quota", container->m_cpu_quota);
-		set_numeric(*cpu, "period", container->m_cpu_period);
+		set_numeric(*cpu, "shares", container.m_cpu_shares);
+		set_numeric(*cpu, "quota", container.m_cpu_quota);
+		set_numeric(*cpu, "period", container.m_cpu_period);
 	}
 
 	const Json::Value *privileged;
 	if(walk_down_json(*linux, &privileged, "security_context", "privileged") && privileged->isBool())
 	{
-		container->m_privileged = privileged->asBool();
+		container.m_privileged = privileged->asBool();
 	}
 
 	return true;
