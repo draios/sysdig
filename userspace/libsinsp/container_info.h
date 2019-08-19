@@ -186,6 +186,7 @@ public:
 		m_cpuset_cpu_count(0),
 		m_is_pod_sandbox(false),
 		m_metadata_complete(true),
+		m_successful(true),
 		m_metadata_deadline(0)
 	{
 	}
@@ -234,6 +235,7 @@ public:
 	// container that will be filled in later as a result of an
 	// async fetch of container info.
 	bool m_metadata_complete;
+	bool m_successful;
 #ifdef HAS_ANALYZER
 	std::string m_sysdig_agent_conf;
 #endif
