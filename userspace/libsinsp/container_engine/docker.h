@@ -121,7 +121,7 @@ public:
 	// Container name only set for windows. For linux name must be fetched via lookup
 	static bool detect_docker(const sinsp_threadinfo* tinfo, std::string& container_id, std::string &container_name);
 protected:
-	void parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager);
+	void parse_docker_async(std::string &container_id, sinsp_container_manager *manager);
 
 	std::unique_ptr<docker_async_source> m_docker_info_source;
 

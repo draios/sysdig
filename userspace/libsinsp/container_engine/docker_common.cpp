@@ -396,7 +396,7 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	   query_os_for_missing_info)
 	{
 		// give docker a chance to return metadata for this container
-		parse_docker_async(manager->get_inspector(), container_id, manager);
+		parse_docker_async(container_id, manager);
 	}
 #endif
 
@@ -406,7 +406,7 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	return container_info->m_metadata_complete;
 }
 
-void docker::parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager)
+void docker::parse_docker_async(std::string &container_id, sinsp_container_manager *manager)
 {
 	auto cb = [manager](const std::string &container_id, const sinsp_container_info &res)
         {
