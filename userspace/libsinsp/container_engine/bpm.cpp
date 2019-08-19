@@ -62,7 +62,8 @@ bool bpm::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 	if (!manager->container_exists(container_info.m_id))
 	{
 		container_info.m_name = container_info.m_id;
-		manager->add_container(container_info, tinfo);
+		auto container = std::make_shared<sinsp_container_info>(container_info);
+		manager->add_container(container, tinfo);
 		manager->notify_new_container(container_info);
 	}
 	return true;
