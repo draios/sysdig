@@ -45,13 +45,7 @@ class sinsp_threadinfo;
 namespace libsinsp {
 namespace container_engine {
 
-struct container_lookup_result
-{
-	bool m_successful;
-	sinsp_container_info m_container_info;
-};
-
-class docker_async_source : public sysdig::async_key_value_source<std::string, container_lookup_result>
+class docker_async_source : public sysdig::async_key_value_source<std::string, sinsp_container_info>
 {
 	enum docker_response
 	{

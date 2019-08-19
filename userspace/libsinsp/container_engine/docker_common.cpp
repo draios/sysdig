@@ -61,13 +61,13 @@ void docker_async_source::run_impl()
 				"docker_async (%s): Source dequeued key",
 				container_id.c_str());
 
-		container_lookup_result res;
+		sinsp_container_info res;
 
 		res.m_successful = true;
-		res.m_container_info.m_type = CT_DOCKER;
-		res.m_container_info.m_id = container_id;
+		res.m_type = CT_DOCKER;
+		res.m_id = container_id;
 
-		if(!parse_docker(container_id, res.m_container_info))
+		if(!parse_docker(container_id, res))
 		{
 			// This is not always an error e.g. when using
 			// containerd as the runtime. Since the cgroup
@@ -408,7 +408,7 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 
 void docker::parse_docker_async(sinsp *inspector, std::string &container_id, sinsp_container_manager *manager)
 {
-	auto cb = [manager](const std::string &container_id, const container_lookup_result &res)
+	auto cb = [manager](const std::string &container_id, const sinsp_container_info &res)
         {
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): Source callback result successful=%s",
@@ -417,11 +417,11 @@ void docker::parse_docker_async(sinsp *inspector, std::string &container_id, sin
 
 		if(res.m_successful)
 		{
-			manager->notify_new_container(res.m_container_info);
+			manager->notify_new_container(res);
 		}
 	};
 
-        container_lookup_result result;
+        sinsp_container_info result;
 
 	if (m_docker_info_source->lookup(container_id, result, cb))
 	{
