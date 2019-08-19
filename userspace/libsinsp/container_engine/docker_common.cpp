@@ -18,6 +18,7 @@ limitations under the License.
 */
 
 #include "container_engine/docker.h"
+#include "cgroup_list_counter.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "container.h"
@@ -739,7 +740,13 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 	{
 		container->m_cpu_period = cpu_period;
 	}
-	const Json::Value &privileged = host_config_obj["Privileged"];
+	const auto cpuset_cpus = host_config_obj["CpusetCpus"].asString();
+	if (!cpuset_cpus.empty())
+	{
+		libsinsp::cgroup_list_counter counter;
+		container->m_cpuset_cpu_count = counter(cpuset_cpus.c_str(), sinsp_logger::SEV_DEBUG);
+	}
+	const Json::Value& privileged = host_config_obj["Privileged"];
 	if(!privileged.isNull() && privileged.isBool())
 	{
 		container->m_privileged = privileged.asBool();

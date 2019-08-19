@@ -182,6 +182,7 @@ public:
 		m_cpu_shares(1024),
 		m_cpu_quota(0),
 		m_cpu_period(100000),
+		m_cpuset_cpu_count(0),
 		m_is_pod_sandbox(false),
 		m_metadata_complete(true),
 		m_metadata_deadline(0)
@@ -223,6 +224,7 @@ public:
 	int64_t m_cpu_shares;
 	int64_t m_cpu_quota;
 	int64_t m_cpu_period;
+	int32_t m_cpuset_cpu_count;
 	std::list<container_health_probe> m_health_probes;
 
 	bool m_is_pod_sandbox;

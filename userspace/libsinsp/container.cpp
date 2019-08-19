@@ -219,6 +219,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["cpu_shares"] = (Json::Value::Int64) container_info.m_cpu_shares;
 	container["cpu_quota"] = (Json::Value::Int64) container_info.m_cpu_quota;
 	container["cpu_period"] = (Json::Value::Int64) container_info.m_cpu_period;
+	container["cpuset_cpu_count"] = (Json::Value::Int) container_info.m_cpuset_cpu_count;
 
 	if(!container_info.m_mesos_task_id.empty())
 	{

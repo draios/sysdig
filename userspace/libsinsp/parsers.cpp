@@ -4708,6 +4708,12 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 			container_info.m_cpu_period = cpu_period.asInt64();
 		}
 
+		const Json::Value& cpuset_cpu_count = container["cpuset_cpu_count"];
+		if(check_json_val_is_convertible(cpuset_cpu_count, Json::intValue, "cpuset_cpu_count"))
+		{
+			container_info.m_cpuset_cpu_count = cpuset_cpu_count.asInt();
+		}
+
 		const Json::Value& mesos_task_id = container["mesos_task_id"];
 		if(check_json_val_is_convertible(mesos_task_id, Json::stringValue, "mesos_task_id"))
 		{
