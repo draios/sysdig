@@ -45,7 +45,7 @@ public:
 
 	map_ptr_t get_containers();
 	bool remove_inactive_containers();
-	void add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread);
+	void add_container(const sinsp_container_info::ptr_t& container_info, sinsp_threadinfo *thread);
 	sinsp_container_info::ptr_t get_container(const std::string &id);
 	void notify_new_container(const sinsp_container_info& container_info);
 	template<typename E> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);

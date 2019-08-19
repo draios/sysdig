@@ -189,7 +189,8 @@ bool rkt::rkt::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo
 
 	if (have_rkt)
 	{
-		manager->add_container(container_info, tinfo);
+		auto container = std::make_shared<sinsp_container_info>(container_info);
+		manager->add_container(container, tinfo);
 		manager->notify_new_container(container_info);
 		return true;
 	}

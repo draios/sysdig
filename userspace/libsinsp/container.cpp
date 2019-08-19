@@ -279,14 +279,13 @@ sinsp_container_manager::map_ptr_t sinsp_container_manager::get_containers()
 	return &m_containers;
 }
 
-void sinsp_container_manager::add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread_info)
+void sinsp_container_manager::add_container(const sinsp_container_info::ptr_t& container_info, sinsp_threadinfo *thread)
 {
-	auto new_entry = std::make_shared<sinsp_container_info>(container_info);
-	m_containers[container_info.m_id] = new_entry;
+	m_containers[container_info->m_id] = container_info;
 
 	for(const auto &new_cb : m_new_callbacks)
 	{
-		new_cb(*m_containers[container_info.m_id], thread_info);
+		new_cb(*container_info, thread);
 	}
 }
 
