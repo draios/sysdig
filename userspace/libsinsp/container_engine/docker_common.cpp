@@ -67,7 +67,7 @@ void docker_async_source::run_impl()
 
 		sinsp_container_info res;
 
-		res.m_successful = true;
+		res.m_lookup_state = sinsp_container_lookup_state::SUCCESSFUL;
 		res.m_type = CT_DOCKER;
 		res.m_id = container_id;
 
@@ -81,7 +81,7 @@ void docker_async_source::run_impl()
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s): Failed to get Docker metadata, returning successful=false",
 					container_id.c_str());
-			res.m_successful = false;
+			res.m_lookup_state = sinsp_container_lookup_state::FAILED;
 		}
 
 		g_logger.format(sinsp_logger::SEV_DEBUG,
@@ -392,6 +392,7 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 		new_container_info->m_imagerepo = s_incomplete_info_name;
 		new_container_info->m_imagetag = s_incomplete_info_name;
 		new_container_info->m_imagedigest = s_incomplete_info_name;
+		new_container_info->m_lookup_state = sinsp_container_lookup_state::STARTED;
 		new_container_info->m_metadata_complete = false;
 
 		manager->add_container(new_container_info, tinfo);
@@ -400,7 +401,7 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 
 #ifdef HAS_CAPTURE
 	// Possibly start a lookup for this container info
-	if(!container_info->m_metadata_complete &&
+	if(container_info->m_lookup_state == sinsp_container_lookup_state::STARTED &&
 	   query_os_for_missing_info)
 	{
 		// give docker a chance to return metadata for this container
@@ -411,7 +412,7 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	// Returning true will prevent other container engines from
 	// trying to resolve the container, so only return true if we
 	// have complete metadata.
-	return container_info->m_metadata_complete;
+	return container_info->m_lookup_state == sinsp_container_lookup_state::SUCCESSFUL;
 }
 
 void docker::parse_docker_async(std::string &container_id, sinsp_container_manager *manager)
@@ -419,11 +420,11 @@ void docker::parse_docker_async(std::string &container_id, sinsp_container_manag
 	auto cb = [manager](const std::string &container_id, const sinsp_container_info &res)
         {
 		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"docker_async (%s): Source callback result successful=%s",
+				"docker_async (%s): Source callback result=%d",
 				container_id.c_str(),
-				(res.m_successful ? "true" : "false"));
+				res.m_lookup_state);
 
-		if(res.m_successful)
+		if(res.m_lookup_state == sinsp_container_lookup_state::SUCCESSFUL)
 		{
 			manager->notify_new_container(res);
 		}

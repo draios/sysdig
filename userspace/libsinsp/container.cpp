@@ -407,7 +407,7 @@ void sinsp_container_manager::identify_category(sinsp_threadinfo *tinfo)
 		return;
 	}
 
-	if(!cinfo->m_metadata_complete)
+	if(cinfo->m_lookup_state != sinsp_container_lookup_state::SUCCESSFUL)
 	{
 		if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG)
 		{
