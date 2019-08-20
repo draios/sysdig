@@ -63,18 +63,20 @@ using namespace std;
 // ASSERT implementation
 //
 #ifdef _DEBUG
+#ifndef ASSERT
 #ifdef ASSERT_TO_LOG
 #define ASSERT(X) \
 	if(!(X)) \
 	{ \
 		g_logger.format(sinsp_logger::SEV_ERROR, "ASSERTION %s at %s:%d", #X , __FILE__, __LINE__); \
 		assert(X); \
-	} 
+	}
 #else
 #define ASSERT(X) assert(X)
 #endif // ASSERT_TO_LOG
 #else // _DEBUG
 #define ASSERT(X)
+#endif // !ASSERT
 #endif // _DEBUG
 
 //
