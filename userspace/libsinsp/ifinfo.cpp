@@ -253,20 +253,23 @@ bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr, sinsp
 				// host interfaces.
 				//
 
-				if(!container_info->m_metadata_complete)
+				if(container_info->m_lookup_state != sinsp_container_lookup_state::SUCCESSFUL)
 				{
-					g_logger.format(sinsp_logger::SEV_DEBUG, "Checking IP address of container %s with incomplete metadata",
-						tinfo->m_container_id.c_str());
+					g_logger.format(sinsp_logger::SEV_DEBUG,
+						"Checking IP address of container %s with incomplete metadata (state=%d)",
+						tinfo->m_container_id.c_str(), container_info->m_lookup_state);
 				}
 
 				const sinsp_container_manager::map_ptr_t clist = m_inspector->m_container_manager.get_containers();
 
-				for(const auto it : *clist)
+				for(const auto& it : *clist)
 				{
-					if(!it.second->m_metadata_complete)
+					if(it.second->m_lookup_state != sinsp_container_lookup_state::SUCCESSFUL)
 					{
-						g_logger.format(sinsp_logger::SEV_DEBUG, "Checking IP address of container %s with incomplete metadata (in context of %s)",
-								it.second->m_id.c_str(), tinfo->m_container_id.c_str());
+						g_logger.format(sinsp_logger::SEV_DEBUG,
+							"Checking IP address of container %s with incomplete metadata (in context of %s; state=%d)",
+							it.second->m_id.c_str(), tinfo->m_container_id.c_str(),
+							it.second->m_lookup_state);
 					}
 
 					if(htonl(it.second->m_container_ip) == addr)

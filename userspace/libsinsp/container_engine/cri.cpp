@@ -221,7 +221,7 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 	sinsp_container_info::ptr_t existing_container_info = manager->get_container(container_id);
 
 	if (!existing_container_info ||
-	    existing_container_info->m_metadata_complete == false)
+	    existing_container_info->m_lookup_state == sinsp_container_lookup_state::STARTED)
 	{
 		auto container = std::make_shared<sinsp_container_info>();
 		container->m_id = container_id;
