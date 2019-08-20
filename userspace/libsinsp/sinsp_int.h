@@ -63,7 +63,7 @@ using namespace std;
 // ASSERT implementation
 //
 #ifdef _DEBUG
-#ifndef ASSERT
+#undef ASSERT
 #ifdef ASSERT_TO_LOG
 #define ASSERT(X) \
 	if(!(X)) \
@@ -76,7 +76,6 @@ using namespace std;
 #endif // ASSERT_TO_LOG
 #else // _DEBUG
 #define ASSERT(X)
-#endif // !ASSERT
 #endif // _DEBUG
 
 //
