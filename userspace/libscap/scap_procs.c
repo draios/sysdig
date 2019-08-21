@@ -925,6 +925,11 @@ int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, s
 		snprintf(error, SCAP_LASTERR_SIZE, "cannot add proc tid = %"PRIu64", dirname = %s, error=%s", tid, procdirname, add_error);
 	}
 
+	if(sockets_by_ns != NULL && sockets_by_ns != (void*)-1)
+	{
+		scap_fd_free_ns_sockets_list(handle, &sockets_by_ns);
+	}
+
 	return res;
 }
 
