@@ -264,29 +264,4 @@ void udig_stop_capture(scap_t* handle)
 	__sync_bool_compare_and_swap(&(rbs->m_capturing_pid), getpid(), 0);
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// Naive lock implementation.
-///////////////////////////////////////////////////////////////////////////////
-int cprintf(const char* format, ...);
-
-void ud_lock(volatile int *lockp)
-{
-	while(true)
-	{
-		// Is the lock available?
-		if(__sync_bool_compare_and_swap(lockp, 0, 1))
-		{
-			break;
-		}
-
-		// Lock is not available; wait
-		usleep(100);
-	}
-}
-
-void ud_unlock(volatile int *lockp)
-{
-	__sync_bool_compare_and_swap(lockp, 1, 0);
-}
-
 #endif // _WIN32

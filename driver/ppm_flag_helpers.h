@@ -529,10 +529,8 @@ static __always_inline u8 sockopt_level_to_scap(int level)
 	switch (level) {
 		case SOL_SOCKET:
 			return PPM_SOCKOPT_LEVEL_SOL_SOCKET;
-#ifndef UDIG
 		case SOL_TCP:
 			return PPM_SOCKOPT_LEVEL_SOL_TCP;
-#endif
 		default:
 			/* no ASSERT as there are legitimate other levels we don't just support yet */
 			return PPM_SOCKOPT_LEVEL_UNKNOWN;
