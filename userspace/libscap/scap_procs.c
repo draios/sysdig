@@ -261,9 +261,10 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 	size_t ssres = fread(line, 1, sizeof(line) - 1, f);
 	if(ssres < 0)
 	{
+		ASSERT(false);
 		fclose(f);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not read from stat file %s (%s)",	
-				filename, scap_strerror(handle, errno));	
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not read from stat file %s (%s)",
+			 filename, scap_strerror(handle, errno));
 		return SCAP_FAILURE;
 	}
 	line[ssres] = 0;
