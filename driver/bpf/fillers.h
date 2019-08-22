@@ -3518,6 +3518,12 @@ FILLER(sys_pagefault_e, false)
 	return res;
 }
 
+#ifdef SEND_SIG_FORCED
+#define SIGINFO_NOT_A_POINTER(_info) ((_info) <= SEND_SIG_FORCED)
+#else
+#define SIGINFO_NOT_A_POINTER(_info) ((struct kernel_siginfo*)(_info) <= SEND_SIG_PRIV)
+#endif
+
 FILLER(sys_signaldeliver_e, false)
 {
 	struct signal_deliver_args *ctx;
@@ -3530,7 +3536,7 @@ FILLER(sys_signaldeliver_e, false)
 	struct siginfo *info = (struct siginfo *)ctx->info;
 	sig = ctx->sig;
 
-	if (info == SEND_SIG_NOINFO || info == SEND_SIG_PRIV || info == SEND_SIG_FORCED) {
+	if (SIGINFO_NOT_A_POINTER(info)) {
 		info = NULL;
 		spid = 0;
 	} else if (sig == SIGKILL) {

@@ -2085,6 +2085,14 @@ TRACEPOINT_PROBE(sched_switch_probe, bool preempt, struct task_struct *prev, str
 #endif
 
 #ifdef CAPTURE_SIGNAL_DELIVERIES
+
+#ifdef SEND_SIG_FORCED
+#define SIGINFO_NOT_A_POINTER(_info) ((_info) <= SEND_SIG_FORCED)
+#else
+#define SIGINFO_NOT_A_POINTER(_info) \
+	((struct kernel_siginfo*)(_info) <= SEND_SIG_PRIV)
+#endif
+
 TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_sigaction *ka)
 {
 	struct event_data_t event_data;
@@ -2093,7 +2101,7 @@ TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_s
 
 	event_data.category = PPMC_SIGNAL;
 	event_data.event_info.signal_data.sig = sig;
-	if (info == SEND_SIG_NOINFO || info == SEND_SIG_PRIV)
+	if (SIGINFO_NOT_A_POINTER(info))
 		event_data.event_info.signal_data.info = NULL;
 	else
 		event_data.event_info.signal_data.info = info;
