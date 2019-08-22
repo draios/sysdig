@@ -3518,6 +3518,15 @@ FILLER(sys_pagefault_e, false)
 	return res;
 }
 
+static __always_inline int siginfo_not_a_pointer(struct siginfo* info)
+{
+#ifdef SEND_SIG_FORCED
+	return info == SEND_SIG_NOINFO || info == SEND_SIG_PRIV || SEND_SIG_FORCED;
+#else
+	return info == (struct siginfo*)SEND_SIG_NOINFO || info == (struct siginfo*)SEND_SIG_PRIV;
+#endif
+}
+
 FILLER(sys_signaldeliver_e, false)
 {
 	struct signal_deliver_args *ctx;
@@ -3528,12 +3537,15 @@ FILLER(sys_signaldeliver_e, false)
 	ctx = (struct signal_deliver_args *)data->ctx;
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 	struct siginfo *info = (struct siginfo *)ctx->info;
-
 	sig = ctx->sig;
-	if (sig == SIGKILL) {
+
+	if (siginfo_not_a_pointer(info)) {
+		info = NULL;
+		spid = 0;
+	} else if (sig == SIGKILL) {
 		spid = _READ(info->_sifields._kill._pid);
 	} else if (sig == SIGTERM || sig == SIGHUP || sig == SIGINT ||
-		   sig == SIGTSTP || sig == SIGQUIT) {
+	           sig == SIGTSTP || sig == SIGQUIT) {
 		int si_code = _READ(info->si_code);
 
 		if (si_code == SI_USER ||
