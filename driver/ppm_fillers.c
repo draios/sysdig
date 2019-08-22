@@ -749,15 +749,13 @@ static int ppm_get_tty(void)
 int f_proc_startupdate(struct event_filler_arguments *args)
 {
 #ifdef UDIG
-	return PPM_FAILURE_BUFFER_FULL;
+	return udig_proc_startupdate(args);
 #else /* UDIG */
 	unsigned long val;
 	int res = 0;
 	unsigned int exe_len = 0;  /* the length of the executable string */
 	int args_len = 0; /*the combined length of the arguments string + executable string */
-#ifndef UDIG
 	struct mm_struct *mm = current->mm;
-#endif	
 	int64_t retval;
 	int ptid;
 	char *spwd = "";

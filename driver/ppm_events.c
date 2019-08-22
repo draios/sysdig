@@ -1101,7 +1101,6 @@ u16 fd_to_socktuple(int fd,
 		break;
 	case AF_UNIX:
 #ifdef UDIG
-		ASSERT(false);
 		size = 0;
 #else
 		/*
