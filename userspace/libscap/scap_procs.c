@@ -1396,6 +1396,7 @@ int32_t scap_update_suppressed(scap_t *handle,
 		if(uth_status != SCAP_SUCCESS)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't add tid to suppressed hash table");
+			free(stid);
 			return SCAP_FAILURE;
 		}
 		*suppressed = true;
