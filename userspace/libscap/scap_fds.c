@@ -1017,6 +1017,7 @@ int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinf
 			if(uth_status != SCAP_SUCCESS)
 			{
 				snprintf(error, SCAP_LASTERR_SIZE, "socket list allocation error");
+				free(sockets);
 				return SCAP_FAILURE;
 			}
 
@@ -1183,6 +1184,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filen
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unix socket allocation error");
 			fclose(f);
+			free(fdinfo);
 			return SCAP_FAILURE;
 		}
 	}
@@ -1498,6 +1500,7 @@ int32_t scap_fd_read_ipv4_sockets_from_proc_fs(scap_t *handle, const char *dir, 
 			{
 				uth_status = SCAP_FAILURE;
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "ipv4 socket allocation error");
+				free(fdinfo);
 				break;
 			}
 
