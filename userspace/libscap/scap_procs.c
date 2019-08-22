@@ -874,6 +874,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 			if(uth_status != SCAP_SUCCESS)
 			{
 				snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (2)");
+				free(tinfo);
 				return SCAP_FAILURE;
 			}
 		}
