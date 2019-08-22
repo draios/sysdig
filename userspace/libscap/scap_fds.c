@@ -1327,6 +1327,7 @@ int32_t scap_fd_read_netlink_sockets_from_proc_fs(scap_t *handle, const char* fi
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "netlink socket allocation error");
 			fclose(f);
+			free(fdinfo);
 			return SCAP_FAILURE;
 		}
 	}
