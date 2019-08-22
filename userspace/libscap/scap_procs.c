@@ -258,13 +258,10 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 		return SCAP_FAILURE;
 	}
 
-	if(fgets(line, sizeof(line), f) == NULL)
+	uint32_t slpos = 0;
+	while(fgets(line + slpos, sizeof(line) - slpos, f) != NULL)
 	{
-		ASSERT(false);
-		fclose(f);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not read from stat file %s (%s)",
-			 filename, scap_strerror(handle, errno));
-		return SCAP_FAILURE;
+		slpos = strlen(line);
 	}
 
 	s = strrchr(line, ')');
@@ -272,7 +269,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 	{
 		ASSERT(false);
 		fclose(f);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not find closng parens in stat file %s",
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not find closing bracket in stat file %s",
 			 filename);
 		return SCAP_FAILURE;
 	}
