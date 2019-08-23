@@ -111,7 +111,8 @@ public:
 	void identify_category(sinsp_threadinfo *tinfo);
 
 	bool container_exists(const std::string& container_id) const {
-		return m_containers.find(container_id) != m_containers.end();
+		return m_containers.find(container_id) != m_containers.end() ||
+			m_lookups.find(container_id) != m_lookups.end();
 	}
 
 	typedef std::function<void(const sinsp_container_info&, sinsp_threadinfo *)> new_container_cb;
@@ -128,6 +129,43 @@ public:
 	void set_cri_socket_path(const std::string& path);
 	void set_cri_timeout(int64_t timeout_ms);
 	sinsp* get_inspector() { return m_inspector; }
+
+	/**
+	 * \brief set the status of an async container metadata lookup
+	 * @param container_id the container id we're looking up
+	 * @param ctype the container engine that is doing the lookup
+	 * @param state the state of the lookup
+	 *
+	 * Container engines that do not do any lookups in external services need not
+	 * bother with this. Otherwise, the engine needs to maintain the current
+	 * state of the lookup via this method and call should_lookup() before
+	 * starting a new lookup.
+	 */
+	void set_lookup_status(const std::string& container_id, sinsp_container_type ctype, sinsp_container_lookup_state state)
+	{
+		m_lookups[container_id][ctype] = state;
+	}
+
+	/**
+	 * \brief do we want to start a new lookup for container metadata?
+	 * @param container_id the container id we want to look up
+	 * @param ctype the container engine that is doing the lookup
+	 * @return true if there's no lookup in progress and we're free to start
+	 * a new one, false otherwise
+	 *
+	 * This method effectively checks if m_lookups[container_id][ctype]
+	 * exists, without creating unnecessary map entries along the way.
+	 */
+	bool should_lookup(const std::string& container_id, sinsp_container_type ctype)
+	{
+		auto container_lookups = m_lookups.find(container_id);
+		if(container_lookups == m_lookups.end())
+		{
+			return true;
+		}
+		auto engine_lookup = container_lookups->second.find(ctype);
+		return engine_lookup == container_lookups->second.end();
+	}
 private:
 	std::string container_to_json(const sinsp_container_info& container_info);
 	bool container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::shared_ptr<sinsp_threadinfo> tinfo);
@@ -137,6 +175,7 @@ private:
 
 	sinsp* m_inspector;
 	std::unordered_map<std::string, std::shared_ptr<const sinsp_container_info>> m_containers;
+	std::unordered_map<std::string, std::unordered_map<sinsp_container_type, sinsp_container_lookup_state>> m_lookups;
 	uint64_t m_last_flush_time_ns;
 	std::list<new_container_cb> m_new_callbacks;
 	std::list<remove_container_cb> m_remove_callbacks;

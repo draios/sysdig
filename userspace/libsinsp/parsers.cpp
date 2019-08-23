@@ -4617,6 +4617,20 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		{
 			container_info->m_privileged = privileged.asBool();
 		}
+		const Json::Value& lookup_state = container["lookup_state"];
+		if(check_json_val_is_convertible(lookup_state, Json::uintValue, "lookup_state"))
+		{
+			container_info->m_lookup_state = static_cast<sinsp_container_lookup_state>(lookup_state.asUInt());
+			switch(container_info->m_lookup_state)
+			{
+			case sinsp_container_lookup_state::STARTED:
+			case sinsp_container_lookup_state::SUCCESSFUL:
+			case sinsp_container_lookup_state::FAILED:
+				break;
+			default:
+				container_info->m_lookup_state = sinsp_container_lookup_state::SUCCESSFUL;
+			}
+		}
 
 		libsinsp::container_engine::docker::parse_json_mounts(container["Mounts"], container_info->m_mounts);
 
