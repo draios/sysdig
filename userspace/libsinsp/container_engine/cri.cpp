@@ -71,18 +71,6 @@ bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, 
 
 bool parse_cri(sinsp_container_info &container, sinsp_threadinfo *tinfo)
 {
-	if(!s_cri)
-	{
-		// This isn't an error in the case where the
-		// configured unix domain socket doesn't exist. In
-		// that case, s_cri isn't initialized at all. Hence,
-		// the DEBUG.
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"cri (%s): Could not parse cri (no s_cri object)",
-				container.m_id.c_str());
-		return false;
-	}
-
 	runtime::v1alpha2::ContainerStatusRequest req;
 	runtime::v1alpha2::ContainerStatusResponse resp;
 	req.set_container_id(container.m_id);
@@ -231,17 +219,28 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 					"cri (%s): Performing lookup",
 					container_id.c_str());
 
-			if (!parse_cri(*container, tinfo))
+			if(!s_cri)
 			{
-				g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to get CRI metadata for container",
+				// This isn't an error in the case where the
+				// configured unix domain socket doesn't exist. In
+				// that case, s_cri isn't initialized at all. Hence,
+				// the DEBUG.
+				g_logger.format(sinsp_logger::SEV_DEBUG,
+						"cri (%s): Could not parse cri (no s_cri object)",
 						container_id.c_str());
 				return false;
 			}
 
-			// If here, parse_cri succeeded so we can
-			// assign an actual type.
 			container->m_type = s_cri_runtime_type;
-
+			container->m_lookup_state = sinsp_container_lookup_state::SUCCESSFUL;
+			if (!parse_cri(*container, tinfo))
+			{
+				g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to get CRI metadata for container",
+						container_id.c_str());
+				container->m_lookup_state = sinsp_container_lookup_state::FAILED;
+				manager->notify_new_container(*container);
+				return false;
+			}
 		}
 		if (mesos::set_mesos_task_id(*container, tinfo))
 		{
@@ -249,7 +248,6 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 					"cri (%s) Mesos CRI container, Mesos task ID: [%s]",
 					container_id.c_str(), container->m_mesos_task_id.c_str());
 		}
-		manager->add_container(container, tinfo);
 		manager->notify_new_container(*container);
 	}
 	return true;

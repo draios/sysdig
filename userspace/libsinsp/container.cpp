@@ -371,13 +371,6 @@ void sinsp_container_manager::identify_category(sinsp_threadinfo *tinfo)
 		return;
 	}
 
-	sinsp_container_info::ptr_t cinfo = get_container(tinfo->m_container_id);
-
-	if(!cinfo)
-	{
-		return;
-	}
-
 	if(tinfo->m_vpid == 1)
 	{
 		if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG)
@@ -405,6 +398,12 @@ void sinsp_container_manager::identify_category(sinsp_threadinfo *tinfo)
 		}
 
 		tinfo->m_category = ptinfo->m_category;
+		return;
+	}
+
+	sinsp_container_info::ptr_t cinfo = get_container(tinfo->m_container_id);
+	if(!cinfo)
+	{
 		return;
 	}
 

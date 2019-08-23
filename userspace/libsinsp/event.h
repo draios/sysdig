@@ -363,16 +363,20 @@ private:
 
 	const char* get_param_value_str(const char* name, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
 
-	inline void init()
+	inline void init_keep_threadinfo()
 	{
 		m_flags = EF_NONE;
 		m_info = &(m_event_info_table[m_pevt->type]);
-		m_tinfo_ref.reset();
-		m_tinfo = NULL;
 		m_fdinfo = NULL;
 		m_fdinfo_name_changed = false;
 		m_iosize = 0;
 		m_poriginal_evt = NULL;
+	}
+	inline void init()
+	{
+		init_keep_threadinfo();
+		m_tinfo_ref.reset();
+		m_tinfo = NULL;
 	}
 	inline void init(uint8_t* evdata, uint16_t cpuid)
 	{
