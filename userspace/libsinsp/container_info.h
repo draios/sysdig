@@ -45,6 +45,14 @@ enum sinsp_container_type
 	CT_BPM = 9,
 };
 
+namespace std {
+template<> struct hash<sinsp_container_type> {
+	std::size_t operator()(const sinsp_container_type& h) const {
+		return std::hash<int>{}(static_cast<int>(h));
+	}
+};
+}
+
 class sinsp_threadinfo;
 
 // Docker and CRI-compatible runtimes are very similar
