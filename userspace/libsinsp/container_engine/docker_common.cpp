@@ -374,40 +374,29 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 
 	if(!container_info)
 	{
-		// Add a minimal container_info object where only the
-		// container id, (possibly) name, and a container
-		// image = incomplete is filled in. This may be
-		// overidden later once parse_docker_async completes.
-		auto new_container_info = std::make_shared<sinsp_container_info>();
-
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"docker_async (%s): No existing container info, creating initial stub info",
-				container_id.c_str());
-
-		new_container_info->m_type = CT_DOCKER;
-		new_container_info->m_id = container_id;
-		new_container_info->m_name = container_name;
-		new_container_info->m_image = s_incomplete_info_name;
-		new_container_info->m_imageid = s_incomplete_info_name;
-		new_container_info->m_imagerepo = s_incomplete_info_name;
-		new_container_info->m_imagetag = s_incomplete_info_name;
-		new_container_info->m_imagedigest = s_incomplete_info_name;
-		new_container_info->m_lookup_state = sinsp_container_lookup_state::STARTED;
-		new_container_info->m_metadata_complete = false;
-
-		manager->add_container(new_container_info, tinfo);
-		container_info = new_container_info;
-	}
+		if(!query_os_for_missing_info)
+		{
+			auto container = std::make_shared<sinsp_container_info>();
+			container->m_type = CT_DOCKER;
+			container->m_id = container_id;
+			manager->notify_new_container(*container);
+			return true;
+		}
 
 #ifdef HAS_CAPTURE
-	// Possibly start a lookup for this container info
-	if(container_info->m_lookup_state == sinsp_container_lookup_state::STARTED &&
-	   query_os_for_missing_info)
-	{
-		// give docker a chance to return metadata for this container
-		parse_docker_async(container_id, manager);
-	}
+		if(manager->should_lookup(container_id, CT_DOCKER))
+		{
+			g_logger.format(sinsp_logger::SEV_DEBUG,
+					"docker_async (%s): No existing container info",
+					container_id.c_str());
+
+			// give docker a chance to return metadata for this container
+			manager->set_lookup_status(container_id, CT_DOCKER, sinsp_container_lookup_state::STARTED);
+			parse_docker_async(container_id, manager);
+		}
 #endif
+		return false;
+	}
 
 	// Returning true will prevent other container engines from
 	// trying to resolve the container, so only return true if we
@@ -424,10 +413,7 @@ void docker::parse_docker_async(std::string &container_id, sinsp_container_manag
 				container_id.c_str(),
 				res.m_lookup_state);
 
-		if(res.m_lookup_state == sinsp_container_lookup_state::SUCCESSFUL)
-		{
-			manager->notify_new_container(res);
-		}
+		manager->notify_new_container(res);
 	};
 
         sinsp_container_info result;
