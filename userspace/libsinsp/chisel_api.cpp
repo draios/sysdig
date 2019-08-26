@@ -1142,7 +1142,7 @@ int lua_cbacks::get_container_table(lua_State *ls)
 	//
 	// Retrieve the container list
 	//
-	const unordered_map<string, sinsp_container_info>* ctable  = ch->m_inspector->m_container_manager.get_containers();
+	const sinsp_container_manager::map_ptr_t ctable = ch->m_inspector->m_container_manager.get_containers();
 
 	ASSERT(ctable != NULL);
 
