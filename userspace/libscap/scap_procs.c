@@ -1160,6 +1160,7 @@ struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_soc
 	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
 	if(scap_proc_read_thread(handle, filename, tid, &tinfo, handle->m_lasterr, scan_sockets) != SCAP_SUCCESS)
 	{
+		free(tinfo);
 		return NULL;
 	}
 
