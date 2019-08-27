@@ -105,7 +105,7 @@ private:
 	// was found, and if the health checks could be copied from
 	// that container.
 	bool get_sandbox_liveness_readiness_probes(const Json::Value &config_obj,
-						   sinsp_container_info *container);
+						   sinsp_container_manager::entry_ptr_t container);
 
 	// Parse all healthchecks/liveness probes/readiness probes out
 	// of the provided object, updating the container info as required.

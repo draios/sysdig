@@ -297,7 +297,7 @@ bool docker_async_source::parse_liveness_readiness_probe(const Json::Value &prob
 }
 
 bool docker_async_source::get_sandbox_liveness_readiness_probes(const Json::Value &config_obj,
-								sinsp_container_info *container)
+								sinsp_container_manager::entry_ptr_t container)
 {
 	std::string sandbox_container_id;
 	std::string sandbox_label = "io.kubernetes.sandbox.id";
@@ -319,7 +319,7 @@ bool docker_async_source::get_sandbox_liveness_readiness_probes(const Json::Valu
 		sandbox_container_id.resize(12);
 	}
 
-	sinsp_container_info *sandbox_container = m_inspector->m_container_manager.get_container(sandbox_container_id);
+	sinsp_container_manager::entry_ptr_t sandbox_container = m_inspector->m_container_manager.get_container(sandbox_container_id);
 
 	if(!sandbox_container)
 	{
