@@ -289,6 +289,12 @@ void sinsp_container_manager::add_container(const sinsp_container_info::ptr_t& c
 	}
 }
 
+void sinsp_container_manager::replace_container(const sinsp_container_info::ptr_t& container_info)
+{
+	ASSERT(m_containers.find(container_info->m_id) != m_containers.end());
+	m_containers[container_info->m_id] = container_info;
+}
+
 void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info)
 {
 	sinsp_evt *evt = new sinsp_evt();
