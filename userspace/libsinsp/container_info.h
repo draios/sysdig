@@ -203,7 +203,7 @@ public:
 	std::shared_ptr<sinsp_threadinfo> get_tinfo(sinsp* inspector) const;
 
 	// Match a process against the set of health probes
-	container_health_probe::probe_type match_health_probe(sinsp_threadinfo *tinfo);
+	container_health_probe::probe_type match_health_probe(sinsp_threadinfo *tinfo) const;
 
 	std::string m_id;
 	sinsp_container_type m_type;
