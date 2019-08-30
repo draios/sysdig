@@ -38,7 +38,7 @@ limitations under the License.
 class sinsp_container_manager
 {
 public:
-	using map_ptr_t = const std::unordered_map<std::string, std::shared_ptr<sinsp_container_info>>*;
+	using map_ptr_t = const std::unordered_map<std::string, std::shared_ptr<const sinsp_container_info>>*;
 
 	sinsp_container_manager(sinsp* inspector);
 	virtual ~sinsp_container_manager();
@@ -46,6 +46,7 @@ public:
 	map_ptr_t get_containers();
 	bool remove_inactive_containers();
 	void add_container(const sinsp_container_info::ptr_t& container_info, sinsp_threadinfo *thread);
+	void replace_container(const sinsp_container_info::ptr_t& container_info);
 	sinsp_container_info::ptr_t get_container(const std::string &id);
 	void notify_new_container(const sinsp_container_info& container_info);
 	template<typename E> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
@@ -85,7 +86,7 @@ private:
 	std::list<std::unique_ptr<libsinsp::container_engine::resolver>> m_container_engines;
 
 	sinsp* m_inspector;
-	std::unordered_map<std::string, std::shared_ptr<sinsp_container_info>> m_containers;
+	std::unordered_map<std::string, std::shared_ptr<const sinsp_container_info>> m_containers;
 	uint64_t m_last_flush_time_ns;
 	std::list<new_container_cb> m_new_callbacks;
 	std::list<remove_container_cb> m_remove_callbacks;

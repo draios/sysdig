@@ -59,7 +59,7 @@ static inline bool is_docker_compatible(sinsp_container_type t)
 class sinsp_container_info
 {
 public:
-	using ptr_t = std::shared_ptr<sinsp_container_info>;
+	using ptr_t = std::shared_ptr<const sinsp_container_info>;
 
 	class container_port_mapping
 	{

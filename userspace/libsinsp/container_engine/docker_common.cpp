@@ -370,23 +370,24 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 		// container id, (possibly) name, and a container
 		// image = incomplete is filled in. This may be
 		// overidden later once parse_docker_async completes.
-		container_info = std::make_shared<sinsp_container_info>();
+		auto new_container_info = std::make_shared<sinsp_container_info>();
 
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): No existing container info, creating initial stub info",
 				container_id.c_str());
 
-		container_info->m_type = CT_DOCKER;
-		container_info->m_id = container_id;
-		container_info->m_name = container_name;
-		container_info->m_image = s_incomplete_info_name;
-		container_info->m_imageid = s_incomplete_info_name;
-		container_info->m_imagerepo = s_incomplete_info_name;
-		container_info->m_imagetag = s_incomplete_info_name;
-		container_info->m_imagedigest = s_incomplete_info_name;
-		container_info->m_metadata_complete = false;
+		new_container_info->m_type = CT_DOCKER;
+		new_container_info->m_id = container_id;
+		new_container_info->m_name = container_name;
+		new_container_info->m_image = s_incomplete_info_name;
+		new_container_info->m_imageid = s_incomplete_info_name;
+		new_container_info->m_imagerepo = s_incomplete_info_name;
+		new_container_info->m_imagetag = s_incomplete_info_name;
+		new_container_info->m_imagedigest = s_incomplete_info_name;
+		new_container_info->m_metadata_complete = false;
 
-		manager->add_container(container_info, tinfo);
+		manager->add_container(new_container_info, tinfo);
+		container_info = new_container_info;
 	}
 
 #ifdef HAS_CAPTURE
