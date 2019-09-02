@@ -38,22 +38,71 @@ limitations under the License.
 class sinsp_container_manager
 {
 public:
-	using map_ptr_t = const std::unordered_map<std::string, std::shared_ptr<const sinsp_container_info>>*;
+	using map_ptr_t = const std::unordered_map<std::string, sinsp_container_info::ptr_t>*;
 
 	sinsp_container_manager(sinsp* inspector);
 	virtual ~sinsp_container_manager();
 
-	map_ptr_t get_containers();
+	/**
+	 * @brief Get the whole container map (read-only)
+	 * @return the map of container_id -> shared_ptr<container_info>
+	 */
+	map_ptr_t get_containers() const;
 	bool remove_inactive_containers();
+
+	/**
+	 * @brief Add/update a container in the manager map, executing on_new_container callbacks
+	 *
+	 * @param container_info shared_ptr owning the container_info to add/update
+	 * @param thread a thread in the container, only passed to callbacks
+	 */
 	void add_container(const sinsp_container_info::ptr_t& container_info, sinsp_threadinfo *thread);
+
+	/**
+	 * @brief Update a container by replacing its entry with a new one
+	 *
+	 * Does not call on_new_container callbacks
+	 *
+	 * @param container_info shared_ptr owning the updated container_info
+	 */
 	void replace_container(const sinsp_container_info::ptr_t& container_info);
-	sinsp_container_info::ptr_t get_container(const std::string &id);
+
+	/**
+	 * @brief Get a container_info by container id
+	 * @param id the id of the container to look up
+	 * @return a const pointer to the container_info
+	 *
+	 * Note: you cannot modify the returned object in any way, to update
+	 * the container, get a new shared_ptr<sinsp_container_info> and pass it
+	 * to replace_container()
+	 */
+	sinsp_container_info::ptr_t get_container(const std::string &id) const;
+
+	/**
+	 * @brief Generate container JSON event from a new container
+	 * @param container_info reference to the new sinsp_container_info
+	 *
+	 * Note: this is unrelated to on_new_container callbacks even though
+	 * both happen during container creation
+	 */
 	void notify_new_container(const sinsp_container_info& container_info);
-	template<typename E> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
-	template<typename E1, typename E2, typename... Args> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+
+	/**
+	 * @brief Detect container engine for a thread
+	 * @param tinfo the thread to do container detection for
+	 * @param query_os_for_missing_info should we consult external data sources?
+	 * 		if true, we're working with a live capture and should
+	 * 		query the OS (external files, daemons etc.); if false,
+	 * 		we're reading a scap file so only rely on the thread info itself
+	 * @return true if we have successfully determined the container engine,
+	 * 		false otherwise
+	 *
+	 * Note: a return value of false doesn't mean that container detection failed,
+	 * it may still be happening in the background asynchronously
+	 */
 	bool resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	void dump_containers(scap_dumper_t* dumper);
-	std::string get_container_name(sinsp_threadinfo* tinfo);
+	std::string get_container_name(sinsp_threadinfo* tinfo) const;
 
 	// Set tinfo's m_category based on the container context.  It
 	// will *not* change any category to NONE, so a threadinfo
