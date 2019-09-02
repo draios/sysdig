@@ -210,46 +210,47 @@ void cri::set_extra_queries(bool extra_queries) {
 
 bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
-	sinsp_container_info container_info;
+	std::string container_id;
 
-	if(!matches_runc_cgroups(tinfo, CRI_CGROUP_LAYOUT, container_info.m_id))
+	if(!matches_runc_cgroups(tinfo, CRI_CGROUP_LAYOUT, container_id))
 	{
 		return false;
 	}
-	tinfo->m_container_id = container_info.m_id;
+	tinfo->m_container_id = container_id;
 
-	sinsp_container_info::ptr_t existing_container_info = manager->get_container(container_info.m_id);
+	sinsp_container_info::ptr_t existing_container_info = manager->get_container(container_id);
 
 	if (!existing_container_info ||
 	    existing_container_info->m_metadata_complete == false)
 	{
+		auto container = std::make_shared<sinsp_container_info>();
+		container->m_id = container_id;
 		if (query_os_for_missing_info)
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"cri (%s): Performing lookup",
-					container_info.m_id.c_str());
+					container_id.c_str());
 
-			if (!parse_cri(container_info, tinfo))
+			if (!parse_cri(*container, tinfo))
 			{
 				g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to get CRI metadata for container",
-						container_info.m_id.c_str());
+						container_id.c_str());
 				return false;
 			}
 
 			// If here, parse_cri succeeded so we can
 			// assign an actual type.
-			container_info.m_type = s_cri_runtime_type;
+			container->m_type = s_cri_runtime_type;
 
 		}
-		if (mesos::set_mesos_task_id(container_info, tinfo))
+		if (mesos::set_mesos_task_id(*container, tinfo))
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"cri (%s) Mesos CRI container, Mesos task ID: [%s]",
-					container_info.m_id.c_str(), container_info.m_mesos_task_id.c_str());
+					container_id.c_str(), container->m_mesos_task_id.c_str());
 		}
-		auto container = std::make_shared<sinsp_container_info>(container_info);
 		manager->add_container(container, tinfo);
-		manager->notify_new_container(container_info);
+		manager->notify_new_container(*container);
 	}
 	return true;
 }
