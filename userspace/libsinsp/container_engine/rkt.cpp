@@ -167,31 +167,30 @@ bool rkt::match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp
 
 bool rkt::rkt::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
-	sinsp_container_info container_info;
+	auto container = std::make_shared<sinsp_container_info>();
 	string rkt_podid, rkt_appname;
 
-	if (!match(manager, tinfo, container_info, rkt_podid, rkt_appname, query_os_for_missing_info))
+	if (!match(manager, tinfo, *container, rkt_podid, rkt_appname, query_os_for_missing_info))
 	{
 		return false;
 	}
 
-	tinfo->m_container_id = container_info.m_id;
-	if (!query_os_for_missing_info || manager->container_exists(container_info.m_id))
+	tinfo->m_container_id = container->m_id;
+	if (!query_os_for_missing_info || manager->container_exists(container->m_id))
 	{
 		return true;
 	}
 
 #ifndef _WIN32
-	bool have_rkt = parse_rkt(container_info, rkt_podid, rkt_appname);
+	bool have_rkt = parse_rkt(*container, rkt_podid, rkt_appname);
 #else
 	bool have_rkt = true;
 #endif
 
 	if (have_rkt)
 	{
-		auto container = std::make_shared<sinsp_container_info>(container_info);
 		manager->add_container(container, tinfo);
-		manager->notify_new_container(container_info);
+		manager->notify_new_container(*container);
 		return true;
 	}
 	else
