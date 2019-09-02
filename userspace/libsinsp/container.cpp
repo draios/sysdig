@@ -95,7 +95,7 @@ bool sinsp_container_manager::remove_inactive_containers()
 	return res;
 }
 
-sinsp_container_info::ptr_t sinsp_container_manager::get_container(const string& container_id)
+sinsp_container_info::ptr_t sinsp_container_manager::get_container(const string& container_id) const
 {
 	auto it = m_containers.find(container_id);
 	if(it != m_containers.end())
@@ -274,7 +274,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 	return true;
 }
 
-sinsp_container_manager::map_ptr_t sinsp_container_manager::get_containers()
+sinsp_container_manager::map_ptr_t sinsp_container_manager::get_containers() const
 {
 	return &m_containers;
 }
@@ -335,7 +335,7 @@ void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)
 	}
 }
 
-string sinsp_container_manager::get_container_name(sinsp_threadinfo* tinfo)
+string sinsp_container_manager::get_container_name(sinsp_threadinfo* tinfo) const
 {
 	string res;
 
