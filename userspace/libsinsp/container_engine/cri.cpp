@@ -40,7 +40,17 @@ using namespace libsinsp::container_engine;
 using namespace libsinsp::runc;
 
 namespace {
-bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info &container, sinsp_threadinfo *tinfo)
+constexpr const cgroup_layout CRI_CGROUP_LAYOUT[] = {
+	{"/", ""}, // non-systemd containerd
+	{"/crio-", ""}, // non-systemd cri-o
+	{"/cri-containerd-", ".scope"}, // systemd containerd
+	{"/crio-", ".scope"}, // systemd cri-o
+	{nullptr, nullptr}
+};
+}
+
+
+bool cri::parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info &container, sinsp_threadinfo *tinfo)
 {
 	const auto &info_it = status.info().find("info");
 	if(info_it == status.info().end())
@@ -69,7 +79,7 @@ bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, 
 	return true;
 }
 
-bool parse_cri(sinsp_container_info &container, sinsp_threadinfo *tinfo)
+bool cri::parse_cri(sinsp_container_info &container, sinsp_threadinfo *tinfo)
 {
 	runtime::v1alpha2::ContainerStatusRequest req;
 	runtime::v1alpha2::ContainerStatusResponse resp;
@@ -126,15 +136,6 @@ bool parse_cri(sinsp_container_info &container, sinsp_threadinfo *tinfo)
 	}
 
 	return true;
-}
-
-constexpr const cgroup_layout CRI_CGROUP_LAYOUT[] = {
-	{"/", ""}, // non-systemd containerd
-	{"/crio-", ""}, // non-systemd cri-o
-	{"/cri-containerd-", ".scope"}, // systemd containerd
-	{"/crio-", ".scope"}, // systemd cri-o
-	{nullptr, nullptr}
-};
 }
 
 cri::cri()
