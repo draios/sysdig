@@ -63,6 +63,12 @@ public:
 	void add_search_path(const char *path, Value &v);
 	void add_search_path(const filter_value_t &path, Value &v);
 
+	// With the above methods the pointers in the char */uint8_t *
+	// above point to memory not owned by this object. The below
+	// method passes a string which is copied into the object,
+	// holding its own memory.
+	void add_search_path(const std::string &str, Value &v);
+
 	// Similar to add_search_path, but takes a path already split
 	// into a list of components. This allows for custom splitting
 	// of paths other than on '/' boundaries.
@@ -102,6 +108,8 @@ private:
 		std::pair<path_prefix_map *, Value *>,
 		g_hash_membuf,
 		g_equal_to_membuf> m_dirs;
+
+	std::list<std::string> m_strvals;
 };
 
 template<class Value>
@@ -125,6 +133,14 @@ void path_prefix_map<Value>::add_search_path(const char *path, Value &v)
 {
 	filter_value_t mem((uint8_t *) path, (uint32_t) strlen(path));
 	return add_search_path(mem, v);
+}
+
+template<class Value>
+void path_prefix_map<Value>::add_search_path(const std::string &str, Value &v)
+{
+	m_strvals.push_back(str);
+
+	return add_search_path(m_strvals.back().c_str(), v);
 }
 
 template<class Value>
@@ -316,6 +332,7 @@ public:
 
 	void add_search_path(const char *path);
 	void add_search_path(const filter_value_t &path);
+	void add_search_path(const std::string &str);
 
 	// If non-NULL, Value is not allocated. It points to memory
 	// held within this path_prefix_map() and is only valid as
