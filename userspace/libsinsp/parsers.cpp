@@ -4569,7 +4569,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 	if(evt->m_tinfo_ref != nullptr)
 	{
 		const auto& container_id = evt->m_tinfo_ref->m_container_id;
-		const auto& container = m_inspector->m_container_manager.get_container(container_id);
+		const auto container = m_inspector->m_container_manager.get_container(container_id);
 		if(container != nullptr && container->is_successful())
 		{
 			SINSP_DEBUG("Ignoring container event for already successful lookup of %s", container_id.c_str());
