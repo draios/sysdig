@@ -282,6 +282,7 @@ sinsp_container_manager::map_ptr_t sinsp_container_manager::get_containers() con
 
 void sinsp_container_manager::add_container(const sinsp_container_info::ptr_t& container_info, sinsp_threadinfo *thread)
 {
+	set_lookup_status(container_info->m_id, container_info->m_type, container_info->m_lookup_state);
 	m_containers[container_info->m_id] = container_info;
 
 	for(const auto &new_cb : m_new_callbacks)

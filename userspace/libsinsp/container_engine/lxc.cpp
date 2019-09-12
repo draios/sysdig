@@ -62,7 +62,7 @@ bool lxc::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 	}
 
 	tinfo->m_container_id = container->m_id;
-	if (!manager->container_exists(container->m_id))
+	if (manager->should_lookup(container->m_id, CT_LXC))
 	{
 		container->m_name = container->m_id;
 		manager->add_container(container, tinfo);

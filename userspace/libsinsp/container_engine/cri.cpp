@@ -206,49 +206,48 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 	}
 	tinfo->m_container_id = container_id;
 
-	sinsp_container_info::ptr_t existing_container_info = manager->get_container(container_id);
-
-	if (!existing_container_info ||
-	    existing_container_info->m_lookup_state == sinsp_container_lookup_state::STARTED)
+	if(!manager->should_lookup(container_id, s_cri_runtime_type))
 	{
-		auto container = std::make_shared<sinsp_container_info>();
-		container->m_id = container_id;
-		if (query_os_for_missing_info)
-		{
-			g_logger.format(sinsp_logger::SEV_DEBUG,
-					"cri (%s): Performing lookup",
-					container_id.c_str());
-
-			if(!s_cri)
-			{
-				// This isn't an error in the case where the
-				// configured unix domain socket doesn't exist. In
-				// that case, s_cri isn't initialized at all. Hence,
-				// the DEBUG.
-				g_logger.format(sinsp_logger::SEV_DEBUG,
-						"cri (%s): Could not parse cri (no s_cri object)",
-						container_id.c_str());
-				return false;
-			}
-
-			container->m_type = s_cri_runtime_type;
-			container->m_lookup_state = sinsp_container_lookup_state::SUCCESSFUL;
-			if (!parse_cri(*container, tinfo))
-			{
-				g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to get CRI metadata for container",
-						container_id.c_str());
-				container->m_lookup_state = sinsp_container_lookup_state::FAILED;
-				manager->notify_new_container(*container);
-				return false;
-			}
-		}
-		if (mesos::set_mesos_task_id(*container, tinfo))
-		{
-			g_logger.format(sinsp_logger::SEV_DEBUG,
-					"cri (%s) Mesos CRI container, Mesos task ID: [%s]",
-					container_id.c_str(), container->m_mesos_task_id.c_str());
-		}
-		manager->notify_new_container(*container);
+		return true;
 	}
+
+	auto container = std::make_shared<sinsp_container_info>();
+	container->m_id = container_id;
+	if (query_os_for_missing_info)
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"cri (%s): Performing lookup",
+				container_id.c_str());
+
+		if(!s_cri)
+		{
+			// This isn't an error in the case where the
+			// configured unix domain socket doesn't exist. In
+			// that case, s_cri isn't initialized at all. Hence,
+			// the DEBUG.
+			g_logger.format(sinsp_logger::SEV_DEBUG,
+					"cri (%s): Could not parse cri (no s_cri object)",
+					container_id.c_str());
+			return false;
+		}
+
+		container->m_type = s_cri_runtime_type;
+		container->m_lookup_state = sinsp_container_lookup_state::SUCCESSFUL;
+		if (!parse_cri(*container, tinfo))
+		{
+			g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to get CRI metadata for container",
+					container_id.c_str());
+			container->m_lookup_state = sinsp_container_lookup_state::FAILED;
+			manager->notify_new_container(*container);
+			return false;
+		}
+	}
+	if (mesos::set_mesos_task_id(*container, tinfo))
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"cri (%s) Mesos CRI container, Mesos task ID: [%s]",
+				container_id.c_str(), container->m_mesos_task_id.c_str());
+	}
+	manager->notify_new_container(*container);
 	return true;
 }
