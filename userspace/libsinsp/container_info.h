@@ -226,6 +226,10 @@ public:
 		return m_is_pod_sandbox;
 	}
 
+	bool is_successful() const {
+		return m_lookup_state == sinsp_container_lookup_state::SUCCESSFUL;
+	}
+
 	std::shared_ptr<sinsp_threadinfo> get_tinfo(sinsp* inspector) const;
 
 	// Match a process against the set of health probes
