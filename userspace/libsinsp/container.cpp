@@ -386,7 +386,7 @@ void sinsp_container_manager::identify_category(sinsp_threadinfo *tinfo)
 	}
 
 	// Categories are passed from parent to child threads
-	sinsp_threadinfo* ptinfo = tinfo->get_parent_thread();
+	const sinsp_threadinfo* ptinfo = tinfo->get_parent_thread();
 
 	if(ptinfo && ptinfo->m_category != sinsp_threadinfo::CAT_NONE)
 	{
