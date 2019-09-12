@@ -60,7 +60,7 @@ bool libsinsp::container_engine::mesos::resolve(sinsp_container_manager* manager
 		return false;
 
 	tinfo->m_container_id = container->m_id;
-	if (!manager->container_exists(container->m_id))
+	if (manager->should_lookup(container->m_id, CT_MESOS))
 	{
 		container->m_name = container->m_id;
 		manager->add_container(container, tinfo);

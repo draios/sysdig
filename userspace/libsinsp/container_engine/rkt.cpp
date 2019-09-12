@@ -176,7 +176,7 @@ bool rkt::rkt::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo
 	}
 
 	tinfo->m_container_id = container->m_id;
-	if (!query_os_for_missing_info || manager->container_exists(container->m_id))
+	if (!query_os_for_missing_info || !manager->should_lookup(container->m_id, CT_RKT))
 	{
 		return true;
 	}
