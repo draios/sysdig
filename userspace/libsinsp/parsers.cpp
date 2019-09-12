@@ -4570,7 +4570,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 	{
 		const auto& container_id = evt->m_tinfo_ref->m_container_id;
 		const auto& container = m_inspector->m_container_manager.get_container(container_id);
-		if(container != nullptr && container->m_lookup_state == sinsp_container_lookup_state::SUCCESSFUL)
+		if(container != nullptr && container->is_successful())
 		{
 			SINSP_DEBUG("Ignoring container event for already successful lookup of %s", container_id.c_str());
 			evt->m_filtered_out = true;
@@ -4768,7 +4768,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 			}
 		}
 
-		if(container_info->m_lookup_state != sinsp_container_lookup_state::SUCCESSFUL)
+		if(!container_info->is_successful())
 		{
 			SINSP_DEBUG("Filtering container event for failed lookup of %s (but calling callbacks anyway)", container_info->m_id.c_str());
 			evt->m_filtered_out = true;
