@@ -4653,6 +4653,15 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 			default:
 				container_info->m_lookup_state = sinsp_container_lookup_state::SUCCESSFUL;
 			}
+
+			// state == STARTED doesn't make sense in a scap file
+			// as there's no actual lookup that would ever finish
+			if(!evt->m_tinfo_ref && container_info->m_lookup_state == sinsp_container_lookup_state::STARTED)
+			{
+				SINSP_DEBUG("Rewriting lookup_state = STARTED from scap file to FAILED for container %s",
+					container_info->m_id.c_str());
+				container_info->m_lookup_state = sinsp_container_lookup_state::FAILED;
+			}
 		}
 
 		libsinsp::container_engine::docker::parse_json_mounts(container["Mounts"], container_info->m_mounts);
