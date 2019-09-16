@@ -84,6 +84,7 @@ public:
 	static void set_cri_timeout(int64_t timeout_ms);
 	static void set_extra_queries(bool extra_queries);
 	static void set_async(bool async_limits);
+	static void set_cri_delay(uint64_t delay_ms);
 
 private:
 	std::unique_ptr<cri_async_source> m_async_source;

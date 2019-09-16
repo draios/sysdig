@@ -43,6 +43,8 @@ using namespace libsinsp::runc;
 namespace {
 // do the CRI communication asynchronously
 bool s_async = true;
+// delay before talking to CRI/cgroups
+uint64_t s_cri_lookup_delay_ms = 500;
 
 constexpr const cgroup_layout CRI_CGROUP_LAYOUT[] = {
 	{"/", ""}, // non-systemd containerd
@@ -256,7 +258,7 @@ void cri::set_cri_socket_path(const std::string& path)
 
 void cri::set_cri_timeout(int64_t timeout_ms)
 {
-	s_cri_timeout = timeout_ms;
+	s_cri_timeout = timeout_ms + s_cri_lookup_delay_ms;
 }
 
 void cri::set_extra_queries(bool extra_queries) {
@@ -266,6 +268,11 @@ void cri::set_extra_queries(bool extra_queries) {
 void cri::set_async(bool async)
 {
 	s_async = async;
+}
+
+void cri::set_cri_delay(uint64_t delay_ms)
+{
+	s_cri_lookup_delay_ms = delay_ms;
 }
 
 bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
@@ -339,7 +346,7 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 		bool done;
 		if(s_async)
 		{
-			done = m_async_source->lookup(key, result, cb);
+			done = m_async_source->lookup_delayed(key, result, chrono::milliseconds(s_cri_lookup_delay_ms), cb);
 		}
 		else
 		{

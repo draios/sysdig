@@ -554,3 +554,10 @@ void sinsp_container_manager::set_cri_async(bool async)
 	libsinsp::container_engine::cri::set_async(async);
 #endif
 }
+
+void sinsp_container_manager::set_cri_delay(uint64_t delay_ms)
+{
+#if defined(HAS_CAPTURE)
+	libsinsp::container_engine::cri::set_cri_delay(delay_ms);
+#endif
+}
