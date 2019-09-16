@@ -129,6 +129,7 @@ public:
 	void set_cri_socket_path(const std::string& path);
 	void set_cri_timeout(int64_t timeout_ms);
 	void set_cri_async(bool async);
+	void set_cri_delay(uint64_t delay_ms);
 	sinsp* get_inspector() { return m_inspector; }
 
 	/**
