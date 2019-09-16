@@ -24,9 +24,10 @@ limitations under the License.
 
 class sinsp_container_manager;
 class sinsp_threadinfo;
-class sinsp_container_info;
 
+#include "cgroup_limits.h"
 #include "container_engine/container_engine.h"
+#include "container_info.h"
 
 namespace runtime {
 namespace v1alpha2 {
@@ -36,6 +37,42 @@ class ContainerStatusResponse;
 
 namespace libsinsp {
 namespace container_engine {
+
+/**
+ * Asynchronous metadata lookup for CRI containers
+ *
+ * There are two related reasons for asynchronous lookup:
+ * 1. Not blocking the main event processing thread
+ *
+ * 2. Apparently CRI can fail to find a freshly created container
+ * for a short while, so we should delay the query a bit.
+ */
+class cri_async_source : public sysdig::async_key_value_source<
+        libsinsp::cgroup_limits::cgroup_limits_key,
+        sinsp_container_info>
+{
+public:
+	explicit cri_async_source(sinsp_container_manager* manager, uint64_t ttl_ms) :
+		async_key_value_source(NO_WAIT_LOOKUP, ttl_ms),
+		m_container_manager(manager)
+	{
+	}
+
+	void quiesce() {
+		async_key_value_source::stop();
+	}
+
+	bool lookup_sync(const libsinsp::cgroup_limits::cgroup_limits_key& key,
+		    sinsp_container_info& value);
+
+	bool parse_cri(sinsp_container_info& container, const libsinsp::cgroup_limits::cgroup_limits_key& key);
+private:
+	bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info& container);
+	void run_impl() override;
+
+	sinsp_container_manager* m_container_manager;
+};
+
 class cri : public resolver
 {
 public:
@@ -46,10 +83,10 @@ public:
 	static void set_cri_socket_path(const std::string& path);
 	static void set_cri_timeout(int64_t timeout_ms);
 	static void set_extra_queries(bool extra_queries);
+	static void set_async(bool async_limits);
 
 private:
-	bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info &container, sinsp_threadinfo *tinfo);
-	bool parse_cri(sinsp_container_info &container, sinsp_threadinfo *tinfo);
+	std::unique_ptr<cri_async_source> m_async_source;
 };
 }
 }

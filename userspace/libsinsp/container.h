@@ -128,6 +128,7 @@ public:
 	void set_cri_extra_queries(bool extra_queries);
 	void set_cri_socket_path(const std::string& path);
 	void set_cri_timeout(int64_t timeout_ms);
+	void set_cri_async(bool async);
 	sinsp* get_inspector() { return m_inspector; }
 
 	/**
