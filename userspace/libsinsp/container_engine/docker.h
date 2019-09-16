@@ -131,7 +131,7 @@ public:
 	}
 #endif
 protected:
-	void parse_docker_async(std::string &container_id, sinsp_container_manager *manager);
+	void parse_docker_async(const std::string& container_id, sinsp_container_manager *manager);
 
 	std::unique_ptr<docker_async_source> m_docker_info_source;
 

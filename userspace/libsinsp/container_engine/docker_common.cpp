@@ -404,7 +404,7 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	return container_info->is_successful();
 }
 
-void docker::parse_docker_async(std::string &container_id, sinsp_container_manager *manager)
+void docker::parse_docker_async(const string& container_id, sinsp_container_manager *manager)
 {
 	auto cb = [manager](const std::string &container_id, const sinsp_container_info &res)
         {
