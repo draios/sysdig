@@ -4,6 +4,25 @@
 #include <utility>
 #include "async_key_value_source.h"
 
+namespace {
+bool less_than(const std::string& lhs, const std::string& rhs, bool if_equal=false)
+{
+	int cmp = lhs.compare(rhs);
+	if(cmp < 0)
+	{
+		return true;
+	}
+	else if(cmp > 0)
+	{
+		return false;
+	}
+	else
+	{
+		return if_equal;
+	}
+}
+}
+
 namespace libsinsp {
 namespace cgroup_limits {
 
@@ -11,6 +30,7 @@ namespace cgroup_limits {
  * \brief The key for cgroup value lookup
  *
  * It's effectively a (container_id, cpu_cgroup, mem_cgroup) tuple
+ * that can be used as a hash key.
  */
 struct cgroup_limits_key {
 	cgroup_limits_key() :
@@ -22,6 +42,20 @@ struct cgroup_limits_key {
 		m_container_id(std::move(container_id)),
 		m_cpu_cgroup(std::move(cpu_cgroup_dir)),
 		m_mem_cgroup(std::move(mem_cgroup_dir)) {}
+
+	bool operator<(const cgroup_limits_key& rhs) const
+	{
+		return less_than(m_container_id, rhs.m_container_id,
+				 less_than(m_cpu_cgroup, rhs.m_cpu_cgroup,
+					   less_than(m_mem_cgroup, rhs.m_mem_cgroup)));
+	}
+
+	bool operator==(const cgroup_limits_key& rhs) const
+	{
+		return m_container_id == rhs.m_container_id &&
+		       m_cpu_cgroup == rhs.m_cpu_cgroup &&
+		       m_mem_cgroup == rhs.m_mem_cgroup;
+	}
 
 	explicit operator const std::string&() const
 	{
@@ -71,4 +105,20 @@ struct cgroup_limits_value {
 bool get_cgroup_resource_limits(const cgroup_limits_key& key, cgroup_limits_value& value, bool name_check = true);
 
 }
+}
+
+namespace std {
+/**
+ * \brief Specialization of std::hash for cgroup_limits_key
+ *
+ * It allows `cgroup_limits_key` instances to be used as `unordered_map` keys
+ */
+template<> struct hash<libsinsp::cgroup_limits::cgroup_limits_key> {
+	std::size_t operator()(const libsinsp::cgroup_limits::cgroup_limits_key& h) const {
+		size_t h1 = ::std::hash<std::string>{}(h.m_container_id);
+		size_t h2 = ::std::hash<std::string>{}(h.m_cpu_cgroup);
+		size_t h3 = ::std::hash<std::string>{}(h.m_mem_cgroup);
+		return h1 ^ (h2 << 1u) ^ (h3 << 2u);
+	}
+};
 }
