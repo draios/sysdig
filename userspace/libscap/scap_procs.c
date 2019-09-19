@@ -259,7 +259,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 	}
 
 	size_t ssres = fread(line, 1, sizeof(line) - 1, f);
-	if(ssres < 0)
+	if(ssres == 0)
 	{
 		ASSERT(false);
 		fclose(f);
