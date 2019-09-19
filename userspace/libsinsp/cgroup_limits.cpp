@@ -42,17 +42,13 @@ bool read_cgroup_val(std::shared_ptr<std::string>& subsys,
 namespace libsinsp {
 namespace cgroup_limits {
 
-bool get_cgroup_resource_limits(const cgroup_limits_key& key, cgroup_limits_value& value, bool report_no_cgroup)
+bool get_cgroup_resource_limits(const cgroup_limits_key& key, cgroup_limits_value& value, bool name_check)
 {
 	bool found_all = true;
-	auto no_cg_log_level = report_no_cgroup
-		? sinsp_logger::SEV_INFO
-		: sinsp_logger::SEV_DEBUG;
-
 	std::shared_ptr<std::string> memcg_root = sinsp::lookup_cgroup_dir("memory");
-	if(key.m_mem_cgroup.find(key.m_container_id) == std::string::npos)
+	if(name_check && key.m_mem_cgroup.find(key.m_container_id) == std::string::npos)
 	{
-		g_logger.format(no_cg_log_level, "(cgroup-limits) mem cgroup for container [%s]: %s/%s -- no per-container memory cgroup, ignoring",
+		g_logger.format(sinsp_logger::SEV_INFO, "(cgroup-limits) mem cgroup for container [%s]: %s/%s -- no per-container memory cgroup, ignoring",
 			key.m_container_id.c_str(), memcg_root->c_str(), key.m_mem_cgroup.c_str());
 	}
 	else
@@ -63,9 +59,9 @@ bool get_cgroup_resource_limits(const cgroup_limits_key& key, cgroup_limits_valu
 	}
 
 	std::shared_ptr<std::string> cpucg_root = sinsp::lookup_cgroup_dir("cpu");
-	if(key.m_cpu_cgroup.find(key.m_container_id) == std::string::npos)
+	if(name_check && key.m_cpu_cgroup.find(key.m_container_id) == std::string::npos)
 	{
-		g_logger.format(no_cg_log_level, "(cgroup-limits) cpu cgroup for container [%s]: %s/%s -- no per-container CPU cgroup, ignoring",
+		g_logger.format(sinsp_logger::SEV_INFO, "(cgroup-limits) cpu cgroup for container [%s]: %s/%s -- no per-container CPU cgroup, ignoring",
 				key.m_container_id.c_str(), cpucg_root->c_str(), key.m_cpu_cgroup.c_str());
 	}
 	else
