@@ -56,10 +56,10 @@ struct cgroup_limits_value {
  * @param key the container to read limits for
  * @param value output value. when the return value is false, specific fields
  *         may or may not have been modified
- * @param report_no_cgroup if true, log a message when the container doesn't
- *         use its own cgroups for mem/cpu and we ignore the values.
- *         We want to log this only once since the cgroups will stay the same
- *         during subsequent lookups
+ * @param name_check if true and the container doesn't use its own cgroups
+ *         for mem/cpu, we log a message and we ignore the values.
+ *         "Use its own cgroups" means the container id is present in the cgroup
+ *         path, which may not be true for all container engines.
  * @return true when all values have been successfully read, false otherwise
  *
  * Note: reading a zero/negative/very large value is considered a failure,
@@ -68,7 +68,7 @@ struct cgroup_limits_value {
  * in the future", while `true` means we really don't expect them to change
  * any more.
  */
-bool get_cgroup_resource_limits(const cgroup_limits_key& key, cgroup_limits_value& value, bool report_no_cgroup = true);
+bool get_cgroup_resource_limits(const cgroup_limits_key& key, cgroup_limits_value& value, bool name_check = true);
 
 }
 }
