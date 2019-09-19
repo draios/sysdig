@@ -78,6 +78,7 @@ or GPL2.txt for full copies of the license.
 #include "ppm_events.h"
 #include "ppm.h"
 #include "ppm_flag_helpers.h"
+#include "ppm_version.h"
 
 /*
  * The kernel patched with grsecurity makes the default access_ok trigger a
@@ -87,10 +88,10 @@ or GPL2.txt for full copies of the license.
 #ifdef access_ok_noprefault
 #define ppm_access_ok access_ok_noprefault
 #else
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
-#define ppm_access_ok(type, addr, size)	access_ok(type, addr, size)
-#else
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)) || (PPM_RHEL_RELEASE_CODE > 0 && PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 1))
 #define ppm_access_ok(type, addr, size)	access_ok(addr, size)
+#else
+#define ppm_access_ok(type, addr, size)	access_ok(type, addr, size)
 #endif
 #endif
 
@@ -713,6 +714,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 		break;
 	case PT_FLAGS32:
 	case PT_UINT32:
+	case PT_MODE:
 	case PT_UID:
 	case PT_GID:
 	case PT_SIGSET:
@@ -1200,7 +1202,7 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 {
 	int32_t res;
 	const struct iovec *iov;
-	u32 copylen;
+	u64 copylen;
 	u32 j;
 	u64 size = 0;
 	unsigned long bufsize;
@@ -1212,6 +1214,9 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 	size_t tocopy_len;
 
 	copylen = iovcnt * sizeof(struct iovec);
+
+	if (unlikely(iovcnt >= 0xffffffff))
+		return PPM_FAILURE_BUFFER_FULL;
 
 	if (unlikely(copylen >= STR_STORAGE_SIZE))
 		return PPM_FAILURE_BUFFER_FULL;
@@ -1338,7 +1343,7 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 {
 	int32_t res;
 	const struct compat_iovec *iov;
-	u32 copylen;
+	u64 copylen;
 	u32 j;
 	u64 size = 0;
 	unsigned long bufsize;
@@ -1350,6 +1355,9 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 	compat_size_t tocopy_len;
 
 	copylen = iovcnt * sizeof(struct compat_iovec);
+
+	if (unlikely(iovcnt >= 0xffffffff))
+		return PPM_FAILURE_BUFFER_FULL;
 
 	if (unlikely(copylen >= STR_STORAGE_SIZE))
 		return PPM_FAILURE_BUFFER_FULL;

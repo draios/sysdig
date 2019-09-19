@@ -51,10 +51,6 @@ docker::docker()
 
 void docker::cleanup()
 {
-	if (m_docker_info_source)
-	{
-		m_docker_info_source->quiesce();
-	}
 	m_docker_info_source.reset(NULL);
 }
 
@@ -221,7 +217,7 @@ bool docker::detect_docker(const sinsp_threadinfo *tinfo, std::string &container
 	if(matches_runc_cgroups(tinfo, DOCKER_CGROUP_LAYOUT, container_id))
 	{
 		// The container name is only available in windows
-		container_name = "";
+		container_name = s_incomplete_info_name;
 
 		return true;
 	}

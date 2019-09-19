@@ -60,7 +60,7 @@ sinsp_container_type get_cri_runtime_type(const std::string &runtime_name)
 	}
 }
 
-bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info *container)
+bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info &container)
 {
 	// image_ref may be one of two forms:
 	// host/image@sha256:digest
@@ -84,25 +84,25 @@ bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_con
 	sinsp_utils::split_container_image(status.image().image(),
 					   hostname,
 					   port,
-					   container->m_imagerepo,
-					   container->m_imagetag,
+					   container.m_imagerepo,
+					   container.m_imagetag,
 					   digest,
 					   false);
-	container->m_image = status.image().image();
+	container.m_image = status.image().image();
 
 
 	if(have_digest)
 	{
-		container->m_imagedigest = image_ref.substr(digest_start);
+		container.m_imagedigest = image_ref.substr(digest_start);
 	}
 	else
 	{
-		container->m_imagedigest = digest;
+		container.m_imagedigest = digest;
 	}
 	return true;
 }
 
-bool parse_cri_mounts(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info *container)
+bool parse_cri_mounts(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info &container)
 {
 	for(const auto &mount : status.mounts())
 	{
@@ -122,7 +122,7 @@ bool parse_cri_mounts(const runtime::v1alpha2::ContainerStatus &status, sinsp_co
 			propagation = "unknown";
 			break;
 		}
-		container->m_mounts.emplace_back(
+		container.m_mounts.emplace_back(
 			mount.host_path(),
 			mount.container_path(),
 			"",
@@ -168,7 +168,7 @@ bool set_numeric(const Json::Value &dict, const std::string &key, int64_t &val)
 	return true;
 }
 
-bool parse_cri_env(const Json::Value &info, sinsp_container_info *container)
+bool parse_cri_env(const Json::Value &info, sinsp_container_info &container)
 {
 	const Json::Value *envs;
 	if(!walk_down_json(info, &envs, "config", "envs") || !envs->isArray())
@@ -186,14 +186,14 @@ bool parse_cri_env(const Json::Value &info, sinsp_container_info *container)
 			auto var = key.asString();
 			var += '=';
 			var += value.asString();
-			container->m_env.emplace_back(var);
+			container.m_env.emplace_back(var);
 		}
 	}
 
 	return true;
 }
 
-bool parse_cri_json_image(const Json::Value &info, sinsp_container_info *container)
+bool parse_cri_json_image(const Json::Value &info, sinsp_container_info &container)
 {
 	const Json::Value *image;
 	if(!walk_down_json(info, &image, "config", "image", "image") || !image->isString())
@@ -205,16 +205,16 @@ bool parse_cri_json_image(const Json::Value &info, sinsp_container_info *contain
 	auto pos = image_str.find(':');
 	if(pos == string::npos)
 	{
-		container->m_imageid = move(image_str);
+		container.m_imageid = move(image_str);
 	} else
 	{
-		container->m_imageid = image_str.substr(pos + 1);
+		container.m_imageid = image_str.substr(pos + 1);
 	}
 
 	return true;
 }
 
-bool parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info *container)
+bool parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info &container)
 {
 	const Json::Value *linux = nullptr;
 	if(!walk_down_json(info, &linux, "runtimeSpec", "linux") || !linux->isObject())
@@ -225,22 +225,22 @@ bool parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info *conta
 	const Json::Value *memory = nullptr;
 	if(walk_down_json(*linux, &memory, "resources", "memory"))
 	{
-		set_numeric(*memory, "limit", container->m_memory_limit);
-		container->m_swap_limit = container->m_memory_limit;
+		set_numeric(*memory, "limit", container.m_memory_limit);
+		container.m_swap_limit = container.m_memory_limit;
 	}
 
 	const Json::Value *cpu = nullptr;
 	if(walk_down_json(*linux, &cpu, "resources", "cpu") && cpu->isObject())
 	{
-		set_numeric(*cpu, "shares", container->m_cpu_shares);
-		set_numeric(*cpu, "quota", container->m_cpu_quota);
-		set_numeric(*cpu, "period", container->m_cpu_period);
+		set_numeric(*cpu, "shares", container.m_cpu_shares);
+		set_numeric(*cpu, "quota", container.m_cpu_quota);
+		set_numeric(*cpu, "period", container.m_cpu_period);
 	}
 
 	const Json::Value *privileged;
 	if(walk_down_json(*linux, &privileged, "security_context", "privileged") && privileged->isBool())
 	{
-		container->m_privileged = privileged->asBool();
+		container.m_privileged = privileged->asBool();
 	}
 
 	return true;

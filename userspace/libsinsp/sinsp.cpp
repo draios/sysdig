@@ -104,6 +104,7 @@ sinsp::sinsp() :
 #endif
 	m_n_proc_lookups = 0;
 	m_n_proc_lookups_duration_ns = 0;
+	m_n_main_thread_lookups = 0;
 	m_snaplen = DEFAULT_SNAPLEN;
 	m_buffer_format = sinsp_evt::PF_NORMAL;
 	m_input_fd = 0;
@@ -312,6 +313,7 @@ void sinsp::init()
 	m_fds_to_remove->clear();
 	m_n_proc_lookups = 0;
 	m_n_proc_lookups_duration_ns = 0;
+	m_n_main_thread_lookups = 0;
 
 	//
 	// Return the tracers to the pool and clear the tracers list
@@ -1441,7 +1443,7 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 	return &*get_thread_ref(tid, query_os_if_not_found, lookup_only);
 }
 
-threadinfo_map_t::ptr_t sinsp::get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only)
+threadinfo_map_t::ptr_t sinsp::get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only, bool main_thread)
 {
 	auto sinsp_proc = find_thread(tid, lookup_only);
 
@@ -1466,6 +1468,11 @@ threadinfo_map_t::ptr_t sinsp::get_thread_ref(int64_t tid, bool query_os_if_not_
 		sinsp_threadinfo* newti = new sinsp_threadinfo(this);
 
 		m_n_proc_lookups++;
+
+		if(main_thread)
+		{
+			m_n_main_thread_lookups++;
+		}
 
 		if(m_n_proc_lookups == m_max_n_proc_lookups)
 		{
@@ -1948,7 +1955,7 @@ void sinsp::add_chisel_dir(string dirname, bool front_add)
 
 	chiseldir_info ncdi;
 
-	strcpy(ncdi.m_dir, dirname.c_str());
+	ncdi.m_dir = std::move(dirname);
 	ncdi.m_need_to_resolve = false;
 
 	if(front_add)

@@ -24,8 +24,15 @@ limitations under the License.
 
 class sinsp_container_manager;
 class sinsp_threadinfo;
+class sinsp_container_info;
 
 #include "container_engine/container_engine.h"
+
+namespace runtime {
+namespace v1alpha2 {
+class ContainerStatusResponse;
+}
+}
 
 namespace libsinsp {
 namespace container_engine {
@@ -39,6 +46,10 @@ public:
 	static void set_cri_socket_path(const std::string& path);
 	static void set_cri_timeout(int64_t timeout_ms);
 	static void set_extra_queries(bool extra_queries);
+
+private:
+	bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info &container, sinsp_threadinfo *tinfo);
+	bool parse_cri(sinsp_container_info &container, sinsp_threadinfo *tinfo);
 };
 }
 }

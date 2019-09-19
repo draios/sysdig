@@ -32,19 +32,20 @@ limitations under the License.
 
 #include "json/json.h"
 
-#include "async_container.h"
+#include "async_key_value_source.h"
+
+#include "container.h"
 #include "container_info.h"
+
 #include "container_engine/container_engine.h"
 
 class sinsp;
-class sinsp_container_manager;
-class sinsp_container_info;
 class sinsp_threadinfo;
 
 namespace libsinsp {
 namespace container_engine {
 
-class docker_async_source : public sysdig::async_container_source<std::string>
+class docker_async_source : public sysdig::async_key_value_source<std::string, sinsp_container_info>
 {
 	enum docker_response
 	{
@@ -73,7 +74,7 @@ private:
 	std::string build_request(const std::string& url);
 	docker_response get_docker(const std::string& url, std::string &json);
 
-	bool parse_docker(std::string &container_id, sinsp_container_info *container);
+	bool parse_docker(std::string &container_id, sinsp_container_info &container);
 
 	// Look for a pod specification in this container's labels and
 	// if found set spec to the pod spec.
@@ -85,19 +86,19 @@ private:
 	// Parse a healthcheck out of the provided healthcheck object,
 	// updating the container info with any healthcheck found.
 	void parse_healthcheck(const Json::Value &healthcheck_obj,
-			       sinsp_container_info *container);
+			       sinsp_container_info &container);
 
 	// Parse either a readiness or liveness probe out of the
 	// provided object, updating the container info with any probe
 	// found.
 	bool parse_liveness_readiness_probe(const Json::Value &probe_obj,
 					    sinsp_container_info::container_health_probe::probe_type ptype,
-					    sinsp_container_info *container);
+					    sinsp_container_info &container);
 
 	// Parse all healthchecks/liveness probes/readiness probes out
 	// of the provided object, updating the container info as required.
 	void parse_health_probes(const Json::Value &config_obj,
-				 sinsp_container_info *container);
+				 sinsp_container_info &container);
 
 	sinsp *m_inspector;
 
@@ -130,7 +131,11 @@ public:
 	}
 #endif
 protected:
+	void parse_docker_async(const std::string& container_id, sinsp_container_manager *manager);
+
 	std::unique_ptr<docker_async_source> m_docker_info_source;
+
+	static std::string s_incomplete_info_name;
 #ifndef _WIN32
 	static std::string m_docker_sock;
 #endif

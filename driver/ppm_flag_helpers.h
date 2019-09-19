@@ -1294,4 +1294,58 @@ static __always_inline u32 linkat_flags_to_scap(unsigned long flags)
 	return res;
 }
 
+static __always_inline u32 chmod_mode_to_scap(unsigned long modes)
+{
+	u32 res = 0;
+	if (modes & S_IRUSR)
+		res |= PPM_S_IRUSR;
+
+	if (modes & S_IWUSR)
+		res |= PPM_S_IWUSR;
+
+	if (modes & S_IXUSR)
+		res |= PPM_S_IXUSR;
+
+	/*
+	 * PPM_S_IRWXU == S_IRUSR | S_IWUSR | S_IXUSR
+	 */
+
+	if (modes & S_IRGRP)
+		res |= PPM_S_IRGRP;
+
+	if (modes & S_IWGRP)
+		res |= PPM_S_IWGRP;
+
+	if (modes & S_IXGRP)
+		res |= PPM_S_IXGRP;
+
+	/*
+	 * PPM_S_IRWXG == S_IRGRP | S_IWGRP | S_IXGRP
+	 */
+
+	if (modes & S_IROTH)
+		res |= PPM_S_IROTH;
+
+	if (modes & S_IWOTH)
+		res |= PPM_S_IWOTH;
+
+	if (modes & S_IXOTH)
+		res |= PPM_S_IXOTH;
+
+	/*
+	 * PPM_S_IRWXO == S_IROTH | S_IWOTH | S_IXOTH
+	 */
+
+	if (modes & S_ISUID)
+		res |= PPM_S_ISUID;
+
+	if (modes & S_ISGID)
+		res |= PPM_S_ISGID;
+
+	if (modes & S_ISVTX)
+		res |= PPM_S_ISVTX;
+
+	return res;
+}
+
 #endif /* PPM_FLAG_HELPERS_H_ */

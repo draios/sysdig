@@ -28,7 +28,7 @@ limitations under the License.
 #include "cri.pb.h"
 #include "cri.grpc.pb.h"
 
-#include "async_cgroup.h"
+#include "cgroup_limits.h"
 #include "runc.h"
 #include "container_engine/mesos.h"
 #include "grpc_channel_registry.h"
@@ -41,15 +41,17 @@ using namespace libsinsp::container_engine;
 using namespace libsinsp::runc;
 
 namespace {
-// how long do we wait
-constexpr uint64_t CGROUP_LOOKUP_DELAY_MS = 1000;
+constexpr const cgroup_layout CRI_CGROUP_LAYOUT[] = {
+	{"/", ""}, // non-systemd containerd
+	{"/crio-", ""}, // non-systemd cri-o
+	{"/cri-containerd-", ".scope"}, // systemd containerd
+	{"/crio-", ".scope"}, // systemd cri-o
+	{nullptr, nullptr}
+};
+}
 
-// how long do we wait on cgroup lookup result before giving up
-// Note: this value includes the initial delay
-constexpr uint64_t CGROUP_MAX_DELAY_MS = 2000;
-libsinsp::async_cgroup::delayed_cgroup_lookup s_async_cgroups(0, CGROUP_MAX_DELAY_MS);
 
-bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info *container, sinsp_threadinfo *tinfo)
+bool cri::parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info &container, sinsp_threadinfo *tinfo)
 {
 	const auto &info_it = status.info().find("info");
 	if(info_it == status.info().end())
@@ -72,36 +74,17 @@ bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, 
 	if(root.isMember("sandboxID") && root["sandboxID"].isString())
 	{
 		const auto pod_sandbox_id = root["sandboxID"].asString();
-		container->m_container_ip = ntohl(get_pod_sandbox_ip(pod_sandbox_id));
+		container.m_container_ip = ntohl(get_pod_sandbox_ip(pod_sandbox_id));
 	}
 
 	return true;
 }
 
-bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container, sinsp_threadinfo *tinfo)
+bool cri::parse_cri(sinsp_container_info &container, sinsp_threadinfo *tinfo)
 {
-	if(!s_cri)
-	{
-		// This isn't an error in the case where the
-		// configured unix domain socket doesn't exist. In
-		// that case, s_cri isn't initialized at all. Hence,
-		// the DEBUG.
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"cri (%s): Could not parse cri (no s_cri object)",
-				container->m_id.c_str());
-		return false;
-	}
-
-	container->m_name = "";
-	container->m_image = "";
-	container->m_imageid = "";
-	container->m_imagerepo = "";
-	container->m_imagetag = "";
-	container->m_imagedigest = "";
-
 	runtime::v1alpha2::ContainerStatusRequest req;
 	runtime::v1alpha2::ContainerStatusResponse resp;
-	req.set_container_id(container->m_id);
+	req.set_container_id(container.m_id);
 	req.set_verbose(true);
 	grpc::ClientContext context;
 	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
@@ -110,18 +93,18 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"cri (%s): Status from ContainerStatus: (%s)",
-			container->m_id.c_str(),
+			container.m_id.c_str(),
 			status.error_message().c_str());
 
 	if(!status.ok())
 	{
-		if(is_pod_sandbox(container->m_id))
+		if(is_pod_sandbox(container.m_id))
 		{
-			container->m_is_pod_sandbox = true;
+			container.m_is_pod_sandbox = true;
 			return true;
 		}
 		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): id is neither a container nor a pod sandbox",
-			container->m_id.c_str());
+			container.m_id.c_str());
 		return false;
 	}
 
@@ -132,11 +115,11 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 	}
 
 	const auto &resp_container = resp.status();
-	container->m_name = resp_container.metadata().name();
+	container.m_name = resp_container.metadata().name();
 
 	for(const auto &pair : resp_container.labels())
 	{
-		container->m_labels[pair.first] = pair.second;
+		container.m_labels[pair.first] = pair.second;
 	}
 
 	parse_cri_image(resp_container, container);
@@ -147,47 +130,25 @@ bool parse_cri(sinsp_container_manager *manager, sinsp_container_info *container
 		return true;
 	}
 
-	libsinsp::async_cgroup::delayed_cgroup_key key(
-		container->m_id,
+	libsinsp::cgroup_limits::cgroup_limits_key key(
+		container.m_id,
 		tinfo->get_cgroup("cpu"),
 		tinfo->get_cgroup("memory"));
-	libsinsp::async_cgroup::delayed_cgroup_value limits;
-	bool found_all = libsinsp::async_cgroup::get_cgroup_resource_limits(key, limits);
+	libsinsp::cgroup_limits::cgroup_limits_value limits;
+	libsinsp::cgroup_limits::get_cgroup_resource_limits(key, limits);
 
-	container->m_memory_limit = limits.m_memory_limit;
-	container->m_cpu_shares = limits.m_cpu_shares;
-	container->m_cpu_quota = limits.m_cpu_quota;
-	container->m_cpu_period = limits.m_cpu_period;
-
-	if(!found_all)
-	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-			"cri (%s) not all limits read from cgroups, will retry in %d ms",
-			container->m_id.c_str(), CGROUP_LOOKUP_DELAY_MS);
-
-		auto cb = [manager](const libsinsp::async_cgroup::delayed_cgroup_key& key, const libsinsp::async_cgroup::delayed_cgroup_value& value) {
-			libsinsp::async_cgroup::delayed_cgroup_lookup::update(manager, key, value);
-		};
-
-		s_async_cgroups.lookup_delayed(key, limits, std::chrono::milliseconds(CGROUP_LOOKUP_DELAY_MS), cb);
-	}
+	container.m_memory_limit = limits.m_memory_limit;
+	container.m_cpu_shares = limits.m_cpu_shares;
+	container.m_cpu_quota = limits.m_cpu_quota;
+	container.m_cpu_period = limits.m_cpu_period;
 
 	if(s_cri_extra_queries)
 	{
-		container->m_container_ip = get_container_ip(container->m_id);
-		container->m_imageid = get_container_image_id(resp_container.image_ref());
+		container.m_container_ip = get_container_ip(container.m_id);
+		container.m_imageid = get_container_image_id(resp_container.image_ref());
 	}
 
 	return true;
-}
-
-constexpr const cgroup_layout CRI_CGROUP_LAYOUT[] = {
-	{"/", ""}, // non-systemd containerd
-	{"/crio-", ""}, // non-systemd cri-o
-	{"/cri-containerd-", ".scope"}, // systemd containerd
-	{"/crio-", ".scope"}, // systemd cri-o
-	{nullptr, nullptr}
-};
 }
 
 cri::cri()
@@ -230,7 +191,6 @@ cri::cri()
 
 void cri::cleanup()
 {
-	s_async_cgroups.quiesce();
 	s_cri.reset(nullptr);
 	s_cri_image.reset(nullptr);
 	s_cri_extra_queries = true;
@@ -252,49 +212,56 @@ void cri::set_extra_queries(bool extra_queries) {
 
 bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
-	sinsp_container_info container_info;
-	sinsp_container_info *existing_container_info;
+	std::string container_id;
 
-	if(!matches_runc_cgroups(tinfo, CRI_CGROUP_LAYOUT, container_info.m_id))
+	if(!matches_runc_cgroups(tinfo, CRI_CGROUP_LAYOUT, container_id))
 	{
 		return false;
 	}
-	tinfo->m_container_id = container_info.m_id;
+	tinfo->m_container_id = container_id;
 
-	existing_container_info = manager->get_container(container_info.m_id);
-
-	if (!existing_container_info ||
-	    existing_container_info->query_anyway(s_cri_runtime_type))
+	if(!manager->should_lookup(container_id, s_cri_runtime_type))
 	{
-		if (query_os_for_missing_info)
+		return true;
+	}
+
+	auto container = std::make_shared<sinsp_container_info>();
+	container->m_id = container_id;
+	if (query_os_for_missing_info)
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"cri (%s): Performing lookup",
+				container_id.c_str());
+
+		if(!s_cri)
 		{
+			// This isn't an error in the case where the
+			// configured unix domain socket doesn't exist. In
+			// that case, s_cri isn't initialized at all. Hence,
+			// the DEBUG.
 			g_logger.format(sinsp_logger::SEV_DEBUG,
-					"cri (%s): Performing lookup",
-					container_info.m_id.c_str());
-
-			container_info.m_successful = parse_cri(manager, &container_info, tinfo);
-			if (!container_info.m_successful)
-			{
-				g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to get CRI metadata for container",
-						container_info.m_id.c_str());
-				return false;
-			}
-
-			// If here, parse_cri succeeded so we can
-			// assign an actual type.
-			container_info.m_type = s_cri_runtime_type;
-
+					"cri (%s): Could not parse cri (no s_cri object)",
+					container_id.c_str());
+			return false;
 		}
-		if (mesos::set_mesos_task_id(&container_info, tinfo))
+
+		container->m_type = s_cri_runtime_type;
+		container->m_lookup_state = sinsp_container_lookup_state::SUCCESSFUL;
+		if (!parse_cri(*container, tinfo))
 		{
-			g_logger.format(sinsp_logger::SEV_DEBUG,
-					"cri (%s) Mesos CRI container, Mesos task ID: [%s]",
-					container_info.m_id.c_str(), container_info.m_mesos_task_id.c_str());
-		}
-		if (manager->update_container(container_info) && container_info.m_successful)
-		{
-			manager->notify_new_container(container_info);
+			g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to get CRI metadata for container",
+					container_id.c_str());
+			container->m_lookup_state = sinsp_container_lookup_state::FAILED;
+			manager->notify_new_container(*container);
+			return false;
 		}
 	}
+	if (mesos::set_mesos_task_id(*container, tinfo))
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"cri (%s) Mesos CRI container, Mesos task ID: [%s]",
+				container_id.c_str(), container->m_mesos_task_id.c_str());
+	}
+	manager->notify_new_container(*container);
 	return true;
 }

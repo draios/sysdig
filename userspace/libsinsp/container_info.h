@@ -45,6 +45,14 @@ enum sinsp_container_type
 	CT_BPM = 9,
 };
 
+namespace std {
+template<> struct hash<sinsp_container_type> {
+	std::size_t operator()(const sinsp_container_type& h) const {
+		return std::hash<int>{}(static_cast<int>(h));
+	}
+};
+}
+
 class sinsp_threadinfo;
 
 // Docker and CRI-compatible runtimes are very similar
@@ -56,9 +64,28 @@ static inline bool is_docker_compatible(sinsp_container_type t)
 		t == CT_CRIO;
 }
 
+/**
+ * \brief the state of a container metadata lookup
+ *
+ * Some container engines (Docker, CRI) do external API calls to find container
+ * metadata. This value stores the state of the lookup (a separate value is kept
+ * for each container_id/engine pair). The purpose is to avoid repeated lookups
+ * after failure, especially when multiple engines match against the same process
+ * (e.g. Docker and containerd may use the same cgroup layout).
+ *
+ * If all engines fail to find metadata for a container, we need to remember that
+ * for each engine individually and there's only one sinsp_container_info->m_type
+ */
+enum class sinsp_container_lookup_state {
+	STARTED = 0,
+	SUCCESSFUL = 1,
+	FAILED = 2
+};
+
 class sinsp_container_info
 {
 public:
+	using ptr_t = std::shared_ptr<const sinsp_container_info>;
 
 	class container_port_mapping
 	{
@@ -182,9 +209,9 @@ public:
 		m_cpu_shares(1024),
 		m_cpu_quota(0),
 		m_cpu_period(100000),
+		m_cpuset_cpu_count(0),
 		m_is_pod_sandbox(false),
-		m_metadata_complete(true),
-		m_successful(true),
+		m_lookup_state(sinsp_container_lookup_state::SUCCESSFUL),
 		m_metadata_deadline(0)
 	{
 	}
@@ -199,17 +226,14 @@ public:
 		return m_is_pod_sandbox;
 	}
 
-	// should we start a query for this container id but with type `type`?
-	// yes, if the container as we know it is of another type
-	// and it's either in flight (i.e. may yet fail) or unsuccessful
-	bool query_anyway(sinsp_container_type type) const {
-		return m_type != type && (!m_successful || !m_metadata_complete);
+	bool is_successful() const {
+		return m_lookup_state == sinsp_container_lookup_state::SUCCESSFUL;
 	}
 
 	std::shared_ptr<sinsp_threadinfo> get_tinfo(sinsp* inspector) const;
 
 	// Match a process against the set of health probes
-	container_health_probe::probe_type match_health_probe(sinsp_threadinfo *tinfo);
+	container_health_probe::probe_type match_health_probe(sinsp_threadinfo *tinfo) const;
 
 	std::string m_id;
 	sinsp_container_type m_type;
@@ -231,17 +255,12 @@ public:
 	int64_t m_cpu_shares;
 	int64_t m_cpu_quota;
 	int64_t m_cpu_period;
+	int32_t m_cpuset_cpu_count;
 	std::list<container_health_probe> m_health_probes;
 
 	bool m_is_pod_sandbox;
 
-	// If false, this represents incomplete information about the
-	// container that will be filled in later as a result of an
-	// async fetch of container info.
-	bool m_metadata_complete;
-
-	// if false, the lookup finished unsuccessfully
-	bool m_successful;
+	sinsp_container_lookup_state m_lookup_state;
 #ifdef HAS_ANALYZER
 	std::string m_sysdig_agent_conf;
 #endif

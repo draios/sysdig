@@ -34,8 +34,6 @@ limitations under the License.
 
 using namespace libsinsp;
 
-std::string sinsp_container_manager::s_incomplete_info_name = "incomplete";
-
 sinsp_container_manager::sinsp_container_manager(sinsp* inspector) :
 	m_inspector(inspector),
 	m_last_flush_time_ns(0)
@@ -76,16 +74,16 @@ bool sinsp_container_manager::remove_inactive_containers()
 			return true;
 		});
 
-		auto containers = m_containers.lock();
-		for(auto it = containers->begin(); it != containers->end();)
+		for(auto it = m_containers.begin(); it != m_containers.end();)
 		{
 			if(containers_in_use.find(it->first) == containers_in_use.end())
 			{
+				sinsp_container_info::ptr_t container = it->second;
 				for(const auto &remove_cb : m_remove_callbacks)
 				{
-					remove_cb((*containers)[it->first]);
+					remove_cb(*container);
 				}
-				containers->erase(it++);
+				m_containers.erase(it++);
 			}
 			else
 			{
@@ -97,51 +95,15 @@ bool sinsp_container_manager::remove_inactive_containers()
 	return res;
 }
 
-sinsp_container_info* sinsp_container_manager::get_container(const string& container_id)
+sinsp_container_info::ptr_t sinsp_container_manager::get_container(const string& container_id) const
 {
-	auto containers = m_containers.lock();
-	auto it = containers->find(container_id);
-	if(it != containers->end())
+	auto it = m_containers.find(container_id);
+	if(it != m_containers.end())
 	{
-		return &it->second;
+		return it->second;
 	}
 
 	return nullptr;
-}
-
-sinsp_container_info* sinsp_container_manager::get_or_create_container(
-	sinsp_container_type type, const string& id, const std::string& name, sinsp_threadinfo* tinfo)
-{
-	auto containers = m_containers.lock();
-	auto it = containers->find(id);
-	if(it != containers->end())
-	{
-		return &it->second;
-	}
-
-	// Add a minimal container_info object where only the
-	// container id, (possibly) name, and a container
-	// image = incomplete is filled in. This may be
-	// overridden later once async lookup completes.
-	sinsp_container_info container_info;
-
-	g_logger.format(sinsp_logger::SEV_DEBUG,
-			"container_manager (%s): No existing container info, creating initial stub info with type=%d",
-			id.c_str(), type);
-
-	container_info.m_type = type;
-	container_info.m_id = id;
-	container_info.m_name = name.empty() ? s_incomplete_info_name : name;
-	container_info.m_image = s_incomplete_info_name;
-	container_info.m_imageid = s_incomplete_info_name;
-	container_info.m_imagerepo = s_incomplete_info_name;
-	container_info.m_imagetag = s_incomplete_info_name;
-	container_info.m_imagedigest = s_incomplete_info_name;
-	container_info.m_metadata_complete = false;
-	container_info.m_successful = false;
-
-	add_container(container_info, tinfo, containers);
-	return &(*containers)[id];
 }
 
 bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
@@ -192,6 +154,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["imagedigest"] = container_info.m_imagedigest;
 	container["privileged"] = container_info.m_privileged;
 	container["is_pod_sandbox"] = container_info.m_is_pod_sandbox;
+	container["lookup_state"] = static_cast<int>(container_info.m_lookup_state);
 
 	Json::Value mounts = Json::arrayValue;
 
@@ -258,6 +221,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["cpu_shares"] = (Json::Value::Int64) container_info.m_cpu_shares;
 	container["cpu_quota"] = (Json::Value::Int64) container_info.m_cpu_quota;
 	container["cpu_period"] = (Json::Value::Int64) container_info.m_cpu_period;
+	container["cpuset_cpu_count"] = (Json::Value::Int) container_info.m_cpuset_cpu_count;
 
 	if(!container_info.m_mesos_task_id.empty())
 	{
@@ -311,43 +275,26 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 	return true;
 }
 
-ConstMutexGuard<unordered_map<string, sinsp_container_info>> sinsp_container_manager::get_containers()
+sinsp_container_manager::map_ptr_t sinsp_container_manager::get_containers() const
 {
-	return m_containers.lock();
+	return &m_containers;
 }
 
-void sinsp_container_manager::add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread_info)
+void sinsp_container_manager::add_container(const sinsp_container_info::ptr_t& container_info, sinsp_threadinfo *thread)
 {
-	auto containers = m_containers.lock();
-	add_container(container_info, thread_info, containers);
-}
-
-void sinsp_container_manager::add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread_info,
-	libsinsp::MutexGuard<std::unordered_map<std::string, sinsp_container_info>>& containers)
-{
-	(*containers)[container_info.m_id] = container_info;
+	set_lookup_status(container_info->m_id, container_info->m_type, container_info->m_lookup_state);
+	m_containers[container_info->m_id] = container_info;
 
 	for(const auto &new_cb : m_new_callbacks)
 	{
-		new_cb((*containers)[container_info.m_id], thread_info);
+		new_cb(*container_info, thread);
 	}
 }
 
-bool sinsp_container_manager::update_container(const sinsp_container_info& container_info)
+void sinsp_container_manager::replace_container(const sinsp_container_info::ptr_t& container_info)
 {
-	auto containers = m_containers.lock();
-	auto it = containers->find(container_info.m_id);
-	if(it == containers->end() ||
-		(container_info.m_metadata_complete && !it->second.m_successful))
-	{
-		auto thread_info = container_info.get_tinfo(m_inspector);
-		add_container(container_info, thread_info.get(), containers);
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	ASSERT(m_containers.find(container_info->m_id) != m_containers.end());
+	m_containers[container_info->m_id] = container_info;
 }
 
 void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info)
@@ -376,10 +323,10 @@ void sinsp_container_manager::notify_new_container(const sinsp_container_info& c
 
 void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)
 {
-	for(const auto& it : (*m_containers.lock()))
+	for(const auto& it : m_containers)
 	{
 		sinsp_evt evt;
-		if(container_to_sinsp_event(container_to_json(it.second), &evt, it.second.get_tinfo(m_inspector)))
+		if(container_to_sinsp_event(container_to_json(*it.second), &evt, it.second->get_tinfo(m_inspector)))
 		{
 			int32_t res = scap_dump(m_inspector->m_h, dumper, evt.m_pevt, evt.m_cpuid, 0);
 			if(res != SCAP_SUCCESS)
@@ -390,7 +337,7 @@ void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)
 	}
 }
 
-string sinsp_container_manager::get_container_name(sinsp_threadinfo* tinfo)
+string sinsp_container_manager::get_container_name(sinsp_threadinfo* tinfo) const
 {
 	string res;
 
@@ -400,7 +347,7 @@ string sinsp_container_manager::get_container_name(sinsp_threadinfo* tinfo)
 	}
 	else
 	{
-		const sinsp_container_info *container_info = get_container(tinfo->m_container_id);
+		const sinsp_container_info::ptr_t container_info = get_container(tinfo->m_container_id);
 
 		if(!container_info)
 		{
@@ -425,13 +372,6 @@ void sinsp_container_manager::identify_category(sinsp_threadinfo *tinfo)
 		return;
 	}
 
-	sinsp_container_info *cinfo = get_container(tinfo->m_container_id);
-
-	if(!cinfo)
-	{
-		return;
-	}
-
 	if(tinfo->m_vpid == 1)
 	{
 		if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG)
@@ -447,7 +387,7 @@ void sinsp_container_manager::identify_category(sinsp_threadinfo *tinfo)
 	}
 
 	// Categories are passed from parent to child threads
-	sinsp_threadinfo* ptinfo = tinfo->get_parent_thread();
+	const sinsp_threadinfo* ptinfo = tinfo->get_parent_thread();
 
 	if(ptinfo && ptinfo->m_category != sinsp_threadinfo::CAT_NONE)
 	{
@@ -462,7 +402,13 @@ void sinsp_container_manager::identify_category(sinsp_threadinfo *tinfo)
 		return;
 	}
 
-	if(!cinfo->m_metadata_complete)
+	sinsp_container_info::ptr_t cinfo = get_container(tinfo->m_container_id);
+	if(!cinfo)
+	{
+		return;
+	}
+
+	if(!cinfo->is_successful())
 	{
 		if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG)
 		{

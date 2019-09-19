@@ -43,6 +43,12 @@ void path_prefix_search::add_search_path(const filter_value_t &path)
 	return path_prefix_map<bool>::add_search_path(path, dummy);
 }
 
+void path_prefix_search::add_search_path(const std::string &str)
+{
+	bool dummy = true;
+	return path_prefix_map<bool>::add_search_path(str, dummy);
+}
+
 bool path_prefix_search::match(const char *path)
 {
 	const bool *val = path_prefix_map<bool>::match(path);
