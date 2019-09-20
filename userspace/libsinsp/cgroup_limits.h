@@ -33,15 +33,16 @@ namespace cgroup_limits {
  * that can be used as a hash key.
  */
 struct cgroup_limits_key {
-	cgroup_limits_key() :
-		m_container_id(""),
-		m_cpu_cgroup(""),
-		m_mem_cgroup("") {}
+	cgroup_limits_key() {}
 
-	cgroup_limits_key(std::string container_id, std::string cpu_cgroup_dir, std::string mem_cgroup_dir) :
+	cgroup_limits_key(std::string container_id,
+			  std::string cpu_cgroup_dir,
+			  std::string mem_cgroup_dir,
+			  std::string cpuset_cgroup_dir) :
 		m_container_id(std::move(container_id)),
 		m_cpu_cgroup(std::move(cpu_cgroup_dir)),
-		m_mem_cgroup(std::move(mem_cgroup_dir)) {}
+		m_mem_cgroup(std::move(mem_cgroup_dir)),
+		m_cpuset_cgroup(std::move(cpuset_cgroup_dir)) { }
 
 	bool operator<(const cgroup_limits_key& rhs) const
 	{
@@ -62,9 +63,10 @@ struct cgroup_limits_key {
 		return m_container_id;
 	}
 
-	std::string m_container_id;
-	std::string m_cpu_cgroup;
-	std::string m_mem_cgroup;
+	const std::string m_container_id;
+	const std::string m_cpu_cgroup;
+	const std::string m_mem_cgroup;
+	const std::string m_cpuset_cgroup;
 };
 
 /**
@@ -77,12 +79,14 @@ struct cgroup_limits_value {
 		m_cpu_shares(0),
 		m_cpu_quota(0),
 		m_cpu_period(0),
-		m_memory_limit(0) {}
+		m_memory_limit(0),
+		m_cpuset_cpu_count(0) {}
 
 	int64_t m_cpu_shares;
 	int64_t m_cpu_quota;
 	int64_t m_cpu_period;
 	int64_t m_memory_limit;
+	int32_t m_cpuset_cpu_count;
 };
 
 /**

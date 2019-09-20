@@ -153,7 +153,22 @@ bool walk_down_json(const Json::Value &root, const Json::Value **out, const std:
 	return false;
 }
 
-bool set_numeric(const Json::Value &dict, const std::string &key, int64_t &val)
+bool set_numeric_32(const Json::Value& dict, const std::string& key, int32_t& val)
+{
+	if (!dict.isMember(key))
+	{
+		return false;
+	}
+	const auto& json_val = dict[key];
+	if (!json_val.isNumeric())
+	{
+		return false;
+	}
+	val = json_val.asInt();
+	return true;
+}
+
+bool set_numeric_64(const Json::Value &dict, const std::string &key, int64_t &val)
 {
 	if(!dict.isMember(key))
 	{
@@ -225,16 +240,17 @@ bool parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info &conta
 	const Json::Value *memory = nullptr;
 	if(walk_down_json(*linux, &memory, "resources", "memory"))
 	{
-		set_numeric(*memory, "limit", container.m_memory_limit);
+		set_numeric_64(*memory, "limit", container.m_memory_limit);
 		container.m_swap_limit = container.m_memory_limit;
 	}
 
 	const Json::Value *cpu = nullptr;
 	if(walk_down_json(*linux, &cpu, "resources", "cpu") && cpu->isObject())
 	{
-		set_numeric(*cpu, "shares", container.m_cpu_shares);
-		set_numeric(*cpu, "quota", container.m_cpu_quota);
-		set_numeric(*cpu, "period", container.m_cpu_period);
+		set_numeric_64(*cpu, "shares", container.m_cpu_shares);
+		set_numeric_64(*cpu, "quota", container.m_cpu_quota);
+		set_numeric_64(*cpu, "period", container.m_cpu_period);
+		set_numeric_32(*cpu, "cpuset_cpu_count", container.m_cpuset_cpu_count);
 	}
 
 	const Json::Value *privileged;
