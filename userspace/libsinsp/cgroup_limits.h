@@ -48,14 +48,16 @@ struct cgroup_limits_key {
 	{
 		return less_than(m_container_id, rhs.m_container_id,
 				 less_than(m_cpu_cgroup, rhs.m_cpu_cgroup,
-					   less_than(m_mem_cgroup, rhs.m_mem_cgroup)));
+					   less_than(m_mem_cgroup, rhs.m_mem_cgroup,
+						less_than(m_cpuset_cgroup, rhs.m_cpuset_cgroup))));
 	}
 
 	bool operator==(const cgroup_limits_key& rhs) const
 	{
 		return m_container_id == rhs.m_container_id &&
 		       m_cpu_cgroup == rhs.m_cpu_cgroup &&
-		       m_mem_cgroup == rhs.m_mem_cgroup;
+		       m_mem_cgroup == rhs.m_mem_cgroup &&
+		       m_cpuset_cgroup == rhs.m_cpuset_cgroup;
 	}
 
 	explicit operator const std::string&() const
@@ -63,10 +65,10 @@ struct cgroup_limits_key {
 		return m_container_id;
 	}
 
-	const std::string m_container_id;
-	const std::string m_cpu_cgroup;
-	const std::string m_mem_cgroup;
-	const std::string m_cpuset_cgroup;
+	std::string m_container_id;
+	std::string m_cpu_cgroup;
+	std::string m_mem_cgroup;
+	std::string m_cpuset_cgroup;
 };
 
 /**
@@ -122,7 +124,8 @@ template<> struct hash<libsinsp::cgroup_limits::cgroup_limits_key> {
 		size_t h1 = ::std::hash<std::string>{}(h.m_container_id);
 		size_t h2 = ::std::hash<std::string>{}(h.m_cpu_cgroup);
 		size_t h3 = ::std::hash<std::string>{}(h.m_mem_cgroup);
-		return h1 ^ (h2 << 1u) ^ (h3 << 2u);
+		size_t h4 = ::std::hash<std::string>{}(h.m_cpuset_cgroup);
+		return h1 ^ (h2 << 1u) ^ (h3 << 2u) ^ (h4 << 3u);
 	}
 };
 }

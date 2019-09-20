@@ -23,7 +23,6 @@ constexpr const int64_t CGROUP_VAL_MAX = (1UL << 42u) - 1;
 bool read_cgroup_val(std::shared_ptr<std::string>& subsys,
 		     const std::string& cgroup,
 		     const std::string& filename,
-		     sinsp_logger::severity sev,
 		     int64_t& out)
 {
 	std::string path = *subsys.get() + "/" + cgroup + "/" + filename;
@@ -34,7 +33,7 @@ bool read_cgroup_val(std::shared_ptr<std::string>& subsys,
 
 	if(val <= 0 || val > CGROUP_VAL_MAX)
 	{
-		g_logger.format(sev, "(cgroup-limits) value of %s (%lld) out of range, ignoring",
+		g_logger.format(sinsp_logger::SEV_DEBUG, "(cgroup-limits) value of %s (%lld) out of range, ignoring",
 			path.c_str(), val);
 		return false;
 	}
@@ -48,7 +47,6 @@ bool read_cgroup_val(std::shared_ptr<std::string>& subsys,
 bool read_cgroup_list_count(const std::string& subsys,
 			    const std::string& cgroup,
 			    const std::string& filename,
-			    sinsp_logger::severity severity,
 			    int32_t& out)
 {
 	std::string path = subsys + "/" + cgroup + "/" + filename;
@@ -58,9 +56,9 @@ bool read_cgroup_list_count(const std::string& subsys,
 			    std::istreambuf_iterator<char>());
 
  	libsinsp::cgroup_list_counter counter;
-	out = counter(cpuset_cpus.c_str(), severity);
+	out = counter(cpuset_cpus.c_str());
 
- 	g_logger.format(severity,
+	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"(async-cg) Pulling cpu set from %s: %s = %d",
 			path.c_str(),
 			cpuset_cpus.c_str(),
@@ -87,7 +85,7 @@ bool get_cgroup_resource_limits(const cgroup_limits_key& key, cgroup_limits_valu
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG, "(cgroup-limits) mem cgroup for container [%s]: %s/%s",
 			key.m_container_id.c_str(), memcg_root->c_str(), key.m_mem_cgroup.c_str());
-		found_all = read_cgroup_val(memcg_root, key.m_mem_cgroup, "memory.limit_in_bytes", no_cg_log_level, value.m_memory_limit) && found_all;
+		found_all = read_cgroup_val(memcg_root, key.m_mem_cgroup, "memory.limit_in_bytes", value.m_memory_limit) && found_all;
 	}
 
 	std::shared_ptr<std::string> cpucg_root = sinsp::lookup_cgroup_dir("cpu");
@@ -100,15 +98,15 @@ bool get_cgroup_resource_limits(const cgroup_limits_key& key, cgroup_limits_valu
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG, "(cgroup-limits) cpu cgroup for container [%s]: %s/%s",
 				key.m_container_id.c_str(), cpucg_root->c_str(), key.m_cpu_cgroup.c_str());
-		found_all = read_cgroup_val(cpucg_root, key.m_cpu_cgroup, "cpu.shares", no_cg_log_level, value.m_cpu_shares) && found_all;
-		found_all = read_cgroup_val(cpucg_root, key.m_cpu_cgroup, "cpu.cfs_quota_us", no_cg_log_level, value.m_cpu_quota) && found_all;
-		found_all = read_cgroup_val(cpucg_root, key.m_cpu_cgroup, "cpu.cfs_period_us", no_cg_log_level, value.m_cpu_period) && found_all;
+		found_all = read_cgroup_val(cpucg_root, key.m_cpu_cgroup, "cpu.shares", value.m_cpu_shares) && found_all;
+		found_all = read_cgroup_val(cpucg_root, key.m_cpu_cgroup, "cpu.cfs_quota_us", value.m_cpu_quota) && found_all;
+		found_all = read_cgroup_val(cpucg_root, key.m_cpu_cgroup, "cpu.cfs_period_us", value.m_cpu_period) && found_all;
 	}
 
 	std::shared_ptr<std::string> cpuset_root = sinsp::lookup_cgroup_dir("cpuset");
 	if (key.m_cpuset_cgroup.find(key.m_container_id) == std::string::npos)
 	{
-		g_logger.format(no_cg_log_level, "(async-cg) cpuset cgroup for container [%s]: %s/%s -- no per-container cpuset cgroup, ignoring",
+		g_logger.format(sinsp_logger::SEV_DEBUG, "(async-cg) cpuset cgroup for container [%s]: %s/%s -- no per-container cpuset cgroup, ignoring",
 				key.m_container_id.c_str(), cpuset_root->c_str(), key.m_cpuset_cgroup.c_str());
 	}
 	else
@@ -118,7 +116,6 @@ bool get_cgroup_resource_limits(const cgroup_limits_key& key, cgroup_limits_valu
 		found_all = read_cgroup_list_count(*cpuset_root,
 						   key.m_cpuset_cgroup,
 						   "cpuset.effective_cpus",
-						   no_cg_log_level,
 						   value.m_cpuset_cpu_count) && found_all;
 	}
 
