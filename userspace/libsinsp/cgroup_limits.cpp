@@ -59,7 +59,7 @@ bool read_cgroup_list_count(const std::string& subsys,
 	out = counter(cpuset_cpus.c_str());
 
 	g_logger.format(sinsp_logger::SEV_DEBUG,
-			"(async-cg) Pulling cpu set from %s: %s = %d",
+			"(cgroup-limits) Pulling cpu set from %s: %s = %d",
 			path.c_str(),
 			cpuset_cpus.c_str(),
 			out);
