@@ -940,7 +940,13 @@ enum ppm_event_type {
 	PPME_SYSCALL_LINK_2_X = 309,
 	PPME_SYSCALL_LINKAT_2_E = 310,
 	PPME_SYSCALL_LINKAT_2_X = 311,
-	PPM_EVENT_MAX = 312
+	PPME_SYSCALL_FCHMODAT_E = 312,
+	PPME_SYSCALL_FCHMODAT_X = 313,
+	PPME_SYSCALL_CHMOD_E = 314,
+	PPME_SYSCALL_CHMOD_X = 315,
+	PPME_SYSCALL_FCHMOD_E = 316,
+	PPME_SYSCALL_FCHMOD_X = 317,
+	PPM_EVENT_MAX = 318
 };
 /*@}*/
 
@@ -1358,7 +1364,8 @@ enum ppm_param_type {
 	PT_IPV6NET = 39, /* An IPv6 network. */
 	PT_IPADDR = 40,  /* Either an IPv4 or IPv6 address. The length indicates which one it is. */
 	PT_IPNET = 41,  /* Either an IPv4 or IPv6 network. The length indicates which one it is. */
-	PT_MAX = 42 /* array size */
+	PT_MODE = 42, /* a 32 bit bitmask to represent file modes. */
+	PT_MAX = 43 /* array size */
 };
 
 enum ppm_print_format {
@@ -1488,6 +1495,7 @@ extern const struct ppm_name_value access_flags[];
 extern const struct ppm_name_value pf_flags[];
 extern const struct ppm_name_value unlinkat_flags[];
 extern const struct ppm_name_value linkat_flags[];
+extern const struct ppm_name_value chmod_mode[];
 
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];

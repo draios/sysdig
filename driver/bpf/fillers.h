@@ -3518,6 +3518,15 @@ FILLER(sys_pagefault_e, false)
 	return res;
 }
 
+static __always_inline int siginfo_not_a_pointer(struct siginfo* info)
+{
+#ifdef SEND_SIG_FORCED
+	return info == SEND_SIG_NOINFO || info == SEND_SIG_PRIV || SEND_SIG_FORCED;
+#else
+	return info == (struct siginfo*)SEND_SIG_NOINFO || info == (struct siginfo*)SEND_SIG_PRIV;
+#endif
+}
+
 FILLER(sys_signaldeliver_e, false)
 {
 	struct signal_deliver_args *ctx;
@@ -3528,12 +3537,15 @@ FILLER(sys_signaldeliver_e, false)
 	ctx = (struct signal_deliver_args *)data->ctx;
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 	struct siginfo *info = (struct siginfo *)ctx->info;
-
 	sig = ctx->sig;
-	if (sig == SIGKILL) {
+
+	if (siginfo_not_a_pointer(info)) {
+		info = NULL;
+		spid = 0;
+	} else if (sig == SIGKILL) {
 		spid = _READ(info->_sifields._kill._pid);
 	} else if (sig == SIGTERM || sig == SIGHUP || sig == SIGINT ||
-		   sig == SIGTSTP || sig == SIGQUIT) {
+	           sig == SIGTSTP || sig == SIGQUIT) {
 		int si_code = _READ(info->si_code);
 
 		if (si_code == SI_USER ||
@@ -4174,6 +4186,103 @@ FILLER(sys_autofill, true)
 		if (res != PPM_SUCCESS)
 			return res;
 	}
+
+	return res;
+}
+
+FILLER(sys_fchmodat_x, true)
+{
+	unsigned long val;
+	int res;
+	long retval;
+	unsigned int mode;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * dirfd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * filename
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * mode
+	 */
+	mode = bpf_syscall_get_argument(data, 2);
+	mode = chmod_mode_to_scap(mode);
+	res = bpf_val_to_ring(data, mode);
+
+	return res;
+}
+
+FILLER(sys_chmod_x, true)
+{
+	unsigned long val;
+	int res;
+	long retval;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * filename
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * mode
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
+
+	return res;
+}
+
+FILLER(sys_fchmod_x, true)
+{
+	unsigned long val;
+	int res;
+	long retval;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * fd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * mode
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
 
 	return res;
 }

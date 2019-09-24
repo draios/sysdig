@@ -467,6 +467,7 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 		return flt_compare_uint64(op, (uint64_t)*(uint16_t*)operand1, (uint64_t)*(uint16_t*)operand2);
 	case PT_UINT32:
 	case PT_FLAGS32:
+	case PT_MODE:
 	case PT_BOOL:
 	case PT_IPV4ADDR:
 		return flt_compare_uint64(op, (uint64_t)*(uint32_t*)operand1, (uint64_t)*(uint32_t*)operand2);
@@ -598,6 +599,7 @@ bool flt_compare_avg(cmpop op,
 		return flt_compare_uint64(op, u641, u642);
 	case PT_UINT32:
 	case PT_FLAGS32:
+	case PT_MODE:
 	case PT_BOOL:
 	case PT_IPV4ADDR:
 	case PT_IPV6ADDR:
@@ -1255,7 +1257,7 @@ const filtercheck_field_info* sinsp_filter_check::get_field_info()
 
 bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operand1, uint32_t op1_len, uint32_t op2_len)
 {
-	if (op == CO_IN || op == CO_PMATCH)
+	if (op == CO_IN || op == CO_PMATCH || op == CO_INTERSECTS)
 	{
 		// Certain filterchecks can't be done as a set
 		// membership test/group match. For these, just loop over the
@@ -1293,8 +1295,13 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 
 			filter_value_t item((uint8_t *) operand1, op1_len);
 
-			if (op == CO_IN)
+			if (op == CO_IN || op == CO_INTERSECTS)
 			{
+				// CO_INTERSECTS is really more interesting when a filtercheck can extract
+				// multiple values, and you're comparing the set of extracted values
+				// against the set of rhs values. sinsp_filter_checks only extract a
+				// single value, so CO_INTERSECTS is really the same as CO_IN.
+
 				if(op1_len >= m_val_storages_min_size &&
 				   op1_len <= m_val_storages_max_size &&
 				   m_val_storages_members.find(item) != m_val_storages_members.end())
@@ -1687,6 +1694,11 @@ cmpop sinsp_filter_compiler::next_comparison_operator()
 		m_scanpos += 2;
 		return CO_IN;
 	}
+	else if(compare_no_consume("intersects"))
+	{
+		m_scanpos += 10;
+		return CO_INTERSECTS;
+	}
 	else if(compare_no_consume("pmatch"))
 	{
 		m_scanpos += 6;
@@ -1741,7 +1753,7 @@ void sinsp_filter_compiler::parse_check()
 
 	chk->parse_field_name((char *)&operand1[0], true, true);
 
-	if(co == CO_IN || co == CO_PMATCH)
+	if(co == CO_IN || co == CO_INTERSECTS || co == CO_PMATCH)
 	{
 		//
 		// Skip spaces
@@ -1753,7 +1765,7 @@ void sinsp_filter_compiler::parse_check()
 
 		if(m_fltstr[m_scanpos] != '(')
 		{
-			throw sinsp_exception("expected '(' after 'in/pmatch' operand");
+			throw sinsp_exception("expected '(' after 'in/intersects/pmatch' operand");
 		}
 
 		//

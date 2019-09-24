@@ -38,15 +38,15 @@ extern bool s_cri_extra_queries;
 
 sinsp_container_type get_cri_runtime_type(const std::string &runtime_name);
 
-bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info *container);
+bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info &container);
 
-bool parse_cri_mounts(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info *container);
+bool parse_cri_mounts(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info &container);
 
-bool parse_cri_env(const Json::Value &info, sinsp_container_info *container);
+bool parse_cri_env(const Json::Value &info, sinsp_container_info &container);
 
-bool parse_cri_json_image(const Json::Value &info, sinsp_container_info *container);
+bool parse_cri_json_image(const Json::Value &info, sinsp_container_info &container);
 
-bool parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info *container);
+bool parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info &container);
 
 bool is_pod_sandbox(const std::string &container_id);
 

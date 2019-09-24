@@ -24,7 +24,7 @@ using namespace libsinsp::container_engine;
 
 bool lxc::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
-	sinsp_container_info container_info;
+	auto container = std::make_shared<sinsp_container_info>();
 	bool matches = false;
 
 	for(const auto& it : tinfo->m_cgroups)
@@ -38,8 +38,8 @@ bool lxc::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 		{
 			auto id_start = pos + sizeof("/lxc/") - 1;
 			auto id_end = cgroup.find('/', id_start);
-			container_info.m_type = CT_LXC;
-			container_info.m_id = cgroup.substr(id_start, id_end - id_start);
+			container->m_type = CT_LXC;
+			container->m_id = cgroup.substr(id_start, id_end - id_start);
 			matches = true;
 			break;
 		}
@@ -49,8 +49,8 @@ bool lxc::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 		{
 			auto id_start = pos + sizeof("/lxc.payload/") - 1;
 			auto id_end = cgroup.find('/', id_start);
-			container_info.m_type = CT_LXC;
-			container_info.m_id = cgroup.substr(id_start, id_end - id_start);
+			container->m_type = CT_LXC;
+			container->m_id = cgroup.substr(id_start, id_end - id_start);
 			matches = true;
 			break;
 		}
@@ -61,12 +61,12 @@ bool lxc::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 		return false;
 	}
 
-	tinfo->m_container_id = container_info.m_id;
-	if (!manager->container_exists(container_info.m_id))
+	tinfo->m_container_id = container->m_id;
+	if (manager->should_lookup(container->m_id, CT_LXC))
 	{
-		container_info.m_name = container_info.m_id;
-		manager->add_container(container_info, tinfo);
-		manager->notify_new_container(container_info);
+		container->m_name = container->m_id;
+		manager->add_container(container, tinfo);
+		manager->notify_new_container(*container);
 	}
 	return true;
 }
