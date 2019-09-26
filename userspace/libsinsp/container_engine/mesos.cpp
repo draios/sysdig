@@ -24,7 +24,7 @@ limitations under the License.
 #include "sinsp.h"
 #include "sinsp_int.h"
 
-bool libsinsp::container_engine::mesos::match(sinsp_threadinfo* tinfo, sinsp_container_info* container_info)
+bool libsinsp::container_engine::mesos::match(sinsp_threadinfo* tinfo, sinsp_container_info &container_info)
 {
 	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
 	{
@@ -38,8 +38,8 @@ bool libsinsp::container_engine::mesos::match(sinsp_threadinfo* tinfo, sinsp_con
 			auto id = cgroup.substr(pos + sizeof("/mesos/") - 1);
 			if(id.size() == 36 && id.find_first_not_of("0123456789abcdefABCDEF-") == string::npos)
 			{
-				container_info->m_type = CT_MESOS;
-				container_info->m_id = move(id);
+				container_info.m_type = CT_MESOS;
+				container_info.m_id = move(id);
 				// Consider a mesos container valid only if we find the mesos_task_id
 				// this will exclude from the container itself the mesos-executor
 				// but makes sure that we have task_id parsed properly. Otherwise what happens
@@ -54,17 +54,17 @@ bool libsinsp::container_engine::mesos::match(sinsp_threadinfo* tinfo, sinsp_con
 
 bool libsinsp::container_engine::mesos::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
-	sinsp_container_info container_info;
+	auto container = std::make_shared<sinsp_container_info>();
 
-	if (!match(tinfo, &container_info))
+	if (!match(tinfo, *container))
 		return false;
 
-	tinfo->m_container_id = container_info.m_id;
-	if (!manager->container_exists(container_info.m_id))
+	tinfo->m_container_id = container->m_id;
+	if (manager->should_lookup(container->m_id, CT_MESOS))
 	{
-		container_info.m_name = container_info.m_id;
-		manager->add_container(container_info, tinfo);
-		manager->notify_new_container(container_info);
+		container->m_name = container->m_id;
+		manager->add_container(container, tinfo);
+		manager->notify_new_container(*container);
 	}
 	return true;
 }
@@ -98,9 +98,8 @@ string libsinsp::container_engine::mesos::get_env_mesos_task_id(sinsp_threadinfo
 	return mtid;
 }
 
-bool libsinsp::container_engine::mesos::set_mesos_task_id(sinsp_container_info* container, sinsp_threadinfo* tinfo)
+bool libsinsp::container_engine::mesos::set_mesos_task_id(sinsp_container_info &container, sinsp_threadinfo* tinfo)
 {
-	ASSERT(container);
 	ASSERT(tinfo);
 
 	// there are applications that do not share their environment in /proc/[PID]/environ
@@ -112,9 +111,9 @@ bool libsinsp::container_engine::mesos::set_mesos_task_id(sinsp_container_info* 
 	//   get_env_mesos_task_id(sinsp_threadinfo*) implementation) environment variable, so we
 	//   peek into the parent process environment to discover it
 
-	if(container && tinfo)
+	if(tinfo)
 	{
-		string& mtid = container->m_mesos_task_id;
+		string& mtid = container.m_mesos_task_id;
 		if(mtid.empty())
 		{
 			mtid = get_env_mesos_task_id(tinfo);
@@ -125,12 +124,12 @@ bool libsinsp::container_engine::mesos::set_mesos_task_id(sinsp_container_info* 
 			if(!mtid.empty() && mtid.length()>=3 &&
 			   (mtid.find_first_of("._") != std::string::npos))
 			{
-				g_logger.log("Mesos native container: [" + container->m_id + "], Mesos task ID: " + mtid, sinsp_logger::SEV_DEBUG);
+				g_logger.log("Mesos native container: [" + container.m_id + "], Mesos task ID: " + mtid, sinsp_logger::SEV_DEBUG);
 				return true;
 			}
 			else
 			{
-				g_logger.log("Mesos container [" + container->m_id + "],"
+				g_logger.log("Mesos container [" + container.m_id + "],"
 										     "thread [" + std::to_string(tinfo->m_tid) +
 					     "], has likely malformed mesos task id [" + mtid + "], ignoring", sinsp_logger::SEV_DEBUG);
 			}

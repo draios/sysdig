@@ -97,6 +97,7 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 			break;
 		case PT_FLAGS32:
 		case PT_UINT32:
+		case PT_MODE:
 			*(uint32_t*)storage = sinsp_numparser::parseu32(str);
 			parsed_len = sizeof(uint32_t);
 			break;

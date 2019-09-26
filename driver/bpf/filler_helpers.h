@@ -830,6 +830,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 		len = sizeof(u16);
 		break;
 	case PT_FLAGS32:
+	case PT_MODE:
 	case PT_UINT32:
 	case PT_UID:
 	case PT_GID:

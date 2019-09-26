@@ -31,6 +31,7 @@ limitations under the License.
 #include <strings.h>
 #include <sys/ioctl.h>
 #include <fnmatch.h>
+#include <string>
 #else
 #pragma comment(lib, "Ws2_32.lib")
 #include <WinSock2.h>
@@ -71,19 +72,29 @@ const chiseldir_info g_chisel_dirs_array[] =
 #endif
 
 #ifndef _WIN32
-char* realpath_ex(const char *path, char *buff)
+static std::string realpath_ex(const std::string& path)
 {
 	char *home;
+	char* resolved;
 
-	if(*path=='~' && (home = getenv("HOME")))
+	if(!path.empty() && path[0]=='~' && (home = getenv("HOME")))
 	{
-		char s[PATH_MAX];
-		return realpath(strcat(strcpy(s, home), path+1), buff);
-		}
+		std::string expanded_home = home;
+		expanded_home += path.c_str()+1;
+		resolved = realpath(expanded_home.c_str(), nullptr);
+	}
 	else
 	{
-		return realpath(path, buff);
+		resolved = realpath(path.c_str(), nullptr);
 	}
+
+	if (!resolved)
+	{
+		return "";
+	}
+	std::string ret = resolved;
+	free(resolved);
+	return resolved;
 }
 #endif
 
@@ -133,20 +144,17 @@ sinsp_initializer::sinsp_initializer()
 		if(g_chisel_dirs_array[j].m_need_to_resolve)
 		{
 #ifndef _WIN32
-			char resolved_path[PATH_MAX];
-
-			if(realpath_ex(g_chisel_dirs_array[j].m_dir, resolved_path) != NULL)
+			std::string resolved_path = realpath_ex(g_chisel_dirs_array[j].m_dir);
+			if(!resolved_path.empty())
 			{
-				string resolved_path_str(resolved_path);
-
-				if(resolved_path_str[resolved_path_str.size() -1] != '/')
+				if(resolved_path[resolved_path.size() - 1] != '/')
 				{
-					resolved_path_str += "/";
+					resolved_path += '/';
 				}
 
 				chiseldir_info cdi;
 				cdi.m_need_to_resolve = false;
-				sprintf(cdi.m_dir, "%s", resolved_path_str.c_str());
+				cdi.m_dir = std::move(resolved_path);
 				g_chisel_dirs->push_back(cdi);
 			}
 #else
@@ -1282,6 +1290,8 @@ const char* param_type_to_string(ppm_param_type pt)
 		return "FLAGS16";
 	case PT_FLAGS32:
 		return "FLAGS32";
+	case PT_MODE:
+		return "MODE";
 	case PT_UID:
 		return "UID";
 	case PT_GID:

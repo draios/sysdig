@@ -74,40 +74,6 @@ end
 -------------------------------------------------------------------------------
 -- Summary handling helpers
 -------------------------------------------------------------------------------
-local container_evt_types =
-{
-	{'Container', 'Attached'      },
-	{'Container', 'Committed'     },
-	{'Container', 'Copied'        },
-	{'Container', 'Created'       },
-	{'Container', 'Destroyed'     },
-	{'Container', 'Died'          },
-	{'Container', 'Exec Created'  },
-	{'Container', 'Exec Started'  },
-	{'Container', 'Exported'      },
-	{'Container', 'Killed'        },
-	{'Container', 'Out of Memory' },
-	{'Container', 'Paused'        },
-	{'Container', 'Renamed'       },
-	{'Container', 'Resized'       },
-	{'Container', 'Restarted'     },
-	{'Container', 'Started'       },
-	{'Container', 'Stopped'       },
-	{'Container', 'Top'           },
-	{'Container', 'Unpaused'      },
-	{'Container', 'Updated'       },
-	{'Image', 'Deleted'  },
-	{'Image', 'Imported' },
-	{'Image', 'Pulled'   },
-	{'Image', 'Pushed'   },
-	{'Image', 'Tagged'   },
-	{'Image', 'Untagged' },
-	{'Volume', 'Mounted'   },
-	{'Volume', 'Unmounted' },
-	{'Network', 'Connected'    },
-	{'Network', 'Disconnected' }
-}
-
 local services =
 {
 	[80] = 'HTTP',
@@ -235,9 +201,12 @@ function reset_summary(s)
 	s.sysLogCountW = create_category_basic(true, false)
 	s.sysLogCountE = create_category_basic(true, true)
 	s.dockerEvtsCount = create_category_basic(true, true)
-	for i, v in ipairs(container_evt_types) do
-		local ccat = 'dockerEvtsCount' .. v[1] .. " " .. v[2]
-		s[ccat] = create_category_basic(true, true)
+	-- reset dynamic dockerEvtsCount* categories
+	for ccat in pairs(s) do
+		prefix = 'dockerEvtsCount'
+		if starts_with(ccat, prefix) and ccat ~= prefix then
+			s[ccat] = create_category_basic(true, true)
+		end
 	end
 	s.sysReqCountHttp = create_category_basic(true, true)
 	s.sysErrCountHttp = create_category_basic(true, true)
@@ -253,6 +222,15 @@ function add_summaries(ts_s, ts_ns, dst, src)
 	local time = sysdig.make_ts(ts_s, ts_ns)
 
 	for k, v in pairs(src) do
+		if dst[k] == nil then
+			-- add missing category dynamically
+			-- dynamic categories are dockerEvtsCount*
+			prefix = 'dockerEvtsCount'
+			if starts_with(k, prefix) and k ~= prefix then
+				dst[k] = create_category_basic(true, true)
+			end
+		end
+
 		dst[k].tot = dst[k].tot + v.tot
 		if v.tot > dst[k].max then
 			dst[k].max = v.tot 
@@ -428,6 +406,11 @@ end
 
 function update_docker_cats(evt_type)
 	local cat = 'dockerEvtsCount' .. evt_type
+
+	if (ssummary[cat] == nil) then
+		ssummary[cat] = create_category_basic(true, true)
+	end
+
 	ssummary[cat].tot = ssummary[cat].tot + 1
 end
 
@@ -1380,20 +1363,30 @@ function build_output(captureDuration)
 		has_cat_infrastructure = true
 	end
 
-	for i, v in ipairs(container_evt_types) do
-		local ccat = 'dockerEvtsCount' .. v[1] .. ' ' .. v[2]
-		if should_include(gsummary[ccat]) then
-			res[#res+1] = {
-				name = v[1] .. ' ' .. v[2] .. ' Events',
-				desc = 'Total number of docker events of type ' .. v[1] .. ' ' .. v[2],
-				category = 'infrastructure',
-				targetView = 'docker_events',
-				targetViewFilter = 'evt.arg.name="' .. v[1] .. ' ' .. v[2] .. '"' ,
-				drillDownKey = 'NONE',
-				data = gsummary[ccat]
-			}
-			has_cat_infrastructure = true
+	-- evaluate dynamic dockerEvtsCount* categories
+	prefix = 'dockerEvtsCount'
+	dockerEvtsCountEvents = {}
+	for ccat in pairs(gsummary) do
+		if starts_with(ccat, prefix) and ccat ~= prefix then
+			if should_include(gsummary[ccat]) then
+				ccat_name = ccat:sub(#prefix + 1)
+				dockerEvtsCountEvents[ccat] = {
+					name = ccat_name .. ' Events',
+					desc = 'Total number of docker events of type ' .. ccat_name,
+					category = 'infrastructure',
+					targetView = 'docker_events',
+					targetViewFilter = 'evt.arg.name="' .. ccat_name .. '"' ,
+					drillDownKey = 'NONE',
+					data = gsummary[ccat]
+				}
+				has_cat_infrastructure = true
+			end
 		end
+	end
+	-- sort categories to make sure the final list is "stable"
+	table.sort(dockerEvtsCountEvents, function (a, b) return a.name - b.name end)
+	for i, v in pairs(dockerEvtsCountEvents) do
+		res[#res+1] = v
 	end
 
 	for i, v in pairs(protocols) do

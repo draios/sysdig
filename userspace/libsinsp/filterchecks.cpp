@@ -3224,6 +3224,11 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 		dirfdarg = "dirfd";
 		patharg = "path";
 	}
+	else if(etype == PPME_SYSCALL_FCHMODAT_X)
+	{
+		dirfdarg = "dirfd";
+		patharg = "filename";
+	}
 
 	if(!dirfdarg || !patharg)
 	{
@@ -6106,7 +6111,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
@@ -6129,7 +6134,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
@@ -6155,7 +6160,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
@@ -6197,7 +6202,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
@@ -6245,7 +6250,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
@@ -6272,7 +6277,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
@@ -6307,7 +6312,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		else
 		{
 
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
@@ -6350,7 +6355,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		else
 		{
 
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
@@ -6411,7 +6416,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
@@ -7762,7 +7767,7 @@ mesos_task::ptr_t sinsp_filter_check_mesos::find_task_for_thread(const sinsp_thr
 
 		if(m_inspector && m_inspector->m_mesos_client)
 		{
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info || container_info->m_mesos_task_id.empty())
 			{

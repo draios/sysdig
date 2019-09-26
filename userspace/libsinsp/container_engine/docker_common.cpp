@@ -18,6 +18,7 @@ limitations under the License.
 */
 
 #include "container_engine/docker.h"
+#include "cgroup_list_counter.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "container.h"
@@ -26,13 +27,12 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
-docker_async_source::docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms,
-	sinsp *inspector
+docker_async_source::docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms, sinsp *inspector
 #ifndef _WIN32
 	, std::string socket_path
 #endif
 	)
-	: sysdig::async_container_source<std::string>(max_wait_ms, ttl_ms),
+	: async_key_value_source(max_wait_ms, ttl_ms),
 	  m_inspector(inspector),
 #ifdef _WIN32
 	  m_api_version("/v1.30"),
@@ -48,6 +48,7 @@ docker_async_source::docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms,
 
 docker_async_source::~docker_async_source()
 {
+	this->stop();
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"docker_async: Source destructor");
 
@@ -66,11 +67,11 @@ void docker_async_source::run_impl()
 
 		sinsp_container_info res;
 
-		res.m_successful = true;
+		res.m_lookup_state = sinsp_container_lookup_state::SUCCESSFUL;
 		res.m_type = CT_DOCKER;
 		res.m_id = container_id;
 
-		if(!parse_docker(container_id, &res))
+		if(!parse_docker(container_id, res))
 		{
 			// This is not always an error e.g. when using
 			// containerd as the runtime. Since the cgroup
@@ -80,7 +81,7 @@ void docker_async_source::run_impl()
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s): Failed to get Docker metadata, returning successful=false",
 					container_id.c_str());
-			res.m_successful = false;
+			res.m_lookup_state = sinsp_container_lookup_state::FAILED;
 		}
 
 		g_logger.format(sinsp_logger::SEV_DEBUG,
@@ -174,11 +175,11 @@ std::string docker_async_source::normalize_arg(const std::string &arg)
 }
 
 void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
-					    sinsp_container_info *container)
+					    sinsp_container_info &container)
 {
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"docker (%s): Trying to parse healthcheck from %s",
-			container->m_id.c_str(), Json::FastWriter().write(healthcheck_obj).c_str());
+			container.m_id.c_str(), Json::FastWriter().write(healthcheck_obj).c_str());
 
 	if(healthcheck_obj.isNull())
 	{
@@ -227,9 +228,9 @@ void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
 
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): Setting PT_HEALTHCHECK exe=%s nargs=%d",
-				container->m_id.c_str(), exe.c_str(), args.size());
+				container.m_id.c_str(), exe.c_str(), args.size());
 
-		container->m_health_probes.emplace_back(sinsp_container_info::container_health_probe::PT_HEALTHCHECK,
+		container.m_health_probes.emplace_back(sinsp_container_info::container_health_probe::PT_HEALTHCHECK,
 							std::move(exe),
 							std::move(args));
 	}
@@ -243,9 +244,9 @@ void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
 
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): Setting PT_HEALTHCHECK exe=%s nargs=%d",
-				container->m_id.c_str(), exe.c_str(), args.size());
+				container.m_id.c_str(), exe.c_str(), args.size());
 
-		container->m_health_probes.emplace_back(sinsp_container_info::container_health_probe::PT_HEALTHCHECK,
+		container.m_health_probes.emplace_back(sinsp_container_info::container_health_probe::PT_HEALTHCHECK,
 							std::move(exe),
 							std::move(args));
 	}
@@ -259,7 +260,7 @@ void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
 
 bool docker_async_source::parse_liveness_readiness_probe(const Json::Value &probe_obj,
 							 sinsp_container_info::container_health_probe::probe_type ptype,
-							 sinsp_container_info *container)
+							 sinsp_container_info &container)
 {
 	if(probe_obj.isNull() ||
 	   !probe_obj.isMember("exec") ||
@@ -285,18 +286,18 @@ bool docker_async_source::parse_liveness_readiness_probe(const Json::Value &prob
 
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): Setting %s exe=%s nargs=%d",
-				container->m_id.c_str(),
+				container.m_id.c_str(),
 				sinsp_container_info::container_health_probe::probe_type_names[ptype].c_str(),
 				exe.c_str(), args.size());
 
-		container->m_health_probes.emplace_back(ptype, std::move(exe), std::move(args));
+		container.m_health_probes.emplace_back(ptype, std::move(exe), std::move(args));
 	}
 
 	return true;
 }
 
 void docker_async_source::parse_health_probes(const Json::Value &config_obj,
-					      sinsp_container_info *container)
+					      sinsp_container_info &container)
 {
 	Json::Value spec;
 	bool liveness_readiness_added = false;
@@ -343,10 +344,11 @@ void docker_async_source::set_query_image_info(bool query_image_info)
 	m_query_image_info = query_image_info;
 }
 
+std::string docker::s_incomplete_info_name = "incomplete";
+
 bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	std::string container_id, container_name;
-	sinsp_container_info *container_info;
 
 	if(!detect_docker(tinfo, container_id, container_name))
 	{
@@ -367,28 +369,68 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	}
 
 	tinfo->m_container_id = container_id;
-	container_info = manager->get_container(container_id);
+
+	sinsp_container_info::ptr_t container_info = manager->get_container(container_id);
+
+	if(!container_info)
+	{
+		if(!query_os_for_missing_info)
+		{
+			auto container = std::make_shared<sinsp_container_info>();
+			container->m_type = CT_DOCKER;
+			container->m_id = container_id;
+			manager->notify_new_container(*container);
+			return true;
+		}
 
 #ifdef HAS_CAPTURE
-	// Possibly start a lookup for this container info
-	if(container_info == nullptr || container_info->query_anyway(CT_DOCKER))
-	{
-		container_info = manager->get_or_create_container(CT_DOCKER, container_id, container_name, tinfo);
-		if (query_os_for_missing_info)
+		if(manager->should_lookup(container_id, CT_DOCKER))
 		{
+			g_logger.format(sinsp_logger::SEV_DEBUG,
+					"docker_async (%s): No existing container info",
+					container_id.c_str());
+
 			// give docker a chance to return metadata for this container
-			m_docker_info_source->lookup_container(container_id, manager);
+			manager->set_lookup_status(container_id, CT_DOCKER, sinsp_container_lookup_state::STARTED);
+			parse_docker_async(container_id, manager);
 		}
-	}
 #endif
+		return false;
+	}
 
 	// Returning true will prevent other container engines from
 	// trying to resolve the container, so only return true if we
 	// have complete metadata.
-	return container_info->m_metadata_complete;
+	return container_info->is_successful();
 }
 
-bool docker_async_source::parse_docker(std::string &container_id, sinsp_container_info *container)
+void docker::parse_docker_async(const string& container_id, sinsp_container_manager *manager)
+{
+	auto cb = [manager](const std::string &container_id, const sinsp_container_info &res)
+        {
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"docker_async (%s): Source callback result=%d",
+				container_id.c_str(),
+				res.m_lookup_state);
+
+		manager->notify_new_container(res);
+	};
+
+        sinsp_container_info result;
+
+	if (m_docker_info_source->lookup(container_id, result, cb))
+	{
+		// if a previous lookup call already found the metadata, process it now
+		cb(container_id, result);
+
+		// This should *never* happen, as ttl is 0 (never wait)
+		g_logger.format(sinsp_logger::SEV_ERROR,
+				"docker_async (%s): Unexpected immediate return from docker_info_source.lookup()",
+				container_id.c_str());
+	}
+}
+
+bool docker_async_source::parse_docker(std::string &container_id, sinsp_container_info &container)
 {
 	string json;
 
@@ -443,53 +485,53 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 
 	const Json::Value& config_obj = root["Config"];
 
-	container->m_image = config_obj["Image"].asString();
+	container.m_image = config_obj["Image"].asString();
 
 	string imgstr = root["Image"].asString();
 	size_t cpos = imgstr.find(":");
 	if(cpos != string::npos)
 	{
-		container->m_imageid = imgstr.substr(cpos + 1);
+		container.m_imageid = imgstr.substr(cpos + 1);
 	}
 
 	parse_health_probes(config_obj, container);
 
 	// containers can be spawned using just the imageID as image name,
 	// with or without the hash prefix (e.g. sha256:)
-	bool no_name = !container->m_imageid.empty() &&
-		strncmp(container->m_image.c_str(), container->m_imageid.c_str(),
-			MIN(container->m_image.length(), container->m_imageid.length())) == 0;
+	bool no_name = !container.m_imageid.empty() &&
+		strncmp(container.m_image.c_str(), container.m_imageid.c_str(),
+			MIN(container.m_image.length(), container.m_imageid.length())) == 0;
 	no_name |= !imgstr.empty() &&
-		strncmp(container->m_image.c_str(), imgstr.c_str(),
-			MIN(container->m_image.length(), imgstr.length())) == 0;
+		strncmp(container.m_image.c_str(), imgstr.c_str(),
+			MIN(container.m_image.length(), imgstr.length())) == 0;
 
 	if(!no_name || !m_query_image_info)
 	{
 		string hostname, port;
-		sinsp_utils::split_container_image(container->m_image,
+		sinsp_utils::split_container_image(container.m_image,
 						   hostname,
 						   port,
-						   container->m_imagerepo,
-						   container->m_imagetag,
-						   container->m_imagedigest,
+						   container.m_imagerepo,
+						   container.m_imagetag,
+						   container.m_imagedigest,
 						   false);
 	}
 
-	if(m_query_image_info && !container->m_imageid.empty() &&
-	   (no_name || container->m_imagedigest.empty() || (!container->m_imagedigest.empty() && container->m_imagetag.empty())))
+	if(m_query_image_info && !container.m_imageid.empty() &&
+	   (no_name || container.m_imagedigest.empty() || (!container.m_imagedigest.empty() && container.m_imagetag.empty())))
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s) image (%s): Fetching image info",
 				container_id.c_str(),
-				container->m_imageid.c_str());
+				container.m_imageid.c_str());
 
 		string img_json;
-		if(get_docker(build_request("/images/" + container->m_imageid + "/json?digests=1"), img_json) == docker_response::RESP_OK)
+		if(get_docker(build_request("/images/" + container.m_imageid + "/json?digests=1"), img_json) == docker_response::RESP_OK)
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s) image (%s): Image info fetch returned \"%s\"",
 					container_id.c_str(),
-					container->m_imageid.c_str(),
+					container.m_imageid.c_str(),
 					img_json.c_str());
 
 			Json::Value img_root;
@@ -497,8 +539,8 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 			{
 				// img_root["RepoDigests"] contains only digests for images pulled from registries.
 				// If an image gets retagged and is never pushed to any registry, we will not find
-				// that entry in container->m_imagerepo. Also, for locally built images we have the
-				// same issue. This leads to container->m_imagedigest being empty as well.
+				// that entry in container.m_imagerepo. Also, for locally built images we have the
+				// same issue. This leads to container.m_imagedigest being empty as well.
 				unordered_set<std::string> imageDigestSet;
 				for(const auto& rdig : img_root["RepoDigests"])
 				{
@@ -507,13 +549,13 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 						string repodigest = rdig.asString();
 						string digest = repodigest.substr(repodigest.find('@')+1);
 						imageDigestSet.insert(digest);
-						if(container->m_imagerepo.empty())
+						if(container.m_imagerepo.empty())
 						{
-							container->m_imagerepo = repodigest.substr(0, repodigest.find('@'));
+							container.m_imagerepo = repodigest.substr(0, repodigest.find('@'));
 						}
-						if(repodigest.find(container->m_imagerepo) != string::npos)
+						if(repodigest.find(container.m_imagerepo) != string::npos)
 						{
-							container->m_imagedigest = digest;
+							container.m_imagedigest = digest;
 							break;
 						}
 					}
@@ -523,13 +565,13 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 					if(rtag.isString())
 					{
 						string repotag = rtag.asString();
-						if(container->m_imagerepo.empty())
+						if(container.m_imagerepo.empty())
 						{
-							container->m_imagerepo = repotag.substr(0, repotag.rfind(":"));
+							container.m_imagerepo = repotag.substr(0, repotag.rfind(":"));
 						}
-						if(repotag.find(container->m_imagerepo) != string::npos)
+						if(repotag.find(container.m_imagerepo) != string::npos)
 						{
-							container->m_imagetag = repotag.substr(repotag.rfind(":")+1);
+							container.m_imagetag = repotag.substr(repotag.rfind(":")+1);
 							break;
 						}
 					}
@@ -537,8 +579,8 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 				// fix image digest for locally tagged images or multiple repo digests.
 				// Case 1: One repo digest with many tags.
 				// Case 2: Many repo digests with the same digest value.
-				if(container->m_imagedigest.empty() && imageDigestSet.size() == 1) {
-					container->m_imagedigest = *imageDigestSet.begin();
+				if(container.m_imagedigest.empty() && imageDigestSet.size() == 1) {
+					container.m_imagedigest = *imageDigestSet.begin();
 				}
 			}
 			else
@@ -546,7 +588,7 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 				g_logger.format(sinsp_logger::SEV_ERROR,
 						"docker_async (%s) image (%s): Could not parse json image info \"%s\"",
 						container_id.c_str(),
-						container->m_imageid.c_str(),
+						container.m_imageid.c_str(),
 						img_json.c_str());
 			}
 		}
@@ -555,24 +597,24 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 			g_logger.format(sinsp_logger::SEV_ERROR,
 					"docker_async (%s) image (%s): Could not fetch image info",
 					container_id.c_str(),
-					container->m_imageid.c_str());
+					container.m_imageid.c_str());
 		}
 
 	}
-	if(container->m_imagetag.empty())
+	if(container.m_imagetag.empty())
 	{
-		container->m_imagetag = "latest";
+		container.m_imagetag = "latest";
 	}
 
-	container->m_name = root["Name"].asString();
+	container.m_name = root["Name"].asString();
 	// k8s Docker container names could have '/' as the first character.
-	if(!container->m_name.empty() && container->m_name[0] == '/')
+	if(!container.m_name.empty() && container.m_name[0] == '/')
 	{
-		container->m_name = container->m_name.substr(1);
+		container.m_name = container.m_name.substr(1);
 	}
-	if(container->m_name.find("k8s_POD") == 0)
+	if(container.m_name.find("k8s_POD") == 0)
 	{
-		container->m_is_pod_sandbox = true;
+		container.m_is_pod_sandbox = true;
 	}
 
 	const Json::Value& net_obj = root["NetworkSettings"];
@@ -599,13 +641,13 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 					container_id.c_str(),
 					secondary_container_id.c_str());
 
-			if (parse_docker(secondary_container_id, &pcnt))
+			if (parse_docker(secondary_container_id, pcnt))
 			{
 				g_logger.format(sinsp_logger::SEV_DEBUG,
 						"docker_async (%s), secondary (%s): Secondary fetch successful",
 						container_id.c_str(),
 						secondary_container_id.c_str());
-				container->m_container_ip = pcnt.m_container_ip;
+				container.m_container_ip = pcnt.m_container_ip;
 			}
 			else
 			{
@@ -618,11 +660,11 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 	}
 	else
 	{
-		if(inet_pton(AF_INET, ip.c_str(), &container->m_container_ip) == -1)
+		if(inet_pton(AF_INET, ip.c_str(), &container.m_container_ip) == -1)
 		{
 			ASSERT(false);
 		}
-		container->m_container_ip = ntohl(container->m_container_ip);
+		container.m_container_ip = ntohl(container.m_container_ip);
 	}
 
 	vector<string> ports = net_obj["Ports"].getMemberNames();
@@ -655,7 +697,7 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 
 				port_mapping.m_container_port = container_port;
 				port_mapping.m_host_port = atoi(port.c_str());
-				container->m_port_mappings.push_back(port_mapping);
+				container.m_port_mappings.push_back(port_mapping);
 			}
 		}
 	}
@@ -664,7 +706,7 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 	for(vector<string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
 	{
 		string val = config_obj["Labels"][*it].asString();
-		container->m_labels[*it] = val;
+		container.m_labels[*it] = val;
 	}
 
 	const Json::Value& env_vars = config_obj["Env"];
@@ -673,35 +715,41 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 	{
 		if(env_var.isString())
 		{
-			container->m_env.emplace_back(env_var.asString());
+			container.m_env.emplace_back(env_var.asString());
 		}
 	}
 
 	const auto& host_config_obj = root["HostConfig"];
-	container->m_memory_limit = host_config_obj["Memory"].asInt64();
-	container->m_swap_limit = host_config_obj["MemorySwap"].asInt64();
+	container.m_memory_limit = host_config_obj["Memory"].asInt64();
+	container.m_swap_limit = host_config_obj["MemorySwap"].asInt64();
 	const auto cpu_shares = host_config_obj["CpuShares"].asInt64();
 	if(cpu_shares > 0)
 	{
-		container->m_cpu_shares = cpu_shares;
+		container.m_cpu_shares = cpu_shares;
 	}
-	container->m_cpu_quota = host_config_obj["CpuQuota"].asInt64();
+	container.m_cpu_quota = host_config_obj["CpuQuota"].asInt64();
 	const auto cpu_period = host_config_obj["CpuPeriod"].asInt64();
 	if(cpu_period > 0)
 	{
-		container->m_cpu_period = cpu_period;
+		container.m_cpu_period = cpu_period;
 	}
-	const Json::Value &privileged = host_config_obj["Privileged"];
+	const auto cpuset_cpus = host_config_obj["CpusetCpus"].asString();
+	if (!cpuset_cpus.empty())
+	{
+		libsinsp::cgroup_list_counter counter;
+		container.m_cpuset_cpu_count = counter(cpuset_cpus.c_str(), sinsp_logger::SEV_DEBUG);
+	}
+	const Json::Value& privileged = host_config_obj["Privileged"];
 	if(!privileged.isNull() && privileged.isBool())
 	{
-		container->m_privileged = privileged.asBool();
+		container.m_privileged = privileged.asBool();
 	}
 
-	docker::parse_json_mounts(root["Mounts"], container->m_mounts);
+	docker::parse_json_mounts(root["Mounts"], container.m_mounts);
 
 #ifdef HAS_ANALYZER
-	sinsp_utils::find_env(container->m_sysdig_agent_conf, container->get_env(), "SYSDIG_AGENT_CONF");
-	// container->m_sysdig_agent_conf = get_docker_env(env_vars, "SYSDIG_AGENT_CONF");
+	sinsp_utils::find_env(container.m_sysdig_agent_conf, container.get_env(), "SYSDIG_AGENT_CONF");
+	// container.m_sysdig_agent_conf = get_docker_env(env_vars, "SYSDIG_AGENT_CONF");
 #endif
 
 	g_logger.format(sinsp_logger::SEV_DEBUG,

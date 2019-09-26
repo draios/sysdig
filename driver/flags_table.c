@@ -501,3 +501,19 @@ const struct ppm_name_value linkat_flags[] = {
 	{"AT_EMPTY_PATH", PPM_AT_EMPTY_PATH},
 	{0, 0},
 };
+
+const struct ppm_name_value chmod_mode[] = {
+    {"S_IXOTH", PPM_S_IXOTH},
+    {"S_IWOTH", PPM_S_IWOTH},
+    {"S_IROTH", PPM_S_IROTH},
+    {"S_IXGRP", PPM_S_IXGRP},
+    {"S_IWGRP", PPM_S_IWGRP},
+    {"S_IRGRP", PPM_S_IRGRP},
+    {"S_IXUSR", PPM_S_IXUSR},
+    {"S_IWUSR", PPM_S_IWUSR},
+    {"S_IRUSR", PPM_S_IRUSR},
+    {"S_ISVTX", PPM_S_ISVTX},
+    {"S_ISGID", PPM_S_ISGID},
+    {"S_ISUID", PPM_S_ISUID},
+    {0, 0},
+};

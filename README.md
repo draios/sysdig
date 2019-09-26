@@ -19,7 +19,7 @@ What does sysdig do and why should I use it?
 ---
 **Sysdig is a simple tool for deep system visibility, with native support for containers.**
 
-We built sysdig to give you _easy access_ to the actual behavior of your Linux systems and containers. Honestly, the best way to understand sysdig is to [try it](http://www.sysdig.org/install/) - its super easy! Or here's a quick video introduction to csysdig, the simple, intuitive, and fully customizable curses-based UI for sysdig: https://www.youtube.com/watch?v=UJ4wVrbP-Q8
+We built sysdig to give you _easy access_ to the actual behavior of your Linux systems and containers. Honestly, the best way to understand sysdig is to [try it](https://github.com/draios/sysdig/wiki/How-to-Install-Sysdig-for-Linux) - its super easy! Or here's a quick video introduction to csysdig, the simple, intuitive, and fully customizable curses-based UI for sysdig: https://www.youtube.com/watch?v=UJ4wVrbP-Q8
 
 Far too often, system-level monitoring and troubleshooting still involves logging into a machine with SSH and using a plethora of dated tools with very inconsistent interfaces. And many of these classic Linux tools breakdown completely in containerized environments. Sysdig unites your Linux toolkit into a single, consistent, easy-to-use interface. And sysdig's unique architecture allows deep inspection into containers, right out of the box, without having to instrument the containers themselves in any way.
 

@@ -258,7 +258,8 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 		return SCAP_FAILURE;
 	}
 
-	if(fgets(line, sizeof(line), f) == NULL)
+	size_t ssres = fread(line, 1, sizeof(line) - 1, f);
+	if(ssres == 0)
 	{
 		ASSERT(false);
 		fclose(f);
@@ -266,13 +267,14 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 			 filename, scap_strerror(handle, errno));
 		return SCAP_FAILURE;
 	}
+	line[ssres] = 0;
 
 	s = strrchr(line, ')');
 	if(s == NULL)
 	{
 		ASSERT(false);
 		fclose(f);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not find closng parens in stat file %s",
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not find closing bracket in stat file %s",
 			 filename);
 		return SCAP_FAILURE;
 	}
@@ -667,7 +669,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 		}
 
 		line[SCAP_MAX_PATH_SIZE - 1] = 0;
-		sscanf(line, "Name:%s", tinfo->comm);
+		sscanf(line, "Name:%1024s", tinfo->comm);
 		fclose(f);
 	}
 
@@ -874,6 +876,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 			if(uth_status != SCAP_SUCCESS)
 			{
 				snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (2)");
+				free(tinfo);
 				return SCAP_FAILURE;
 			}
 		}
@@ -923,6 +926,11 @@ int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, s
 	if(res != SCAP_SUCCESS)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "cannot add proc tid = %"PRIu64", dirname = %s, error=%s", tid, procdirname, add_error);
+	}
+
+	if(sockets_by_ns != NULL && sockets_by_ns != (void*)-1)
+	{
+		scap_fd_free_ns_sockets_list(handle, &sockets_by_ns);
 	}
 
 	return res;
@@ -1154,6 +1162,7 @@ struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_soc
 	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
 	if(scap_proc_read_thread(handle, filename, tid, &tinfo, handle->m_lasterr, scan_sockets) != SCAP_SUCCESS)
 	{
+		free(tinfo);
 		return NULL;
 	}
 
@@ -1390,6 +1399,7 @@ int32_t scap_update_suppressed(scap_t *handle,
 		if(uth_status != SCAP_SUCCESS)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't add tid to suppressed hash table");
+			free(stid);
 			return SCAP_FAILURE;
 		}
 		*suppressed = true;

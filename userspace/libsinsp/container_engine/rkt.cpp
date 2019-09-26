@@ -26,7 +26,7 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
-bool rkt::match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp_container_info* container_info, string& rkt_podid, string& rkt_appname, bool query_os_for_missing_info)
+bool rkt::match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp_container_info &container_info, string &rkt_podid, string &rkt_appname, bool query_os_for_missing_info)
 {
 	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
 	{
@@ -81,9 +81,9 @@ bool rkt::match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp
 #endif
 				if(is_rkt_pod_id_valid)
 				{
-					container_info->m_type = CT_RKT;
-					container_info->m_id = rkt_podid + ":" + rkt_appname;
-					container_info->m_name = rkt_appname;
+					container_info.m_type = CT_RKT;
+					container_info.m_id = rkt_podid + ":" + rkt_appname;
+					container_info.m_name = rkt_appname;
 					return true;
 				}
 			}
@@ -116,9 +116,9 @@ bool rkt::match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp
 					if(container_uuid_pos == 0)
 					{
 						rkt_podid = env_var.substr(COREOS_PODID_VAR.size());
-						container_info->m_type = CT_RKT;
-						container_info->m_id = rkt_podid + ":" + rkt_appname;
-						container_info->m_name = rkt_appname;
+						container_info.m_type = CT_RKT;
+						container_info.m_id = rkt_podid + ":" + rkt_appname;
+						container_info.m_name = rkt_appname;
 						valid_id = true;
 						return false;
 					}
@@ -154,9 +154,9 @@ bool rkt::match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp
 				{
 					rkt_appname = tinfo->m_root.substr(podid_suffix + FLY_PODID_SUFFIX.size(),
 									   appname_suffix-podid_suffix-FLY_PODID_SUFFIX.size());
-					container_info->m_type = CT_RKT;
-					container_info->m_id = rkt_podid + ":" + rkt_appname;
-					container_info->m_name = rkt_appname;
+					container_info.m_type = CT_RKT;
+					container_info.m_id = rkt_podid + ":" + rkt_appname;
+					container_info.m_name = rkt_appname;
 					return true;
 				}
 			}
@@ -167,30 +167,30 @@ bool rkt::match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp
 
 bool rkt::rkt::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
-	sinsp_container_info container_info;
+	auto container = std::make_shared<sinsp_container_info>();
 	string rkt_podid, rkt_appname;
 
-	if (!match(manager, tinfo, &container_info, rkt_podid, rkt_appname, query_os_for_missing_info))
+	if (!match(manager, tinfo, *container, rkt_podid, rkt_appname, query_os_for_missing_info))
 	{
 		return false;
 	}
 
-	tinfo->m_container_id = container_info.m_id;
-	if (!query_os_for_missing_info || manager->container_exists(container_info.m_id))
+	tinfo->m_container_id = container->m_id;
+	if (!query_os_for_missing_info || !manager->should_lookup(container->m_id, CT_RKT))
 	{
 		return true;
 	}
 
 #ifndef _WIN32
-	bool have_rkt = parse_rkt(&container_info, rkt_podid, rkt_appname);
+	bool have_rkt = parse_rkt(*container, rkt_podid, rkt_appname);
 #else
 	bool have_rkt = true;
 #endif
 
 	if (have_rkt)
 	{
-		manager->add_container(container_info, tinfo);
-		manager->notify_new_container(container_info);
+		manager->add_container(container, tinfo);
+		manager->notify_new_container(*container);
 		return true;
 	}
 	else
@@ -199,7 +199,7 @@ bool rkt::rkt::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo
 	}
 }
 
-bool rkt::rkt::parse_rkt(sinsp_container_info *container, const string &podid, const string &appname)
+bool rkt::rkt::parse_rkt(sinsp_container_info &container, const string &podid, const string &appname)
 {
 	bool ret = false;
 	Json::Reader reader;
@@ -210,15 +210,15 @@ bool rkt::rkt::parse_rkt(sinsp_container_info *container, const string &podid, c
 	ifstream image_manifest(image_manifest_path);
 	if(reader.parse(image_manifest, jroot))
 	{
-		container->m_image = jroot["name"].asString();
+		container.m_image = jroot["name"].asString();
 		for(const auto& label_entry : jroot["labels"])
 		{
-			container->m_labels.emplace(label_entry["name"].asString(), label_entry["value"].asString());
+			container.m_labels.emplace(label_entry["name"].asString(), label_entry["value"].asString());
 		}
-		auto version_label_it = container->m_labels.find("version");
-		if(version_label_it != container->m_labels.end())
+		auto version_label_it = container.m_labels.find("version");
+		if(version_label_it != container.m_labels.end())
 		{
-			container->m_image += ":" + version_label_it->second;
+			container.m_image += ":" + version_label_it->second;
 		}
 		ret = true;
 	}
@@ -229,11 +229,11 @@ bool rkt::rkt::parse_rkt(sinsp_container_info *container, const string &podid, c
 	if(reader.parse(net_info, jroot) && jroot.size() > 0)
 	{
 		const auto& first_net = jroot[0];
-		if(inet_pton(AF_INET, first_net["ip"].asCString(), &container->m_container_ip) == -1)
+		if(inet_pton(AF_INET, first_net["ip"].asCString(), &container.m_container_ip) == -1)
 		{
 			ASSERT(false);
 		}
-		container->m_container_ip = ntohl(container->m_container_ip);
+		container.m_container_ip = ntohl(container.m_container_ip);
 	}
 
 	char pod_manifest_path[SCAP_MAX_PATH_SIZE];
@@ -262,7 +262,7 @@ bool rkt::rkt::parse_rkt(sinsp_container_info *container, const string &podid, c
 				sinsp_container_info::container_port_mapping port_mapping;
 				port_mapping.m_host_port = host_port;
 				port_mapping.m_container_port = container_port_it->second;
-				container->m_port_mappings.emplace_back(move(port_mapping));
+				container.m_port_mappings.emplace_back(move(port_mapping));
 			}
 		}
 	}

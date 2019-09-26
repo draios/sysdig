@@ -18,6 +18,7 @@ limitations under the License.
 */
 #pragma once
 #include <memory>
+#include "user_event.h"
 
 /**
  * This namespace exposes an API for logging user events.
@@ -53,7 +54,7 @@ public:
 	/**
 	 * Write the given log str with the given severity.
 	 */
-	virtual void log(std::string&& str, user_event_logger::severity sev) = 0;
+	virtual void log(const sinsp_user_event& evt, user_event_logger::severity sev) = 0;
 
 	/**
 	 * We use the "Null Object Pattern" with this interface; this will
@@ -66,7 +67,7 @@ public:
  * Write the given user event log message with the given severity to the
  * registered callback.
  */
-void log(std::string msg, user_event_logger::severity sev);
+void log(const sinsp_user_event& evt, user_event_logger::severity sev);
 
 /**
  * Register the given callback.  If a callback is already registered, it will

@@ -34,6 +34,7 @@ or GPL2.txt for full copies of the license.
 #include "ppm_events_public.h"
 #include "ppm_events.h"
 #include "ppm.h"
+#include "ppm_version.h"
 
 #if (defined CONFIG_VIRT_CPU_ACCOUNTING_NATIVE) || (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30))
 void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st)
@@ -48,15 +49,26 @@ void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *
 #endif
 
 #ifdef CONFIG_VIRT_CPU_ACCOUNTING_GEN
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)) || (PPM_RHEL_RELEASE_CODE > 0 && PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(7, 7))
+#define ppm_vtime_starttime(tsk) ((tsk)->vtime.starttime)
+#define ppm_vtime_seqlock(tsk) (&(tsk)->vtime.seqlock)
+#define ppm_vtime_state(tsk) ((tsk)->vtime.state)
+#else
+#define ppm_vtime_starttime(tsk) ((tsk)->vtime_snap)
+#define ppm_vtime_seqlock(tsk) (&(tsk)->vtime_seqlock)
+#define ppm_vtime_state(tsk) ((tsk)->vtime_snap_whence)
+#endif
+
 static unsigned long long vtime_delta(struct task_struct *tsk)
 {
 	unsigned long long clock;
 
 	clock = local_clock();
-	if (clock < tsk->vtime_snap)
+	if (clock < ppm_vtime_starttime(tsk))
 		return 0;
 
-	return clock - tsk->vtime_snap;
+	return clock - ppm_vtime_starttime(tsk);
 }
 
 static void
@@ -72,7 +84,7 @@ fetch_task_cputime(struct task_struct *t,
 		*udelta = 0;
 		*sdelta = 0;
 
-		seq = read_seqbegin(&t->vtime_seqlock);
+		seq = read_seqbegin(ppm_vtime_seqlock(t));
 
 		if (u_dst)
 			*u_dst = *u_src;
@@ -80,7 +92,7 @@ fetch_task_cputime(struct task_struct *t,
 			*s_dst = *s_src;
 
 		/* Task is sleeping, nothing to add */
-		if (t->vtime_snap_whence == VTIME_SLEEPING ||
+		if (ppm_vtime_state(t) == VTIME_SLEEPING ||
 		    is_idle_task(t))
 			continue;
 
@@ -90,13 +102,13 @@ fetch_task_cputime(struct task_struct *t,
 		 * Task runs either in user or kernel space, add pending nohz time to
 		 * the right place.
 		 */
-		if (t->vtime_snap_whence == VTIME_USER || t->flags & PF_VCPU) {
+		if (ppm_vtime_state(t) == VTIME_USER || t->flags & PF_VCPU) {
 			*udelta = delta;
 		} else {
-			if (t->vtime_snap_whence == VTIME_SYS)
+			if (ppm_vtime_state(t) == VTIME_SYS)
 				*sdelta = delta;
 		}
-	} while (read_seqretry(&t->vtime_seqlock, seq));
+	} while (read_seqretry(ppm_vtime_seqlock(t), seq));
 }
 
 void task_cputime(struct task_struct *t, cputime_t *utime, cputime_t *stime)

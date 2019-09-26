@@ -159,13 +159,13 @@ std::shared_ptr<sinsp_threadinfo> sinsp_container_info::get_tinfo(sinsp* inspect
 	return tinfo;
 }
 
-sinsp_container_info::container_health_probe::probe_type sinsp_container_info::match_health_probe(sinsp_threadinfo *tinfo)
+sinsp_container_info::container_health_probe::probe_type sinsp_container_info::match_health_probe(sinsp_threadinfo *tinfo) const
 {
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"match_health_probe (%s): %u health probes to consider",
 			m_id.c_str(), m_health_probes.size());
 
-	auto pred = [&] (container_health_probe &p) {
+	auto pred = [&] (const container_health_probe &p) {
                 g_logger.format(sinsp_logger::SEV_DEBUG,
 				"match_health_probe (%s): Matching tinfo %s %d against %s %d",
 				m_id.c_str(),

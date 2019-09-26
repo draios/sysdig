@@ -96,6 +96,7 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, ppm_par
 			return 1;
 		case PT_FLAGS32:
 		case PT_UINT32:
+		case PT_MODE:
 		case PT_UID:
 		case PT_GID:
 			lua_pushnumber(ls, *(uint32_t*)rawval);
@@ -1141,7 +1142,9 @@ int lua_cbacks::get_container_table(lua_State *ls)
 	//
 	// Retrieve the container list
 	//
-	const auto ctable  = ch->m_inspector->m_container_manager.get_containers();
+	const sinsp_container_manager::map_ptr_t ctable = ch->m_inspector->m_container_manager.get_containers();
+
+	ASSERT(ctable != NULL);
 
 	lua_newtable(ls);
 
@@ -1153,49 +1156,49 @@ int lua_cbacks::get_container_table(lua_State *ls)
 	{
 		lua_newtable(ls);
 		lua_pushliteral(ls, "id");
-		lua_pushstring(ls, it->second.m_id.c_str());
+		lua_pushstring(ls, it->second->m_id.c_str());
 		lua_settable(ls, -3);
 		lua_pushliteral(ls, "name");
-		lua_pushstring(ls, it->second.m_name.c_str());
+		lua_pushstring(ls, it->second->m_name.c_str());
 		lua_settable(ls, -3);
 		lua_pushliteral(ls, "image");
-		lua_pushstring(ls, it->second.m_image.c_str());
+		lua_pushstring(ls, it->second->m_image.c_str());
 		lua_settable(ls, -3);
 
 		lua_pushliteral(ls, "type");
-		if(it->second.m_type == CT_DOCKER)
+		if(it->second->m_type == CT_DOCKER)
 		{
 			lua_pushstring(ls, "docker");
 		}
-		else if(it->second.m_type == CT_LXC)
+		else if(it->second->m_type == CT_LXC)
 		{
 			lua_pushstring(ls, "lxc");
 		}
-		else if(it->second.m_type == CT_LIBVIRT_LXC)
+		else if(it->second->m_type == CT_LIBVIRT_LXC)
 		{
 			lua_pushstring(ls, "libvirt_lxc");
 		}
-		else if(it->second.m_type == CT_MESOS)
+		else if(it->second->m_type == CT_MESOS)
 		{
 			lua_pushstring(ls, "mesos");
 		}
-		else if(it->second.m_type == CT_RKT)
+		else if(it->second->m_type == CT_RKT)
 		{
 			lua_pushstring(ls, "rkt");
 		}
-		else if(it->second.m_type == CT_CRI)
+		else if(it->second->m_type == CT_CRI)
 		{
 			lua_pushstring(ls, "cri");
 		}
-		else if(it->second.m_type == CT_CONTAINERD)
+		else if(it->second->m_type == CT_CONTAINERD)
 		{
 			lua_pushstring(ls, "containerd");
 		}
-		else if(it->second.m_type == CT_CRIO)
+		else if(it->second->m_type == CT_CRIO)
 		{
 			lua_pushstring(ls, "cri-o");
 		}
-		else if(it->second.m_type == CT_BPM)
+		else if(it->second->m_type == CT_BPM)
 		{
 			lua_pushstring(ls, "bpm");
 		}

@@ -503,7 +503,7 @@ public:
 	   of failure.
 	*/
 	sinsp_threadinfo* get_thread(int64_t tid, bool query_os_if_not_found, bool lookup_only);
-	threadinfo_map_t::ptr_t get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only);
+	threadinfo_map_t::ptr_t get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only, bool main_thread=false);
 
 	/*!
 	  \brief Return the table with all the machine users.
@@ -909,6 +909,8 @@ public:
 
 	void set_cri_socket_path(const std::string& path);
 	void set_cri_timeout(int64_t timeout_ms);
+	void set_cri_async(bool async);
+	void set_cri_delay(uint64_t delay_ms);
 
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
@@ -1121,6 +1123,7 @@ public:
 #endif
 	int32_t m_n_proc_lookups;
 	uint64_t m_n_proc_lookups_duration_ns;
+	int32_t m_n_main_thread_lookups;
 	int32_t m_max_n_proc_lookups = -1;
 	int32_t m_max_n_proc_socket_lookups = -1;
 #ifdef HAS_ANALYZER
