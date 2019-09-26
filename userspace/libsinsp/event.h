@@ -351,6 +351,36 @@ public:
 		return ESRC_SINSP;
 	}
 
+	/*!
+	  \brief Returns true if this event represents a system call error,
+	         false otherwise.
+	*/
+	bool is_syscall_error() const;
+
+	/*!
+	  \brief Returns true if this event represents a file open system
+	         call error, false otherwise.
+
+          Precondition: is_syscall_error() must return true.
+	*/
+	bool is_file_open_error() const;
+
+	/*!
+	  \brief Returns true if this event represents a file-related system
+	         call error (including open errors), false otherwise.
+
+	  Precondition: is_syscall_error() must return true.
+	*/
+	bool is_file_error() const;
+
+	/*!
+	  \brief Returns true if this event represents a network-related system
+	         call error, false otherwise.
+
+	  Precondition: is_syscall_error() must return true.
+	*/
+	bool is_network_error() const;
+
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
 private:
