@@ -44,5 +44,5 @@ public:
 	 *
 	 * @param[out] stats The capture statistics
 	 */
-	virtual void get_capture_stats(scap_stats* stats) = 0;
+	virtual void get_capture_stats(scap_stats* stats) const = 0;
 };

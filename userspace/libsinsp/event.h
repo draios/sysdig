@@ -170,7 +170,7 @@ public:
 	/*!
 	  \brief Get the incremental number of this event.
 	*/
-	inline uint64_t get_num()
+	inline uint64_t get_num() const
 	{
 		return m_evtnum;
 	}
