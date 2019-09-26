@@ -322,7 +322,8 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 		libsinsp::cgroup_limits::cgroup_limits_key key(
 			container->m_id,
 			tinfo->get_cgroup("cpu"),
-			tinfo->get_cgroup("memory"));
+			tinfo->get_cgroup("memory"),
+			tinfo->get_cgroup("cpuset"));
 
 		if(!m_async_source)
 		{
