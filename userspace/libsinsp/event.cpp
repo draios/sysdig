@@ -2634,6 +2634,7 @@ bool sinsp_evt::is_network_error() const
 	{
 		return (m_pevt->type == PPME_SOCKET_ACCEPT_X) ||
 		       (m_pevt->type == PPME_SOCKET_ACCEPT4_X) ||
+		       (m_pevt->type == PPME_SOCKET_ACCEPT_5_X) ||
 		       (m_pevt->type == PPME_SOCKET_ACCEPT4_5_X) ||
 		       (m_pevt->type == PPME_SOCKET_CONNECT_X) ||
 		       (m_pevt->type == PPME_SOCKET_BIND_X);
