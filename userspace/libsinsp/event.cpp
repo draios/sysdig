@@ -19,6 +19,7 @@ limitations under the License.
 
 #ifndef _WIN32
 #define __STDC_FORMAT_MACROS
+#include "sinsp_errno.h"
 #include <inttypes.h>
 #include <sys/socket.h>
 #include <algorithm>
@@ -2595,4 +2596,46 @@ bool sinsp_evt::falco_consider()
 	}
 
 	return sinsp::falco_consider_evtnum(etype);
+}
+
+bool sinsp_evt::is_syscall_error() const
+{
+	return (m_errorcode != 0) &&
+	       (m_errorcode != SE_EINPROGRESS) &&
+	       (m_errorcode != SE_EAGAIN) &&
+	       (m_errorcode != SE_ETIMEDOUT);
+}
+
+bool sinsp_evt::is_file_open_error() const
+{
+	return (m_fdinfo == nullptr) &&
+	       ((m_pevt->type == PPME_SYSCALL_OPEN_X) ||
+		(m_pevt->type == PPME_SYSCALL_CREAT_X) ||
+		(m_pevt->type == PPME_SYSCALL_OPENAT_X) ||
+		(m_pevt->type == PPME_SYSCALL_OPENAT_2_X));
+}
+
+bool sinsp_evt::is_file_error() const
+{
+	return is_file_open_error() ||
+	       ((m_fdinfo != nullptr) &&
+		((m_fdinfo->m_type == SCAP_FD_FILE) ||
+		 (m_fdinfo->m_type == SCAP_FD_FILE_V2)));
+}
+
+bool sinsp_evt::is_network_error() const
+{
+	if(m_fdinfo != nullptr)
+	{
+		return (m_fdinfo->m_type == SCAP_FD_IPV4_SOCK) ||
+		       (m_fdinfo->m_type == SCAP_FD_IPV6_SOCK);
+	}
+	else
+	{
+		return (m_pevt->type == PPME_SOCKET_ACCEPT_X) ||
+		       (m_pevt->type == PPME_SOCKET_ACCEPT4_X) ||
+		       (m_pevt->type == PPME_SOCKET_ACCEPT4_5_X) ||
+		       (m_pevt->type == PPME_SOCKET_CONNECT_X) ||
+		       (m_pevt->type == PPME_SOCKET_BIND_X);
+	}
 }
