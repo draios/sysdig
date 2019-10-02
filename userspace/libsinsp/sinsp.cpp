@@ -1857,7 +1857,7 @@ uint32_t sinsp::reserve_thread_memory(uint32_t size)
 	return m_thread_privatestate_manager.reserve(size);
 }
 
-void sinsp::get_capture_stats(scap_stats* stats)
+void sinsp::get_capture_stats(scap_stats* stats) const
 {
 	if(scap_get_stats(m_h, stats) != SCAP_SUCCESS)
 	{

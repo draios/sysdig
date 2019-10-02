@@ -25,7 +25,7 @@ public:
 	 * Return the number of elements given by the buffer. If needed, log at the
 	 * given log-level.
 	 */
-	int operator ()(const char *buffer, sinsp_logger::severity log_level)
+	int operator ()(const char *buffer)
 	{
 		reset();
 
@@ -68,7 +68,7 @@ public:
 		}
 		catch (const std::exception& ex)
 		{
-			g_logger.format(log_level,
+			g_logger.format(sinsp_logger::SEV_ERROR,
 					"Invalid List Format: %s. Detail: %s",
 					buffer,
 					ex.what());

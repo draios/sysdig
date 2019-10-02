@@ -547,7 +547,7 @@ public:
 
 	  \note this call won't work on file captures.
 	*/
-	void get_capture_stats(scap_stats* stats) override;
+	void get_capture_stats(scap_stats* stats) const override;
 
 	void set_max_thread_table_size(uint32_t value);
 
