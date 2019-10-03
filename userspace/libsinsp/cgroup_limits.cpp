@@ -55,6 +55,11 @@ bool read_cgroup_list_count(const std::string& subsys,
  	std::string cpuset_cpus((std::istreambuf_iterator<char>(cg_val)),
 			    std::istreambuf_iterator<char>());
 
+	if(cpuset_cpus.empty())
+	{
+		return false;
+	}
+
  	libsinsp::cgroup_list_counter counter;
 	out = counter(cpuset_cpus.c_str());
 
