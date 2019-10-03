@@ -52,6 +52,11 @@ bool read_cgroup_list_count(const std::string& subsys,
 	std::string path = subsys + "/" + cgroup + "/" + filename;
 	std::ifstream cg_val(path);
 
+	if(!cg_val)
+	{
+		return false;
+	}
+
  	std::string cpuset_cpus((std::istreambuf_iterator<char>(cg_val)),
 			    std::istreambuf_iterator<char>());
 
