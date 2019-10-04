@@ -6,7 +6,6 @@ This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
 
 */
-
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
 
 #ifndef UDIG
@@ -391,7 +390,7 @@ int f_sys_write_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#if 0
+#ifndef UDIG
 
 /*
  * get_mm_counter was not inline and exported between 3.0 and 3.4
@@ -589,10 +588,8 @@ static int accumulate_argv_or_env(const char __user * __user *argv,
 	for (;;) {
 		const char __user *p;
 
-#ifndef UDIG
 		if (unlikely(ppm_get_user(p, argv)))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
-#endif
 
 		if (p == NULL)
 			break;
@@ -679,7 +676,6 @@ static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 #endif
 
 // probe_kernel_read() only added in kernel 2.6.26
-#ifndef UDIG
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 26)
 long probe_kernel_read(void *dst, const void *src, size_t size)
 {
@@ -743,8 +739,6 @@ static int ppm_get_tty(void)
 }
 
 #endif // UDIG
-
-#endif // 0
 
 int f_proc_startupdate(struct event_filler_arguments *args)
 {
@@ -3107,8 +3101,6 @@ int f_sys_linkat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#if 0
-
 #ifndef _64BIT_ARGS_SINGLE_REGISTER
 int f_sys_pread64_e(struct event_filler_arguments *args)
 {
@@ -3217,8 +3209,6 @@ int f_sys_pwrite64_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 #endif
-
-#endif // 0
 
 int f_sys_readv_preadv_x(struct event_filler_arguments *args)
 {
@@ -4653,8 +4643,6 @@ int f_sys_unshare_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#if 0
-
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 int f_sys_signaldeliver_e(struct event_filler_arguments *args)
 {
@@ -4705,8 +4693,6 @@ int f_sys_pagefault_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 #endif
-
-#endif // 0
 
 int f_cpu_hotplug_e(struct event_filler_arguments *args)
 {
@@ -4900,7 +4886,7 @@ int f_sys_bpf_x(struct event_filler_arguments *args)
 	 * fd, depending on cmd
 	 */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &cmd);
-#if UDIG
+#ifdef UDIG
 	if(0)
 #else /* UDIG */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
