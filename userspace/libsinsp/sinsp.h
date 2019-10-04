@@ -548,7 +548,7 @@ public:
 
 	  \note this call won't work on file captures.
 	*/
-	void get_capture_stats(scap_stats* stats) override;
+	void get_capture_stats(scap_stats* stats) const override;
 
 	void set_max_thread_table_size(uint32_t value);
 
@@ -910,6 +910,8 @@ public:
 
 	void set_cri_socket_path(const std::string& path);
 	void set_cri_timeout(int64_t timeout_ms);
+	void set_cri_async(bool async);
+	void set_cri_delay(uint64_t delay_ms);
 
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);

@@ -1632,6 +1632,16 @@ void sinsp::set_cri_timeout(int64_t timeout_ms)
 	m_container_manager.set_cri_timeout(timeout_ms);
 }
 
+void sinsp::set_cri_async(bool async)
+{
+	m_container_manager.set_cri_async(async);
+}
+
+void sinsp::set_cri_delay(uint64_t delay_ms)
+{
+	m_container_manager.set_cri_delay(delay_ms);
+}
+
 void sinsp::set_snaplen(uint32_t snaplen)
 {
 	//
@@ -1857,7 +1867,7 @@ uint32_t sinsp::reserve_thread_memory(uint32_t size)
 	return m_thread_privatestate_manager.reserve(size);
 }
 
-void sinsp::get_capture_stats(scap_stats* stats)
+void sinsp::get_capture_stats(scap_stats* stats) const
 {
 	if(scap_get_stats(m_h, stats) != SCAP_SUCCESS)
 	{

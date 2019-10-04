@@ -1,6 +1,7 @@
 #include "cgroup_limits.h"
 
 #include <fstream>
+#include "cgroup_list_counter.h"
 #include "sinsp.h"
 
 namespace {
@@ -20,7 +21,9 @@ constexpr const int64_t CGROUP_VAL_MAX = (1UL << 42u) - 1;
  *          reasonable being [0; CGROUP_VAL_MAX)
  */
 bool read_cgroup_val(std::shared_ptr<std::string>& subsys,
-	const std::string& cgroup, const std::string& filename, int64_t& out)
+		     const std::string& cgroup,
+		     const std::string& filename,
+		     int64_t& out)
 {
 	std::string path = *subsys.get() + "/" + cgroup + "/" + filename;
 	std::ifstream cg_val(path);
@@ -37,22 +40,55 @@ bool read_cgroup_val(std::shared_ptr<std::string>& subsys,
 	out = val;
 	return true;
 }
+
+/**
+ * Read from a cpuset file to get the number of cpus in the cpuset
+ */
+bool read_cgroup_list_count(const std::string& subsys,
+			    const std::string& cgroup,
+			    const std::string& filename,
+			    int32_t& out)
+{
+	std::string path = subsys + "/" + cgroup + "/" + filename;
+	std::ifstream cg_val(path);
+
+	if(!cg_val)
+	{
+		return false;
+	}
+
+ 	std::string cpuset_cpus((std::istreambuf_iterator<char>(cg_val)),
+			    std::istreambuf_iterator<char>());
+
+	if(cpuset_cpus.empty())
+	{
+		return false;
+	}
+
+ 	libsinsp::cgroup_list_counter counter;
+	out = counter(cpuset_cpus.c_str());
+
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"(cgroup-limits) Pulling cpu set from %s: %s = %d",
+			path.c_str(),
+			cpuset_cpus.c_str(),
+			out);
+
+ 	return (out > 0);
+}
+
 }
 
 namespace libsinsp {
 namespace cgroup_limits {
 
-bool get_cgroup_resource_limits(const cgroup_limits_key& key, cgroup_limits_value& value, bool report_no_cgroup)
+bool get_cgroup_resource_limits(const cgroup_limits_key& key, cgroup_limits_value& value, bool name_check)
 {
 	bool found_all = true;
-	auto no_cg_log_level = report_no_cgroup
-		? sinsp_logger::SEV_INFO
-		: sinsp_logger::SEV_DEBUG;
-
 	std::shared_ptr<std::string> memcg_root = sinsp::lookup_cgroup_dir("memory");
-	if(key.m_mem_cgroup.find(key.m_container_id) == std::string::npos)
+	if(name_check && key.m_mem_cgroup.find(key.m_container_id) == std::string::npos)
 	{
-		g_logger.format(no_cg_log_level, "(cgroup-limits) mem cgroup for container [%s]: %s/%s -- no per-container memory cgroup, ignoring",
+		g_logger.format(sinsp_logger::SEV_INFO, "(cgroup-limits) mem cgroup for container [%s]: %s/%s -- no per-container memory cgroup, ignoring",
 			key.m_container_id.c_str(), memcg_root->c_str(), key.m_mem_cgroup.c_str());
 	}
 	else
@@ -63,9 +99,9 @@ bool get_cgroup_resource_limits(const cgroup_limits_key& key, cgroup_limits_valu
 	}
 
 	std::shared_ptr<std::string> cpucg_root = sinsp::lookup_cgroup_dir("cpu");
-	if(key.m_cpu_cgroup.find(key.m_container_id) == std::string::npos)
+	if(name_check && key.m_cpu_cgroup.find(key.m_container_id) == std::string::npos)
 	{
-		g_logger.format(no_cg_log_level, "(cgroup-limits) cpu cgroup for container [%s]: %s/%s -- no per-container CPU cgroup, ignoring",
+		g_logger.format(sinsp_logger::SEV_INFO, "(cgroup-limits) cpu cgroup for container [%s]: %s/%s -- no per-container CPU cgroup, ignoring",
 				key.m_container_id.c_str(), cpucg_root->c_str(), key.m_cpu_cgroup.c_str());
 	}
 	else
@@ -77,11 +113,27 @@ bool get_cgroup_resource_limits(const cgroup_limits_key& key, cgroup_limits_valu
 		found_all = read_cgroup_val(cpucg_root, key.m_cpu_cgroup, "cpu.cfs_period_us", value.m_cpu_period) && found_all;
 	}
 
+	std::shared_ptr<std::string> cpuset_root = sinsp::lookup_cgroup_dir("cpuset");
+	if (name_check && key.m_cpuset_cgroup.find(key.m_container_id) == std::string::npos)
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG, "(cgroup-limits) cpuset cgroup for container [%s]: %s/%s -- no per-container cpuset cgroup, ignoring",
+				key.m_container_id.c_str(), cpuset_root->c_str(), key.m_cpuset_cgroup.c_str());
+	}
+	else
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG, "(cgroup-limits) cpuset cgroup for container [%s]: %s/%s",
+				key.m_container_id.c_str(), cpuset_root->c_str(), key.m_cpuset_cgroup.c_str());
+		found_all = read_cgroup_list_count(*cpuset_root,
+						   key.m_cpuset_cgroup,
+						   "cpuset.effective_cpus",
+						   value.m_cpuset_cpu_count) && found_all;
+	}
+
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 		"(cgroup-limits) Got cgroup limits for container [%s]: "
-		"mem_limit=%ld, cpu_shares=%ld cpu_quota=%ld cpu_period=%ld",
+		"mem_limit=%ld, cpu_shares=%ld cpu_quota=%ld cpu_period=%ld cpuset_cpu_count=%d",
 		key.m_container_id.c_str(),
-		value.m_memory_limit, value.m_cpu_shares, value.m_cpu_quota, value.m_cpu_period);
+		value.m_memory_limit, value.m_cpu_shares, value.m_cpu_quota, value.m_cpu_period, value.m_cpuset_cpu_count);
 
 	return found_all;
 }

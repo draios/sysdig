@@ -737,7 +737,7 @@ bool docker_async_source::parse_docker(std::string &container_id, sinsp_containe
 	if (!cpuset_cpus.empty())
 	{
 		libsinsp::cgroup_list_counter counter;
-		container.m_cpuset_cpu_count = counter(cpuset_cpus.c_str(), sinsp_logger::SEV_DEBUG);
+		container.m_cpuset_cpu_count = counter(cpuset_cpus.c_str());
 	}
 	const Json::Value& privileged = host_config_obj["Privileged"];
 	if(!privileged.isNull() && privileged.isBool())
