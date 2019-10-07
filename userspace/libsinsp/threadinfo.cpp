@@ -409,7 +409,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 		set_cwd(pi->cwd, (uint32_t)strlen(pi->cwd));
 	}
 	m_flags |= pi->flags;
-	m_flags |= PPM_CL_ACTIVE; // Assume that all the threads coming from /proc are real, active threads
+	m_flags |= PPM_CL_ACTIVE | PPM_CL_FROM_PROC; // Assume that all the threads coming from /proc are real, active threads
 	m_fdtable.clear();
 	m_fdlimit = pi->fdlimit;
 	m_uid = pi->uid;
