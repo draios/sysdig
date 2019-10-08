@@ -42,6 +42,7 @@ std::string k8s_event_handler::EVENT_FILTER =
 	"   uid: .metadata.uid,"
 	"   timestamp: .metadata.creationTimestamp,"
 	"   lastTimestamp: .lastTimestamp,"
+	"   eventTime: .eventTime,"
 	"   reason: .reason,"
 	"   message: .message,"
 	"   involvedObject: .involvedObject"
@@ -63,6 +64,7 @@ std::string k8s_event_handler::STATE_FILTER =
 	"   uid: .metadata.uid,"
 	"   timestamp: .metadata.creationTimestamp,"
 	"   lastTimestamp: .lastTimestamp,"
+	"   eventTime: .eventTime,"
 	"   reason: .reason,"
 	"   message: .message,"
 	"   involvedObject: .involvedObject"
@@ -114,13 +116,36 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 					if(!involved_object.isNull())
 					{
 						bool is_aggregate = (get_json_string(json , "message").find("events with common reason combined") != std::string::npos);
-						time_t last_ts = get_epoch_utc_seconds(get_json_string(json , "lastTimestamp"));
+						g_logger.log("K8s EVENT JSON STRING: " + Json::FastWriter().write(json), sinsp_logger::SEV_DEBUG);
 						time_t now_ts = get_epoch_utc_seconds_now();
+						// So we first are going to check for "eventTime"
+						// If that is empty, we will check for "lastTimestamp"
+						// If that is also empty, use current timestamp and log it. 
+						// This change is necessiated because in v1beta1/events, "EventTime" is
+						// the main field that holds timestamp and `lastTimestamp` is deprecated.
+						// This change is addressed towards that. 
+						std::string evtTime = get_json_string(json, "eventTime");
+						std::string ts = get_json_string(json , "lastTimestamp");
+						time_t last_ts = 0;
+						if(!evtTime.empty())
+						{
+							last_ts	= get_epoch_utc_seconds(evtTime);
+						}
+						else if(!ts.empty())
+						{
+							last_ts = get_epoch_utc_seconds(ts);
+						}
+						else
+						{
+							// Ideally we should NEVER hit this case. But log it if we do, so we know.
+							g_logger.log("K8s EVENT: both eventTime and lastTimestamp are null, using current timestamp", sinsp_logger::SEV_INFO);
+							last_ts = now_ts;
+						}
 						g_logger.log("K8s EVENT: lastTimestamp=" + std::to_string(last_ts) + ", now_ts=" + std::to_string(now_ts),
-									 sinsp_logger::SEV_TRACE);
+							     sinsp_logger::SEV_TRACE);
 						if(((last_ts > 0) && (now_ts > 0)) && // we got good timestamps
-							!is_aggregate && // not an aggregated cached event
-							((now_ts - last_ts) < 10)) // event not older than 10 seconds
+						   !is_aggregate && // not an aggregated cached event
+						   ((now_ts - last_ts) < 10)) // event not older than 10 seconds
 						{
 							const Json::Value& kind = involved_object["kind"];
 							const Json::Value& event_reason = json["reason"];
