@@ -118,7 +118,6 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 						bool is_aggregate = (get_json_string(json , "message").find("events with common reason combined") != std::string::npos);
 						time_t last_ts = 0;
 						time_t now_ts = get_epoch_utc_seconds_now();
-						g_logger.log("K8s EVENT JSON STRING: " + Json::FastWriter().write(json), sinsp_logger::SEV_DEBUG);
 						// So we first are going to check for "eventTime"
 						// If that is empty, we will check for "lastTimestamp"
 						// If that is also empty, use current timestamp and log it. 
