@@ -137,7 +137,7 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 						else
 						{
 							// Ideally we should NEVER hit this case. But log it if we do, so we know.
-							g_logger.log("K8s EVENT: both eventTime and lastTimestamp are null, using current timestamp", sinsp_logger::SEV_INFO);
+							g_logger.log("K8s EVENT: both eventTime and lastTimestamp are null, using current timestamp. Event Json : " + Json::FastWriter().write(json) , sinsp_logger::SEV_INFO);
 							last_ts = now_ts;
 						}
 						g_logger.log("K8s EVENT: lastTimestamp=" + std::to_string(last_ts) + ", now_ts=" + std::to_string(now_ts),
