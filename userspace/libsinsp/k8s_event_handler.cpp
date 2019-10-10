@@ -121,7 +121,7 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 						// So we first are going to check for "eventTime"
 						// If that is empty, we will check for "lastTimestamp"
 						// If that is also empty, use current timestamp and log it. 
-						// This change is necessiated because in v1beta1/events, "EventTime" is
+						// This change is necessitated because in v1beta1/events, "EventTime" is
 						// the main field that holds timestamp and `lastTimestamp` is deprecated.
 						// This change is addressed towards that. 
 						std::string evtTime = get_json_string(json, "eventTime");
