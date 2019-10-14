@@ -297,7 +297,7 @@ bool docker_async_source::parse_liveness_readiness_probe(const Json::Value &prob
 }
 
 bool docker_async_source::get_sandbox_liveness_readiness_probes(const Json::Value &config_obj,
-								sinsp_container_manager::entry_ptr_t container)
+								sinsp_container_info &container)
 {
 	std::string sandbox_container_id;
 	std::string sandbox_label = "io.kubernetes.sandbox.id";
@@ -308,7 +308,7 @@ bool docker_async_source::get_sandbox_liveness_readiness_probes(const Json::Valu
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): No sandbox label found, not copying liveness/readiness probes",
-				container->m_id.c_str());
+				container.m_id.c_str());
 		return false;
 	}
 
@@ -319,13 +319,13 @@ bool docker_async_source::get_sandbox_liveness_readiness_probes(const Json::Valu
 		sandbox_container_id.resize(12);
 	}
 
-	sinsp_container_manager::entry_ptr_t sandbox_container = m_inspector->m_container_manager.get_container(sandbox_container_id);
+	sinsp_container_info::ptr_t sandbox_container = m_inspector->m_container_manager.get_container(sandbox_container_id);
 
 	if(!sandbox_container)
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): Sandbox container %s doesn't exist, not copying liveness/readiness probes",
-				container->m_id.c_str(), sandbox_container_id.c_str());
+				container.m_id.c_str(), sandbox_container_id.c_str());
 		return false;
 	}
 
@@ -333,14 +333,14 @@ bool docker_async_source::get_sandbox_liveness_readiness_probes(const Json::Valu
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): Sandbox container %s has no liveness/readiness probes, not copying",
-				container->m_id.c_str(), sandbox_container_id.c_str());
+				container.m_id.c_str(), sandbox_container_id.c_str());
 		return false;
 	}
 
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"docker (%s): Copying liveness/readiness probes from sandbox container %s",
-			container->m_id.c_str(), sandbox_container_id.c_str());
-	container->m_health_probes = sandbox_container->m_health_probes;
+			container.m_id.c_str(), sandbox_container_id.c_str());
+	container.m_health_probes = sandbox_container->m_health_probes;
 
 	return true;
 }
@@ -357,7 +357,7 @@ void docker_async_source::parse_health_probes(const Json::Value &config_obj,
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): Parsing liveness/readiness probes from pod spec",
-				container->m_id.c_str());
+				container.m_id.c_str());
 
 		if(spec.isMember("livenessProbe"))
 		{
@@ -387,7 +387,7 @@ void docker_async_source::parse_health_probes(const Json::Value &config_obj,
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): No liveness/readiness probes found",
-				container->m_id.c_str());
+				container.m_id.c_str());
 	}
 
 	// To avoid any confusion about containers that both refer to
