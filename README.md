@@ -13,7 +13,7 @@ sysdig
 
 Where to start?
 ---
-If this is your first time hearing about sysdig, we recommend you [start with the website](http://www.sysdig.org).  
+If this is your first time hearing about sysdig, we recommend you [start with the website](http://www.sysdig.com).  
   
 What does sysdig do and why should I use it?
 ---
@@ -90,7 +90,7 @@ Use a real name of a natural person who is an authorized representative of the c
 
 Sysdig Cloud
 ---
-Interested in a fully supported, fully distributed version of sysdig? Check out [Sysdig Monitor](https://sysdig.com/product)!
+Interested in a fully supported, fully distributed version of sysdig? Check out [Sysdig Monitor](https://sysdig.com/products/monitor/)!
 
 Open source sysdig is proudly supported by [Sysdig Inc](https://sysdig.com/company/).  
 
