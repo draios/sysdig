@@ -970,7 +970,6 @@ u16 fd_to_socktuple(int fd,
 #ifdef UDIG
 	socklen_t alen = sizeof(struct sockaddr_storage);
 	err = udig_getsockname(fd, (struct sockaddr *)&sock_address, &alen);
-	ASSERT(err == 0);
 	if(err < 0)
 	{
 		return 0;
