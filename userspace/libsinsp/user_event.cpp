@@ -429,7 +429,7 @@ void sinsp_user_event::emit_event_overflow(const std::string& component,
 	std::string scope;
 	if(machine_id.length())
 	{
-		scope.append("host.mac=").append(machine_id);
+		scope.append("host.mac=").append("'" + machine_id + "'");
 	}
 	tag_map_t tags{{"source", source}};
 
