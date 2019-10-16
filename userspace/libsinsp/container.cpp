@@ -74,7 +74,8 @@ bool sinsp_container_manager::remove_inactive_containers()
 			return true;
 		});
 
-		for(auto it = m_containers.begin(); it != m_containers.end();)
+		auto containers = m_containers.lock();
+		for(auto it = containers->begin(); it != containers->end();)
 		{
 			if(containers_in_use.find(it->first) == containers_in_use.end())
 			{
@@ -83,7 +84,7 @@ bool sinsp_container_manager::remove_inactive_containers()
 				{
 					remove_cb(*container);
 				}
-				m_containers.erase(it++);
+				containers->erase(it++);
 			}
 			else
 			{
@@ -97,8 +98,9 @@ bool sinsp_container_manager::remove_inactive_containers()
 
 sinsp_container_info::ptr_t sinsp_container_manager::get_container(const string& container_id) const
 {
-	auto it = m_containers.find(container_id);
-	if(it != m_containers.end())
+	auto containers = m_containers.lock();
+	auto it = containers->find(container_id);
+	if(it != containers->end())
 	{
 		return it->second;
 	}
@@ -277,13 +279,16 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 
 sinsp_container_manager::map_ptr_t sinsp_container_manager::get_containers() const
 {
-	return &m_containers;
+	return m_containers.lock();
 }
 
 void sinsp_container_manager::add_container(const sinsp_container_info::ptr_t& container_info, sinsp_threadinfo *thread)
 {
 	set_lookup_status(container_info->m_id, container_info->m_type, container_info->m_lookup_state);
-	m_containers[container_info->m_id] = container_info;
+	{
+		auto containers = m_containers.lock();
+		(*containers)[container_info->m_id] = container_info;
+	}
 
 	for(const auto &new_cb : m_new_callbacks)
 	{
@@ -293,8 +298,9 @@ void sinsp_container_manager::add_container(const sinsp_container_info::ptr_t& c
 
 void sinsp_container_manager::replace_container(const sinsp_container_info::ptr_t& container_info)
 {
-	ASSERT(m_containers.find(container_info->m_id) != m_containers.end());
-	m_containers[container_info->m_id] = container_info;
+	auto containers = m_containers.lock();
+	ASSERT(containers->find(container_info->m_id) != containers->end());
+	(*containers)[container_info->m_id] = container_info;
 }
 
 void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info)
@@ -323,7 +329,7 @@ void sinsp_container_manager::notify_new_container(const sinsp_container_info& c
 
 void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)
 {
-	for(const auto& it : m_containers)
+	for(const auto& it : (*m_containers.lock()))
 	{
 		sinsp_evt evt;
 		if(container_to_sinsp_event(container_to_json(*it.second), &evt, it.second->get_tinfo(m_inspector)))

@@ -1144,8 +1144,6 @@ int lua_cbacks::get_container_table(lua_State *ls)
 	//
 	const sinsp_container_manager::map_ptr_t ctable = ch->m_inspector->m_container_manager.get_containers();
 
-	ASSERT(ctable != NULL);
-
 	lua_newtable(ls);
 
 	//
