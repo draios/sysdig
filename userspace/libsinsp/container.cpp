@@ -283,6 +283,7 @@ const unordered_map<string, sinsp_container_info>* sinsp_container_manager::get_
 void sinsp_container_manager::add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread_info)
 {
 	g_logger.format(sinsp_logger::SEV_DEBUG, "(container-debug) add_container: adding %s", container_info.m_id.c_str());
+	sinsp_utils::bt();
 	m_containers[container_info.m_id] = container_info;
 
 	for(const auto &new_cb : m_new_callbacks)
