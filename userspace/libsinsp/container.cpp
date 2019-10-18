@@ -18,6 +18,7 @@ limitations under the License.
 */
 
 #include <algorithm>
+#include <unordered_set>
 
 #include "container_engine/cri.h"
 #include "container_engine/docker.h"
@@ -78,6 +79,7 @@ bool sinsp_container_manager::remove_inactive_containers()
 		{
 			if(containers_in_use.find(it->first) == containers_in_use.end())
 			{
+				g_logger.format(sinsp_logger::SEV_DEBUG, "(container-debug) remove_inactive_containers: removing %s", it->first.c_str());
 				for(const auto &remove_cb : m_remove_callbacks)
 				{
 					remove_cb(m_containers[it->first]);
@@ -89,6 +91,7 @@ bool sinsp_container_manager::remove_inactive_containers()
 				++it;
 			}
 		}
+		debug_container_table();
 	}
 
 	return res;
@@ -279,12 +282,15 @@ const unordered_map<string, sinsp_container_info>* sinsp_container_manager::get_
 
 void sinsp_container_manager::add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread_info)
 {
+	g_logger.format(sinsp_logger::SEV_DEBUG, "(container-debug) add_container: adding %s", container_info.m_id.c_str());
 	m_containers[container_info.m_id] = container_info;
 
 	for(const auto &new_cb : m_new_callbacks)
 	{
 		new_cb(m_containers[container_info.m_id], thread_info);
 	}
+
+	debug_container_table();
 }
 
 void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info)
@@ -530,4 +536,35 @@ void sinsp_container_manager::set_cri_timeout(int64_t timeout_ms)
 #if defined(HAS_CAPTURE)
 	libsinsp::container_engine::cri::set_cri_timeout(timeout_ms);
 #endif
+}
+
+void sinsp_container_manager::debug_container_table() const
+{
+	std::unordered_set<std::string> container_ids;
+	m_inspector->m_thread_manager->get_threads()->loop([&](sinsp_threadinfo& tinfo) {
+		if (!tinfo.m_container_id.empty())
+		{
+			container_ids.insert(tinfo.m_container_id);
+		}
+		return true;
+	});
+
+	g_logger.format(sinsp_logger::SEV_DEBUG, "(container-debug) --- container table dump ---");
+	for (const auto& container: m_containers)
+	{
+		bool have_procs = container_ids.erase(container.second.m_id) != 0;
+		g_logger.format(
+			sinsp_logger::SEV_DEBUG, "(container-debug) key: %s type: %d id: %s name: %s %s",
+			container.first.c_str(),
+			container.second.m_type,
+			container.second.m_id.c_str(),
+			container.second.m_name.c_str(),
+			have_procs ? " has processes" : " no processes");
+	}
+	for (const auto& id: container_ids)
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG, "(container-debug) container id %s not in table",
+			id.c_str());
+	}
+	g_logger.format(sinsp_logger::SEV_DEBUG, "(container-debug) --- end of container table dump ---");
 }

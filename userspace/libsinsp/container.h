@@ -76,6 +76,8 @@ private:
 	bool container_to_sinsp_event(const string& json, sinsp_evt* evt, shared_ptr<sinsp_threadinfo> tinfo);
 	string get_docker_env(const Json::Value &env_vars, const string &mti);
 
+	void debug_container_table() const;
+
 	std::list<std::unique_ptr<libsinsp::container_engine::resolver>> m_container_engines;
 
 	sinsp* m_inspector;
