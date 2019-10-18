@@ -1605,7 +1605,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 		sinsp_threadinfo* tinfo = get_thread_info();
 
-		if(tinfo)
+		if(tinfo && payload_len > 0)
 		{
 			if (strncmp(payload, "<NA>", 4) != 0)
 			{

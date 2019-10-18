@@ -93,7 +93,7 @@ k8s_daemonset_handler::k8s_daemonset_handler(k8s_state_t& state
 		k8s_handler("k8s_daemonset_handler", true,
 #ifdef HAS_CAPTURE
 					url,
-					"/apis/extensions/v1beta1/daemonsets",
+					"/apis/apps/v1/daemonsets",
 					STATE_FILTER, EVENT_FILTER, NULL_FILTER, collector,
 					http_version, 1000L, ssl, bt, true,
 					connect, dependency_handler, blocking_socket,

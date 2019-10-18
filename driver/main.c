@@ -654,6 +654,13 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			goto cleanup_ioctl_nolock;
 		}
 
+		if(pli.max_entries < 0 || pli.max_entries > 1000000)
+		{
+			vpr_info("PPM_IOCTL_GET_PROCLIST: invalid max_entries %llu\n", pli.max_entries);
+			ret = -EINVAL;
+			goto cleanup_ioctl_procinfo;
+		}
+
 		vpr_info("PPM_IOCTL_GET_PROCLIST, size=%d\n", (int)pli.max_entries);
 
 		memsize = sizeof(struct ppm_proclist_info) + sizeof(struct ppm_proc_info) * pli.max_entries;
