@@ -264,7 +264,7 @@ int32_t udig_begin_capture(scap_t* handle, char *error)
 bool udig_start_capture(scap_t* handle)
 {
 	struct udig_ring_buffer_status* rbs = handle->m_devs[0].m_bufstatus;
-	return __sync_bool_compare_and_swap(&(rbs->m_capturing_pid), getpid(), 0);
+	return __sync_bool_compare_and_swap(&(rbs->m_capturing_pid), 0, getpid());
 }
 
 void udig_stop_capture(scap_t* handle)
