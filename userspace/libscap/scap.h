@@ -536,6 +536,7 @@ struct udig_ring_buffer_status {
 	volatile uint64_t m_buffer_lock;
 	volatile int m_initialized;
 	volatile int m_capturing_pid;
+	volatile int m_stopped;
 	volatile struct timespec m_last_print_time;
 };
 

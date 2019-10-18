@@ -615,7 +615,7 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	//
 	// Now that sysdig has done all its /proc parsing, start the capture
 	//
-	if(udig_start_capture(handle, error) != SCAP_SUCCESS)
+	if(udig_begin_capture(handle, error) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		return NULL;
@@ -1648,31 +1648,37 @@ int32_t scap_stop_capture(scap_t* handle)
 	//
 	// Not supported for files
 	//
-	if(handle->m_mode != SCAP_MODE_LIVE)
+	if(handle->m_mode == SCAP_MODE_LIVE)
+	{
+		//
+		// Disable capture on all the rings
+		//
+		for(j = 0; j < handle->m_ndevs; j++)
+		{
+			if(handle->m_bpf)
+			{
+				return scap_bpf_stop_capture(handle);
+			}
+			else
+			{
+				if(ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_DISABLE_CAPTURE))
+				{
+					snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_stop_capture failed for device %" PRIu32, j);
+					ASSERT(false);
+					return SCAP_FAILURE;
+				}
+			}
+		}
+	}
+	else if(handle->m_mode == SCAP_MODE_UDIG)
+	{
+		udig_stop_capture(handle);
+	}
+	else
 	{
 		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "cannot stop not live captures");
 		ASSERT(false);
 		return SCAP_FAILURE;
-	}
-
-	//
-	// Disable capture on all the rings
-	//
-	for(j = 0; j < handle->m_ndevs; j++)
-	{
-		if(handle->m_bpf)
-		{
-			return scap_bpf_stop_capture(handle);
-		}
-		else
-		{
-			if(ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_DISABLE_CAPTURE))
-			{
-				snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_stop_capture failed for device %" PRIu32, j);
-				ASSERT(false);
-				return SCAP_FAILURE;
-			}
-		}
 	}
 
 	return SCAP_SUCCESS;
@@ -1693,31 +1699,35 @@ int32_t scap_start_capture(scap_t* handle)
 	//
 	// Not supported for files
 	//
-	if(handle->m_mode != SCAP_MODE_LIVE)
+	if(handle->m_mode == SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "cannot start capture on this scap mode");
-		ASSERT(false);
-		return SCAP_FAILURE;
+		//
+		// Enable capture on all the rings
+		//
+		if(handle->m_bpf)
+		{
+			return scap_bpf_start_capture(handle);
+		}
+		else
+		{
+			for(j = 0; j < handle->m_ndevs; j++)
+			{
+				if(ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_ENABLE_CAPTURE))
+				{
+					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_start_capture failed for device %" PRIu32, j);
+					ASSERT(false);
+					return SCAP_FAILURE;
+				}
+			}
+		}
 	}
-
-	//
-	// Enable capture on all the rings
-	//
-	if(handle->m_bpf)
+	else if(handle->m_mode == SCAP_MODE_UDIG)
 	{
-		return scap_bpf_start_capture(handle);
+		udig_start_capture(handle);
 	}
 	else
 	{
-		for(j = 0; j < handle->m_ndevs; j++)
-		{
-			if(ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_ENABLE_CAPTURE))
-			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_start_capture failed for device %" PRIu32, j);
-				ASSERT(false);
-				return SCAP_FAILURE;
-			}
-		}
+
 	}
 
 	return SCAP_SUCCESS;

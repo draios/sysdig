@@ -357,7 +357,8 @@ extern bool validate_info_table_size();
 //
 // udig stuff
 //
-int32_t udig_start_capture(scap_t* handle, char *error);
+int32_t udig_begin_capture(scap_t* handle, char *error);
+bool udig_start_capture(scap_t* handle);
 void udig_stop_capture(scap_t* handle);
 
 #ifdef __cplusplus
