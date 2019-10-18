@@ -194,6 +194,7 @@ int32_t udig_alloc_ring_descriptors(int* ring_descs_fd,
 	{
 		(*ring_status)->m_buffer_lock = 0;
 		(*ring_status)->m_capturing_pid = 0;
+		(*ring_status)->m_stopped = 0;
 		(*ring_status)->m_last_print_time.tv_sec = 0;
 		(*ring_status)->m_last_print_time.tv_nsec = 0;
 	}
@@ -219,7 +220,7 @@ void udig_free_ring_descriptors(uint8_t* addr)
 ///////////////////////////////////////////////////////////////////////////////
 // Capture control helpers.
 ///////////////////////////////////////////////////////////////////////////////
-int32_t udig_start_capture(scap_t* handle, char *error)
+int32_t udig_begin_capture(scap_t* handle, char *error)
 {
 	struct ppm_ring_buffer_info* rbi = handle->m_devs[0].m_bufinfo;
 	rbi->head = 0;
@@ -249,13 +250,19 @@ int32_t udig_start_capture(scap_t* handle, char *error)
 		}
 	}
 
-	if(__sync_bool_compare_and_swap(&(rbs->m_capturing_pid), 0, getpid()))
+	if(udig_start_capture(handle))
 	{
 		return SCAP_SUCCESS;
 	}
 
 	snprintf(error, SCAP_LASTERR_SIZE, "another udig capture is already active");
 	return SCAP_FAILURE;
+}
+
+bool udig_start_capture(scap_t* handle)
+{
+	struct udig_ring_buffer_status* rbs = handle->m_devs[0].m_bufstatus;
+	return __sync_bool_compare_and_swap(&(rbs->m_capturing_pid), getpid(), 0);
 }
 
 void udig_stop_capture(scap_t* handle)
