@@ -1014,6 +1014,7 @@ private:
 	int m_input_fd;
 	std::string m_input_filename;
 	bool m_bpf;
+	bool m_udig;
 	std::string m_bpf_probe;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;

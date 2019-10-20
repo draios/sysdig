@@ -108,6 +108,7 @@ sinsp::sinsp() :
 	m_buffer_format = sinsp_evt::PF_NORMAL;
 	m_input_fd = 0;
 	m_bpf = false;
+	m_udig = false;
 	m_isdebug_enabled = false;
 	m_isfatfile_enabled = false;
 	m_isinternal_events_enabled = false;
@@ -461,6 +462,7 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 	oargs.fname = NULL;
 	oargs.proc_callback = NULL;
 	oargs.proc_callback_context = NULL;
+	oargs.udig = m_udig;
 
 	if(!m_filter_proc_table_when_saving)
 	{
@@ -502,7 +504,8 @@ void sinsp::open(uint32_t timeout_ms)
 
 void sinsp::open_udig(uint32_t timeout_ms)
 {
-	open_live_common(timeout_ms, SCAP_MODE_UDIG);
+	m_udig = true;
+	open_live_common(timeout_ms, SCAP_MODE_LIVE);
 }
 
 void sinsp::open_nodriver()
