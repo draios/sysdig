@@ -157,6 +157,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	// Preliminary initializations
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
+	handle->m_udig = false;
 
 	//
 	// While in theory we could always rely on the scap caller to properly
@@ -468,7 +469,8 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	//
 	// Preliminary initializations
 	//
-	handle->m_mode = SCAP_MODE_UDIG;
+	handle->m_mode = SCAP_MODE_LIVE;
+	handle->m_udig = true;
 	handle->m_bpf = false;
 	handle->m_ncpus = 1;
 	if(handle->m_ncpus == -1)
@@ -670,6 +672,7 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 	handle->m_whh = NULL;
 #endif
 	handle->m_bpf = false;
+	handle->m_udig = false;
 	handle->m_suppressed_comms = NULL;
 	handle->m_suppressed_tids = NULL;
 
@@ -912,11 +915,21 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 	}
 	case SCAP_MODE_LIVE:
 #ifndef CYGWING_AGENT
-		return scap_open_live_int(error, rc, args.proc_callback,
-					  args.proc_callback_context,
-					  args.import_users,
-					  args.bpf_probe,
-					  args.suppressed_comms);
+		if(args.udig)
+		{
+			return scap_open_udig_int(error, rc, args.proc_callback,
+						args.proc_callback_context,
+						args.import_users,
+						args.suppressed_comms);
+		}
+		else
+		{
+			return scap_open_live_int(error, rc, args.proc_callback,
+						args.proc_callback_context,
+						args.import_users,
+						args.bpf_probe,
+						args.suppressed_comms);
+		}
 #else
 		snprintf(error,	SCAP_LASTERR_SIZE, "scap_open: live mode currently not supported on windows. Use nodriver mode instead.");
 		*rc = SCAP_NOT_SUPPORTED;
@@ -926,17 +939,6 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 		return scap_open_nodriver_int(error, rc, args.proc_callback,
 					      args.proc_callback_context,
 					      args.import_users);
-	case SCAP_MODE_UDIG:
-#ifndef CYGWING_AGENT
-		return scap_open_udig_int(error, rc, args.proc_callback,
-					  args.proc_callback_context,
-					  args.import_users,
-					  args.suppressed_comms);
-#else
-		snprintf(error,	SCAP_LASTERR_SIZE, "scap_open: udig mode currently not supported on windows. Use nodriver mode instead.");
-		*rc = SCAP_NOT_SUPPORTED;
-		return NULL;
-#endif
 	case SCAP_MODE_NONE:
 		// error
 		break;
@@ -954,7 +956,7 @@ void scap_close(scap_t* handle)
 	{
 		gzclose(handle->m_file);
 	}
-	else if(handle->m_mode == SCAP_MODE_LIVE || handle->m_mode == SCAP_MODE_UDIG)
+	else if(handle->m_mode == SCAP_MODE_LIVE)
 	{
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 		uint32_t j;
@@ -970,7 +972,7 @@ void scap_close(scap_t* handle)
 					ASSERT(false);
 				}
 			}
-			else if(handle->m_mode == SCAP_MODE_UDIG)
+			else if(handle->m_udig)
 			{
 				ASSERT(handle->m_ndevs == 1)
 				
@@ -1549,16 +1551,20 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 		res = scap_next_offline(handle, pevent, pcpuid);
 		break;
 	case SCAP_MODE_LIVE:
-		res = scap_next_live(handle, pevent, pcpuid);
+		if(handle->m_udig)
+		{
+			res = scap_next_udig(handle, pevent, pcpuid);
+		}
+		else
+		{
+			res = scap_next_live(handle, pevent, pcpuid);
+		}
 		break;
 #ifndef _WIN32
 	case SCAP_MODE_NODRIVER:
 		res = scap_next_nodriver(handle, pevent, pcpuid);
 		break;
 #endif
-	case SCAP_MODE_UDIG:
-		res = scap_next_udig(handle, pevent, pcpuid);
-		break;
 	case SCAP_MODE_NONE:
 		res = SCAP_FAILURE;
 	}
@@ -1659,6 +1665,10 @@ int32_t scap_stop_capture(scap_t* handle)
 			{
 				return scap_bpf_stop_capture(handle);
 			}
+			else if(handle->m_udig)
+			{
+				udig_stop_capture(handle);
+			}
 			else
 			{
 				if(ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_DISABLE_CAPTURE))
@@ -1670,13 +1680,9 @@ int32_t scap_stop_capture(scap_t* handle)
 			}
 		}
 	}
-	else if(handle->m_mode == SCAP_MODE_UDIG)
-	{
-		udig_stop_capture(handle);
-	}
 	else
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "cannot stop not live captures");
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "cannot stop offline live captures");
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
@@ -1708,6 +1714,10 @@ int32_t scap_start_capture(scap_t* handle)
 		{
 			return scap_bpf_start_capture(handle);
 		}
+		else if(handle->m_udig)
+		{
+			udig_start_capture(handle);
+		}
 		else
 		{
 			for(j = 0; j < handle->m_ndevs; j++)
@@ -1721,13 +1731,11 @@ int32_t scap_start_capture(scap_t* handle)
 			}
 		}
 	}
-	else if(handle->m_mode == SCAP_MODE_UDIG)
-	{
-		udig_start_capture(handle);
-	}
 	else
 	{
-
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "cannot start offline live captures");
+		ASSERT(false);
+		return SCAP_FAILURE;
 	}
 
 	return SCAP_SUCCESS;
@@ -2225,6 +2233,11 @@ struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
 	if(handle->m_bpf)
 	{
 		return scap_bpf_get_threadlist(handle);
+	}
+	else if(handle->m_udig)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_get_threadlist not supported on udig captures");
+		return NULL;
 	}
 	else
 	{

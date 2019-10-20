@@ -145,6 +145,7 @@ struct scap
 	wh_t* m_whh;
 #endif
 	bool m_bpf;
+	bool m_udig;
 	// Anonymous struct with bpf stuff
 	struct
 	{

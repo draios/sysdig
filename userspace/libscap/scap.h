@@ -284,10 +284,6 @@ typedef enum {
 	 * returned.
 	 */
 	SCAP_MODE_NODRIVER,
-	/*!
-	 * Read system call data from the udig instrumentation.
-	 */
-	SCAP_MODE_UDIG
 } scap_mode_t;
 
 typedef struct scap_open_args
@@ -304,6 +300,7 @@ typedef struct scap_open_args
 	                                                         // events should be returned, with a trailing NULL value.
 	                                                         // You can provide additional comm
 	                                                         // values via scap_suppress_events_comm().
+	bool udig; ///< If true, UDIG will be used for event capture. Otherwise, the kernel driver will be used.
 }scap_open_args;
 
 
