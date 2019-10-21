@@ -13,7 +13,7 @@ sysdig
 
 Where to start?
 ---
-If this is your first time hearing about sysdig, we recommend you [start with the website](http://www.sysdig.com).  
+If this is your first time hearing about sysdig, we recommend you [start with the website](http://www.sysdig.org).  
   
 What does sysdig do and why should I use it?
 ---
