@@ -2088,6 +2088,13 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 	{
 		return scap_bpf_enable_dynamic_snaplen(handle);
 	}
+	if(handle->m_udig)
+	{
+		//
+		// Not implemented for udig yet.
+		//
+		return SCAP_SUCCESS;
+	}
 	else
 	{
 		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_ENABLE_DYNAMIC_SNAPLEN))
