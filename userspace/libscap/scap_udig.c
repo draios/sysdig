@@ -270,7 +270,8 @@ bool udig_start_capture(scap_t* handle)
 void udig_stop_capture(scap_t* handle)
 {
 	struct udig_ring_buffer_status* rbs = handle->m_devs[0].m_bufstatus;
-	__sync_bool_compare_and_swap(&(rbs->m_capturing_pid), getpid(), 0);
+	//__sync_bool_compare_and_swap(&(rbs->m_capturing_pid), getpid(), 0);
+	rbs->m_capturing_pid = 0;
 }
 
 #endif // _WIN32
