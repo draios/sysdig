@@ -725,13 +725,13 @@ if [ -z "$KERNEL_TYPE" ]; then
 	#
 	# Minikube build
 	#
-	echo Building Minikube
-	VERSIONS=$(curl https://api.github.com/repos/kubernetes/minikube/releases | jq -r '.[].name' | head -10)
+	#echo Building Minikube
+	#VERSIONS=$(curl https://api.github.com/repos/kubernetes/minikube/releases | jq -r '.[].name' | head -10)
 
-	for VERSION in $VERSIONS
-	do
-	        minikube_build $VERSION
-	done
+	#for VERSION in $VERSIONS
+	#do
+	#        minikube_build $VERSION
+	#done
 
 	#
 	# Upload modules
