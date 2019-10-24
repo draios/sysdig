@@ -472,14 +472,8 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	handle->m_mode = SCAP_MODE_LIVE;
 	handle->m_udig = true;
 	handle->m_bpf = false;
+	handle->m_udig_capturing = false;
 	handle->m_ncpus = 1;
-	if(handle->m_ncpus == -1)
-	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_CONF: %s", scap_strerror(handle, errno));
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
 
 	handle->m_ndevs = 1;
 
