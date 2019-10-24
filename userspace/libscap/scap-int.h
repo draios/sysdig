@@ -146,6 +146,7 @@ struct scap
 #endif
 	bool m_bpf;
 	bool m_udig;
+	bool m_udig_capturing;
 	// Anonymous struct with bpf stuff
 	struct
 	{

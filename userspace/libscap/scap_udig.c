@@ -224,12 +224,6 @@ void udig_free_ring_descriptors(uint8_t* addr)
 ///////////////////////////////////////////////////////////////////////////////
 int32_t udig_begin_capture(scap_t* handle, char *error)
 {
-	struct ppm_ring_buffer_info* rbi = handle->m_devs[0].m_bufinfo;
-	rbi->head = 0;
-	rbi->tail = 0;
-	rbi->n_evts = 0;
-	rbi->n_drops_buffer = 0;
-
 	struct udig_ring_buffer_status* rbs = handle->m_devs[0].m_bufstatus;
 
 	if(rbs->m_capturing_pid != 0)
@@ -240,7 +234,7 @@ int32_t udig_begin_capture(scap_t* handle, char *error)
 		// there is an alive process with that pid. If not, we reset the variable.
 		//
 		char fbuf[48];
-		snprintf(fbuf, sizeof(fbuf), "/proc/%d/comm", rbs->m_capturing_pid);
+		snprintf(fbuf, sizeof(fbuf), "/proc/%d", rbs->m_capturing_pid);
 		FILE* f = fopen(fbuf, "r");
 		if(f == NULL)
 		{
@@ -249,16 +243,27 @@ int32_t udig_begin_capture(scap_t* handle, char *error)
 		else
 		{
 			fclose(f);
+			snprintf(error, SCAP_LASTERR_SIZE, "another udig capture is already active");
+			return SCAP_FAILURE;
 		}
 	}
 
+	struct ppm_ring_buffer_info* rbi = handle->m_devs[0].m_bufinfo;
+	rbi->head = 0;
+	rbi->tail = 0;
+	rbi->n_evts = 0;
+	rbi->n_drops_buffer = 0;
+
 	if(udig_start_capture(handle))
 	{
+		handle->m_udig_capturing = true;
 		return SCAP_SUCCESS;
 	}
-
-	snprintf(error, SCAP_LASTERR_SIZE, "another udig capture is already active");
-	return SCAP_FAILURE;
+	else
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "cannot start the capture");
+		return SCAP_FAILURE;
+	}
 }
 
 bool udig_start_capture(scap_t* handle)
@@ -270,8 +275,11 @@ bool udig_start_capture(scap_t* handle)
 void udig_stop_capture(scap_t* handle)
 {
 	struct udig_ring_buffer_status* rbs = handle->m_devs[0].m_bufstatus;
-	//__sync_bool_compare_and_swap(&(rbs->m_capturing_pid), getpid(), 0);
-	rbs->m_capturing_pid = 0;
+	if(handle->m_udig_capturing)
+	{
+		//__sync_bool_compare_and_swap(&(rbs->m_capturing_pid), getpid(), 0);
+		rbs->m_capturing_pid = 0;
+	}
 }
 
 #endif // _WIN32
