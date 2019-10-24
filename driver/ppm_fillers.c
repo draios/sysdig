@@ -69,7 +69,7 @@ static inline struct inode *file_inode(struct file *f)
 	do { \
 		unsigned long _sga_args[6] = {}; \
 		syscall_get_arguments(_task, _reg, _sga_args); \
-		memcpy(_args, &_sga_args[_start], _len); \
+		memcpy(_args, &_sga_args[_start], _len * sizeof(unsigned long)); \
 	} while(0)
 #endif
 
