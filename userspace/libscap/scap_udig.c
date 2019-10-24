@@ -222,6 +222,19 @@ void udig_free_ring_descriptors(uint8_t* addr)
 ///////////////////////////////////////////////////////////////////////////////
 // Capture control helpers.
 ///////////////////////////////////////////////////////////////////////////////
+bool udig_grab_status_buffers(scap_t* handle)
+{
+	struct udig_ring_buffer_status* rbs = handle->m_devs[0].m_bufstatus;
+	bool res = __sync_bool_compare_and_swap(&(rbs->m_capturing_pid), 0, getpid());
+
+	if(res)
+	{
+		rbs->m_stopped = 0;
+	}
+
+	return res;
+}
+
 int32_t udig_begin_capture(scap_t* handle, char *error)
 {
 	struct udig_ring_buffer_status* rbs = handle->m_devs[0].m_bufstatus;
@@ -254,7 +267,7 @@ int32_t udig_begin_capture(scap_t* handle, char *error)
 	rbi->n_evts = 0;
 	rbi->n_drops_buffer = 0;
 
-	if(udig_start_capture(handle))
+	if(udig_grab_status_buffers(handle))
 	{
 		handle->m_udig_capturing = true;
 		return SCAP_SUCCESS;
@@ -266,13 +279,19 @@ int32_t udig_begin_capture(scap_t* handle, char *error)
 	}
 }
 
-bool udig_start_capture(scap_t* handle)
+void udig_start_capture(scap_t* handle)
 {
 	struct udig_ring_buffer_status* rbs = handle->m_devs[0].m_bufstatus;
-	return __sync_bool_compare_and_swap(&(rbs->m_capturing_pid), 0, getpid());
+	rbs->m_stopped = 0;
 }
 
 void udig_stop_capture(scap_t* handle)
+{
+	struct udig_ring_buffer_status* rbs = handle->m_devs[0].m_bufstatus;
+	rbs->m_stopped = 1;
+}
+
+void udig_end_capture(scap_t* handle)
 {
 	struct udig_ring_buffer_status* rbs = handle->m_devs[0].m_bufstatus;
 	if(handle->m_udig_capturing)
