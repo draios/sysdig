@@ -970,7 +970,7 @@ void scap_close(scap_t* handle)
 			{
 				ASSERT(handle->m_ndevs == 1)
 				
-				udig_stop_capture(handle);
+				udig_end_capture(handle);
 
 				if(handle->m_devs[0].m_buffer != MAP_FAILED)
 				{
