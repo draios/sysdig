@@ -306,9 +306,8 @@ bool docker_async_source::get_sandbox_liveness_readiness_probes(const Json::Valu
 	   !config_obj.isMember("Labels") ||
 	   !config_obj["Labels"].isMember(sandbox_label))
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"docker (%s): No sandbox label found, not copying liveness/readiness probes",
-				container.m_id.c_str());
+		SINSP_DEBUG("docker (%s): No sandbox label found, not copying liveness/readiness probes",
+			    container.m_id.c_str());
 		return false;
 	}
 
@@ -323,23 +322,20 @@ bool docker_async_source::get_sandbox_liveness_readiness_probes(const Json::Valu
 
 	if(!sandbox_container)
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"docker (%s): Sandbox container %s doesn't exist, not copying liveness/readiness probes",
-				container.m_id.c_str(), sandbox_container_id.c_str());
+		SINSP_DEBUG("docker (%s): Sandbox container %s doesn't exist, not copying liveness/readiness probes",
+			    container.m_id.c_str(), sandbox_container_id.c_str());
 		return false;
 	}
 
 	if(sandbox_container->m_health_probes.size() == 0)
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"docker (%s): Sandbox container %s has no liveness/readiness probes, not copying",
-				container.m_id.c_str(), sandbox_container_id.c_str());
+		SINSP_DEBUG("docker (%s): Sandbox container %s has no liveness/readiness probes, not copying",
+			    container.m_id.c_str(), sandbox_container_id.c_str());
 		return false;
 	}
 
-	g_logger.format(sinsp_logger::SEV_DEBUG,
-			"docker (%s): Copying liveness/readiness probes from sandbox container %s",
-			container.m_id.c_str(), sandbox_container_id.c_str());
+	SINSP_DEBUG("docker (%s): Copying liveness/readiness probes from sandbox container %s",
+		    container.m_id.c_str(), sandbox_container_id.c_str());
 	container.m_health_probes = sandbox_container->m_health_probes;
 
 	return true;
