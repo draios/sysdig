@@ -37,7 +37,7 @@ struct fault_data_t {
 };
 
 struct event_filler_arguments {
-	struct ppm_consumer_t *consumer;
+	ppm_consumer_t *consumer;
 	char *buffer; /* the buffer that will be filled with the data */
 	u32 buffer_size; /* the space in the ring buffer available for this event */
 	u32 syscall_id; /* the system call ID */
