@@ -363,6 +363,7 @@ int32_t udig_begin_capture(scap_t* handle, char *error);
 void udig_start_capture(scap_t* handle);
 void udig_stop_capture(scap_t* handle);
 void udig_end_capture(scap_t* handle);
+uint32_t udig_set_snaplen(scap_t* handle, uint32_t snaplen);
 
 #ifdef __cplusplus
 }
