@@ -1927,6 +1927,10 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 	{
 		return scap_bpf_set_snaplen(handle, snaplen);
 	}
+	else if(handle->m_udig)
+	{
+		return udig_set_snaplen(handle, snaplen);
+	}
 	else
 	{
 		//
