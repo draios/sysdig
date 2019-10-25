@@ -535,6 +535,7 @@ struct udig_ring_buffer_status {
 	volatile int m_capturing_pid;
 	volatile int m_stopped;
 	volatile struct timespec m_last_print_time;
+	struct udig_consumer_t m_consumer;
 };
 
 typedef struct ppm_ring_buffer_info ppm_ring_buffer_info;

@@ -1604,4 +1604,26 @@ struct ppm_event_entry {
 #define RW_MAX_SNAPLEN PPM_MAX_ARG_SIZE
 #define RW_MAX_FULLCAPTURE_PORT_SNAPLEN 16000
 
+/*
+ * Udig stuff
+ */
+struct udig_consumer_t {
+	uint32_t snaplen;
+	uint32_t sampling_ratio;
+	bool do_dynamic_snaplen;
+	uint32_t sampling_interval;
+	int is_dropping;
+	int dropping_mode;
+	volatile int need_to_insert_drop_e;
+	volatile int need_to_insert_drop_x;
+	uint16_t fullcapture_port_range_start;
+	uint16_t fullcapture_port_range_end;
+	uint16_t statsd_port;
+};
+#ifdef UDIG
+typedef struct udig_consumer_t ppm_consumer_t;
+#else
+typedef struct ppm_consumer_t ppm_consumer_t;
+#endif /* UDIG */
+
 #endif /* EVENTS_PUBLIC_H_ */
