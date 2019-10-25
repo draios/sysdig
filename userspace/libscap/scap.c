@@ -1849,6 +1849,10 @@ int32_t scap_stop_dropping_mode(scap_t* handle)
 	{
 		return scap_bpf_stop_dropping_mode(handle);
 	}
+	if(handle->m_udig)
+	{
+		return udig_stop_dropping_mode(handle);
+	}
 	else
 	{
 		return scap_set_dropping_mode(handle, PPM_IOCTL_DISABLE_DROPPING_MODE, 0);
@@ -1865,6 +1869,10 @@ int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 	if(handle->m_bpf)
 	{
 		return scap_bpf_start_dropping_mode(handle, sampling_ratio);
+	}
+	else if(handle->m_udig)
+	{
+		return udig_start_dropping_mode(handle, sampling_ratio);
 	}
 	else
 	{

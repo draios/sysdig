@@ -243,7 +243,7 @@ bool acquire_and_init_ring_status_buffer(scap_t* handle)
 		//
 		struct udig_consumer_t* consumer = &(rbs->m_consumer);
 
-		memset(consumer, sizeof(struct udig_consumer_t), 0);
+		memset(consumer, 0, sizeof(struct udig_consumer_t));
 		consumer->dropping_mode = 0;
 		consumer->snaplen = RW_SNAPLEN;
 		consumer->sampling_ratio = 1;
@@ -330,6 +330,39 @@ uint32_t udig_set_snaplen(scap_t* handle, uint32_t snaplen)
 {
 	struct udig_ring_buffer_status* rbs = handle->m_devs[0].m_bufstatus;
 	rbs->m_consumer.snaplen = snaplen;
+	return SCAP_SUCCESS;
+}
+
+int32_t udig_stop_dropping_mode(scap_t* handle)
+{
+	struct udig_consumer_t* consumer = &(handle->m_devs[0].m_bufstatus->m_consumer);
+	consumer->dropping_mode = 0;
+	consumer->sampling_interval = 1000000000;
+	consumer->sampling_ratio = 1;
+
+	return SCAP_SUCCESS;
+}
+
+int32_t udig_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
+{
+	struct udig_consumer_t* consumer = &(handle->m_devs[0].m_bufstatus->m_consumer);
+
+	if(sampling_ratio != 1 &&
+		sampling_ratio != 2 &&
+		sampling_ratio != 4 &&
+		sampling_ratio != 8 &&
+		sampling_ratio != 16 &&
+		sampling_ratio != 32 &&
+		sampling_ratio != 64 &&
+		sampling_ratio != 128) 
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid sampling ratio %u\n", sampling_ratio);
+		return SCAP_FAILURE;
+	}
+
+	consumer->sampling_interval = 1000000000 / sampling_ratio;
+	consumer->sampling_ratio = sampling_ratio;
+
 	return SCAP_SUCCESS;
 }
 
