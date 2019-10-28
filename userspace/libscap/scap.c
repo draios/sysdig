@@ -2348,6 +2348,10 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 	{
 		return scap_bpf_get_n_tracepoint_hit(handle, ret);
 	}
+	else if(handle->m_udig)
+	{
+		return SCAP_NOT_SUPPORTED;
+	}
 	else
 	{
 		ioctl_ret = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_N_TRACEPOINT_HIT, ret);
