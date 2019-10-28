@@ -92,7 +92,7 @@ k8s_deployment_handler::k8s_deployment_handler(k8s_state_t& state
 	):
 		k8s_handler("k8s_deployment_handler", true,
 #ifdef HAS_CAPTURE
-					url, "/apis/extensions/v1beta1/deployments",
+					url, "/apis/apps/v1/deployments",
 					STATE_FILTER, EVENT_FILTER, NULL_FILTER, collector,
 					http_version, 1000L, ssl, bt, true,
 					connect, dependency_handler, blocking_socket,
