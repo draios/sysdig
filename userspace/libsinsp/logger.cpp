@@ -208,6 +208,11 @@ void sinsp_logger::log(std::string msg, const severity sev)
 
 const char* sinsp_logger::format(const severity sev, const char* const fmt, ...)
 {
+	if(sev > m_sev)
+	{
+		return;
+	}
+
 	va_list ap;
 
 	va_start(ap, fmt);
@@ -221,6 +226,11 @@ const char* sinsp_logger::format(const severity sev, const char* const fmt, ...)
 
 const char* sinsp_logger::format(const char* const fmt, ...)
 {
+	if(sev > m_sev)
+	{
+		return;
+	}
+
 	va_list ap;
 
 	va_start(ap, fmt);
