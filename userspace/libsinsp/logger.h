@@ -130,20 +130,23 @@ public:
 	/**
 	 * Write the given printf-style log message of the given severity
 	 * with the given format to the configured log sink.
-	 *
-	 * @returns a pointer to static thread-local storage containing the
-	 *          formatted log message.
 	 */
-	const char* format(severity sev, const char* fmt, ...);
+	void format(severity sev, const char* fmt, ...);
 
 	/**
-	 * Write the given printf-style log message of SEV_INFO severity
+	 * Write the given printf-style log message of the given severity
 	 * with the given format to the configured log sink.
 	 *
 	 * @returns a pointer to static thread-local storage containing the
 	 *          formatted log message.
 	 */
-	const char* format(const char* fmt, ...);
+	const char* format_and_return(severity sev, const char* fmt, ...);
+
+	/**
+	 * Write the given printf-style log message of SEV_INFO severity
+	 * with the given format to the configured log sink.
+	 */
+	void format(const char* fmt, ...);
 
 	/** Sets `sev` to the decoded severity or SEV_MAX+1 for errors.
 	 *  Returns the length of the severity string on success
