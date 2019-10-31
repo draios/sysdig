@@ -347,6 +347,8 @@ int32_t udig_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 {
 	struct udig_consumer_t* consumer = &(handle->m_devs[0].m_bufstatus->m_consumer);
 
+	consumer->dropping_mode = 1;
+
 	if(sampling_ratio != 1 &&
 		sampling_ratio != 2 &&
 		sampling_ratio != 4 &&
