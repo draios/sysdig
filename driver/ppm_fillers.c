@@ -4142,7 +4142,6 @@ int f_sys_symlinkat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#ifndef UDIG
 int f_sys_procexit_e(struct event_filler_arguments *args)
 {
 	int res;
@@ -4155,13 +4154,16 @@ int f_sys_procexit_e(struct event_filler_arguments *args)
 	/*
 	 * status
 	 */
+#ifndef UDIG
 	res = val_to_ring(args, args->sched_prev->exit_code, 0, false, 0);
+#else	
+	res = val_to_ring(args, 0, 0, false, 0);
+#endif
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
 	return add_sentinel(args);
 }
-#endif
 
 int f_sys_sendfile_e(struct event_filler_arguments *args)
 {
