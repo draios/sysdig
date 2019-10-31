@@ -654,6 +654,13 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			goto cleanup_ioctl_nolock;
 		}
 
+		if(pli.max_entries < 0 || pli.max_entries > 1000000)
+		{
+			vpr_info("PPM_IOCTL_GET_PROCLIST: invalid max_entries %llu\n", pli.max_entries);
+			ret = -EINVAL;
+			goto cleanup_ioctl_procinfo;
+		}
+
 		vpr_info("PPM_IOCTL_GET_PROCLIST, size=%d\n", (int)pli.max_entries);
 
 		memsize = sizeof(struct ppm_proclist_info) + sizeof(struct ppm_proc_info) * pli.max_entries;
@@ -1389,29 +1396,35 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 }
 #endif /* _HAS_SOCKETCALL */
 
-static inline void record_drop_e(struct ppm_consumer_t *consumer, struct timespec *ts)
+static inline void record_drop_e(struct ppm_consumer_t *consumer,
+                                 struct timespec *ts,
+                                 enum syscall_flags drop_flags)
 {
 	struct event_data_t event_data = {0};
 
 	if (record_event_consumer(consumer, PPME_DROP_E, UF_NEVER_DROP, ts, &event_data) == 0) {
 		consumer->need_to_insert_drop_e = 1;
 	} else {
-		if (consumer->need_to_insert_drop_e == 1)
+		if (consumer->need_to_insert_drop_e == 1 && !(drop_flags & UF_ATOMIC)) {
 			pr_err("drop enter event delayed insert\n");
+		}
 
 		consumer->need_to_insert_drop_e = 0;
 	}
 }
 
-static inline void record_drop_x(struct ppm_consumer_t *consumer, struct timespec *ts)
+static inline void record_drop_x(struct ppm_consumer_t *consumer,
+                                 struct timespec *ts,
+                                 enum syscall_flags drop_flags)
 {
 	struct event_data_t event_data = {0};
 
 	if (record_event_consumer(consumer, PPME_DROP_X, UF_NEVER_DROP, ts, &event_data) == 0) {
 		consumer->need_to_insert_drop_x = 1;
 	} else {
-		if (consumer->need_to_insert_drop_x == 1)
+		if (consumer->need_to_insert_drop_x == 1 && !(drop_flags & UF_ATOMIC)) {
 			pr_err("drop exit event delayed insert\n");
+		}
 
 		consumer->need_to_insert_drop_x = 0;
 	}
@@ -1508,7 +1521,7 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 		if (ts->tv_nsec >= consumer->sampling_interval) {
 			if (consumer->is_dropping == 0) {
 				consumer->is_dropping = 1;
-				record_drop_e(consumer, ts);
+				record_drop_e(consumer, ts, drop_flags);
 			}
 
 			return 1;
@@ -1516,7 +1529,7 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 
 		if (consumer->is_dropping == 1) {
 			consumer->is_dropping = 0;
-			record_drop_x(consumer, ts);
+			record_drop_x(consumer, ts, drop_flags);
 		}
 	}
 
@@ -1568,12 +1581,15 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 
 	if (event_type != PPME_DROP_E && event_type != PPME_DROP_X) {
 		if (consumer->need_to_insert_drop_e == 1)
-			record_drop_e(consumer, ts);
+			record_drop_e(consumer, ts, drop_flags);
 		else if (consumer->need_to_insert_drop_x == 1)
-			record_drop_x(consumer, ts);
+			record_drop_x(consumer, ts, drop_flags);
 
-		if (drop_event(consumer, event_type, drop_flags, ts,
-			       event_datap->event_info.syscall_data.regs))
+		if (drop_event(consumer,
+		               event_type,
+		               drop_flags,
+		               ts,
+		               event_datap->event_info.syscall_data.regs))
 			return res;
 	}
 
@@ -1845,7 +1861,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		}
 	}
 
-	if (ts->tv_sec > ring->last_print_time.tv_sec + 1) {
+	if (ts->tv_sec > ring->last_print_time.tv_sec + 1 && !(drop_flags & UF_ATOMIC)) {
 		vpr_info("consumer:%p CPU:%d, use:%d%%, ev:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 			   consumer->consumer_id,
 		       smp_processor_id(),
@@ -2080,7 +2096,11 @@ TRACEPOINT_PROBE(sched_switch_probe, bool preempt, struct task_struct *prev, str
 	event_data.event_info.context_data.sched_prev = prev;
 	event_data.event_info.context_data.sched_next = next;
 
-	record_event_all_consumers(PPME_SCHEDSWITCH_6_E, UF_USED, &event_data);
+	/*
+	 * Need to indicate ATOMIC (i.e. interrupt) context to avoid the event
+	 * handler calling printk() and potentially deadlocking the system.
+	 */
+	record_event_all_consumers(PPME_SCHEDSWITCH_6_E, UF_USED | UF_ATOMIC, &event_data);
 }
 #endif
 

@@ -1531,6 +1531,7 @@ enum syscall_flags {
 	UF_NEVER_DROP = (1 << 1),
 	UF_ALWAYS_DROP = (1 << 2),
 	UF_SIMPLEDRIVER_KEEP = (1 << 3),
+	UF_ATOMIC = (1 << 4), ///< The handler should not block (interrupt context)
 };
 
 struct syscall_evt_pair {

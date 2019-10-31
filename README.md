@@ -1,7 +1,7 @@
 sysdig
 ======
 
-[![Build Status](https://travis-ci.org/draios/sysdig.png?branch=master)](https://travis-ci.org/draios/sysdig)
+[![Build Status](https://travis-ci.com/draios/sysdig.png?branch=master)](https://travis-ci.com/draios/sysdig)
 
 # Welcome to **sysdig**!
 
@@ -90,7 +90,7 @@ Use a real name of a natural person who is an authorized representative of the c
 
 Sysdig Cloud
 ---
-Interested in a fully supported, fully distributed version of sysdig? Check out [Sysdig Monitor](https://sysdig.com/product)!
+Interested in a fully supported, fully distributed version of sysdig? Check out [Sysdig Monitor](https://sysdig.com/products/monitor/)!
 
 Open source sysdig is proudly supported by [Sysdig Inc](https://sysdig.com/company/).  
 

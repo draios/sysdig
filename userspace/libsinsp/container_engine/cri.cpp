@@ -141,6 +141,7 @@ bool cri_async_source::parse_cri(sinsp_container_info& container, const libsinsp
 	container.m_cpu_shares = limits.m_cpu_shares;
 	container.m_cpu_quota = limits.m_cpu_quota;
 	container.m_cpu_period = limits.m_cpu_period;
+	container.m_cpuset_cpu_count = limits.m_cpuset_cpu_count;
 
 	if(s_cri_extra_queries)
 	{
@@ -322,7 +323,8 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 		libsinsp::cgroup_limits::cgroup_limits_key key(
 			container->m_id,
 			tinfo->get_cgroup("cpu"),
-			tinfo->get_cgroup("memory"));
+			tinfo->get_cgroup("memory"),
+			tinfo->get_cgroup("cpuset"));
 
 		if(!m_async_source)
 		{

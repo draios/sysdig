@@ -33,28 +33,31 @@ namespace cgroup_limits {
  * that can be used as a hash key.
  */
 struct cgroup_limits_key {
-	cgroup_limits_key() :
-		m_container_id(""),
-		m_cpu_cgroup(""),
-		m_mem_cgroup("") {}
+	cgroup_limits_key() {}
 
-	cgroup_limits_key(std::string container_id, std::string cpu_cgroup_dir, std::string mem_cgroup_dir) :
+	cgroup_limits_key(std::string container_id,
+			  std::string cpu_cgroup_dir,
+			  std::string mem_cgroup_dir,
+			  std::string cpuset_cgroup_dir) :
 		m_container_id(std::move(container_id)),
 		m_cpu_cgroup(std::move(cpu_cgroup_dir)),
-		m_mem_cgroup(std::move(mem_cgroup_dir)) {}
+		m_mem_cgroup(std::move(mem_cgroup_dir)),
+		m_cpuset_cgroup(std::move(cpuset_cgroup_dir)) { }
 
 	bool operator<(const cgroup_limits_key& rhs) const
 	{
 		return less_than(m_container_id, rhs.m_container_id,
 				 less_than(m_cpu_cgroup, rhs.m_cpu_cgroup,
-					   less_than(m_mem_cgroup, rhs.m_mem_cgroup)));
+					   less_than(m_mem_cgroup, rhs.m_mem_cgroup,
+						less_than(m_cpuset_cgroup, rhs.m_cpuset_cgroup))));
 	}
 
 	bool operator==(const cgroup_limits_key& rhs) const
 	{
 		return m_container_id == rhs.m_container_id &&
 		       m_cpu_cgroup == rhs.m_cpu_cgroup &&
-		       m_mem_cgroup == rhs.m_mem_cgroup;
+		       m_mem_cgroup == rhs.m_mem_cgroup &&
+		       m_cpuset_cgroup == rhs.m_cpuset_cgroup;
 	}
 
 	explicit operator const std::string&() const
@@ -65,6 +68,7 @@ struct cgroup_limits_key {
 	std::string m_container_id;
 	std::string m_cpu_cgroup;
 	std::string m_mem_cgroup;
+	std::string m_cpuset_cgroup;
 };
 
 /**
@@ -77,12 +81,14 @@ struct cgroup_limits_value {
 		m_cpu_shares(0),
 		m_cpu_quota(0),
 		m_cpu_period(0),
-		m_memory_limit(0) {}
+		m_memory_limit(0),
+		m_cpuset_cpu_count(0) {}
 
 	int64_t m_cpu_shares;
 	int64_t m_cpu_quota;
 	int64_t m_cpu_period;
 	int64_t m_memory_limit;
+	int32_t m_cpuset_cpu_count;
 };
 
 /**
@@ -118,7 +124,8 @@ template<> struct hash<libsinsp::cgroup_limits::cgroup_limits_key> {
 		size_t h1 = ::std::hash<std::string>{}(h.m_container_id);
 		size_t h2 = ::std::hash<std::string>{}(h.m_cpu_cgroup);
 		size_t h3 = ::std::hash<std::string>{}(h.m_mem_cgroup);
-		return h1 ^ (h2 << 1u) ^ (h3 << 2u);
+		size_t h4 = ::std::hash<std::string>{}(h.m_cpuset_cgroup);
+		return h1 ^ (h2 << 1u) ^ (h3 << 2u) ^ (h4 << 3u);
 	}
 };
 }
