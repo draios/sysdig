@@ -37,9 +37,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_READ_X] = {FILLER_REF(sys_read_x)},
 	[PPME_SYSCALL_WRITE_E] = {FILLER_REF(sys_autofill), 2, APT_REG, {{0}, {2} } },
 	[PPME_SYSCALL_WRITE_X] = {FILLER_REF(sys_write_x)},
-#ifndef UDIG
 	[PPME_PROCEXIT_1_E] = {FILLER_REF(sys_procexit_e)},
-#endif	
 	[PPME_SOCKET_SOCKET_E] = {FILLER_REF(sys_autofill), 3, APT_SOCK, {{0}, {1}, {2} } },
 	[PPME_SOCKET_SOCKET_X] = {FILLER_REF(sys_socket_x)},
 	[PPME_SOCKET_BIND_E] = {FILLER_REF(sys_autofill), 1, APT_SOCK, {{0} } },
