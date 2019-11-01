@@ -1022,10 +1022,6 @@ void schedule_next_threadinfo_evt(sinsp* _this, void* data)
 
 			_this->add_meta_event(&mei->m_pievt);
 		}
-		else if(mei->m_cur_procinfo_evt == (int32_t)mei->m_n_procinfo_evts)
-		{
-			_this->add_meta_event(mei->m_next_evt);
-		}
 
 		break;
 	}
@@ -1181,7 +1177,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 						m_meinfo.m_cur_procinfo_evt = -1;
 
 						m_meinfo.m_piscapevt->ts = m_next_flush_time_ns - (ONE_SECOND_IN_NS + 1);
-						m_meinfo.m_next_evt = &m_evt;
 						add_meta_event_callback(&schedule_next_threadinfo_evt, &m_meinfo);
 						schedule_next_threadinfo_evt(this, &m_meinfo);
 					}

@@ -216,7 +216,6 @@ public:
 	uint64_t m_n_procinfo_evts;
 	int64_t m_cur_procinfo_evt;
 	ppm_proclist_info* m_pli;
-	sinsp_evt* m_next_evt;
 };
 
 /** @defgroup inspector Main library
