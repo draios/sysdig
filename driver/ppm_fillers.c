@@ -37,7 +37,7 @@ or GPL2.txt for full copies of the license.
 #else
 #include <asm/syscall.h>
 #endif
-#else // UDIG
+#else /* UDIG */
 #define _GNU_SOURCE
 #include <inttypes.h>
 #include <stdio.h>
@@ -72,7 +72,7 @@ or GPL2.txt for full copies of the license.
 #include "ppm.h"
 
 #include "udig_inf.h"
-#endif // UDIG
+#endif /* UDIG */
 
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
@@ -90,7 +90,7 @@ static inline struct inode *file_inode(struct file *f)
 	return f->f_path.dentry->d_inode;
 }
 #endif
-#endif // UDIG
+#endif /* UDIG */
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
 
@@ -111,7 +111,7 @@ static inline struct inode *file_inode(struct file *f)
 		memcpy(_args, &_sga_args[_start], _len * sizeof(unsigned long)); \
 	} while(0)
 #endif
-#endif
+#endif /* UDIG */
 
 #ifndef UDIG
 static inline struct pid_namespace *pid_ns_for_children(struct task_struct *task)
@@ -122,7 +122,7 @@ static inline struct pid_namespace *pid_ns_for_children(struct task_struct *task
 	return task->nsproxy->pid_ns_for_children;
 #endif
 }
-#endif
+#endif /* UDIG */
 
 int f_sys_generic(struct event_filler_arguments *args)
 {
@@ -571,11 +571,12 @@ if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - 
 #endif
 
 #endif
+#endif /* UDIG */
 
 /* Takes in a NULL-terminated array of pointers to strings in userspace, and
  * concatenates them to a single \0-separated string. Return the length of this
  * string, or <0 on error */
-static int accumulate_argv_or_env(const char __user * __user *argv,
+int accumulate_argv_or_env(const char __user * __user *argv,
 				  char *str_storage,
 				  int available)
 {
@@ -622,6 +623,7 @@ static int accumulate_argv_or_env(const char __user * __user *argv,
 	return len;
 }
 
+#ifndef UDIG
 #ifdef CONFIG_COMPAT
 /* compat version that deals correctly with 32bits pointers of argv */
 static int compat_accumulate_argv_or_env(compat_uptr_t argv,
@@ -738,7 +740,7 @@ static int ppm_get_tty(void)
 	return tty_nr;
 }
 
-#endif // UDIG
+#endif /* UDIG */
 
 int f_proc_startupdate(struct event_filler_arguments *args)
 {
