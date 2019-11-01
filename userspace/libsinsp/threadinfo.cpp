@@ -171,7 +171,7 @@ void sinsp_threadinfo::compute_program_hash()
 	auto rem_len = MAX_PROG_HASH_LEN - (m_exe.size() + m_container_id.size());
 
 	//
-	// By default, the falco hash is just exe+container
+	// By default, the scripts hash is just exe+container
 	//
 	m_program_hash_scripts = curr_hash;
 
@@ -194,7 +194,7 @@ void sinsp_threadinfo::compute_program_hash()
 
 	//
 	// For some specific processes (essentially the scripting languages)
-	// we include the arguments in the falco hash as well
+	// we include the arguments in the scripts hash as well
 	//
 	if(m_comm.size() == 4)
 	{
