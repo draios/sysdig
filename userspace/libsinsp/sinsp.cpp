@@ -2313,7 +2313,7 @@ void sinsp::k8s_discover_ext()
 			}
 		}
 	}
-	catch(std::exception& ex)
+	catch(const std::exception& ex)
 	{
 		g_logger.log(std::string("K8s API extensions handler error: ").append(ex.what()),
 					 sinsp_logger::SEV_ERROR);
@@ -2386,7 +2386,7 @@ void sinsp::update_k8s_state()
 			}
 		}
 	}
-	catch(std::exception& e)
+	catch(const std::exception& e)
 	{
 		g_logger.log(std::string("Error fetching K8s data: ").append(e.what()), sinsp_logger::SEV_ERROR);
 		throw;
@@ -2417,7 +2417,7 @@ bool sinsp::get_mesos_data()
 			last_mesos_refresh = now;
 		}
 	}
-	catch(std::exception& ex)
+	catch(const std::exception& ex)
 	{
 		g_logger.log(std::string("Mesos exception: ") + ex.what(), sinsp_logger::SEV_ERROR);
 		delete m_mesos_client;

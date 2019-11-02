@@ -639,7 +639,7 @@ public:
 						 std::to_string(len_read) + " bytes of data received",
 						 sinsp_logger::SEV_TRACE);
 		}
-		catch(sinsp_exception& ex)
+		catch(const sinsp_exception& ex)
 		{
 			g_logger.log(std::string("Socket handler (" + m_id + ") data receive error [" +
 						 m_url.to_string(false) + "]: ").append(ex.what()),

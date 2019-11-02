@@ -235,7 +235,7 @@ void mesos_collector::get_data()
 			}
 		}
 	}
-	catch(std::exception& ex)
+	catch(const std::exception& ex)
 	{
 		std::string errstr = std::string("Mesos collector error: ") + ex.what();
 		g_logger.log(errstr, sinsp_logger::SEV_ERROR);

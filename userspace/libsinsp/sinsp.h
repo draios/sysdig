@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2013-2019 Sysdig Inc.
 
 This file is part of sysdig.
 
@@ -53,6 +53,7 @@ limitations under the License.
 
 #include "sinsp_inet.h"
 #include "sinsp_public.h"
+#include "sinsp_exception.h"
 
 #define __STDC_FORMAT_MACROS
 
@@ -151,51 +152,6 @@ public:
 	int32_t m_nfields; ///< Number of fields in this field group.
 	const filtercheck_field_info* m_fields; ///< Array containing m_nfields field descriptions.
 	uint32_t m_flags;
-};
-
-/*!
-  \brief sinsp library exception.
-*/
-struct sinsp_exception : std::exception
-{
-	sinsp_exception()
-	{
-	}
-
-	~sinsp_exception() throw()
-	{
-	}
-
-	sinsp_exception(string error_str)
-	{
-		m_error_str = error_str;
-	}
-
-	sinsp_exception(string error_str, int32_t scap_rc)
-	{
-		m_error_str = error_str;
-		m_scap_rc = scap_rc;
-	}
-
-	char const* what() const throw()
-	{
-		return m_error_str.c_str();
-	}
-
-	int32_t scap_rc()
-	{
-		return m_scap_rc;
-	}
-
-	string m_error_str;
-	int32_t m_scap_rc;
-};
-
-/*!
-  \brief sinsp library exception.
-*/
-struct sinsp_capture_interrupt_exception : sinsp_exception
-{
 };
 
 /*!

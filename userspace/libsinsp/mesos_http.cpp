@@ -733,7 +733,7 @@ bool mesos_http::on_data()
 			extract_data(data);
 		}
 	}
-	catch(sinsp_exception& ex)
+	catch(const sinsp_exception& ex)
 	{
 		errstr = std::string("mesos_http: Data receive error [" + m_url.to_string() + "]: ").append(ex.what());
 		g_logger.log(errstr, sinsp_logger::SEV_ERROR);
@@ -858,7 +858,7 @@ Json::Value mesos_http::get_task_labels(const std::string& task_id)
 			g_json_error_log.log(os.str(), errstr, sinsp_utils::get_current_time_ns(), uri);
 		}
 	}
-	catch(std::exception& ex)
+	catch(const std::exception& ex)
 	{
 		std::string errstr = std::string("mesos_http: Error parsing tasks:") + ex.what();
 		g_logger.log(errstr, sinsp_logger::SEV_ERROR);

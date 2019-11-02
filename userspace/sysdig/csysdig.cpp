@@ -46,6 +46,7 @@ limitations under the License.
 #include "cursescomponents.h"
 #include "cursestable.h"
 #include "cursesui.h"
+#include "sinsp_capture_interrupt_exception.h"
 
 #define MOUSE_CAPABLE_TERM "xterm-1003"
 #define MOUSE_CAPABLE_TERM_COMPAT "xterm-1002"
@@ -830,7 +831,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				{
 					inspector->open("");
 				}
-				catch(sinsp_exception e)
+				catch(const sinsp_exception& e)
 				{
 					open_success = false;
 				}
@@ -983,15 +984,15 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			inspector->close();
 		}
 	}
-	catch(sinsp_capture_interrupt_exception&)
+	catch(const sinsp_capture_interrupt_exception&)
 	{
 	}
-	catch(sinsp_exception& e)
+	catch(const sinsp_exception& e)
 	{
 		errorstr = e.what();
 		res.m_res = e.scap_rc();
 	}
-	catch(std::exception& e)
+	catch(const std::exception& e)
 	{
 		errorstr = e.what();
 		res.m_res = EXIT_FAILURE;
