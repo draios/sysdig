@@ -2292,7 +2292,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 					{
 						f = compiler.compile();
 					}
-					catch(sinsp_exception e)
+					catch(const sinsp_exception& e)
 					{
 						//
 						// Backup the cursor position

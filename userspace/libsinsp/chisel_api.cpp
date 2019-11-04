@@ -386,7 +386,7 @@ int lua_cbacks::set_global_filter(lua_State *ls)
 	{
 		ch->m_inspector->set_filter(filter);
 	}
-	catch(sinsp_exception& e)
+	catch(const sinsp_exception& e)
 	{
 		string err = "invalid filter in chisel " + ch->m_filename + ": " + e.what();
 		fprintf(stderr, "%s\n", err.c_str());
@@ -412,7 +412,7 @@ int lua_cbacks::set_filter(lua_State *ls)
 	{
 		ch->m_lua_cinfo->set_filter(filter);
 	}
-	catch(sinsp_exception& e)
+	catch(const sinsp_exception& e)
 	{
 		string err = "invalid filter in chisel " + ch->m_filename + ": " + e.what();
 		fprintf(stderr, "%s\n", err.c_str());
@@ -737,7 +737,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 				compiler = new sinsp_filter_compiler(ch->m_inspector, filterstr, true);
 				filter = compiler->compile();
 			}
-			catch(sinsp_exception& e)
+			catch(const sinsp_exception& e)
 			{
 				string err = "invalid filter argument for get_thread_table in chisel " + ch->m_filename + ": " + e.what();
 				fprintf(stderr, "%s\n", err.c_str());

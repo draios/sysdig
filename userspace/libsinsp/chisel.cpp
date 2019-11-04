@@ -32,6 +32,7 @@ limitations under the License.
 #include <json/json.h>
 
 #include "sinsp.h"
+#include "sinsp_capture_interrupt_exception.h"
 #include "sinsp_int.h"
 #include "chisel.h"
 #include "chisel_api.h"
@@ -1254,14 +1255,7 @@ void sinsp_chisel::load(string cmdstr)
 			m_filename + ": args table missing");
 	}
 
-	try
-	{
-		parse_lua_chisel_args(m_ls, &m_lua_script_info);
-	}
-	catch(sinsp_exception& e)
-	{
-		throw e;
-	}
+	parse_lua_chisel_args(m_ls, &m_lua_script_info);
 
 	//
 	// Check if the script has an on_event

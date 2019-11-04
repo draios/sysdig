@@ -1910,10 +1910,10 @@ sinsp_filter* sinsp_filter_compiler::compile()
 	{
 		return compile_();
 	}
-	catch(sinsp_exception& e)
+	catch(const sinsp_exception& e)
 	{
 		delete m_filter;
-		throw e;
+		throw;
 	}
 	catch(...)
 	{
