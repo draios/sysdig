@@ -19,7 +19,9 @@ limitations under the License.
 
 #include <algorithm>
 
+#if defined(HAS_CAPTURE)
 #include "container_engine/cri.h"
+#endif
 #include "container_engine/docker.h"
 #include "container_engine/rkt.h"
 #include "container_engine/libvirt_lxc.h"

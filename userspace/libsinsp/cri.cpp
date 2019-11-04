@@ -20,11 +20,7 @@ limitations under the License.
 #include "cri.h"
 
 #include <chrono>
-#ifdef GRPC_INCLUDE_IS_GRPCPP
-#	include <grpcpp/grpcpp.h>
-#else
-#	include <grpc++/grpc++.h>
-#endif
+#include "grpc_channel_registry.h"
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -40,27 +36,70 @@ bool pod_uses_host_netns(const runtime::v1alpha2::PodSandboxStatusResponse& resp
 namespace libsinsp {
 namespace cri {
 std::string s_cri_unix_socket_path = "/run/containerd/containerd.sock";
-std::unique_ptr <runtime::v1alpha2::RuntimeService::Stub> s_cri = nullptr;
-std::unique_ptr <runtime::v1alpha2::ImageService::Stub> s_cri_image = nullptr;
 int64_t s_cri_timeout = 1000;
 sinsp_container_type s_cri_runtime_type = CT_CRI;
 bool s_cri_extra_queries = true;
 
-sinsp_container_type get_cri_runtime_type(const std::string &runtime_name)
+cri_interface::cri_interface(const std::string& cri_path)
 {
+	std::shared_ptr<grpc::Channel> channel = libsinsp::grpc_channel_registry::get_channel("unix://" + cri_path);
+
+	m_cri = runtime::v1alpha2::RuntimeService::NewStub(channel);
+
+	runtime::v1alpha2::VersionRequest vreq;
+	runtime::v1alpha2::VersionResponse vresp;
+
+	vreq.set_version("v1alpha2");
+	grpc::ClientContext context;
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
+	context.set_deadline(deadline);
+	grpc::Status status = m_cri->Version(&context, vreq, &vresp);
+
+	if (!status.ok())
+	{
+		g_logger.format(sinsp_logger::SEV_NOTICE, "cri: CRI runtime returned an error after version check at %s: %s",
+				s_cri_unix_socket_path.c_str(), status.error_message().c_str());
+		m_cri.reset(nullptr);
+		s_cri_unix_socket_path = "";
+		return;
+	}
+
+	g_logger.format(sinsp_logger::SEV_INFO, "cri: CRI runtime: %s %s", vresp.runtime_name().c_str(), vresp.runtime_version().c_str());
+
+	m_cri_image = runtime::v1alpha2::ImageService::NewStub(channel);
+
+	const std::string& runtime_name = vresp.runtime_name();
 	if(runtime_name == "containerd")
 	{
-		return CT_CONTAINERD;
+		m_cri_runtime_type = CT_CONTAINERD;
 	} else if(runtime_name == "cri-o")
 	{
-		return CT_CRIO;
+		m_cri_runtime_type = CT_CRIO;
 	} else
 	{
-		return CT_CRI;
+		m_cri_runtime_type = CT_CRI;
 	}
+
+	s_cri_runtime_type = m_cri_runtime_type;
 }
 
-bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info &container)
+sinsp_container_type cri_interface::get_cri_runtime_type() const
+{
+	return m_cri_runtime_type;
+}
+
+grpc::Status cri_interface::get_container_status(const std::string& container_id, runtime::v1alpha2::ContainerStatusResponse& resp)
+{
+	runtime::v1alpha2::ContainerStatusRequest req;
+	req.set_container_id(container_id);
+	req.set_verbose(true);
+	grpc::ClientContext context;
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
+	context.set_deadline(deadline);
+	return m_cri->ContainerStatus(&context, req, &resp);
+}
+
+bool cri_interface::parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info &container)
 {
 	// image_ref may be one of two forms:
 	// host/image@sha256:digest
@@ -102,7 +141,7 @@ bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_con
 	return true;
 }
 
-bool parse_cri_mounts(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info &container)
+bool cri_interface::parse_cri_mounts(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info &container)
 {
 	for(const auto &mount : status.mounts())
 	{
@@ -183,7 +222,7 @@ bool set_numeric_64(const Json::Value &dict, const std::string &key, int64_t &va
 	return true;
 }
 
-bool parse_cri_env(const Json::Value &info, sinsp_container_info &container)
+bool cri_interface::parse_cri_env(const Json::Value &info, sinsp_container_info &container)
 {
 	const Json::Value *envs;
 	if(!walk_down_json(info, &envs, "config", "envs") || !envs->isArray())
@@ -208,7 +247,7 @@ bool parse_cri_env(const Json::Value &info, sinsp_container_info &container)
 	return true;
 }
 
-bool parse_cri_json_image(const Json::Value &info, sinsp_container_info &container)
+bool cri_interface::parse_cri_json_image(const Json::Value &info, sinsp_container_info &container)
 {
 	const Json::Value *image;
 	if(!walk_down_json(info, &image, "config", "image", "image") || !image->isString())
@@ -229,7 +268,7 @@ bool parse_cri_json_image(const Json::Value &info, sinsp_container_info &contain
 	return true;
 }
 
-bool parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info &container)
+bool cri_interface::parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info &container)
 {
 	const Json::Value *linux = nullptr;
 	if(!walk_down_json(info, &linux, "runtimeSpec", "linux") || !linux->isObject())
@@ -262,7 +301,7 @@ bool parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info &conta
 	return true;
 }
 
-bool is_pod_sandbox(const std::string &container_id)
+bool cri_interface::is_pod_sandbox(const std::string &container_id)
 {
 	runtime::v1alpha2::PodSandboxStatusRequest req;
 	runtime::v1alpha2::PodSandboxStatusResponse resp;
@@ -271,12 +310,12 @@ bool is_pod_sandbox(const std::string &container_id)
 	grpc::ClientContext context;
 	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
 	context.set_deadline(deadline);
-	grpc::Status status = s_cri->PodSandboxStatus(&context, req, &resp);
+	grpc::Status status = m_cri->PodSandboxStatus(&context, req, &resp);
 
 	return status.ok();
 }
 
-uint32_t get_pod_sandbox_ip(const std::string &pod_sandbox_id)
+uint32_t cri_interface::get_pod_sandbox_ip(const std::string &pod_sandbox_id)
 {
 	runtime::v1alpha2::PodSandboxStatusRequest req;
 	runtime::v1alpha2::PodSandboxStatusResponse resp;
@@ -285,7 +324,7 @@ uint32_t get_pod_sandbox_ip(const std::string &pod_sandbox_id)
 	grpc::ClientContext context;
 	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
 	context.set_deadline(deadline);
-	grpc::Status status = s_cri->PodSandboxStatus(&context, req, &resp);
+	grpc::Status status = m_cri->PodSandboxStatus(&context, req, &resp);
 
 	if(!status.ok())
 	{
@@ -314,7 +353,7 @@ uint32_t get_pod_sandbox_ip(const std::string &pod_sandbox_id)
 	}
 }
 
-uint32_t get_container_ip(const std::string &container_id)
+uint32_t cri_interface::get_container_ip(const std::string &container_id)
 {
 	runtime::v1alpha2::ListContainersRequest req;
 	runtime::v1alpha2::ListContainersResponse resp;
@@ -323,7 +362,7 @@ uint32_t get_container_ip(const std::string &container_id)
 	grpc::ClientContext context;
 	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
 	context.set_deadline(deadline);
-	grpc::Status lstatus = s_cri->ListContainers(&context, req, &resp);
+	grpc::Status lstatus = m_cri->ListContainers(&context, req, &resp);
 
 	switch(resp.containers_size())
 	{
@@ -343,7 +382,7 @@ uint32_t get_container_ip(const std::string &container_id)
 	return 0;
 }
 
-std::string get_container_image_id(const std::string &image_ref)
+std::string cri_interface::get_container_image_id(const std::string &image_ref)
 {
 	runtime::v1alpha2::ListImagesRequest req;
 	runtime::v1alpha2::ListImagesResponse resp;
@@ -353,7 +392,7 @@ std::string get_container_image_id(const std::string &image_ref)
 	grpc::ClientContext context;
 	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
 	context.set_deadline(deadline);
-	grpc::Status status = s_cri_image->ListImages(&context, req, &resp);
+	grpc::Status status = m_cri_image->ListImages(&context, req, &resp);
 
 	switch(resp.images_size())
 	{
