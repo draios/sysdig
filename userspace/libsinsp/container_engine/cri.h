@@ -28,6 +28,7 @@ class sinsp_threadinfo;
 #include "cgroup_limits.h"
 #include "container_engine/container_engine.h"
 #include "container_info.h"
+#include <cri.h>
 
 namespace runtime {
 namespace v1alpha2 {
@@ -52,9 +53,10 @@ class cri_async_source : public sysdig::async_key_value_source<
         sinsp_container_info>
 {
 public:
-	explicit cri_async_source(sinsp_container_manager* manager, uint64_t ttl_ms) :
+	explicit cri_async_source(sinsp_container_manager* manager, ::libsinsp::cri::cri_interface* cri, uint64_t ttl_ms) :
 		async_key_value_source(NO_WAIT_LOOKUP, ttl_ms),
-		m_container_manager(manager)
+		m_container_manager(manager),
+		m_cri(cri)
 	{
 	}
 
@@ -71,6 +73,7 @@ private:
 	void run_impl() override;
 
 	sinsp_container_manager* m_container_manager;
+	::libsinsp::cri::cri_interface *m_cri;
 };
 
 class cri : public resolver
@@ -88,6 +91,7 @@ public:
 
 private:
 	std::unique_ptr<cri_async_source> m_async_source;
+	std::unique_ptr<::libsinsp::cri::cri_interface> m_cri;
 };
 }
 }
