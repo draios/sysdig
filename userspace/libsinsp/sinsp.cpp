@@ -28,6 +28,7 @@ limitations under the License.
 #include <sys/time.h>
 #endif // _WIN32
 
+#include "scap_open_exception.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "sinsp_auth.h"
@@ -500,7 +501,7 @@ void sinsp::open(uint32_t timeout_ms)
 
 	if(m_h == NULL)
 	{
-		throw sinsp_exception(error, scap_rc);
+		throw scap_open_exception(error, scap_rc);
 	}
 
 	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
@@ -540,7 +541,7 @@ void sinsp::open_nodriver()
 
 	if(m_h == NULL)
 	{
-		throw sinsp_exception(error, scap_rc);
+		throw scap_open_exception(error, scap_rc);
 	}
 
 	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
@@ -679,7 +680,7 @@ void sinsp::open_int()
 
 	if(m_h == NULL)
 	{
-		throw sinsp_exception(error, scap_rc);
+		throw scap_open_exception(error, scap_rc);
 	}
 
 	if(m_input_fd != 0)

@@ -18,20 +18,30 @@ limitations under the License.
 */
 #pragma once
 
-#include <stdexcept>
-#include <string>
+#include "sinsp_exception.h"
 
 /*!
-  \brief sinsp library exception.
+  \brief Instances of this exception are thrown when calls to scap_open()
+         fail.  The given scap_rc is the error value returned from scap_open().
 */
-class sinsp_exception : public std::runtime_error
+class scap_open_exception : public sinsp_exception
 {
 public:
-	sinsp_exception(const std::string& error_str):
-		std::runtime_error(error_str)
+	scap_open_exception(const std::string& error_str, const int32_t scap_rc):
+		sinsp_exception(error_str),
+		m_scap_rc(scap_rc)
 	{ }
 
-	sinsp_exception(const char* const error_str):
-		std::runtime_error(error_str)
+	scap_open_exception(const char* const error_str, const int32_t scap_rc):
+		sinsp_exception(error_str),
+		m_scap_rc(scap_rc)
 	{ }
+
+	int32_t scap_rc() const
+	{
+		return m_scap_rc;
+	}
+
+private:
+	int32_t m_scap_rc;
 };

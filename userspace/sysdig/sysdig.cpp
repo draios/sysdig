@@ -30,6 +30,7 @@ limitations under the License.
 
 #include <sinsp.h>
 #include "chisel.h"
+#include "scap_open_exception.h"
 #include "sinsp_capture_interrupt_exception.h"
 #include "sysdig.h"
 #include "utils.h"
@@ -1631,7 +1632,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	{
 		handle_end_of_file(print_progress);
 	}
-	catch(const sinsp_exception& e)
+	catch(const scap_open_exception& e)
 	{
 		cerr << e.what() << endl;
 		handle_end_of_file(print_progress);
