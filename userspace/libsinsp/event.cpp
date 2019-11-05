@@ -2582,7 +2582,7 @@ scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop)
 }
 #endif
 
-bool sinsp_evt::simple_comsumer_consider()
+bool sinsp_evt::simple_consumer_consider()
 {
 	uint16_t etype = get_type();
 
@@ -2592,10 +2592,10 @@ bool sinsp_evt::simple_comsumer_consider()
 		ASSERT(parinfo->m_len == sizeof(uint16_t));
 		uint16_t scid = *(uint16_t *)parinfo->m_val;
 
-		return sinsp::simple_comsumer_consider_syscallid(scid);
+		return sinsp::simple_consumer_consider_syscallid(scid);
 	}
 
-	return sinsp::simple_comsumer_consider_evtnum(etype);
+	return sinsp::simple_consumer_consider_evtnum(etype);
 }
 
 bool sinsp_evt::is_syscall_error() const
