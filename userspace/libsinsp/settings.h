@@ -123,6 +123,11 @@ limitations under the License.
 #define CLONE_STALE_TIME_NS 2000000000
 
 //
+// For internal use
+//
+#define FALCOBL_FULL_PROCESSING
+
+//
 // Port range to enable larger snaplen on
 //
 #define DEFAULT_INCREASE_SNAPLEN_PORT_RANGE {0, 0}

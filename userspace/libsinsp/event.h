@@ -339,13 +339,12 @@ public:
 #endif
 
 	/*!
-	  \brief Return whether or not a simple consumer that privileges low overhead to
-	  full event capture should consider this event. (Generally, these events are
-	  automatically filtered out, but some events related to internal tracking are
-	  returned by next() anyway).
+	  \brief Return whether or not falco should consider this
+	  event. (Generally, these events are automatically filtered
+	  out, but some events related to internal tracking are returned by next() anyway).
 	*/
 
-	bool simple_consumer_consider();
+	bool falco_consider();
 
 	inline uint16_t get_source()
 	{

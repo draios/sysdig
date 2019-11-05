@@ -273,8 +273,8 @@ public:
 	int64_t m_vpid; ///< The virtual id of the process containing this thread. In single thread threads, this is equal to vtid.
 	int64_t m_vpgid; // The virtual process group id, as seen from its pid namespace
 	std::string m_root;
-	size_t m_program_hash; ///< Unique hash of the current program
-	size_t m_program_hash_scripts;  ///< Unique hash of the current program, including arguments for scripting programs (like python or ruby)
+	size_t m_program_hash;
+	size_t m_program_hash_falco;
 	int32_t m_tty;
 	int32_t m_loginuid; ///< loginuid (auid)
 
