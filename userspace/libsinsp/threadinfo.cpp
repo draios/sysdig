@@ -86,7 +86,7 @@ void sinsp_threadinfo::init()
 #endif
 	m_ainfo = NULL;
 	m_program_hash = 0;
-	m_program_hash_scripts = 0;
+	m_program_hash_falco = 0;
 	m_lastevent_data = NULL;
 	m_parent_loop_detected = false;
 	m_tty = 0;
@@ -173,7 +173,7 @@ void sinsp_threadinfo::compute_program_hash()
 	//
 	// By default, the falco hash is just exe+container
 	//
-	m_program_hash_scripts = curr_hash;
+	m_program_hash_falco = curr_hash;
 
 	//
 	// The program hash includes the arguments as well
@@ -203,14 +203,14 @@ void sinsp_threadinfo::compute_program_hash()
 		if(ncomm == STR_AS_NUM_JAVA || ncomm == STR_AS_NUM_RUBY ||
 			ncomm == STR_AS_NUM_PERL || ncomm == STR_AS_NUM_NODE)
 		{
-			m_program_hash_scripts = m_program_hash;
+			m_program_hash_falco = m_program_hash;
 		}
 	}
 	else if(m_comm.size() >= 6)
 	{
 		if(m_comm.substr(0, 6) == "python")
 		{
-			m_program_hash_scripts = m_program_hash;
+			m_program_hash_falco = m_program_hash;
 		}
 	}
 }
