@@ -202,8 +202,8 @@ load_kernel_probe() {
 		if [[ "$curl_out" =~ "404 Not Found" ]]; then
 			# The curl output throws a "curl: (22) The requested URL returned error: 404 Not Found" - but that is because the probe doesn't exist in the repo.
 			echo "Download of ${PROBE_NAME} for version ${SYSDIG_VERSION} failed. This is because the probe for this particular version does not exist in the repo."
-			if [ "${PROBE_NAME}" == "sysdigcloud-probe" ]; then
-				echo "Have you tried to upgrade the Sysdig agent version ? If that also does not work, please contact support@sysdig.com with the output of uname -r"
+			if [ ! -z "${KERNEL_ERR_MESSAGE}" ]; then
+				echo "${KERNEL_ERR_MESSAGE}"
 			else
 				echo "Consider compiling your own ${PROBE_NAME} and loading it or getting in touch with the sysdig community"
 			fi
@@ -386,8 +386,9 @@ else
 fi
 
 MAX_RMMOD_WAIT=60
+KERNEL_ERR_MESSAGE=""
 if [[ $# -ge 1 ]]; then
-	MAX_RMMOD_WAIT=$1
+	KERNEL_ERR_MESSAGE="$1"
 fi
 
 if [ -z "${SYSDIG_REPOSITORY}" ]; then
