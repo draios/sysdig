@@ -410,15 +410,8 @@ elif [ "${SCRIPT_NAME}" = "sysdigcloud-probe-loader" ]; then
 	PROBE_NAME="sysdigcloud-probe"
 	BPF_PROBE_NAME="sysdigcloud-probe-bpf"
 	PACKAGE_NAME="draios-agent"
-elif [ "${SCRIPT_NAME}" = "falco-probe-loader" ]; then
-        if [ -z "$SYSDIG_VERSION" ]; then
-	    SYSDIG_VERSION=$(falco --version | cut -d' ' -f3)
-	fi
-	PROBE_NAME="falco-probe"
-	BPF_PROBE_NAME="falco-probe-bpf"
-	PACKAGE_NAME="falco"
 else
-	echo "This script must be called as sysdig-probe-loader, sysdigcloud-probe-loader, or falco-probe-loader"
+	echo "This script must be called as sysdig-probe-loader or sysdigcloud-probe-loader"
 	exit 1
 fi
 

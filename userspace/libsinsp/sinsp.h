@@ -833,18 +833,18 @@ public:
 	}
 #endif
 
-	static inline bool falco_consider_evtnum(uint16_t etype)
+	static inline bool simple_consumer_consider_evtnum(uint16_t etype)
 	{
 		enum ppm_event_flags flags = g_infotables.m_event_info[etype].flags;
 
-		return ! (flags & sinsp::falco_skip_flags());
+		return ! (flags & sinsp::simple_consumer_skip_flags());
 	}
 
-	static inline bool falco_consider_syscallid(uint16_t scid)
+	static inline bool simple_consumer_consider_syscallid(uint16_t scid)
 	{
 		enum ppm_event_flags flags = g_infotables.m_syscall_info_table[scid].flags;
 
-		return ! (flags & sinsp::falco_skip_flags());
+		return ! (flags & sinsp::simple_consumer_skip_flags());
 	}
 
 	// Add comm to the list of comms for which the inspector
@@ -876,9 +876,9 @@ VISIBILITY_PROTECTED
 
 VISIBILITY_PRIVATE
 
-        static inline ppm_event_flags falco_skip_flags()
+        static inline ppm_event_flags simple_consumer_skip_flags()
         {
-		return (ppm_event_flags) (EF_SKIPPARSERESET | EF_UNUSED | EF_DROP_FALCO);
+		return (ppm_event_flags) (EF_SKIPPARSERESET | EF_UNUSED | EF_DROP_SIMPLE_CONS);
         }
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
