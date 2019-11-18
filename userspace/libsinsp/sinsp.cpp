@@ -28,6 +28,7 @@ limitations under the License.
 #include <sys/time.h>
 #endif // _WIN32
 
+#include "scap_open_exception.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "sinsp_auth.h"
@@ -500,7 +501,7 @@ void sinsp::open(uint32_t timeout_ms)
 
 	if(m_h == NULL)
 	{
-		throw sinsp_exception(error, scap_rc);
+		throw scap_open_exception(error, scap_rc);
 	}
 
 	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
@@ -540,7 +541,7 @@ void sinsp::open_nodriver()
 
 	if(m_h == NULL)
 	{
-		throw sinsp_exception(error, scap_rc);
+		throw scap_open_exception(error, scap_rc);
 	}
 
 	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
@@ -679,7 +680,7 @@ void sinsp::open_int()
 
 	if(m_h == NULL)
 	{
-		throw sinsp_exception(error, scap_rc);
+		throw scap_open_exception(error, scap_rc);
 	}
 
 	if(m_input_fd != 0)
@@ -2313,7 +2314,7 @@ void sinsp::k8s_discover_ext()
 			}
 		}
 	}
-	catch(std::exception& ex)
+	catch(const std::exception& ex)
 	{
 		g_logger.log(std::string("K8s API extensions handler error: ").append(ex.what()),
 					 sinsp_logger::SEV_ERROR);
@@ -2386,7 +2387,7 @@ void sinsp::update_k8s_state()
 			}
 		}
 	}
-	catch(std::exception& e)
+	catch(const std::exception& e)
 	{
 		g_logger.log(std::string("Error fetching K8s data: ").append(e.what()), sinsp_logger::SEV_ERROR);
 		throw;
@@ -2417,7 +2418,7 @@ bool sinsp::get_mesos_data()
 			last_mesos_refresh = now;
 		}
 	}
-	catch(std::exception& ex)
+	catch(const std::exception& ex)
 	{
 		g_logger.log(std::string("Mesos exception: ") + ex.what(), sinsp_logger::SEV_ERROR);
 		delete m_mesos_client;

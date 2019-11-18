@@ -55,6 +55,14 @@ public:
 		return *m_inner;
 	}
 
+	/**
+	 * Validate that the guarded object exists.
+	 */
+	bool valid()
+	{
+		return m_inner != nullptr;
+	}
+
 private:
 	std::unique_lock<std::mutex> m_lock;
 	T *m_inner;
@@ -96,6 +104,14 @@ public:
 	const T &operator*() const
 	{
 		return *m_inner;
+	}
+
+	/**
+	 * Validate that the guarded object exists.
+	 */
+	bool valid()
+	{
+		return m_inner != nullptr;
 	}
 
 private:

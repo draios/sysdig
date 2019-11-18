@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2013-2019 Sysdig Inc.
 
 This file is part of sysdig.
 
@@ -53,6 +53,7 @@ limitations under the License.
 
 #include "sinsp_inet.h"
 #include "sinsp_public.h"
+#include "sinsp_exception.h"
 
 #define __STDC_FORMAT_MACROS
 
@@ -151,51 +152,6 @@ public:
 	int32_t m_nfields; ///< Number of fields in this field group.
 	const filtercheck_field_info* m_fields; ///< Array containing m_nfields field descriptions.
 	uint32_t m_flags;
-};
-
-/*!
-  \brief sinsp library exception.
-*/
-struct sinsp_exception : std::exception
-{
-	sinsp_exception()
-	{
-	}
-
-	~sinsp_exception() throw()
-	{
-	}
-
-	sinsp_exception(string error_str)
-	{
-		m_error_str = error_str;
-	}
-
-	sinsp_exception(string error_str, int32_t scap_rc)
-	{
-		m_error_str = error_str;
-		m_scap_rc = scap_rc;
-	}
-
-	char const* what() const throw()
-	{
-		return m_error_str.c_str();
-	}
-
-	int32_t scap_rc()
-	{
-		return m_scap_rc;
-	}
-
-	string m_error_str;
-	int32_t m_scap_rc;
-};
-
-/*!
-  \brief sinsp library exception.
-*/
-struct sinsp_capture_interrupt_exception : sinsp_exception
-{
 };
 
 /*!
@@ -877,18 +833,18 @@ public:
 	}
 #endif
 
-	static inline bool falco_consider_evtnum(uint16_t etype)
+	static inline bool simple_consumer_consider_evtnum(uint16_t etype)
 	{
 		enum ppm_event_flags flags = g_infotables.m_event_info[etype].flags;
 
-		return ! (flags & sinsp::falco_skip_flags());
+		return ! (flags & sinsp::simple_consumer_skip_flags());
 	}
 
-	static inline bool falco_consider_syscallid(uint16_t scid)
+	static inline bool simple_consumer_consider_syscallid(uint16_t scid)
 	{
 		enum ppm_event_flags flags = g_infotables.m_syscall_info_table[scid].flags;
 
-		return ! (flags & sinsp::falco_skip_flags());
+		return ! (flags & sinsp::simple_consumer_skip_flags());
 	}
 
 	// Add comm to the list of comms for which the inspector
@@ -920,9 +876,9 @@ VISIBILITY_PROTECTED
 
 VISIBILITY_PRIVATE
 
-        static inline ppm_event_flags falco_skip_flags()
+        static inline ppm_event_flags simple_consumer_skip_flags()
         {
-		return (ppm_event_flags) (EF_SKIPPARSERESET | EF_UNUSED | EF_DROP_FALCO);
+		return (ppm_event_flags) (EF_SKIPPARSERESET | EF_UNUSED | EF_DROP_SIMPLE_CONS);
         }
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN

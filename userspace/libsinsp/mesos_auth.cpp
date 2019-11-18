@@ -98,7 +98,7 @@ void mesos_auth::authenticate()
 		}
 		time(&m_last_token_refresh_s);
 	}
-	catch(std::exception& e)
+	catch(const std::exception& e)
 	{
 		std::string errstr = "Could not fetch authentication token via " +
 			m_auth_uri.to_string() + ": " +
