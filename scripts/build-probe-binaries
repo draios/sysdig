@@ -555,160 +555,160 @@ if [ -z "$KERNEL_TYPE" ]; then
 	# Ubuntu build
 	#
 
-        checkout_sysdig
+        # checkout_sysdig
 
-	echo Building Ubuntu
-	DIR=$(dirname $(readlink -f $0))
-	URLS="$($DIR/kernel-crawler.py Ubuntu)"
-
-	for URL in $URLS
-	do
-		ubuntu_build $URL
-	done
-
-	#
-	# RHEL build through CentOS
-	#
-
-	echo Building CentOS
-	DIR=$(dirname $(readlink -f $0))
-	URLS="$($DIR/kernel-crawler.py CentOS)"
-
-	for URL in $URLS
-	do
-		rhel_build $URL
-	done
-
-	#
-	# Fedora build
-	#
-
-	echo Building Fedora
-	DIR=$(dirname $(readlink -f $0))
-	URLS="$($DIR/kernel-crawler.py Fedora)"
-
-	for URL in $URLS
-	do
-		rhel_build $URL
-	done
-
-	#
-	# Fedora Atomic build
-	#
-	echo Building Fedora Atomic
-	DIR=$(dirname $(readlink -f $0))
-	URLS="$($DIR/kernel-crawler.py Fedora-Atomic)"
-	for URL in $URLS
-	do
-		rhel_build $URL
-	done
-
-	#
-	# CoreOS build
-	#
-	echo Building CoreOS
-	DIR=$(dirname $(readlink -f $0))
-	URLS="$($DIR/kernel-crawler.py CoreOS)"
-
-	for URL in $URLS
-	do
-		set +e
-		eval $(curl -s ${URL}version.txt)
-		if [ ${?} -ne 0 ]; then
-			echo "### Error fetching ${URL}version.txt ###"
-			continue
-		fi
-		set -e
-		if [ $COREOS_BUILD -gt 890 ]; then
-			coreos_build_new $URL $COREOS_VERSION
-		else
-			coreos_build_old $URL $COREOS_VERSION
-		fi
-	done
-
-	#
-	# boot2docker is officially in maintenance mode
-	# Disabled boot2docker builds as they were failing because of
-	# upstream changes to the Dockerfile.
-	#
-	# boot2docker build
-	#
-	# echo Building boot2docker
+	# echo Building Ubuntu
 	# DIR=$(dirname $(readlink -f $0))
-	# $DIR/boot2docker-kernel-crawler.py | \
-	# 	while read KERNEL_ARGS
-	# 	do
-	# 		boot2docker_build $KERNEL_ARGS
-	# 	done
+	# URLS="$($DIR/kernel-crawler.py Ubuntu)"
 
-	#
-	# Debian build
-	#
-	echo Building Debian
-	DIR=$(dirname $(readlink -f $0))
-	URLS="$($DIR/kernel-crawler.py Debian)"
+	# for URL in $URLS
+	# do
+	# 	ubuntu_build $URL
+	# done
 
-	for URL in $URLS
-	do
-		debian_build $URL
-	done
-	# XXX agent/434 - We need to force a build for certain kernel versions
-	# because they are still in use by some GCE customers but the headers
-	# are no longer available from the mirror. We pass the URL but nothing
-	# needs to be downloaded because we already have it cached on the builder.
-	#
-	# These are no longer available, so disabling for now.
-	#debian_build https://mirrors.kernel.org/debian/pool/main/l/linux/linux-headers-3.16.0-4-amd64_3.16.36-1+deb8u2_amd64.deb
-	#debian_build https://mirrors.kernel.org/debian/pool/main/l/linux/linux-headers-3.16.0-4-amd64_3.16.39-1+deb8u2_amd64.deb
+	# #
+	# # RHEL build through CentOS
+	# #
 
-	#
-	# Oracle RHCK build
-	#
-	echo Building Oracle RHCK
-	DIR=$(dirname $(readlink -f $0))
-	URLS="$($DIR/oracle-kernel-crawler.py Oracle-RHCK)"
+	# echo Building CentOS
+	# DIR=$(dirname $(readlink -f $0))
+	# URLS="$($DIR/kernel-crawler.py CentOS)"
 
-	for URL in $URLS
-	do
-		rhel_build $URL
-	done
+	# for URL in $URLS
+	# do
+	# 	rhel_build $URL
+	# done
 
-	#
-	# The UEK builds needs to happen in a UEK environment, so we launch
-	# a container running OL and do the builds there. This container
-	# doesn't have git credentials, so it relies on previous builds
-	# to do the sysdig/falco/agent git clone/pulls.
-	#
+	# #
+	# # Fedora build
+	# #
 
-	#
-	# Oracle Linux 6 UEK build
-	#
-	echo "Creating Oracle Linux 6 UEK builder"
-	docker ps -q -f 'name=ol6-build' | xargs --no-run-if-empty docker rm
-	docker build -t ol6-builder:latest -f ../sysdig/scripts/Dockerfile.ol6 --pull ../sysdig/scripts
-	docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi
-	docker run -i --rm --name ol6-build -v $BASEDIR:/build/probe ol6-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL6-UEK
+	# echo Building Fedora
+	# DIR=$(dirname $(readlink -f $0))
+	# URLS="$($DIR/kernel-crawler.py Fedora)"
 
-	#
-	# Oracle Linux 7 UEK build
-	#
-	echo "Creating Oracle Linux 7 UEK builder"
-	docker ps -q -f 'name=ol7-build' | xargs --no-run-if-empty docker rm
-	docker build -t ol7-builder:latest -f ../sysdig/scripts/Dockerfile.ol7 --pull ../sysdig/scripts
-	docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi
-	docker run -i --rm --name ol7-build -v $BASEDIR:/build/probe ol7-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL7-UEK
+	# for URL in $URLS
+	# do
+	# 	rhel_build $URL
+	# done
 
-	#
-	# AmazonLinux build
-	#
-	echo Building AmazonLinux
-	DIR=$(dirname $(readlink -f $0))
-	URLS="$($DIR/kernel-crawler.py AmazonLinux)"
+	# #
+	# # Fedora Atomic build
+	# #
+	# echo Building Fedora Atomic
+	# DIR=$(dirname $(readlink -f $0))
+	# URLS="$($DIR/kernel-crawler.py Fedora-Atomic)"
+	# for URL in $URLS
+	# do
+	# 	rhel_build $URL
+	# done
 
-	for URL in $URLS
-	do
-		rhel_build $URL
-	done
+	# #
+	# # CoreOS build
+	# #
+	# echo Building CoreOS
+	# DIR=$(dirname $(readlink -f $0))
+	# URLS="$($DIR/kernel-crawler.py CoreOS)"
+
+	# for URL in $URLS
+	# do
+	# 	set +e
+	# 	eval $(curl -s ${URL}version.txt)
+	# 	if [ ${?} -ne 0 ]; then
+	# 		echo "### Error fetching ${URL}version.txt ###"
+	# 		continue
+	# 	fi
+	# 	set -e
+	# 	if [ $COREOS_BUILD -gt 890 ]; then
+	# 		coreos_build_new $URL $COREOS_VERSION
+	# 	else
+	# 		coreos_build_old $URL $COREOS_VERSION
+	# 	fi
+	# done
+
+	# #
+	# # boot2docker is officially in maintenance mode
+	# # Disabled boot2docker builds as they were failing because of
+	# # upstream changes to the Dockerfile.
+	# #
+	# # boot2docker build
+	# #
+	# # echo Building boot2docker
+	# # DIR=$(dirname $(readlink -f $0))
+	# # $DIR/boot2docker-kernel-crawler.py | \
+	# # 	while read KERNEL_ARGS
+	# # 	do
+	# # 		boot2docker_build $KERNEL_ARGS
+	# # 	done
+
+	# #
+	# # Debian build
+	# #
+	# echo Building Debian
+	# DIR=$(dirname $(readlink -f $0))
+	# URLS="$($DIR/kernel-crawler.py Debian)"
+
+	# for URL in $URLS
+	# do
+	# 	debian_build $URL
+	# done
+	# # XXX agent/434 - We need to force a build for certain kernel versions
+	# # because they are still in use by some GCE customers but the headers
+	# # are no longer available from the mirror. We pass the URL but nothing
+	# # needs to be downloaded because we already have it cached on the builder.
+	# #
+	# # These are no longer available, so disabling for now.
+	# #debian_build https://mirrors.kernel.org/debian/pool/main/l/linux/linux-headers-3.16.0-4-amd64_3.16.36-1+deb8u2_amd64.deb
+	# #debian_build https://mirrors.kernel.org/debian/pool/main/l/linux/linux-headers-3.16.0-4-amd64_3.16.39-1+deb8u2_amd64.deb
+
+	# #
+	# # Oracle RHCK build
+	# #
+	# echo Building Oracle RHCK
+	# DIR=$(dirname $(readlink -f $0))
+	# URLS="$($DIR/oracle-kernel-crawler.py Oracle-RHCK)"
+
+	# for URL in $URLS
+	# do
+	# 	rhel_build $URL
+	# done
+
+	# #
+	# # The UEK builds needs to happen in a UEK environment, so we launch
+	# # a container running OL and do the builds there. This container
+	# # doesn't have git credentials, so it relies on previous builds
+	# # to do the sysdig/falco/agent git clone/pulls.
+	# #
+
+	# #
+	# # Oracle Linux 6 UEK build
+	# #
+	# echo "Creating Oracle Linux 6 UEK builder"
+	# docker ps -q -f 'name=ol6-build' | xargs --no-run-if-empty docker rm
+	# docker build -t ol6-builder:latest -f ../sysdig/scripts/Dockerfile.ol6 --pull ../sysdig/scripts
+	# docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi
+	# docker run -i --rm --name ol6-build -v $BASEDIR:/build/probe ol6-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL6-UEK
+
+	# #
+	# # Oracle Linux 7 UEK build
+	# #
+	# echo "Creating Oracle Linux 7 UEK builder"
+	# docker ps -q -f 'name=ol7-build' | xargs --no-run-if-empty docker rm
+	# docker build -t ol7-builder:latest -f ../sysdig/scripts/Dockerfile.ol7 --pull ../sysdig/scripts
+	# docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi
+	# docker run -i --rm --name ol7-build -v $BASEDIR:/build/probe ol7-builder $PROBE_NAME $PROBE_VERSION $REPOSITORY_NAME OL7-UEK
+
+	# #
+	# # AmazonLinux build
+	# #
+	# echo Building AmazonLinux
+	# DIR=$(dirname $(readlink -f $0))
+	# URLS="$($DIR/kernel-crawler.py AmazonLinux)"
+
+	# for URL in $URLS
+	# do
+	# 	rhel_build $URL
+	# done
 
 	#
 	# AmazonLinux2 build
@@ -716,9 +716,11 @@ if [ -z "$KERNEL_TYPE" ]; then
 	echo Building AmazonLinux2
 	DIR=$(dirname $(readlink -f $0))
 	URLS="$($DIR/kernel-crawler.py AmazonLinux2)"
-
+	echo "Printing the URLS: "
+	
 	for URL in $URLS
 	do
+		echo "$URL"
 		rhel_build $URL
 	done
 

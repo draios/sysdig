@@ -228,6 +228,17 @@ repos = {
             "page_pattern": "/html/body//a[regex:test(@href, '^linux-kbuild-.*amd64.deb$')]/@href",
             "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp", "unsigned", "cloud-amd64"]
         }
+    ],
+
+    "AmazonLinux2": [
+        {
+            "root": "http://52.45.193.166/mirrors/http/",
+            "discovery_pattern" : "/html/body/table//tr/td/a[@href = 'amazonlinux.us-east-1.amazonaws.com/']/@href",
+            "subdirs": ["amazon_linux_2/"],
+            "page_pattern" : "//body//table/tr/td/a[regex:test(@href, '^kernel-(devel-)?[0-9].*\.rpm$')]/@href",
+            "exclude_patterns": ["doc"]
+        },
+        
     ]
 }
 
@@ -242,22 +253,24 @@ for repo_release, release_type in amazon_linux_builder:
         "page_pattern": "",
         "exclude_patterns": ["doc", "tools", "headers"]
     })
+
 repos['AmazonLinux'] = amazon_repos
 
-prev_months = 24
-now = time.localtime()
-check_months = [time.localtime(time.mktime((now.tm_year, now.tm_mon - n, 1, 0, 0, 0, 0, 0, 0)))[:2] for n in range(prev_months)]
-amazon_linux2 = []
-for year, month in check_months[:-1]:
-    amazon_linux2.append({
-        "root": "http://amazonlinux.us-east-1.amazonaws.com/" + str(year) + "." + str(month).zfill(2) + "/core/latest/x86_64/mirror.list",
-        "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
-        "subdirs": [""],
-        "page_pattern": "",
-        "exclude_patterns": ["doc", "tools", "headers"]
-        })
+# prev_months = 24
+# now = time.localtime()
+# check_months = [time.localtime(time.mktime((now.tm_year, now.tm_mon - n, 1, 0, 0, 0, 0, 0, 0)))[:2] for n in range(prev_months)]
+# amazon_linux2 = []
+# for year, month in check_months[:-1]:
+#     amazon_linux2.append({
+#         #"root": "http://amazonlinux.us-east-1.amazonaws.com/" + str(year) + "." + str(month).zfill(2) + "/latest/x86_64/mirror.list",
+#         "root": "http://52.45.193.166/mirrors/http/amazonlinux.us-east-1.amazonaws.com/amazon_linux_2/",
+#         "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
+#         "subdirs": [""],
+#         "page_pattern": "",
+#         "exclude_patterns": ["doc", "tools", "headers"]
+#         })
 
-repos['AmazonLinux2'] = amazon_linux2
+# repos['AmazonLinux2'] = amazon_linux2
 
 def exclude_patterns(repo, packages, base_url, urls):
     for rpm in packages:
@@ -354,14 +367,15 @@ for repo in repos[distro]:
             process_al_distro(distro, repo)
         except:
             continue
-    elif distro == 'AmazonLinux2':
-        try:
-            # Brute force finding the repositories and only grab the most recent two, then skip the rest.
-            if al2_repo_count < 2:
-                if process_al_distro(distro, repo):
-                    al2_repo_count += 1
-        except:
-            continue
+    # elif distro == 'AmazonLinux2':
+    #     try:
+    #         root = urllib2.urlopen(repo["root"],timeout=URL_TIMEOUT).read()
+    #         # Brute force finding the repositories and only grab the most recent two, then skip the rest.
+    #         #if al2_repo_count < 2:
+    #         #process_al_distro(distro, repo)
+    #             #al2_repo_count += 1
+    #     except:
+    #         continue
     elif distro == "Fedora-Atomic":
         try:
             process_atomic_distro(repos)
