@@ -716,11 +716,9 @@ if [ -z "$KERNEL_TYPE" ]; then
 	echo Building AmazonLinux2
 	DIR=$(dirname $(readlink -f $0))
 	URLS="$($DIR/kernel-crawler.py AmazonLinux2)"
-	echo "Printing the URLS: "
-	
+
 	for URL in $URLS
 	do
-		echo "$URL"
 		rhel_build $URL
 	done
 
