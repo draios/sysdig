@@ -566,7 +566,7 @@ if [ -z "$KERNEL_TYPE" ]; then
 
 	for URL in $URLS
 	do
-		#ubuntu_build $URL
+		ubuntu_build $URL
 	done
 
 	#
@@ -579,7 +579,7 @@ if [ -z "$KERNEL_TYPE" ]; then
 
 	for URL in $URLS
 	do
-		#rhel_build $URL
+		rhel_build $URL
 	done
 
 	#
@@ -592,7 +592,7 @@ if [ -z "$KERNEL_TYPE" ]; then
 
 	for URL in $URLS
 	do
-		#rhel_build $URL
+		rhel_build $URL
 	done
 
 	#
@@ -603,7 +603,7 @@ if [ -z "$KERNEL_TYPE" ]; then
 	URLS="$($DIR/kernel-crawler.py Fedora-Atomic)"
 	for URL in $URLS
 	do
-		#rhel_build $URL
+		rhel_build $URL
 	done
 
 	#
@@ -623,9 +623,9 @@ if [ -z "$KERNEL_TYPE" ]; then
 		fi
 		set -e
 		if [ $COREOS_BUILD -gt 890 ]; then
-			#coreos_build_new $URL $COREOS_VERSION
+			coreos_build_new $URL $COREOS_VERSION
 		else
-			#coreos_build_old $URL $COREOS_VERSION
+			coreos_build_old $URL $COREOS_VERSION
 		fi
 	done
 
@@ -653,7 +653,7 @@ if [ -z "$KERNEL_TYPE" ]; then
 
 	for URL in $URLS
 	do
-		#debian_build $URL
+		debian_build $URL
 	done
 	# XXX agent/434 - We need to force a build for certain kernel versions
 	# because they are still in use by some GCE customers but the headers
@@ -673,7 +673,7 @@ if [ -z "$KERNEL_TYPE" ]; then
 
 	for URL in $URLS
 	do
-		#rhel_build $URL
+		rhel_build $URL
 	done
 
 	#
