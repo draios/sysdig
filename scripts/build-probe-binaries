@@ -393,10 +393,11 @@ function rhel_build {
 	fi
 
 	NUM_RPM=$(ls kernel-*.rpm -1 | wc -l)
-	echo "Num rpm is $NUM_RPM"
+	echo "num rpm is $NUM_RPM"
+	
 
 	# We need two rpms (devel and core) to get what we need
-	if [ $NUM_RPM -eq 2 ]; then
+	#if [ $NUM_RPM -eq 2 ]; then
 
 		echo Building $KERNEL_RELEASE
 
@@ -412,7 +413,7 @@ function rhel_build {
 
 		export KERNELDIR=$BASEDIR/$KERNEL_RELEASE/usr/src/kernels/$KERNEL_RELEASE
 		build_probe
-	fi
+	#fi
 
 	cd $BASEDIR
 }
