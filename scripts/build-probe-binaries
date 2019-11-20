@@ -374,6 +374,10 @@ function rhel_build {
 	echo "Rpm is $RPM"
 	echo "Kernel is $KERNEL_RELEASE"
 
+	if [ -d $KERNEL_RELEASE ]; then
+		rm -rf $KERNEL_RELEASE
+	fi
+
 	if [ ! -d $KERNEL_RELEASE ]; then
 		mkdir $KERNEL_RELEASE
 	fi
@@ -397,7 +401,7 @@ function rhel_build {
 	
 
 	# We need two rpms (devel and core) to get what we need
-	#if [ $NUM_RPM -eq 2 ]; then
+	if [ $NUM_RPM -eq 2 ]; then
 
 		echo Building $KERNEL_RELEASE
 
@@ -413,7 +417,7 @@ function rhel_build {
 
 		export KERNELDIR=$BASEDIR/$KERNEL_RELEASE/usr/src/kernels/$KERNEL_RELEASE
 		build_probe
-	#fi
+	fi
 
 	cd $BASEDIR
 }
