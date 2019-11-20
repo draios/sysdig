@@ -364,12 +364,15 @@ function rhel_build {
 
 	# Get all the parameters needed
 	URL=$1
-
+	echo "Building RHEL rpm"
+	echo "$URL"
 	# Optionally take an artifactory api key.
 	ARTIFACTORY_API_KEY="${2:-""}"
 
 	RPM=$(echo $URL | grep -o '[^/]*$')
 	KERNEL_RELEASE=$(echo $RPM | awk 'match($0, /[^kernel\-(uek\-)?(core\-|devel\-)?].*[^(\.rpm)]/){ print substr($0, RSTART, RLENGTH) }')
+	echo "Rpm is $RPM"
+	echo "Kernel is $KERNEL_RELEASE"
 
 	if [ ! -d $KERNEL_RELEASE ]; then
 		mkdir $KERNEL_RELEASE
