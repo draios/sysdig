@@ -125,7 +125,7 @@ bool get_cgroup_resource_limits(const cgroup_limits_key& key, cgroup_limits_valu
 				key.m_container_id.c_str(), cpuset_root->c_str(), key.m_cpuset_cgroup.c_str());
 		found_all = read_cgroup_list_count(*cpuset_root,
 						   key.m_cpuset_cgroup,
-						   "cpuset.effective_cpus",
+						   "cpuset.cpus",
 						   value.m_cpuset_cpu_count) && found_all;
 	}
 
