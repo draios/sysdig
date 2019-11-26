@@ -17,10 +17,10 @@ limitations under the License.
 
 */
 
-#include "container_engine/container_engine.h"
+#include "container_engine/container_engine_base.h"
 
 using namespace libsinsp::container_engine;
 
-void resolver::cleanup()
+void container_engine_base::cleanup()
 {
 }

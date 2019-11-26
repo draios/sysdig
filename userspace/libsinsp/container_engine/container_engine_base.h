@@ -25,9 +25,13 @@ class sinsp_threadinfo;
 namespace libsinsp {
 namespace container_engine {
 
-class resolver {
+/**
+ * Base class for container engine. This provided the interfaces to
+ * associate a container with a thread.
+ */
+class container_engine_base {
 public:
-	virtual ~resolver() = default;
+	virtual ~container_engine_base() = default;
 
 	virtual bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info) = 0;
 

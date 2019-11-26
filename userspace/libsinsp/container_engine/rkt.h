@@ -25,19 +25,20 @@ class sinsp_container_manager;
 class sinsp_container_info;
 class sinsp_threadinfo;
 
-#include "container_engine/container_engine.h"
+#include "container_engine/container_engine_base.h"
 
 namespace libsinsp {
 namespace container_engine {
-class rkt : public resolver {
+class rkt : public container_engine_base
+{
 public:
 	bool resolve(sinsp_container_manager *manager, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 
 protected:
-	bool match(sinsp_container_manager *manager, sinsp_threadinfo *tinfo, sinsp_container_info &container_info,
-		   std::string &rkt_podid, std::string &rkt_appname, bool query_os_for_missing_info);
+	bool match(sinsp_container_manager *manager, sinsp_threadinfo *tinfo, sinsp_container_info& container_info,
+		   std::string& rkt_podid, std::string& rkt_appname, bool query_os_for_missing_info);
 
-	bool parse_rkt(sinsp_container_info &container, const std::string &podid, const std::string &appname);
+	bool parse_rkt(sinsp_container_info& container, const std::string& podid, const std::string& appname);
 };
 }
 }

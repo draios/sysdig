@@ -37,7 +37,7 @@ limitations under the License.
 #include "container.h"
 #include "container_info.h"
 
-#include "container_engine/container_engine.h"
+#include "container_engine/container_engine_base.h"
 
 class sinsp;
 class sinsp_threadinfo;
@@ -125,7 +125,7 @@ private:
 	static bool m_query_image_info;
 };
 
-class docker : public resolver
+class docker : public container_engine_base
 {
 public:
 	docker();

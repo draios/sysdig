@@ -26,7 +26,7 @@ class sinsp_container_manager;
 class sinsp_threadinfo;
 
 #include "cgroup_limits.h"
-#include "container_engine/container_engine.h"
+#include "container_engine/container_engine_base.h"
 #include "container_info.h"
 #include <cri.h>
 
@@ -76,7 +76,7 @@ private:
 	::libsinsp::cri::cri_interface *m_cri;
 };
 
-class cri : public resolver
+class cri : public container_engine_base
 {
 public:
 	cri();

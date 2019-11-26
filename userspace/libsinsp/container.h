@@ -33,7 +33,7 @@ limitations under the License.
 #include <curl/multi.h>
 #endif
 
-#include "container_engine/container_engine.h"
+#include "container_engine/container_engine_base.h"
 #include "mutex.h"
 
 class sinsp_container_manager
@@ -175,7 +175,7 @@ private:
 	bool container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::shared_ptr<sinsp_threadinfo> tinfo);
 	std::string get_docker_env(const Json::Value &env_vars, const std::string &mti);
 
-	std::list<std::unique_ptr<libsinsp::container_engine::resolver>> m_container_engines;
+	std::list<std::unique_ptr<libsinsp::container_engine::container_engine_base>> m_container_engines;
 
 	sinsp* m_inspector;
 	libsinsp::Mutex<std::unordered_map<std::string, std::shared_ptr<const sinsp_container_info>>> m_containers;
