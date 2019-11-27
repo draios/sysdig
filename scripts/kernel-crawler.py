@@ -244,14 +244,16 @@ for repo_release, release_type in amazon_linux_builder:
     })
 repos['AmazonLinux'] = amazon_repos
 
+amazon_linux_2 = ['2.0', 'latest']
 amazon_linux2 = []
-amazon_linux2.append({
-    "root": "http://amazonlinux.us-east-1.amazonaws.com/2/core/2.0/x86_64/mirror.list",
-    "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
-    "subdirs": [""],
-    "page_pattern": "",
-    "exclude_patterns": ["doc", "tools", "headers"]
-})
+for amzn_repos in amazon_linux_2:
+    amazon_linux2.append({
+        "root": "http://amazonlinux.us-east-1.amazonaws.com/2/core/" + amzn_repos + "/x86_64/mirror.list",
+        "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
+        "subdirs": [""],
+        "page_pattern": "",
+        "exclude_patterns": ["doc", "tools", "headers"]
+    })
 
 repos['AmazonLinux2'] = amazon_linux2
 
