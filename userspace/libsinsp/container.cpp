@@ -502,8 +502,10 @@ void sinsp_container_manager::subscribe_on_remove_container(remove_container_cb 
 
 void sinsp_container_manager::create_engines()
 {
+#ifdef CYGWING_AGENT
+	m_container_engines.emplace_back(new container_engine::docker(m_inspector /*wmi source*/));
+#else
 	m_container_engines.emplace_back(new container_engine::docker());
-#ifndef CYGWING_AGENT
 #if defined(HAS_CAPTURE)
 	m_container_engines.emplace_back(new container_engine::cri());
 #endif

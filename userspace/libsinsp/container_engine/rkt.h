@@ -21,7 +21,6 @@ limitations under the License.
 
 #include <string>
 
-class sinsp_container_manager;
 class sinsp_container_info;
 class sinsp_threadinfo;
 
@@ -32,10 +31,10 @@ namespace container_engine {
 class rkt : public container_engine_base
 {
 public:
-	bool resolve(sinsp_container_manager *manager, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
+	bool resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 
 protected:
-	bool match(sinsp_container_manager *manager, sinsp_threadinfo *tinfo, sinsp_container_info& container_info,
+	bool match(container_cache_interface *cache, sinsp_threadinfo *tinfo, sinsp_container_info& container_info,
 		   std::string& rkt_podid, std::string& rkt_appname, bool query_os_for_missing_info);
 
 	bool parse_rkt(sinsp_container_info& container, const std::string& podid, const std::string& appname);

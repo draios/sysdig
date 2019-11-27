@@ -19,7 +19,8 @@ limitations under the License.
 
 #pragma once
 
-class sinsp_container_manager;
+#include "container_engine/container_cache_interface.h"
+
 class sinsp_threadinfo;
 
 namespace libsinsp {
@@ -33,7 +34,13 @@ class container_engine_base {
 public:
 	virtual ~container_engine_base() = default;
 
-	virtual bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info) = 0;
+	/**
+	 * Find a container associated with the given tinfo and add it to the
+	 * cache.
+	 */
+	virtual bool resolve(container_cache_interface* cache,
+			     sinsp_threadinfo* tinfo,
+			     bool query_os_for_missing_info) = 0;
 
 	virtual void cleanup();
 };

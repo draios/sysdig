@@ -22,7 +22,6 @@ limitations under the License.
 #include <string>
 #include <stdint.h>
 
-class sinsp_container_manager;
 class sinsp_threadinfo;
 
 #include "cgroup_limits.h"
@@ -53,9 +52,9 @@ class cri_async_source : public sysdig::async_key_value_source<
         sinsp_container_info>
 {
 public:
-	explicit cri_async_source(sinsp_container_manager* manager, ::libsinsp::cri::cri_interface* cri, uint64_t ttl_ms) :
+	explicit cri_async_source(container_cache_interface *cache, ::libsinsp::cri::cri_interface *cri, uint64_t ttl_ms) :
 		async_key_value_source(NO_WAIT_LOOKUP, ttl_ms),
-		m_container_manager(manager),
+		m_cache(cache),
 		m_cri(cri)
 	{
 	}
@@ -72,7 +71,7 @@ private:
 	bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info& container);
 	void run_impl() override;
 
-	sinsp_container_manager* m_container_manager;
+	container_cache_interface *m_cache;
 	::libsinsp::cri::cri_interface *m_cri;
 };
 
@@ -81,7 +80,7 @@ class cri : public container_engine_base
 public:
 	cri();
 
-	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info) override;
+	bool resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 	void cleanup() override;
 	static void set_cri_socket_path(const std::string& path);
 	static void set_cri_timeout(int64_t timeout_ms);
