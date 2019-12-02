@@ -37,7 +37,8 @@ limitations under the License.
 #include "container.h"
 #include "container_info.h"
 
-#include "container_engine/container_engine.h"
+#include "container_engine/container_engine_base.h"
+#include "container_engine/wmi_handle_source.h"
 
 class sinsp;
 class sinsp_threadinfo;
@@ -56,9 +57,9 @@ class docker_async_source : public sysdig::async_key_value_source<std::string, s
 
 public:
 #ifdef _WIN32
-	docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms, sinsp *inspector);
+	docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms, container_cache_interface *cache);
 #else
-	docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms, sinsp *inspector, std::string socket_path);
+	docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms, container_cache_interface *cache, std::string socket_path);
 #endif
 	virtual ~docker_async_source();
 
@@ -112,7 +113,7 @@ private:
 	void parse_health_probes(const Json::Value &config_obj,
 				 sinsp_container_info &container);
 
-	sinsp *m_inspector;
+	container_cache_interface *m_cache;
 
 	std::string m_api_version;
 
@@ -125,12 +126,17 @@ private:
 	static bool m_query_image_info;
 };
 
-class docker : public resolver
+class docker : public container_engine_base
 {
 public:
-	docker();
 
-	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info) override;
+#ifdef _WIN32
+	docker(const wmi_handle_source&);
+#else
+	docker() = default;
+#endif
+
+	bool resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 	void cleanup() override;
 	static void parse_json_mounts(const Json::Value &mnt_obj, std::vector<sinsp_container_info::container_mount_info> &mounts);
 
@@ -142,13 +148,16 @@ public:
 		m_docker_sock = std::move(docker_sock);
 	}
 #endif
+
 protected:
-	void parse_docker_async(const std::string& container_id, sinsp_container_manager *manager);
+	void parse_docker_async(const std::string& container_id, container_cache_interface *cache);
 
 	std::unique_ptr<docker_async_source> m_docker_info_source;
 
 	static std::string s_incomplete_info_name;
-#ifndef _WIN32
+#ifdef _WIN32
+	const wmi_handle_source& m_wmi_handle_source;
+#else
 	static std::string m_docker_sock;
 #endif
 };

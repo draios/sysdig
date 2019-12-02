@@ -248,7 +248,7 @@ void cri::set_cri_delay(uint64_t delay_ms)
 	s_cri_lookup_delay_ms = delay_ms;
 }
 
-bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+bool cri::resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 {
 	std::string container_id;
 
@@ -270,7 +270,7 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 		return false;
 	}
 
-	if(!manager->should_lookup(container_id, m_cri->get_cri_runtime_type()))
+	if(!cache->should_lookup(container_id, m_cri->get_cri_runtime_type()))
 	{
 		return true;
 	}
@@ -300,19 +300,19 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 
 		if(!m_async_source)
 		{
-			auto async_source = new cri_async_source(manager, m_cri.get(), s_cri_timeout);
+			auto async_source = new cri_async_source(cache, m_cri.get(), s_cri_timeout);
 			m_async_source = std::unique_ptr<cri_async_source>(async_source);
 		}
 
-		manager->set_lookup_status(container_id, m_cri->get_cri_runtime_type(), sinsp_container_lookup_state::STARTED);
-		auto cb = [manager](const libsinsp::cgroup_limits::cgroup_limits_key& key, const sinsp_container_info &res)
+		cache->set_lookup_status(container_id, m_cri->get_cri_runtime_type(), sinsp_container_lookup_state::STARTED);
+		auto cb = [cache](const libsinsp::cgroup_limits::cgroup_limits_key& key, const sinsp_container_info& res)
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"cri_async (%s): Source callback result=%d",
 					key.m_container_id.c_str(),
 					res.m_lookup_state);
 
-			manager->notify_new_container(res);
+			cache->notify_new_container(res);
 		};
 
 		sinsp_container_info result;
@@ -344,7 +344,7 @@ bool cri::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 	}
 	else
 	{
-		manager->notify_new_container(*container);
+		cache->notify_new_container(*container);
 	}
 	return true;
 }

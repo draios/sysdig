@@ -19,17 +19,31 @@ limitations under the License.
 
 #pragma once
 
-class sinsp_container_info;
-class sinsp_threadinfo;
+#include "container_engine/container_cache_interface.h"
 
-#include "container_engine/container_engine_base.h"
+class sinsp_threadinfo;
 
 namespace libsinsp {
 namespace container_engine {
-class lxc : public container_engine_base
-{
+
+/**
+ * Base class for container engine. This provided the interfaces to
+ * associate a container with a thread.
+ */
+class container_engine_base {
 public:
-	bool resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
+	virtual ~container_engine_base() = default;
+
+	/**
+	 * Find a container associated with the given tinfo and add it to the
+	 * cache.
+	 */
+	virtual bool resolve(container_cache_interface* cache,
+			     sinsp_threadinfo* tinfo,
+			     bool query_os_for_missing_info) = 0;
+
+	virtual void cleanup();
 };
 }
 }
+

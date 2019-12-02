@@ -22,7 +22,7 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
-bool lxc::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+bool lxc::resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 {
 	auto container = std::make_shared<sinsp_container_info>();
 	bool matches = false;
@@ -62,11 +62,11 @@ bool lxc::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 	}
 
 	tinfo->m_container_id = container->m_id;
-	if (manager->should_lookup(container->m_id, CT_LXC))
+	if (cache->should_lookup(container->m_id, CT_LXC))
 	{
 		container->m_name = container->m_id;
-		manager->add_container(container, tinfo);
-		manager->notify_new_container(*container);
+		cache->add_container(container, tinfo);
+		cache->notify_new_container(*container);
 	}
 	return true;
 }

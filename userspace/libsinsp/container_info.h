@@ -25,25 +25,11 @@ limitations under the License.
 #include <list>
 #include <string>
 #include <vector>
-
+#include "container_engine/sinsp_container_type.h"
 #include "json/json.h"
 
 class sinsp;
 class sinsp_threadinfo;
-
-enum sinsp_container_type
-{
-	CT_DOCKER = 0,
-	CT_LXC = 1,
-	CT_LIBVIRT_LXC = 2,
-	CT_MESOS = 3,
-	CT_RKT = 4,
-	CT_CUSTOM = 5,
-	CT_CRI = 6,
-	CT_CONTAINERD = 7,
-	CT_CRIO = 8,
-	CT_BPM = 9,
-};
 
 namespace std {
 template<> struct hash<sinsp_container_type> {

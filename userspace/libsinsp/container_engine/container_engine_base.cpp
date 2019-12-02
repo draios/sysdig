@@ -17,22 +17,10 @@ limitations under the License.
 
 */
 
-#pragma once
+#include "container_engine/container_engine_base.h"
 
-class sinsp_container_manager;
-class sinsp_threadinfo;
+using namespace libsinsp::container_engine;
 
-namespace libsinsp {
-namespace container_engine {
-
-class resolver {
-public:
-	virtual ~resolver() = default;
-
-	virtual bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info) = 0;
-
-	virtual void cleanup();
-};
+void container_engine_base::cleanup()
+{
 }
-}
-

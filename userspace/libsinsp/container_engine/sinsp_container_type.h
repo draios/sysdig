@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2019 Draios Inc dba Sysdig.
+Copyright (C) 2019 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
@@ -17,10 +17,18 @@ limitations under the License.
 
 */
 
-#include "container_engine/container_engine.h"
+#pragma once
 
-using namespace libsinsp::container_engine;
-
-void resolver::cleanup()
+enum sinsp_container_type
 {
-}
+	CT_DOCKER = 0,
+	CT_LXC = 1,
+	CT_LIBVIRT_LXC = 2,
+	CT_MESOS = 3,
+	CT_RKT = 4,
+	CT_CUSTOM = 5,
+	CT_CRI = 6,
+	CT_CONTAINERD = 7,
+	CT_CRIO = 8,
+	CT_BPM = 9,
+};
