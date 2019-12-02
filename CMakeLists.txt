@@ -529,7 +529,8 @@ if(NOT WIN32 AND NOT APPLE)
 	endif()
 endif() # NOT WIN32 AND NOT APPLE
 
-if(NOT WIN32)
+option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
+if(CREATE_TEST_TARGETS AND NOT WIN32)
 	option(USE_BUNDLED_GTEST "Enable building of the bundled gtest" ${USE_BUNDLED_DEPS})
 	if(NOT USE_BUNDLED_GTEST)
 		find_path(GTEST_INCLUDE_DIR NAMES gtest.h)
@@ -566,7 +567,7 @@ add_subdirectory(userspace/sysdig)
 add_subdirectory(userspace/libscap)
 add_subdirectory(userspace/libsinsp)
 
-if(NOT WIN32)
+if(CREATE_TEST_TARGETS AND NOT WIN32)
 		# Add unit test directories
 		add_subdirectory(userspace/libsinsp/test)
 
