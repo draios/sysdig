@@ -1,6 +1,5 @@
-#!/bin/bash
 #
-# Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+# Copyright (C) 2019 Draios Inc dba Sysdig.
 #
 # This file is part of sysdig .
 #
@@ -16,21 +15,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-set -e
-export CC="gcc-4.8"
-export CXX="g++-4.8"
-wget https://s3.amazonaws.com/download.draios.com/dependencies/cmake-3.3.2.tar.gz
-tar -xzf cmake-3.3.2.tar.gz
-cd cmake-3.3.2
-./bootstrap --prefix=/usr
-make
-sudo make install
-cd ..
-mkdir build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-make VERBOSE=1
-make package
-make run-unit-tests
-cd ..
-test/sysdig_trace_regression.sh build/userspace/sysdig/sysdig build/userspace/sysdig/chisels $TRAVIS_BRANCH
+
+cmake_minimum_required(VERSION 2.8.2)
+
+project(googletest-download NONE)
+
+include(ExternalProject)
+ExternalProject_Add(googletest
+  GIT_REPOSITORY    https://github.com/google/googletest.git
+  GIT_TAG           master
+  SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/googletest-src"
+  BINARY_DIR        "${CMAKE_CURRENT_BINARY_DIR}/googletest-build"
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND     ""
+  INSTALL_COMMAND   ""
+  TEST_COMMAND      ""
+)

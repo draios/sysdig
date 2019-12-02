@@ -1,6 +1,5 @@
-#!/bin/bash
 #
-# Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+# Copyright (C) 2019 Draios Inc dba Sysdig.
 #
 # This file is part of sysdig .
 #
@@ -16,21 +15,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-set -e
-export CC="gcc-4.8"
-export CXX="g++-4.8"
-wget https://s3.amazonaws.com/download.draios.com/dependencies/cmake-3.3.2.tar.gz
-tar -xzf cmake-3.3.2.tar.gz
-cd cmake-3.3.2
-./bootstrap --prefix=/usr
-make
-sudo make install
-cd ..
-mkdir build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-make VERBOSE=1
-make package
-make run-unit-tests
-cd ..
-test/sysdig_trace_regression.sh build/userspace/sysdig/sysdig build/userspace/sysdig/chisels $TRAVIS_BRANCH
+
+include_directories("${GTEST_INCLUDE_DIR}")
+
+add_executable(unit-test-libsinsp
+	testy_test_face.ut.cpp
+)
+
+target_link_libraries(unit-test-libsinsp
+	gtest_main
+)
+
+add_custom_target(run-unit-test-libsinsp
+	DEPENDS unit-test-libsinsp
+	COMMAND unit-test-libsinsp
+)

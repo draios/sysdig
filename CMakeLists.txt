@@ -527,11 +527,52 @@ if(NOT WIN32 AND NOT APPLE)
 		PATCH_COMMAND rm -rf third_party/zlib && ln -s ${ZLIB_SRC} third_party/zlib && wget https://download.sysdig.com/dependencies/grpc-1.8.1-Makefile.patch && patch < grpc-1.8.1-Makefile.patch
 		INSTALL_COMMAND "")
 	endif()
-endif()
+endif() # NOT WIN32 AND NOT APPLE
+
+if(NOT WIN32)
+	option(USE_BUNDLED_GTEST "Enable building of the bundled gtest" ${USE_BUNDLED_DEPS})
+	if(NOT USE_BUNDLED_GTEST)
+		find_path(GTEST_INCLUDE_DIR NAMES gtest.h)
+	else()
+		# https://github.com/google/googletest/tree/master/googletest#incorporating-into-an-existing-cmake-project
+		# Download and unpack googletest at configure time
+		configure_file(CMakeListsGtestInclude.cmake googletest-download/CMakeLists.txt)
+		execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+			RESULT_VARIABLE result
+			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+		if(result)
+			message(FATAL_ERROR "CMake step for googletest failed: ${result}")
+		endif()
+		execute_process(COMMAND ${CMAKE_COMMAND} --build .
+			RESULT_VARIABLE result
+			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+		if(result)
+			message(FATAL_ERROR "Build step for googletest failed: ${result}")
+		endif()
+
+		# Add googletest directly to our build. This defines
+		# the gtest and gtest_main targets.
+		add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
+		                 ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
+		                 EXCLUDE_FROM_ALL)
+
+		set(GTEST_INCLUDE_DIR "${gtest_SOURCE_DIR}/include/gtest")
+	endif()
+endif() # NOT WIN32 AND NOT APPLE
 
 add_subdirectory(userspace/sysdig)
 add_subdirectory(userspace/libscap)
 add_subdirectory(userspace/libsinsp)
+
+if(NOT WIN32)
+		# Add unit test directories
+		add_subdirectory(userspace/libsinsp/test)
+
+		# Add command to run all unit tests at once via the make system
+		add_custom_target(run-unit-tests
+			COMMAND $(MAKE) run-unit-test-libsinsp
+		)
+endif()
 
 set(CPACK_PACKAGE_NAME "${PACKAGE_NAME}")
 set(CPACK_PACKAGE_VENDOR "Sysdig Inc.")
