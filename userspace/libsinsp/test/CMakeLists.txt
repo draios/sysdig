@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2019 Draios Inc dba Sysdig.
+# Copyright (C) 2019 Sysdig Inc.
 #
 # This file is part of sysdig .
 #

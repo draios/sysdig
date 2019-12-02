@@ -568,7 +568,9 @@ if(NOT WIN32)
 		# Add unit test directories
 		add_subdirectory(userspace/libsinsp/test)
 
-		# Add command to run all unit tests at once via the make system
+		# Add command to run all unit tests at once via the make system.
+		# This is preferred vs using ctest's add_test because it will build
+		# the code and output to stdout.
 		add_custom_target(run-unit-tests
 			COMMAND $(MAKE) run-unit-test-libsinsp
 		)
