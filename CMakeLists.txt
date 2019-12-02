@@ -560,7 +560,7 @@ if(NOT WIN32)
 		set(GTEST_INCLUDE_DIR "${gtest_SOURCE_DIR}/include/gtest")
 		set(GTEST_MAIN_LIB "gtest_main")
 	endif()
-endif() # NOT WIN32 AND NOT APPLE
+endif() # NOT WIN32
 
 add_subdirectory(userspace/sysdig)
 add_subdirectory(userspace/libscap)
