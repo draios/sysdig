@@ -533,6 +533,7 @@ if(NOT WIN32)
 	option(USE_BUNDLED_GTEST "Enable building of the bundled gtest" ${USE_BUNDLED_DEPS})
 	if(NOT USE_BUNDLED_GTEST)
 		find_path(GTEST_INCLUDE_DIR NAMES gtest.h)
+		find_library(GTEST_MAIN_LIB NAMES gtest_main)
 	else()
 		# https://github.com/google/googletest/tree/master/googletest#incorporating-into-an-existing-cmake-project
 		# Download and unpack googletest at configure time
@@ -557,6 +558,7 @@ if(NOT WIN32)
 		                 EXCLUDE_FROM_ALL)
 
 		set(GTEST_INCLUDE_DIR "${gtest_SOURCE_DIR}/include/gtest")
+		set(GTEST_MAIN_LIB "gtest_main")
 	endif()
 endif() # NOT WIN32 AND NOT APPLE
 

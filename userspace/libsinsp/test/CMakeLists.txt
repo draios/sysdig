@@ -23,7 +23,7 @@ add_executable(unit-test-libsinsp
 )
 
 target_link_libraries(unit-test-libsinsp
-	gtest_main
+	"${GTEST_MAIN_LIB}"
 )
 
 add_custom_target(run-unit-test-libsinsp
