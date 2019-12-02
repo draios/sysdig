@@ -1,6 +1,5 @@
-#!/bin/bash
 #
-# Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+# Copyright (C) 2019 Sysdig Inc.
 #
 # This file is part of sysdig .
 #
@@ -16,10 +15,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-set -e
-mkdir build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_BUNDLED_LUAJIT=OFF -DUSE_BUNDLED_ZLIB=OFF
-make install
-make run-unit-tests
-../test/sysdig_trace_regression.sh $(which sysdig) ./userspace/sysdig/chisels $TRAVIS_BRANCH
+
+include_directories("${GTEST_INCLUDE_DIR}")
+
+add_executable(unit-test-libsinsp
+	testy_test_face.ut.cpp
+)
+
+target_link_libraries(unit-test-libsinsp
+	"${GTEST_MAIN_LIB}"
+)
+
+add_custom_target(run-unit-test-libsinsp
+	DEPENDS unit-test-libsinsp
+	COMMAND unit-test-libsinsp
+)
