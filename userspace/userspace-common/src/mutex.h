@@ -22,7 +22,7 @@ limitations under the License.
 #include <mutex>
 #include <thread>
 
-namespace libsinsp {
+namespace userspace_common {
 template<typename T>
 class ConstMutexGuard;
 

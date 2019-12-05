@@ -40,7 +40,7 @@ limitations under the License.
 class sinsp_container_manager : public libsinsp::container_engine::container_cache_interface
 {
 public:
-	using map_ptr_t = libsinsp::ConstMutexGuard<std::unordered_map<std::string, sinsp_container_info::ptr_t>>;
+	using map_ptr_t = userspace_common::ConstMutexGuard<std::unordered_map<std::string, sinsp_container_info::ptr_t>>;
 
 	sinsp_container_manager(sinsp* inspector);
 	virtual ~sinsp_container_manager();
@@ -179,7 +179,7 @@ private:
 	std::list<std::unique_ptr<libsinsp::container_engine::container_engine_base>> m_container_engines;
 
 	sinsp* m_inspector;
-	libsinsp::Mutex<std::unordered_map<std::string, std::shared_ptr<const sinsp_container_info>>> m_containers;
+	userspace_common::Mutex<std::unordered_map<std::string, std::shared_ptr<const sinsp_container_info>>> m_containers;
 	std::unordered_map<std::string, std::unordered_map<sinsp_container_type, sinsp_container_lookup_state>> m_lookups;
 	uint64_t m_last_flush_time_ns;
 	std::list<new_container_cb> m_new_callbacks;

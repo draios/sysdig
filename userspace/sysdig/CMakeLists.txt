@@ -26,6 +26,7 @@ endif()
 include_directories("${PROJECT_SOURCE_DIR}/common")
 include_directories("${PROJECT_SOURCE_DIR}/userspace/libscap")
 include_directories("${PROJECT_SOURCE_DIR}/userspace/libsinsp")
+include_directories("${PROJECT_SOURCE_DIR}/userspace/userspace-common/src")
 include_directories("${PROJECT_BINARY_DIR}/userspace/sysdig")
 include_directories(.)
 
