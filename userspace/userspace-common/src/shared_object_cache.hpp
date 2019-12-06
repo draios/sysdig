@@ -37,7 +37,7 @@ bool shared_object_cache<TKey, TValue>::erase(const TKey& key)
 }
 
 template<class TKey, class TValue>
-typename shared_object_cache<TKey, TValue>::value_ptr_t shared_object_cache<TKey, TValue>::get(const TKey& key)
+typename shared_object_cache<TKey, TValue>::value_ptr_t shared_object_cache<TKey, TValue>::get(const TKey& key) const
 {
 	auto data = m_data.lock();
 	auto it = data->find(key);
@@ -50,7 +50,13 @@ typename shared_object_cache<TKey, TValue>::value_ptr_t shared_object_cache<TKey
 }
 
 template<class TKey, class TValue>
-typename shared_object_cache<TKey, TValue>::guard_t shared_object_cache<TKey, TValue>::lock()
+typename shared_object_cache<TKey, TValue>::guard_t shared_object_cache<TKey, TValue>::lock() const
+{
+	return m_data.lock();
+}
+
+template<class TKey, class TValue>
+typename shared_object_cache<TKey, TValue>::mutable_guard_t shared_object_cache<TKey, TValue>::mutable_lock()
 {
 	return m_data.lock();
 }

@@ -5,7 +5,9 @@
 
 namespace libsinsp
 {
-
+/**
+ * Cache of container_info.
+ */
 class container_cache : public userspace_common::shared_object_cache<std::string, sinsp_container_info>
 {
 public:

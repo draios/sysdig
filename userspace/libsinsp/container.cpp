@@ -76,7 +76,7 @@ bool sinsp_container_manager::remove_inactive_containers()
 			return true;
 		});
 
-		auto containers = container_cache::instance().lock();
+		auto containers = container_cache::instance().mutable_lock();
 		for(auto it = containers->begin(); it != containers->end();)
 		{
 			if(containers_in_use.find(it->first) == containers_in_use.end())
