@@ -17,8 +17,6 @@ limitations under the License.
 
 */
 
-#pragma once
-
 #include <shared_object_cache.h>
 
 namespace userspace_common
