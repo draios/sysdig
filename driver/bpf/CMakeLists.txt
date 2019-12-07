@@ -5,6 +5,8 @@
 # MIT.txt or GPL.txt for full copies of the license.
 #
 
+configure_file(../driver_config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/../driver_config.h)
+
 option(BUILD_BPF "Build the BPF driver on Linux" OFF)
 
 if(BUILD_BPF)
