@@ -36,6 +36,7 @@ limitations under the License.
 #include "container_engine/container_cache_interface.h"
 #include "container_engine/container_engine_base.h"
 #include "mutex.h"
+#include "shared_object_cache.h"
 
 class sinsp_container_manager : public libsinsp::container_engine::container_cache_interface
 {
@@ -175,6 +176,7 @@ private:
 	std::list<std::unique_ptr<libsinsp::container_engine::container_engine_base>> m_container_engines;
 
 	sinsp* m_inspector;
+	userspace_common::shared_object_cache<std::string, sinsp_container_info> m_containers;
 	std::unordered_map<std::string, std::unordered_map<sinsp_container_type, sinsp_container_lookup_state>> m_lookups;
 	uint64_t m_last_flush_time_ns;
 	std::list<new_container_cb> m_new_callbacks;

@@ -18,7 +18,6 @@ limitations under the License.
 */
 
 #include <algorithm>
-#include "container_cache.h"
 #if defined(HAS_CAPTURE)
 #include "container_engine/cri.h"
 #endif
@@ -76,7 +75,7 @@ bool sinsp_container_manager::remove_inactive_containers()
 			return true;
 		});
 
-		auto containers = container_cache::instance().mutable_lock();
+		auto containers = m_containers.mutable_lock();
 		for(auto it = containers->begin(); it != containers->end();)
 		{
 			if(containers_in_use.find(it->first) == containers_in_use.end())
@@ -100,7 +99,7 @@ bool sinsp_container_manager::remove_inactive_containers()
 
 sinsp_container_info::ptr_t sinsp_container_manager::get_container(const string& container_id) const
 {
-	return container_cache::instance().get(container_id);
+	return m_containers.get(container_id);
 }
 
 bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
@@ -274,14 +273,14 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 
 sinsp_container_manager::map_ptr_t sinsp_container_manager::get_containers() const
 {
-	return container_cache::instance().lock();
+	return m_containers.lock();
 }
 
 void sinsp_container_manager::add_container(const sinsp_container_info::ptr_t& container_info, sinsp_threadinfo *thread)
 {
 	set_lookup_status(container_info->m_id, container_info->m_type, container_info->m_lookup_state);
 	{
-		container_cache::instance().insert(container_info->m_id, container_info);
+		m_containers.insert(container_info->m_id, container_info);
 	}
 
 	for(const auto &new_cb : m_new_callbacks)
@@ -292,8 +291,8 @@ void sinsp_container_manager::add_container(const sinsp_container_info::ptr_t& c
 
 void sinsp_container_manager::replace_container(const sinsp_container_info::ptr_t& container_info)
 {
-	ASSERT(container_cache::instance().get(container_info->m_id).get() != nullptr);
-	container_cache::instance().insert(container_info->m_id, container_info);
+	ASSERT(m_containers.get(container_info->m_id).get() != nullptr);
+	m_containers.insert(container_info->m_id, container_info);
 }
 
 void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info)
@@ -322,7 +321,7 @@ void sinsp_container_manager::notify_new_container(const sinsp_container_info& c
 
 void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)
 {
-	for(const auto& it : (*container_cache::instance().lock()))
+	for(const auto& it : (*m_containers.lock()))
 	{
 		sinsp_evt evt;
 		if(container_to_sinsp_event(container_to_json(*it.second), &evt, it.second->get_tinfo(m_inspector)))
@@ -483,7 +482,7 @@ void sinsp_container_manager::identify_category(sinsp_threadinfo *tinfo)
 
 bool sinsp_container_manager::container_exists(const std::string& container_id) const
 {
-	auto containers = container_cache::instance().lock();
+	auto containers = m_containers.lock();
 	return containers->find(container_id)!= containers->end()||
 	       m_lookups.find(container_id)!= m_lookups.end();
 }
@@ -569,3 +568,8 @@ void sinsp_container_manager::set_cri_delay(uint64_t delay_ms)
 	libsinsp::container_engine::cri::set_cri_delay(delay_ms);
 #endif
 }
+
+// explicit instantiation of cache
+#include <shared_object_cache.hpp>
+template class userspace_common::shared_object_cache<std::string, sinsp_container_info>;
+
