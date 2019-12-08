@@ -17,13 +17,15 @@
 #
 
 include_directories("${GTEST_INCLUDE_DIR}")
+include_directories("..")
 
 add_executable(unit-test-libsinsp
-	testy_test_face.ut.cpp
+	cgroup_list_counter.ut.cpp
 )
 
 target_link_libraries(unit-test-libsinsp
 	"${GTEST_MAIN_LIB}"
+	sinsp
 )
 
 add_custom_target(run-unit-test-libsinsp
