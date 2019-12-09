@@ -197,4 +197,4 @@ else
 	unsupported
 fi
 
-modprobe _COMPONENT__probe
+modprobe -r _COMPONENT__probe
