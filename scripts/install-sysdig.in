@@ -196,3 +196,5 @@ elif [ -f /etc/system-release-cpe ]; then
 else
 	unsupported
 fi
+
+modprobe -r _COMPONENT__probe
