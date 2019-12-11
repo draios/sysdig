@@ -33,11 +33,6 @@ class bpm : public container_engine_base
 public:
 	bpm() = default;
 
-	bool supports(sinsp_container_type type) override
-	{
-		return CT_BPM == type;
-	}
-
 	bool resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 };
 }

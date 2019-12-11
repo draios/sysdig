@@ -32,10 +32,6 @@ namespace container_engine {
 class rkt : public container_engine_base
 {
 public:
-	bool supports(sinsp_container_type type) override
-	{
-		return CT_RKT == type;
-	}
 	bool resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 
 protected:

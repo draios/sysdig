@@ -196,10 +196,6 @@ protected:
 
 private:
 	// implement container_engine_base
-	bool supports(sinsp_container_type type) override
-	{
-		return CT_DOCKER == type;
-	}
 	bool resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 	void update_with_size(const std::string& container_id) override;
 

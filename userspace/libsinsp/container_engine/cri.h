@@ -80,11 +80,6 @@ class cri : public container_engine_base
 {
 public:
 	cri();
-	virtual bool supports(sinsp_container_type type) override
-	{
-		return CT_CRI == type || CT_CRIO == type || CT_CONTAINERD == type;
-	}
-
 	bool resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 	void cleanup() override;
 	static void set_cri_socket_path(const std::string& path);

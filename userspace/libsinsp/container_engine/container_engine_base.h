@@ -35,11 +35,6 @@ public:
 	virtual ~container_engine_base() = default;
 
 	/**
-	 * Return whether this engine supports the given container type.
-	 */
-	virtual bool supports(sinsp_container_type type) = 0;
-
-	/**
 	 * Find a container associated with the given tinfo and add it to the
 	 * cache.
 	 */

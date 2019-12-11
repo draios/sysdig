@@ -36,6 +36,7 @@ limitations under the License.
 
 #include "container_engine/container_cache_interface.h"
 #include "container_engine/container_engine_base.h"
+#include "container_engine/sinsp_container_type.h"
 #include "mutex.h"
 
 class sinsp_container_manager : public libsinsp::container_engine::container_cache_interface
@@ -185,7 +186,8 @@ private:
 	bool container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::shared_ptr<sinsp_threadinfo> tinfo);
 	std::string get_docker_env(const Json::Value &env_vars, const std::string &mti);
 
-	std::list<std::unique_ptr<libsinsp::container_engine::container_engine_base>> m_container_engines;
+	std::list<std::shared_ptr<libsinsp::container_engine::container_engine_base>> m_container_engines;
+	std::map<sinsp_container_type, std::shared_ptr<libsinsp::container_engine::container_engine_base>> m_container_engine_by_type;
 
 	sinsp* m_inspector;
 	libsinsp::Mutex<std::unordered_map<std::string, std::shared_ptr<const sinsp_container_info>>> m_containers;
