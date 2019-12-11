@@ -517,6 +517,26 @@ void sinsp_container_manager::create_engines()
 #endif
 }
 
+void sinsp_container_manager::update_container_with_size(sinsp_container_type type,
+							 const std::string& container_id)
+{
+	for(auto& eng : m_container_engines)
+	{
+		if(!eng->supports(type))
+		{
+			continue;
+		}
+
+		g_logger.format(sinsp_logger::SEV_INFO,//sinsp_logger::SEV_DEBUG,
+				"Request size for %s",
+				container_id.c_str());
+		eng->update_with_size(container_id);
+	}
+	g_logger.format(sinsp_logger::SEV_ERROR,
+			"Invalid size request for %s with type %d",
+			container_id.c_str(), type);
+}
+
 void sinsp_container_manager::cleanup()
 {
 	for(auto &eng : m_container_engines)

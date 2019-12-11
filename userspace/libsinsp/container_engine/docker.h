@@ -1,4 +1,5 @@
 /*
+
 Copyright (C) 2013-2019 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
@@ -38,6 +39,7 @@ limitations under the License.
 #include "container_info.h"
 
 #include "container_engine/container_engine_base.h"
+#include "container_engine/sinsp_container_type.h"
 #include "container_engine/wmi_handle_source.h"
 
 class sinsp;
@@ -46,7 +48,39 @@ class sinsp_threadinfo;
 namespace libsinsp {
 namespace container_engine {
 
-class docker_async_source : public sysdig::async_key_value_source<std::string, sinsp_container_info>
+struct docker_async_instruction
+{
+	docker_async_instruction() :
+		request_rw_size(false)
+	{}
+
+	docker_async_instruction(const std::string container_id_value,
+				 bool rw_size_value) :
+		container_id(container_id_value),
+		request_rw_size(rw_size_value)
+	{}
+
+	bool operator<(const docker_async_instruction& rhs) const
+	{
+		if(container_id < rhs.container_id)
+		{
+			return true;
+		}
+
+		return request_rw_size < rhs.request_rw_size;
+	}
+
+	bool operator==(const docker_async_instruction& rhs) const
+	{
+		return container_id == rhs.container_id &&
+		       request_rw_size == rhs.request_rw_size;
+	}
+
+	std::string container_id;
+	bool request_rw_size;
+};
+
+class docker_async_source : public sysdig::async_key_value_source<docker_async_instruction, sinsp_container_info>
 {
 	enum docker_response
 	{
@@ -75,7 +109,7 @@ private:
 	std::string build_request(const std::string& url);
 	docker_response get_docker(const std::string& url, std::string &json);
 
-	bool parse_docker(std::string &container_id, sinsp_container_info &container);
+	bool parse_docker(const docker_async_instruction& instruction, sinsp_container_info& container);
 
 	// Look for a pod specification in this container's labels and
 	// if found set spec to the pod spec.
@@ -133,10 +167,10 @@ public:
 #ifdef _WIN32
 	docker(const wmi_handle_source&);
 #else
-	docker() = default;
+	docker() :
+	   m_cache(nullptr)
+	{}
 #endif
-
-	bool resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 	void cleanup() override;
 	static void parse_json_mounts(const Json::Value &mnt_obj, std::vector<sinsp_container_info::container_mount_info> &mounts);
 
@@ -160,6 +194,17 @@ protected:
 #else
 	static std::string m_docker_sock;
 #endif
+
+private:
+	// implement container_engine_base
+	bool supports(sinsp_container_type type) override
+	{
+		return CT_DOCKER == type;
+	}
+	bool resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
+	void update_with_size(const std::string& container_id) override;
+
+	container_cache_interface *m_cache;
 };
 }
 }

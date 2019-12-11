@@ -35,12 +35,24 @@ public:
 	virtual ~container_engine_base() = default;
 
 	/**
+	 * Return whether this engine supports the given container type.
+	 */
+	virtual bool supports(sinsp_container_type type) = 0;
+
+	/**
 	 * Find a container associated with the given tinfo and add it to the
 	 * cache.
 	 */
 	virtual bool resolve(container_cache_interface* cache,
 			     sinsp_threadinfo* tinfo,
 			     bool query_os_for_missing_info) = 0;
+
+	/**
+	 * Update an existing container with the size of the container layer.
+	 * The size is not requested as the part of the initial request (in resolve)
+	 * because determining the size can take seconds.
+	 */
+	virtual void update_with_size(const std::string& container_id);
 
 	virtual void cleanup();
 };

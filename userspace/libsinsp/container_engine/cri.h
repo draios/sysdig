@@ -26,6 +26,7 @@ class sinsp_threadinfo;
 
 #include "cgroup_limits.h"
 #include "container_engine/container_engine_base.h"
+#include "container_engine/sinsp_container_type.h"
 #include "container_info.h"
 #include <cri.h>
 
@@ -79,6 +80,10 @@ class cri : public container_engine_base
 {
 public:
 	cri();
+	virtual bool supports(sinsp_container_type type) override
+	{
+		return CT_CRI == type || CT_CRIO == type || CT_CONTAINERD == type;
+	}
 
 	bool resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 	void cleanup() override;

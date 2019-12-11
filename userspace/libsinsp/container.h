@@ -21,6 +21,7 @@ limitations under the License.
 
 #include <functional>
 #include <memory>
+#include <unordered_map>
 
 #include "scap.h"
 
@@ -67,7 +68,7 @@ public:
 	 *
 	 * @param container_info shared_ptr owning the updated container_info
 	 */
-	void replace_container(const sinsp_container_info::ptr_t& container_info);
+	void replace_container(const sinsp_container_info::ptr_t& container_info) override;
 
 	/**
 	 * @brief Get a container_info by container id
@@ -124,6 +125,14 @@ public:
 	void subscribe_on_remove_container(remove_container_cb callback);
 
 	void create_engines();
+
+	/**
+	 * Update the container_info associated with the given type and container_id
+	 * to include the size of the container layer. This is not filled in the
+	 * initial request because it can easily take seconds.
+	 */
+	void update_container_with_size(sinsp_container_type type,
+					const std::string& container_id);
 	void cleanup();
 
 	void set_docker_socket_path(std::string socket_path);
