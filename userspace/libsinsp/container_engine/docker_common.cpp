@@ -720,7 +720,9 @@ bool docker_async_source::parse_docker(const docker_async_instruction& instructi
 					instruction.container_id.c_str(),
 					secondary_container_id.c_str());
 
-			if(parse_docker(docker_async_instruction(secondary_container_id, instruction.request_rw_size), pcnt))
+			if(parse_docker(docker_async_instruction(secondary_container_id,
+								 false /*don't request size since we just need the IP*/),
+					pcnt))
 			{
 				g_logger.format(sinsp_logger::SEV_DEBUG,
 						"docker_async (%s), secondary (%s): Secondary fetch successful",
