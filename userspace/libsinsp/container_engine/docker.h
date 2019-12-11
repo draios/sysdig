@@ -1,5 +1,4 @@
 /*
-
 Copyright (C) 2013-2019 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
