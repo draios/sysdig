@@ -535,6 +535,11 @@ if(CREATE_TEST_TARGETS AND NOT WIN32)
 	if(NOT USE_BUNDLED_GTEST)
 		find_path(GTEST_INCLUDE_DIR PATH_SUFFIXES gtest NAMES gtest.h)
 		find_library(GTEST_MAIN_LIB NAMES gtest_main)
+		if(GTEST_INCLUDE_DIR AND GTEST_MAIN_LIB)
+			message(STATUS "Found gtest: include: ${GTEST_INCLUDE_DIR}, main lib: ${GTEST_MAIN_LIB}")
+		else()
+			message(FATAL_ERROR "Couldn't find system gtest")
+		endif()
 	else()
 		# https://github.com/google/googletest/tree/master/googletest#incorporating-into-an-existing-cmake-project
 		# Download and unpack googletest at configure time
