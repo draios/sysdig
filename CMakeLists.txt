@@ -533,7 +533,7 @@ option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
 if(CREATE_TEST_TARGETS AND NOT WIN32)
 	option(USE_BUNDLED_GTEST "Enable building of the bundled gtest" ${USE_BUNDLED_DEPS})
 	if(NOT USE_BUNDLED_GTEST)
-		find_path(GTEST_INCLUDE_DIR NAMES gtest.h)
+		find_path(GTEST_INCLUDE_DIR PATH_SUFFIXES gtest NAMES gtest.h)
 		find_library(GTEST_MAIN_LIB NAMES gtest_main)
 	else()
 		# https://github.com/google/googletest/tree/master/googletest#incorporating-into-an-existing-cmake-project
