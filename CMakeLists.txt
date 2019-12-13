@@ -575,7 +575,7 @@ if(CREATE_TEST_TARGETS AND NOT WIN32)
 		# This is preferred vs using ctest's add_test because it will build
 		# the code and output to stdout.
 		add_custom_target(run-unit-tests
-			COMMAND $(MAKE) run-unit-test-libsinsp
+			COMMAND ${CMAKE_MAKE_PROGRAM} run-unit-test-libsinsp
 		)
 endif()
 
