@@ -101,7 +101,7 @@ function clean_sysdig {
 
 function build_probe {
 
-	if [ ${KERNEL_RELEASE} == *"5.4.0"* ]; then
+	if [[ ${KERNEL_RELEASE} == *"5.4.0"* ]]; then
 		echo "Temporarily skipping ${KERNEL_RELEASE}"
 		return
 	fi
