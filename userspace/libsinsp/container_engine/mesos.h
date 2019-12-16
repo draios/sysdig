@@ -21,22 +21,22 @@ limitations under the License.
 
 #include <string>
 
-class sinsp_container_manager;
 class sinsp_container_info;
 class sinsp_threadinfo;
 
-#include "container_engine/container_engine.h"
+#include "container_engine/container_engine_base.h"
 
 namespace libsinsp {
 namespace container_engine {
-class mesos : public resolver {
+class mesos : public container_engine_base
+{
 public:
-	bool resolve(sinsp_container_manager *manager, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
+	bool resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 
-	static bool set_mesos_task_id(sinsp_container_info &container, sinsp_threadinfo *tinfo);
+	static bool set_mesos_task_id(sinsp_container_info& container, sinsp_threadinfo *tinfo);
 
 protected:
-	bool match(sinsp_threadinfo *tinfo, sinsp_container_info &container_info);
+	bool match(sinsp_threadinfo *tinfo, sinsp_container_info& container_info);
 
 	static std::string get_env_mesos_task_id(sinsp_threadinfo *tinfo);
 };

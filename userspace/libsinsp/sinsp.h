@@ -44,6 +44,7 @@ limitations under the License.
 #pragma once
 
 #include "capture_stats_source.h"
+#include "container_engine/wmi_handle_source.h"
 
 #ifdef _WIN32
 #pragma warning(disable: 4251 4200 4221 4190)
@@ -186,7 +187,7 @@ public:
   - event retrieval
   - setting capture filters
 */
-class SINSP_PUBLIC sinsp : public capture_stats_source
+class SINSP_PUBLIC sinsp : public capture_stats_source, public wmi_handle_source
 {
 public:
 	typedef std::shared_ptr<sinsp> ptr;
@@ -827,7 +828,7 @@ public:
 	static std::shared_ptr<std::string> lookup_cgroup_dir(const std::string& subsys);
 #endif
 #ifdef CYGWING_AGENT
-	wh_t* get_wmi_handle()
+	wh_t* get_wmi_handle() override
 	{
 		return scap_get_wmi_handle(m_h);
 	}

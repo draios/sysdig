@@ -27,13 +27,15 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
-docker_async_source::docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms, sinsp *inspector
+docker_async_source::docker_async_source(uint64_t max_wait_ms,
+					 uint64_t ttl_ms,
+					 container_cache_interface *cache
 #ifndef _WIN32
 	, std::string socket_path
 #endif
 	)
 	: async_key_value_source(max_wait_ms, ttl_ms),
-	  m_inspector(inspector),
+	  m_cache(cache),
 #ifdef _WIN32
 	  m_api_version("/v1.30"),
 #else
@@ -318,7 +320,7 @@ bool docker_async_source::get_sandbox_liveness_readiness_probes(const Json::Valu
 		sandbox_container_id.resize(12);
 	}
 
-	sinsp_container_info::ptr_t sandbox_container = m_inspector->m_container_manager.get_container(sandbox_container_id);
+	sinsp_container_info::ptr_t sandbox_container = m_cache->get_container(sandbox_container_id);
 
 	if(!sandbox_container)
 	{
@@ -406,7 +408,7 @@ void docker_async_source::set_query_image_info(bool query_image_info)
 
 std::string docker::s_incomplete_info_name = "incomplete";
 
-bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+bool docker::resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 {
 	std::string container_id, container_name;
 
@@ -421,16 +423,16 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 			     sinsp_logger::SEV_DEBUG);
 		uint64_t max_wait_ms = 10000;
 #ifdef _WIN32
-		docker_async_source *src = new docker_async_source(docker_async_source::NO_WAIT_LOOKUP, max_wait_ms, manager->get_inspector());
+		docker_async_source *src = new docker_async_source(docker_async_source::NO_WAIT_LOOKUP, max_wait_ms, cache);
 #else
-		docker_async_source *src = new docker_async_source(docker_async_source::NO_WAIT_LOOKUP, max_wait_ms, manager->get_inspector(), m_docker_sock);
+		docker_async_source *src = new docker_async_source(docker_async_source::NO_WAIT_LOOKUP, max_wait_ms, cache, m_docker_sock);
 #endif
 		m_docker_info_source.reset(src);
 	}
 
 	tinfo->m_container_id = container_id;
 
-	sinsp_container_info::ptr_t container_info = manager->get_container(container_id);
+	sinsp_container_info::ptr_t container_info = cache->get_container(container_id);
 
 	if(!container_info)
 	{
@@ -439,20 +441,20 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 			auto container = std::make_shared<sinsp_container_info>();
 			container->m_type = CT_DOCKER;
 			container->m_id = container_id;
-			manager->notify_new_container(*container);
+			cache->notify_new_container(*container);
 			return true;
 		}
 
 #ifdef HAS_CAPTURE
-		if(manager->should_lookup(container_id, CT_DOCKER))
+		if(cache->should_lookup(container_id, CT_DOCKER))
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s): No existing container info",
 					container_id.c_str());
 
 			// give docker a chance to return metadata for this container
-			manager->set_lookup_status(container_id, CT_DOCKER, sinsp_container_lookup_state::STARTED);
-			parse_docker_async(container_id, manager);
+			cache->set_lookup_status(container_id, CT_DOCKER, sinsp_container_lookup_state::STARTED);
+			parse_docker_async(container_id, cache);
 		}
 #endif
 		return false;
@@ -464,16 +466,16 @@ bool docker::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, 
 	return container_info->is_successful();
 }
 
-void docker::parse_docker_async(const string& container_id, sinsp_container_manager *manager)
+void docker::parse_docker_async(const string& container_id, container_cache_interface *cache)
 {
-	auto cb = [manager](const std::string &container_id, const sinsp_container_info &res)
+	auto cb = [cache](const std::string& container_id, const sinsp_container_info& res)
         {
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): Source callback result=%d",
 				container_id.c_str(),
 				res.m_lookup_state);
 
-		manager->notify_new_container(res);
+		cache->notify_new_container(res);
 	};
 
         sinsp_container_info result;

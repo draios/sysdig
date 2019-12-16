@@ -1,6 +1,5 @@
-#!/bin/bash
 #
-# Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+# Copyright (C) 2019 Sysdig Inc.
 #
 # This file is part of sysdig .
 #
@@ -16,10 +15,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-set -e
-mkdir build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_BUNDLED_LUAJIT=OFF -DUSE_BUNDLED_ZLIB=OFF
-make install
-make run-unit-tests
-../test/sysdig_trace_regression.sh $(which sysdig) ./userspace/sysdig/chisels $TRAVIS_BRANCH
+
+cmake_minimum_required(VERSION 2.8.2)
+
+project(googletest-download NONE)
+
+include(ExternalProject)
+ExternalProject_Add(googletest
+  GIT_REPOSITORY    https://github.com/google/googletest.git
+  GIT_TAG           master
+  SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/googletest-src"
+  BINARY_DIR        "${CMAKE_CURRENT_BINARY_DIR}/googletest-build"
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND     ""
+  INSTALL_COMMAND   ""
+  TEST_COMMAND      ""
+)
