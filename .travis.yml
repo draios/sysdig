@@ -16,12 +16,26 @@
 # limitations under the License.
 #
 language: c
-os:
-    - linux
-    - osx
-env:
-    - BUILD_TYPE=Debug
-    - BUILD_TYPE=Release
+
+matrix:
+  include:
+    - env: BUILD_TYPE=Debug
+      os: linux
+    - env: BUILD_TYPE=Release
+      os: linux
+    - env: BUILD_TYPE=Debug
+      os: osx
+    - env: BUILD_TYPE=Release
+      os: osx
+    - env: BUILD_TYPE=Debug
+      os: linux
+      arch: ppc64le
+      dist: bionic
+    - env: BUILD_TYPE=Release
+      os: linux
+      arch: ppc64le
+      dist: bionic
+
 sudo: required
 services:
     - docker
