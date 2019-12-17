@@ -23,7 +23,7 @@ namespace userspace_common
 {
 
 template<class TKey, class TValue>
-void shared_object_cache<TKey, TValue>::insert(const TKey& key, const value_ptr_t& value)
+void shared_object_cache<TKey, TValue>::insert_or_assign(const TKey& key, const value_ptr_t& value)
 {
 	auto data = m_data.lock();
 	(*data)[key] = value;

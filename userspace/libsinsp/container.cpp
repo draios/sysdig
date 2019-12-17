@@ -280,7 +280,7 @@ void sinsp_container_manager::add_container(const sinsp_container_info::ptr_t& c
 {
 	set_lookup_status(container_info->m_id, container_info->m_type, container_info->m_lookup_state);
 	{
-		m_containers.insert(container_info->m_id, container_info);
+		m_containers.insert_or_assign(container_info->m_id, container_info);
 	}
 
 	for(const auto &new_cb : m_new_callbacks)
@@ -292,7 +292,7 @@ void sinsp_container_manager::add_container(const sinsp_container_info::ptr_t& c
 void sinsp_container_manager::replace_container(const sinsp_container_info::ptr_t& container_info)
 {
 	ASSERT(m_containers.get(container_info->m_id).get() != nullptr);
-	m_containers.insert(container_info->m_id, container_info);
+	m_containers.insert_or_assign(container_info->m_id, container_info);
 }
 
 void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info)

@@ -50,10 +50,11 @@ public:
 	/**
 	 * Insert (or replace) into the map with the given key and value.
 	 */
-	void insert(const TKey& key, const value_ptr_t& value);
+	void insert_or_assign(const TKey& key, const value_ptr_t& value);
 
 	/**
-	 * Erase the element with the given key.
+	 * Erase the element with the given key. Return true if an element was
+	 * erased, false otherwise.
 	 */
 	bool erase(const TKey& key);
 
@@ -75,8 +76,12 @@ public:
 	 * Lock and provide mutable access to the underlying map. The map will
 	 * remain locked as long as the guard exists.
 	 *
-	 * This function gives full writable access to the map so it can break
-	 * thread-safety. It should be used carefully.
+	 * WARNING: This function gives full writable access to the map. This means
+	 * that it is possible to modify a value in place. Doing so would break the
+	 * contract of this class because clients who previously called 'get' are
+	 * assuming that they have a const, thread-safe access to the object.
+	 * This function should be used carefully. It is provided so that multiple
+	 * object can be deleted from the map while the map is locked.
 	 */
 	mutable_guard_t mutable_lock();
 

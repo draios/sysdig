@@ -75,11 +75,11 @@ TEST(shared_object_cache_test, insert_read_erase)
 
 	{
 		stuff::ptr my_stuff_copy = std::make_shared<stuff>(my_stuff);
-		some_stuff.insert(key, my_stuff_copy);
+		some_stuff.insert_or_assign(key, my_stuff_copy);
 	}
 
 	auto found = some_stuff.get(key);
-	ASSERT_EQ (my_stuff, *found);
+	ASSERT_EQ(my_stuff, *found);
 
 	bool erased = some_stuff.erase(key);
 	ASSERT_TRUE(erased);
@@ -98,8 +98,8 @@ TEST(shared_object_cache_test, replace)
 	std::string key("key");
 
 	stuff my_stuff(1, 2, 3);
-	some_stuff.insert(key, std::make_shared<stuff>(10, 20, 30));
-	some_stuff.insert(key, std::make_shared<stuff>(my_stuff));
+	some_stuff.insert_or_assign(key, std::make_shared<stuff>(10, 20, 30));
+	some_stuff.insert_or_assign(key, std::make_shared<stuff>(my_stuff));
 
 	auto found = some_stuff.get(key);
 	ASSERT_EQ (my_stuff, *found);
