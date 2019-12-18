@@ -17,10 +17,14 @@
 #
 
 include_directories("${GTEST_INCLUDE_DIR}")
+include_directories("${JSONCPP_INCLUDE}")
+
 include_directories("..")
+include_directories("../../libscap")
 
 add_executable(unit-test-libsinsp
 	cgroup_list_counter.ut.cpp
+	sinsp.ut.cpp
 )
 
 target_link_libraries(unit-test-libsinsp

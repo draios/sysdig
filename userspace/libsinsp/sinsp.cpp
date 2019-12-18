@@ -64,6 +64,7 @@ void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_thr
 // sinsp implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp::sinsp() :
+	m_external_event_processor(),
 	m_evt(this),
 	m_lastevent_ts(0),
 	m_container_manager(this),
@@ -372,6 +373,10 @@ void sinsp::init()
 			m_analyzer->on_capture_start();
 		}
 #endif
+		if (m_external_event_processor)
+		{
+			m_external_event_processor->on_capture_start();
+		}
 
 		//
 		// Rewind, reset the event count, and consume the exact number of events
@@ -414,6 +419,10 @@ void sinsp::init()
 	}
 #endif
 
+	if (m_external_event_processor)
+	{
+		m_external_event_processor->on_capture_start();
+	}
 	//
 	// If m_snaplen was modified, we set snaplen now
 	//
@@ -1098,6 +1107,10 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 					m_analyzer->process_event(NULL, analyzer_emitter::DF_TIMEOUT);
 				}
 	#endif
+				if (m_external_event_processor)
+				{
+					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_TIMEOUT);
+				}
 				*puevt = NULL;
 				return res;
 			}
@@ -1109,6 +1122,10 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 					m_analyzer->process_event(NULL, analyzer_emitter::DF_EOF);
 				}
 	#endif
+				if (m_external_event_processor)
+				{
+					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_TIMEOUT);
+				}
 			}
 			else if(res == SCAP_UNEXPECTED_BLOCK)
 			{
@@ -1383,6 +1400,11 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 #endif // SIMULATE_DROP_MODE
 	}
 #endif
+
+	if (m_external_event_processor)
+	{
+		m_external_event_processor->process_event(evt, libsinsp::EVENT_RETURN_NONE);
+	}
 
 	// Clean parse related event data after analyzer did its parsing too
 	m_parser->event_cleanup(evt);
