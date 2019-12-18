@@ -25,7 +25,8 @@ limitations under the License.
 using namespace libsinsp::container_engine;
 
 docker::docker(const wmi_handle_source& wmi_source)
-   : m_wmi_handle_source(wmi_source)
+   : m_wmi_handle_source(wmi_source),
+     m_cache(nullptr)
 {
 }
 

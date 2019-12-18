@@ -23,12 +23,16 @@ class sinsp_container_info;
 class sinsp_threadinfo;
 
 #include "container_engine/container_engine_base.h"
+#include "container_engine/sinsp_container_type.h"
 
 namespace libsinsp {
 namespace container_engine {
+
 class bpm : public container_engine_base
 {
 public:
+	bpm() = default;
+
 	bool resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 };
 }
