@@ -512,10 +512,6 @@ public:
 	sinsp_stats get_stats();
 #endif
 
-#ifdef HAS_ANALYZER
-	sinsp_analyzer* m_analyzer;
-#endif
-
 	libsinsp::event_processor* m_external_event_processor;
 
 	/*!
