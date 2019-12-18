@@ -39,7 +39,8 @@ limitations under the License.
 #include "container_engine/sinsp_container_type.h"
 #include "mutex.h"
 
-class sinsp_container_manager : public libsinsp::container_engine::container_cache_interface
+class sinsp_container_manager :
+	public libsinsp::container_engine::container_cache_interface
 {
 public:
 	using map_ptr_t = libsinsp::ConstMutexGuard<std::unordered_map<std::string, sinsp_container_info::ptr_t>>;

@@ -556,10 +556,19 @@ void sinsp_container_manager::create_engines()
 void sinsp_container_manager::update_container_with_size(sinsp_container_type type,
 							 const std::string& container_id)
 {
+	auto found = m_container_engine_by_type.find(type);
+	if(found == m_container_engine_by_type.end())
+	{
+		g_logger.format(sinsp_logger::SEV_ERROR,
+				"Container type %d not found when requesting size for %s",
+				type,
+				container_id.c_str());
+	}
+
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"Request size for %s",
 			container_id.c_str());
-	m_container_engine_by_type[type]->update_with_size(container_id);
+	found->second->update_with_size(container_id);
 }
 
 void sinsp_container_manager::cleanup()
