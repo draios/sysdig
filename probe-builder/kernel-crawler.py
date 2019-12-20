@@ -222,6 +222,27 @@ repos = {
             "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp", "unsigned", "cloud-amd64"]
         },
         {
+            "root": "https://mirrors.kernel.org/debian/pool/main/l/",
+            "discovery_pattern": "/html/body/pre/a[@href = 'linux/']/@href",
+            "subdirs": [""],
+            "page_pattern": "/html/body//a[regex:test(@href, '^linux-headers-[3-9]\.[0-9]+\.[0-9]+.*-common_.*.all\.deb$')]/@href",
+            "exclude_patterns": ["-rt", "dbg", "trunk", "exp", "unsigned", "cloud-amd64"]
+        },
+        {
+            "root": "http://security.debian.org/pool/updates/main/l/",
+            "discovery_pattern": "/html/body/table//tr/td/a[@href = 'linux/']/@href",
+            "subdirs": [""],
+            "page_pattern": "/html/body//a[regex:test(@href, '^linux-headers-[3-9]\.[0-9]+\.[0-9]+.*-common_.*.all\.deb$')]/@href",
+            "exclude_patterns": ["-rt", "dbg", "trunk", "exp", "unsigned", "cloud-amd64"]
+        },
+        {
+            "root": "http://mirrors.kernel.org/debian/pool/main/l/",
+            "discovery_pattern": "/html/body/pre/a[@href = 'linux/']/@href",
+            "subdirs": [""],
+            "page_pattern": "/html/body//a[regex:test(@href, '^linux-kbuild-.*amd64.deb$')]/@href",
+            "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp", "unsigned", "cloud-amd64"]
+        },
+        {
             "root": "http://mirrors.kernel.org/debian/pool/main/l/",
             "discovery_pattern": "/html/body/pre/a[@href = 'linux-tools/']/@href",
             "subdirs": [""],
@@ -335,6 +356,9 @@ URL_TIMEOUT=30
 
 if len(sys.argv) < 2 or not sys.argv[1] in repos:
     sys.stderr.write("Usage: " + sys.argv[0] + " <distro>\n")
+    sys.stderr.write("Available distros:\n")
+    for d in sorted(repos):
+        sys.stderr.write(" - {}\n".format(d))
     sys.exit(1)
 
 distro = sys.argv[1]
