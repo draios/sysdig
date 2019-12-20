@@ -18,10 +18,10 @@
 
 include_directories("${GTEST_INCLUDE_DIR}")
 include_directories("${JSONCPP_INCLUDE}")
+include_directories("${TBB_INCLUDE_DIR}")
 
 include_directories("..")
 include_directories("../../libscap")
-include_directories("${TBB_INCLUDE_DIR}")
 
 add_executable(unit-test-libsinsp
 	cgroup_list_counter.ut.cpp
