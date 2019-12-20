@@ -98,6 +98,7 @@ using namespace std;
 #include "eventformatter.h"
 #include "sinsp_pd_callback_type.h"
 
+#include "include/sinsp_external_processor.h"
 class sinsp_partial_transaction;
 class sinsp_parser;
 class sinsp_analyzer;
@@ -514,6 +515,23 @@ public:
 #ifdef HAS_ANALYZER
 	sinsp_analyzer* m_analyzer;
 #endif
+
+	libsinsp::event_processor* m_external_event_processor;
+
+	/*!
+	  \brief registers external event processor.
+	  After this, callbacks on libsinsp::event_processor will happen at
+	  the appropriate times. This registration must happen before calling open.
+	*/
+	void register_external_event_processor(libsinsp::event_processor& processor)
+	{
+		m_external_event_processor = &processor;
+	}
+
+	libsinsp::event_processor* get_external_event_processor() const
+	{
+		return m_external_event_processor;
+	}
 
 	/*!
 	  \brief Return the event and system call information tables.
