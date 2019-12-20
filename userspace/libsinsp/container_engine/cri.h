@@ -26,6 +26,7 @@ class sinsp_threadinfo;
 
 #include "cgroup_limits.h"
 #include "container_engine/container_engine_base.h"
+#include "container_engine/sinsp_container_type.h"
 #include "container_info.h"
 #include <cri.h>
 
@@ -79,7 +80,6 @@ class cri : public container_engine_base
 {
 public:
 	cri();
-
 	bool resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 	void cleanup() override;
 	static void set_cri_socket_path(const std::string& path);

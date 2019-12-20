@@ -42,6 +42,13 @@ public:
 			     sinsp_threadinfo* tinfo,
 			     bool query_os_for_missing_info) = 0;
 
+	/**
+	 * Update an existing container with the size of the container layer.
+	 * The size is not requested as the part of the initial request (in resolve)
+	 * because determining the size can take seconds.
+	 */
+	virtual void update_with_size(const std::string& container_id);
+
 	virtual void cleanup();
 };
 }

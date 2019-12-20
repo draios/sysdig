@@ -21,7 +21,7 @@ enum event_return
 class event_processor
 {
 public:
-	virtual ~event_processor() {};
+	virtual ~event_processor() = default;
 
 	/**
 	 * Called when the inspector begins capturing.

@@ -198,7 +198,9 @@ public:
 		m_cpuset_cpu_count(0),
 		m_is_pod_sandbox(false),
 		m_lookup_state(sinsp_container_lookup_state::SUCCESSFUL),
-		m_metadata_deadline(0)
+		m_metadata_deadline(0),
+		m_size_rw_bytes(-1),
+		m_size_root_fs_bytes(-1)
 	{
 	}
 
@@ -251,4 +253,16 @@ public:
 	std::string m_sysdig_agent_conf;
 #endif
 	uint64_t m_metadata_deadline;
+
+	/**
+	 * The size of files that have been created or changed by this container.
+	 * This is not filled by default.
+	 */
+	int64_t m_size_rw_bytes;
+
+	/**
+	 * The total size of all the files in this container. This is not filled by
+	 * default.
+	 */
+	int64_t m_size_root_fs_bytes;
 };

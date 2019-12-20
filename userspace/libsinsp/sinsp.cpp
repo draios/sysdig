@@ -400,6 +400,7 @@ void sinsp::init()
 	{
 		m_external_event_processor->on_capture_start();
 	}
+
 	//
 	// If m_snaplen was modified, we set snaplen now
 	//
@@ -1082,6 +1083,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 				{
 					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_TIMEOUT);
 				}
+
 				*puevt = NULL;
 				return res;
 			}
