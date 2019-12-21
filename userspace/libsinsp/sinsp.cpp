@@ -90,9 +90,6 @@ sinsp::sinsp() :
 	m_inactive_container_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_cycle_writer = NULL;
 	m_write_cycling = false;
-#ifdef HAS_ANALYZER
-	m_analyzer = NULL;
-#endif
 
 #ifdef HAS_FILTERING
 	m_filter = NULL;
@@ -363,16 +360,6 @@ void sinsp::init()
 			}
 		}
 
-
-#ifdef HAS_ANALYZER
-		//
-		// Notify the analyzer that we're starting
-		//
-		if(m_analyzer)
-		{
-			m_analyzer->on_capture_start();
-		}
-#endif
 		if (m_external_event_processor)
 		{
 			m_external_event_processor->on_capture_start();
@@ -408,16 +395,6 @@ void sinsp::init()
 	// Scan the list to fix the direction of the sockets
 	//
 	m_thread_manager->fix_sockets_coming_from_proc();
-
-#ifdef HAS_ANALYZER
-	//
-	// Notify the analyzer that we're starting
-	//
-	if(m_analyzer)
-	{
-		m_analyzer->on_capture_start();
-	}
-#endif
 
 	if (m_external_event_processor)
 	{
@@ -1101,12 +1078,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		{
 			if(res == SCAP_TIMEOUT)
 			{
-	#ifdef HAS_ANALYZER
-				if(m_analyzer)
-				{
-					m_analyzer->process_event(NULL, analyzer_emitter::DF_TIMEOUT);
-				}
-	#endif
 				if (m_external_event_processor)
 				{
 					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_TIMEOUT);
@@ -1116,12 +1087,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			}
 			else if(res == SCAP_EOF)
 			{
-	#ifdef HAS_ANALYZER
-				if(m_analyzer)
-				{
-					m_analyzer->process_event(NULL, analyzer_emitter::DF_EOF);
-				}
-	#endif
 				if (m_external_event_processor)
 				{
 					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_EOF);
@@ -1376,31 +1341,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	// Run the analysis engine
 	//
-#ifdef HAS_ANALYZER
-	if(m_analyzer)
-	{
-#ifdef SIMULATE_DROP_MODE
-		if(!sd || m_isdropping || sw)
-		{
-			if(m_isdropping)
-			{
-				m_analyzer->process_event(evt, analyzer_emitter::DF_FORCE_FLUSH);
-			}
-			else if(sw)
-			{
-				m_analyzer->process_event(evt, analyzer_emitter::DF_FORCE_FLUSH_BUT_DONT_EMIT);
-			}
-			else
-			{
-				m_analyzer->process_event(evt, analyzer_emitter::DF_FORCE_NOFLUSH);
-			}
-		}
-#else // SIMULATE_DROP_MODE
-		m_analyzer->process_event(evt, analyzer_emitter::DF_NONE);
-#endif // SIMULATE_DROP_MODE
-	}
-#endif
-
 	if (m_external_event_processor)
 	{
 		m_external_event_processor->process_event(evt, libsinsp::EVENT_RETURN_NONE);

@@ -23,7 +23,6 @@ include_directories("${TBB_INCLUDE_DIR}")
 include_directories("..")
 include_directories("../../libscap")
 
-
 add_executable(unit-test-libsinsp
 	cgroup_list_counter.ut.cpp
 	sinsp.ut.cpp
