@@ -79,8 +79,8 @@ private:
 class cri : public container_engine_base
 {
 public:
-	cri();
-	bool resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
+	cri(container_cache_interface &cache);
+	bool resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 	void cleanup() override;
 	static void set_cri_socket_path(const std::string& path);
 	static void set_cri_timeout(int64_t timeout_ms);

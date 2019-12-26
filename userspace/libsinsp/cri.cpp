@@ -99,6 +99,17 @@ grpc::Status cri_interface::get_container_status(const std::string& container_id
 	return m_cri->ContainerStatus(&context, req, &resp);
 }
 
+grpc::Status cri_interface::get_container_stats(const std::string& container_id, runtime::v1alpha2::ContainerStatsResponse& resp)
+{
+	runtime::v1alpha2::ContainerStatsRequest req;
+	req.set_container_id(container_id);
+	//req.set_verbose(true);
+	grpc::ClientContext context;
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
+	context.set_deadline(deadline);
+	return m_cri->ContainerStats(&context, req, &resp);
+}
+
 bool cri_interface::parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info &container)
 {
 	// image_ref may be one of two forms:

@@ -31,9 +31,10 @@ namespace container_engine {
 class bpm : public container_engine_base
 {
 public:
-	bpm() = default;
+	bpm(container_cache_interface& cache) : container_engine_base(cache)
+	{}
 
-	bool resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
+	bool resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 };
 }
 }

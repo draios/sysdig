@@ -196,7 +196,7 @@ bool cri_async_source::lookup_sync(const libsinsp::cgroup_limits::cgroup_limits_
 	return true;
 }
 
-cri::cri()
+cri::cri(container_cache_interface &cache) : container_engine_base(cache)
 {
 	if(s_cri_unix_socket_path.empty()) {
 		return;
@@ -248,8 +248,9 @@ void cri::set_cri_delay(uint64_t delay_ms)
 	s_cri_lookup_delay_ms = delay_ms;
 }
 
-bool cri::resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
+bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 {
+	container_cache_interface *cache = &container_cache();
 	std::string container_id;
 
 	if(!matches_runc_cgroups(tinfo, CRI_CGROUP_LAYOUT, container_id))

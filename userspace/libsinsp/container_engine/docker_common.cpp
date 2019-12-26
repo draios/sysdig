@@ -409,9 +409,10 @@ void docker_async_source::set_query_image_info(bool query_image_info)
 
 std::string docker::s_incomplete_info_name = "incomplete";
 
-bool docker::resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
+bool docker::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 {
 	std::string container_id, container_name;
+	container_cache_interface *cache = &container_cache();
 
 	if(!detect_docker(tinfo, container_id, container_name))
 	{
@@ -469,8 +470,6 @@ bool docker::resolve(container_cache_interface *cache, sinsp_threadinfo *tinfo, 
 
 void docker::parse_docker_async(const string& container_id, container_cache_interface *cache)
 {
-	m_cache = cache;
-
 	auto cb = [cache](const docker_async_instruction& instruction, const sinsp_container_info& res)
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
@@ -844,8 +843,6 @@ bool docker_async_source::parse_docker(const docker_async_instruction& instructi
 
 void docker::update_with_size(const std::string &container_id)
 {
-	ASSERT(m_cache != nullptr);
-
 	auto cb = [this](const docker_async_instruction& instruction, const sinsp_container_info& res) {
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): with size callback result=%d",
@@ -853,7 +850,7 @@ void docker::update_with_size(const std::string &container_id)
 				res.m_lookup_state);
 
 		sinsp_container_info::ptr_t updated = make_shared<sinsp_container_info>(res);
-		m_cache->replace_container(updated);
+		container_cache().replace_container(updated);
 	};
 
 	g_logger.format(sinsp_logger::SEV_DEBUG,

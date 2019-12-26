@@ -71,6 +71,9 @@ public:
 	 */
 	grpc::Status get_container_status(const std::string& container_id, runtime::v1alpha2::ContainerStatusResponse& resp);
 
+
+	grpc::Status get_container_stats(const std::string& container_id, runtime::v1alpha2::ContainerStatsResponse& resp);
+
 	/**
 	 * @brief fill out container image information based on CRI response
 	 * @param status `status` field of the ContainerStatusResponse
