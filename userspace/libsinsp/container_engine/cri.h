@@ -81,6 +81,7 @@ class cri : public container_engine_base
 public:
 	cri(container_cache_interface &cache);
 	bool resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
+	void update_with_size(const std::string& container_id) override;
 	void cleanup() override;
 	static void set_cri_socket_path(const std::string& path);
 	static void set_cri_timeout(int64_t timeout_ms);

@@ -149,6 +149,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	Json::Value obj;
 	Json::Value& container = obj["container"];
 	container["id"] = container_info.m_id;
+	container["full_id"] = container_info.m_full_id;
 	container["type"] = container_info.m_type;
 	container["name"] = container_info.m_name;
 	container["image"] = container_info.m_image;

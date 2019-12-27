@@ -684,6 +684,7 @@ bool docker_async_source::parse_docker(const docker_async_instruction& instructi
 		container.m_imagetag = "latest";
 	}
 
+	container.m_full_id = root["Id"].asString();
 	container.m_name = root["Name"].asString();
 	// k8s Docker container names could have '/' as the first character.
 	if(!container.m_name.empty() && container.m_name[0] == '/')
@@ -828,7 +829,6 @@ bool docker_async_source::parse_docker(const docker_async_instruction& instructi
 	docker::parse_json_mounts(root["Mounts"], container.m_mounts);
 
 	container.m_size_rw_bytes = root["SizeRw"].asInt64();
-	container.m_size_root_fs_bytes = root["SizeRootFs"].asInt64();
 
 #ifdef HAS_ANALYZER
 	sinsp_utils::find_env(container.m_sysdig_agent_conf, container.get_env(), "SYSDIG_AGENT_CONF");

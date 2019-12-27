@@ -112,6 +112,7 @@ bool cri_async_source::parse_cri(sinsp_container_info& container, const libsinsp
 	}
 
 	const auto &resp_container = resp.status();
+	container.m_full_id = resp_container.id();
 	container.m_name = resp_container.metadata().name();
 
 	for(const auto &pair : resp_container.labels())
@@ -349,3 +350,83 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 	}
 	return true;
 }
+
+void cri::update_with_size(const std::string& container_id)
+{
+
+	sinsp_container_info::ptr_t existing = container_cache().get_container(container_id);
+	if(!existing)
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"cri (%s): Failed to locate existing container data",
+				container_id.c_str());
+		ASSERT(false);
+		return;
+	}
+
+	// Synchronously get the stats response and update the container table.
+	// Note that this needs to use the full id
+	runtime::v1alpha2::ContainerStatsResponse resp;
+	grpc::Status status = m_cri->get_container_stats(existing->m_full_id, resp);
+
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"cri (%s): full id (%s): Status from ContainerStats: (%s)",
+			container_id.c_str(),
+			existing->m_full_id.c_str(),
+			status.error_message().c_str());
+
+	if(!status.ok())
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"cri (%s): Failed to update size: (%s)",
+				container_id.c_str(),
+				status.error_message().c_str());
+		return;
+	}
+
+	if(!resp.has_stats())
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"cri (%s): Failed to update size: stats() not found",
+				container_id.c_str());
+		ASSERT(false);
+		return;
+	}
+
+	const auto& resp_stats = resp.stats();
+
+	if(!resp_stats.has_writable_layer())
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"cri (%s): Failed to update size: writable_layer() not found",
+				container_id.c_str());
+		ASSERT(false);
+		return;
+	}
+
+	if(!resp_stats.writable_layer().has_used_bytes())
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"cri (%s): Failed to update size: used_bytes() not found",
+				container_id.c_str());
+		ASSERT(false);
+		return;
+	}
+
+	// Make a mutable copy of the existing container_info
+	shared_ptr<sinsp_container_info> updated(std::make_shared<sinsp_container_info>(*existing));
+	updated->m_size_rw_bytes = resp_stats.writable_layer().used_bytes().value();
+
+	if(existing->m_size_rw_bytes == updated->m_size_rw_bytes)
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"cri (%s): size hasn't changed; don't update",
+				container_id.c_str());
+		// no data has changed
+		return;
+	}
+
+	container_cache().replace_container(updated);
+}
+
+
