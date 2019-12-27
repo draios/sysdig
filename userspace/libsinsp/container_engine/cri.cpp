@@ -353,11 +353,10 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 
 void cri::update_with_size(const std::string& container_id)
 {
-
 	sinsp_container_info::ptr_t existing = container_cache().get_container(container_id);
 	if(!existing)
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
+		g_logger.format(sinsp_logger::SEV_ERROR,
 				"cri (%s): Failed to locate existing container data",
 				container_id.c_str());
 		ASSERT(false);
@@ -365,7 +364,7 @@ void cri::update_with_size(const std::string& container_id)
 	}
 
 	// Synchronously get the stats response and update the container table.
-	// Note that this needs to use the full id
+	// Note that this needs to use the full id.
 	runtime::v1alpha2::ContainerStatsResponse resp;
 	grpc::Status status = m_cri->get_container_stats(existing->m_full_id, resp);
 
@@ -373,14 +372,10 @@ void cri::update_with_size(const std::string& container_id)
 			"cri (%s): full id (%s): Status from ContainerStats: (%s)",
 			container_id.c_str(),
 			existing->m_full_id.c_str(),
-			status.error_message().c_str());
+			status.error_message().empty() ? "SUCCESS" : status.error_message().c_str());
 
 	if(!status.ok())
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"cri (%s): Failed to update size: (%s)",
-				container_id.c_str(),
-				status.error_message().c_str());
 		return;
 	}
 
@@ -419,9 +414,6 @@ void cri::update_with_size(const std::string& container_id)
 
 	if(existing->m_size_rw_bytes == updated->m_size_rw_bytes)
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"cri (%s): size hasn't changed; don't update",
-				container_id.c_str());
 		// no data has changed
 		return;
 	}

@@ -28,7 +28,7 @@ namespace container_engine {
 
 /**
  * Base class for container engine. This provides the interfaces to
- * associate a create a sinsp_container_info.
+ * create a sinsp_container_info.
  */
 class container_engine_base {
 public:
