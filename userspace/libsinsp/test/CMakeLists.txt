@@ -19,6 +19,7 @@
 include_directories("${GTEST_INCLUDE_DIR}")
 include_directories("${JSONCPP_INCLUDE}")
 include_directories("${TBB_INCLUDE_DIR}")
+include_directories("${CURL_INCLUDE_DIR}")
 
 include_directories("..")
 include_directories("../../libscap")
