@@ -29,6 +29,7 @@ add_executable(unit-test-libsinsp
 )
 
 target_link_libraries(unit-test-libsinsp
+	"${GTEST_LIB}"
 	"${GTEST_MAIN_LIB}"
 	sinsp
 )
