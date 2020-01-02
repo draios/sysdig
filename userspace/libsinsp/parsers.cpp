@@ -4602,6 +4602,11 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		{
 			container_info->m_id = id.asString();
 		}
+		const Json::Value& full_id = container["full_id"];
+		if(check_json_val_is_convertible(full_id, Json::stringValue, "full_id"))
+		{
+			container_info->m_full_id = full_id.asString();
+		}
 		const Json::Value& type = container["type"];
 		if(check_json_val_is_convertible(type, Json::uintValue, "type"))
 		{

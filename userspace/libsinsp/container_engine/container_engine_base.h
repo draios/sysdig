@@ -27,19 +27,20 @@ namespace libsinsp {
 namespace container_engine {
 
 /**
- * Base class for container engine. This provided the interfaces to
- * associate a container with a thread.
+ * Base class for container engine. This provides the interfaces to
+ * create a sinsp_container_info.
  */
 class container_engine_base {
 public:
+	container_engine_base(container_cache_interface &cache);
+
 	virtual ~container_engine_base() = default;
 
 	/**
 	 * Find a container associated with the given tinfo and add it to the
 	 * cache.
 	 */
-	virtual bool resolve(container_cache_interface* cache,
-			     sinsp_threadinfo* tinfo,
+	virtual bool resolve(sinsp_threadinfo* tinfo,
 			     bool query_os_for_missing_info) = 0;
 
 	/**
@@ -50,6 +51,18 @@ public:
 	virtual void update_with_size(const std::string& container_id);
 
 	virtual void cleanup();
+
+protected:
+	/**
+	 * Derived class accessor to the cache
+	 */
+	container_cache_interface& container_cache()
+	{
+		return m_cache;
+	}
+
+private:
+	container_cache_interface& m_cache;
 };
 }
 }

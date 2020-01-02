@@ -130,7 +130,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 
 	for(auto &eng : m_container_engines)
 	{
-		matches = matches || eng->resolve(this, tinfo, query_os_for_missing_info);
+		matches = matches || eng->resolve(tinfo, query_os_for_missing_info);
 
 		if(matches)
 		{
@@ -149,6 +149,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	Json::Value obj;
 	Json::Value& container = obj["container"];
 	container["id"] = container_info.m_id;
+	container["full_id"] = container_info.m_full_id;
 	container["type"] = container_info.m_type;
 	container["name"] = container_info.m_name;
 	container["image"] = container_info.m_image;
@@ -504,20 +505,20 @@ void sinsp_container_manager::create_engines()
 {
 #ifdef CYGWING_AGENT
 	{
-		auto docker_engine = std::make_shared<container_engine::docker>(m_inspector /*wmi source*/);
+		auto docker_engine = std::make_shared<container_engine::docker>(*this, m_inspector /*wmi source*/);
 		m_container_engines.push_back(docker_engine);
 		m_container_engine_by_type[CT_DOCKER] = docker_engine;
 	}
 #else
 	{
-		auto docker_engine = std::make_shared<container_engine::docker>();
+		auto docker_engine = std::make_shared<container_engine::docker>(*this);
 		m_container_engines.push_back(docker_engine);
 		m_container_engine_by_type[CT_DOCKER] = docker_engine;
 	}
 
 #if defined(HAS_CAPTURE)
 	{
-		auto cri_engine = std::make_shared<container_engine::cri>();
+		auto cri_engine = std::make_shared<container_engine::cri>(*this);
 		m_container_engines.push_back(cri_engine);
 		m_container_engine_by_type[CT_CRI] = cri_engine;
 		m_container_engine_by_type[CT_CRIO] = cri_engine;
@@ -525,28 +526,28 @@ void sinsp_container_manager::create_engines()
 	}
 #endif
 	{
-		auto lxc_engine = std::make_shared<container_engine::lxc>();
+		auto lxc_engine = std::make_shared<container_engine::lxc>(*this);
 		m_container_engines.push_back(lxc_engine);
 		m_container_engine_by_type[CT_LXC] = lxc_engine;
 	}
 	{
-		auto libvirt_lxc_engine = std::make_shared<container_engine::libvirt_lxc>();
+		auto libvirt_lxc_engine = std::make_shared<container_engine::libvirt_lxc>(*this);
 		m_container_engines.push_back(libvirt_lxc_engine);
 		m_container_engine_by_type[CT_LIBVIRT_LXC] = libvirt_lxc_engine;
 	}
 
 	{
-		auto mesos_engine = std::make_shared<container_engine::mesos>();
+		auto mesos_engine = std::make_shared<container_engine::mesos>(*this);
 		m_container_engines.push_back(mesos_engine);
 		m_container_engine_by_type[CT_MESOS] = mesos_engine;
 	}
 	{
-		auto rkt_engine = std::make_shared<container_engine::rkt>();
+		auto rkt_engine = std::make_shared<container_engine::rkt>(*this);
 		m_container_engines.push_back(rkt_engine);
 		m_container_engine_by_type[CT_RKT] = rkt_engine;
 	}
 	{
-		auto bpm_engine = std::make_shared<container_engine::bpm>();
+		auto bpm_engine = std::make_shared<container_engine::bpm>(*this);
 		m_container_engines.push_back(bpm_engine);
 		m_container_engine_by_type[CT_BPM] = bpm_engine;
 	}

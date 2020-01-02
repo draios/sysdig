@@ -199,8 +199,7 @@ public:
 		m_is_pod_sandbox(false),
 		m_lookup_state(sinsp_container_lookup_state::SUCCESSFUL),
 		m_metadata_deadline(0),
-		m_size_rw_bytes(-1),
-		m_size_root_fs_bytes(-1)
+		m_size_rw_bytes(-1)
 	{
 	}
 
@@ -224,6 +223,7 @@ public:
 	container_health_probe::probe_type match_health_probe(sinsp_threadinfo *tinfo) const;
 
 	std::string m_id;
+	std::string m_full_id;
 	sinsp_container_type m_type;
 	std::string m_name;
 	std::string m_image;
@@ -259,10 +259,4 @@ public:
 	 * This is not filled by default.
 	 */
 	int64_t m_size_rw_bytes;
-
-	/**
-	 * The total size of all the files in this container. This is not filled by
-	 * default.
-	 */
-	int64_t m_size_root_fs_bytes;
 };
