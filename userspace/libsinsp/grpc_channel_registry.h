@@ -32,7 +32,8 @@ class grpc_channel_registry
 {
 public:
 	// Return a (shared) grpc::Channel for the provided url.
-	static std::shared_ptr<grpc::Channel> get_channel(const std::string &url);
+	static std::shared_ptr<grpc::Channel> get_channel(const std::string &url,
+		const grpc::ChannelArguments *args = nullptr);
 
 private:
 	static std::map<std::string, std::weak_ptr<grpc::Channel>> s_channels;
