@@ -24,7 +24,9 @@ limitations under the License.
 #define SINSP_PUBLIC
 #endif
 
+#ifndef ASSERT
 #ifdef _DEBUG
+
 #ifdef ASSERT_TO_LOG
 #define ASSERT(X) \
         if(!(X)) \
@@ -38,3 +40,4 @@ limitations under the License.
 #else // _DEBUG
 #define ASSERT(X)
 #endif // _DEBUG
+#endif // ASSERT
