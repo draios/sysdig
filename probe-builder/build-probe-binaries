@@ -55,6 +55,10 @@ Options:
 		- <TAG> is chosen for every build. See the Dockerfiles shipped
 		  with this script.
 
+	-B BASEDIR
+		Pass BASEDIR as the base directory to the builder containers
+		This is probably only useful when running this script in a container
+
 	-d DOWNLOAD_CONCURRENCY
 		The number of parallel kernel package downloads. Set to 0 to disable
 		downloads completely. Defaults to the number of CPU cores.
@@ -135,12 +139,15 @@ EOF
 	exit 1
 }
 
-while getopts ":a:A:b:d:k:p:r:s:t:v:" opt
+BASEDIR=$(pwd)
+DOCKER_BASEDIR=$BASEDIR
+while getopts ":a:A:b:B:d:k:p:r:s:t:v:" opt
 do
 	case "$opt" in
 		a) ARTIFACTORY_SERVER=$OPTARG;;
 		A) ARTIFACTORY_KEY=$OPTARG;;
 		b) BUILDER_IMAGE_PREFIX=$OPTARG;;
+		B) DOCKER_BASEDIR=$OPTARG;;
 		d) DOWNLOAD_CONCURRENCY=$OPTARG;;
 		k) KERNEL_TYPE=$OPTARG;;
 		p) PROBE_NAME=$OPTARG;;
@@ -175,8 +182,11 @@ else
 	SYSDIG_DIR=sysdig
 	HAVE_SYSDIG_CHECKOUT=
 fi
-SYSDIG_DIR=$(readlink -f $SYSDIG_DIR)
-BASEDIR=$(pwd)
+
+if [[ "$SYSDIG_DIR" != "/"* ]]
+then
+	SYSDIG_DIR=$(readlink -f $SYSDIG_DIR)
+fi
 ARCH=$(uname -m)
 BUILDER_SOURCE=$(dirname $(readlink -f $0))
 
@@ -313,7 +323,7 @@ function build_probe {
 		fi
 	fi
 
-	docker run --rm -v $BASEDIR:$PROBE_ROOT -v $SYSDIG_DIR:$PROBE_ROOT/sysdig \
+	docker run --rm -v $DOCKER_BASEDIR:$PROBE_ROOT -v $SYSDIG_DIR:$PROBE_ROOT/sysdig \
 		-e OUTPUT=$PROBE_ROOT/output \
 		-e PROBE_NAME=$PROBE_NAME \
 		-e PROBE_VERSION=$PROBE_VERSION \
