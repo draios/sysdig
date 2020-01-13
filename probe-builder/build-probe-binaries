@@ -810,6 +810,7 @@ function build_group_rhel {
 }
 
 function build_everything {
+	build_group_rhel
 	build_group_ubuntu
 	build_group_centos
 	build_group_fedora
