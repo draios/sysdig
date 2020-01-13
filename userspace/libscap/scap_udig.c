@@ -44,6 +44,7 @@ int32_t udig_alloc_ring(int* ring_fd,
 	//
 	// First, try to open an existing ring
 	//
+printf("##1\n");
 	*ring_fd = ud_shm_open(UDIG_RING_SM_FNAME, O_RDWR, 0);
 	if(*ring_fd >= 0)
 	{
@@ -68,7 +69,7 @@ int32_t udig_alloc_ring(int* ring_fd,
 		*ringsize = UDIG_RING_SIZE;
 
 		*ring_fd = ud_shm_open(UDIG_RING_SM_FNAME, O_CREAT | O_RDWR | O_EXCL, 
-			S_IWUSR | S_IWGRP| S_IWOTH);
+			S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 		if(*ring_fd >= 0)
 		{
 			if(ftruncate(*ring_fd, *ringsize) < 0)
