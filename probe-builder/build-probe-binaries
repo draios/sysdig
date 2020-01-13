@@ -592,6 +592,7 @@ function build_group_ubuntu {
 	#
 
 	DISTRO=ubuntu
+	BUILDER_DISTRO=ubuntu
 	if [ "$DOWNLOAD_CONCURRENCY" != "0" ]
 	then
 		echo Downloading Ubuntu kernels
@@ -609,6 +610,7 @@ function build_group_centos {
 	#
 
 	DISTRO=centos
+	BUILDER_DISTRO=centos
 	if [ "$DOWNLOAD_CONCURRENCY" != "0" ]
 	then
 		echo Downloading CentOS kernels
@@ -627,6 +629,7 @@ function build_group_fedora {
 	#
 
 	DISTRO=fedora
+	BUILDER_DISTRO=centos
 	if [ "$DOWNLOAD_CONCURRENCY" != "0" ]
 	then
 		echo Downloading Fedora kernels
@@ -645,6 +648,7 @@ function build_group_fedora_atomic {
 	#
 
 	DISTRO=fedora-atomic
+	BUILDER_DISTRO=centos
 	if [ "$DOWNLOAD_CONCURRENCY" != "0" ]
 	then
 		echo Downloading Fedora Atomic kernels
@@ -663,6 +667,7 @@ function build_group_coreos {
 	#
 
 	DISTRO=coreos
+	BUILDER_DISTRO=centos
 
 	if [ "$DOWNLOAD_CONCURRENCY" != "0" ]
 	then
@@ -685,6 +690,7 @@ function build_group_debian {
 	# Debian build
 	#
 	DISTRO=debian
+	BUILDER_DISTRO=debian
 	if [ "$DOWNLOAD_CONCURRENCY" != "0" ]
 	then
 		echo Downloading Debian kernels
@@ -702,6 +708,7 @@ function build_group_oracle_rhck {
 	# Oracle RHCK build
 	#
 	DISTRO=oracle-rhck
+	BUILDER_DISTRO=centos
 	if [ "$DOWNLOAD_CONCURRENCY" != "0" ]
 	then
 		echo Downloading Oracle RHCK kernels
@@ -754,6 +761,7 @@ function build_group_amazonlinux {
 	# AmazonLinux build
 	#
 	DISTRO=amazonlinux
+	BUILDER_DISTRO=centos
 	if [ "$DOWNLOAD_CONCURRENCY" != "0" ]
 	then
 		echo Downloading AmazonLinux kernels
@@ -770,6 +778,7 @@ function build_group_amazonlinux2 {
 	# AmazonLinux build
 	#
 	DISTRO=amazonlinux2
+	BUILDER_DISTRO=centos
 	if [ "$DOWNLOAD_CONCURRENCY" != "0" ]
 	then
 		echo Downloading AmazonLinux2 kernels
@@ -792,6 +801,7 @@ function build_group_rhel {
 	# RHEL build from Stored Sources
 	#
 	DISTRO=rhel
+	BUILDER_DISTRO=centos
 	if [ "$DOWNLOAD_CONCURRENCY" != "0" ]
 	then
 		echo Downloading RHEL kernels
