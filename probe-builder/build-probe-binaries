@@ -335,6 +335,7 @@ function coreos_build {
 		VERSION_DIR=build/$DISTRO/$VERSION
 		if [ ! -e $VERSION_DIR/config_orig ]
 		then
+			echo "Unpacking $(basename $IMG)"
 			mkdir -p $VERSION_DIR/container
 			if [ ! -e $VERSION_DIR/container.img ]
 			then
@@ -385,6 +386,7 @@ function coreos_build {
 
 		KERNEL_RELEASE=$(cd $VERSION_DIR && ls config-* | sed s/config-//)
 		COREOS_BUILD=${VERSION%%.*}
+		echo "Building probe for CoreOS kernel $KERNEL_RELEASE (CoreOS build $COREOS_BUILD)"
 		if [ $COREOS_BUILD -gt 890 ]
 		then
 			export KERNELDIR=$BASEDIR/$VERSION_DIR/modules/$KERNEL_RELEASE/build
@@ -445,6 +447,7 @@ function ubuntu_build {
 
 		# impedance mismatch
 		KERNEL_RELEASE=$KERNEL_VERSION
+		echo "Building probe for Ubuntu kernel $KERNEL_VERSION ($KERNEL_RELEASE_FULL)"
 		build_probe
 	done
 }
@@ -482,6 +485,7 @@ function rhel_build {
 		fi
 		HASH_ORIG=$HASH
 		export KERNELDIR=$BASEDIR/$TARGET/usr/src/kernels/$KERNEL_RELEASE
+		echo "Building probe for CentOS kernel $KERNEL_RELEASE"
 		build_probe
 	done
 }
@@ -582,6 +586,7 @@ function debian_build {
 
 		# impedance mismatch
 		KERNEL_RELEASE=$KERNEL_ARCH_RELEASE
+		echo "Building probe for Debian kernel $KERNEL_ARCH_RELEASE"
 		build_probe
 	done
 }
