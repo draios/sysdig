@@ -165,8 +165,10 @@ bool rkt::match(container_cache_interface *cache, sinsp_threadinfo *tinfo, sinsp
 	return false;
 }
 
-bool rkt::rkt::resolve(container_cache_interface *cache, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+bool rkt::rkt::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
+	container_cache_interface *cache = &container_cache();
+
 	auto container = std::make_shared<sinsp_container_info>();
 	string rkt_podid, rkt_appname;
 

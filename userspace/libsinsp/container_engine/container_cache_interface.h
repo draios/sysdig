@@ -51,6 +51,11 @@ public:
 	virtual void add_container(const sinsp_container_info::ptr_t& container_info, sinsp_threadinfo *thread) = 0;
 
 	/**
+	 * Update a container by replacing its entry with a new one
+	 */
+	virtual void replace_container(const sinsp_container_info::ptr_t& container_info) = 0;
+
+	/**
 	 * Return whether the container exists in the cache.
 	 */
 	virtual bool container_exists(const std::string& container_id) const = 0;

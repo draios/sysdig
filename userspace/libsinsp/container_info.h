@@ -198,7 +198,8 @@ public:
 		m_cpuset_cpu_count(0),
 		m_is_pod_sandbox(false),
 		m_lookup_state(sinsp_container_lookup_state::SUCCESSFUL),
-		m_metadata_deadline(0)
+		m_metadata_deadline(0),
+		m_size_rw_bytes(-1)
 	{
 	}
 
@@ -222,6 +223,7 @@ public:
 	container_health_probe::probe_type match_health_probe(sinsp_threadinfo *tinfo) const;
 
 	std::string m_id;
+	std::string m_full_id;
 	sinsp_container_type m_type;
 	std::string m_name;
 	std::string m_image;
@@ -251,4 +253,10 @@ public:
 	std::string m_sysdig_agent_conf;
 #endif
 	uint64_t m_metadata_deadline;
+
+	/**
+	 * The size of files that have been created or changed by this container.
+	 * This is not filled by default.
+	 */
+	int64_t m_size_rw_bytes;
 };
