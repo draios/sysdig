@@ -396,9 +396,18 @@ function coreos_build {
 
 		KERNEL_RELEASE=$(cd $VERSION_DIR && ls config-* | sed s/config-//)
 		COREOS_BUILD=${VERSION%%.*}
+		HASH_ORIG=$(md5sum $VERSION_DIR/config_orig | cut -d' ' -f1)
+		HASH=$(md5sum $VERSION_DIR/config-* | cut -d' ' -f1)
 		echo "Building probe for CoreOS kernel $KERNEL_RELEASE (CoreOS build $COREOS_BUILD)"
+		if [ -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] &&
+		   [ -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
+			echo "Skipping $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko (already built)"
+			continue
+		fi
+
 		if [ $COREOS_BUILD -gt 890 ]
 		then
+			unset DOCKER_BUILDER
 			export KERNELDIR=$BASEDIR/$VERSION_DIR/modules/$KERNEL_RELEASE/build
 		else
 			VANILLA=$(echo $KERNEL_RELEASE | sed s/[-+].*// | sed s/\.0$//)
@@ -409,8 +418,6 @@ function coreos_build {
 			cp $VERSION_DIR/config_orig $KERNELDIR/.config
 			DOCKER_BUILDER=coreos-old
 		fi
-		HASH_ORIG=$(md5sum $VERSION_DIR/config_orig | cut -d' ' -f1)
-		HASH=$(md5sum $VERSION_DIR/config-* | cut -d' ' -f1)
 		build_probe
 
 	done
