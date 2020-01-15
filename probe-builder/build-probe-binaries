@@ -758,6 +758,7 @@ function build_group_oracle_ol6_uek {
 	fi
 	echo "Building Oracle Linux 6 UEK"
 	rhel_build $DISTRO/*.rpm
+	unset DOCKER_BUILDER
 }
 
 function build_group_oracle_ol7_uek {
@@ -776,6 +777,7 @@ function build_group_oracle_ol7_uek {
 	fi
 	echo "Building Oracle Linux 7 UEK"
 	rhel_build $DISTRO/*.rpm
+	unset DOCKER_BUILDER
 }
 
 function build_group_amazonlinux {
