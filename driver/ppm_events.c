@@ -219,6 +219,15 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 	struct sockaddr_storage sock_address;
 	struct sockaddr_storage peer_address;
 	u16 sport, dport;
+	u32 dynamic_snaplen = 2000;
+
+	if (args->consumer->snaplen > dynamic_snaplen) {
+		/*
+		 * If the user requested a default snaplen greater than the custom
+		 * snaplen given to certain applications, just use the greater value.
+		 */
+		dynamic_snaplen = args->consumer->snaplen;
+	}
 
 	/* Increase snaplen on writes to /dev/null */
 	if (g_tracers_enabled && args->event_type == PPME_SYSCALL_WRITE_X) {
@@ -390,8 +399,8 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 					}
 
 					if (max_port > 0 &&
-						(in_port_range(sport, min_port, max_port) ||
-						 in_port_range(dport, min_port, max_port))) {
+					    (in_port_range(sport, min_port, max_port) ||
+					     in_port_range(dport, min_port, max_port))) {
 						/*
 						 * Before checking the well-known ports, see if the user has requested
 						 * an increased snaplen for the port in question.
@@ -402,53 +411,57 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 						if (lookahead_size >= 5) {
 							if (buf[0] == 3 || buf[1] == 3 || buf[2] == 3 || buf[3] == 3 || buf[4] == 3) {
 								sockfd_put(sock);
-								return 2000;
+								return dynamic_snaplen;
 							} else if (buf[2] == 0 && buf[3] == 0) {
 								sockfd_put(sock);
-								return 2000;
+								return dynamic_snaplen;
 							}
 						}
 					} else if (sport == PPM_PORT_POSTGRES || dport == PPM_PORT_POSTGRES) {
 						if (lookahead_size >= 2) {
 							if ((buf[0] == 'Q' && buf[1] == 0) || /* SimpleQuery command */
-								(buf[0] == 'P' && buf[1] == 0) || /* Prepare statement command */
-								(buf[4] == 0 && buf[5] == 3 && buf[6] == 0) || /* startup command */
-								(buf[0] == 'E' && buf[1] == 0) /* error or execute command */
+							    (buf[0] == 'P' && buf[1] == 0) || /* Prepare statement command */
+							    (buf[0] == 'E' && buf[1] == 0) /* error or execute command */
 							) {
 								sockfd_put(sock);
-								return 2000;
+								return dynamic_snaplen;
 							}
+						}
+						if (lookahead_size >= 7 &&
+						    (buf[4] == 0 && buf[5] == 3 && buf[6] == 0)) { /* startup command */
+							sockfd_put(sock);
+							return dynamic_snaplen;
 						}
 					} else if ((sport == PPM_PORT_MONGODB || dport == PPM_PORT_MONGODB) ||
 					            (lookahead_size >= 16 &&
 					               (*(int32_t *)(buf+12) == 1    || /* matches header */
-									*(int32_t *)(buf+12) == 2001 ||
-									*(int32_t *)(buf+12) == 2002 ||
-									*(int32_t *)(buf+12) == 2003 ||
-									*(int32_t *)(buf+12) == 2004 ||
-									*(int32_t *)(buf+12) == 2005 ||
-									*(int32_t *)(buf+12) == 2006 ||
-									*(int32_t *)(buf+12) == 2007)
-							   )
-							) {
+					                *(int32_t *)(buf+12) == 2001 ||
+					                *(int32_t *)(buf+12) == 2002 ||
+					                *(int32_t *)(buf+12) == 2003 ||
+					                *(int32_t *)(buf+12) == 2004 ||
+					                *(int32_t *)(buf+12) == 2005 ||
+					                *(int32_t *)(buf+12) == 2006 ||
+					                *(int32_t *)(buf+12) == 2007)
+					           )
+					        ) {
 						sockfd_put(sock);
-						return 2000;
+						return dynamic_snaplen;
 					} else if (dport == args->consumer->statsd_port) {
 						sockfd_put(sock);
-						return 2000;
+						return dynamic_snaplen;
 					} else {
 						if (lookahead_size >= 5) {
 							if (*(u32 *)buf == g_http_get_intval ||
-								*(u32 *)buf == g_http_post_intval ||
-								*(u32 *)buf == g_http_put_intval ||
-								*(u32 *)buf == g_http_delete_intval ||
-								*(u32 *)buf == g_http_trace_intval ||
-								*(u32 *)buf == g_http_connect_intval ||
-								*(u32 *)buf == g_http_options_intval ||
-								((*(u32 *)buf == g_http_resp_intval) && (buf[4] == '/'))
+							    *(u32 *)buf == g_http_post_intval ||
+							    *(u32 *)buf == g_http_put_intval ||
+							    *(u32 *)buf == g_http_delete_intval ||
+							    *(u32 *)buf == g_http_trace_intval ||
+							    *(u32 *)buf == g_http_connect_intval ||
+							    *(u32 *)buf == g_http_options_intval ||
+							    ((*(u32 *)buf == g_http_resp_intval) && (buf[4] == '/'))
 							) {
 								sockfd_put(sock);
-								return 2000;
+								return dynamic_snaplen;
 							}
 						}
 					}
