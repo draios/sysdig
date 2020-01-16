@@ -188,6 +188,28 @@ inline int sock_getname(struct socket* sock, struct sockaddr* sock_address, int 
 #endif
 }
 
+/**
+ * Compute the snaplen for the arguments.
+ *
+ * The snaplen is the amount of argument data returned along with the event.
+ * Normally, the driver performs a dynamic calculation to figure out snaplen
+ * per-event. However, if this calculation is disabled
+ * (i.e. args->consumer->do_dynamic_snaplen == false), the snaplen will always
+ * be args->consumer->snaplen.
+ *
+ * If dynamic snaplen is enabled, here's how the calculation works:
+ *
+ * 1. If the event is a write to /dev/null, it gets a special snaplen because
+ *    writes to /dev/null is a backdoor method for inserting special events
+ *    into the event stream.
+ * 2. If the event is NOT a socket operation, return args->consumer->snaplen.
+ * 3. If the sending port OR destination port falls within the fullcapture port
+ *    range specified by the user, return 16000.
+ * 4. Protocol detection. A number of applications are detected heuristically
+ *    and given a longer snaplen (2000). These applications are MYSQL, Postgres,
+ *    HTTP, mongodb, and statsd.
+ * 5. If none of the above apply, return args->consumer->snaplen.
+ */
 inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 lookahead_size)
 {
 	u32 res = args->consumer->snaplen;
@@ -198,6 +220,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 	struct sockaddr_storage peer_address;
 	u16 sport, dport;
 
+	/* Increase snaplen on writes to /dev/null */
 	if (g_tracers_enabled && args->event_type == PPME_SYSCALL_WRITE_X) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
 		struct fd f = fdget(args->fd);
@@ -243,10 +266,10 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 	sock = sockfd_lookup(args->fd, &err);
 
 	if (sock) {
-
 		if (sock->sk) {
 			err = sock_getname(sock, (struct sockaddr *)&sock_address, 0);
 
+			/* Try to get the source and destination port */
 			if (err == 0) {
 				if(args->event_type == PPME_SOCKET_SENDTO_X)
 				{
@@ -346,6 +369,10 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 				} else
 					err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
 
+				/*
+				 * If there's a valid source / dest port, use it to run heuristics
+				 * for determining snaplen.
+				 */
 				if (err == 0) {
 					uint16_t min_port = args->consumer->fullcapture_port_range_start;
 					uint16_t max_port = args->consumer->fullcapture_port_range_end;
@@ -392,8 +419,9 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 								return 2000;
 							}
 						}
-					} else if ((lookahead_size >= 4 && buf[1] == 0 && buf[2] == 0 && buf[2] == 0) || /* matches command */
-								(lookahead_size >= 16 && (*(int32_t *)(buf+12) == 1 || /* matches header */
+					} else if ((sport == PPM_PORT_MONGODB || dport == PPM_PORT_MONGODB) ||
+					            (lookahead_size >= 16 &&
+					               (*(int32_t *)(buf+12) == 1    || /* matches header */
 									*(int32_t *)(buf+12) == 2001 ||
 									*(int32_t *)(buf+12) == 2002 ||
 									*(int32_t *)(buf+12) == 2003 ||
