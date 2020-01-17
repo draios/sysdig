@@ -950,7 +950,7 @@ static __always_inline bool bpf_in_ia32_syscall()
 #endif
 
 	return status & TS_COMPAT;
-#endif
+#endif // #ifdef __ppc64__
 }
 
 #endif
