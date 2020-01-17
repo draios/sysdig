@@ -931,6 +931,9 @@ static __always_inline int bpf_val_to_ring_type(struct filler_data *data,
 
 static __always_inline bool bpf_in_ia32_syscall()
 {
+#ifdef __ppc64__
+	return 0;
+#else
 	struct task_struct *task;
 	u32 status;
 
@@ -947,6 +950,7 @@ static __always_inline bool bpf_in_ia32_syscall()
 #endif
 
 	return status & TS_COMPAT;
+#endif
 }
 
 #endif
