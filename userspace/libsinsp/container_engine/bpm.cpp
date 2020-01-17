@@ -21,7 +21,7 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
-bool bpm::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+bool bpm::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 {
 	sinsp_container_info container_info;
 	bool matches = false;
@@ -59,12 +59,12 @@ bool bpm::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, boo
 	}
 
 	tinfo->m_container_id = container_info.m_id;
-	if (manager->should_lookup(container_info.m_id, CT_BPM))
+	if(container_cache().should_lookup(container_info.m_id, CT_BPM))
 	{
 		container_info.m_name = container_info.m_id;
 		auto container = std::make_shared<sinsp_container_info>(container_info);
-		manager->add_container(container, tinfo);
-		manager->notify_new_container(container_info);
+		container_cache().add_container(container, tinfo);
+		container_cache().notify_new_container(container_info);
 	}
 	return true;
 }

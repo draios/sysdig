@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 language: c
+
 matrix:
   include:
     - env: BUILD_TYPE=Debug
@@ -28,12 +29,20 @@ matrix:
       os: osx
     - env: BUILD_TYPE=Debug
       os: linux
+      arch: ppc64le
+      dist: bionic
+    - env: BUILD_TYPE=Release
+      os: linux
+      arch: ppc64le
+      dist: bionic
+    - env: BUILD_TYPE=Debug
+      os: linux
       arch: s390x
       dist: bionic
     - env: BUILD_TYPE=Release
       os: linux
       arch: s390x
-      dist: bionic
+      dist: bionic    
 
 sudo: required
 services:

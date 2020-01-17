@@ -101,15 +101,19 @@ function clean_sysdig {
 
 function build_probe {
 
-    # Skip Kernel 4.15.0-29 because probe does not build against it
-    if [ $KERNEL_RELEASE-$HASH = "4.15.0-29-generic-ea0aa038a6b9bdc4bb42152682bba6ce"  ]
-    then
-	echo "Temporarily skipping " $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko
-	return
-    fi
+	if [[ ${KERNEL_RELEASE} == *"5.4.0"* ]]; then
+		echo "Temporarily skipping ${KERNEL_RELEASE}"
+		return
+	fi
 
-    if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] ||
-	       [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
+	# Skip Kernel 4.15.0-29 because probe does not build against it
+	if [ $KERNEL_RELEASE-$HASH = "4.15.0-29-generic-ea0aa038a6b9bdc4bb42152682bba6ce"  ]; then
+		echo "Temporarily skipping " $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko
+		return
+	    fi
+
+	if [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] ||
+	   [ ! -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
 
 		if [[ -f "${KERNELDIR}/scripts/gcc-plugins/stackleak_plugin.so" ]]; then
 			echo "Rebuilding gcc plugins for ${KERNELDIR}"
@@ -124,7 +128,7 @@ function build_probe {
 		mkdir build
 		cd build
 
-		cmake -DCMAKE_BUILD_TYPE=Release -DPROBE_NAME=$PROBE_NAME -DPROBE_VERSION=$PROBE_VERSION -DPROBE_DEVICE_NAME=$PROBE_DEVICE_NAME ..
+		cmake -DCMAKE_BUILD_TYPE=Release -DPROBE_NAME=$PROBE_NAME -DPROBE_VERSION=$PROBE_VERSION -DPROBE_DEVICE_NAME=$PROBE_DEVICE_NAME -DCREATE_TEST_TARGETS=OFF ..
 		make driver
 		strip -g driver/$PROBE_NAME.ko
 
@@ -786,3 +790,5 @@ elif [ "OL7-UEK" = "$KERNEL_TYPE" ]; then
 else
 	exit 1
 fi
+
+# vim: :set tabstop=8 shiftwidth=8 noexpandtab:

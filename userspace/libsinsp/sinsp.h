@@ -44,6 +44,7 @@ limitations under the License.
 #pragma once
 
 #include "capture_stats_source.h"
+#include "container_engine/wmi_handle_source.h"
 
 #ifdef _WIN32
 #pragma warning(disable: 4251 4200 4221 4190)
@@ -97,6 +98,7 @@ using namespace std;
 #include "eventformatter.h"
 #include "sinsp_pd_callback_type.h"
 
+#include "include/sinsp_external_processor.h"
 class sinsp_partial_transaction;
 class sinsp_parser;
 class sinsp_analyzer;
@@ -186,7 +188,7 @@ public:
   - event retrieval
   - setting capture filters
 */
-class SINSP_PUBLIC sinsp : public capture_stats_source
+class SINSP_PUBLIC sinsp : public capture_stats_source, public wmi_handle_source
 {
 public:
 	typedef std::shared_ptr<sinsp> ptr;
@@ -510,9 +512,22 @@ public:
 	sinsp_stats get_stats();
 #endif
 
-#ifdef HAS_ANALYZER
-	sinsp_analyzer* m_analyzer;
-#endif
+	libsinsp::event_processor* m_external_event_processor;
+
+	/*!
+	  \brief registers external event processor.
+	  After this, callbacks on libsinsp::event_processor will happen at
+	  the appropriate times. This registration must happen before calling open.
+	*/
+	void register_external_event_processor(libsinsp::event_processor& processor)
+	{
+		m_external_event_processor = &processor;
+	}
+
+	libsinsp::event_processor* get_external_event_processor() const
+	{
+		return m_external_event_processor;
+	}
 
 	/*!
 	  \brief Return the event and system call information tables.
@@ -827,7 +842,7 @@ public:
 	static std::shared_ptr<std::string> lookup_cgroup_dir(const std::string& subsys);
 #endif
 #ifdef CYGWING_AGENT
-	wh_t* get_wmi_handle()
+	wh_t* get_wmi_handle() override
 	{
 		return scap_get_wmi_handle(m_h);
 	}

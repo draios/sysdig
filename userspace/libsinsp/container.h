@@ -21,6 +21,7 @@ limitations under the License.
 
 #include <functional>
 #include <memory>
+#include <unordered_map>
 
 #include "scap.h"
 
@@ -33,10 +34,13 @@ limitations under the License.
 #include <curl/multi.h>
 #endif
 
-#include "container_engine/container_engine.h"
+#include "container_engine/container_cache_interface.h"
+#include "container_engine/container_engine_base.h"
+#include "container_engine/sinsp_container_type.h"
 #include "mutex.h"
 
-class sinsp_container_manager
+class sinsp_container_manager :
+	public libsinsp::container_engine::container_cache_interface
 {
 public:
 	using map_ptr_t = libsinsp::ConstMutexGuard<std::unordered_map<std::string, sinsp_container_info::ptr_t>>;
@@ -57,7 +61,7 @@ public:
 	 * @param container_info shared_ptr owning the container_info to add/update
 	 * @param thread a thread in the container, only passed to callbacks
 	 */
-	void add_container(const sinsp_container_info::ptr_t& container_info, sinsp_threadinfo *thread);
+	void add_container(const sinsp_container_info::ptr_t& container_info, sinsp_threadinfo *thread) override;
 
 	/**
 	 * @brief Update a container by replacing its entry with a new one
@@ -66,7 +70,7 @@ public:
 	 *
 	 * @param container_info shared_ptr owning the updated container_info
 	 */
-	void replace_container(const sinsp_container_info::ptr_t& container_info);
+	void replace_container(const sinsp_container_info::ptr_t& container_info) override;
 
 	/**
 	 * @brief Get a container_info by container id
@@ -77,7 +81,7 @@ public:
 	 * the container, get a new shared_ptr<sinsp_container_info> and pass it
 	 * to replace_container()
 	 */
-	sinsp_container_info::ptr_t get_container(const std::string &id) const;
+	sinsp_container_info::ptr_t get_container(const std::string &id) const override;
 
 	/**
 	 * @brief Generate container JSON event from a new container
@@ -86,7 +90,7 @@ public:
 	 * Note: this is unrelated to on_new_container callbacks even though
 	 * both happen during container creation
 	 */
-	void notify_new_container(const sinsp_container_info& container_info);
+	void notify_new_container(const sinsp_container_info& container_info) override;
 
 	/**
 	 * @brief Detect container engine for a thread
@@ -111,7 +115,7 @@ public:
 	// across execs e.g. "sh -c /bin/true" execing /bin/true.
 	void identify_category(sinsp_threadinfo *tinfo);
 
-	bool container_exists(const std::string& container_id) const {
+	bool container_exists(const std::string& container_id) const override{
 		auto containers = m_containers.lock();
 		return containers->find(container_id) != containers->end() ||
 			m_lookups.find(container_id) != m_lookups.end();
@@ -123,6 +127,14 @@ public:
 	void subscribe_on_remove_container(remove_container_cb callback);
 
 	void create_engines();
+
+	/**
+	 * Update the container_info associated with the given type and container_id
+	 * to include the size of the container layer. This is not filled in the
+	 * initial request because it can easily take seconds.
+	 */
+	void update_container_with_size(sinsp_container_type type,
+					const std::string& container_id);
 	void cleanup();
 
 	void set_docker_socket_path(std::string socket_path);
@@ -145,7 +157,7 @@ public:
 	 * state of the lookup via this method and call should_lookup() before
 	 * starting a new lookup.
 	 */
-	void set_lookup_status(const std::string& container_id, sinsp_container_type ctype, sinsp_container_lookup_state state)
+	void set_lookup_status(const std::string& container_id, sinsp_container_type ctype, sinsp_container_lookup_state state) override
 	{
 		m_lookups[container_id][ctype] = state;
 	}
@@ -160,7 +172,7 @@ public:
 	 * This method effectively checks if m_lookups[container_id][ctype]
 	 * exists, without creating unnecessary map entries along the way.
 	 */
-	bool should_lookup(const std::string& container_id, sinsp_container_type ctype)
+	bool should_lookup(const std::string& container_id, sinsp_container_type ctype) override
 	{
 		auto container_lookups = m_lookups.find(container_id);
 		if(container_lookups == m_lookups.end())
@@ -175,7 +187,8 @@ private:
 	bool container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::shared_ptr<sinsp_threadinfo> tinfo);
 	std::string get_docker_env(const Json::Value &env_vars, const std::string &mti);
 
-	std::list<std::unique_ptr<libsinsp::container_engine::resolver>> m_container_engines;
+	std::list<std::shared_ptr<libsinsp::container_engine::container_engine_base>> m_container_engines;
+	std::map<sinsp_container_type, std::shared_ptr<libsinsp::container_engine::container_engine_base>> m_container_engine_by_type;
 
 	sinsp* m_inspector;
 	libsinsp::Mutex<std::unordered_map<std::string, std::shared_ptr<const sinsp_container_info>>> m_containers;

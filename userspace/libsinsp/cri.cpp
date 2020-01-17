@@ -37,6 +37,7 @@ namespace libsinsp {
 namespace cri {
 std::string s_cri_unix_socket_path = "/run/containerd/containerd.sock";
 int64_t s_cri_timeout = 1000;
+int64_t s_cri_size_timeout = 10000;
 sinsp_container_type s_cri_runtime_type = CT_CRI;
 bool s_cri_extra_queries = true;
 
@@ -97,6 +98,16 @@ grpc::Status cri_interface::get_container_status(const std::string& container_id
 	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
 	context.set_deadline(deadline);
 	return m_cri->ContainerStatus(&context, req, &resp);
+}
+
+grpc::Status cri_interface::get_container_stats(const std::string& container_id, runtime::v1alpha2::ContainerStatsResponse& resp)
+{
+	runtime::v1alpha2::ContainerStatsRequest req;
+	req.set_container_id(container_id);
+	grpc::ClientContext context;
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_size_timeout);
+	context.set_deadline(deadline);
+	return m_cri->ContainerStats(&context, req, &resp);
 }
 
 bool cri_interface::parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info &container)

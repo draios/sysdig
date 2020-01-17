@@ -1364,7 +1364,6 @@ void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 
 			erase_fd_params eparams;
 			eparams.m_remove_from_table = false;
-			eparams.m_inspector = m_inspector;
 			eparams.m_tinfo = tinfo;
 			eparams.m_ts = m_inspector->m_lastevent_ts;
 

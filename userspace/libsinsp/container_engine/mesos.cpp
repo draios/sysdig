@@ -52,7 +52,7 @@ bool libsinsp::container_engine::mesos::match(sinsp_threadinfo* tinfo, sinsp_con
 	return false;
 }
 
-bool libsinsp::container_engine::mesos::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+bool libsinsp::container_engine::mesos::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	auto container = std::make_shared<sinsp_container_info>();
 
@@ -60,11 +60,11 @@ bool libsinsp::container_engine::mesos::resolve(sinsp_container_manager* manager
 		return false;
 
 	tinfo->m_container_id = container->m_id;
-	if (manager->should_lookup(container->m_id, CT_MESOS))
+	if(container_cache().should_lookup(container->m_id, CT_MESOS))
 	{
 		container->m_name = container->m_id;
-		manager->add_container(container, tinfo);
-		manager->notify_new_container(*container);
+		container_cache().add_container(container, tinfo);
+		container_cache().notify_new_container(*container);
 	}
 	return true;
 }

@@ -72,6 +72,14 @@ public:
 	grpc::Status get_container_status(const std::string& container_id, runtime::v1alpha2::ContainerStatusResponse& resp);
 
 	/**
+	 * @brief thin wrapper around CRI gRPC ContainerStats call
+	 * @param container_id container ID
+	 * @param resp reference to the response (if the RPC is successful, it will be filled out)
+	 * @return status of the gRPC call
+	 */
+	grpc::Status get_container_stats(const std::string& container_id, runtime::v1alpha2::ContainerStatsResponse& resp);
+
+	/**
 	 * @brief fill out container image information based on CRI response
 	 * @param status `status` field of the ContainerStatusResponse
 	 * @param container the container info to fill out
