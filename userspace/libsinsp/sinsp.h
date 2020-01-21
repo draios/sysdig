@@ -254,6 +254,11 @@ public:
 	virtual int32_t next(OUT sinsp_evt **evt);
 
 	/*!
+	  \brief Get the maximum number of bytes currently in use by any CPU buffer
+     */
+	uint64_t max_buf_used();
+
+	/*!
 	  \brief Get the number of events that have been captured and processed
 	   since the call to \ref open()
 

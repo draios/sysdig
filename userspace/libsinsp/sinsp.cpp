@@ -1027,6 +1027,18 @@ void sinsp::restart_capture_at_filepos(uint64_t filepos)
 	}
 }
 
+uint64_t sinsp::max_buf_used()
+{
+	if(m_h)
+	{
+		return scap_max_buf_used(m_h);
+	}
+	else
+	{
+		return 0;
+	}
+}
+
 int32_t sinsp::next(OUT sinsp_evt **puevt)
 {
 	sinsp_evt* evt;
