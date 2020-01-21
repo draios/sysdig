@@ -35,6 +35,14 @@ matrix:
       os: linux
       arch: ppc64le
       dist: bionic
+    - env: BUILD_TYPE=Debug
+      os: linux
+      arch: s390x
+      dist: bionic
+    - env: BUILD_TYPE=Release
+      os: linux
+      arch: s390x
+      dist: bionic    
 
 sudo: required
 services:

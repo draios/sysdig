@@ -17,7 +17,10 @@
 # limitations under the License.
 #
 set -e
-if [[ $(uname -i) == "ppc64le" ]]; then
+
+arch="$(uname -i)"
+
+if [[ "$arch" == "s390x" ]] || [[ "$arch" == "ppc64le" ]]; then
 	export CC="gcc-7"
 	export CXX="g++-7"
 else

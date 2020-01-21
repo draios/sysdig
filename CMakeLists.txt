@@ -170,6 +170,16 @@ else()
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${LUAJIT_LIB}
 			INSTALL_COMMAND "")
+		elseif("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "s390x")
+                ExternalProject_Add(luajit
+                        GIT_REPOSITORY "https://github.com/linux-on-ibm-z/LuaJIT.git"
+                        GIT_TAG "v2.1"
+                        PATCH_COMMAND sed -i "s/luaL_reg/luaL_Reg/g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/chisel.cpp && sed -i "s/luaL_reg/luaL_Reg/g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/lua_parser.cpp && sed -i "s/luaL_getn/lua_objlen /g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/lua_parser_api.cpp
+                        CONFIGURE_COMMAND ""
+                        BUILD_COMMAND ${CMD_MAKE}
+                        BUILD_IN_SOURCE 1
+                        BUILD_BYPRODUCTS ${LUAJIT_LIB}
+                        INSTALL_COMMAND "")		
 		else()
 		ExternalProject_Add(luajit
 			URL "http://download.draios.com/dependencies/LuaJIT-2.0.3.tar.gz"
@@ -476,17 +486,31 @@ if(NOT WIN32 AND NOT APPLE)
 		set(PROTOC "${PROTOBUF_SRC}/target/bin/protoc")
 		set(PROTOBUF_INCLUDE "${PROTOBUF_SRC}/target/include")
 		set(PROTOBUF_LIB "${PROTOBUF_SRC}/target/lib/libprotobuf.a")
-		ExternalProject_Add(protobuf
-		DEPENDS openssl zlib
-		URL "http://download.sysdig.com/dependencies/protobuf-cpp-3.5.0.tar.gz"
-		URL_MD5 "e4ba8284a407712168593e79e6555eb2"
-		# TODO what if using system zlib?
-		CONFIGURE_COMMAND /usr/bin/env CPPFLAGS=-I${ZLIB_INCLUDE} LDFLAGS=-L${ZLIB_SRC} ./configure --with-zlib --prefix=${PROTOBUF_SRC}/target
-		BUILD_COMMAND ${CMD_MAKE}
-		BUILD_IN_SOURCE 1
-		BUILD_BYPRODUCTS ${PROTOC} ${PROTOBUF_INCLUDE} ${PROTOBUF_LIB}
-		# TODO s390x support
-		INSTALL_COMMAND make install)
+		if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "s390x")
+                        ExternalProject_Add(protobuf
+                        DEPENDS openssl zlib
+                        URL "http://download.sysdig.com/dependencies/protobuf-cpp-3.5.0.tar.gz"
+                        URL_MD5 "e4ba8284a407712168593e79e6555eb2"
+                        PATCH_COMMAND wget http://download.sysdig.com/dependencies/protobuf-3.5.0-s390x.patch && patch -p1 -i protobuf-3.5.0-s390x.patch
+                        # TODO what if using system zlib?
+                        CONFIGURE_COMMAND /usr/bin/env CPPFLAGS=-I${ZLIB_INCLUDE} LDFLAGS=-L${ZLIB_SRC} ./configure --with-zlib --prefix=${PROTOBUF_SRC}/target
+                        COMMAND aclocal && automake
+                        BUILD_COMMAND ${CMD_MAKE}
+                        BUILD_IN_SOURCE 1
+                        BUILD_BYPRODUCTS ${PROTOC} ${PROTOBUF_INCLUDE} ${PROTOBUF_LIB}
+                        INSTALL_COMMAND make install)
+                else()
+                        ExternalProject_Add(protobuf
+                        DEPENDS openssl zlib
+                        URL "http://download.sysdig.com/dependencies/protobuf-cpp-3.5.0.tar.gz"
+                        URL_MD5 "e4ba8284a407712168593e79e6555eb2"
+                        # TODO what if using system zlib?
+                        CONFIGURE_COMMAND /usr/bin/env CPPFLAGS=-I${ZLIB_INCLUDE} LDFLAGS=-L${ZLIB_SRC} ./configure --with-zlib --prefix=${PROTOBUF_SRC}/target
+                        BUILD_COMMAND ${CMD_MAKE}
+                        BUILD_IN_SOURCE 1
+                        BUILD_BYPRODUCTS ${PROTOC} ${PROTOBUF_INCLUDE} ${PROTOBUF_LIB}
+                        INSTALL_COMMAND make install)
+                endif()
 	endif()
 
 	option(USE_BUNDLED_GRPC "Enable building of the bundled grpc" ${USE_BUNDLED_DEPS})
