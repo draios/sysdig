@@ -4175,10 +4175,12 @@ int f_sys_procexit_e(struct event_filler_arguments *args)
 {
 	int res;
 
+#ifndef UDIG
 	if (args->sched_prev == NULL) {
 		ASSERT(false);
 		return -1;
 	}
+#endif
 
 	/*
 	 * status
