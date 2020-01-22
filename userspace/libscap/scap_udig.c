@@ -44,7 +44,6 @@ int32_t udig_alloc_ring(int* ring_fd,
 	//
 	// First, try to open an existing ring
 	//
-printf("##1\n");
 	*ring_fd = ud_shm_open(UDIG_RING_SM_FNAME, O_RDWR, 0);
 	if(*ring_fd >= 0)
 	{
@@ -54,6 +53,7 @@ printf("##1\n");
 		struct stat rstat;
 		if(fstat(*ring_fd, &rstat) < 0)
 		{
+			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring fstat error: %s\n", strerror(errno));
 			return SCAP_FAILURE;
 		}
 
@@ -68,18 +68,26 @@ printf("##1\n");
 		//
 		*ringsize = UDIG_RING_SIZE;
 
-		*ring_fd = ud_shm_open(UDIG_RING_SM_FNAME, O_CREAT | O_RDWR | O_EXCL, 
+		*ring_fd = ud_shm_open(UDIG_RING_SM_FNAME, O_CREAT | O_RDWR, 
 			S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 		if(*ring_fd >= 0)
 		{
+			//
+			// For some reason, shm_open doesn't always set the write flag for
+			// 'group' and 'other'. Fix it here.
+			//
+			fchmod(*ring_fd, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+
 			if(ftruncate(*ring_fd, *ringsize) < 0)
 			{
+				snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring ftruncate error: %s\n", strerror(errno));
 				close(*ring_fd);
 				return SCAP_FAILURE;
 			}
 		}
 		else
 		{
+			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring shm_open error: %s\n", strerror(errno));
 			close(*ring_fd);
 			return SCAP_FAILURE;
 		}
@@ -112,6 +120,7 @@ printf("##1\n");
 		PROT_WRITE, MAP_SHARED | MAP_FIXED, *ring_fd, 0);
 	if(*ring != buf1)
 	{
+		snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring mmap 2 error: %s\n", strerror(errno));
 		close(*ring_fd);
 		return SCAP_FAILURE;
 	}
@@ -153,10 +162,17 @@ int32_t udig_alloc_ring_descriptors(int* ring_descs_fd,
 		if(*ring_descs_fd >= 0)
 		{
 			//
+			// For some reason, shm_open doesn't always set the write flag for
+			// 'group' and 'other'. Fix it here.
+			//
+			fchmod(*ring_descs_fd, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+
+			//
 			// Ring created, set its size
 			//
 			if(ftruncate(*ring_descs_fd, mem_size) < 0)
 			{
+				snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring_descriptors ftruncate error: %s\n", strerror(errno));
 				close(*ring_descs_fd);
 				shm_unlink(UDIG_RING_DESCS_SM_FNAME);
 				return SCAP_FAILURE;
@@ -164,6 +180,7 @@ int32_t udig_alloc_ring_descriptors(int* ring_descs_fd,
 		}
 		else
 		{
+			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring_descriptors shm_open error: %s\n", strerror(errno));
 			close(*ring_descs_fd);
 			shm_unlink(UDIG_RING_DESCS_SM_FNAME);
 			return SCAP_FAILURE;
@@ -177,6 +194,7 @@ int32_t udig_alloc_ring_descriptors(int* ring_descs_fd,
 		*ring_descs_fd, 0);
 	if(descs == MAP_FAILED)
 	{
+		snprintf(error, SCAP_LASTERR_SIZE, "can't map descriptors\n");
 		close(*ring_descs_fd);
 		return SCAP_FAILURE;
 	}
