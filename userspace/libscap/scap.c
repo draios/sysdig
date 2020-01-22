@@ -1188,6 +1188,7 @@ static int32_t scap_next_nodriver(scap_t* handle, OUT scap_evt** pevent, OUT uin
 
 uint64_t scap_max_buf_used(scap_t* handle)
 {
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 	uint64_t i;
 	uint64_t max = 0;
 
@@ -1198,6 +1199,9 @@ uint64_t scap_max_buf_used(scap_t* handle)
 	}
 
 	return max;
+#else
+	return 0;
+#endif
 }
 
 int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
