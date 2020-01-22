@@ -51,3 +51,4 @@ EXPORTS
 		scap_get_host_root
 		scap_ftell
 		scap_fseek
+		scap_max_buf_used
