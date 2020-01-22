@@ -1014,20 +1014,6 @@ static bool are_buffers_empty(scap_t* handle)
 	return true;
 }
 
-uint64_t scap_max_buf_used(scap_t* handle)
-{
-	uint64_t i;
-	uint64_t max = 0;
-
-	for(i = 0; i < handle->m_ndevs; i++)
-	{
-		uint64_t size = buf_size_used(handle, i);
-		max = size > max ? size : max;
-	}
-
-	return max;
-}
-
 int32_t refill_read_buffers(scap_t* handle)
 {
 	uint32_t j;
@@ -1199,6 +1185,20 @@ static int32_t scap_next_nodriver(scap_t* handle, OUT scap_evt** pevent, OUT uin
 	return SCAP_SUCCESS;
 }
 #endif // _WIN32
+
+uint64_t scap_max_buf_used(scap_t* handle)
+{
+	uint64_t i;
+	uint64_t max = 0;
+
+	for(i = 0; i < handle->m_ndevs; i++)
+	{
+		uint64_t size = buf_size_used(handle, i);
+		max = size > max ? size : max;
+	}
+
+	return max;
+}
 
 int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
