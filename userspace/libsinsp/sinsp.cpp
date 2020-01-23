@@ -28,6 +28,7 @@ limitations under the License.
 #include <sys/time.h>
 #endif // _WIN32
 
+#include "scap_open_exception.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "sinsp_auth.h"
@@ -63,6 +64,7 @@ void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_thr
 // sinsp implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp::sinsp() :
+	m_external_event_processor(),
 	m_evt(this),
 	m_lastevent_ts(0),
 	m_container_manager(this),
@@ -88,9 +90,6 @@ sinsp::sinsp() :
 	m_inactive_container_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_cycle_writer = NULL;
 	m_write_cycling = false;
-#ifdef HAS_ANALYZER
-	m_analyzer = NULL;
-#endif
 
 #ifdef HAS_FILTERING
 	m_filter = NULL;
@@ -362,16 +361,10 @@ void sinsp::init()
 			}
 		}
 
-
-#ifdef HAS_ANALYZER
-		//
-		// Notify the analyzer that we're starting
-		//
-		if(m_analyzer)
+		if (m_external_event_processor)
 		{
-			m_analyzer->on_capture_start();
+			m_external_event_processor->on_capture_start();
 		}
-#endif
 
 		//
 		// Rewind, reset the event count, and consume the exact number of events
@@ -404,16 +397,10 @@ void sinsp::init()
 	//
 	m_thread_manager->fix_sockets_coming_from_proc();
 
-#ifdef HAS_ANALYZER
-	//
-	// Notify the analyzer that we're starting
-	//
-	if(m_analyzer)
+	if (m_external_event_processor)
 	{
-		m_analyzer->on_capture_start();
+		m_external_event_processor->on_capture_start();
 	}
-#endif
-
 	//
 	// If m_snaplen was modified, we set snaplen now
 	//
@@ -502,7 +489,7 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 
 	if(m_h == NULL)
 	{
-		throw sinsp_exception(error, scap_rc);
+		throw scap_open_exception(error, scap_rc);
 	}
 
 	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
@@ -553,7 +540,7 @@ void sinsp::open_nodriver()
 
 	if(m_h == NULL)
 	{
-		throw sinsp_exception(error, scap_rc);
+		throw scap_open_exception(error, scap_rc);
 	}
 
 	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
@@ -692,7 +679,7 @@ void sinsp::open_int()
 
 	if(m_h == NULL)
 	{
-		throw sinsp_exception(error, scap_rc);
+		throw scap_open_exception(error, scap_rc);
 	}
 
 	if(m_input_fd != 0)
@@ -1104,23 +1091,19 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		{
 			if(res == SCAP_TIMEOUT)
 			{
-	#ifdef HAS_ANALYZER
-				if(m_analyzer)
+				if (m_external_event_processor)
 				{
-					m_analyzer->process_event(NULL, analyzer_emitter::DF_TIMEOUT);
+					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_TIMEOUT);
 				}
-	#endif
 				*puevt = NULL;
 				return res;
 			}
 			else if(res == SCAP_EOF)
 			{
-	#ifdef HAS_ANALYZER
-				if(m_analyzer)
+				if (m_external_event_processor)
 				{
-					m_analyzer->process_event(NULL, analyzer_emitter::DF_EOF);
+					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_EOF);
 				}
-	#endif
 			}
 			else if(res == SCAP_UNEXPECTED_BLOCK)
 			{
@@ -1371,30 +1354,10 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	// Run the analysis engine
 	//
-#ifdef HAS_ANALYZER
-	if(m_analyzer)
+	if (m_external_event_processor)
 	{
-#ifdef SIMULATE_DROP_MODE
-		if(!sd || m_isdropping || sw)
-		{
-			if(m_isdropping)
-			{
-				m_analyzer->process_event(evt, analyzer_emitter::DF_FORCE_FLUSH);
-			}
-			else if(sw)
-			{
-				m_analyzer->process_event(evt, analyzer_emitter::DF_FORCE_FLUSH_BUT_DONT_EMIT);
-			}
-			else
-			{
-				m_analyzer->process_event(evt, analyzer_emitter::DF_FORCE_NOFLUSH);
-			}
-		}
-#else // SIMULATE_DROP_MODE
-		m_analyzer->process_event(evt, analyzer_emitter::DF_NONE);
-#endif // SIMULATE_DROP_MODE
+		m_external_event_processor->process_event(evt, libsinsp::EVENT_RETURN_NONE);
 	}
-#endif
 
 	// Clean parse related event data after analyzer did its parsing too
 	m_parser->event_cleanup(evt);
@@ -2326,7 +2289,7 @@ void sinsp::k8s_discover_ext()
 			}
 		}
 	}
-	catch(std::exception& ex)
+	catch(const std::exception& ex)
 	{
 		g_logger.log(std::string("K8s API extensions handler error: ").append(ex.what()),
 					 sinsp_logger::SEV_ERROR);
@@ -2399,7 +2362,7 @@ void sinsp::update_k8s_state()
 			}
 		}
 	}
-	catch(std::exception& e)
+	catch(const std::exception& e)
 	{
 		g_logger.log(std::string("Error fetching K8s data: ").append(e.what()), sinsp_logger::SEV_ERROR);
 		throw;
@@ -2430,7 +2393,7 @@ bool sinsp::get_mesos_data()
 			last_mesos_refresh = now;
 		}
 	}
-	catch(std::exception& ex)
+	catch(const std::exception& ex)
 	{
 		g_logger.log(std::string("Mesos exception: ") + ex.what(), sinsp_logger::SEV_ERROR);
 		delete m_mesos_client;

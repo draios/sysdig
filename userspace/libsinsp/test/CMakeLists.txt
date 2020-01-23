@@ -1,6 +1,5 @@
-#!/bin/bash
 #
-# Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+# Copyright (C) 2019 Sysdig Inc.
 #
 # This file is part of sysdig .
 #
@@ -16,10 +15,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-arch="$(uname -i)"
 
-if [[ "$arch" != "s390x" ]] && [[ "$arch" != "ppc64le" ]]; then
-	sudo apt-get --force-yes install g++-4.8
-fi
-sudo apt-get install rpm linux-headers-$(uname -r) libelf-dev
-sudo apt-get purge cmake
+include_directories("${GTEST_INCLUDE_DIR}")
+include_directories("${JSONCPP_INCLUDE}")
+include_directories("${TBB_INCLUDE_DIR}")
+include_directories("${CURL_INCLUDE_DIR}")
+
+include_directories("..")
+include_directories("../../libscap")
+
+add_executable(unit-test-libsinsp
+	cgroup_list_counter.ut.cpp
+	sinsp.ut.cpp
+)
+
+target_link_libraries(unit-test-libsinsp
+	"${GTEST_LIB}"
+	"${GTEST_MAIN_LIB}"
+	sinsp
+)
+
+add_custom_target(run-unit-test-libsinsp
+	DEPENDS unit-test-libsinsp
+	COMMAND unit-test-libsinsp
+)

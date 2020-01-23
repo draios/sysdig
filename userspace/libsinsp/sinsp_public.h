@@ -24,3 +24,20 @@ limitations under the License.
 #define SINSP_PUBLIC
 #endif
 
+#ifndef ASSERT
+#ifdef _DEBUG
+
+#ifdef ASSERT_TO_LOG
+#define ASSERT(X) \
+        if(!(X)) \
+        { \
+                g_logger.format(sinsp_logger::SEV_ERROR, "ASSERTION %s at %s:%d", #X , __FILE__, __LINE__); \
+                assert(X); \
+        }
+#else
+#define ASSERT(X) assert(X);
+#endif // ASSERT_TO_LOG
+#else // _DEBUG
+#define ASSERT(X)
+#endif // _DEBUG
+#endif // ASSERT

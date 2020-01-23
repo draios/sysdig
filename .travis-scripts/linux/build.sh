@@ -17,8 +17,16 @@
 # limitations under the License.
 #
 set -e
-export CC="gcc-4.8"
-export CXX="g++-4.8"
+
+arch="$(uname -i)"
+
+if [[ "$arch" == "s390x" ]] || [[ "$arch" == "ppc64le" ]]; then
+	export CC="gcc-7"
+	export CXX="g++-7"
+else
+	export CC="gcc-4.8"
+	export CXX="g++-4.8"
+fi
 wget https://s3.amazonaws.com/download.draios.com/dependencies/cmake-3.3.2.tar.gz
 tar -xzf cmake-3.3.2.tar.gz
 cd cmake-3.3.2
@@ -31,5 +39,6 @@ cd build
 cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 make VERBOSE=1
 make package
+make run-unit-tests
 cd ..
 test/sysdig_trace_regression.sh build/userspace/sysdig/sysdig build/userspace/sysdig/chisels $TRAVIS_BRANCH

@@ -141,7 +141,7 @@ int lua_parser_cbacks::nest(lua_State *ls)
 		parser->m_last_boolop = BO_NONE;
 		parser->m_have_rel_expr = false;
 	}
-	catch (exception &e)
+	catch (const std::exception& e)
 	{
 		lua_pushstring(ls, e.what());
 		lua_error(ls);
@@ -167,7 +167,7 @@ int lua_parser_cbacks::unnest(lua_State *ls)
 		filter->pop_expression();
 		parser->m_nest_level--;
 	}
-	catch (exception &e)
+	catch (const std::exception& e)
 	{
 		lua_pushstring(ls, e.what());
 		lua_error(ls);
@@ -211,7 +211,7 @@ int lua_parser_cbacks::bool_op(lua_State *ls)
 		parser->m_last_boolop = op;
 
 	}
-	catch (exception &e)
+	catch (const std::exception& e)
 	{
 		lua_pushstring(ls, e.what());
 		lua_error(ls);
@@ -302,7 +302,7 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 		filter->add_check(chk);
 
 	}
-	catch (exception &e)
+	catch (const std::exception& e)
 	{
 		lua_pushstring(ls, e.what());
 		lua_error(ls);

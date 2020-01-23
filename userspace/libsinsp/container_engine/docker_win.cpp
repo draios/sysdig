@@ -24,7 +24,9 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
-docker::docker()
+docker::docker(container_cache_interface& cache, const wmi_handle_source& wmi_source) :
+   container_engine_base(cache),
+   m_wmi_handle_source(wmi_source)
 {
 }
 
@@ -48,7 +50,7 @@ std::string docker_async_source::build_request(const std::string &url)
 
 bool docker::detect_docker(sinsp_threadinfo *tinfo, std::string &container_id, std::string &container_name)
 {
-	wh_docker_container_info wcinfo = wh_docker_resolve_pid(manager->get_inspector()->get_wmi_handle(), tinfo->m_pid);
+	wh_docker_container_info wcinfo = wh_docker_resolve_pid(m_wmi_handle_source.get_wmi_handle(), tinfo->m_pid);
 	if(!wcinfo.m_res)
 	{
 		return false;

@@ -313,7 +313,7 @@ public:
 				if(!m_loop) { break; }
 			}
 		}
-		catch(std::exception& ex)
+		catch(const std::exception& ex)
 		{
 			g_logger.log(std::string("Socket collector error: ") + ex.what(), sinsp_logger::SEV_ERROR);
 			remove_all();

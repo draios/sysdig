@@ -22,12 +22,13 @@ limitations under the License.
 #include <string>
 #include <stdint.h>
 
-class sinsp_container_manager;
 class sinsp_threadinfo;
 
 #include "cgroup_limits.h"
-#include "container_engine/container_engine.h"
+#include "container_engine/container_engine_base.h"
+#include "container_engine/sinsp_container_type.h"
 #include "container_info.h"
+#include <cri.h>
 
 namespace runtime {
 namespace v1alpha2 {
@@ -52,9 +53,10 @@ class cri_async_source : public sysdig::async_key_value_source<
         sinsp_container_info>
 {
 public:
-	explicit cri_async_source(sinsp_container_manager* manager, uint64_t ttl_ms) :
+	explicit cri_async_source(container_cache_interface *cache, ::libsinsp::cri::cri_interface *cri, uint64_t ttl_ms) :
 		async_key_value_source(NO_WAIT_LOOKUP, ttl_ms),
-		m_container_manager(manager)
+		m_cache(cache),
+		m_cri(cri)
 	{
 	}
 
@@ -70,15 +72,16 @@ private:
 	bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info& container);
 	void run_impl() override;
 
-	sinsp_container_manager* m_container_manager;
+	container_cache_interface *m_cache;
+	::libsinsp::cri::cri_interface *m_cri;
 };
 
-class cri : public resolver
+class cri : public container_engine_base
 {
 public:
-	cri();
-
-	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info) override;
+	cri(container_cache_interface &cache);
+	bool resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
+	void update_with_size(const std::string& container_id) override;
 	void cleanup() override;
 	static void set_cri_socket_path(const std::string& path);
 	static void set_cri_timeout(int64_t timeout_ms);
@@ -88,6 +91,7 @@ public:
 
 private:
 	std::unique_ptr<cri_async_source> m_async_source;
+	std::unique_ptr<::libsinsp::cri::cri_interface> m_cri;
 };
 }
 }

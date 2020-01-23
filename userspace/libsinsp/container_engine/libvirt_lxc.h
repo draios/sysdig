@@ -19,18 +19,21 @@ limitations under the License.
 
 #pragma once
 
-class sinsp_container_manager;
 class sinsp_container_info;
 class sinsp_threadinfo;
 
-#include "container_engine/container_engine.h"
+#include "container_engine/container_engine_base.h"
+#include "container_engine/sinsp_container_type.h"
 
 namespace libsinsp {
 namespace container_engine {
-class libvirt_lxc : public resolver
+class libvirt_lxc : public container_engine_base
 {
 public:
-	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info) override;
+	libvirt_lxc(container_cache_interface &cache) : container_engine_base(cache)
+	{}
+
+	bool resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 protected:
 	bool match(sinsp_threadinfo* tinfo, sinsp_container_info &container_info);
 };

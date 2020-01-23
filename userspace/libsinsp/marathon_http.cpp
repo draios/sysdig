@@ -93,7 +93,7 @@ bool marathon_http::refresh_data()
 			return false;
 		}
 	}
-	catch(std::exception& ex)
+	catch(const std::exception& ex)
 	{
 		std::string errstr = std::string("Error parsing framework info:") + ex.what();
 		g_logger.log(errstr, sinsp_logger::SEV_ERROR);

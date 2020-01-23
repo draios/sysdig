@@ -163,7 +163,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	// While in theory we could always rely on the scap caller to properly
 	// set a BPF probe from the environment variable, it's in practice easier
 	// to do one more check here in scap so we don't have to repeat the logic
-	// in all the possible users of the libraries (falco, sysdig, csysdig, dragent, ...)
+	// in all the possible users of the libraries (sysdig, csysdig, dragent, ...)
 	//
 	if(!bpf_probe)
 	{

@@ -26,7 +26,7 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
-bool rkt::match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp_container_info &container_info, string &rkt_podid, string &rkt_appname, bool query_os_for_missing_info)
+bool rkt::match(container_cache_interface *cache, sinsp_threadinfo *tinfo, sinsp_container_info& container_info, string& rkt_podid, string& rkt_appname, bool query_os_for_missing_info)
 {
 	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
 	{
@@ -72,7 +72,7 @@ bool rkt::match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp
 				// First lookup if the container exists in our table, otherwise only if we are live check if it has
 				// an entry in /var/lib/rkt. In capture mode only the former will be used.
 				// In live mode former will be used only if we already hit that container
-				bool is_rkt_pod_id_valid = manager->container_exists(rkt_podid + ":" + rkt_appname); // if it's already on our table
+				bool is_rkt_pod_id_valid = cache->container_exists(rkt_podid + ":" + rkt_appname); // if it's already on our table
 #ifdef HAS_CAPTURE
 				if(!is_rkt_pod_id_valid && query_os_for_missing_info)
 				{
@@ -165,18 +165,20 @@ bool rkt::match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp
 	return false;
 }
 
-bool rkt::rkt::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
+bool rkt::rkt::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
+	container_cache_interface *cache = &container_cache();
+
 	auto container = std::make_shared<sinsp_container_info>();
 	string rkt_podid, rkt_appname;
 
-	if (!match(manager, tinfo, *container, rkt_podid, rkt_appname, query_os_for_missing_info))
+	if (!match(cache, tinfo, *container, rkt_podid, rkt_appname, query_os_for_missing_info))
 	{
 		return false;
 	}
 
 	tinfo->m_container_id = container->m_id;
-	if (!query_os_for_missing_info || !manager->should_lookup(container->m_id, CT_RKT))
+	if (!query_os_for_missing_info || !cache->should_lookup(container->m_id, CT_RKT))
 	{
 		return true;
 	}
@@ -189,8 +191,8 @@ bool rkt::rkt::resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo
 
 	if (have_rkt)
 	{
-		manager->add_container(container, tinfo);
-		manager->notify_new_container(*container);
+		cache->add_container(container, tinfo);
+		cache->notify_new_container(*container);
 		return true;
 	}
 	else

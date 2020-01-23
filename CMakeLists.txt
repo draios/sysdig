@@ -160,6 +160,27 @@ else()
 	set(LUAJIT_INCLUDE "${LUAJIT_SRC}")
 	if(NOT WIN32)
 		set(LUAJIT_LIB "${LUAJIT_SRC}/libluajit.a")
+ 		if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "ppc64le")
+		ExternalProject_Add(luajit
+			GIT_REPOSITORY "https://github.com/moonjit/moonjit"
+			GIT_TAG "2.1.2"
+			PATCH_COMMAND sed -i "s/luaL_reg/luaL_Reg/g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/chisel.cpp && sed -i "s/luaL_reg/luaL_Reg/g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/lua_parser.cpp && sed -i "s/luaL_getn/lua_objlen /g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/lua_parser_api.cpp
+			CONFIGURE_COMMAND ""
+			BUILD_COMMAND ${CMD_MAKE}
+			BUILD_IN_SOURCE 1
+			BUILD_BYPRODUCTS ${LUAJIT_LIB}
+			INSTALL_COMMAND "")
+		elseif("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "s390x")
+                ExternalProject_Add(luajit
+                        GIT_REPOSITORY "https://github.com/linux-on-ibm-z/LuaJIT.git"
+                        GIT_TAG "v2.1"
+                        PATCH_COMMAND sed -i "s/luaL_reg/luaL_Reg/g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/chisel.cpp && sed -i "s/luaL_reg/luaL_Reg/g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/lua_parser.cpp && sed -i "s/luaL_getn/lua_objlen /g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/lua_parser_api.cpp
+                        CONFIGURE_COMMAND ""
+                        BUILD_COMMAND ${CMD_MAKE}
+                        BUILD_IN_SOURCE 1
+                        BUILD_BYPRODUCTS ${LUAJIT_LIB}
+                        INSTALL_COMMAND "")		
+		else()
 		ExternalProject_Add(luajit
 			URL "http://download.draios.com/dependencies/LuaJIT-2.0.3.tar.gz"
 			URL_MD5 "f14e9104be513913810cd59c8c658dc0"
@@ -168,6 +189,7 @@ else()
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${LUAJIT_LIB}
 			INSTALL_COMMAND "")
+		endif()
 	else()
 		set(LUAJIT_LIB "${LUAJIT_SRC}/lua51.lib")
 		ExternalProject_Add(luajit
@@ -464,17 +486,31 @@ if(NOT WIN32 AND NOT APPLE)
 		set(PROTOC "${PROTOBUF_SRC}/target/bin/protoc")
 		set(PROTOBUF_INCLUDE "${PROTOBUF_SRC}/target/include")
 		set(PROTOBUF_LIB "${PROTOBUF_SRC}/target/lib/libprotobuf.a")
-		ExternalProject_Add(protobuf
-		DEPENDS openssl zlib
-		URL "http://download.sysdig.com/dependencies/protobuf-cpp-3.5.0.tar.gz"
-		URL_MD5 "e4ba8284a407712168593e79e6555eb2"
-		# TODO what if using system zlib?
-		CONFIGURE_COMMAND /usr/bin/env CPPFLAGS=-I${ZLIB_INCLUDE} LDFLAGS=-L${ZLIB_SRC} ./configure --with-zlib --prefix=${PROTOBUF_SRC}/target
-		BUILD_COMMAND ${CMD_MAKE}
-		BUILD_IN_SOURCE 1
-		BUILD_BYPRODUCTS ${PROTOC} ${PROTOBUF_INCLUDE} ${PROTOBUF_LIB}
-		# TODO s390x support
-		INSTALL_COMMAND make install)
+		if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "s390x")
+                        ExternalProject_Add(protobuf
+                        DEPENDS openssl zlib
+                        URL "http://download.sysdig.com/dependencies/protobuf-cpp-3.5.0.tar.gz"
+                        URL_MD5 "e4ba8284a407712168593e79e6555eb2"
+                        PATCH_COMMAND wget http://download.sysdig.com/dependencies/protobuf-3.5.0-s390x.patch && patch -p1 -i protobuf-3.5.0-s390x.patch
+                        # TODO what if using system zlib?
+                        CONFIGURE_COMMAND /usr/bin/env CPPFLAGS=-I${ZLIB_INCLUDE} LDFLAGS=-L${ZLIB_SRC} ./configure --with-zlib --prefix=${PROTOBUF_SRC}/target
+                        COMMAND aclocal && automake
+                        BUILD_COMMAND ${CMD_MAKE}
+                        BUILD_IN_SOURCE 1
+                        BUILD_BYPRODUCTS ${PROTOC} ${PROTOBUF_INCLUDE} ${PROTOBUF_LIB}
+                        INSTALL_COMMAND make install)
+                else()
+                        ExternalProject_Add(protobuf
+                        DEPENDS openssl zlib
+                        URL "http://download.sysdig.com/dependencies/protobuf-cpp-3.5.0.tar.gz"
+                        URL_MD5 "e4ba8284a407712168593e79e6555eb2"
+                        # TODO what if using system zlib?
+                        CONFIGURE_COMMAND /usr/bin/env CPPFLAGS=-I${ZLIB_INCLUDE} LDFLAGS=-L${ZLIB_SRC} ./configure --with-zlib --prefix=${PROTOBUF_SRC}/target
+                        BUILD_COMMAND ${CMD_MAKE}
+                        BUILD_IN_SOURCE 1
+                        BUILD_BYPRODUCTS ${PROTOC} ${PROTOBUF_INCLUDE} ${PROTOBUF_LIB}
+                        INSTALL_COMMAND make install)
+                endif()
 	endif()
 
 	option(USE_BUNDLED_GRPC "Enable building of the bundled grpc" ${USE_BUNDLED_DEPS})
@@ -527,12 +563,63 @@ if(NOT WIN32 AND NOT APPLE)
 		PATCH_COMMAND rm -rf third_party/zlib && ln -s ${ZLIB_SRC} third_party/zlib && wget https://download.sysdig.com/dependencies/grpc-1.8.1-Makefile.patch && patch < grpc-1.8.1-Makefile.patch
 		INSTALL_COMMAND "")
 	endif()
-endif()
+endif() # NOT WIN32 AND NOT APPLE
+
+option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
+if(CREATE_TEST_TARGETS AND NOT WIN32)
+	option(USE_BUNDLED_GTEST "Enable building of the bundled gtest" ${USE_BUNDLED_DEPS})
+	if(NOT USE_BUNDLED_GTEST)
+		find_path(GTEST_INCLUDE_DIR PATH_SUFFIXES gtest NAMES gtest.h)
+		find_library(GTEST_LIB NAMES gtest)
+		find_library(GTEST_MAIN_LIB NAMES gtest_main)
+		if(GTEST_INCLUDE_DIR AND GTEST_LIB AND GTEST_MAIN_LIB)
+			message(STATUS "Found gtest: include: ${GTEST_INCLUDE_DIR}, lib: ${GTEST_LIB}, main lib: ${GTEST_MAIN_LIB}")
+		else()
+			message(FATAL_ERROR "Couldn't find system gtest")
+		endif()
+	else()
+		# https://github.com/google/googletest/tree/master/googletest#incorporating-into-an-existing-cmake-project
+		# Download and unpack googletest at configure time
+		configure_file(CMakeListsGtestInclude.cmake googletest-download/CMakeLists.txt)
+		execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+			RESULT_VARIABLE result
+			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+		if(result)
+			message(FATAL_ERROR "CMake step for googletest failed: ${result}")
+		endif()
+		execute_process(COMMAND ${CMAKE_COMMAND} --build .
+			RESULT_VARIABLE result
+			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+		if(result)
+			message(FATAL_ERROR "Build step for googletest failed: ${result}")
+		endif()
+
+		# Add googletest directly to our build. This defines
+		# the gtest and gtest_main targets.
+		add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
+		                 ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
+		                 EXCLUDE_FROM_ALL)
+
+		set(GTEST_INCLUDE_DIR "${gtest_SOURCE_DIR}/include/gtest")
+		set(GTEST_MAIN_LIB "gtest_main")
+	endif()
+endif() # NOT WIN32
 
 add_subdirectory(userspace/sysdig)
 add_subdirectory(userspace/libscap)
 add_subdirectory(userspace/libsinsp)
-#add_subdirectory(userspace/falcobl)
+
+if(CREATE_TEST_TARGETS AND NOT WIN32)
+		# Add unit test directories
+		add_subdirectory(userspace/libsinsp/test)
+
+		# Add command to run all unit tests at once via the make system.
+		# This is preferred vs using ctest's add_test because it will build
+		# the code and output to stdout.
+		add_custom_target(run-unit-tests
+			COMMAND ${CMAKE_MAKE_PROGRAM} run-unit-test-libsinsp
+		)
+endif()
 
 set(CPACK_PACKAGE_NAME "${PACKAGE_NAME}")
 set(CPACK_PACKAGE_VENDOR "Sysdig Inc.")

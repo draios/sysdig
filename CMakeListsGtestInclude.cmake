@@ -1,6 +1,5 @@
-#!/bin/bash
 #
-# Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+# Copyright (C) 2019 Sysdig Inc.
 #
 # This file is part of sysdig .
 #
@@ -16,10 +15,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-arch="$(uname -i)"
 
-if [[ "$arch" != "s390x" ]] && [[ "$arch" != "ppc64le" ]]; then
-	sudo apt-get --force-yes install g++-4.8
-fi
-sudo apt-get install rpm linux-headers-$(uname -r) libelf-dev
-sudo apt-get purge cmake
+cmake_minimum_required(VERSION 2.8.2)
+
+project(googletest-download NONE)
+
+include(ExternalProject)
+ExternalProject_Add(googletest
+  GIT_REPOSITORY    https://github.com/google/googletest.git
+  GIT_TAG           master
+  SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/googletest-src"
+  BINARY_DIR        "${CMAKE_CURRENT_BINARY_DIR}/googletest-build"
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND     ""
+  INSTALL_COMMAND   ""
+  TEST_COMMAND      ""
+)

@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2019 Draios Inc dba Sysdig.
+Copyright (C) 2013-2019 Sysdig Inc.
 
 This file is part of sysdig.
 
@@ -16,25 +16,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-
 #pragma once
 
-class sinsp_container_info;
-class sinsp_threadinfo;
+#include "sinsp_exception.h"
 
-#include "container_engine/container_engine_base.h"
-#include "container_engine/sinsp_container_type.h"
-
-namespace libsinsp {
-namespace container_engine {
-
-class bpm : public container_engine_base
+/*!
+  \brief sinsp library exception.
+*/
+class sinsp_capture_interrupt_exception : public sinsp_exception
 {
 public:
-	bpm(container_cache_interface& cache) : container_engine_base(cache)
-	{}
-
-	bool resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
+	sinsp_capture_interrupt_exception():
+		sinsp_exception("capture interrupted")
+	{ }
 };
-}
-}

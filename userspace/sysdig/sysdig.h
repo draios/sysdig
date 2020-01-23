@@ -27,12 +27,13 @@ limitations under the License.
 //
 // ASSERT implementation
 //
+#ifndef ASSERT
 #ifdef _DEBUG
 #define ASSERT(X) assert(X)
 #else // _DEBUG
 #define ASSERT(X)
 #endif // _DEBUG
-
+#endif // ASSERT
 //
 // Capture results
 //

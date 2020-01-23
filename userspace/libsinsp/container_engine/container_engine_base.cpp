@@ -17,22 +17,28 @@ limitations under the License.
 
 */
 
-#pragma once
+#include "container_engine/container_engine_base.h"
+#include "logger.h"
 
-class sinsp_container_manager;
-class sinsp_threadinfo;
+namespace libsinsp
+{
 
-namespace libsinsp {
-namespace container_engine {
+namespace container_engine
+{
 
-class resolver {
-public:
-	virtual ~resolver() = default;
-
-	virtual bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info) = 0;
-
-	virtual void cleanup();
-};
-}
+container_engine_base::container_engine_base(container_cache_interface &cache) :
+   m_cache(cache)
+{
 }
 
+void container_engine_base::update_with_size(const std::string &container_id)
+{
+	SINSP_DEBUG("Updating container size not supported for this container type.");
+}
+
+void container_engine_base::cleanup()
+{
+}
+
+}
+}
