@@ -427,9 +427,9 @@ function ubuntu_build {
 	BUILDER_DISTRO=${BUILDER_DISTRO:-ubuntu}
 	for DEB in "$@"
 	do
-		KERNEL_RELEASE_FULL=$(echo $DEB | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+-[0-9]+\.[0-9]+")		# ex. 3.13.0-24.47
-		KERNEL_RELEASE=${KERNEL_RELEASE_FULL%.*}                                                    # ex. 3.13.0-24
-		KERNEL_UPDATE=${KERNEL_RELEASE_FULL##*.}                                                    # ex. 47
+		KERNEL_RELEASE_FULL=$(echo $DEB | grep -E -o "[0-9]{1}\.[0-9]+\.[0-9]+-[0-9]+\.[0-9][^_]*")	# ex. 3.13.0-24.47
+		KERNEL_RELEASE=$(echo "$KERNEL_RELEASE_FULL" | grep -Eo '[^-]+-[0-9]+')                     # ex. 3.13.0-24
+		KERNEL_UPDATE=${KERNEL_RELEASE_FULL#$KERNEL_RELEASE.}                                       # ex. 47
 
 		TARGET=build/$BUILDER_DISTRO/$KERNEL_RELEASE/$KERNEL_UPDATE
 		MARKER=$TARGET/.$(basename $DEB)
@@ -450,9 +450,9 @@ function ubuntu_build {
 		then
 			continue
 		fi
-		KERNEL_RELEASE_FULL=$(echo $DEB | grep -Eo "[0-9]{1}\.[0-9]+\.[0-9]+-[0-9]+\.[0-9]+")		# ex. 3.13.0-24.47
-		KERNEL_RELEASE=${KERNEL_RELEASE_FULL%.*}                                                    # ex. 3.13.0-24
-		KERNEL_UPDATE=${KERNEL_RELEASE_FULL##*.}                                                    # ex. 47
+		KERNEL_RELEASE_FULL=$(echo $DEB | grep -Eo "[0-9]{1}\.[0-9]+\.[0-9]+-[0-9]+\.[0-9][^_]*")	# ex. 3.13.0-24.47
+		KERNEL_RELEASE=$(echo "$KERNEL_RELEASE_FULL" | grep -Eo '[^-]+-[0-9]+')                     # ex. 3.13.0-24
+		KERNEL_UPDATE=${KERNEL_RELEASE_FULL#$KERNEL_RELEASE.}                                       # ex. 47
 
 		KERNEL_VERSION=$(echo $DEB | grep -Eo "[0-9]{1}\.[0-9]+\.[0-9]+-[0-9]+-[a-z]+")             # ex. 3.13.0-24-generic
 
