@@ -9,6 +9,7 @@ EXPORTS
 		scap_get_os_platform
 		scap_get_ndevs
 		scap_getlasterr
+		scap_max_buf_used
 		scap_next
 		scap_event_getlen
 		scap_event_get_ts
