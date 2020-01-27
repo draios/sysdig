@@ -18,68 +18,70 @@ limitations under the License.
 */
 
 /*!
-	\mainpage libsinsp documentation
+    \mainpage libsinsp documentation
 
-	\section Introduction
+    \section Introduction
 
-	libsinsp is a system inspection library written in C++ and implementing high level
-	functionality like:
-	- live capture control (start/stop/pause...)
-	- event capture from file or the live OS
-	- OS state reconstruction. By parsing /proc and inspecting the live event stream,
-	libsinsp is capable of mirroring the OS process state and putting context around
-	key OS primitives like process IDs and file descriptors. That way, these primitives
-	can be treated like programs, files, connections and users.
-	- parsing of OS events and conversion of events into human-readable strings
-	- event filtering
+    libsinsp is a system inspection library written in C++ and implementing high level
+    functionality like:
+    - live capture control (start/stop/pause...)
+    - event capture from file or the live OS
+    - OS state reconstruction. By parsing /proc and inspecting the live event stream,
+    libsinsp is capable of mirroring the OS process state and putting context around
+    key OS primitives like process IDs and file descriptors. That way, these primitives
+    can be treated like programs, files, connections and users.
+    - parsing of OS events and conversion of events into human-readable strings
+    - event filtering
 
-	This manual includes the following sections:
-	- \ref inspector
-	- \ref event
-	- \ref dump
-	- \ref filter
-	- \ref state
+    This manual includes the following sections:
+    - \ref inspector
+    - \ref event
+    - \ref dump
+    - \ref filter
+    - \ref state
 */
 
 #pragma once
 
 #include "capture_stats_source.h"
+
 #include "container_engine/wmi_handle_source.h"
 
 #ifdef _WIN32
-#pragma warning(disable: 4251 4200 4221 4190)
+#pragma warning(disable : 4251 4200 4221 4190)
 #endif
+
+#include "sinsp_exception.h"
+#include "sinsp_inet.h"
+#include "sinsp_public.h"
 
 #include "tbb/concurrent_queue.h"
 
-#include "sinsp_inet.h"
-#include "sinsp_public.h"
-#include "sinsp_exception.h"
-
 #define __STDC_FORMAT_MACROS
 
+#include <list>
+#include <map>
+#include <memory>
+#include <queue>
+#include <set>
 #include <string>
 #include <unordered_map>
-#include <map>
-#include <queue>
 #include <vector>
-#include <set>
-#include <list>
-#include <memory>
 
 using namespace std;
 
-#include <scap.h>
-#include "settings.h"
-#include "logger.h"
+#include "container.h"
+#include "dumper.h"
 #include "event.h"
 #include "filter.h"
-#include "dumper.h"
-#include "stats.h"
 #include "ifinfo.h"
-#include "container.h"
-#include "viewinfo.h"
+#include "logger.h"
+#include "settings.h"
+#include "stats.h"
 #include "utils.h"
+#include "viewinfo.h"
+
+#include <scap.h>
 
 #ifndef VISIBILITY_PRIVATE
 // Some code defines VISIBILITY_PRIVATE to nothing to get private access to sinsp
@@ -91,12 +93,12 @@ using namespace std;
 
 #define ONE_SECOND_IN_NS 1000000000LL
 
-#include "tuples.h"
-#include "fdinfo.h"
-#include "threadinfo.h"
-#include "ifinfo.h"
 #include "eventformatter.h"
+#include "fdinfo.h"
+#include "ifinfo.h"
 #include "sinsp_pd_callback_type.h"
+#include "threadinfo.h"
+#include "tuples.h"
 
 #include "include/sinsp_external_processor.h"
 class sinsp_partial_transaction;
@@ -114,13 +116,15 @@ class mesos;
 #ifdef HAS_CAPTURE
 class sinsp_ssl;
 class sinsp_bearer_token;
-template <class T> class socket_data_handler;
-template <class T> class socket_collector;
+template<class T>
+class socket_data_handler;
+template<class T>
+class socket_collector;
 class k8s_handler;
 class k8s_api_handler;
-#endif // HAS_CAPTURE
+#endif  // HAS_CAPTURE
 
-std::vector<std::string> sinsp_split(const std::string &s, char delim);
+std::vector<std::string> sinsp_split(const std::string& s, char delim);
 
 /*!
   \brief Information about a chisel
@@ -140,26 +144,27 @@ class filter_check_info
 public:
 	enum flags
 	{
-		FL_NONE =   0,
-		FL_WORKS_ON_THREAD_TABLE = (1 << 0),	///< This filter check class supports filtering incomplete events that contain only valid thread info and FD info.
-		FL_HIDDEN = (1 << 1),	///< This filter check class won't be shown by stuff like the -l sysdig command line switch.
+		FL_NONE = 0,
+		FL_WORKS_ON_THREAD_TABLE =
+		    (1 << 0),  ///< This filter check class supports filtering incomplete events that
+		               ///< contain only valid thread info and FD info.
+		FL_HIDDEN = (1 << 1),  ///< This filter check class won't be shown by stuff like the -l
+		                       ///< sysdig command line switch.
 	};
 
-	filter_check_info()
-	{
-		m_flags = 0;
-	}
+	filter_check_info() { m_flags = 0; }
 
-	string m_name; ///< Field class name.
-	int32_t m_nfields; ///< Number of fields in this field group.
-	const filtercheck_field_info* m_fields; ///< Array containing m_nfields field descriptions.
+	string m_name;                           ///< Field class name.
+	int32_t m_nfields;                       ///< Number of fields in this field group.
+	const filtercheck_field_info* m_fields;  ///< Array containing m_nfields field descriptions.
 	uint32_t m_flags;
 };
 
 /*!
   \brief The default way an event is converted to string by the library
 */
-#define DEFAULT_OUTPUT_STR "*%evt.num %evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args"
+#define DEFAULT_OUTPUT_STR \
+	"*%evt.num %evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args"
 
 //
 // Internal stuff for meta event management
@@ -217,7 +222,7 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
-	void open(const std::string &filename);
+	void open(const std::string& filename);
 
 	/*!
 	  \brief Start an event capture from a file descriptor.
@@ -251,11 +256,11 @@ public:
 	  \note: the returned event can be considered valid only until the next
 	   call to \ref)
 	*/
-	virtual int32_t next(OUT sinsp_evt **evt);
+	virtual int32_t next(OUT sinsp_evt** evt);
 
 	/*!
 	  \brief Get the maximum number of bytes currently in use by any CPU buffer
-     */
+	 */
 	uint64_t max_buf_used();
 
 	/*!
@@ -346,13 +351,13 @@ public:
 	*/
 	const string get_filter();
 
-	void add_evttype_filter(std::string &name,
-				std::set<uint32_t> &evttypes,
-				std::set<uint32_t> &syscalls,
-				std::set<std::string> &tags,
-				sinsp_filter* filter);
+	void add_evttype_filter(std::string& name,
+	                        std::set<uint32_t>& evttypes,
+	                        std::set<uint32_t>& syscalls,
+	                        std::set<std::string>& tags,
+	                        sinsp_filter* filter);
 
-	bool run_filters_on_evt(sinsp_evt *evt);
+	bool run_filters_on_evt(sinsp_evt* evt);
 #endif
 
 	/*!
@@ -398,7 +403,7 @@ public:
 	*/
 	void autodump_start(const string& dump_filename, bool compress);
 
- 	/*!
+	/*!
 	  \brief Cycles the file pointer to a new capture file
 	*/
 	void autodump_next_file();
@@ -465,7 +470,10 @@ public:
 	   of failure.
 	*/
 	sinsp_threadinfo* get_thread(int64_t tid, bool query_os_if_not_found, bool lookup_only);
-	threadinfo_map_t::ptr_t get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only, bool main_thread=false);
+	threadinfo_map_t::ptr_t get_thread_ref(int64_t tid,
+	                                       bool query_os_if_not_found,
+	                                       bool lookup_only,
+	                                       bool main_thread = false);
 
 	/*!
 	  \brief Return the table with all the machine users.
@@ -482,10 +490,10 @@ public:
 	/*!
 	  \brief Lookup for user in the user table.
 
- 	  \return the \ref scap_userinfo object containing full user information,
- 	   if user not found, returns NULL.
+	  \return the \ref scap_userinfo object containing full user information,
+	   if user not found, returns NULL.
 
- 	  \note this call works with file captures as well, because the user
+	  \note this call works with file captures as well, because the user
 	   table is stored in the trace files. In that case, the returned
 	   user list is the one of the machine where the capture happened.
 	*/
@@ -519,6 +527,12 @@ public:
 
 	libsinsp::event_processor* m_external_event_processor;
 
+	sinsp_threadinfo* build_threadinfo()
+	{
+		return m_external_event_processor ? m_external_event_processor->build_threadinfo(this)
+		                                  : new sinsp_threadinfo(this);
+	}
+
 	/*!
 	  \brief registers external event processor.
 	  After this, callbacks on libsinsp::event_processor will happen at
@@ -545,10 +559,7 @@ public:
 	/*!
 	  \brief get last library error.
 	*/
-	string getlasterr()
-	{
-		return m_lasterr;
-	}
+	string getlasterr() { return m_lasterr; }
 
 	/*!
 	  \brief Add a new directory containing chisels.
@@ -587,34 +598,22 @@ public:
 	/*!
 	  \brief Returns true if the current capture is offline
 	*/
-	inline bool is_capture()
-	{
-		return m_mode == SCAP_MODE_CAPTURE;
-	}
+	inline bool is_capture() { return m_mode == SCAP_MODE_CAPTURE; }
 
 	/*!
 	  \brief Returns true if the current capture is live
 	*/
-	inline bool is_live()
-	{
-		return m_mode == SCAP_MODE_LIVE;
-	}
+	inline bool is_live() { return m_mode == SCAP_MODE_LIVE; }
 
 	/*!
 	  \brief Returns true if the sysdig module is not loaded
 	*/
-	inline bool is_nodriver()
-	{
-		return m_mode == SCAP_MODE_NODRIVER;
-	}
+	inline bool is_nodriver() { return m_mode == SCAP_MODE_NODRIVER; }
 
 	/*!
 	  \brief Returns true if truncated environments should be loaded from /proc
 	*/
-	inline bool large_envs_enabled()
-	{
-		return is_live() && m_large_envs_enabled;
-	}
+	inline bool large_envs_enabled() { return is_live() && m_large_envs_enabled; }
 
 	/*!
 	  \brief Enable/disable large environment support
@@ -646,12 +645,12 @@ public:
 	  \brief Set internal events mode.
 
 	  \note By default, internal events, such as events that note
-                when new containers or orchestration entities have
-                been created, are not returned in sinsp::next(). (They
-                are always written to capture files, to ensure that
-                the full state can be reconstructed when capture files
-                are read). Enabling internal events mode will result
-                in these events being returned.
+	            when new containers or orchestration entities have
+	            been created, are not returned in sinsp::next(). (They
+	            are always written to capture files, to ensure that
+	            the full state can be reconstructed when capture files
+	            are read). Enabling internal events mode will result
+	            in these events being returned.
 	*/
 	void set_internal_events_mode(bool enable_internal_events);
 
@@ -674,10 +673,7 @@ public:
 
 	  \param flag Can be 'h', 'a', 'r', 'd', 'D' as documented in the manual.
 	*/
-	inline void set_time_output_mode(char flag)
-	{
-		m_output_time_flag = flag;
-	}
+	inline void set_time_output_mode(char flag) { m_output_time_flag = flag; }
 
 	/*!
 	  \brief Sets the max length of event argument strings.
@@ -691,10 +687,7 @@ public:
 	/*!
 	  \brief Returns true if the debug mode is enabled.
 	*/
-	inline bool is_debug_enabled()
-	{
-		return m_isdebug_enabled;
-	}
+	inline bool is_debug_enabled() { return m_isdebug_enabled; }
 
 	/*!
 	  \brief Set a flag indicating if the command line requested to show container information.
@@ -703,14 +696,10 @@ public:
 	*/
 	void set_print_container_data(bool print_container_data);
 
-
 	/*!
 	  \brief Returns true if the command line argument is set to show container information.
 	*/
-	inline bool is_print_container_data()
-	{
-		return m_print_container_data;
-	}
+	inline bool is_print_container_data() { return m_print_container_data; }
 
 	/*!
 	  \brief Lets a filter plugin request a protocol decoder.
@@ -730,10 +719,7 @@ public:
 	  \brief If this is an offline capture, return the name of the file that is
 	   being read, otherwise return an empty string.
 	*/
-	std::string get_input_filename()
-	{
-		return m_input_filename;
-	}
+	std::string get_input_filename() { return m_input_filename; }
 
 	/*!
 	  \brief If this is an online capture, set event_id.
@@ -769,7 +755,7 @@ public:
 	*/
 	virtual int /*SCAP_X*/ dynamic_snaplen(bool enable)
 	{
-		if(enable)
+		if (enable)
 		{
 			return scap_enable_dynamic_snaplen(m_h);
 		}
@@ -780,7 +766,7 @@ public:
 	}
 
 #ifndef CYGWING_AGENT
-	void init_k8s_ssl(const std::string *ssl_cert);
+	void init_k8s_ssl(const std::string* ssl_cert);
 	void init_k8s_client(std::string* api_server, std::string* ssl_cert, bool verbose = false);
 	void make_k8s_client();
 	k8s* get_k8s_client() const { return m_k8s_client; }
@@ -794,8 +780,11 @@ public:
 	//
 	void stop_dropping_mode();
 	void start_dropping_mode(uint32_t sampling_ratio);
-	void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_threadinfo* tinfo,
-		scap_fdinfo* fdinfo);
+	void on_new_entry_from_proc(void* context,
+	                            scap_t* handle,
+	                            int64_t tid,
+	                            scap_threadinfo* tinfo,
+	                            scap_fdinfo* fdinfo);
 	void set_get_procs_cpu_from_driver(bool get_procs_cpu_from_driver)
 	{
 		m_get_procs_cpu_from_driver = get_procs_cpu_from_driver;
@@ -805,10 +794,7 @@ public:
 	// Used by filters to enable app event state tracking, which is disabled
 	// by default for performance reasons
 	//
-	void request_tracer_state_tracking()
-	{
-		m_track_tracers_state = true;
-	}
+	void request_tracer_state_tracking() { m_track_tracers_state = true; }
 
 	//
 	// Allocates private state in the thread info class.
@@ -819,22 +805,22 @@ public:
 
 	sinsp_parser* get_parser();
 
-	bool setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
+	bool setup_cycle_writer(std::string base_file_name,
+	                        int rollover_mb,
+	                        int duration_seconds,
+	                        int file_limit,
+	                        unsigned long event_limit,
+	                        bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
-	void add_meta_event(sinsp_evt *metaevt);
+	void add_meta_event(sinsp_evt* metaevt);
 	void add_meta_event_callback(meta_event_callback cback, void* data);
 	void remove_meta_event_callback();
 	void filter_proc_table_when_saving(bool filter);
 	void enable_tracers_capture();
 	void enable_page_faults();
-	uint64_t get_bytes_read()
-	{
-		return scap_ftell(m_h);
-	}
+	uint64_t get_bytes_read() { return scap_ftell(m_h); }
 	void refresh_ifaddr_list();
-	void refresh_proc_list() {
-		scap_refresh_proc_table(m_h);
-	}
+	void refresh_proc_list() { scap_refresh_proc_table(m_h); }
 	void set_simpledriver_mode();
 	std::vector<long> get_n_tracepoint_hit();
 	void set_bpf_probe(const std::string& bpf_probe);
@@ -847,29 +833,26 @@ public:
 	static std::shared_ptr<std::string> lookup_cgroup_dir(const std::string& subsys);
 #endif
 #ifdef CYGWING_AGENT
-	wh_t* get_wmi_handle() override
-	{
-		return scap_get_wmi_handle(m_h);
-	}
+	wh_t* get_wmi_handle() override { return scap_get_wmi_handle(m_h); }
 #endif
 
 	static inline bool simple_consumer_consider_evtnum(uint16_t etype)
 	{
 		enum ppm_event_flags flags = g_infotables.m_event_info[etype].flags;
 
-		return ! (flags & sinsp::simple_consumer_skip_flags());
+		return !(flags & sinsp::simple_consumer_skip_flags());
 	}
 
 	static inline bool simple_consumer_consider_syscallid(uint16_t scid)
 	{
 		enum ppm_event_flags flags = g_infotables.m_syscall_info_table[scid].flags;
 
-		return ! (flags & sinsp::simple_consumer_skip_flags());
+		return !(flags & sinsp::simple_consumer_skip_flags());
 	}
 
 	// Add comm to the list of comms for which the inspector
 	// should not return events.
-	bool suppress_events_comm(const std::string &comm);
+	bool suppress_events_comm(const std::string& comm);
 
 	bool check_suppressed(int64_t tid);
 
@@ -887,19 +870,16 @@ public:
 	void set_cri_async(bool async);
 	void set_cri_delay(uint64_t delay_ms);
 
-VISIBILITY_PROTECTED
-	bool add_thread(const sinsp_threadinfo *ptinfo);
-	void set_mode(scap_mode_t value)
+	VISIBILITY_PROTECTED
+	bool add_thread(const sinsp_threadinfo* ptinfo);
+	void set_mode(scap_mode_t value) { m_mode = value; }
+
+	VISIBILITY_PRIVATE
+
+	static inline ppm_event_flags simple_consumer_skip_flags()
 	{
-		m_mode = value;
+		return (ppm_event_flags)(EF_SKIPPARSERESET | EF_UNUSED | EF_DROP_SIMPLE_CONS);
 	}
-
-VISIBILITY_PRIVATE
-
-        static inline ppm_event_flags simple_consumer_skip_flags()
-        {
-		return (ppm_event_flags) (EF_SKIPPARSERESET | EF_UNUSED | EF_DROP_SIMPLE_CONS);
-        }
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
 private:
@@ -926,14 +906,14 @@ private:
 		//
 		// Try looking up in our simple cache
 		//
-		if(tid == m_thread_manager->m_last_tid)
+		if (tid == m_thread_manager->m_last_tid)
 		{
 			thr = m_thread_manager->m_last_tinfo.lock();
 			if (thr)
 			{
-	#ifdef GATHER_INTERNAL_STATS
+#ifdef GATHER_INTERNAL_STATS
 				m_thread_manager->m_cached_lookups->increment();
-	#endif
+#endif
 				thr->m_lastaccess_ts = m_lastevent_ts;
 				return thr;
 			}
@@ -944,12 +924,12 @@ private:
 		//
 		thr = m_thread_manager->m_threadtable.get_ref(tid);
 
-		if(thr)
+		if (thr)
 		{
-	#ifdef GATHER_INTERNAL_STATS
+#ifdef GATHER_INTERNAL_STATS
 			m_thread_manager->m_non_cached_lookups->increment();
-	#endif
-			if(!lookup_only)
+#endif
+			if (!lookup_only)
 			{
 				m_thread_manager->m_last_tid = tid;
 				m_thread_manager->m_last_tinfo = thr;
@@ -959,9 +939,9 @@ private:
 		}
 		else
 		{
-	#ifdef GATHER_INTERNAL_STATS
+#ifdef GATHER_INTERNAL_STATS
 			m_thread_manager->m_failed_lookups->increment();
-	#endif
+#endif
 			return NULL;
 		}
 	}
@@ -977,17 +957,14 @@ private:
 	bool get_mesos_data();
 #endif
 
-	static int64_t get_file_size(const std::string& fname, char *error);
+	static int64_t get_file_size(const std::string& fname, char* error);
 	static std::string get_error_desc(const std::string& msg = "");
 
 	void restart_capture_at_filepos(uint64_t filepos);
 
-	void fseek(uint64_t filepos)
-	{
-		scap_fseek(m_h, filepos);
-	}
+	void fseek(uint64_t filepos) { scap_fseek(m_h, filepos); }
 
-	void add_suppressed_comms(scap_open_args &oargs);
+	void add_suppressed_comms(scap_open_args& oargs);
 
 	bool increased_snaplen_port_range_set() const
 	{
@@ -1037,6 +1014,7 @@ private:
 	bool m_large_envs_enabled;
 
 	sinsp_network_interfaces* m_network_interfaces;
+
 public:
 	sinsp_thread_manager* m_thread_manager;
 
@@ -1057,10 +1035,10 @@ public:
 	unique_ptr<k8s_api_handler> m_k8s_ext_handler;
 	k8s_ext_list_ptr_t m_ext_list_ptr;
 	bool m_k8s_ext_detect_done = false;
-#endif // HAS_CAPTURE
+#endif  // HAS_CAPTURE
 	k8s* m_k8s_client;
 	uint64_t m_k8s_last_watch_time_ns;
-#endif // CYGWING_AGENT
+#endif  // CYGWING_AGENT
 
 	//
 	// Mesos/Marathon
@@ -1085,7 +1063,7 @@ public:
 #ifdef HAS_FILTERING
 	uint64_t m_firstevent_ts;
 	sinsp_filter* m_filter;
-	sinsp_evttype_filter *m_evttype_filter;
+	sinsp_evttype_filter* m_evttype_filter;
 	std::string m_filterstring;
 
 #endif
@@ -1232,19 +1210,17 @@ public:
 	friend class sinsp_network_interfaces;
 	friend class test_helper;
 
-	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
+	template<class TKey, class THash, class TCompare>
+	friend class sinsp_connection_manager;
 
 #ifdef SYSDIG_TEST
 protected:
-	void inject_machine_info(const scap_machine_info *value)
-	{
-		m_machine_info = value;
-	}
-	void inject_network_interfaces(sinsp_network_interfaces *value)
+	void inject_machine_info(const scap_machine_info* value) { m_machine_info = value; }
+	void inject_network_interfaces(sinsp_network_interfaces* value)
 	{
 		m_network_interfaces = value;
 	}
-#endif // SYSDIG_TEST
+#endif  // SYSDIG_TEST
 };
 
 /*@}*/

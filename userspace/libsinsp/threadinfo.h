@@ -71,8 +71,8 @@ typedef struct erase_fd_params
 class SINSP_PUBLIC sinsp_threadinfo
 {
 public:
-	sinsp_threadinfo();
 	sinsp_threadinfo(sinsp *inspector);
+
 	~sinsp_threadinfo();
 
 	/*!
