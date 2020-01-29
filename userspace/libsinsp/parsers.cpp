@@ -1838,13 +1838,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	//
 	evt->m_tinfo->compute_program_hash();
 
-#ifdef HAS_ANALYZER
-	if(evt->m_tinfo->m_ainfo != NULL)
-	{
-		evt->m_tinfo->m_ainfo->clear_role_flags();
-	}
-#endif
-
 	//
 	// If there's a listener, invoke it
 	//

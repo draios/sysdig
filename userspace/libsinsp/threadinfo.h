@@ -40,7 +40,6 @@ struct iovec {
 
 class sinsp_delays_info;
 class sinsp_threadtable_listener;
-class thread_analyzer_info;
 class sinsp_tracerparser;
 class blprogram;
 
@@ -73,7 +72,7 @@ class SINSP_PUBLIC sinsp_threadinfo
 public:
 	sinsp_threadinfo(sinsp *inspector);
 
-	~sinsp_threadinfo();
+	virtual ~sinsp_threadinfo();
 
 	/*!
 	  \brief Return the name of the process containing this thread, e.g. "top".
@@ -309,8 +308,6 @@ public:
 	//
 	sinsp_tracerparser* m_tracer_parser;
 
-	thread_analyzer_info* m_ainfo;
-
 	size_t args_len() const;
 	size_t env_len() const;
 	size_t cgroups_len() const;
@@ -352,14 +349,7 @@ public: // types required for use in sets
 		}
 	};
 
-VISIBILITY_PRIVATE
-	void init();
-	// return true if, based on the current inspector filter, this thread should be kept
-	void init(scap_threadinfo* pi);
-	void fix_sockets_coming_from_proc();
-	sinsp_fdinfo_t* add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo);
-	void add_fd_from_scap(scap_fdinfo *fdinfo, OUT sinsp_fdinfo_t *res);
-	void remove_fd(int64_t fd);
+protected:
 	inline sinsp_fdtable* get_fd_table()
 	{
 		sinsp_threadinfo* root;
@@ -379,6 +369,17 @@ VISIBILITY_PRIVATE
 
 		return &(root->m_fdtable);
 	}
+	sinsp_fdtable m_fdtable; // The fd table of this thread
+
+public:
+VISIBILITY_PRIVATE
+	void init();
+	// return true if, based on the current inspector filter, this thread should be kept
+	void init(scap_threadinfo* pi);
+	void fix_sockets_coming_from_proc();
+	sinsp_fdinfo_t* add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo);
+	void add_fd_from_scap(scap_fdinfo *fdinfo, OUT sinsp_fdinfo_t *res);
+	void remove_fd(int64_t fd);
 	void set_cwd(const char *cwd, uint32_t cwdlen);
 	sinsp_threadinfo* get_cwd_root();
 	void set_args(const char* args, size_t len);
@@ -422,7 +423,6 @@ VISIBILITY_PRIVATE
 	// Parameters that can't be accessed directly because they could be in the
 	// parent thread info
 	//
-	sinsp_fdtable m_fdtable; // The fd table of this thread
 	std::string m_cwd; // current working directory
 	std::weak_ptr<sinsp_threadinfo> m_main_thread;
 	uint8_t* m_lastevent_data; // Used by some event parsers to store the last enter event
@@ -441,7 +441,6 @@ VISIBILITY_PRIVATE
 	friend class sinsp_evt;
 	friend class sinsp_thread_manager;
 	friend class sinsp_transaction_table;
-	friend class thread_analyzer_info;
 	friend class sinsp_tracerparser;
 	friend class lua_cbacks;
 	friend class sinsp_baseliner;
