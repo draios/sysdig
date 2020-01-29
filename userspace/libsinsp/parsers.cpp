@@ -1159,7 +1159,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	// XXX this should absolutely not do a malloc, but get the item from a
 	// preallocated list
 	//
-	sinsp_threadinfo* tinfo = new sinsp_threadinfo(m_inspector);
+	sinsp_threadinfo* tinfo = m_inspector->build_threadinfo();
 
 	//
 	// Set the tid and parent tid
