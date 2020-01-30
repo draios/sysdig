@@ -71,9 +71,8 @@ typedef struct erase_fd_params
 class SINSP_PUBLIC sinsp_threadinfo
 {
 public:
-	sinsp_threadinfo();
-	sinsp_threadinfo(sinsp *inspector);
-	~sinsp_threadinfo();
+	sinsp_threadinfo(sinsp *inspector = nullptr);
+	virtual ~sinsp_threadinfo();
 
 	/*!
 	  \brief Return the name of the process containing this thread, e.g. "top".
@@ -352,14 +351,7 @@ public: // types required for use in sets
 		}
 	};
 
-VISIBILITY_PRIVATE
-	void init();
-	// return true if, based on the current inspector filter, this thread should be kept
-	void init(scap_threadinfo* pi);
-	void fix_sockets_coming_from_proc();
-	sinsp_fdinfo_t* add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo);
-	void add_fd_from_scap(scap_fdinfo *fdinfo, OUT sinsp_fdinfo_t *res);
-	void remove_fd(int64_t fd);
+protected:
 	inline sinsp_fdtable* get_fd_table()
 	{
 		sinsp_threadinfo* root;
@@ -379,6 +371,16 @@ VISIBILITY_PRIVATE
 
 		return &(root->m_fdtable);
 	}
+
+public:
+VISIBILITY_PRIVATE
+	void init();
+	// return true if, based on the current inspector filter, this thread should be kept
+	void init(scap_threadinfo* pi);
+	void fix_sockets_coming_from_proc();
+	sinsp_fdinfo_t* add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo);
+	void add_fd_from_scap(scap_fdinfo *fdinfo, OUT sinsp_fdinfo_t *res);
+	void remove_fd(int64_t fd);
 	void set_cwd(const char *cwd, uint32_t cwdlen);
 	sinsp_threadinfo* get_cwd_root();
 	void set_args(const char* args, size_t len);

@@ -148,7 +148,7 @@ const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by
 
 std::shared_ptr<sinsp_threadinfo> sinsp_container_info::get_tinfo(sinsp* inspector) const
 {
-	auto tinfo = make_shared<sinsp_threadinfo>(inspector);
+	std::shared_ptr<sinsp_threadinfo> tinfo(inspector->build_threadinfo());
 	tinfo->m_tid = -1;
 	tinfo->m_pid = -1;
 	tinfo->m_vtid = -2;

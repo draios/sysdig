@@ -519,6 +519,12 @@ public:
 
 	libsinsp::event_processor* m_external_event_processor;
 
+	sinsp_threadinfo* build_threadinfo()
+    {
+        return m_external_event_processor ? m_external_event_processor->build_threadinfo(this)
+                                          : new sinsp_threadinfo(this);
+    } 
+
 	/*!
 	  \brief registers external event processor.
 	  After this, callbacks on libsinsp::event_processor will happen at
