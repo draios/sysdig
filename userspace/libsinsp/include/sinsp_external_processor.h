@@ -11,8 +11,8 @@
 // Required until the chisel_api dependency on the analyzer can be removed
 class statsd_metric;
 
-namespace libsinsp {
-
+namespace libsinsp
+{
 enum event_return
 {
 	EVENT_RETURN_TIMEOUT,
@@ -44,14 +44,13 @@ public:
 	virtual void add_chisel_metric(statsd_metric* metric) = 0;
 
 	/**
-     * Some event processors allocate different thread types with extra data.
-     *
-     * This allows the processor to override the thread builder. Note that
-     * If this is overriden by the event processor, the processor MUST be registered
-     * before the sinsp object is init-ed
-     */
-    virtual sinsp_threadinfo* build_threadinfo(sinsp* inspector);
-
+	 * Some event processors allocate different thread types with extra data.
+	 *
+	 * This allows the processor to override the thread builder. Note that
+	 * If this is overriden by the event processor, the processor MUST be registered
+	 * before the sinsp object is init-ed
+	 */
+	virtual sinsp_threadinfo* build_threadinfo(sinsp* inspector);
 };
 
-}
+}  // namespace libsinsp

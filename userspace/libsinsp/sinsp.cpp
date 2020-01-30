@@ -2582,5 +2582,5 @@ std::shared_ptr<std::string> sinsp::lookup_cgroup_dir(const string& subsys)
 sinsp_threadinfo*
 libsinsp::event_processor::build_threadinfo(sinsp* inspector)
 {
-	return inspector->build_threadinfo();
+	return new sinsp_threadinfo(inspector);
 }
