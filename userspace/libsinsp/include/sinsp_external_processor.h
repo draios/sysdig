@@ -1,6 +1,4 @@
 #pragma once
-#include "sinsp.h"
-#include "threadinfo.h"
 
 /**
  * This api defines a relationship between libsinsp and an external event processor.
@@ -10,6 +8,8 @@
 
 // Required until the chisel_api dependency on the analyzer can be removed
 class statsd_metric;
+class sinsp;
+class threadinfo;
 
 namespace libsinsp
 {
