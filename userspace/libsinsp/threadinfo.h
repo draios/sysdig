@@ -118,7 +118,7 @@ public:
 	  \brief Get the main thread of the process containing this thread.
 	*/
 #ifndef _WIN32
-	inline sinsp_threadinfo* get_main_thread() 
+	inline sinsp_threadinfo* get_main_thread() const
 	{
 		auto main_thread = m_main_thread.lock();
 		if(!main_thread)
@@ -135,7 +135,7 @@ public:
 				//       invoked for a threadinfo that is in the stack. Caching the this pointer
 				//       would cause future mess.
 				//
-				return this;
+				return const_cast<sinsp_threadinfo*>(this);
 			}
 			else
 			{
@@ -217,7 +217,7 @@ public:
 	/*!
 	  \brief Return the number of open FDs for this thread.
 	*/
-	uint64_t get_fd_opencount();
+	uint64_t get_fd_opencount() const;
 
 	/*!
 	  \brief Return the maximum number of FDs this thread can open.
@@ -354,22 +354,28 @@ public: // types required for use in sets
 protected:
 	inline sinsp_fdtable* get_fd_table()
 	{
-		sinsp_threadinfo* root;
-
 		if(!(m_flags & PPM_CL_CLONE_FILES))
 		{
-			root = this;
+			return &m_fdtable;;
 		}
 		else
 		{
-			root = get_main_thread();
-			if(NULL == root)
-			{
-				return NULL;
-			}
+			sinsp_threadinfo* root = get_main_thread();
+			return (root == nullptr) ? nullptr : &(root->m_fdtable);
 		}
+	}
 
-		return &(root->m_fdtable);
+	inline const sinsp_fdtable* get_immutable_fd_table() const
+	{
+		if(!(m_flags & PPM_CL_CLONE_FILES))
+		{
+			return &m_fdtable;;
+		}
+		else
+		{
+			sinsp_threadinfo* root = get_main_thread();
+			return (root == nullptr) ? nullptr : &(root->m_fdtable);
+		}
 	}
 
 public:
@@ -401,7 +407,7 @@ VISIBILITY_PRIVATE
 	}
 	void allocate_private_state();
 	void compute_program_hash();
-	std::shared_ptr<sinsp_threadinfo> lookup_thread();
+	std::shared_ptr<sinsp_threadinfo> lookup_thread() const;
 
 	size_t strvec_len(const std::vector<std::string> &strs) const;
 	void strvec_to_iovec(const std::vector<std::string> &strs,
@@ -426,7 +432,7 @@ VISIBILITY_PRIVATE
 	//
 	sinsp_fdtable m_fdtable; // The fd table of this thread
 	std::string m_cwd; // current working directory
-	std::weak_ptr<sinsp_threadinfo> m_main_thread;
+	mutable std::weak_ptr<sinsp_threadinfo> m_main_thread;
 	uint8_t* m_lastevent_data; // Used by some event parsers to store the last enter event
 	std::vector<void*> m_private_state;
 
