@@ -41,10 +41,6 @@ limitations under the License.
 #include "filter.h"
 #include "filterchecks.h"
 #include "protodecoder.h"
-#ifdef HAS_ANALYZER
-#include "analyzer_int.h"
-#include "analyzer_thread.h"
-#endif
 #ifdef SIMULATE_DROP_MODE
 bool should_drop(sinsp_evt *evt);
 #endif
@@ -54,20 +50,6 @@ bool should_drop(sinsp_evt *evt);
 extern sinsp_protodecoder_list g_decoderlist;
 extern sinsp_evttables g_infotables;
 
-#if 0
-sinsp_parser::sinsp_parser(sinsp *inspector) :
-	m_inspector(inspector),
-	m_tmp_evt(m_inspector),
-	m_fd_listener(NULL)
-{
-	m_fake_userevt = (scap_evt*)m_fake_userevt_storage;
-	m_inspector->m_partial_tracers_pool = new simple_lifo_queue<sinsp_partial_tracer>(128);
-
-	sinsp_tracerparser p(inspector);
-	p.test();
-	m_drop_event_flags = EF_NONE;
-}
-#else
 sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_inspector(inspector),
 	m_tmp_evt(m_inspector),
@@ -85,7 +67,6 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 	init_metaevt(m_mesos_metaevents_state, PPME_MESOS_E, SP_EVT_BUF_SIZE);
 	m_drop_event_flags = EF_NONE;
 }
-#endif
 
 sinsp_parser::~sinsp_parser()
 {
