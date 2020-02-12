@@ -365,7 +365,7 @@ protected:
 		}
 	}
 
-	inline const sinsp_fdtable* get_immutable_fd_table() const
+	inline const sinsp_fdtable* get_fd_table() const
 	{
 		if(!(m_flags & PPM_CL_CLONE_FILES))
 		{
