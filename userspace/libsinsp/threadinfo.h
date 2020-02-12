@@ -308,8 +308,6 @@ public:
 	//
 	sinsp_tracerparser* m_tracer_parser;
 
-	thread_analyzer_info* m_ainfo;
-
 	size_t args_len() const;
 	size_t env_len() const;
 	size_t cgroups_len() const;
