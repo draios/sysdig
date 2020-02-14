@@ -1199,30 +1199,35 @@ int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_
 	return SCAP_SUCCESS;
 }
 
+static uint64_t buf_size_used(scap_t* handle, uint32_t cpu)
+{
+	uint64_t read_size;
+
+	if (handle->m_bpf)
+	{
+		uint64_t thead;
+		uint64_t ttail;
+
+		scap_bpf_get_buf_pointers(handle->m_devs[cpu].m_buffer, &thead, &ttail, &read_size);
+	}
+	else
+	{
+		uint32_t thead;
+		uint32_t ttail;
+
+		get_buf_pointers(handle->m_devs[cpu].m_bufinfo, &thead, &ttail, &read_size);
+	}
+
+	return read_size;
+}
+
 static bool are_buffers_empty(scap_t* handle)
 {
 	uint32_t j;
 
 	for(j = 0; j < handle->m_ndevs; j++)
 	{
-		uint64_t read_size;
-
-		if(handle->m_bpf)
-		{
-			uint64_t thead;
-			uint64_t ttail;
-
-			scap_bpf_get_buf_pointers(handle->m_devs[j].m_buffer, &thead, &ttail, &read_size);
-		}
-		else
-		{
-			uint32_t thead;
-			uint32_t ttail;
-
-			get_buf_pointers(handle->m_devs[j].m_bufinfo, &thead, &ttail, &read_size);
-		}
-
-		if(read_size > BUFFER_EMPTY_THRESHOLD_B)
+		if(buf_size_used(handle, j) > BUFFER_EMPTY_THRESHOLD_B)
 		{
 			return false;
 		}
@@ -1509,6 +1514,24 @@ static int32_t scap_next_nodriver(scap_t* handle, OUT scap_evt** pevent, OUT uin
 	return SCAP_SUCCESS;
 }
 #endif // _WIN32
+
+uint64_t scap_max_buf_used(scap_t* handle)
+{
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
+	uint64_t i;
+	uint64_t max = 0;
+
+	for(i = 0; i < handle->m_ndevs; i++)
+	{
+		uint64_t size = buf_size_used(handle, i);
+		max = size > max ? size : max;
+	}
+
+	return max;
+#else
+	return 0;
+#endif
+}
 
 int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {

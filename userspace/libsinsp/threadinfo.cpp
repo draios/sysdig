@@ -40,19 +40,11 @@ static void copy_ipv6_address(uint32_t* dest, uint32_t* src)
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_threadinfo implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_threadinfo::sinsp_threadinfo() :
-	m_fdtable(NULL)
-{
-	m_inspector = NULL;
-	m_tracer_parser = NULL;
-	init();
-}
-
-sinsp_threadinfo::sinsp_threadinfo(sinsp *inspector) :
+sinsp_threadinfo::sinsp_threadinfo(sinsp* inspector) :
+	m_tracer_parser(NULL),
+	m_inspector(inspector),
 	m_fdtable(inspector)
 {
-	m_inspector = inspector;
-	m_tracer_parser = NULL;
 	init();
 }
 
@@ -883,7 +875,7 @@ double sinsp_threadinfo::get_fd_usage_pct_d()
 	}
 }
 
-uint64_t sinsp_threadinfo::get_fd_opencount()
+uint64_t sinsp_threadinfo::get_fd_opencount() const
 {
 	return get_main_thread()->m_fdtable.size();
 }
@@ -977,7 +969,7 @@ bool sinsp_threadinfo::is_health_probe()
 		m_category == sinsp_threadinfo::CAT_READINESS_PROBE);
 }
 
-shared_ptr<sinsp_threadinfo> sinsp_threadinfo::lookup_thread()
+shared_ptr<sinsp_threadinfo> sinsp_threadinfo::lookup_thread() const
 {
 	return m_inspector->get_thread_ref(m_pid, true, true, true);
 }

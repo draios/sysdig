@@ -841,7 +841,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 	if(fdinfo == NULL)
 	{
 		bool thread_added = false;
-		sinsp_threadinfo* newti = new sinsp_threadinfo(this);
+		sinsp_threadinfo* newti = build_threadinfo();
 		newti->init(tinfo);
 		if(is_nodriver())
 		{
@@ -865,7 +865,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 
 		if(!sinsp_tinfo)
 		{
-			sinsp_threadinfo* newti = new sinsp_threadinfo(this);
+			sinsp_threadinfo* newti = build_threadinfo();
 			newti->init(tinfo);
 
 			if (!m_thread_manager->add_thread(newti, true)) {
@@ -908,7 +908,7 @@ void sinsp::import_thread_table()
 	//
 	HASH_ITER(hh, table, pi, tpi)
 	{
-		sinsp_threadinfo* newti = new sinsp_threadinfo(this);
+		sinsp_threadinfo* newti = build_threadinfo();
 		newti->init(pi);
 		m_thread_manager->add_thread(newti, true);
 	}
@@ -1037,6 +1037,18 @@ void sinsp::restart_capture_at_filepos(uint64_t filepos)
 	if(filterstring != "")
 	{
 		set_filter(filterstring);
+	}
+}
+
+uint64_t sinsp::max_buf_used()
+{
+	if(m_h)
+	{
+		return scap_max_buf_used(m_h);
+	}
+	else
+	{
+		return 0;
 	}
 }
 
@@ -1426,7 +1438,7 @@ threadinfo_map_t::ptr_t sinsp::get_thread_ref(int64_t tid, bool query_os_if_not_
 		}
 
 		scap_threadinfo* scap_proc = NULL;
-		sinsp_threadinfo* newti = new sinsp_threadinfo(this);
+		sinsp_threadinfo* newti = build_threadinfo();
 
 		m_n_proc_lookups++;
 
@@ -2579,3 +2591,9 @@ std::shared_ptr<std::string> sinsp::lookup_cgroup_dir(const string& subsys)
 	}
 }
 #endif
+
+sinsp_threadinfo*
+libsinsp::event_processor::build_threadinfo(sinsp* inspector)
+{
+	return new sinsp_threadinfo(inspector);
+}

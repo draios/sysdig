@@ -633,6 +633,11 @@ scap_os_platform scap_get_os_platform(scap_t* handle);
 const char* scap_getlasterr(scap_t* handle);
 
 /*!
+ * \brief returns the maximum amount of memory used by any driver queue
+ */
+uint64_t scap_max_buf_used(scap_t* handle);
+
+/*!
   \brief Get the next event from the from the given capture instance
 
   \param handle Handle to the capture instance.

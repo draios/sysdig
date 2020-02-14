@@ -43,6 +43,7 @@ or GPL2.txt for full copies of the license.
 #define PPM_PORT_MYSQL 3306
 #define PPM_PORT_POSTGRES 5432
 #define PPM_PORT_STATSD 8125
+#define PPM_PORT_MONGODB 27017
 
 /*
  * The ring descriptor.
