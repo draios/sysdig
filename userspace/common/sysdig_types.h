@@ -38,8 +38,8 @@ limitations under the License.
 #if defined(__linux__) && !defined(UDIG)
 #include <linux/types.h>
 #else 
-typedef uint64_t __u64;
-typedef int64_t __s64;
+typedef unsigned long long __u64;
+typedef long long __s64;
 typedef uint32_t __u32;
 typedef int32_t __s32;
 typedef uint16_t __u16;
