@@ -254,6 +254,11 @@ public:
 	virtual int32_t next(OUT sinsp_evt **evt);
 
 	/*!
+	  \brief Get the maximum number of bytes currently in use by any CPU buffer
+     */
+	uint64_t max_buf_used();
+
+	/*!
 	  \brief Get the number of events that have been captured and processed
 	   since the call to \ref open()
 
@@ -513,6 +518,12 @@ public:
 #endif
 
 	libsinsp::event_processor* m_external_event_processor;
+
+	sinsp_threadinfo* build_threadinfo()
+    {
+        return m_external_event_processor ? m_external_event_processor->build_threadinfo(this)
+                                          : new sinsp_threadinfo(this);
+    } 
 
 	/*!
 	  \brief registers external event processor.

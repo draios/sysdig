@@ -16,6 +16,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-sudo apt-get --force-yes install g++-4.8
+arch="$(uname -i)"
+
+if [[ "$arch" != "s390x" ]] && [[ "$arch" != "ppc64le" ]]; then
+	sudo apt-get --force-yes install g++-4.8
+fi
 sudo apt-get install rpm linux-headers-$(uname -r) libelf-dev
 sudo apt-get purge cmake

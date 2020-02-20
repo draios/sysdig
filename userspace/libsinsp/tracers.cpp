@@ -1304,17 +1304,12 @@ inline void sinsp_tracerparser::init_partial_tracer(sinsp_partial_tracer* pae)
 
 void sinsp_tracerparser::test()
 {
-//	char doc[] = "[\">\\\"\", 12435, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
-//	char doc1[] = "[\"<t\", 12435, [\"mysql\", \"query\", \"init\"], []]";
 	char doc1[] = "[\">\",     12345, [\"mysql\", \"query\", \"init\"], [{\"argname1\":\"argval1\"}, {\"argname2\":\"argval2\"}, {\"argname3\":\"argval3\"}]]";
-//	char doc1[] = ">:1111:u\\:\\=a.u\\:\\>.aaa.33.aa\\::a=b\\:\\=,c=d\\:\\=a:";
 
-	sinsp_threadinfo tinfo;
-	
-	m_tinfo = &tinfo;
-	tinfo.m_ptid = 11;
-	tinfo.m_pid = 22;
-	tinfo.m_tid = 33;
+	m_tinfo = new sinsp_threadinfo(nullptr);
+	m_tinfo->m_ptid = 11;
+	m_tinfo->m_pid = 22;
+	m_tinfo->m_tid = 33;
 
 	printf("1\n");
 
@@ -1339,4 +1334,7 @@ void sinsp_tracerparser::test()
 
 	cpu_time = ((float)clock()/ CLOCKS_PER_SEC) - cpu_time;
 	printf ("time: %5.2f\n", cpu_time);
+
+	delete m_tinfo;
+	m_tinfo = nullptr;
 }
