@@ -227,6 +227,15 @@ function checkout_sysdig {
 	HAVE_SYSDIG_CHECKOUT=1
 }
 
+function build_toolkit {
+	if [ -z "${HAVE_BUILDER_TOOLKIT:-}" ]
+	then
+		IMAGE_NAME="${BUILDER_IMAGE_PREFIX:-}sysdig-probe-builder:toolkit"
+		docker build -t "$IMAGE_NAME" -f $BUILDER_SOURCE/Dockerfile.toolkit --pull $BUILDER_SOURCE
+		HAVE_BUILDER_TOOLKIT=1
+	fi
+}
+
 declare -A builders
 function build_probe {
 	# Skip Kernel 4.15.0-29 because probe does not build against it
@@ -345,31 +354,12 @@ function coreos_build {
 		VERSION_DIR=build/$DISTRO/$VERSION
 		if [ ! -e $VERSION_DIR/config_orig ]
 		then
+			mkdir -p $VERSION_DIR
 			echo "Unpacking $(basename $IMG)"
-			mkdir -p $VERSION_DIR/container
-			if [ ! -e $VERSION_DIR/container.img ]
-			then
-				bzcat $IMG > $VERSION_DIR/container.img
-			fi
-
-			# mount developer container is a very stateful part of this script
-			# the section between mount/unmounting should be kept very small
-			# otherwise if something fails there are many inconsistencies that can happen
-			LOOPDEV=$(sudo kpartx -asv $VERSION_DIR/container.img | cut -d\  -f 3)
-			sudo mount /dev/mapper/$LOOPDEV $VERSION_DIR/container
-			# Copy kernel headers
-			cp -r $VERSION_DIR/container/lib/modules $VERSION_DIR
-
-			# Copy kernel config
-			rm -f $VERSION_DIR/config-*
-			cp $VERSION_DIR/container/usr/boot/config-* $VERSION_DIR/
-			cp $VERSION_DIR/config-* $VERSION_DIR/config_orig
-
-			# umount and remove the developer container
-			sudo umount $VERSION_DIR/container
-			sudo kpartx -dv $VERSION_DIR/container.img
-			rmdir $VERSION_DIR/container
-			rm $VERSION_DIR/container.img
+			FULL_IMG=$(readlink -f "$IMG")
+			FULL_VERSION_DIR=$(readlink -f "$VERSION_DIR")
+			build_toolkit
+			docker run --rm --privileged -v "$FULL_IMG:$FULL_IMG:ro" -v "$FULL_VERSION_DIR:$FULL_VERSION_DIR" "${BUILDER_IMAGE_PREFIX:-}sysdig-probe-builder:toolkit" coreos "$FULL_IMG" "$FULL_VERSION_DIR"
 
 			KERNEL_RELEASE=$(cd $VERSION_DIR && ls config-* | sed s/config-//)
 			export COREOS_BUILD=${VERSION%%.*}
@@ -484,7 +474,10 @@ function rhel_build {
 		else
 			echo "Unpacking $RPM to $TARGET"
 			mkdir -p $TARGET
-			rpm2cpio $RPM | (cd $TARGET ; cpio -idm)
+			FULL_RPM=$(readlink -f "$RPM")
+			FULL_TARGET=$(readlink -f "$TARGET")
+			build_toolkit
+			docker run --rm --privileged -v "$FULL_RPM:$FULL_RPM:ro" -v "$FULL_TARGET:$FULL_TARGET" "${BUILDER_IMAGE_PREFIX:-}sysdig-probe-builder:toolkit" rpm "$FULL_RPM" "$FULL_TARGET"
 			touch $MARKER
 		fi
 	done
