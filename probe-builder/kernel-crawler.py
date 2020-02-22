@@ -155,7 +155,7 @@ repos = {
     "Fedora" : [
         {
             "root" : "https://mirrors.kernel.org/fedora/releases/",
-            "discovery_pattern": "/html/body//a[regex:test(@href, '^2[2-9]/$')]/@href",
+            "discovery_pattern": "/html/body//a[regex:test(@href, '^[3-9][0-9]/$')]/@href",
             "subdirs" : [
                 "Everything/x86_64/os/Packages/k/"
             ],
@@ -164,7 +164,7 @@ repos = {
 
         {
             "root" : "https://mirrors.kernel.org/fedora/updates/",
-            "discovery_pattern": "/html/body//a[regex:test(@href, '^2[2-9]/$')]/@href",
+            "discovery_pattern": "/html/body//a[regex:test(@href, '^[3-9][0-9]/$')]/@href",
             "subdirs" : [
                 "x86_64/Packages/k/"
             ],
@@ -173,7 +173,7 @@ repos = {
 
         {
             "root" : "https://mirrors.kernel.org/fedora/updates/",
-            "discovery_pattern": "/html/body//a[regex:test(@href, '^2[2-9]/$')]/@href",
+            "discovery_pattern": "/html/body//a[regex:test(@href, '^[3-9][0-9]/$')]/@href",
             "subdirs" : [
                 "Everything/x86_64/Packages/k/"
             ],
