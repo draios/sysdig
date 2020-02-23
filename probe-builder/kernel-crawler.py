@@ -299,7 +299,7 @@ amazon_linux2 = []
 for amzn_repos in amazon_linux_2:
     amazon_linux2.append({
         "root": "http://amazonlinux.us-east-1.amazonaws.com/2/core/" + amzn_repos + "/x86_64/mirror.list",
-        "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
+        "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%' AND name NOT LIKE 'kernel-livepatch%'",
         "subdirs": [""],
         "page_pattern": "",
         "exclude_patterns": ["doc", "tools", "headers"]
