@@ -736,7 +736,7 @@ function build_group_oracle_rhck {
 		echo Downloading Oracle RHCK kernels
 		DIR=$(dirname $(readlink -f $0))
 		mkdir -p $DISTRO
-		$DIR/oracle-kernel-crawler.py Oracle-RHCK | xargs -n 1 -P $DOWNLOAD_CONCURRENCY wget -c -nv --timeout=${DOWNLOAD_TIMEOUT} --tries=${RETRIES} -P $DISTRO
+		$DIR/oracle-kernel-crawler.py Oracle-RHCK | xargs -n 1 wget -c -nv --timeout=${DOWNLOAD_TIMEOUT} --tries=${RETRIES} -P $DISTRO
 	fi
 	echo "Building Oracle RHCK"
 	rhel_build $DISTRO/*.rpm
@@ -754,7 +754,7 @@ function build_group_oracle_ol6_uek {
 		echo Downloading Oracle Linux 6 UEK kernels
 		DIR=$(dirname $(readlink -f $0))
 		mkdir -p $DISTRO
-		$DIR/oracle-kernel-crawler.py OL6-UEK | xargs -n 1 -P $DOWNLOAD_CONCURRENCY wget -c -nv --timeout=${DOWNLOAD_TIMEOUT} --tries=${RETRIES} -P $DISTRO
+		$DIR/oracle-kernel-crawler.py OL6-UEK | xargs -n 1 wget -c -nv --timeout=${DOWNLOAD_TIMEOUT} --tries=${RETRIES} -P $DISTRO
 	fi
 	echo "Building Oracle Linux 6 UEK"
 	rhel_build $DISTRO/*.rpm
@@ -773,7 +773,7 @@ function build_group_oracle_ol7_uek {
 		echo Downloading Oracle Linux 7 UEK kernels
 		DIR=$(dirname $(readlink -f $0))
 		mkdir -p $DISTRO
-		$DIR/oracle-kernel-crawler.py OL7-UEK | xargs -n 1 -P $DOWNLOAD_CONCURRENCY wget -c -nv --timeout=${DOWNLOAD_TIMEOUT} --tries=${RETRIES} -P $DISTRO
+		$DIR/oracle-kernel-crawler.py OL7-UEK | xargs -n 1 wget -c -nv --timeout=${DOWNLOAD_TIMEOUT} --tries=${RETRIES} -P $DISTRO
 	fi
 	echo "Building Oracle Linux 7 UEK"
 	rhel_build $DISTRO/*.rpm
