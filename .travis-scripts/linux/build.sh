@@ -27,9 +27,9 @@ else
 	export CC="gcc-4.8"
 	export CXX="g++-4.8"
 fi
-wget https://s3.amazonaws.com/download.draios.com/dependencies/cmake-3.3.2.tar.gz
-tar -xzf cmake-3.3.2.tar.gz
-cd cmake-3.3.2
+wget https://github.com/Kitware/CMake/releases/download/v3.16.4/cmake-3.16.4.tar.gz
+tar -xzf cmake-3.16.4.tar.gz
+cd cmake-3.16.4
 ./bootstrap --prefix=/usr
 make
 sudo make install
