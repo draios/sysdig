@@ -37,4 +37,11 @@ or GPL2.txt for full copies of the license.
 #define asm_volatile_goto(...) asm volatile("invalid use of asm_volatile_goto")
 #endif
 
+/* Ditto for asm_inline (new in Linux 5.4)
+ */
+#ifdef asm_inline
+#undef asm_inline
+#define asm_inline asm
+#endif
+
 #endif

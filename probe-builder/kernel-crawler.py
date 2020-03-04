@@ -120,13 +120,42 @@ repos = {
             "discovery_pattern" : "/html/body//a[@href = 'linux/']/@href",
             "subdirs" : [""],
             "page_pattern" : "/html/body//a[regex:test(@href, '^linux-modules-[3-9].*-generic.*amd64.deb$')]/@href"
+        },
+
+		### Ubuntu AWS kernels
+        {
+            "root" : "https://mirrors.kernel.org/ubuntu/pool/main/l/",
+            "discovery_pattern" : "/html/body//a[regex:test(@href, 'linux-aws.*/')]/@href",
+            "subdirs" : [""],
+            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|(aws-.*)?headers)-[3-9].*-aws.*amd64.deb$')]/@href"
+        },
+
+        {
+            "root" : "https://mirrors.kernel.org/ubuntu/pool/main/l/",
+            "discovery_pattern" : "/html/body//a[regex:test(@href, 'linux-aws.*/')]/@href",
+            "subdirs" : [""],
+            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(aws-.*)?headers-[3-9].*_all.deb$')]/@href"
+        },
+
+        {
+            "root" : "http://security.ubuntu.com/ubuntu/pool/main/l/",
+            "discovery_pattern" : "/html/body//a[regex:test(@href, 'linux-aws.*/')]/@href",
+            "subdirs" : [""],
+            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|(aws-.*)?headers)-[3-9].*-aws.*amd64.deb$')]/@href"
+        },
+
+        {
+            "root" : "http://security.ubuntu.com/ubuntu/pool/main/l/",
+            "discovery_pattern" : "/html/body//a[regex:test(@href, 'linux-aws.*/')]/@href",
+            "subdirs" : [""],
+            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-modules-[3-9].*-aws.*amd64.deb$')]/@href"
         }
     ],
 
     "Fedora" : [
         {
             "root" : "https://mirrors.kernel.org/fedora/releases/",
-            "discovery_pattern": "/html/body//a[regex:test(@href, '^2[2-9]/$')]/@href",
+            "discovery_pattern": "/html/body//a[regex:test(@href, '^[3-9][0-9]/$')]/@href",
             "subdirs" : [
                 "Everything/x86_64/os/Packages/k/"
             ],
@@ -135,7 +164,7 @@ repos = {
 
         {
             "root" : "https://mirrors.kernel.org/fedora/updates/",
-            "discovery_pattern": "/html/body//a[regex:test(@href, '^2[2-9]/$')]/@href",
+            "discovery_pattern": "/html/body//a[regex:test(@href, '^[3-9][0-9]/$')]/@href",
             "subdirs" : [
                 "x86_64/Packages/k/"
             ],
@@ -144,7 +173,7 @@ repos = {
 
         {
             "root" : "https://mirrors.kernel.org/fedora/updates/",
-            "discovery_pattern": "/html/body//a[regex:test(@href, '^2[2-9]/$')]/@href",
+            "discovery_pattern": "/html/body//a[regex:test(@href, '^[3-9][0-9]/$')]/@href",
             "subdirs" : [
                 "Everything/x86_64/Packages/k/"
             ],
@@ -222,6 +251,27 @@ repos = {
             "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp", "unsigned", "cloud-amd64"]
         },
         {
+            "root": "https://mirrors.kernel.org/debian/pool/main/l/",
+            "discovery_pattern": "/html/body/pre/a[@href = 'linux/']/@href",
+            "subdirs": [""],
+            "page_pattern": "/html/body//a[regex:test(@href, '^linux-headers-[3-9]\.[0-9]+\.[0-9]+.*-common_.*.all\.deb$')]/@href",
+            "exclude_patterns": ["-rt", "dbg", "trunk", "exp", "unsigned", "cloud-amd64"]
+        },
+        {
+            "root": "http://security.debian.org/pool/updates/main/l/",
+            "discovery_pattern": "/html/body/table//tr/td/a[@href = 'linux/']/@href",
+            "subdirs": [""],
+            "page_pattern": "/html/body//a[regex:test(@href, '^linux-headers-[3-9]\.[0-9]+\.[0-9]+.*-common_.*.all\.deb$')]/@href",
+            "exclude_patterns": ["-rt", "dbg", "trunk", "exp", "unsigned", "cloud-amd64"]
+        },
+        {
+            "root": "http://mirrors.kernel.org/debian/pool/main/l/",
+            "discovery_pattern": "/html/body/pre/a[@href = 'linux/']/@href",
+            "subdirs": [""],
+            "page_pattern": "/html/body//a[regex:test(@href, '^linux-kbuild-.*amd64.deb$')]/@href",
+            "exclude_patterns": ["-rt", "dbg", "trunk", "all", "exp", "unsigned", "cloud-amd64"]
+        },
+        {
             "root": "http://mirrors.kernel.org/debian/pool/main/l/",
             "discovery_pattern": "/html/body/pre/a[@href = 'linux-tools/']/@href",
             "subdirs": [""],
@@ -249,7 +299,7 @@ amazon_linux2 = []
 for amzn_repos in amazon_linux_2:
     amazon_linux2.append({
         "root": "http://amazonlinux.us-east-1.amazonaws.com/2/core/" + amzn_repos + "/x86_64/mirror.list",
-        "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%'",
+        "discovery_pattern": "SELECT * FROM packages WHERE name LIKE 'kernel%' AND name NOT LIKE 'kernel-livepatch%'",
         "subdirs": [""],
         "page_pattern": "",
         "exclude_patterns": ["doc", "tools", "headers"]
@@ -335,6 +385,9 @@ URL_TIMEOUT=30
 
 if len(sys.argv) < 2 or not sys.argv[1] in repos:
     sys.stderr.write("Usage: " + sys.argv[0] + " <distro>\n")
+    sys.stderr.write("Available distros:\n")
+    for d in sorted(repos):
+        sys.stderr.write(" - {}\n".format(d))
     sys.exit(1)
 
 distro = sys.argv[1]
