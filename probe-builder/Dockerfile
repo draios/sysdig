@@ -1,18 +1,18 @@
-FROM centos:7
+FROM alpine
 
-RUN yum -y install \
+RUN apk add \
+    bash \
+    gawk \
+    grep \
 	curl \
-	dpkg-deb \
-	epel-release \
+    dpkg \
+	rpm2cpio \
 	git \
 	jq \
-	kpartx \
-	python-lxml \
+	multipath-tools \
+	py3-lxml \
 	wget \
-	&& yum -y install jq \
-	&& yum clean all
-
-RUN curl -fsSL https://get.docker.io | bash
+    docker
 
 ADD . /builder
 WORKDIR /builder

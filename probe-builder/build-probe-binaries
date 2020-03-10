@@ -33,6 +33,7 @@ PROBE_NAME=sysdig-probe
 RETRIES=10
 DOWNLOAD_TIMEOUT=300
 PROBE_VERSION=
+RUNNING_IN_DOCKER=
 
 usage() {
 	cat >&2 <<EOF
@@ -147,7 +148,8 @@ do
 		a) ARTIFACTORY_SERVER=$OPTARG;;
 		A) ARTIFACTORY_KEY=$OPTARG;;
 		b) BUILDER_IMAGE_PREFIX=$OPTARG;;
-		B) DOCKER_BASEDIR=$OPTARG;;
+		B) DOCKER_BASEDIR=$OPTARG
+		   RUNNING_IN_DOCKER=1;;
 		d) DOWNLOAD_CONCURRENCY=$OPTARG;;
 		k) KERNEL_TYPE=$OPTARG;;
 		p) PROBE_NAME=$OPTARG;;
@@ -236,6 +238,40 @@ function build_toolkit {
 	fi
 }
 
+function run_toolkit {
+	if [ -z "$RUNNING_IN_DOCKER" ]
+	then
+		build_toolkit
+	fi
+	declare -a DOCKER_OPTS
+	declare -a TOOLKIT_OPTS
+
+	IN_TOOLKIT_OPTS=
+	for i in "$@"
+	do
+		if [ -z "$IN_TOOLKIT_OPTS" ]
+		then
+			if [ "$i" == "--" ]
+			then
+				IN_TOOLKIT_OPTS=1
+			else
+				DOCKER_OPTS+=("$i")
+			fi
+		else
+			TOOLKIT_OPTS+=("$i")
+		fi
+	done
+
+	if [ -z "$RUNNING_IN_DOCKER" ]
+	then
+		# running on the host, use toolkit container
+		docker run --rm --privileged ${DOCKER_OPTS[@]} "${BUILDER_IMAGE_PREFIX:-}sysdig-probe-builder:toolkit" ${TOOLKIT_OPTS[@]}
+	else
+		# already in a container, call the toolkit directly
+		/builder/toolkit-entrypoint.sh ${TOOLKIT_OPTS[@]}
+	fi
+}
+
 declare -A builders
 function build_probe {
 	# Skip Kernel 4.15.0-29 because probe does not build against it
@@ -292,8 +328,7 @@ function build_probe {
 
 		# While ls output is already sorted alphabetically by default, we need to sort it
 		# by version instead so it doesn't break when we add support for gcc 10.0
-		# so use ls -U not to bother with sorting
-		DOCKERFILE=$(ls -U $BUILDER_SOURCE/Dockerfile.${BUILDER_DISTRO}-gcc* | sort -V | awk \
+		DOCKERFILE=$(ls $BUILDER_SOURCE/Dockerfile.${BUILDER_DISTRO}-gcc* | sort -V | awk \
 			-v target=$BUILDER_SOURCE/Dockerfile.${BUILDER_DISTRO}-gcc${BUILDER_GCC_MINOR_VERSION} \
 		'
 		$1 < target { older = $1 }
@@ -358,8 +393,7 @@ function coreos_build {
 			echo "Unpacking $(basename $IMG)"
 			FULL_IMG=$(readlink -f "$IMG")
 			FULL_VERSION_DIR=$(readlink -f "$VERSION_DIR")
-			build_toolkit
-			docker run --rm --privileged -v "$FULL_IMG:$FULL_IMG:ro" -v "$FULL_VERSION_DIR:$FULL_VERSION_DIR" "${BUILDER_IMAGE_PREFIX:-}sysdig-probe-builder:toolkit" coreos "$FULL_IMG" "$FULL_VERSION_DIR"
+			run_toolkit -v "$FULL_IMG:$FULL_IMG:ro" -v "$FULL_VERSION_DIR:$FULL_VERSION_DIR" -- coreos "$FULL_IMG" "$FULL_VERSION_DIR"
 
 			KERNEL_RELEASE=$(cd $VERSION_DIR && ls config-* | sed s/config-//)
 			export COREOS_BUILD=${VERSION%%.*}
@@ -464,7 +498,7 @@ function rhel_build {
 	for RPM in "$@"
 	do
 		RPM_FILE=$(basename $RPM)
-		KERNEL_RELEASE=$(echo $RPM_FILE | awk 'match($0, /[^kernel\-(uek\-)?(core\-|devel\-)?].*[^(\.rpm)]/){ print substr($0, RSTART, RLENGTH) }')
+		KERNEL_RELEASE=$(echo $RPM_FILE | gawk 'match($0, /[^kernel\-(uek\-)?(core\-|devel\-)?].*[^(\.rpm)]/){ print substr($0, RSTART, RLENGTH) }')
 
 		TARGET=build/$DISTRO/$KERNEL_RELEASE
 		MARKER=$TARGET/.$RPM_FILE
@@ -476,8 +510,7 @@ function rhel_build {
 			mkdir -p $TARGET
 			FULL_RPM=$(readlink -f "$RPM")
 			FULL_TARGET=$(readlink -f "$TARGET")
-			build_toolkit
-			docker run --rm --privileged -v "$FULL_RPM:$FULL_RPM:ro" -v "$FULL_TARGET:$FULL_TARGET" "${BUILDER_IMAGE_PREFIX:-}sysdig-probe-builder:toolkit" rpm "$FULL_RPM" "$FULL_TARGET"
+			run_toolkit -v "$FULL_RPM:$FULL_RPM:ro" -v "$FULL_TARGET:$FULL_TARGET" -- rpm "$FULL_RPM" "$FULL_TARGET"
 			touch $MARKER
 		fi
 	done
@@ -485,7 +518,7 @@ function rhel_build {
 	for RPM in "$@"
 	do
 		RPM_FILE=$(basename $RPM)
-		KERNEL_RELEASE=$(echo $RPM_FILE | awk 'match($0, /[^kernel\-(uek\-)?(core\-|devel\-)?].*[^(\.rpm)]/){ print substr($0, RSTART, RLENGTH) }')
+		KERNEL_RELEASE=$(echo $RPM_FILE | gawk 'match($0, /[^kernel\-(uek\-)?(core\-|devel\-)?].*[^(\.rpm)]/){ print substr($0, RSTART, RLENGTH) }')
 		TARGET=build/$DISTRO/$KERNEL_RELEASE
 
 		if [ -f $TARGET/boot/config-$KERNEL_RELEASE ]; then
