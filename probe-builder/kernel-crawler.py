@@ -323,6 +323,9 @@ for amzn_repos in amazon_linux_2:
 
 repos['AmazonLinux2'] = amazon_linux2
 
+def progress(distro, current, total, package):
+    sys.stderr.write('\r{} {}/{} {}               '.format(distro, current, total, package))
+
 def exclude_patterns(repo, packages, base_url, urls):
     for rpm in packages:
         if "exclude_patterns" in repo and any(re.search(x, rpm) for x in repo["exclude_patterns"]):
@@ -340,13 +343,17 @@ def process_al_distro(al_distro_name, current_repo):
             base_mirror_url = get_url.replace('\n','') + '/'
             db_path = "repodata/primary.sqlite.gz"
 
+        progress(current_repo["root"], 1, 3, 'downloading ' + db_path)
         response = urlopen(base_mirror_url + db_path)
+        body = response.read()
 
+        progress(current_repo["root"], 2, 3, 'decompressing')
         if al_distro_name == "AmazonLinux":
-            decompressed_data = bz2.decompress(response.read())
+            decompressed_data = bz2.decompress(body)
         elif al_distro_name == "AmazonLinux2":
-            decompressed_data = zlib.decompress(response.read(), 16+zlib.MAX_WBITS)
+            decompressed_data = zlib.decompress(body, 16+zlib.MAX_WBITS)
 
+        progress(current_repo["root"], 3, 3, 'querying')
         db_file = tempfile.NamedTemporaryFile()
         db_file.write(decompressed_data)
         conn = sqlite3.connect(db_file.name)
@@ -357,6 +364,7 @@ def process_al_distro(al_distro_name, current_repo):
         conn.close()
         db_file.close()
 
+        sys.stderr.write('\n')
         return True
 
     else:
@@ -372,9 +380,12 @@ def process_atomic_distro(current_repos):
         except:
             continue
         versions = html.fromstring(root).xpath(repo["version_discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+        vid = 0
         for version in versions:
+            vid += 1
             version_url=repo["root"] + version
             try:
+                progress(repo["root"], vid, len(versions), version)
                 version_page=urlopen(version_url,timeout=URL_TIMEOUT).read()
             except:
                 continue
@@ -388,6 +399,7 @@ def process_atomic_distro(current_repos):
                         continue
                     rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
                     exclude_patterns(repo, rpms, source, urls)
+        sys.stderr.write('\n')
 
 
 #
@@ -441,6 +453,8 @@ for repo in repos[distro]:
             continue
 
         versions = html.fromstring(root).xpath(repo["discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+        current = 1
+        total = len(versions) * len(repo["subdirs"])
         for version in versions:
             for subdir in repo["subdirs"]:
                 # The try - except block is used because 404 errors and similar
@@ -448,11 +462,15 @@ for repo in repos[distro]:
                 # packages we need)
                 try:
                     source = repo["root"] + version + subdir
+                    progress(repo["root"], current, total, version + subdir)
+                    current += 1
                     page = urlopen(source,timeout=URL_TIMEOUT).read()
                     rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
                     exclude_patterns(repo, rpms, source, urls)
                 except:
                     continue
+        sys.stderr.write('\n')
+
 
 #
 # Print URLs to stdout

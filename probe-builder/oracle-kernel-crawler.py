@@ -62,6 +62,9 @@ repos = {
     ]
 }
 
+def progress(distro, current, total, package):
+    sys.stderr.write('\r{} {}/{} {}               '.format(distro, current, total, package))
+
 #
 # In our design you are not supposed to modify the code. The whole script is
 # created so that you just have to add entry to the `repos` array and new
@@ -85,8 +88,11 @@ for repo in repos[sys.argv[1]]:
     except:
         continue
     versions = html.fromstring(root).xpath(repo["discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+    vid = 0
     for version in versions:
+        vid += 1
         ver_url = repo["root"] + version
+        progress(repo["root"], vid, len(versions), version)
         try:
             subroot = urlopen(ver_url,timeout=URL_TIMEOUT).read()
         except:
