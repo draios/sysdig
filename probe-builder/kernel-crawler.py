@@ -20,14 +20,30 @@
 # Author: Samuele Pilleri
 # Date: August 17th, 2015
 
+from __future__ import unicode_literals
+
 import bz2
 import re
 import sqlite3
 import sys
 import tempfile
 import time
-import urllib2
 import zlib
+
+try:
+    from urllib2 import urlopen, unquote
+
+    # python 2
+    def sqlite_column(row, col):
+        return row[bytes(col)]
+
+except ImportError:
+    from urllib.request import urlopen
+    from urllib.parse import unquote
+
+    # python 3
+    def sqlite_column(row, col):
+        return row[col]
 
 from lxml import html
 
@@ -312,10 +328,10 @@ def exclude_patterns(repo, packages, base_url, urls):
         if "exclude_patterns" in repo and any(re.search(x, rpm) for x in repo["exclude_patterns"]):
             continue
         else:
-            urls.add(base_url + str(urllib2.unquote(rpm)))
+            urls.add(base_url + str(unquote(rpm)))
 
 def process_al_distro(al_distro_name, current_repo):
-    get_url = urllib2.urlopen(current_repo["root"]).readline()
+    get_url = urlopen(current_repo["root"]).readline().decode('ascii')
     if get_url:
         if al_distro_name == "AmazonLinux":
             base_mirror_url = get_url.replace('$basearch','x86_64').replace('\n','') + '/'
@@ -324,7 +340,7 @@ def process_al_distro(al_distro_name, current_repo):
             base_mirror_url = get_url.replace('\n','') + '/'
             db_path = "repodata/primary.sqlite.gz"
 
-        response = urllib2.urlopen(base_mirror_url + db_path)
+        response = urlopen(base_mirror_url + db_path)
 
         if al_distro_name == "AmazonLinux":
             decompressed_data = bz2.decompress(response.read())
@@ -336,7 +352,7 @@ def process_al_distro(al_distro_name, current_repo):
         conn = sqlite3.connect(db_file.name)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-        al_rpms = [r["location_href"] for r in c.execute(current_repo["discovery_pattern"])]
+        al_rpms = [sqlite_column(r, "location_href") for r in c.execute(current_repo["discovery_pattern"])]
         exclude_patterns(current_repo, al_rpms, base_mirror_url, urls)
         conn.close()
         db_file.close()
@@ -352,14 +368,14 @@ def process_al_distro(al_distro_name, current_repo):
 def process_atomic_distro(current_repos):
     for repo in current_repos["Fedora-Atomic"]:
         try:
-            root = urllib2.urlopen(repo["root"],timeout=URL_TIMEOUT).read()
+            root = urlopen(repo["root"],timeout=URL_TIMEOUT).read()
         except:
             continue
         versions = html.fromstring(root).xpath(repo["version_discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
         for version in versions:
             version_url=repo["root"] + version
             try:
-                version_page=urllib2.urlopen(version_url,timeout=URL_TIMEOUT).read()
+                version_page=urlopen(version_url,timeout=URL_TIMEOUT).read()
             except:
                 continue
             builds = html.fromstring(version_page).xpath(repo["build_discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
@@ -367,7 +383,7 @@ def process_atomic_distro(current_repos):
                 for subdir in repo["subdirs"]:
                     source = version_url + build + subdir
                     try:
-                        page = urllib2.urlopen(source,timeout=URL_TIMEOUT).read()
+                        page = urlopen(source,timeout=URL_TIMEOUT).read()
                     except:
                         continue
                     rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
@@ -420,7 +436,7 @@ for repo in repos[distro]:
             continue
     else:
         try:
-            root = urllib2.urlopen(repo["root"],timeout=URL_TIMEOUT).read()
+            root = urlopen(repo["root"],timeout=URL_TIMEOUT).read()
         except:
             continue
 
@@ -432,7 +448,7 @@ for repo in repos[distro]:
                 # packages we need)
                 try:
                     source = repo["root"] + version + subdir
-                    page = urllib2.urlopen(source,timeout=URL_TIMEOUT).read()
+                    page = urlopen(source,timeout=URL_TIMEOUT).read()
                     rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
                     exclude_patterns(repo, rpms, source, urls)
                 except:

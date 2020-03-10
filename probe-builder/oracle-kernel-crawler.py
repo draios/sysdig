@@ -18,7 +18,13 @@
 #
 
 import sys
-import urllib2
+
+try:
+    from urllib2 import urlopen, unquote
+except ImportError:
+	from urllib.request import urlopen
+	from urllib.parse import unquote
+
 from lxml import html
 
 #
@@ -75,14 +81,14 @@ if len(sys.argv) < 2 or not sys.argv[1] in repos:
 #
 for repo in repos[sys.argv[1]]:
     try:
-        root = urllib2.urlopen(repo["root"],timeout=URL_TIMEOUT).read()
+        root = urlopen(repo["root"],timeout=URL_TIMEOUT).read()
     except:
         continue
     versions = html.fromstring(root).xpath(repo["discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
     for version in versions:
         ver_url = repo["root"] + version
         try:
-            subroot = urllib2.urlopen(ver_url,timeout=URL_TIMEOUT).read()
+            subroot = urlopen(ver_url,timeout=URL_TIMEOUT).read()
         except:
             continue
         sub_vers = html.fromstring(subroot).xpath(repo["sub_discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
@@ -93,12 +99,12 @@ for repo in repos[sys.argv[1]]:
             # packages we need)
             try:
                 source = repo["root"] + sub_ver
-                page = urllib2.urlopen(source,timeout=URL_TIMEOUT).read()
+                page = urlopen(source,timeout=URL_TIMEOUT).read()
                 rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
 
                 source = source.replace("index.html", "")
                 for rpm in rpms:
-                    urls.add(source + str(urllib2.unquote(rpm)))
+                    urls.add(source + str(unquote(rpm)))
             except:
                 continue
 
