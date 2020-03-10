@@ -133,29 +133,15 @@ repos = {
             "root" : "https://mirrors.kernel.org/ubuntu/pool/main/l/",
             "discovery_pattern" : "/html/body//a[regex:test(@href, 'linux-aws.*/')]/@href",
             "subdirs" : [""],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|(aws-.*)?headers)-[3-9].*-aws.*amd64.deb$')]/@href"
-        },
-
-        {
-            "root" : "https://mirrors.kernel.org/ubuntu/pool/main/l/",
-            "discovery_pattern" : "/html/body//a[regex:test(@href, 'linux-aws.*/')]/@href",
-            "subdirs" : [""],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(aws-.*)?headers-[3-9].*_all.deb$')]/@href"
+            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|(aws-.*)?headers|modules)-[3-9].*(all|amd64).deb$')]/@href"
         },
 
         {
             "root" : "http://security.ubuntu.com/ubuntu/pool/main/l/",
             "discovery_pattern" : "/html/body//a[regex:test(@href, 'linux-aws.*/')]/@href",
             "subdirs" : [""],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|(aws-.*)?headers)-[3-9].*-aws.*amd64.deb$')]/@href"
+            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-(image|(aws-.*)?headers|modules)-[3-9].*(all|amd64).deb$')]/@href"
         },
-
-        {
-            "root" : "http://security.ubuntu.com/ubuntu/pool/main/l/",
-            "discovery_pattern" : "/html/body//a[regex:test(@href, 'linux-aws.*/')]/@href",
-            "subdirs" : [""],
-            "page_pattern" : "/html/body//a[regex:test(@href, '^linux-modules-[3-9].*-aws.*amd64.deb$')]/@href"
-        }
     ],
 
     "Fedora" : [
