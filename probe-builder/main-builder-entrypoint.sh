@@ -63,7 +63,7 @@ build_probes()
 	KERNELS_SRC=$(get_host_mount /kernels)  
 
 	cd /workspace
-	/builder/build-probe-binaries -B $WORKSPACE_SRC -s $SYSDIG_SRC -b $BUILDER_IMAGE_PREFIX "$@" /kernels/*
+	/builder/build-probe-binaries -B $WORKSPACE_SRC -s $SYSDIG_SRC -b "$BUILDER_IMAGE_PREFIX" "$@" /kernels/*
 }
 
 prepare_builders()
