@@ -85,16 +85,6 @@ repos = {
                 "updates/x86_64/Packages/"
             ],
             "page_pattern" : "//body//table/tr/td/a[regex:test(@href, '^kernel-(devel-)?[0-9].*\.rpm$')]/@href"
-        },
-
-        {
-            "root" : "http://vault.centos.org/centos/",
-            "discovery_pattern" : "//body//table/tr/td/a[regex:test(@href, '^6|^7.*$')]/@href",
-            "subdirs" : [
-                "os/x86_64/Packages/",
-                "updates/x86_64/Packages/"
-            ],
-            "page_pattern" : "//body//table/tr/td/a[regex:test(@href, '^kernel-(devel-)?[0-9].*\.rpm$')]/@href"
         }
     ],
 
