@@ -1,0 +1,21 @@
+FROM ubuntu:18.04
+
+RUN apt-get update && apt-get -y --no-install-recommends install \
+	cmake \
+	g++ \
+	git \
+	kmod \
+	libc6-dev \
+	libelf-dev \
+	make \
+	pkg-config \
+	bison \
+	flex \
+	kernel-package \
+	libssl-dev \
+	&& apt-get clean
+
+ADD builder-entrypoint-minikube.sh /
+WORKDIR /build/probe
+ENTRYPOINT [ "/builder-entrypoint-minikube.sh" ]
+

@@ -634,6 +634,59 @@ function debian_build {
 	done
 }
 
+function minikube_build {
+	BUILDER_DISTRO=${BUILDER_DISTRO:-minikube}
+	for MINIKUBE_ARCHIVE in "$@"
+	do
+		MINIKUBE_VERSION=$(basename "$MINIKUBE_ARCHIVE" .tar.gz)
+		MINIKUBE_VERSION=${MINIKUBE_VERSION##v}
+
+		TARGET=build/$DISTRO/minikube-$MINIKUBE_VERSION
+		MARKER=$TARGET/.$(basename $MINIKUBE_ARCHIVE)
+		if [ -e $MARKER ]
+		then
+			echo "$MINIKUBE_ARCHIVE already unpacked in $TARGET"
+		else
+			echo "Unpacking $MINIKUBE_ARCHIVE to $TARGET"
+			mkdir -p $TARGET
+			tar -C build/$DISTRO -xzxf $MINIKUBE_ARCHIVE
+			touch $MARKER
+		fi
+	done
+
+	for MINIKUBE_ARCHIVE in "$@"
+	do
+		MINIKUBE_VERSION=$(basename "$MINIKUBE_ARCHIVE" .tar.gz)
+		MINIKUBE_VERSION=${MINIKUBE_VERSION##v}
+
+		TARGET=build/$DISTRO/minikube-$MINIKUBE_VERSION
+		MINIKUBE_KERNEL_VERSION=$(awk '/^KERNEL_VERSION/ { print $NF }' ${TARGET}/Makefile)
+
+
+		TGZ_NAME=linux-${MINIKUBE_KERNEL_VERSION}.tar.xz
+		MAJOR=$(echo $MINIKUBE_KERNEL_VERSION | cut -d. -f1)
+		MINOR=$(echo $MINIKUBE_KERNEL_VERSION | cut -d. -f2)
+
+		KERNEL_CONFIG=${TARGET}/deploy/iso/minikube-iso/board/coreos/minikube/linux_defconfig
+
+		export KERNELDIR=${TARGET}/linux-${MINIKUBE_KERNEL_VERSION}
+
+		if [ ! -d ${KERNELDIR} ]; then
+				wget -c -P build/$DISTRO --timeout=${DOWNLOAD_TIMEOUT} --tries=${RETRIES} https://www.kernel.org/pub/linux/kernel/v${MAJOR}.x/${TGZ_NAME}
+				tar -C $TARGET -xf build/$DISTRO/${TGZ_NAME}
+		fi
+
+		make -C ${KERNELDIR} distclean
+		cp ${KERNEL_CONFIG} ${KERNELDIR}/.config
+
+		KERNEL_RELEASE=${MINIKUBE_KERNEL_VERSION}
+		HASH=minikube-$MINIKUBE_VERSION
+		HASH_ORIG=minikube-$MINIKUBE_VERSION
+		echo "Building probe for Minikube $MINIKUBE_VERSION kernel $KERNEL_RELEASE"
+		build_probe
+	done
+}
+
 function build_group_ubuntu {
 	#
 	# Ubuntu build
@@ -869,6 +922,27 @@ function build_group_rhel {
 	rhel_build $DISTRO/*.rpm
 }
 
+function build_group_minikube {
+	#
+	# Minikube build
+	#
+	DISTRO=minikube
+	BUILDER_DISTRO=minikube
+	if [ "$DOWNLOAD_CONCURRENCY" != "0" ]
+	then
+		echo Downloading Minikube sources
+		DIR=$(dirname $(readlink -f $0))
+		mkdir -p $DISTRO
+
+		curl -s https://api.github.com/repos/kubernetes/minikube/releases | \
+			jq -r '"https://github.com/kubernetes/minikube/archive/" + .[].name + ".tar.gz"' | \
+			grep -v beta | head -10 | \
+			xargs -n 1 -P $DOWNLOAD_CONCURRENCY wget -c --timeout=${DOWNLOAD_TIMEOUT} --tries=${RETRIES} -P $DISTRO
+	fi
+	echo "Building Minikube"
+	minikube_build $DISTRO/*.tar.gz
+}
+
 function build_everything {
 	build_group_rhel
 	build_group_ubuntu
@@ -882,6 +956,7 @@ function build_everything {
 	build_group_oracle_ol7_uek
 	build_group_amazonlinux
 	build_group_amazonlinux2
+	build_group_minikube
 }
 
 case "$KERNEL_TYPE" in
@@ -936,6 +1011,10 @@ case "$KERNEL_TYPE" in
 	RHEL)
 		checkout_sysdig
 		build_group_rhel
+		;;
+	Minikube)
+		checkout_sysdig
+		build_group_minikube
 		;;
 	CustomCentOS)
 		checkout_sysdig

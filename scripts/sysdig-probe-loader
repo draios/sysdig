@@ -70,6 +70,13 @@ cos_version_greater()
 
 
 get_kernel_config() {
+	if [ ! -z "${SYSDIG_HOST_ROOT}" -a -f "${SYSDIG_HOST_ROOT}/etc/VERSION" -a -s ${SYSDIG_HOST_ROOT}/etc/version ]; then
+		MINIKUBE=1
+		MINIKUBE_VERSION="$(cat ${SYSDIG_HOST_ROOT}/etc/VERSION)"
+		HASH=minikube-${MINIKUBE_VERSION##v}
+		return
+	fi
+
 	if [ -f /proc/config.gz ]; then
 		echo "Found kernel config at /proc/config.gz"
 		KERNEL_CONFIG_PATH=/proc/config.gz
