@@ -76,7 +76,6 @@ void sinsp_threadinfo::init()
 	m_last_latency_entertime = 0;
 	m_latency = 0;
 #endif
-	m_ainfo = NULL;
 	m_program_hash = 0;
 	m_program_hash_scripts = 0;
 	m_lastevent_data = NULL;

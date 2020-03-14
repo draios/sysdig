@@ -379,11 +379,21 @@ private:
 
 	void add_filename(const char* fullpath);
 
-	inline bool is_transaction()
+public:
+	inline bool is_transaction() const
 	{
 		return (m_usrstate != NULL); 
 	}
 
+	T* get_usrstate()
+	{
+		return m_usrstate;
+	}
+
+
+	
+
+private:
 	inline void set_role_server()
 	{
 		m_flags |= FLAGS_ROLE_SERVER;
@@ -490,7 +500,6 @@ private:
 	friend class sinsp_parser;
 	friend class sinsp_threadinfo;
 	friend class sinsp_analyzer;
-	friend class thread_analyzer_info;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_fdtable;
 	friend class sinsp_filter_check_fd;

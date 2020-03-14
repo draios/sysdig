@@ -18,7 +18,13 @@
 #
 
 import sys
-import urllib2
+
+try:
+    from urllib2 import urlopen, unquote
+except ImportError:
+	from urllib.request import urlopen
+	from urllib.parse import unquote
+
 from lxml import html
 
 #
@@ -56,6 +62,9 @@ repos = {
     ]
 }
 
+def progress(distro, current, total, package):
+    sys.stderr.write('\r{} {}/{} {}               '.format(distro, current, total, package))
+
 #
 # In our design you are not supposed to modify the code. The whole script is
 # created so that you just have to add entry to the `repos` array and new
@@ -75,14 +84,17 @@ if len(sys.argv) < 2 or not sys.argv[1] in repos:
 #
 for repo in repos[sys.argv[1]]:
     try:
-        root = urllib2.urlopen(repo["root"],timeout=URL_TIMEOUT).read()
+        root = urlopen(repo["root"],timeout=URL_TIMEOUT).read()
     except:
         continue
     versions = html.fromstring(root).xpath(repo["discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
+    vid = 0
     for version in versions:
+        vid += 1
         ver_url = repo["root"] + version
+        progress(repo["root"], vid, len(versions), version)
         try:
-            subroot = urllib2.urlopen(ver_url,timeout=URL_TIMEOUT).read()
+            subroot = urlopen(ver_url,timeout=URL_TIMEOUT).read()
         except:
             continue
         sub_vers = html.fromstring(subroot).xpath(repo["sub_discovery_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
@@ -93,12 +105,12 @@ for repo in repos[sys.argv[1]]:
             # packages we need)
             try:
                 source = repo["root"] + sub_ver
-                page = urllib2.urlopen(source,timeout=URL_TIMEOUT).read()
+                page = urlopen(source,timeout=URL_TIMEOUT).read()
                 rpms = html.fromstring(page).xpath(repo["page_pattern"], namespaces = {"regex": "http://exslt.org/regular-expressions"})
 
                 source = source.replace("index.html", "")
                 for rpm in rpms:
-                    urls.add(source + str(urllib2.unquote(rpm)))
+                    urls.add(source + str(unquote(rpm)))
             except:
                 continue
 

@@ -40,7 +40,6 @@ struct iovec {
 
 class sinsp_delays_info;
 class sinsp_threadtable_listener;
-class thread_analyzer_info;
 class sinsp_tracerparser;
 class blprogram;
 
@@ -308,8 +307,6 @@ public:
 	//
 	sinsp_tracerparser* m_tracer_parser;
 
-	thread_analyzer_info* m_ainfo;
-
 	size_t args_len() const;
 	size_t env_len() const;
 	size_t cgroups_len() const;
@@ -449,7 +446,6 @@ VISIBILITY_PRIVATE
 	friend class sinsp_evt;
 	friend class sinsp_thread_manager;
 	friend class sinsp_transaction_table;
-	friend class thread_analyzer_info;
 	friend class sinsp_tracerparser;
 	friend class lua_cbacks;
 	friend class sinsp_baseliner;
