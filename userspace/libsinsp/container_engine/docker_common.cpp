@@ -17,6 +17,8 @@ limitations under the License.
 
 */
 
+#ifndef _WIN32
+
 #include "container_engine/docker.h"
 #include "cgroup_list_counter.h"
 #include "sinsp.h"
@@ -37,7 +39,7 @@ docker_async_source::docker_async_source(uint64_t max_wait_ms,
 	: async_key_value_source(max_wait_ms, ttl_ms),
 	  m_cache(cache),
 #ifdef _WIN32
-	  m_api_version("/v1.30"),
+	  m_api_version("/v1.30")
 #else
 	  m_api_version("/v1.24"),
 	  m_docker_unix_socket_path(std::move(socket_path)),
@@ -862,3 +864,4 @@ void docker::update_with_size(const std::string &container_id)
 	(void)m_docker_info_source->lookup(instruction, result, cb);
 }
 
+#endif // _WIN32

@@ -16,9 +16,9 @@
 # limitations under the License.
 #
 include_directories("${JSONCPP_INCLUDE}")
-include_directories("${TBB_INCLUDE_DIR}")
 
 if(NOT WIN32)
+	include_directories("${TBB_INCLUDE_DIR}")
 	include_directories("${CURL_INCLUDE_DIR}")
 	include_directories("${CURSES_INCLUDE_DIR}")
 endif()

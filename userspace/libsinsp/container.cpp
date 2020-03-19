@@ -319,7 +319,9 @@ void sinsp_container_manager::notify_new_container(const sinsp_container_info& c
 		std::shared_ptr<sinsp_evt> cevt(evt);
 
 		// Enqueue it onto the queue of pending container events for the inspector
+#ifndef _WIN32
 		m_inspector->m_pending_container_evts.push(cevt);
+#endif
 	}
 	else
 	{
@@ -510,6 +512,7 @@ void sinsp_container_manager::create_engines()
 		m_container_engine_by_type[CT_DOCKER] = docker_engine;
 	}
 #else
+#ifndef _WIN32
 	{
 		auto docker_engine = std::make_shared<container_engine::docker>(*this);
 		m_container_engines.push_back(docker_engine);
@@ -551,7 +554,8 @@ void sinsp_container_manager::create_engines()
 		m_container_engines.push_back(bpm_engine);
 		m_container_engine_by_type[CT_BPM] = bpm_engine;
 	}
-#endif
+#endif // _WIN32
+#endif // CYGWING_AGENT
 }
 
 void sinsp_container_manager::update_container_with_size(sinsp_container_type type,
@@ -589,7 +593,9 @@ void sinsp_container_manager::set_docker_socket_path(std::string socket_path)
 
 void sinsp_container_manager::set_query_docker_image_info(bool query_image_info)
 {
+#ifndef _WIN32
 	libsinsp::container_engine::docker_async_source::set_query_image_info(query_image_info);
+#endif
 }
 
 void sinsp_container_manager::set_cri_extra_queries(bool extra_queries)
@@ -626,3 +632,4 @@ void sinsp_container_manager::set_cri_delay(uint64_t delay_ms)
 	libsinsp::container_engine::cri::set_cri_delay(delay_ms);
 #endif
 }
+

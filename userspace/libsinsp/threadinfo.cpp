@@ -876,7 +876,7 @@ double sinsp_threadinfo::get_fd_usage_pct_d()
 
 uint64_t sinsp_threadinfo::get_fd_opencount() const
 {
-	return get_main_thread()->m_fdtable.size();
+	return ((sinsp_threadinfo*)this)->get_main_thread()->m_fdtable.size();
 }
 
 uint64_t sinsp_threadinfo::get_fd_limit()

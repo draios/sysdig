@@ -362,6 +362,7 @@ protected:
 		}
 	}
 
+#ifndef _WIN32
 	inline const sinsp_fdtable* get_fd_table() const
 	{
 		if(!(m_flags & PPM_CL_CLONE_FILES))
@@ -374,6 +375,7 @@ protected:
 			return (root == nullptr) ? nullptr : &(root->m_fdtable);
 		}
 	}
+#endif
 
 public:
 VISIBILITY_PRIVATE

@@ -19,6 +19,8 @@ limitations under the License.
 
 #pragma once
 
+#ifndef _WIN32
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -200,3 +202,5 @@ private:
 };
 }
 }
+
+#endif // _WIN32
