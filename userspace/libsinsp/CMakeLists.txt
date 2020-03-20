@@ -24,7 +24,6 @@ include_directories("${JSONCPP_INCLUDE}")
 include_directories("${LUAJIT_INCLUDE}")
 
 if(NOT WIN32 AND NOT APPLE)
-	include_directories("${TBB_INCLUDE_DIR}")
 	include_directories("${B64_INCLUDE}")
 	include_directories("${CURSES_INCLUDE_DIR}")
 	include_directories("${GRPC_INCLUDE}")
@@ -35,6 +34,7 @@ if(NOT WIN32 AND NOT APPLE)
 endif()
 
 if(NOT WIN32)
+	include_directories("${TBB_INCLUDE_DIR}")
 	include_directories("${CURL_INCLUDE_DIR}")
 endif()
 
