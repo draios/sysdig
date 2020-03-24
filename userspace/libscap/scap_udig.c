@@ -88,7 +88,6 @@ int32_t udig_alloc_ring(int* ring_fd,
 		else
 		{
 			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring shm_open error: %s\n", strerror(errno));
-			close(*ring_fd);
 			return SCAP_FAILURE;
 		}
 	}
@@ -181,7 +180,6 @@ int32_t udig_alloc_ring_descriptors(int* ring_descs_fd,
 		else
 		{
 			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring_descriptors shm_open error: %s\n", strerror(errno));
-			close(*ring_descs_fd);
 			shm_unlink(UDIG_RING_DESCS_SM_FNAME);
 			return SCAP_FAILURE;
 		}
