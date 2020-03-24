@@ -24,6 +24,7 @@ limitations under the License.
 #include <iostream>
 #include <list>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace sysdig
@@ -142,6 +143,7 @@ void async_key_value_source<key_type, value_type>::run()
 
 		if(!m_terminate)
 		{
+
 			run_impl();
 		}
 	}
@@ -163,14 +165,27 @@ bool async_key_value_source<key_type, value_type>::lookup_delayed(
 		m_thread = std::thread(&async_key_value_source::run, this);
 	}
 
-	typename value_map::const_iterator itr = m_value_map.find(key);
+	typename value_map::iterator itr = m_value_map.find(key);
 	bool request_complete;
 
 	if (itr == m_value_map.end())
 	{
-		// Haven't made the request yet
-		m_value_map[key].m_available = false;
-		m_value_map[key].m_value = value;
+		// Haven't made the request yet. Be explicit and validate insertion.
+		auto insert_result = m_value_map.emplace(key, lookup_request());
+
+		if(!insert_result.second)
+		{
+			g_logger.log("async_key_value_source: Failed to insert an empty item "
+						 "into the container cache.", sinsp_logger::SEV_ERROR);
+			return false;
+		}
+
+		// Replace the itr with the mapped value
+		itr = insert_result.first;
+
+		// Not sure why setting the value is needed, but being consistent with
+		// previous implementation.
+		itr->second.m_value = value;
 
 		// Make request to API and let the async thread know about it
 		if (std::find(m_request_set.begin(),
@@ -200,22 +215,25 @@ bool async_key_value_source<key_type, value_type>::lookup_delayed(
 		// and the async thread will continue handling the request so
 		// that it'll be available on the next call.
 		//
-		m_value_map[key].m_available_condition.wait_for(
+		itr->second.m_available_condition.wait_for(
 				guard,
 				std::chrono::milliseconds(m_max_wait_ms));
 
+		// Replace the iterator in case something changed
 		itr = m_value_map.find(key);
 		request_complete = (itr != m_value_map.end()) && itr->second.m_available;
 	}
 
 	if(request_complete)
 	{
+		// Pass the value back the caller and erase from the list.
 		value = itr->second.m_value;
-		m_value_map.erase(key);
+		m_value_map.erase(itr);
 	}
 	else
 	{
-		m_value_map[key].m_callback = handler;
+		// Set the callback to fill the value later
+		itr->second.m_callback = handler;
 	}
 
 	return request_complete;
@@ -267,16 +285,26 @@ void async_key_value_source<key_type, value_type>::store_value(
 {
 	std::lock_guard<std::mutex> guard(m_mutex);
 
-	if (m_value_map[key].m_callback)
+	typename value_map::iterator itr = m_value_map.find(key);
+	if(itr == m_value_map.end())
 	{
-		m_value_map[key].m_callback(key, value);
-		m_value_map.erase(key);
+		g_logger.log("async_key_value_source: Container not found when committing "
+					 "to container cache. Either the container no longer exists or "
+					 "the container lookup took longer than the timeout.",
+					 sinsp_logger::SEV_WARNING);
+		return;
+	}
+
+	if (itr->second.m_callback)
+	{
+		itr->second.m_callback(key, value);
+		m_value_map.erase(itr);
 	}
 	else
 	{
-		m_value_map[key].m_value = value;
-		m_value_map[key].m_available = true;
-		m_value_map[key].m_available_condition.notify_one();
+		itr->second.m_value = value;
+		itr->second.m_available = true;
+		itr->second.m_available_condition.notify_one();
 	}
 }
 
@@ -357,3 +385,4 @@ std::chrono::steady_clock::time_point async_key_value_source<key_type, value_typ
 }
 
 } // end namespace sysdig
+
