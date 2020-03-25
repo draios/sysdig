@@ -274,6 +274,14 @@ private:
 			m_start_time(std::chrono::steady_clock::now())
 		{ }
 
+		lookup_request(const lookup_request& rhs) :
+		   m_available(rhs.m_available),
+		   m_value(rhs.m_value),
+		   m_available_condition(/*not rhs*/),
+		   m_callback(rhs.m_callback),
+		   m_start_time(rhs.m_start_time)
+		{ }
+
 		/** Is the value here available? */
 		bool m_available;
 
@@ -293,7 +301,7 @@ private:
 		std::chrono::time_point<std::chrono::steady_clock> m_start_time;
 	};
 
-	typedef std::map<key_type, lookup_request> value_map;
+	typedef std::map<const key_type, lookup_request> value_map;
 
 	/**
 	 * The entry point of the async thread, which blocks waiting for work

@@ -1,4 +1,4 @@
-FROM debian:unstable
+FROM debian:stable
 
 MAINTAINER Sysdig <support@sysdig.com>
 
