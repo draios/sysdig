@@ -35,6 +35,10 @@ DOWNLOAD_TIMEOUT=300
 PROBE_VERSION=
 RUNNING_IN_DOCKER=
 
+TOOLKIT_NATIVE_COREOS=${TOOLKIT_NATIVE_COREOS:-}
+TOOLKIT_NATIVE_RPM=${TOOLKIT_NATIVE_RPM:-}
+SCRIPT_DIR=$(dirname $(readlink -f $0))
+
 usage() {
 	cat >&2 <<EOF
 Usage: $0 -v PROBE_VERSION [options...] [archives]
@@ -238,11 +242,9 @@ function build_toolkit {
 	fi
 }
 
-function run_toolkit {
-	if [ -z "$RUNNING_IN_DOCKER" ]
-	then
-		build_toolkit
-	fi
+function run_toolkit_docker {
+	# running on the host, use toolkit container
+	build_toolkit
 	declare -a DOCKER_OPTS
 	declare -a TOOLKIT_OPTS
 
@@ -262,13 +264,45 @@ function run_toolkit {
 		fi
 	done
 
-	if [ -z "$RUNNING_IN_DOCKER" ]
+	docker run --rm --privileged ${DOCKER_OPTS[@]} "${BUILDER_IMAGE_PREFIX:-}sysdig-probe-builder:toolkit" ${TOOLKIT_OPTS[@]}
+}
+
+function run_toolkit_native {
+	# already in a container, call the toolkit directly
+	declare -a TOOLKIT_OPTS
+
+	IN_TOOLKIT_OPTS=
+	for i in "$@"
+	do
+		if [ -z "$IN_TOOLKIT_OPTS" ]
+		then
+			if [ "$i" == "--" ]
+			then
+				IN_TOOLKIT_OPTS=1
+			fi
+		else
+			TOOLKIT_OPTS+=("$i")
+		fi
+	done
+
+	$SCRIPT_DIR/toolkit-entrypoint.sh ${TOOLKIT_OPTS[@]}
+}
+
+function run_toolkit_coreos {
+	if [ -z "$RUNNING_IN_DOCKER" -a -z "$TOOLKIT_NATIVE_COREOS" ]
 	then
-		# running on the host, use toolkit container
-		docker run --rm --privileged ${DOCKER_OPTS[@]} "${BUILDER_IMAGE_PREFIX:-}sysdig-probe-builder:toolkit" ${TOOLKIT_OPTS[@]}
+		run_toolkit_docker "$@"
 	else
-		# already in a container, call the toolkit directly
-		/builder/toolkit-entrypoint.sh ${TOOLKIT_OPTS[@]}
+		run_toolkit_native "$@"
+	fi
+}
+
+function run_toolkit_rpm {
+	if [ -z "$RUNNING_IN_DOCKER" -a -z "$TOOLKIT_NATIVE_RPM" ]
+	then
+		run_toolkit_docker "$@"
+	else
+		run_toolkit_native "$@"
 	fi
 }
 
@@ -393,7 +427,7 @@ function coreos_build {
 			echo "Unpacking $(basename $IMG)"
 			FULL_IMG=$(readlink -f "$IMG")
 			FULL_VERSION_DIR=$(readlink -f "$VERSION_DIR")
-			run_toolkit -v "$FULL_IMG:$FULL_IMG:ro" -v "$FULL_VERSION_DIR:$FULL_VERSION_DIR" -- coreos "$FULL_IMG" "$FULL_VERSION_DIR"
+			run_toolkit_coreos -v "$FULL_IMG:$FULL_IMG:ro" -v "$FULL_VERSION_DIR:$FULL_VERSION_DIR" -- coreos "$FULL_IMG" "$FULL_VERSION_DIR"
 
 			KERNEL_RELEASE=$(cd $VERSION_DIR && ls config-* | sed s/config-//)
 			export COREOS_BUILD=${VERSION%%.*}
@@ -510,7 +544,7 @@ function rhel_build {
 			mkdir -p $TARGET
 			FULL_RPM=$(readlink -f "$RPM")
 			FULL_TARGET=$(readlink -f "$TARGET")
-			run_toolkit -v "$FULL_RPM:$FULL_RPM:ro" -v "$FULL_TARGET:$FULL_TARGET" -- rpm "$FULL_RPM" "$FULL_TARGET"
+			run_toolkit_rpm -v "$FULL_RPM:$FULL_RPM:ro" -v "$FULL_TARGET:$FULL_TARGET" -- rpm "$FULL_RPM" "$FULL_TARGET"
 			touch $MARKER
 		fi
 	done

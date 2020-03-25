@@ -1,5 +1,5 @@
 FROM alpine
 
-RUN apk add rpm2cpio multipath-tools
+RUN apk add bash rpm2cpio multipath-tools
 ADD toolkit-entrypoint.sh /toolkit-entrypoint.sh
 ENTRYPOINT ["/toolkit-entrypoint.sh"]
