@@ -32,6 +32,7 @@ unpack_coreos_kernel()
 	# umount and remove the developer container
 	umount /mnt
 	kpartx -dv /tmp/container.img
+	rm -f /tmp/container.img
 }
 
 unpack_rpm()
