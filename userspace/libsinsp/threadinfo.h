@@ -116,7 +116,6 @@ public:
 	/*!
 	  \brief Get the main thread of the process containing this thread.
 	*/
-#ifndef _WIN32
 	inline sinsp_threadinfo* get_main_thread() const
 	{
 		auto main_thread = m_main_thread.lock();
@@ -153,9 +152,6 @@ public:
 
 		return &*main_thread;
 	}
-#else
-	sinsp_threadinfo* get_main_thread();
-#endif
 
 	/*!
 	  \brief Get the process that launched this thread's process.

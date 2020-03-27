@@ -876,7 +876,7 @@ double sinsp_threadinfo::get_fd_usage_pct_d()
 
 uint64_t sinsp_threadinfo::get_fd_opencount() const
 {
-	return ((sinsp_threadinfo*)this)->get_main_thread()->m_fdtable.size();
+	return get_main_thread()->m_fdtable.size();
 }
 
 uint64_t sinsp_threadinfo::get_fd_limit()
@@ -972,49 +972,6 @@ shared_ptr<sinsp_threadinfo> sinsp_threadinfo::lookup_thread() const
 {
 	return m_inspector->get_thread_ref(m_pid, true, true, true);
 }
-
-//
-// Note: this is duplicated here because visual studio has trouble inlining
-//       the method.
-//
-#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
-sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
-{
-	auto main_thread = m_main_thread.lock();
-	if (!main_thread)
-	{
-		//
-		// Is this a child thread?
-		//
-		if (m_pid == m_tid)
-		{
-			//
-			// No, this is either a single thread process or the root thread of a
-			// multithread process.
-			// Note: we don't set m_main_thread because there are cases in which this is
-			//       invoked for a threadinfo that is in the stack. Caching the this pointer
-			//       would cause future mess.
-			//
-			return this;
-		}
-		else
-		{
-			//
-			// Yes, this is a child thread. Find the process root thread.
-			//
-			auto ptinfo = lookup_thread();
-			if (!ptinfo)
-			{
-				return NULL;
-			}
-			m_main_thread = ptinfo;
-			return &*ptinfo;
-		}
-	}
-
-	return &*main_thread;
-}
-#endif
 
 size_t sinsp_threadinfo::args_len() const
 {
