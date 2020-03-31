@@ -10,10 +10,6 @@ sysdig
 
 **Csysdig** is a simple, intuitive, and fully customizable curses UI for sysdig:  
 `~$ csysdig`
-
-Where to start?
----
-If this is your first time hearing about sysdig, we recommend you [start with the website](http://www.sysdig.com).  
   
 What does sysdig do and why should I use it?
 ---
@@ -88,7 +84,7 @@ This file is a work of authorship of an employee or officer of the United States
 
 Use a real name of a natural person who is an authorized representative of the contributing entity; pseudonyms or anonymous contributions are not allowed.
 
-Sysdig Cloud
+Commercial Support
 ---
 Interested in a fully supported, fully distributed version of sysdig? Check out [Sysdig Monitor](https://sysdig.com/products/monitor/)!
 

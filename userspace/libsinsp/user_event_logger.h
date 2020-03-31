@@ -17,6 +17,7 @@ limitations under the License.
 
 */
 #pragma once
+
 #include <memory>
 #include "user_event.h"
 
@@ -85,3 +86,4 @@ void register_callback(user_event_logger::callback::ptr_t callback);
 const callback& get_callback();
 
 } // end namespace user_event_logger
+

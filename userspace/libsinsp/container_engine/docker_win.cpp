@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
+#ifdef CYGWING_AGENT
 
 #include "container_engine/docker.h"
 #include "sinsp.h"
@@ -90,3 +91,5 @@ docker_async_source::docker_response docker_async_source::get_docker(const std::
 
 	return docker_response::RESP_OK;
 }
+
+#endif // CYGWING_AGENT
