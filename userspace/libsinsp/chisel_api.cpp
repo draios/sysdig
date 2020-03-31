@@ -1123,6 +1123,7 @@ int lua_cbacks::get_thread_table_barebone_nofds(lua_State *ls)
 
 int lua_cbacks::get_container_table(lua_State *ls)
 {
+#ifndef _WIN32
 	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 	uint32_t j;
 	sinsp_evt tevt;
@@ -1213,6 +1214,7 @@ int lua_cbacks::get_container_table(lua_State *ls)
 		lua_rawseti(ls,-2, (uint32_t)++j);
 	}
 
+#endif
 	return 1;
 }
 

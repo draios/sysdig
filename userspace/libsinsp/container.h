@@ -199,3 +199,4 @@ private:
 
 	friend class test_helper;
 };
+

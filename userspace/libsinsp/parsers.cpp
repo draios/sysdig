@@ -2321,6 +2321,7 @@ inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt* const evt)
 		                        ? PPM_AF_INET
 		                        : PPM_AF_INET6;
 
+#ifndef _WIN32
 		SINSP_DEBUG("Call to sendto() with fd=%d; missing socket() "
 		            "data. Adding socket %s/SOCK_DGRAM/IPPROTO_UDP "
 		            "for command '%s', pid %d",
@@ -2329,6 +2330,7 @@ inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt* const evt)
 		                                    : "PPM_AF_INET6",
 		            evt->m_tinfo->get_comm().c_str(),
 		            evt->m_tinfo->m_pid);
+#endif
 
 		// Here we're assuming sendto() means SOCK_DGRAM/UDP, but it
 		// can be used with TCP.  We have no way to know for sure at
@@ -4652,7 +4654,9 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 			}
 		}
 
+#ifndef _WIN32
 		libsinsp::container_engine::docker::parse_json_mounts(container["Mounts"], container_info->m_mounts);
+#endif
 
 		sinsp_container_info::container_health_probe::parse_health_probes(container, container_info->m_health_probes);
 

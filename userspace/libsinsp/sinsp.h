@@ -48,9 +48,9 @@ limitations under the License.
 
 #ifdef _WIN32
 #pragma warning(disable: 4251 4200 4221 4190)
-#endif
-
+#else
 #include "tbb/concurrent_queue.h"
+#endif
 
 #include "sinsp_inet.h"
 #include "sinsp_public.h"
@@ -1187,7 +1187,9 @@ public:
 	// A queue of pending container events. Written from async
 	// callbacks that occur after looking up container
 	// information, read from sinsp::next().
+#ifndef _WIN32
 	tbb::concurrent_queue<shared_ptr<sinsp_evt>> m_pending_container_evts;
+#endif
 
 	// Holds an event dequeued from the above queue
 	std::shared_ptr<sinsp_evt> m_container_evt;
