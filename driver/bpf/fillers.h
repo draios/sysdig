@@ -1478,7 +1478,7 @@ static __always_inline int __bpf_append_cgroup(struct css_set *cgroups,
 	int res = bpf_probe_read_str(&buf[off & SCRATCH_SIZE_HALF],
 				     SCRATCH_SIZE_HALF,
 				     subsys_name);
-	if (res < 0)
+	if (res == -EFAULT)
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	off += res - 1;
@@ -1602,7 +1602,7 @@ static __always_inline int bpf_accumulate_argv_or_env(struct filler_data *data,
 			return PPM_FAILURE_BUFFER_FULL;
 
 		len = bpf_probe_read_str(&data->buf[off & SCRATCH_SIZE_HALF], SCRATCH_SIZE_HALF, arg);
-		if (len < 0)
+		if (len == -EFAULT)
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		*args_len += len;
@@ -1704,7 +1704,7 @@ FILLER(proc_startupdate, true)
 						SCRATCH_SIZE_HALF,
 						&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]);
 
-		if (exe_len < 0)
+		if (exe_len == -EFAULT)
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		/*
