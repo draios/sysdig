@@ -51,7 +51,7 @@ struct ppm_ring_buffer_context {
 	bool capture_enabled;
 	struct ppm_ring_buffer_info *info;
 	char *buffer;
-	struct timespec last_print_time;
+	struct timespec64 last_print_time;
 	u32 nevents;
 	atomic_t preempt_count;
 	char *str_storage;	/* String storage. Size is one page. */

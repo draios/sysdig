@@ -38,6 +38,7 @@ or GPL2.txt for full copies of the license.
 #include <linux/vmalloc.h>
 #include <linux/wait.h>
 #include <linux/tracepoint.h>
+#include <linux/timekeeping.h>
 #include <linux/cpu.h>
 #include <linux/jiffies.h>
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 26))
@@ -117,7 +118,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma);
 static int record_event_consumer(struct ppm_consumer_t *consumer,
 	enum ppm_event_type event_type,
 	enum syscall_flags drop_flags,
-	struct timespec *ts,
+	struct timespec64 *ts,
 	struct event_data_t *event_datap);
 static void record_event_all_consumers(enum ppm_event_type event_type,
 	enum syscall_flags drop_flags,
@@ -830,7 +831,7 @@ cleanup_ioctl_procinfo:
 	case PPM_IOCTL_DISABLE_DROPPING_MODE:
 	{
 		struct event_data_t event_data;
-		struct timespec ts;
+		struct timespec64 ts;
 
 		vpr_info("PPM_IOCTL_DISABLE_DROPPING_MODE, consumer %p\n", consumer_id);
 
@@ -842,7 +843,7 @@ cleanup_ioctl_procinfo:
 		 * Push an event into the ring buffer so that the user can know that dropping
 		 * mode has been disabled
 		 */
-		getnstimeofday(&ts);
+		ktime_get_real_ts64(&ts);
 		event_data.category = PPMC_CONTEXT_SWITCH;
 		event_data.event_info.context_data.sched_prev = (void *)DEI_DISABLE_DROPPING;
 		event_data.event_info.context_data.sched_next = (void *)0;
@@ -1397,7 +1398,7 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 #endif /* _HAS_SOCKETCALL */
 
 static inline void record_drop_e(struct ppm_consumer_t *consumer,
-                                 struct timespec *ts,
+                                 struct timespec64 *ts,
                                  enum syscall_flags drop_flags)
 {
 	struct event_data_t event_data = {0};
@@ -1414,7 +1415,7 @@ static inline void record_drop_e(struct ppm_consumer_t *consumer,
 }
 
 static inline void record_drop_x(struct ppm_consumer_t *consumer,
-                                 struct timespec *ts,
+                                 struct timespec64 *ts,
                                  enum syscall_flags drop_flags)
 {
 	struct event_data_t event_data = {0};
@@ -1496,7 +1497,7 @@ static inline int drop_nostate_event(enum ppm_event_type event_type,
 static inline int drop_event(struct ppm_consumer_t *consumer,
 			     enum ppm_event_type event_type,
 			     enum syscall_flags drop_flags,
-			     struct timespec *ts,
+			     struct timespec64 *ts,
 			     struct pt_regs *regs)
 {
 	int maybe_ret = 0;
@@ -1541,9 +1542,9 @@ static void record_event_all_consumers(enum ppm_event_type event_type,
 	struct event_data_t *event_datap)
 {
 	struct ppm_consumer_t *consumer;
-	struct timespec ts;
+	struct timespec64 ts;
 
-	getnstimeofday(&ts);
+	ktime_get_real_ts64(&ts);
 
 	rcu_read_lock();
 	list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
@@ -1558,7 +1559,7 @@ static void record_event_all_consumers(enum ppm_event_type event_type,
 static int record_event_consumer(struct ppm_consumer_t *consumer,
 	enum ppm_event_type event_type,
 	enum syscall_flags drop_flags,
-	struct timespec *ts,
+	struct timespec64 *ts,
 	struct event_data_t *event_datap)
 {
 	int res = 0;
@@ -1712,7 +1713,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 #ifdef PPM_ENABLE_SENTINEL
 		hdr->sentinel_begin = ring->nevents;
 #endif
-		hdr->ts = timespec_to_ns(ts);
+		hdr->ts = timespec64_to_ns(ts);
 		hdr->tid = current->pid;
 		hdr->type = event_type;
 		hdr->nparams = args.nargs;
@@ -2244,7 +2245,7 @@ static void reset_ring_buffer(struct ppm_ring_buffer_context *ring)
 	ring->info->n_drops_pf = 0;
 	ring->info->n_preemptions = 0;
 	ring->info->n_context_switches = 0;
-	getnstimeofday(&ring->last_print_time);
+	ktime_get_real_ts64(&ring->last_print_time);
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))

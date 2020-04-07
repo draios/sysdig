@@ -1345,7 +1345,7 @@ static int parse_sockopt(struct event_filler_arguments *args, int level, int opt
 	union {
 		uint32_t val32;
 		uint64_t val64;
-		struct timeval tv;
+		struct __kernel_old_timeval tv;
 	} u;
 
 	if (level == SOL_SOCKET) {
@@ -2694,9 +2694,9 @@ static int timespec_parse(struct event_filler_arguments *args, unsigned long val
 {
 	uint64_t longtime;
 	char *targetbuf = args->str_storage;
-	struct timespec *tts = (struct timespec *)targetbuf;
+	struct old_timespec32 *tts = (struct old_timespec32 *)targetbuf;
 #ifdef CONFIG_COMPAT
-	struct compat_timespec *compat_tts = (struct compat_timespec *)targetbuf;
+	struct old_timespec32 *compat_tts = (struct old_timespec32 *)targetbuf;
 #endif
 	int cfulen;
 
@@ -2707,14 +2707,14 @@ static int timespec_parse(struct event_filler_arguments *args, unsigned long val
 #ifdef CONFIG_COMPAT
 	if (!args->compat) {
 #endif
-		cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)val, sizeof(struct timespec));
+		cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)val, sizeof(struct old_timespec32));
 		if (unlikely(cfulen != 0))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		longtime = ((uint64_t)tts->tv_sec) * 1000000000 + tts->tv_nsec;
 #ifdef CONFIG_COMPAT
 	} else {
-		cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)compat_ptr(val), sizeof(struct compat_timespec));
+		cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)compat_ptr(val), sizeof(struct old_timespec32));
 		if (unlikely(cfulen != 0))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
