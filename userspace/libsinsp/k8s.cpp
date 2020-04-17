@@ -19,7 +19,7 @@ limitations under the License.
 //
 // k8s.cpp
 //
-#ifndef CYGWING_AGENT
+#if defined(CYGWING_AGENT) && !defined(_WIN32)
 
 #include "k8s.h"
 #include "k8s_component.h"

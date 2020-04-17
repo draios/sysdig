@@ -20,7 +20,7 @@ limitations under the License.
 #pragma once
 
 #include <config_sysdig.h>
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 #include "driver_config.h"
 #endif // HAS_CAPTURE
 

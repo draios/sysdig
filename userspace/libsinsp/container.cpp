@@ -19,7 +19,7 @@ limitations under the License.
 
 #include <algorithm>
 
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 #include "container_engine/cri.h"
 #endif
 #include "container_engine/docker.h"
@@ -587,7 +587,7 @@ void sinsp_container_manager::cleanup()
 
 void sinsp_container_manager::set_docker_socket_path(std::string socket_path)
 {
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	libsinsp::container_engine::docker::set_docker_sock(std::move(socket_path));
 #endif
 }
@@ -601,35 +601,35 @@ void sinsp_container_manager::set_query_docker_image_info(bool query_image_info)
 
 void sinsp_container_manager::set_cri_extra_queries(bool extra_queries)
 {
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	libsinsp::container_engine::cri::set_extra_queries(extra_queries);
 #endif
 }
 
 void sinsp_container_manager::set_cri_socket_path(const std::string &path)
 {
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	libsinsp::container_engine::cri::set_cri_socket_path(path);
 #endif
 }
 
 void sinsp_container_manager::set_cri_timeout(int64_t timeout_ms)
 {
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	libsinsp::container_engine::cri::set_cri_timeout(timeout_ms);
 #endif
 }
 
 void sinsp_container_manager::set_cri_async(bool async)
 {
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	libsinsp::container_engine::cri::set_async(async);
 #endif
 }
 
 void sinsp_container_manager::set_cri_delay(uint64_t delay_ms)
 {
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	libsinsp::container_engine::cri::set_cri_delay(delay_ms);
 #endif
 }

@@ -7097,7 +7097,7 @@ uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	}
 }
 
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(_WIN32)
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_k8s implementation
@@ -7688,7 +7688,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_mesos implementation
 ///////////////////////////////////////////////////////////////////////////////
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(_WIN32)
 const filtercheck_field_info sinsp_filter_check_mesos_fields[] =
 {
 	{PT_CHARBUF, EPF_NONE, PF_NA, "mesos.task.name", "Mesos task name."},

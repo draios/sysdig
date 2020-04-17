@@ -41,7 +41,7 @@ public:
 	typedef std::vector<std::string>       uri_list_t;
 	typedef std::shared_ptr<Json::Value>   json_ptr_t;
 	typedef std::shared_ptr<k8s_api_error> api_error_ptr;
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	typedef sinsp_ssl::ptr_t                             ssl_ptr_t;
 	typedef sinsp_bearer_token::ptr_t                    bt_ptr_t;
 	typedef socket_data_handler<k8s_handler>             handler_t;
@@ -54,7 +54,7 @@ public:
 
 	k8s_handler(const std::string& id,
 		bool is_captured,
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 		std::string url,
 		const std::string& path,
 		const std::string& state_filter,
@@ -80,7 +80,7 @@ public:
 	bool ready() const;
 	void set_event_json(json_ptr_t json, const std::string&);
 	const std::string& get_id() const;
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	handler_ptr_t handler();
 #endif // HAS_CAPTURE
 	std::string get_url() const;
@@ -102,7 +102,7 @@ protected:
 
 	virtual bool handle_component(const Json::Value& json, const msg_data* data = 0) = 0;
 	msg_data get_msg_data(const std::string& evt, const std::string& type, const Json::Value& root);
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	static bool is_ip_address(const std::string& addr);
 #endif // HAS_CAPTURE
 
@@ -136,7 +136,7 @@ private:
 
 	typedef std::vector<json_ptr_t> event_list_t;
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	static ip_addr_list_t hostname_to_ip(const std::string& hostname);
 #endif // HAS_CAPTURE
 
@@ -154,7 +154,7 @@ private:
 
 	std::string     m_id;
 	std::string     m_machine_id;
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	collector_ptr_t m_collector;
 	handler_ptr_t   m_handler;
 	std::string     m_path;
@@ -226,7 +226,7 @@ inline void k8s_handler::set_max_messages(unsigned max_msgs)
 	m_max_messages = max_msgs;
 }
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 inline k8s_handler::handler_ptr_t k8s_handler::handler()
 {
 	return m_handler;
@@ -235,7 +235,7 @@ inline k8s_handler::handler_ptr_t k8s_handler::handler()
 
 inline std::string k8s_handler::get_url() const
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	return m_url;
 #else
 	return "";
@@ -297,7 +297,7 @@ class k8s_dummy_handler : public k8s_handler
 {
 public:
 	k8s_dummy_handler(): k8s_handler("k8s_dummy_handler", false,
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 									 "", "", "", "",  "", nullptr,
 									 "", 0, nullptr, nullptr,
 									 false, false, nullptr, false,

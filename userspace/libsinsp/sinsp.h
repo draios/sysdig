@@ -105,13 +105,13 @@ class sinsp_analyzer;
 class sinsp_filter;
 class cycle_writer;
 class sinsp_protodecoder;
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(_WIN32)
 class k8s;
 #endif
 class sinsp_partial_tracer;
 class mesos;
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 class sinsp_ssl;
 class sinsp_bearer_token;
 template <class T> class socket_data_handler;
@@ -786,7 +786,7 @@ public:
 		}
 	}
 
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(_WIN32)
 	void init_k8s_ssl(const std::string *ssl_cert);
 	void init_k8s_client(std::string* api_server, std::string* ssl_cert, bool verbose = false);
 	void make_k8s_client();
@@ -850,10 +850,10 @@ public:
 
 	static unsigned num_possible_cpus();
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	static std::shared_ptr<std::string> lookup_cgroup_dir(const std::string& subsys);
 #endif
-#ifdef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(_WIN32)
 	wh_t* get_wmi_handle() override
 	{
 		return scap_get_wmi_handle(m_h);
@@ -977,7 +977,7 @@ private:
 	sinsp_threadinfo* find_thread_test(int64_t tid, bool lookup_only);
 	bool remove_inactive_threads();
 
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(_WIN32)
 	void k8s_discover_ext();
 	void collect_k8s();
 	void update_k8s_state();
@@ -1054,7 +1054,7 @@ public:
 	//
 	// Kubernetes
 	//
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(_WIN32)
 	std::string* m_k8s_api_server;
 	std::string* m_k8s_api_cert;
 #ifdef HAS_CAPTURE

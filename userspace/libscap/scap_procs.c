@@ -22,7 +22,7 @@ limitations under the License.
 #include <stdlib.h>
 #include <string.h>
 #ifdef HAS_CAPTURE
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(_WIN32)
 #include <unistd.h>
 #include <sys/param.h>
 #include <dirent.h>
@@ -36,7 +36,11 @@ limitations under the License.
 #include "scap.h"
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap-int.h"
-#ifdef CYGWING_AGENT
+
+#if defined(CYGWING_AGENT) || defined(_WIN32)
+#include <io.h>
+#define R_OK 4
+#include <process.h>
 #include "windows_hal.h"
 #endif
 
@@ -45,7 +49,7 @@ limitations under the License.
 #endif
 
 #if defined(HAS_CAPTURE)
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(_WIN32)
 int32_t scap_proc_fill_cwd(scap_t *handle, char* procdirname, struct scap_threadinfo* tinfo)
 {
 	int target_res;
@@ -353,7 +357,7 @@ int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, co
 	tinfo->cgroups_len = 0;
 	snprintf(filename, sizeof(filename), "%scgroup", procdirname);
 
-    if(access(filename, R_OK) == -1)
+	if(access(filename, R_OK) == -1)
 	{
 		return SCAP_SUCCESS;
 	}
@@ -1036,7 +1040,7 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, char *error)
 
 int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 {
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(_WIN32)
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Cannot get pid (not in live mode)");
@@ -1095,13 +1099,14 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 	return SCAP_SUCCESS;
 #endif
 #else // CYGWING_AGENT
-	return getpid();
+	*pid = _getpid();
+	return SCAP_SUCCESS;
 #endif // CYGWING_AGENT
 }
 
 #endif // HAS_CAPTURE
 
-#ifdef CYGWING_AGENT
+#if defined(CYGWING_AGENT) || defined(_WIN32)
 int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, char *error)
 {
 	return scap_proc_scan_proc_dir_windows(handle, error);
@@ -1145,7 +1150,7 @@ void scap_proc_free_table(scap_t* handle)
 
 struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_sockets)
 {
-#if !defined(HAS_CAPTURE)
+#if !defined(HAS_CAPTURE) || defined(_WIN32)
 	return NULL;
 #else
 

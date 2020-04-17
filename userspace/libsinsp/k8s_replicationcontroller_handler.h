@@ -33,7 +33,7 @@ class k8s_replicationcontroller_handler : public k8s_handler
 {
 public:
 	k8s_replicationcontroller_handler(k8s_state_t& state
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 		,ptr_t dependency_handler
 		,collector_ptr_t collector = nullptr
 		,std::string url = ""

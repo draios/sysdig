@@ -436,7 +436,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_CPU_HOTPLUG_E:
 		parse_cpu_hotplug_enter(evt);
 		break;
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(_WIN32)
 	case PPME_K8S_E:
 		if(!m_inspector->is_live())
 		{
@@ -1927,7 +1927,7 @@ void schedule_more_evts(sinsp* inspector, void* data, T* client, ppm_event_type 
 #endif // HAS_CAPTURE
 }
 
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(_WIN32)
 void schedule_more_k8s_evts(sinsp* inspector, void* data)
 {
 	schedule_more_evts(inspector, data, inspector->get_k8s_client(), PPME_K8S_E);
@@ -3896,7 +3896,7 @@ void sinsp_parser::parse_getcwd_exit(sinsp_evt *evt)
 				// following chdir(). If it does, it's almost sure there was an event drop.
 				// In that case, we use this value to update the thread cwd.
 				//
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 #ifdef _DEBUG
 				int target_res;
 				char target_name[1024];
@@ -4843,7 +4843,7 @@ uint8_t* sinsp_parser::reserve_event_buffer()
 	}
 }
 
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(_WIN32)
 int sinsp_parser::get_k8s_version(const std::string& json)
 {
 	if(m_k8s_capture_version == k8s_state_t::CAPTURE_VERSION_NONE)

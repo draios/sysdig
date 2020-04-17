@@ -837,6 +837,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					open_success = false;
 				}
 
+#ifndef _WIN32
 				//
 				// Starting the live capture failed, try to load the driver with
 				// modprobe.
@@ -865,13 +866,14 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 
 					inspector->open("");
 				}
-#else
+#endif // _WIN32
+#else // HAS_CAPTURE
 				//
 				// Starting live capture
 				// If this fails on Windows and OSX, don't try with any driver
 				//
 				inspector->open("");
-#endif
+#endif // HAS_CAPTURE
 
 				//
 				// Enable gathering the CPU from the kernel module
@@ -900,6 +902,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				inspector->enable_page_faults();
 			}
 
+#ifndef _WIN32
 			//
 			// run k8s, if required
 			//
@@ -956,6 +959,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			}
 			delete mesos_api;
 			mesos_api = 0;
+#endif // _WIN32
 
 			if(output_type == sinsp_table::OT_JSON)
 			{
