@@ -48,7 +48,7 @@ std::string k8s_handler::ERROR_FILTER =
 
 k8s_handler::k8s_handler(const std::string& id,
 	bool is_captured,
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	std::string url,
 	const std::string& path,
 	const std::string& state_filter,
@@ -67,7 +67,7 @@ k8s_handler::k8s_handler(const std::string& id,
 	unsigned max_messages,
 	k8s_state_t* state): m_state(state),
 		m_id(id + "_state"),
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 		m_collector(collector),
 		m_path(path + ((path.find('?') == std::string::npos) ? "?pretty=false" : "&pretty=false")),
 		m_state_filter(state_filter),
@@ -87,7 +87,7 @@ k8s_handler::k8s_handler(const std::string& id,
 		m_max_messages(max_messages),
 		m_is_captured(is_captured)
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	g_logger.log("Creating K8s " + name() + " (" + m_id + ") "
 				 "handler object for [" + uri(m_url).to_string(false) + m_path + ']',
 				 sinsp_logger::SEV_DEBUG);
@@ -128,7 +128,7 @@ k8s_handler::~k8s_handler()
 
 void k8s_handler::make_http()
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(m_connect && m_collector)
 	{
 		if(!m_handler)
@@ -179,7 +179,7 @@ void k8s_handler::make_http()
 
 void k8s_handler::check_enabled()
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(!m_handler->is_enabled())
 	{
 		g_logger.log("k8s_handler (" + m_id +
@@ -198,7 +198,7 @@ void k8s_handler::check_enabled()
 
 bool k8s_handler::connect()
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(m_collector && m_handler)
 	{
 		if(!m_collector->has(m_handler))
@@ -235,7 +235,7 @@ bool k8s_handler::connect()
 
 void k8s_handler::send_data_request()
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(m_handler)
 	{
 		if(!m_req_sent)
@@ -265,7 +265,7 @@ void k8s_handler::send_data_request()
 
 void k8s_handler::receive_response()
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(m_handler)
 	{
 		if(m_req_sent)
@@ -300,7 +300,7 @@ void k8s_handler::receive_response()
 
 bool k8s_handler::is_alive() const
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(m_handler && !m_handler->is_connecting() && !m_handler->is_connected())
 	{
 		g_logger.log("k8s_handler (" + m_id + ") connection (" + m_handler->get_url().to_string(false) + ") loss.",
@@ -313,7 +313,7 @@ bool k8s_handler::is_alive() const
 
 void k8s_handler::check_collector_status()
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(m_collector)
 	{
 		if(!m_collector->has(m_handler))
@@ -331,7 +331,7 @@ void k8s_handler::check_collector_status()
 
 void k8s_handler::check_state()
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(m_collector && m_handler)
 	{
 		if(m_resp_recvd && m_watch && !m_watching)
@@ -371,7 +371,7 @@ void k8s_handler::check_state()
 
 bool k8s_handler::connection_error() const
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(m_handler)
 	{
 		return m_handler->connection_error();
@@ -382,7 +382,7 @@ bool k8s_handler::connection_error() const
 
 void k8s_handler::collect_data()
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(m_collector && m_handler)
 	{
 		process_events(); // there may be leftovers from state connection closed by collector
@@ -501,7 +501,7 @@ void k8s_handler::handle_json(Json::Value&& root)
 
 	if(!m_state)
 	{
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 		throw sinsp_exception("k8s_handler (" + m_id + "), state is null for " + uri(m_url).to_string(false) + ").");
 #else
 		throw sinsp_exception("k8s_handler (" + m_id + "), state is null.");
@@ -550,7 +550,7 @@ void k8s_handler::handle_json(Json::Value&& root)
 							{
 								std::ostringstream os;
 								os << "K8s " + reason_type << " message received by " << m_id <<
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 									  " [" << uri(m_url).to_string(false) << "]"
 #endif // HAS_CAPTURE
 									  "for existing " << data.m_kind << " [" << data.m_uid << "], updating only.";
@@ -563,7 +563,7 @@ void k8s_handler::handle_json(Json::Value&& root)
 							{
 								std::ostringstream os;
 								os << "K8s " << reason_type << " message received by " << m_id  <<
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 									  " [" << uri(m_url).to_string(false) << "]"
 #endif // HAS_CAPTURE
 									  " for non-existing " << data.m_kind << " [" << data.m_uid << "], giving up.";
@@ -577,7 +577,7 @@ void k8s_handler::handle_json(Json::Value&& root)
 							{
 								std::ostringstream os;
 								os << "K8s " + reason_type + " message received by " << m_id <<
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 									  " [" << uri(m_url).to_string(false) << "]"
 #endif // HAS_CAPTURE
 									  " for non-existing " << data.m_kind << " [" << data.m_uid << "], giving up.";
@@ -637,7 +637,7 @@ void k8s_handler::handle_json(Json::Value&& root)
 	}
 }
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 
 bool k8s_handler::is_ip_address(const std::string& addr)
 {
@@ -674,7 +674,7 @@ k8s_handler::ip_addr_list_t k8s_handler::hostname_to_ip(const std::string& hostn
 
 bool k8s_handler::dependency_ready() const
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	g_logger.log("k8s_handler (" + m_id + ") dependency "
 				 "(" + m_dependency_handler->get_id() + ") ready: " +
 				 std::to_string(m_dependency_handler->is_state_built()),
@@ -701,7 +701,7 @@ void k8s_handler::process_events()
 					g_logger.log("k8s_handler (" + m_id + ") processing event data:\n" + json_as_string(*(*evt)),
 								 sinsp_logger::SEV_TRACE);
 				}
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 				if(m_is_captured)
 				{
 					m_state->enqueue_capture_event(**evt);
@@ -712,7 +712,7 @@ void k8s_handler::process_events()
 			else
 			{
 				g_logger.log("k8s_handler (" + m_id + ") error " +
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 							 "(" + uri(m_url).to_string(false) + ") " +
 #endif // HAS_CAPTURE
 							(!(*evt) ? "data is null." : ((*evt)->isNull() ? "JSON is null." : "Unknown")),
@@ -727,7 +727,7 @@ void k8s_handler::process_events()
 void k8s_handler::set_event_json(json_ptr_t json, const std::string&)
 {
 	g_logger.log("k8s_handler adding event, (" + m_id + ") has " + std::to_string(m_events.size())
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 				+ " events from " + uri(m_url).to_string(false)
 #endif // HAS_CAPTURE
 				, sinsp_logger::SEV_TRACE);
@@ -735,11 +735,11 @@ void k8s_handler::set_event_json(json_ptr_t json, const std::string&)
 	// null is checked when processing
 	m_events.emplace_back(json);
 	g_logger.log("k8s_handler added event, (" + m_id + ") has " + std::to_string(m_events.size())
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 				+ " events from " + uri(m_url).to_string(false)
 #endif // HAS_CAPTURE
 				, sinsp_logger::SEV_TRACE);
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(!m_resp_recvd) { m_resp_recvd = true; }
 #endif // HAS_CAPTURE
 }
@@ -765,7 +765,7 @@ k8s_pair_list k8s_handler::extract_object(const Json::Value& object)
 std::string k8s_handler::name() const
 {
 	std::string n;
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	std::string::size_type slash_pos = m_path.rfind('/');
 	std::string::size_type qm_pos = m_path.rfind('?');
 	std::string::size_type length =
@@ -790,7 +790,7 @@ void k8s_handler::handle_error(const msg_data& data, const Json::Value& root, bo
 
 void k8s_handler::log_error(const msg_data& data, const Json::Value& json)
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	std::string unk_err = "Unknown.";
 	std::ostringstream os;;
 	os << "K8S server reported " << name() << " error for [" + uri(m_url).to_string(false) + m_path + "]: ";

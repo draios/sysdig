@@ -111,7 +111,7 @@ class k8s;
 class sinsp_partial_tracer;
 class mesos;
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 class sinsp_ssl;
 class sinsp_bearer_token;
 template <class T> class socket_data_handler;
@@ -850,10 +850,10 @@ public:
 
 	static unsigned num_possible_cpus();
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	static std::shared_ptr<std::string> lookup_cgroup_dir(const std::string& subsys);
 #endif
-#ifdef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(_WIN32)
 	wh_t* get_wmi_handle() override
 	{
 		return scap_get_wmi_handle(m_h);

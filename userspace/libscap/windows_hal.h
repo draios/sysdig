@@ -18,4 +18,7 @@ limitations under the License.
 */
 #pragma once
 
+wh_t* scap_windows_hal_open(char* error);
+void scap_windows_hal_close(wh_t* handle);
+void scap_get_machine_info_windows(OUT uint32_t* num_cpus, OUT uint64_t* memory_size_bytes);
 int32_t scap_proc_scan_proc_dir_windows(scap_t* handle, char *error);

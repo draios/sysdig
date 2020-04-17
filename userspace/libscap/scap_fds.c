@@ -567,7 +567,7 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 				 *nbytes, sub_len);
 			return SCAP_FAILURE;
 		}
-		toread = sub_len - *nbytes;
+		toread = (uint32_t)(sub_len - *nbytes);
 		fseekres = (int)gzseek(f, (long)toread, SEEK_CUR);
 		if(fseekres == -1)
 		{
@@ -725,7 +725,7 @@ void scap_free_device_table(scap_t* handle)
 	}
 }
 
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 
 int32_t scap_fd_handle_pipe(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, char *error)
 {
@@ -1825,6 +1825,8 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
 	return SCAP_SUCCESS;
 }
 
+#endif // defined(HAS_CAPTURE) && !defined(_WIN32)
+
 int32_t scap_fd_allocate_fdinfo(scap_t *handle, scap_fdinfo **fdi, int64_t fd, scap_fd_type type)
 {
 	ASSERT(NULL == *fdi);
@@ -1848,6 +1850,7 @@ void scap_fd_free_fdinfo(scap_fdinfo **fdi)
 	}
 }
 
+#if  defined(HAS_CAPTURE) && !defined(_WIN32)
 char * decode_st_mode(struct stat* sb)
 {
 	switch(sb->st_mode & S_IFMT) {

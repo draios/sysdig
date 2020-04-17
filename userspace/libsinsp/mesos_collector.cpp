@@ -19,7 +19,7 @@ limitations under the License.
 //
 // mesos_collector.cpp
 //
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(_WIN32)
 #ifdef HAS_CAPTURE
 
 #include "sinsp.h"

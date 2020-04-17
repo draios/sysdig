@@ -27,7 +27,7 @@ limitations under the License.
 extern "C" {
 #endif
 
-#ifdef CYGWING_AGENT
+#if CYGWING_AGENT || _WIN32
 typedef struct wh_t wh_t;
 #endif
 
@@ -56,7 +56,11 @@ typedef struct wh_t wh_t;
 //
 // Read buffer timeout constants
 //
+#ifdef _WIN32
+#define BUFFER_EMPTY_WAIT_TIME_US_START 1000
+#else
 #define BUFFER_EMPTY_WAIT_TIME_US_START 500
+#endif
 #define BUFFER_EMPTY_WAIT_TIME_US_MAX (30 * 1000)
 #define BUFFER_EMPTY_THRESHOLD_B 20000
 
@@ -143,7 +147,7 @@ struct scap
 	uint64_t m_unexpected_block_readsize;
 	uint32_t m_ncpus;
 	// Abstraction layer for windows
-#ifdef CYGWING_AGENT
+#if CYGWING_AGENT || _WIN32
 	wh_t* m_whh;
 #endif
 	bool m_bpf;
@@ -271,6 +275,10 @@ void scap_free_iflist(scap_addrlist* ifhandle);
 int32_t scap_create_userlist(scap_t* handle);
 // Free a previously allocated list of users
 void scap_free_userlist(scap_userlist* uhandle);
+// Allocate a file descriptor
+int32_t scap_fd_allocate_fdinfo(scap_t *handle, scap_fdinfo **fdi, int64_t fd, scap_fd_type type);
+// Free a file descriptor
+void scap_fd_free_fdinfo(scap_fdinfo **fdi);
 
 int32_t scap_fd_post_process_unix_sockets(scap_t* handle, scap_fdinfo* sockets);
 

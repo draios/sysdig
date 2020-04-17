@@ -64,6 +64,10 @@ struct iovec;
 #include "uthash.h"
 #include "../common/sysdig_types.h"
 #include "../../driver/ppm_events_public.h"
+#ifdef _WIN32
+#include <time.h>
+#define MAP_FAILED NULL
+#endif
 
 //
 // Return types
