@@ -26,11 +26,16 @@ or GPL2.txt for full copies of the license.
 #include <asm/syscall.h>
 #endif
 #else /* __KERNEL__ */
+
+#ifdef WDIG
+#include <syscall.h>
+#else /* WDIG */
 #ifdef UDIG
 #include <sys/syscall.h>
-#else
+#else /* UDIG */
 #include <linux/unistd.h>
-#endif
+#endif /* UDIG */
+#endif /* WDIG */
 #define SYSCALL_TABLE_ID0 0
 #endif /* __KERNEL__ */
 
