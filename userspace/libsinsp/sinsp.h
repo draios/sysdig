@@ -853,7 +853,7 @@ public:
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 	static std::shared_ptr<std::string> lookup_cgroup_dir(const std::string& subsys);
 #endif
-#if !defined(CYGWING_AGENT) && !defined(_WIN32)
+#if defined(CYGWING_AGENT)
 	wh_t* get_wmi_handle() override
 	{
 		return scap_get_wmi_handle(m_h);
