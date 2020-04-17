@@ -102,7 +102,7 @@ mesos::mesos(const std::string& state_uri,
 	int timeout_ms,
 	bool is_captured,
 	bool verbose):
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 		m_collector(false),
 		m_mesos_uri(state_uri),
 		m_marathon_uris(marathon_uris),
@@ -114,7 +114,7 @@ mesos::mesos(const std::string& state_uri,
 		m_verbose(verbose),
 		m_testing(false)
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	g_logger.log(std::string("Creating Mesos object for [" +
 							 (m_mesos_uri.empty() ? std::string("capture replay") : m_mesos_uri)  +
 							 "], failover autodiscovery set to ") +
@@ -162,7 +162,7 @@ mesos::mesos(const std::string& state_uri,
 	bool is_captured,
 	bool verbose):
 	mesos_auth(dcos_enterprise_credentials),
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 		m_collector(false),
 		m_mesos_uri(state_uri),
 		m_marathon_uris(marathon_uris),
@@ -174,7 +174,7 @@ mesos::mesos(const std::string& state_uri,
 		m_verbose(verbose),
 		m_testing(false)
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	g_logger.log(std::string("Creating Mesos object for [" +
 							 (m_mesos_uri.empty() ? std::string("capture replay") : m_mesos_uri)  +
 							 "], failover autodiscovery set to ") +
@@ -200,7 +200,7 @@ mesos::~mesos()
 
 void mesos::init()
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(!m_mesos_uri.empty())
 	{
 		m_collector.remove_all();
@@ -221,7 +221,7 @@ void mesos::init()
 
 void mesos::init_marathon()
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(!m_mesos_uri.empty())
 	{
 		m_marathon_groups_http.clear();
@@ -249,7 +249,7 @@ void mesos::init_marathon()
 
 void mesos::refresh_token()
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	mesos_auth::refresh_token();
 	m_state_http->set_token(m_token);
 	if(has_marathon())
@@ -280,7 +280,7 @@ void mesos::refresh_token()
 #endif // HAS_CAPTURE
 }
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 const mesos::uri_list_t &mesos::marathon_uris()
 {
 	return (m_discover_marathon_uris ? m_state_http->get_marathon_uris() : m_marathon_uris);
@@ -298,7 +298,7 @@ void mesos::refresh()
 
 void mesos::rebuild_mesos_state(bool full)
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(!m_mesos_uri.empty())
 	{
 		if(full)
@@ -325,7 +325,7 @@ void mesos::rebuild_mesos_state(bool full)
 
 void mesos::rebuild_marathon_state(bool full)
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(has_marathon())
 	{
 		if(full)
@@ -384,7 +384,7 @@ void mesos::rebuild_marathon_state(bool full)
 #endif // HAS_CAPTURE
 }
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 void mesos::send_marathon_data_request()
 {
 	if(has_marathon())
@@ -460,7 +460,7 @@ void mesos::connect_mesos()
 
 bool mesos::is_alive() const
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(m_state_http && !m_state_http->is_connected())
 	{
 		g_logger.log("Mesos state connection loss.", sinsp_logger::SEV_WARNING);
@@ -488,7 +488,7 @@ bool mesos::is_alive() const
 	return true;
 }
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 
 void mesos::check_collector_status(int expected)
 {
@@ -581,7 +581,7 @@ void mesos::capture_slaves(const Json::Value& root, Json::Value& capture)
 
 bool mesos::collect_data()
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	const int tout_s = 30;
 
 	//TODO: see if we can do better here - instead of timing out, depending on
@@ -739,7 +739,7 @@ void mesos::handle_frameworks(const Json::Value& root)
 								m_activated_frameworks.erase(fid);
 								g_logger.log("Mesos framework deactivated: " + name + '[' + fid + ']', sinsp_logger::SEV_INFO);
 								remove_framework(framework);
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 								remove_framework_http(m_marathon_groups_http, fid);
 								remove_framework_http(m_marathon_apps_http, fid);
 #endif // HAS_CAPTURE
@@ -753,7 +753,7 @@ void mesos::handle_frameworks(const Json::Value& root)
 							{
 								g_logger.log("New or activated Mesos framework detected: " + name + " [" + uid.asString() + ']', sinsp_logger::SEV_INFO);
 								m_activated_frameworks.insert(uid.asString());
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 								if(mesos_framework::is_root_marathon(name) &&
 									find_if(m_marathon_groups_http.begin(), m_marathon_groups_http.end(), [uid](const decltype(m_marathon_groups_http)::value_type& item)
 									{
@@ -828,7 +828,7 @@ void mesos::remove_framework(const Json::Value& framework)
 	m_state.remove_framework(framework);
 }
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 void mesos::remove_framework_http(marathon_http_map& http_map, const std::string& framework_id)
 {
 	for(marathon_http_map::iterator it = http_map.begin(), end = http_map.end(); it != end; ++it)
@@ -959,7 +959,7 @@ void mesos::parse_state(Json::Value&& root)
 	clear_mesos();
 	handle_frameworks(root);
 	handle_slaves(root);
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(m_state.is_captured())
 	{
 		Json::Value capt;

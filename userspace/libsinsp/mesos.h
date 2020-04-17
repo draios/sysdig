@@ -39,7 +39,7 @@ class mesos : public mesos_auth
 {
 public:
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	typedef mesos_http::marathon_uri_t uri_list_t;
 #else
 	typedef std::vector<std::string> uri_list_t;
@@ -95,7 +95,7 @@ public:
 	bool collect_data();
 	virtual void refresh_token();
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	const uri_list_t &marathon_uris();
 
 	void send_data_request(bool collect = true);
@@ -207,7 +207,7 @@ inline const mesos_state_t& mesos::get_state() const
 
 inline bool mesos::has_marathon() const
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(m_testing)
 	{
 		return true;
@@ -221,7 +221,7 @@ inline bool mesos::has_marathon() const
 #endif
 }
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 
 inline const mesos_state_t::capture_list& mesos::get_capture_events() const
 {

@@ -38,7 +38,7 @@ class k8s_dispatcher;
 class k8s
 {
 public:
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	typedef sinsp_ssl::ptr_t          ssl_ptr_t;
 	typedef sinsp_bearer_token::ptr_t bt_ptr_t;
 #endif // HAS_CAPTURE
@@ -48,7 +48,7 @@ public:
 
 	k8s(const std::string& uri = "http://localhost:80",
 		bool is_captured = false,
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 		ssl_ptr_t ssl = 0,
 		bt_ptr_t bt = 0,
 		bool block = false,
@@ -73,7 +73,7 @@ public:
 
 	bool is_alive() const;
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	typedef k8s_state_t::event_list_t event_list_t;
 	const event_list_t& get_capture_events() const { return m_state.get_capture_events(); }
 	std::string dequeue_capture_event() { return m_state.dequeue_capture_event(); }
@@ -98,7 +98,7 @@ private:
 	dispatch_map_t m_dispatch_map;
 	handler_map_t  m_handler_map;
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	k8s_net* m_net = nullptr;
 #endif
 
@@ -109,7 +109,7 @@ private:
 
 inline bool k8s::is_alive() const
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	ASSERT(m_net);
 	return m_net->is_healthy();
 #endif
@@ -123,7 +123,7 @@ inline void k8s::clear_events()
 
 inline std::string k8s::get_machine_id() const
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(m_net)
 	{
 		return m_net->get_machine_id();
@@ -134,7 +134,7 @@ inline std::string k8s::get_machine_id() const
 
 inline void k8s::set_machine_id(const std::string& machine_id)
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(m_net)
 	{
 		m_net->set_machine_id(machine_id);

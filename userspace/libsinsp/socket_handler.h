@@ -23,7 +23,7 @@ limitations under the License.
 
 #pragma once
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 
 #include "http_parser.h"
 #include "uri.h"
