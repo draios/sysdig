@@ -65,7 +65,7 @@ std::string k8s_node_handler::STATE_FILTER =
 	"}";
 
 k8s_node_handler::k8s_node_handler(k8s_state_t& state
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	,ptr_t dependency_handler
 	,collector_ptr_t collector
 	,std::string url
@@ -77,7 +77,7 @@ k8s_node_handler::k8s_node_handler(k8s_state_t& state
 #endif // HAS_CAPTURE
 	):
 		k8s_handler("k8s_node_handler", true,
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 					url, "/api/v1/nodes",
 					STATE_FILTER, EVENT_FILTER, "", collector,
 					http_version, 1000L, ssl, bt, true,

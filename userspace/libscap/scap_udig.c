@@ -1,9 +1,9 @@
-#ifndef _WIN32
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
 #include <stdio.h>
 #include <stdlib.h>
+#ifndef _WIN32
 #include <unistd.h>
 #include <inttypes.h>
 #include <sys/stat.h>
@@ -18,6 +18,7 @@
 #include <fcntl.h>
 #include <sys/syscall.h>
 #include <pthread.h>
+#endif // _WIN32
 
 #include "scap.h"
 #include "scap-int.h"
@@ -25,6 +26,7 @@
 
 #define PPM_PORT_STATSD 8125
 
+#ifndef _WIN32
 #ifndef UDIG_INSTRUMENTER
 #define ud_shm_open shm_open
 #else
@@ -321,6 +323,46 @@ int32_t udig_begin_capture(scap_t* handle, char *error)
 	}
 }
 
+#else // _WIN32
+///////////////////////////////////////////////////////////////////////////////
+// The following 2 function map the ring buffer and the ring buffer 
+// descriptors into the address space of this process.
+// This is the buffer that will be consumed by scap.
+///////////////////////////////////////////////////////////////////////////////
+int32_t udig_alloc_ring(int* ring_fd, 
+	uint8_t** ring, 
+	uint32_t *ringsize,
+	char *error)
+{
+	return SCAP_SUCCESS;
+}
+
+int32_t udig_alloc_ring_descriptors(int* ring_descs_fd, 
+	struct ppm_ring_buffer_info** ring_info, 
+	struct udig_ring_buffer_status** ring_status,
+	char *error)
+{
+	return SCAP_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// These 2 function free the ring buffer and the ring buffer descriptors.
+///////////////////////////////////////////////////////////////////////////////
+void udig_free_ring(uint8_t* addr, uint32_t size)
+{
+}
+
+void udig_free_ring_descriptors(uint8_t* addr)
+{
+}
+
+int32_t udig_begin_capture(scap_t* handle, char *error)
+{
+	return SCAP_SUCCESS;
+}
+
+#endif // _WIN32
+
 void udig_start_capture(scap_t* handle)
 {
 	struct udig_ring_buffer_status* rbs = handle->m_devs[0].m_bufstatus;
@@ -385,4 +427,3 @@ int32_t udig_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 	return SCAP_SUCCESS;
 }
 
-#endif // _WIN32
