@@ -3947,7 +3947,7 @@ void sinsp_parser::parse_getcwd_exit(sinsp_evt *evt)
 				// following chdir(). If it does, it's almost sure there was an event drop.
 				// In that case, we use this value to update the thread cwd.
 				//
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 #ifdef _DEBUG
 				int target_res;
 				char target_name[1024];

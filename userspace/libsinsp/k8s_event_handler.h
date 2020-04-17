@@ -35,7 +35,7 @@ public:
 	typedef user_event_filter_t::ptr_t filter_ptr_t;
 
 	k8s_event_handler(k8s_state_t& state
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 		,ptr_t dependency_handler
 		,collector_ptr_t collector = nullptr
 		,std::string url = ""

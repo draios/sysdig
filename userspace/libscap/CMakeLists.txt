@@ -51,7 +51,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     include_directories(${PROJECT_BINARY_DIR}/driver/src)
 endif()
 
-if(CYGWIN)
+if(CYGWIN OR WIN32)
 	list(APPEND targetfiles
 		windows_hal.c)
 endif()

@@ -239,7 +239,7 @@ void sinsp::filter_proc_table_when_saving(bool filter)
 
 void sinsp::enable_tracers_capture()
 {
-#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT)
+#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT) && ! defined(_WIN32)
 	if(!m_is_tracers_capture_enabled)
 	{
 		if(is_live() && m_h != NULL)
@@ -257,7 +257,7 @@ void sinsp::enable_tracers_capture()
 
 void sinsp::enable_page_faults()
 {
-#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT)
+#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT) && ! defined(_WIN32)
 	if(is_live() && m_h != NULL)
 	{
 		if(scap_enable_page_faults(m_h) != SCAP_SUCCESS)
@@ -416,11 +416,13 @@ void sinsp::init()
 	//
 	// If the port range for increased snaplen was modified, set it now
 	//
+#ifndef _WIN32
 	if(increased_snaplen_port_range_set())
 	{
 		set_fullcapture_port_range(m_increased_snaplen_port_range.range_start,
 		                           m_increased_snaplen_port_range.range_end);
 	}
+#endif
 
 	//
 	// If the statsd port was modified, push it to the kernel now.
@@ -584,10 +586,12 @@ int64_t sinsp::get_file_size(const std::string& fname, char *error)
 
 void sinsp::set_simpledriver_mode()
 {
+#ifndef _WIN32
 	if(scap_enable_simpledriver_mode(m_h) != SCAP_SUCCESS)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
 	}
+#endif
 }
 
 unsigned sinsp::m_num_possible_cpus = 0;
@@ -956,7 +960,7 @@ void sinsp::import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo)
 
 void sinsp::refresh_ifaddr_list()
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(!is_capture())
 	{
 		ASSERT(m_network_interfaces);
@@ -1708,6 +1712,7 @@ void sinsp::start_capture()
 	}
 }
 
+#ifndef _WIN32
 void sinsp::stop_dropping_mode()
 {
 	if(m_mode == SCAP_MODE_LIVE)
@@ -1733,6 +1738,7 @@ void sinsp::start_dropping_mode(uint32_t sampling_ratio)
 		}
 	}
 }
+#endif // _WIN32
 
 #ifdef HAS_FILTERING
 void sinsp::set_filter(sinsp_filter* filter)
@@ -2552,7 +2558,7 @@ bool sinsp_thread_manager::remove_inactive_threads()
 	return res;
 }
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 std::shared_ptr<std::string> sinsp::lookup_cgroup_dir(const string& subsys)
 {
 	shared_ptr<string> cgroup_dir;

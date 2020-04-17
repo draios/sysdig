@@ -22,7 +22,7 @@ limitations under the License.
 #include "scap.h"
 #include "scap-int.h"
 
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -240,6 +240,20 @@ void scap_refresh_iflist(scap_t* handle)
 	handle->m_addrlist = NULL;
 	scap_create_iflist(handle);
 }
+#else
+#ifdef _WIN32
+//
+// XXX Interface listing not supported on Windows yet
+//
+int32_t scap_create_iflist(scap_t* handle)
+{
+	return SCAP_SUCCESS;
+}
+
+void scap_refresh_iflist(scap_t* handle)
+{
+}
+#endif // _WIN32
 #endif // HAS_CAPTURE
 
 //
