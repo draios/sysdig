@@ -1609,7 +1609,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			}
 			delete mesos_api;
 			mesos_api = 0;
-#endif _WIN32
+#endif // _WIN32
 
 			cinfo = do_inspect(inspector,
 				cnt,
