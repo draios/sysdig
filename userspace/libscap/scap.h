@@ -550,8 +550,8 @@ struct udig_ring_buffer_status {
 
 typedef struct ppm_ring_buffer_info ppm_ring_buffer_info;
 
-int32_t udig_alloc_ring(int* ring_fd, uint8_t** ring, uint32_t *ringsize, char *error);
-int32_t udig_alloc_ring_descriptors(int* ring_descs_fd,
+int32_t udig_alloc_ring(void* ring_fd, uint8_t** ring, uint32_t *ringsize, char *error);
+int32_t udig_alloc_ring_descriptors(void* ring_descs_fd,
 	struct ppm_ring_buffer_info** ring_info,
 	struct udig_ring_buffer_status** ring_status,
 	char *error);

@@ -15,6 +15,9 @@ or GPL2.txt for full copies of the license.
 #include <linux/ptrace.h>
 #include "ppm.h"
 #endif
+#ifdef WDIG
+#include <fcntl.h>
+#endif
 
 #define PPM_MS_MGC_MSK 0xffff0000
 #define PPM_MS_MGC_VAL 0xC0ED0000
@@ -53,11 +56,13 @@ static __always_inline uint32_t open_flags_to_scap(unsigned long flags)
 	if (flags & O_EXCL)
 		res |= PPM_O_EXCL;
 
+#ifndef WDIG
 	if (flags & O_NONBLOCK)
 		res |= PPM_O_NONBLOCK;
 
 	if (flags & O_SYNC)
 		res |= PPM_O_SYNC;
+#endif 
 
 	if (flags & O_TRUNC)
 		res |= PPM_O_TRUNC;
@@ -88,6 +93,9 @@ static __always_inline uint32_t open_flags_to_scap(unsigned long flags)
 static __always_inline u32 open_modes_to_scap(unsigned long flags,
 					      unsigned long modes)
 {
+#ifdef WDIG
+	return 0;
+#else
 #ifdef UDIG
 	unsigned long flags_mask = O_CREAT | O_TMPFILE;
 #else
@@ -151,10 +159,14 @@ static __always_inline u32 open_modes_to_scap(unsigned long flags,
 		res |= PPM_S_ISVTX;
 
 	return res;
+#endif // WDIG
 }
 
 static __always_inline u32 clone_flags_to_scap(unsigned long flags)
 {
+#ifdef UDIG
+	return 0;
+#else
 	u32 res = 0;
 
 	if (flags & CLONE_FILES)
@@ -245,6 +257,7 @@ static __always_inline u32 clone_flags_to_scap(unsigned long flags)
 #endif
 
 	return res;
+#endif // WDIG
 }
 
 static __always_inline u8 socket_family_to_scap(u8 family)
@@ -255,6 +268,7 @@ static __always_inline u8 socket_family_to_scap(u8 family)
 		return PPM_AF_INET6;
 	else if (family == AF_UNIX)
 		return PPM_AF_UNIX;
+#ifndef WDIG
 	else if (family == AF_NETLINK)
 		return PPM_AF_NETLINK;
 	else if (family == AF_PACKET)
@@ -345,12 +359,14 @@ static __always_inline u8 socket_family_to_scap(u8 family)
 	else if (family == AF_NFC)
 		return PPM_AF_NFC;
 #endif
+#endif // WDIG
 	else {
 		ASSERT(false);
 		return PPM_AF_UNSPEC;
 	}
 }
 
+#ifndef WDIG
 static __always_inline u32 prot_flags_to_scap(int prot)
 {
 	u32 res = 0;
@@ -524,13 +540,17 @@ static __always_inline u8 fcntl_cmd_to_scap(unsigned long cmd)
 	}
 }
 
+#endif // WDIG
+
 static __always_inline u8 sockopt_level_to_scap(int level)
 {
 	switch (level) {
 		case SOL_SOCKET:
 			return PPM_SOCKOPT_LEVEL_SOL_SOCKET;
+#ifndef WDIG
 		case SOL_TCP:
 			return PPM_SOCKOPT_LEVEL_SOL_TCP;
+#endif
 		default:
 			/* no ASSERT as there are legitimate other levels we don't just support yet */
 			return PPM_SOCKOPT_LEVEL_UNKNOWN;
@@ -763,6 +783,7 @@ static __always_inline u8 sockopt_optname_to_scap(int level, int optname)
 	}
 }
 
+#ifndef WDIG
 /* XXX this is very basic for the moment, we'll need to improve it */
 static __always_inline u16 poll_events_to_scap(short revents)
 {
@@ -1350,5 +1371,7 @@ static __always_inline u32 chmod_mode_to_scap(unsigned long modes)
 
 	return res;
 }
+
+#endif // !WDIG
 
 #endif /* PPM_FLAG_HELPERS_H_ */

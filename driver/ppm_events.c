@@ -35,6 +35,7 @@ or GPL2.txt for full copies of the license.
 #endif
 #else // UDIG
 #define _GNU_SOURCE
+#ifndef WDIG
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,6 +64,15 @@ or GPL2.txt for full copies of the license.
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <errno.h>
+#else /* WDIG */
+#include "stdint.h"
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <afunix.h>
+#include "portal.h"
+
+#pragma warning(disable : 4996)
+#endif /* WDIG */
 
 #include "udig_capture.h"
 #include "ppm_ringbuffer.h"
@@ -71,7 +81,7 @@ or GPL2.txt for full copies of the license.
 #include "ppm.h"
 
 #include "udig_inf.h"
-#endif // UDIG
+#endif /* UDIG */
 
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
@@ -577,7 +587,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 			return PPM_FAILURE_BUG;
 		}
 
-#ifdef UDIG
+#if defined(UDIG) && !defined(WDIG)
 		dyn_params = (const struct ppm_param_info *)patch_pointer((uint8_t*)param_info->info);
 #else
 		dyn_params = (const struct ppm_param_info *)param_info->info;
@@ -603,12 +613,15 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 	case PT_FSPATH:
 	case PT_FSRELPATH:
 		if (likely(val != 0)) {
+#ifndef WDIG
 			if (fromuser) {
+#endif
 				len = ppm_strncpy_from_user(args->buffer + args->arg_data_offset,
 					(const char __user *)(unsigned long)val, max_arg_size);
 
 				if (unlikely(len < 0))
 					return PPM_FAILURE_INVALID_USER_MEMORY;
+#ifndef WDIG
 			} else {
 				len = strlcpy(args->buffer + args->arg_data_offset,
 								(const char *)(unsigned long)val,
@@ -617,6 +630,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 				if (++len > max_arg_size)
 					len = max_arg_size;
 			}
+#endif
 
 			/*
 			 * Make sure the string is null-terminated
@@ -626,9 +640,14 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 			/*
 			 * Handle NULL pointers
 			 */
+#ifdef WDIG
+			len = strcpy(args->buffer + args->arg_data_offset,
+				"(NULL)");
+#else
 			len = strlcpy(args->buffer + args->arg_data_offset,
 				"(NULL)",
 				max_arg_size);
+#endif
 
 			if (++len > max_arg_size)
 				len = max_arg_size;
@@ -679,7 +698,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 
 					if (val_len > dpi_lookahead_size) {
 						len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset + dpi_lookahead_size,
-								(const void __user *)(unsigned long)val + dpi_lookahead_size,
+								(const uint8_t __user *)(unsigned long)val + dpi_lookahead_size,
 								val_len - dpi_lookahead_size);
 
 						if (unlikely(len != 0))
@@ -733,7 +752,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 				len = val_len;
 			} else {
 				memcpy(args->buffer + args->arg_data_offset,
-					(void *)(unsigned long)val, val_len);
+					(void *)(uint64_t)val, val_len);
 
 				len = val_len;
 			}
@@ -882,7 +901,11 @@ u16 pack_addr(struct sockaddr *usrsockaddr,
 {
 	u32 ip;
 	u16 port;
+#ifdef WDIG
+	ADDRESS_FAMILY family = usrsockaddr->sa_family;
+#else
 	sa_family_t family = usrsockaddr->sa_family;
+#endif
 	struct sockaddr_in *usrsockaddr_in;
 	struct sockaddr_in6 *usrsockaddr_in6;
 	struct sockaddr_un *usrsockaddr_un;
@@ -986,7 +1009,11 @@ u16 fd_to_socktuple(int fd,
 {
 	struct socket *sock;
 	int err = 0;
+#ifdef WDIG
+	ADDRESS_FAMILY family;
+#else
 	sa_family_t family;
+#endif
 	struct unix_sock *us;
 	char *us_name;
 	struct sock *speer;
@@ -1252,6 +1279,7 @@ int addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr)
  * Parses the list of buffers of a xreadv or xwritev call, and pushes the size
  * (and optionally the data) to the ring.
  */
+#ifndef WDIG
 int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struct iovec __user *iovsrc, unsigned long iovcnt, int64_t retval, int flags)
 {
 	int32_t res;
@@ -1525,6 +1553,7 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 }
 #endif /* CONFIG_COMPAT */
 #endif /* UDIG */
+#endif /* WDIG /*
 
 /*
  * STANDARD FILLERS
@@ -1540,8 +1569,8 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 int f_sys_autofill(struct event_filler_arguments *args)
 {
 	int res;
-	unsigned long syscall_args[6] = {};
-	unsigned long val;
+	uint64_t syscall_args[6] = {0};
+	uint64_t val;
 	u32 j;
 	int64_t retval;
 
