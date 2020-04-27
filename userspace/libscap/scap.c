@@ -260,6 +260,8 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	handle->m_fd_lookup_limit = 0;
 #ifdef CYGWING_AGENT
 	handle->m_whh = NULL;
+	handle->m_win_buf_handle = NULL;
+	handle->m_win_descs_handle = NULL;
 #endif
 
 	//
@@ -568,6 +570,9 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 		scap_close(handle);
 		return NULL;
 	}
+
+	handle->m_win_buf_handle = NULL;
+	handle->m_win_descs_handle = NULL;
 #endif
 
 	if ((*rc = copy_comms(handle, suppressed_comms)) != SCAP_SUCCESS)
@@ -580,7 +585,12 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	//
 	// Map the ring buffer.
 	//
-	if(udig_alloc_ring(&(handle->m_devs[0].m_fd),
+	if(udig_alloc_ring(
+#if CYGWING_AGENT || _WIN32
+		&(handle->m_win_buf_handle),
+#else
+		&(handle->m_devs[0].m_fd),
+#endif
 		(uint8_t**)&handle->m_devs[0].m_buffer,
 		&handle->m_devs[0].m_buffer_size,
 		error) != SCAP_SUCCESS)
@@ -603,7 +613,12 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	//
 	// Map the ppm_ring_buffer_info that contains the buffer pointers
 	//
-	if(udig_alloc_ring_descriptors(&(handle->m_devs[0].m_bufinfo_fd), 
+	if(udig_alloc_ring_descriptors(
+#if CYGWING_AGENT || _WIN32
+		&(handle->m_win_descs_handle),
+#else
+		&(handle->m_devs[0].m_bufinfo_fd),
+#endif
 		&handle->m_devs[0].m_bufinfo, 
 		&handle->m_devs[0].m_bufstatus,
 		error) != SCAP_SUCCESS)
@@ -688,6 +703,8 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 	handle->m_fd_lookup_limit = 0;
 #ifdef CYGWING_AGENT
 	handle->m_whh = NULL;
+	handle->m_win_buf_handle = NULL;
+	handle->m_win_descs_handle = NULL;
 #endif
 	handle->m_bpf = false;
 	handle->m_udig = false;
@@ -847,6 +864,9 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 		*rc = SCAP_FAILURE;
 		return NULL;
 	}
+
+	handle->m_win_buf_handle = NULL;
+	handle->m_win_descs_handle = NULL;
 #endif
 
 	//
@@ -975,8 +995,6 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 
 void scap_close_udig(scap_t* handle)
 {
-#ifdef _WIN32
-#else
 	if(handle->m_devs[0].m_buffer != MAP_FAILED)
 	{
 		udig_free_ring((uint8_t*)handle->m_devs[0].m_buffer, handle->m_devs[0].m_buffer_size);
@@ -985,6 +1003,16 @@ void scap_close_udig(scap_t* handle)
 	{
 		udig_free_ring_descriptors((uint8_t*)handle->m_devs[0].m_bufinfo);
 	}
+#ifdef _WIN32
+	if(handle->m_win_buf_handle != NULL)
+	{
+		CloseHandle(handle->m_win_buf_handle);
+	}
+	if(handle->m_win_descs_handle != NULL)
+	{
+		CloseHandle(handle->m_win_descs_handle);
+	}
+#else
 	if(handle->m_devs[0].m_fd != -1)
 	{
 		close(handle->m_devs[0].m_fd);

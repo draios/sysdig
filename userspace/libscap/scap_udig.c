@@ -18,6 +18,12 @@
 #include <fcntl.h>
 #include <sys/syscall.h>
 #include <pthread.h>
+#else // _WIN32
+// enable use of snprintf
+#pragma warning(disable : 4996)
+// enable zero-sized array in struct/union
+#pragma warning(disable : 4200)
+#include <windows.h>
 #endif // _WIN32
 
 #include "scap.h"
@@ -324,24 +330,180 @@ int32_t udig_begin_capture(scap_t* handle, char *error)
 }
 
 #else // _WIN32
+
 ///////////////////////////////////////////////////////////////////////////////
 // The following 2 function map the ring buffer and the ring buffer 
 // descriptors into the address space of this process.
 // This is the buffer that will be consumed by scap.
 ///////////////////////////////////////////////////////////////////////////////
-int32_t udig_alloc_ring(int* ring_fd, 
-	uint8_t** ring, 
-	uint32_t *ringsize,
-	char *error)
+int32_t udig_alloc_ring(HANDLE* ring_handle,
+	uint8_t** ring,
+	uint32_t* ringsize,
+	char* error)
 {
+	*ring_handle = NULL;
+
+	//
+	// First, try to open an existing ring
+	//
+	HANDLE fh = OpenFileMapping(
+		FILE_MAP_ALL_ACCESS,
+		FALSE,
+		(TCHAR*)TEXT(UDIG_RING_SM_FNAME));
+
+	if(fh != NULL)
+	{
+		//
+		// Existing ring found, find out the size
+		//
+		uint8_t* pdbuf = (uint8_t*)MapViewOfFile(fh,
+			FILE_MAP_ALL_ACCESS,
+			0,
+			0,
+			0);
+
+		MEMORY_BASIC_INFORMATION info;
+		SIZE_T szBufferSize = VirtualQueryEx(GetCurrentProcess(), pdbuf, &info, sizeof(info));
+
+		*ringsize = (uint32_t)info.RegionSize;
+
+		UnmapViewOfFile(pdbuf);
+	}
+	else
+	{
+		//
+		// No ring found, allocate a new one.
+		// Note that, according to the man page, the content of the buffer will
+		// be initialized to 0.
+		//
+		*ringsize = UDIG_RING_SIZE;
+
+		fh = CreateFileMapping(INVALID_HANDLE_VALUE,
+			NULL,
+			PAGE_READWRITE,
+			0,
+			*ringsize,
+			(TCHAR*)TEXT(UDIG_RING_SM_FNAME));
+
+		if(fh == NULL)
+		{
+			_snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring CreateFileMapping error: %u\n", GetLastError());
+			return SCAP_FAILURE;
+		}
+	}
+
+	//
+	// Map the ring. This is a multi-step process because we want to map two
+	// consecutive copies of the same memory to reuse the driver fillers, which
+	// expect to be able to go past the end of the ring.
+	// First of all, map the first ring copy at exactly the beginning of the 
+	// previously allocated area.
+	*ring = (uint8_t*)MapViewOfFileEx(fh,
+		FILE_MAP_ALL_ACCESS,
+		0,
+		0,
+		*ringsize,
+		NULL);
+	if(*ring == NULL)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "can't map first copy of buffer error: %u\n", GetLastError());
+		CloseHandle(fh);
+		return SCAP_FAILURE;
+	}
+
+	// Map the second ring copy just after the end of the first one.
+	uint8_t* buf2 = (*ring) + (*ringsize);
+	uint8_t* ring2 = (uint8_t*)MapViewOfFileEx(fh,
+		FILE_MAP_ALL_ACCESS,
+		0,
+		0,
+		*ringsize,
+		buf2);
+	if(ring2 != buf2)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "can't map second copy of buffer, needed %p, obtained %p, base=%p\n", 
+			buf2, ring2, *ring);
+		UnmapViewOfFile(*ring);
+		CloseHandle(fh);
+		return SCAP_FAILURE;
+	}
+
+	*ring_handle = fh;
 	return SCAP_SUCCESS;
 }
 
-int32_t udig_alloc_ring_descriptors(int* ring_descs_fd, 
-	struct ppm_ring_buffer_info** ring_info, 
-	struct udig_ring_buffer_status** ring_status,
-	char *error)
+int32_t udig_alloc_ring_descriptors(HANDLE* ring_descs_fd, struct ppm_ring_buffer_info** ring_info, 
+	struct udig_ring_buffer_status** ring_status, char *error)
 {
+	*ring_descs_fd = NULL;
+
+	uint32_t mem_size = sizeof(struct ppm_ring_buffer_info) + sizeof(struct udig_ring_buffer_status);
+
+	//
+	// First, try to open an existing ring
+	//
+	HANDLE fh = OpenFileMapping(FILE_MAP_ALL_ACCESS,
+		TRUE,
+		(TCHAR*)TEXT(UDIG_RING_DESCS_SM_FNAME));
+
+	if(fh == NULL)
+	{
+		//
+		// No existing ring file found in /dev/shm, create a new one.
+		//
+		fh = CreateFileMapping(INVALID_HANDLE_VALUE,
+			NULL,
+			PAGE_READWRITE,
+			0,
+			mem_size,
+			(TCHAR*)TEXT(UDIG_RING_DESCS_SM_FNAME));
+
+		if(fh == NULL)
+		{
+			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring_descriptors CreateFileMapping error: %u\n", GetLastError());
+			return SCAP_FAILURE;
+		}
+	}
+
+	//
+	// Map the memory
+	//
+	uint8_t* descs = (uint8_t*)MapViewOfFile(fh,
+		FILE_MAP_ALL_ACCESS,
+		0,
+		0,
+		0);
+	if(descs == NULL)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "can't map descriptors\n");
+		CloseHandle(fh);
+		return SCAP_FAILURE;
+	}
+
+	*ring_info = (struct ppm_ring_buffer_info*)descs;
+
+	//
+	// Locate the ring buffer status object
+	//
+	*ring_status = (struct udig_ring_buffer_status*)((uint64_t)*ring_info + 
+		sizeof(struct ppm_ring_buffer_info));
+
+	//
+	// If we are the original creators of the shared buffer, proceed to
+	// initialize it.
+	// Note that, according to the documentation of CreateFileMapping, we are 
+	// guaranteed that the content of the buffer will initiually be initialized to 0.
+	//
+	if(InterlockedCompareExchange((volatile LONG*)&((*ring_status)->m_initialized), 1, 0) == 0)
+	{
+		(*ring_status)->m_buffer_lock = 0;
+		(*ring_status)->m_capturing_pid = 0;
+		(*ring_status)->m_stopped = 0;
+		(*ring_status)->m_last_print_time.tv_sec = 0;
+		(*ring_status)->m_last_print_time.tv_nsec = 0;
+	}
+
+	*ring_descs_fd = fh;
 	return SCAP_SUCCESS;
 }
 
@@ -350,10 +512,13 @@ int32_t udig_alloc_ring_descriptors(int* ring_descs_fd,
 ///////////////////////////////////////////////////////////////////////////////
 void udig_free_ring(uint8_t* addr, uint32_t size)
 {
+	UnmapViewOfFile(addr);
+	UnmapViewOfFile(addr + size / 2);
 }
 
 void udig_free_ring_descriptors(uint8_t* addr)
 {
+	UnmapViewOfFile(addr);
 }
 
 int32_t udig_begin_capture(scap_t* handle, char *error)
