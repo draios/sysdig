@@ -39,6 +39,7 @@ or GPL2.txt for full copies of the license.
 #endif
 #else /* UDIG */
 #define _GNU_SOURCE
+#ifndef WDIG
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,6 +65,15 @@ or GPL2.txt for full copies of the license.
 #include <sys/file.h>
 #include <sys/quota.h>
 #include <sys/ptrace.h>
+#else /* WDIG */
+#include "stdint.h"
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <afunix.h>
+#include "portal.h"
+
+#pragma warning(disable : 4996)
+#endif /* WDIG */
 
 #include "udig_capture.h"
 #include "ppm_ringbuffer.h"
@@ -589,7 +599,11 @@ int accumulate_argv_or_env(const char __user * __user *argv,
 	for (;;) {
 		const char __user *p;
 
+#ifdef WDIG
+		if (ppm_copy_from_user(&p, argv, sizeof(p)) != 0)
+#else
 		if (unlikely(ppm_get_user(p, argv)))
+#endif
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		if (p == NULL)
@@ -1244,7 +1258,7 @@ int f_sys_connect_x(struct event_filler_arguments *args)
 	u16 size = 0;
 	char *targetbuf = args->str_storage;
 	struct sockaddr_storage address;
-	unsigned long val;
+	uint64_t val;
 
 	/*
 	 * Push the result
@@ -1313,7 +1327,7 @@ int f_sys_connect_x(struct event_filler_arguments *args)
 	 * Copy the endpoint info into the ring
 	 */
 	res = val_to_ring(args,
-			    (uint64_t)(unsigned long)targetbuf,
+			    (uint64_t)targetbuf,
 			    size,
 			    false,
 			    0);
@@ -1595,7 +1609,7 @@ int f_sys_setsockopt_x(struct event_filler_arguments *args)
 {
 	int res;
 	int64_t retval;
-	unsigned long val[5] = {};
+	unsigned long val[5] = {0};
 
 	syscall_get_arguments_deprecated(current, args->regs, 0, 5, val);
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
@@ -1639,7 +1653,7 @@ int f_sys_getsockopt_x(struct event_filler_arguments *args)
 	int res;
 	int64_t retval;
 	uint32_t optlen;
-	unsigned long val[5] = {};
+	unsigned long val[5] = {0};
 
 	syscall_get_arguments_deprecated(current, args->regs, 0, 5, val);
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
@@ -2133,6 +2147,7 @@ int f_sys_recvfrom_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#ifndef WDIG
 int f_sys_sendmsg_e(struct event_filler_arguments *args)
 {
 	int res;
@@ -2508,6 +2523,7 @@ int f_sys_creat_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+#endif /* WDIG */
 
 int f_sys_pipe_x(struct event_filler_arguments *args)
 {
@@ -2596,6 +2612,7 @@ int f_sys_eventfd_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#ifndef WDIG
 int f_sys_shutdown_e(struct event_filler_arguments *args)
 {
 	int res;
@@ -2916,6 +2933,7 @@ int f_sys_poll_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+#endif /* WDIG */
 
 int f_sys_mount_e(struct event_filler_arguments *args)
 {
@@ -2936,6 +2954,7 @@ int f_sys_mount_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#ifndef WDIG
 int f_sys_openat_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -4143,6 +4162,7 @@ int f_sys_symlinkat_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+#endif /* WDIG */
 
 int f_sys_procexit_e(struct event_filler_arguments *args)
 {
@@ -4169,6 +4189,7 @@ int f_sys_procexit_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#ifndef WDIG
 int f_sys_sendfile_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -5058,3 +5079,5 @@ int f_sys_fchmod_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+#endif /* WDIG */

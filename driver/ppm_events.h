@@ -81,7 +81,9 @@ struct event_filler_arguments {
 #endif	
 };
 
+#ifndef WDIG_CBACK
 extern const struct ppm_event_entry g_ppm_events[];
+#endif
 
 /*
  * HTTP markers
