@@ -752,7 +752,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 				len = val_len;
 			} else {
 				memcpy(args->buffer + args->arg_data_offset,
-					(void *)(uint64_t)val, val_len);
+					(void *)(unsigned long)val, val_len);
 
 				len = val_len;
 			}
@@ -1553,7 +1553,7 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 }
 #endif /* CONFIG_COMPAT */
 #endif /* UDIG */
-#endif /* WDIG /*
+#endif /* WDIG */
 
 /*
  * STANDARD FILLERS
@@ -1569,8 +1569,8 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 int f_sys_autofill(struct event_filler_arguments *args)
 {
 	int res;
-	uint64_t syscall_args[6] = {0};
-	uint64_t val;
+	syscall_arg_t syscall_args[6] = {0};
+	syscall_arg_t val;
 	u32 j;
 	int64_t retval;
 
