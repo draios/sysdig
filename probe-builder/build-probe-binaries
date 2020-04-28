@@ -328,8 +328,9 @@ function build_probe {
 
 		# While ls output is already sorted alphabetically by default, we need to sort it
 		# by version instead so it doesn't break when we add support for gcc 10.0
-		DOCKERFILE=$(ls $BUILDER_SOURCE/Dockerfile.${BUILDER_DISTRO}-gcc* | sort -V | awk \
-			-v target=$BUILDER_SOURCE/Dockerfile.${BUILDER_DISTRO}-gcc${BUILDER_GCC_MINOR_VERSION} \
+		DOCKERFILE_PREFIX=$BUILDER_SOURCE/Dockerfile.${BUILDER_DISTRO}-gcc
+		CHOSEN_GCC_VERSION=$(ls $DOCKERFILE_PREFIX* | sed "s@$DOCKERFILE_PREFIX@@" | sort -V | awk \
+			-v target=${BUILDER_GCC_MINOR_VERSION} \
 		'
 		$1 < target { older = $1 }
 		$1 == target { exact = $1 }
@@ -341,6 +342,7 @@ function build_probe {
 			else { print older }
 		}
 		')
+		DOCKERFILE=${DOCKERFILE_PREFIX}${CHOSEN_GCC_VERSION}
 		DOCKERFILE_TAG=${DOCKERFILE#$BUILDER_SOURCE/Dockerfile.}
 		echo "Selected builder $DOCKERFILE_TAG for $BUILDER_DISTRO, gcc $BUILDER_GCC_VERSION"
 	fi
