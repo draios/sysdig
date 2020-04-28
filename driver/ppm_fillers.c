@@ -1258,7 +1258,7 @@ int f_sys_connect_x(struct event_filler_arguments *args)
 	u16 size = 0;
 	char *targetbuf = args->str_storage;
 	struct sockaddr_storage address;
-	uint64_t val;
+	syscall_arg_t val;
 
 	/*
 	 * Push the result
@@ -1609,7 +1609,7 @@ int f_sys_setsockopt_x(struct event_filler_arguments *args)
 {
 	int res;
 	int64_t retval;
-	unsigned long val[5] = {0};
+	syscall_arg_t val[5] = {0};
 
 	syscall_get_arguments_deprecated(current, args->regs, 0, 5, val);
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
@@ -1653,7 +1653,7 @@ int f_sys_getsockopt_x(struct event_filler_arguments *args)
 	int res;
 	int64_t retval;
 	uint32_t optlen;
-	unsigned long val[5] = {0};
+	syscall_arg_t val[5] = {0};
 
 	syscall_get_arguments_deprecated(current, args->regs, 0, 5, val);
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
