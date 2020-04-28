@@ -1560,7 +1560,7 @@ static void record_event_all_consumers(enum ppm_event_type event_type,
 static int record_event_consumer(struct ppm_consumer_t *consumer,
 	enum ppm_event_type event_type,
 	enum syscall_flags drop_flags,
-    nanoseconds ns,
+	nanoseconds ns,
 	struct event_data_t *event_datap)
 {
 	int res = 0;
