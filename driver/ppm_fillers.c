@@ -51,8 +51,8 @@ or GPL2.txt for full copies of the license.
  * Linux 5.6 kernels no longer include the old 32-bit timeval
  * structures. But the syscalls (might) still use them.
  */
-#include <linux/time64.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+#include <linux/time64.h>
 struct compat_timespec {
 	int32_t tv_sec;
 	int32_t tv_nsec;
