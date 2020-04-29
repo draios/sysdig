@@ -1388,11 +1388,10 @@ static int parse_sockopt(struct event_filler_arguments *args, int level, int opt
 #ifdef SO_SNDTIMEO
 			case SO_SNDTIMEO:
 #endif
-				ASSERT(optlen == sizeof(struct timeval));
 				if (unlikely(ppm_copy_from_user(&u.tv, optval, sizeof(u.tv)))) {
 					return PPM_FAILURE_INVALID_USER_MEMORY;
 				}
-				ns = u.tv.tv_sec * second_in_ns + u.tv.tv_usec * 1000;
+				ns = u.tv.tv_sec * SECOND_IN_NS + u.tv.tv_usec * 1000;
 				return val_to_ring(args, ns, 0, false, PPM_SOCKOPT_IDX_TIMEVAL);
 
 #ifdef SO_COOKIE

@@ -216,7 +216,7 @@ do {								\
 		pr_info(fmt, ##__VA_ARGS__);			\
 } while (0)
 
-nanoseconds ppm_nsecs(void)
+static inline nanoseconds ppm_nsecs(void)
 {
 	return ktime_get_real_ns();
 }
@@ -1521,8 +1521,8 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 			return 1;
 		}
 
-		if (consumer->sampling_interval < second_in_ns &&
-		    (ns % second_in_ns) >= consumer->sampling_interval) {
+		if (consumer->sampling_interval < SECOND_IN_NS &&
+		    (ns % SECOND_IN_NS) >= consumer->sampling_interval) {
 			if (consumer->is_dropping == 0) {
 				consumer->is_dropping = 1;
 				record_drop_e(consumer, ns, drop_flags);
@@ -1863,7 +1863,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		}
 	}
 
-	if (more_than_one_second_ahead(ns, ring->last_print_time + 1) && !(drop_flags & UF_ATOMIC)) {
+	if (MORE_THAN_ONE_SECOND_AHEAD(ns, ring->last_print_time + 1) && !(drop_flags & UF_ATOMIC)) {
 		vpr_info("consumer:%p CPU:%d, use:%d%%, ev:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 			   consumer->consumer_id,
 		       smp_processor_id(),

@@ -117,10 +117,8 @@ extern const enum ppm_syscall_code g_syscall_ia32_code_routing_table[];
 
 extern void ppm_syscall_get_arguments(struct task_struct *task, struct pt_regs *regs, unsigned long *args);
 
-extern nanoseconds ppm_nsecs(void);
-
-#define ns_to_sec(_ns) ((_ns) / 1000000000)
-#define more_than_one_second_ahead(_ns1, _ns2) ((_ns1) - (_ns2) > 1000000000)
-#define second_in_ns 1000000000
+#define NS_TO_SEC(_ns) ((_ns) / 1000000000)
+#define MORE_THAN_ONE_SECOND_AHEAD(_ns1, _ns2) ((_ns1) - (_ns2) > 1000000000)
+#define SECOND_IN_NS 1000000000
 
 #endif /* PPM_H_ */
