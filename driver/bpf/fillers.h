@@ -1474,7 +1474,7 @@ static __always_inline pid_t bpf_task_pid_vnr(struct task_struct *task)
 
 static __always_inline pid_t bpf_task_tgid_vnr(struct task_struct *task)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
+#ifdef __PIDTYPE_TGID
 	return bpf_task_pid_nr_ns(task, __PIDTYPE_TGID, NULL);
 #else
 	return bpf_task_pid_nr_ns(task, PIDTYPE_TGID, NULL);
