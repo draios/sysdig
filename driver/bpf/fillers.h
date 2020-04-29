@@ -1387,13 +1387,17 @@ static __always_inline int bpf_ppm_get_tty(struct task_struct *task)
 	return tty_nr;
 }
 
+static __always_inline struct pid **bpf_get_task_pid(struct task_struct *task)
+{
+	struct pid *ret = task_pid(task);
+	return &ret;
+}
+
 static __always_inline struct pid *bpf_task_pid(struct task_struct *task)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
-	return _READ(task->pids[PIDTYPE_PID].pid);
-#else
-	return _READ(task->thread_pid);
-#endif
+	// leo_printk("thread_pid: %d\n", _READ(task->thread_pid));
+	// leo_printk("bpf_get_task_pid: %d\n", _READ(*bpf_get_task_pid(task)));
+	return _READ(*bpf_get_task_pid(task));
 }
 
 static __always_inline struct pid_namespace *bpf_ns_of_pid(struct pid *pid)
@@ -1455,6 +1459,8 @@ static __always_inline pid_t bpf_task_pid_nr_ns(struct task_struct *task,
 
 	nr = bpf_pid_nr_ns(_READ(task->pids[type].pid), ns);
 #else
+	// leo_printk("thread_pid: %d\n", _READ(task->thread_pid));
+	// leo_printk("bpf_get_task_pid: %d\n", _READ(*bpf_get_task_pid(task)));
 	nr = bpf_pid_nr_ns(_READ(*bpf_task_pid_ptr(task, type)), ns);
 #endif
 
