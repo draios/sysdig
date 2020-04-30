@@ -617,14 +617,14 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 			if (fromuser) {
 #endif
 				len = ppm_strncpy_from_user(args->buffer + args->arg_data_offset,
-					(const char __user *)(unsigned long)val, max_arg_size);
+					(const char __user *)(syscall_arg_t)val, max_arg_size);
 
 				if (unlikely(len < 0))
 					return PPM_FAILURE_INVALID_USER_MEMORY;
 #ifndef WDIG
 			} else {
 				len = strlcpy(args->buffer + args->arg_data_offset,
-								(const char *)(unsigned long)val,
+								(const char *)(syscall_arg_t)val,
 								max_arg_size);
 
 				if (++len > max_arg_size)
@@ -641,15 +641,16 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 			 * Handle NULL pointers
 			 */
 #ifdef WDIG
-			len = strcpy(args->buffer + args->arg_data_offset,
+			strcpy(args->buffer + args->arg_data_offset,
 				"(NULL)");
+			len = (int)strlen(args->buffer + args->arg_data_offset);
 #else
 			len = strlcpy(args->buffer + args->arg_data_offset,
 				"(NULL)",
 				max_arg_size);
 #endif
 
-			if (++len > max_arg_size)
+			if (++len > (int)max_arg_size)
 				len = max_arg_size;
 		}
 
@@ -670,7 +671,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 					return PPM_FAILURE_BUFFER_FULL;
 
 				len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset,
-						(const void __user *)(unsigned long)val,
+						(const void __user *)(syscall_arg_t)val,
 						dpi_lookahead_size);
 
 				if (unlikely(len != 0))
@@ -698,7 +699,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 
 					if (val_len > dpi_lookahead_size) {
 						len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset + dpi_lookahead_size,
-								(const uint8_t __user *)(unsigned long)val + dpi_lookahead_size,
+								(const uint8_t __user *)(syscall_arg_t)val + dpi_lookahead_size,
 								val_len - dpi_lookahead_size);
 
 						if (unlikely(len != 0))
@@ -712,7 +713,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 #ifdef UDIG
 					u32 sl = args->consumer->snaplen;
 #else
-					u32 sl = compute_snaplen(args, (char *)(unsigned long)val, val_len);
+					u32 sl = compute_snaplen(args, (char *)(syscall_arg_t)val, val_len);
 #endif
 					if (val_len > sl)
 						val_len = sl;
@@ -722,7 +723,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 					return PPM_FAILURE_BUFFER_FULL;
 
 				memcpy(args->buffer + args->arg_data_offset,
-					(void *)(unsigned long)val, val_len);
+					(void *)(syscall_arg_t)val, val_len);
 
 				len = val_len;
 			}
@@ -743,7 +744,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 
 			if (fromuser) {
 				len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset,
-						(const void __user *)(unsigned long)val,
+						(const void __user *)(syscall_arg_t)val,
 						val_len);
 
 				if (unlikely(len != 0))
@@ -752,7 +753,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 				len = val_len;
 			} else {
 				memcpy(args->buffer + args->arg_data_offset,
-					(void *)(unsigned long)val, val_len);
+					(void *)(syscall_arg_t)val, val_len);
 
 				len = val_len;
 			}
@@ -862,7 +863,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 	}
 
 	ASSERT(len <= PPM_MAX_ARG_SIZE);
-	ASSERT(len <= max_arg_size);
+	ASSERT(len <= (int)max_arg_size);
 
 	*psize += (u16)len;
 	args->curarg++;
@@ -930,7 +931,7 @@ u16 pack_addr(struct sockaddr *usrsockaddr,
 		 */
 		size = 1 + 4 + 2; /* family + ip + port */
 
-		*targetbuf = socket_family_to_scap(family);
+		*targetbuf = socket_family_to_scap((u8)family);
 		*(u32 *)(targetbuf + 1) = ip;
 		*(u16 *)(targetbuf + 5) = port;
 
@@ -951,7 +952,7 @@ u16 pack_addr(struct sockaddr *usrsockaddr,
 		 */
 		size = 1 + 16 + 2; /* family + ip + port */
 
-		*targetbuf = socket_family_to_scap(family);
+		*targetbuf = socket_family_to_scap((u8)family);
 		memcpy(targetbuf + 1,
 			usrsockaddr_in6->sin6_addr.s6_addr,
 			16);
@@ -978,13 +979,13 @@ u16 pack_addr(struct sockaddr *usrsockaddr,
 		 */
 		size = 1;
 
-		*targetbuf = socket_family_to_scap(family);
+		*targetbuf = socket_family_to_scap((u8)family);
 		dest = strncpy(targetbuf + 1,
 					usrsockaddr_un->sun_path,
 					UNIX_PATH_MAX);	/* we assume this will be smaller than (targetbufsize - (1 + 8 + 8)) */
 
 		dest[UNIX_PATH_MAX - 1] = 0;
-		size += strlen(dest) + 1;
+		size += (u16)strlen(dest) + 1;
 
 		break;
 	default:
@@ -1007,16 +1008,12 @@ u16 fd_to_socktuple(int fd,
 	char *targetbuf,
 	u16 targetbufsize)
 {
-	struct socket *sock;
 	int err = 0;
 #ifdef WDIG
 	ADDRESS_FAMILY family;
 #else
 	sa_family_t family;
 #endif
-	struct unix_sock *us;
-	char *us_name;
-	struct sock *speer;
 	u32 sip;
 	u32 dip;
 	u8 *sip6;
@@ -1025,13 +1022,17 @@ u16 fd_to_socktuple(int fd,
 	u16 dport;
 	struct sockaddr_in *usrsockaddr_in;
 	struct sockaddr_in6 *usrsockaddr_in6;
-	struct sockaddr_un *usrsockaddr_un;
 	u16 size;
-	char *dest;
 	struct sockaddr_storage sock_address;
 	struct sockaddr_storage peer_address;
-
 #ifndef UDIG
+	struct socket *sock;
+	char *dest;
+	struct unix_sock *us;
+	char *us_name;
+	struct sock *speer;
+	struct sockaddr_un *usrsockaddr_un;
+
 	/*
 	 * Get the socket from the fd
 	 * NOTE: sockfd_lookup() locks the socket, so we don't need to worry when we dig in it
@@ -1119,7 +1120,7 @@ u16 fd_to_socktuple(int fd,
 		 */
 		size = 1 + 4 + 4 + 2 + 2; /* family + sip + dip + sport + dport */
 
-		*targetbuf = socket_family_to_scap(family);
+		*targetbuf = socket_family_to_scap((u8)family);
 		*(u32 *)(targetbuf + 1) = sip;
 		*(u16 *)(targetbuf + 5) = sport;
 		*(u32 *)(targetbuf + 7) = dip;
@@ -1171,7 +1172,7 @@ u16 fd_to_socktuple(int fd,
 		 */
 		size = 1 + 16 + 16 + 2 + 2; /* family + sip + dip + sport + dport */
 
-		*targetbuf = socket_family_to_scap(family);
+		*targetbuf = socket_family_to_scap((u8)family);
 		memcpy(targetbuf + 1,
 			sip6,
 			16);

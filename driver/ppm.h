@@ -92,7 +92,11 @@ struct ppm_consumer_t {
 
 #define STR_STORAGE_SIZE PAGE_SIZE
 
+#ifdef WDIG
+typedef uint64_t syscall_arg_t;
+#else
 typedef unsigned long syscall_arg_t;
+#endif
 
 /*
  * Global functions
