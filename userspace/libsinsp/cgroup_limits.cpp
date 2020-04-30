@@ -9,7 +9,7 @@ namespace {
 // This reports extremely large values (e.g. almost-but-not-quite 9EiB as set by k8s) as unlimited.
 // Note: we use the same maximum value for cpu shares/quotas as well; the typical values are much lower
 // and so should never exceed CGROUP_VAL_MAX either
-constexpr const int64_t CGROUP_VAL_MAX = (1UL << 42u) - 1;
+constexpr const int64_t CGROUP_VAL_MAX = (1ULL << 42u) - 1;
 
 /**
  * \brief Read a single int64_t value from cgroupfs
