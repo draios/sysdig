@@ -22,7 +22,7 @@ or GPL2.txt for full copies of the license.
 		 })
 
 #ifdef BPF_DEBUG
-#define bpf_printk(fmt, ...)					\
+#define leo_printk(fmt, ...)					\
 	do {							\
 		char s[] = fmt;					\
 		bpf_trace_printk(s, sizeof(s), ##__VA_ARGS__);	\
@@ -30,6 +30,7 @@ or GPL2.txt for full copies of the license.
 #else
 #define bpf_printk(fmt, ...)
 #endif
+#define bpf_printk(fmt, ...)
 
 #ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
 static __always_inline int __stash_args(unsigned long long id,

@@ -12,7 +12,7 @@ CLANG ?= clang
 
 KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 
-# DEBUG = -DBPF_DEBUG
+DEBUG = -DBPF_DEBUG
 
 all:
 	$(MAKE) -C $(KERNELDIR) M=$$PWD
