@@ -1109,7 +1109,7 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 #if defined(CYGWING_AGENT) || defined(_WIN32)
 int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, char *error)
 {
-	return scap_proc_scan_proc_dir_windows(handle, error);
+	return scap_get_procs_windows(handle, error);
 }
 #endif
 
