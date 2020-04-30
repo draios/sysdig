@@ -1395,7 +1395,11 @@ static __always_inline struct pid **bpf_get_task_pid(struct task_struct *task)
 
 static __always_inline struct pid *bpf_task_pid(struct task_struct *task)
 {
+	// TO TEST ON KERNELS < 4.19 UNCOMMENT
+	// leo_printk("thread_pid: %d\n", _READ(task->pids[PIDTYPE_PID].pid));
+	// TO TEST ON KERNELS >= 4.19 UNCOMMENT
 	// leo_printk("thread_pid: %d\n", _READ(task->thread_pid));
+	// TO TEST ALWAYS UNCOMMENT
 	// leo_printk("bpf_get_task_pid: %d\n", _READ(*bpf_get_task_pid(task)));
 	return _READ(*bpf_get_task_pid(task));
 }
@@ -1430,15 +1434,13 @@ static __always_inline pid_t bpf_pid_nr_ns(struct pid *pid,
 	return nr;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
 static __always_inline struct pid **bpf_task_pid_ptr(struct task_struct *task,
 						     enum pid_type type)
 {
 	return (type == PIDTYPE_PID) ?
-		&task->thread_pid :
+		bpf_get_task_pid(task) :
 		&_READ(task->signal)->pids[type];
 }
-#endif
 
 static __always_inline pid_t bpf_task_pid_nr_ns(struct task_struct *task,
 						enum pid_type type,
@@ -1449,20 +1451,16 @@ static __always_inline pid_t bpf_task_pid_nr_ns(struct task_struct *task,
 	if (!ns)
 		ns = bpf_task_active_pid_ns(task);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
+#ifdef __PIDTYPE_TGID
 	if (type != PIDTYPE_PID) {
 		if (type == __PIDTYPE_TGID)
 			type = PIDTYPE_PID;
 
 		task = _READ(task->group_leader);
 	}
-
-	nr = bpf_pid_nr_ns(_READ(task->pids[type].pid), ns);
-#else
-	// leo_printk("thread_pid: %d\n", _READ(task->thread_pid));
-	// leo_printk("bpf_get_task_pid: %d\n", _READ(*bpf_get_task_pid(task)));
-	nr = bpf_pid_nr_ns(_READ(*bpf_task_pid_ptr(task, type)), ns);
 #endif
+
+	nr = bpf_pid_nr_ns(_READ(*bpf_task_pid_ptr(task, type)), ns);
 
 	return nr;
 }
