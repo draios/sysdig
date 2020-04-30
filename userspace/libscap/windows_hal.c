@@ -295,7 +295,7 @@ static int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, char* error)
 
 typedef int (CALLBACK* LPFNDLLFUNC1)();
 
-int32_t scap_proc_scan_proc_dir_windows(scap_t* handle, char* error)
+int32_t scap_get_procs_windows(scap_t* handle, char* error)
 {
 	wh_proclist wgpres;
 
@@ -342,7 +342,6 @@ int32_t scap_proc_scan_proc_dir_windows(scap_t* handle, char* error)
 	for(uint32_t j = 0; j < wgpres.m_count; j++)
 	{
 		wh_procinfo* wpi = &(wgpres.m_procs[j]);
-
 		if(addprocess_windows(wpi, handle, error) != SCAP_SUCCESS)
 		{
 			p_wh_free_fd_list(handle->m_whh);
