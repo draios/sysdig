@@ -24,6 +24,30 @@ or GPL2.txt for full copies of the license.
 #include <linux/tty.h>
 #include <linux/audit.h>
 
+/*
+ * Linux 5.6 kernels no longer include the old 32-bit timeval
+ * structures. But the syscalls (might) still use them.
+ */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+#include <linux/time64.h>
+struct compat_timespec {
+	int32_t tv_sec;
+	int32_t tv_nsec;
+};
+
+struct timespec {
+	int32_t tv_sec;
+	int32_t tv_nsec;
+};
+
+struct timeval {
+	int32_t tv_sec;
+	int32_t tv_usec;
+};
+#else
+#define timeval64 timeval
+#endif
+
 #define FILLER_RAW(x)							\
 static __always_inline int __bpf_##x(struct filler_data *data);		\
 									\
@@ -537,7 +561,7 @@ FILLER(sys_writev_pwritev_x, true)
 }
 
 static __always_inline int timespec_parse(struct filler_data *data,
-					  unsigned long val)
+                                          unsigned long val)
 {
 	u64 longtime;
 	struct timespec ts;
