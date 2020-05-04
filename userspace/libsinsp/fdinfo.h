@@ -507,6 +507,7 @@ private:
 	friend class lua_cbacks;
 	friend class sinsp_proto_detector;
 	friend class sinsp_baseliner;
+	friend class protocol_manager; //temporary
 };
 
 /*@}*/

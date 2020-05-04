@@ -2641,3 +2641,8 @@ bool sinsp_evt::is_network_error() const
 		       (m_pevt->type == PPME_SOCKET_BIND_X);
 	}
 }
+
+uint64_t sinsp_evt::get_lastevent_ts() const
+{
+	return m_tinfo->m_lastevent_ts;
+}

@@ -382,6 +382,8 @@ public:
 	*/
 	bool is_network_error() const;
 
+	uint64_t get_lastevent_ts() const;
+
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
 private:
