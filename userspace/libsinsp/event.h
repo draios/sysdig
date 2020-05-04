@@ -516,7 +516,6 @@ VISIBILITY_PRIVATE
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_analyzer_parsers;
 	friend class lua_cbacks;
-	friend class sinsp_proto_detector;
 	friend class sinsp_container_manager;
 	friend class sinsp_table;
 	friend class sinsp_cursesui;
@@ -525,6 +524,7 @@ VISIBILITY_PRIVATE
 	friend class capture_job;
 	friend class sinsp_memory_dumper;
 	friend class sinsp_memory_dumper_job;
+	friend class protocol_manager;
 	friend class test_helpers::event_builder;
 	friend class test_helpers::sinsp_mock;
 };
