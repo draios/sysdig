@@ -44,11 +44,13 @@ int ud_shm_open(const char *name, int flag, mode_t mode);
 // descriptors into the address space of this process.
 // This is the buffer that will be consumed by scap.
 ///////////////////////////////////////////////////////////////////////////////
-int32_t udig_alloc_ring(int* ring_fd, 
+int32_t udig_alloc_ring(void* ring_id, 
 	uint8_t** ring, 
 	uint32_t *ringsize,
 	char *error)
 {
+	int* ring_fd = (int*)ring_id;
+
 	//
 	// First, try to open an existing ring
 	//
@@ -148,11 +150,12 @@ int32_t udig_alloc_ring(int* ring_fd,
 	return SCAP_SUCCESS;
 }
 
-int32_t udig_alloc_ring_descriptors(int* ring_descs_fd, 
+int32_t udig_alloc_ring_descriptors(void* ring_descs_id, 
 	struct ppm_ring_buffer_info** ring_info, 
 	struct udig_ring_buffer_status** ring_status,
 	char *error)
 {
+	int* ring_descs_fd = (int*)ring_descs_id;
 	uint32_t mem_size = sizeof(struct ppm_ring_buffer_info) + sizeof(struct udig_ring_buffer_status);
 
 	//
