@@ -1013,12 +1013,12 @@ u16 fd_to_socktuple(int fd,
 #else
 	sa_family_t family;
 #endif
-	u32 sip;
-	u32 dip;
-	u8 *sip6;
-	u8 *dip6;
-	u16 sport;
-	u16 dport;
+	u32 sip = 0;
+	u32 dip = 0;
+	u8 *sip6 = NULL;
+	u8 *dip6 = NULL;
+	u16 sport = 0;
+	u16 dport = 0;
 	struct sockaddr_in *usrsockaddr_in;
 	struct sockaddr_in6 *usrsockaddr_in6;
 	u16 size;
@@ -1047,23 +1047,46 @@ u16 fd_to_socktuple(int fd,
 			sockfd_put(sock);
 		return 0;
 	}
-#endif
 
-#ifdef UDIG
-	socklen_t alen = sizeof(struct sockaddr_storage);
-	err = udig_getsockname(fd, (struct sockaddr *)&sock_address, &alen);
-	if(err < 0)
-	{
-		return 0;
-	}
-
-	family = sock_address.ss_family;
-#else
 	err = sock_getname(sock, (struct sockaddr *)&sock_address, 0);
 	ASSERT(err == 0);
 
 	family = sock->sk->sk_family;
+#else /* UDIG */
+	socklen_t alen = sizeof(struct sockaddr_storage);
+	err = udig_getsockname(fd, (struct sockaddr *)&sock_address, &alen);
+	if(err >= 0)
+	{
+		family = sock_address.ss_family;
+	}
+	else
+	{
+		family = 0;
+	}
 #endif
+
+	if(!use_userdata)
+	{
+#ifdef UDIG
+		socklen_t palen = sizeof(struct sockaddr_storage);
+		err = udig_getpeername(fd, (struct sockaddr *)&peer_address, &palen);
+#else
+		err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
+#endif
+		if(family == 0)
+		{
+			if(err != 0)
+			{
+				// both getsockname and getpeername failed, give up
+				return 0;
+			}
+			family = peer_address.ss_family;
+		}
+	}
+	else
+	{
+		family = usrsockaddr->sa_family;
+	}
 
 	/*
 	 * Extract and pack the info, based on the family
@@ -1071,12 +1094,6 @@ u16 fd_to_socktuple(int fd,
 	switch (family) {
 	case AF_INET:
 		if (!use_userdata) {
-#ifdef UDIG
-			socklen_t palen = sizeof(struct sockaddr_storage);
-			err = udig_getpeername(fd, (struct sockaddr *)&peer_address, &palen);
-#else
-			err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
-#endif
 			if (err == 0) {
 				if (is_inbound) {
 					sip = ((struct sockaddr_in *) &peer_address)->sin_addr.s_addr;
@@ -1128,24 +1145,18 @@ u16 fd_to_socktuple(int fd,
 		break;
 	case AF_INET6:
 		if (!use_userdata) {
-#ifdef UDIG
-			socklen_t palen = sizeof(struct sockaddr_storage);
-			err = udig_getpeername(fd, (struct sockaddr *)&peer_address, &palen);
-#else
-			err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
-#endif
-			ASSERT(err == 0);
-
-			if (is_inbound) {
-				sip6 = ((struct sockaddr_in6 *) &peer_address)->sin6_addr.s6_addr;
-				sport = ntohs(((struct sockaddr_in6 *) &peer_address)->sin6_port);
-				dip6 = ((struct sockaddr_in6 *) &sock_address)->sin6_addr.s6_addr;
-				dport = ntohs(((struct sockaddr_in6 *) &sock_address)->sin6_port);
-			} else {
-				sip6 = ((struct sockaddr_in6 *) &sock_address)->sin6_addr.s6_addr;
-				sport = ntohs(((struct sockaddr_in6 *) &sock_address)->sin6_port);
-				dip6 = ((struct sockaddr_in6 *) &peer_address)->sin6_addr.s6_addr;
-				dport = ntohs(((struct sockaddr_in6 *) &peer_address)->sin6_port);
+			if (err == 0) {
+				if (is_inbound) {
+					sip6 = ((struct sockaddr_in6 *) &peer_address)->sin6_addr.s6_addr;
+					sport = ntohs(((struct sockaddr_in6 *) &peer_address)->sin6_port);
+					dip6 = ((struct sockaddr_in6 *) &sock_address)->sin6_addr.s6_addr;
+					dport = ntohs(((struct sockaddr_in6 *) &sock_address)->sin6_port);
+				} else {
+					sip6 = ((struct sockaddr_in6 *) &sock_address)->sin6_addr.s6_addr;
+					sport = ntohs(((struct sockaddr_in6 *) &sock_address)->sin6_port);
+					dip6 = ((struct sockaddr_in6 *) &peer_address)->sin6_addr.s6_addr;
+					dport = ntohs(((struct sockaddr_in6 *) &peer_address)->sin6_port);
+				}
 			}
 		} else {
 			/*
@@ -1171,14 +1182,15 @@ u16 fd_to_socktuple(int fd,
 		 */
 		size = 1 + 16 + 16 + 2 + 2; /* family + sip + dip + sport + dport */
 
+		memset(targetbuf, 0, size);
 		*targetbuf = socket_family_to_scap((u8)family);
-		memcpy(targetbuf + 1,
-			sip6,
-			16);
+		if(sip6) {
+			memcpy(targetbuf + 1, sip6, 16);
+		}
 		*(u16 *)(targetbuf + 17) = sport;
-		memcpy(targetbuf + 19,
-			dip6,
-			16);
+		if(dip6) {
+			memcpy(targetbuf + 19, dip6, 16);
+		}
 		*(u16 *)(targetbuf + 35) = dport;
 
 		break;
