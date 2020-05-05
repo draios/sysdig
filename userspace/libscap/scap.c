@@ -1791,7 +1791,7 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 		{
 			return scap_bpf_enable_tracers_capture(handle);
 		}
-		else
+		else if(!handle->m_udig)
 		{
 			if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_TRACERS_CAPTURE))
 			{
