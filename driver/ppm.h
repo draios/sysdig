@@ -24,8 +24,6 @@ or GPL2.txt for full copies of the license.
 #define ASSERT(expr)
 #endif
 
-typedef u64 nanoseconds;
-
 /*
  * Global defines
  */
@@ -44,6 +42,8 @@ typedef u64 nanoseconds;
 #define PPM_PORT_POSTGRES 5432
 #define PPM_PORT_STATSD 8125
 #define PPM_PORT_MONGODB 27017
+
+typedef u64 nanoseconds;
 
 /*
  * The ring descriptor.
