@@ -326,10 +326,25 @@ function build_probe {
 		# Dockerfile when the latest kernel fails to build with our newest
 		# gcc for that distro
 
-		# While ls output is already sorted alphabetically by default, we need to sort it
-		# by version instead so it doesn't break when we add support for gcc 10.0
-		DOCKERFILE=$(ls $BUILDER_SOURCE/Dockerfile.${BUILDER_DISTRO}-gcc* | sort -V | awk \
-			-v target=$BUILDER_SOURCE/Dockerfile.${BUILDER_DISTRO}-gcc${BUILDER_GCC_MINOR_VERSION} \
+		# The dockerfiles in question all look like .../Dockerfile.centos-gcc4.4
+		# or similar. We want to pick the one that's closest to $BUILDER_GCC_MINOR_VERSION
+		# (exact match, slightly newer, slightly older, in that order of preference).
+		# To do that, we iterate over the list of all available dockerfiles (i.e. gcc
+		# versions) for a particular distribution in ascending version order (oldest->newest).
+		# Sadly, sort -V falls back to ASCII order with non-numeric prefixes, i.e.
+		# these are sorted according to sort -V:
+		#   Dockerfile.centos-gcc10.0
+		#   Dockerfile.centos-gcc4.4
+		#   Dockerfile.centos-gcc9.2
+		# So, to get actual sorting by version numbers, we strip the common prefix first
+		# and add it back after finding the best available version. What we're sorting is:
+		#   4.4
+		#   9.2
+		#   10.0
+		# and now we properly realize that gcc 10 is newer than 9.2, not older than 4.4
+		DOCKERFILE_PREFIX=$BUILDER_SOURCE/Dockerfile.${BUILDER_DISTRO}-gcc
+		CHOSEN_GCC_VERSION=$(ls $DOCKERFILE_PREFIX* | sed "s@$DOCKERFILE_PREFIX@@" | sort -V | awk \
+			-v target=${BUILDER_GCC_MINOR_VERSION} \
 		'
 		$1 < target { older = $1 }
 		$1 == target { exact = $1 }
@@ -341,6 +356,7 @@ function build_probe {
 			else { print older }
 		}
 		')
+		DOCKERFILE=${DOCKERFILE_PREFIX}${CHOSEN_GCC_VERSION}
 		DOCKERFILE_TAG=${DOCKERFILE#$BUILDER_SOURCE/Dockerfile.}
 		echo "Selected builder $DOCKERFILE_TAG for $BUILDER_DISTRO, gcc $BUILDER_GCC_VERSION"
 	fi

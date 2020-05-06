@@ -147,7 +147,7 @@ docker_async_source::docker_response docker_async_source::get_docker(const std::
 		}
 
 		int numfds;
-		res = curl_multi_wait(m_curlm, NULL, 0, -1, &numfds);
+		res = curl_multi_wait(m_curlm, NULL, 0, 1000, &numfds);
 		if(res != CURLM_OK)
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,

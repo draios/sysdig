@@ -94,6 +94,30 @@ or GPL2.txt for full copies of the license.
 #include <linux/bpf.h>
 #endif
 
+/*
+ * Linux 5.6 kernels no longer include the old 32-bit timeval
+ * structures. But the syscalls (might) still use them.
+ */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+#include <linux/time64.h>
+struct compat_timespec {
+	int32_t tv_sec;
+	int32_t tv_nsec;
+};
+
+struct timespec {
+	int32_t tv_sec;
+	int32_t tv_nsec;
+};
+
+struct timeval {
+	int32_t tv_sec;
+	int32_t tv_usec;
+};
+#else
+#define timeval64 timeval
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
 static inline struct inode *file_inode(struct file *f)
 {
@@ -1440,6 +1464,7 @@ static int parse_sockopt(struct event_filler_arguments *args, int level, int opt
 		uint64_t val64;
 		struct timeval tv;
 	} u;
+	nanoseconds ns = 0;
 
 	if (level == SOL_SOCKET) {
 		switch (optname) {
@@ -1456,9 +1481,11 @@ static int parse_sockopt(struct event_filler_arguments *args, int level, int opt
 #ifdef SO_SNDTIMEO
 			case SO_SNDTIMEO:
 #endif
-				if (unlikely(ppm_copy_from_user(&u.tv, optval, sizeof(u.tv))))
+				if (unlikely(ppm_copy_from_user(&u.tv, optval, sizeof(u.tv)))) {
 					return PPM_FAILURE_INVALID_USER_MEMORY;
-				return val_to_ring(args, u.tv.tv_sec * 1000000000 + u.tv.tv_usec * 1000, 0, false, PPM_SOCKOPT_IDX_TIMEVAL);
+				}
+				ns = u.tv.tv_sec * SECOND_IN_NS + u.tv.tv_usec * 1000;
+				return val_to_ring(args, ns, 0, false, PPM_SOCKOPT_IDX_TIMEVAL);
 
 #ifdef SO_COOKIE
 			case SO_COOKIE:
@@ -2859,7 +2886,7 @@ static int timespec_parse(struct event_filler_arguments *args, unsigned long val
 #ifdef CONFIG_COMPAT
 	if (!args->compat) {
 #endif
-		cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)val, sizeof(struct timespec));
+		cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)val, sizeof(*tts));
 		if (unlikely(cfulen != 0))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 

@@ -24,6 +24,30 @@ or GPL2.txt for full copies of the license.
 #include <linux/tty.h>
 #include <linux/audit.h>
 
+/*
+ * Linux 5.6 kernels no longer include the old 32-bit timeval
+ * structures. But the syscalls (might) still use them.
+ */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+#include <linux/time64.h>
+struct compat_timespec {
+	int32_t tv_sec;
+	int32_t tv_nsec;
+};
+
+struct timespec {
+	int32_t tv_sec;
+	int32_t tv_nsec;
+};
+
+struct timeval {
+	int32_t tv_sec;
+	int32_t tv_usec;
+};
+#else
+#define timeval64 timeval
+#endif
+
 #define FILLER_RAW(x)							\
 static __always_inline int __bpf_##x(struct filler_data *data);		\
 									\
@@ -537,7 +561,7 @@ FILLER(sys_writev_pwritev_x, true)
 }
 
 static __always_inline int timespec_parse(struct filler_data *data,
-					  unsigned long val)
+                                          unsigned long val)
 {
 	u64 longtime;
 	struct timespec ts;
@@ -1478,7 +1502,7 @@ static __always_inline int __bpf_append_cgroup(struct css_set *cgroups,
 	int res = bpf_probe_read_str(&buf[off & SCRATCH_SIZE_HALF],
 				     SCRATCH_SIZE_HALF,
 				     subsys_name);
-	if (res < 0)
+	if (res == -EFAULT)
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	off += res - 1;
@@ -1602,7 +1626,7 @@ static __always_inline int bpf_accumulate_argv_or_env(struct filler_data *data,
 			return PPM_FAILURE_BUFFER_FULL;
 
 		len = bpf_probe_read_str(&data->buf[off & SCRATCH_SIZE_HALF], SCRATCH_SIZE_HALF, arg);
-		if (len < 0)
+		if (len == -EFAULT)
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		*args_len += len;
@@ -1704,7 +1728,7 @@ FILLER(proc_startupdate, true)
 						SCRATCH_SIZE_HALF,
 						&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]);
 
-		if (exe_len < 0)
+		if (exe_len == -EFAULT)
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		/*

@@ -115,13 +115,13 @@ static int ppm_release(struct inode *inode, struct file *filp);
 static long ppm_ioctl(struct file *f, unsigned int cmd, unsigned long arg);
 static int ppm_mmap(struct file *filp, struct vm_area_struct *vma);
 static int record_event_consumer(struct ppm_consumer_t *consumer,
-	enum ppm_event_type event_type,
-	enum syscall_flags drop_flags,
-	struct timespec *ts,
-	struct event_data_t *event_datap);
+                                 enum ppm_event_type event_type,
+                                 enum syscall_flags drop_flags,
+                                 nanoseconds ns,
+                                 struct event_data_t *event_datap);
 static void record_event_all_consumers(enum ppm_event_type event_type,
-	enum syscall_flags drop_flags,
-	struct event_data_t *event_datap);
+                                       enum syscall_flags drop_flags,
+                                       struct event_data_t *event_datap);
 static int init_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void reset_ring_buffer(struct ppm_ring_buffer_context *ring);
@@ -215,6 +215,18 @@ do {								\
 	if (verbose)						\
 		pr_info(fmt, ##__VA_ARGS__);			\
 } while (0)
+
+static inline nanoseconds ppm_nsecs(void)
+{
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0))
+	return ktime_get_real_ns();
+#else
+	/* Don't have ktime_get_real functions */
+	struct timespec ts;
+	getnstimeofday(&ts);
+	return SECOND_IN_NS * ts.tv_sec + ts.tv_nsec;
+#endif
+}
 
 inline void ppm_syscall_get_arguments(struct task_struct *task, struct pt_regs *regs, unsigned long *args)
 {
@@ -830,7 +842,6 @@ cleanup_ioctl_procinfo:
 	case PPM_IOCTL_DISABLE_DROPPING_MODE:
 	{
 		struct event_data_t event_data;
-		struct timespec ts;
 
 		vpr_info("PPM_IOCTL_DISABLE_DROPPING_MODE, consumer %p\n", consumer_id);
 
@@ -842,12 +853,11 @@ cleanup_ioctl_procinfo:
 		 * Push an event into the ring buffer so that the user can know that dropping
 		 * mode has been disabled
 		 */
-		getnstimeofday(&ts);
 		event_data.category = PPMC_CONTEXT_SWITCH;
 		event_data.event_info.context_data.sched_prev = (void *)DEI_DISABLE_DROPPING;
 		event_data.event_info.context_data.sched_next = (void *)0;
 
-		record_event_consumer(consumer, PPME_SYSDIGEVENT_E, UF_NEVER_DROP, &ts, &event_data);
+		record_event_consumer(consumer, PPME_SYSDIGEVENT_E, UF_NEVER_DROP, ppm_nsecs(), &event_data);
 
 		ret = 0;
 		goto cleanup_ioctl;
@@ -1397,12 +1407,12 @@ static enum ppm_event_type parse_socketcall(struct event_filler_arguments *fille
 #endif /* _HAS_SOCKETCALL */
 
 static inline void record_drop_e(struct ppm_consumer_t *consumer,
-                                 struct timespec *ts,
+                                 nanoseconds ns,
                                  enum syscall_flags drop_flags)
 {
 	struct event_data_t event_data = {0};
 
-	if (record_event_consumer(consumer, PPME_DROP_E, UF_NEVER_DROP, ts, &event_data) == 0) {
+	if (record_event_consumer(consumer, PPME_DROP_E, UF_NEVER_DROP, ns, &event_data) == 0) {
 		consumer->need_to_insert_drop_e = 1;
 	} else {
 		if (consumer->need_to_insert_drop_e == 1 && !(drop_flags & UF_ATOMIC)) {
@@ -1414,12 +1424,12 @@ static inline void record_drop_e(struct ppm_consumer_t *consumer,
 }
 
 static inline void record_drop_x(struct ppm_consumer_t *consumer,
-                                 struct timespec *ts,
+                                 nanoseconds ns,
                                  enum syscall_flags drop_flags)
 {
 	struct event_data_t event_data = {0};
 
-	if (record_event_consumer(consumer, PPME_DROP_X, UF_NEVER_DROP, ts, &event_data) == 0) {
+	if (record_event_consumer(consumer, PPME_DROP_X, UF_NEVER_DROP, ns, &event_data) == 0) {
 		consumer->need_to_insert_drop_x = 1;
 	} else {
 		if (consumer->need_to_insert_drop_x == 1 && !(drop_flags & UF_ATOMIC)) {
@@ -1496,7 +1506,7 @@ static inline int drop_nostate_event(enum ppm_event_type event_type,
 static inline int drop_event(struct ppm_consumer_t *consumer,
 			     enum ppm_event_type event_type,
 			     enum syscall_flags drop_flags,
-			     struct timespec *ts,
+			     nanoseconds ns,
 			     struct pt_regs *regs)
 {
 	int maybe_ret = 0;
@@ -1518,10 +1528,11 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 			return 1;
 		}
 
-		if (ts->tv_nsec >= consumer->sampling_interval) {
+		if (consumer->sampling_interval < SECOND_IN_NS &&
+		    (ns % SECOND_IN_NS) >= consumer->sampling_interval) {
 			if (consumer->is_dropping == 0) {
 				consumer->is_dropping = 1;
-				record_drop_e(consumer, ts, drop_flags);
+				record_drop_e(consumer, ns, drop_flags);
 			}
 
 			return 1;
@@ -1529,7 +1540,7 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 
 		if (consumer->is_dropping == 1) {
 			consumer->is_dropping = 0;
-			record_drop_x(consumer, ts, drop_flags);
+			record_drop_x(consumer, ns, drop_flags);
 		}
 	}
 
@@ -1541,13 +1552,11 @@ static void record_event_all_consumers(enum ppm_event_type event_type,
 	struct event_data_t *event_datap)
 {
 	struct ppm_consumer_t *consumer;
-	struct timespec ts;
-
-	getnstimeofday(&ts);
+	nanoseconds ns = ppm_nsecs();
 
 	rcu_read_lock();
 	list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
-		record_event_consumer(consumer, event_type, drop_flags, &ts, event_datap);
+		record_event_consumer(consumer, event_type, drop_flags, ns, event_datap);
 	}
 	rcu_read_unlock();
 }
@@ -1558,7 +1567,7 @@ static void record_event_all_consumers(enum ppm_event_type event_type,
 static int record_event_consumer(struct ppm_consumer_t *consumer,
 	enum ppm_event_type event_type,
 	enum syscall_flags drop_flags,
-	struct timespec *ts,
+	nanoseconds ns,
 	struct event_data_t *event_datap)
 {
 	int res = 0;
@@ -1581,14 +1590,14 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 
 	if (event_type != PPME_DROP_E && event_type != PPME_DROP_X) {
 		if (consumer->need_to_insert_drop_e == 1)
-			record_drop_e(consumer, ts, drop_flags);
+			record_drop_e(consumer, ns, drop_flags);
 		else if (consumer->need_to_insert_drop_x == 1)
-			record_drop_x(consumer, ts, drop_flags);
+			record_drop_x(consumer, ns, drop_flags);
 
 		if (drop_event(consumer,
 		               event_type,
 		               drop_flags,
-		               ts,
+		               ns,
 		               event_datap->event_info.syscall_data.regs))
 			return res;
 	}
@@ -1712,7 +1721,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 #ifdef PPM_ENABLE_SENTINEL
 		hdr->sentinel_begin = ring->nevents;
 #endif
-		hdr->ts = timespec_to_ns(ts);
+		hdr->ts = ns;
 		hdr->tid = current->pid;
 		hdr->type = event_type;
 		hdr->nparams = args.nargs;
@@ -1861,7 +1870,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		}
 	}
 
-	if (ts->tv_sec > ring->last_print_time.tv_sec + 1 && !(drop_flags & UF_ATOMIC)) {
+	if (MORE_THAN_ONE_SECOND_AHEAD(ns, ring->last_print_time + 1) && !(drop_flags & UF_ATOMIC)) {
 		vpr_info("consumer:%p CPU:%d, use:%d%%, ev:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 			   consumer->consumer_id,
 		       smp_processor_id(),
@@ -1872,7 +1881,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		       ring_info->n_preemptions,
 		       ring->info->n_context_switches);
 
-		ring->last_print_time = *ts;
+		ring->last_print_time = ns;
 	}
 
 	atomic_dec(&ring->preempt_count);
@@ -2244,7 +2253,7 @@ static void reset_ring_buffer(struct ppm_ring_buffer_context *ring)
 	ring->info->n_drops_pf = 0;
 	ring->info->n_preemptions = 0;
 	ring->info->n_context_switches = 0;
-	getnstimeofday(&ring->last_print_time);
+	ring->last_print_time = ppm_nsecs();
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
