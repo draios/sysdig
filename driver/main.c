@@ -222,9 +222,9 @@ static inline nanoseconds ppm_nsecs(void)
 	return ktime_get_real_ns();
 #else
 	/* Don't have ktime_get_real functions */
-	struct timeval tv;
-	getnstimeofday(tv);
-	return SECOND_IN_NS * tv.tv_sec + tv.tv_nsec;
+	struct timespec ts;
+	getnstimeofday(&ts);
+	return SECOND_IN_NS * ts.tv_sec + ts.tv_nsec;
 #endif
 }
 
