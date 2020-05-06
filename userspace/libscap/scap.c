@@ -1060,7 +1060,8 @@ void scap_close(scap_t* handle)
 				//
 				// Destroy all the device descriptors
 				//
-				for(uint32_t j = 0; j < handle->m_ndevs; j++)
+				uint32_t j;
+				for(j = 0; j < handle->m_ndevs; j++)
 				{
 					if(handle->m_devs[j].m_buffer != MAP_FAILED)
 					{
@@ -1810,7 +1811,8 @@ int32_t scap_start_capture(scap_t* handle)
 		else
 		{
 #ifndef _WIN32
-			for(uint32_t j = 0; j < handle->m_ndevs; j++)
+			uint32_t j;
+			for(j = 0; j < handle->m_ndevs; j++)
 			{
 				if(ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_ENABLE_CAPTURE))
 				{
