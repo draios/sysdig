@@ -46,6 +46,8 @@ typedef u64 nanoseconds;
 #define PPM_PORT_STATSD 8125
 #define PPM_PORT_MONGODB 27017
 
+typedef u64 nanoseconds;
+
 /*
  * The ring descriptor.
  * We have one of these for each CPU.
