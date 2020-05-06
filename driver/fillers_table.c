@@ -9,6 +9,7 @@ or GPL2.txt for full copies of the license.
 #include "ppm_events_public.h"
 
 #ifdef __KERNEL__
+#include <linux/compat.h>
 #include "ppm.h"
 #else
 #ifndef UDIG
