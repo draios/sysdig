@@ -21,6 +21,7 @@ or GPL2.txt for full copies of the license.
 #define ASSERT(expr)
 #endif
 
+#include <linux/time.h>
 typedef u64 nanoseconds;
 
 /*
