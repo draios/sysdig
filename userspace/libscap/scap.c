@@ -1690,8 +1690,6 @@ scap_threadinfo* scap_get_proc_table(scap_t* handle)
 //
 int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 {
-	uint32_t j;
-
 	stats->n_evts = 0;
 	stats->n_drops = 0;
 	stats->n_drops_buffer = 0;
@@ -1710,6 +1708,8 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	}
 	else
 	{
+		uint32_t j;
+
 		for(j = 0; j < handle->m_ndevs; j++)
 		{
 			stats->n_evts += handle->m_devs[j].m_bufinfo->n_evts;
@@ -2432,8 +2432,6 @@ int32_t scap_enable_simpledriver_mode(scap_t* handle)
 
 int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 {
-	int ioctl_ret = 0;
-
 	//
 	// Not supported on files
 	//
@@ -2458,6 +2456,8 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 	}
 	else
 	{
+		int ioctl_ret = 0;
+
 		ioctl_ret = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_N_TRACEPOINT_HIT, ret);
 		if(ioctl_ret != 0)
 		{
