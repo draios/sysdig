@@ -28,12 +28,17 @@ list(APPEND targetfiles
 	scap_iflist.c
 	scap_savefile.c
 	scap_procs.c
-	scap_udig.c
 	scap_userlist.c
 	syscall_info_table.c
 	../../driver/dynamic_params_table.c
 	../../driver/event_table.c
 	../../driver/flags_table.c)
+
+if(NOT APPLE)
+	list(APPEND targetfiles
+		scap_udig.c)
+endif()
+
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	list(APPEND targetfiles
