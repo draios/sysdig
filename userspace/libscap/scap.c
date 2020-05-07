@@ -993,6 +993,7 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 	return NULL;
 }
 
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 void scap_close_udig(scap_t* handle)
 {
 	if(handle->m_devs[0].m_buffer != MAP_FAILED)
@@ -1023,6 +1024,7 @@ void scap_close_udig(scap_t* handle)
 	}
 #endif
 }
+#endif
 
 void scap_close(scap_t* handle)
 {
