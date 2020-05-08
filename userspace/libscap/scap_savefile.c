@@ -2632,7 +2632,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 			break;
 		default:
 			//
-			// Unknwon block type. Skip the block.
+			// Unknown block type. Skip the block.
 			//
 			toread = bh.block_total_length - sizeof(block_header) - 4;
 			fseekres = (int)gzseek(f, (long)toread, SEEK_CUR);
