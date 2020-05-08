@@ -42,7 +42,7 @@ mkdir -p ${HOME}/.sysdig
 #  - ${DRIVER_DIR}: The prepared bpf driver code that gets written by the installer
 #  - ${KERNEL_DIR}: The kmod build directory for the target kernel.
 #  - /lib/modules: Unfortunately, on some distros (Debian / Ubuntu), there are
-#    additional support directories (such as a -commmon counterpart to -amd64) which
+#    additional support directories (such as a -common counterpart to -amd64) which
 #    need to be accessible for the makefile
 #  - /usr: As with the above, on Debian based systems the /lib/modules tree will have
 #    symlinks into /usr/lib/linux-kbuild* and these directories need to be present.
