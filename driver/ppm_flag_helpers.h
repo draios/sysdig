@@ -548,7 +548,7 @@ static __always_inline u8 sockopt_optname_to_scap(int level, int optname)
 		case SO_ERROR:
 			return PPM_SOCKOPT_SO_ERROR;
 #endif
-#ifdef SO_DONTORUTE
+#ifdef SO_DONTROUTE
 		case SO_DONTROUTE:
 			return PPM_SOCKOPT_SO_DONTROUTE;
 #endif
