@@ -271,7 +271,7 @@ public:
 	int32_t m_tty;
 	int32_t m_loginuid; ///< loginuid (auid)
 
-	// In some cases, a threadinfo has a category that identfies
+	// In some cases, a threadinfo has a category that identifies
 	// why it was run. Descriptions:
 	// CAT_NONE: no specific category
 	// CAT_CONTAINER: a process run in a container and *not* any
