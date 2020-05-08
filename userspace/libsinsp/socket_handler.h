@@ -501,7 +501,7 @@ public:
 					ASSERT(!m_data_buf.size());
 					m_data_buf.clear();
 				}
-				// In HTTP 1.1 connnections with chunked transfer, this socket may never be closed by server,
+				// In HTTP 1.1 connections with chunked transfer, this socket may never be closed by server,
 				// (K8s API server is an example of such behavior), in which case the chunked data will just
 				// stop flowing. We can keep the good socket and resend the request instead of severing the
 				// connection. The m_wants_send flag has to be checked by the caller and request re-sent, otherwise
