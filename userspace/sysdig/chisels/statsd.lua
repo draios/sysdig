@@ -63,7 +63,7 @@ local function send(self, stat, delta, kind, sample_rate, neg)
     for s, v in pairs(stat) do
       if kind == 'c' then
         if type(s) == 'number' then
-          -- this is array or kyes ( increment{'register', 'register_accept'})
+          -- this is array or keys ( increment{'register', 'register_accept'})
           s, v = v, 1
         end
         v = neg and -v or v
