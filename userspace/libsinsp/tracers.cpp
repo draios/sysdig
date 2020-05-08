@@ -256,7 +256,7 @@ sinsp_partial_tracer* sinsp_tracerparser::find_parent_enter_pae()
 	{
 		if(*tse == 0)
 		{
-			len = tse - m_enter_pae->m_tags_storage + 1; // 1 is for the traling zero
+			len = tse - m_enter_pae->m_tags_storage + 1; // 1 is for the trailing zero
 			break;
 		}
 
