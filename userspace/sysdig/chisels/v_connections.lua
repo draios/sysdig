@@ -136,12 +136,12 @@ view_info =
 		{
 			hotkey = "r",
 			command = "tcpdump -niany host %fd.rip",
-			description = "tcpdump remot IP",
+			description = "tcpdump remote IP",
 		},
 		{
 			hotkey = "t",
 			command = "traceroute %fd.rip",
-			description = "traceroute remot IP",
+			description = "traceroute remote IP",
 		},
 	},
 }
