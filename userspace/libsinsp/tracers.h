@@ -167,9 +167,9 @@ VISIBILITY_PRIVATE
 	inline parse_result skip_spaces(char* p, uint32_t* delta);
 	inline parse_result skip_spaces_and_commas(char* p, uint32_t* delta, uint32_t n_expected_commas);
 	inline parse_result skip_spaces_and_char(char* p, uint32_t* delta, char char_to_skip);
-	inline parse_result skip_spaces_and_commas_and_sq_brakets(char* p, uint32_t* delta);
-	inline parse_result skip_spaces_and_commas_and_cr_brakets(char* p, uint32_t* delta);
-	inline parse_result skip_spaces_and_commas_and_all_brakets(char* p, uint32_t* delta);
+	inline parse_result skip_spaces_and_commas_and_sq_brackets(char* p, uint32_t* delta);
+	inline parse_result skip_spaces_and_commas_and_cr_brackets(char* p, uint32_t* delta);
+	inline parse_result skip_spaces_and_commas_and_all_brackets(char* p, uint32_t* delta);
 	inline parse_result parsestr(char* p, char** res, uint32_t* delta);
 	inline parse_result parsestr_not_enforce(char* p, char** res, uint32_t* delta);
 	inline parse_result parsenumber(char* p, int64_t* res, uint32_t* delta);
