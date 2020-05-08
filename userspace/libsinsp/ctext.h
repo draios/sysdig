@@ -107,7 +107,7 @@ struct ctext_config_struct
 
 	//
 	// Sometimes seeing new content is of the utmost
-	// importance and takes precendence over analysis
+	// importance and takes precedence over analysis
 	// of any historical data.
 	//
 	// In that case, the scroll_on_append will forcefully
