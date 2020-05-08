@@ -2369,7 +2369,7 @@ struct bpf_xfrm_state {
  * provide backwards compatibility with existing SCHED_CLS and SCHED_ACT
  * programs.
  *
- * XDP is handled seprately, see XDP_*.
+ * XDP is handled separately, see XDP_*.
  */
 enum bpf_ret_code {
 	BPF_OK = 0,
