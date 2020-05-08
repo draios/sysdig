@@ -477,7 +477,7 @@ class ctext
 		int8_t rebuf();
 		void get_win_size();
 		
-		// Highlights the matches in he current vieport without
+		// Highlights the matches in he current viewport without
 		// doing any scrolling.
 		int8_t highlight_matches(ctext_search *context = 0);
 
