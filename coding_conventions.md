@@ -176,7 +176,7 @@ Example:
 
 Class declarations follow the following sequence
 
-  1. constructors and desctuctor
+  1. constructors and destructor
   1. public functions
   1. public data
   1. private functions
