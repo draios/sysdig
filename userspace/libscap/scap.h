@@ -570,7 +570,7 @@ scap_t* scap_open_offline_fd(int fd, char *error, int32_t *rc);
 /*!
   \brief Advanced function to start a capture.
 
-  \param args a \ref scap_open_args structure containing the open paraneters.
+  \param args a \ref scap_open_args structure containing the open parameters.
   \param error Pointer to a buffer that will contain the error string in case the
     function fails. The buffer must have size SCAP_LASTERR_SIZE.
   \param rc Integer pointer that will contain the scap return code in case the
