@@ -3836,10 +3836,10 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
 
-			if(fdinfo != NULL && fdinfo->m_callbaks != NULL)
+			if(fdinfo != NULL && fdinfo->m_callbacks != NULL)
 			{
 				char* il;
-				vector<sinsp_protodecoder*>* cbacks = &(fdinfo->m_callbaks->m_write_callbacks);
+				vector<sinsp_protodecoder*>* cbacks = &(fdinfo->m_callbacks->m_write_callbacks);
 
 				for(auto it = cbacks->begin(); it != cbacks->end(); ++it)
 				{
