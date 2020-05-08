@@ -76,7 +76,7 @@ static int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, char *error)
 	//
 	if(handle->m_proc_callback == NULL)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "process table construction in scap not supportted on windows");
+		snprintf(error, SCAP_LASTERR_SIZE, "process table construction in scap not supported on windows");
 		return SCAP_FAILURE;
 
 		// int32_t uth_status = SCAP_SUCCESS;
