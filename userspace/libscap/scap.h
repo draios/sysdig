@@ -304,7 +304,7 @@ typedef struct scap_open_args
 
 
 //
-// The follwing stuff is byte aligned because we save it to disk.
+// The following stuff is byte aligned because we save it to disk.
 //
 #if defined _MSC_VER
 #pragma pack(push)
