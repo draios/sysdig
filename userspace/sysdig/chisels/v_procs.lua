@@ -58,7 +58,7 @@ view_info =
 		{
 			name = "CPU",
 			field = "thread.cpu",
-			description = "Amount of CPU used by the proccess.",
+			description = "Amount of CPU used by the process.",
 			aggregation = "AVG",
 			groupby_aggregation = "SUM",
 			colsize = 8,
