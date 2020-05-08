@@ -949,7 +949,7 @@ static __always_inline u32 pf_flags_to_scap(unsigned long flags)
 	u32 res = 0;
 
 	/* Page fault error codes don't seem to be clearly defined in header
-	 * files througout the kernel except in some emulation modes (e.g. kvm)
+	 * files throughout the kernel except in some emulation modes (e.g. kvm)
 	 * which we can't assume to exist, so I just took the definitions from
 	 * the x86 manual. If we end up supporting another arch for page faults,
 	 * refactor this.
