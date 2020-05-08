@@ -510,7 +510,7 @@ void handle_end_of_file(bool print_progress, sinsp_evt_formatter* formatter = NU
 
 	//
 	// Reached the end of a trace file.
-	// If we are reporting prgress, this is 100%
+	// If we are reporting progress, this is 100%
 	//
 	if(print_progress)
 	{
