@@ -3031,7 +3031,7 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 		string(val, 0, sizeof("evt.latency.human") - 1) == "evt.latency.human")
 	{
 		//
-		// These fields need to store the previuos event type in the thread state
+		// These fields need to store the previous event type in the thread state
 		//
 		if(alloc_state)
 		{
