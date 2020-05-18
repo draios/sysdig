@@ -37,7 +37,7 @@ void gen_event::set_check_id(int32_t id)
 	}
 }
 
-int32_t gen_event::get_check_id()
+int32_t gen_event::get_check_id() const
 {
 	return m_check_id;
 }

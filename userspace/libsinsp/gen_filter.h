@@ -76,20 +76,20 @@ public:
 	/*!
 	  \brief Get the opaque "check id" (-1 if not set).
 	*/
-	int32_t get_check_id();
+	int32_t get_check_id() const;
 
 	// Every event must expose a timestamp
-	virtual uint64_t get_ts() = 0;
+	virtual uint64_t get_ts() const = 0;
 
 	/*!
 	  \brief Get the source of the event.
 	*/
-	virtual uint16_t get_source() = 0;
+	virtual uint16_t get_source() const = 0;
 
 	/*!
 	  \brief Get the type of the event.
 	*/
-	virtual uint16_t get_type() = 0;
+	virtual uint16_t get_type() const = 0;
 
 private:
 	int32_t m_check_id = 0;
