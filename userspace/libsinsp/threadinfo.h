@@ -493,9 +493,9 @@ public:
 		m_threads.clear();
 	}
 
-	bool const_loop(const_visitor_t callback)
+	bool const_loop(const_visitor_t callback) const
 	{
-		for (auto& it : m_threads)
+		for (const auto& it : m_threads)
 		{
 			if (!callback(*it.second.get()))
 			{
