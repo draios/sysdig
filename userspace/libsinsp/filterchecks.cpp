@@ -2856,6 +2856,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.id", "for docker infrastructure events, the id of the impacted container."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.name", "for docker infrastructure events, the name of the impacted container."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.image", "for docker infrastructure events, the image name of the impacted container."},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_exec", "'true' for open/openat events where a file is created with execute permissions"},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -4386,6 +4387,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		break;
 	case TYPE_ISOPEN_READ:
 	case TYPE_ISOPEN_WRITE:
+	case TYPE_ISOPEN_EXEC:
 		{
 			uint16_t etype = evt->get_type();
 
@@ -4416,6 +4418,14 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				   flags & PPM_O_WRONLY)
 				{
 					m_u32val = 1;
+				}
+
+				if(m_field_id == TYPE_ISOPEN_EXEC && ( (flags & PPM_O_TMPFILE) || (flags & PPM_O_CREAT)) )
+				{
+					parinfo = evt->get_param(etype == PPME_SYSCALL_OPENAT_2_X ? 4 : 3);
+					ASSERT(parinfo->m_len == sizeof(uint32_t));
+					uint32_t mode_bits = *(uint32_t *)parinfo->m_val;
+					m_u32val = (mode_bits & (S_IRWXU | S_IXUSR | S_IRWXG | S_IXGRP | S_IRWXO | S_IXOTH))? 1 : 0;
 				}
 			}
 
