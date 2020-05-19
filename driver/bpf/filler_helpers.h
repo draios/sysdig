@@ -366,7 +366,7 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 	} else if (sport == PPM_PORT_POSTGRES || dport == PPM_PORT_POSTGRES) {
 		if (lookahead_size >= 2) {
 			if ((get_buf(0) == 'Q' && get_buf(1) == 0) || /* SimpleQuery command */
-			    (get_buf(0) == 'P' && get_buf(1) == 0) || /* Prepare statement commmand */
+			    (get_buf(0) == 'P' && get_buf(1) == 0) || /* Prepare statement command */
 			    (get_buf(4) == 0 && get_buf(5) == 3 && get_buf(6) == 0) || /* startup command */
 			    (get_buf(0) == 'E' && get_buf(1) == 0) /* error or execute command */
 			) {

@@ -47,7 +47,7 @@ public:
 	 * Some event processors allocate different thread types with extra data.
 	 *
 	 * This allows the processor to override the thread builder. Note that
-	 * If this is overriden by the event processor, the processor MUST be registered
+	 * If this is overridden by the event processor, the processor MUST be registered
 	 * before the sinsp object is init-ed
 	 */
 	virtual sinsp_threadinfo* build_threadinfo(sinsp* inspector);

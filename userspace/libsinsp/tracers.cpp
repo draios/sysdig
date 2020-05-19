@@ -256,7 +256,7 @@ sinsp_partial_tracer* sinsp_tracerparser::find_parent_enter_pae()
 	{
 		if(*tse == 0)
 		{
-			len = tse - m_enter_pae->m_tags_storage + 1; // 1 is for the traling zero
+			len = tse - m_enter_pae->m_tags_storage + 1; // 1 is for the trailing zero
 			break;
 		}
 
@@ -428,7 +428,7 @@ inline void sinsp_tracerparser::parse_json(char* evtstr)
 	//
 	// First argument
 	//
-	m_res = skip_spaces_and_commas_and_all_brakets(p, &delta);
+	m_res = skip_spaces_and_commas_and_all_brackets(p, &delta);
 	if(m_res != sinsp_tracerparser::RES_OK)
 	{
 		return;
@@ -470,7 +470,7 @@ inline void sinsp_tracerparser::parse_json(char* evtstr)
 		//
 		while(true)
 		{
-			m_res = skip_spaces_and_commas_and_cr_brakets(p, &delta);
+			m_res = skip_spaces_and_commas_and_cr_brackets(p, &delta);
 			if(m_res != sinsp_tracerparser::RES_OK)
 			{
 				return;
@@ -916,7 +916,7 @@ inline sinsp_tracerparser::parse_result sinsp_tracerparser::skip_spaces_and_char
 	return sinsp_tracerparser::RES_OK;
 }
 
-inline sinsp_tracerparser::parse_result sinsp_tracerparser::skip_spaces_and_commas_and_sq_brakets(char* p, uint32_t* delta)
+inline sinsp_tracerparser::parse_result sinsp_tracerparser::skip_spaces_and_commas_and_sq_brackets(char* p, uint32_t* delta)
 {
 	char* start = p;
 	uint32_t nc = 0;
@@ -956,7 +956,7 @@ inline sinsp_tracerparser::parse_result sinsp_tracerparser::skip_spaces_and_comm
 	return sinsp_tracerparser::RES_OK;
 }
 
-inline sinsp_tracerparser::parse_result sinsp_tracerparser::skip_spaces_and_commas_and_cr_brakets(char* p, uint32_t* delta)
+inline sinsp_tracerparser::parse_result sinsp_tracerparser::skip_spaces_and_commas_and_cr_brackets(char* p, uint32_t* delta)
 {
 	char* start = p;
 	uint32_t nc = 0;
@@ -994,7 +994,7 @@ inline sinsp_tracerparser::parse_result sinsp_tracerparser::skip_spaces_and_comm
 	return sinsp_tracerparser::RES_OK;
 }
 
-inline sinsp_tracerparser::parse_result sinsp_tracerparser::skip_spaces_and_commas_and_all_brakets(char* p, uint32_t* delta)
+inline sinsp_tracerparser::parse_result sinsp_tracerparser::skip_spaces_and_commas_and_all_brackets(char* p, uint32_t* delta)
 {
 	char* start = p;
 	uint32_t nc = 0;

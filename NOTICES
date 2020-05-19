@@ -23,6 +23,6 @@ SYSDIG SUBCOMPONENTS:
 
           userspace/sysdig/chisels/fileslower.lua, Copyright (C) 2014 Brendan Gregg
           userspace/sysdig/chisels/memcachelog.lua, Copyright (C) 2015 Donatas Abraitis
-          userspace/sysdig/chisels/subsecoffset.lua, Copryight (C) 2013-2014 Draios Inc. dba Sysdig, Copyright (C) 2015 Brendan Gregg
+          userspace/sysdig/chisels/subsecoffset.lua, Copyright (C) 2013-2014 Draios Inc. dba Sysdig, Copyright (C) 2015 Brendan Gregg
           userspace/sysdig/chisels/v_backlog.lua, Copyright (C) Donatas Abraitis
 

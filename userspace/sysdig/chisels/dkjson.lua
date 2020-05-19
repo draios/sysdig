@@ -464,21 +464,21 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder)
           if v then
             used[k] = true
             buflen, msg = addpair (k, v, prev, indent, level, buffer, buflen, tables, globalorder)
-            prev = true -- add a seperator before the next element
+            prev = true -- add a separator before the next element
           end
         end
         for k,v in pairs (value) do
           if not used[k] then
             buflen, msg = addpair (k, v, prev, indent, level, buffer, buflen, tables, globalorder)
             if not buflen then return nil, msg end
-            prev = true -- add a seperator before the next element
+            prev = true -- add a separator before the next element
           end
         end
       else -- unordered
         for k,v in pairs (value) do
           buflen, msg = addpair (k, v, prev, indent, level, buffer, buflen, tables, globalorder)
           if not buflen then return nil, msg end
-          prev = true -- add a seperator before the next element
+          prev = true -- add a separator before the next element
         end
       end
       if indent then

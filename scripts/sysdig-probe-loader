@@ -63,7 +63,7 @@ cos_version_greater()
 		return 0
 	fi
 
-	# If we get here, probably malformatted version string?
+	# If we get here, probably malformed version string?
 
 	return 0
 }

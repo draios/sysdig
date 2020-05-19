@@ -22,7 +22,7 @@ This file contains a bunch of functions that are helpful in multiple scripts
 ]]--
 
 --[[
-Serialize the content of a table into a tring
+Serialize the content of a table into a string
 ]]--
 function st(val, name, skipnewlines, depth)
 	skipnewlines = skipnewlines or false

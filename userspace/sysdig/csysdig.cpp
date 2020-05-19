@@ -236,8 +236,8 @@ static void print_views(sinsp_view_manager* view_manager)
 		root.append(jv);
 	}
 
-	string ouput = writer.write(root);
-	printf("%s", ouput.substr(0, ouput.size() - 1).c_str());
+	string output = writer.write(root);
+	printf("%s", output.substr(0, output.size() - 1).c_str());
 }
 #endif
 
