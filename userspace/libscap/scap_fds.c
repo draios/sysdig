@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -777,9 +776,6 @@ static inline uint32_t open_flags_to_scap(unsigned long flags)
 
 	if (flags & O_CREAT)
 		res |= PPM_O_CREAT;
-	
-	if (flags & O_TMPFILE)
-		res |= PPM_O_TMPFILE;
 
 	if (flags & O_APPEND)
 		res |= PPM_O_APPEND;
