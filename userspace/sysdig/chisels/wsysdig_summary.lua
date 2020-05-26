@@ -1271,7 +1271,7 @@ function build_output(captureDuration)
 	if should_include(gsummary.appLogCount) then
 		res[#res+1] = {
 			name = 'App Log Messages',
-			desc = 'Number of wrtites to application log files',
+			desc = 'Number of writes to application log files',
 			category = 'logs',
 			targetView = 'echo',
 			targetViewTitle = 'Application Log Messages',

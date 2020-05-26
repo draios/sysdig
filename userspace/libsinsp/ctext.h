@@ -107,7 +107,7 @@ struct ctext_config_struct
 
 	//
 	// Sometimes seeing new content is of the utmost
-	// importance and takes precendence over analysis
+	// importance and takes precedence over analysis
 	// of any historical data.
 	//
 	// In that case, the scroll_on_append will forcefully
@@ -477,7 +477,7 @@ class ctext
 		int8_t rebuf();
 		void get_win_size();
 		
-		// Highlights the matches in he current vieport without
+		// Highlights the matches in he current viewport without
 		// doing any scrolling.
 		int8_t highlight_matches(ctext_search *context = 0);
 

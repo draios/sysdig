@@ -85,7 +85,7 @@ function on_init()
 	-- The -pc or -pcontainer options was supplied on the cmd line
 	if print_container then
 		print(string.format("%-23.23s %-20.20s  %-20.20s %-23.23s %-20s %s",
-							"evt.datatime",
+							"evt.datetime",
 							"container.id",
 							"container.name",
 							"proc.name",
@@ -100,7 +100,7 @@ function on_init()
 							"--------------------"))
 	else
 		print(string.format("%-23.23s %-23.23s %-20s %s",
-							"evt.datatime",
+							"evt.datetime",
 							"proc.name",
 							"LATENCY(ms)",
 							"evt.type"))

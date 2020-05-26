@@ -89,9 +89,9 @@ public:
 
 	~sinsp_fdinfo()
 	{
-		if(m_callbaks != NULL)
+		if(m_callbacks != NULL)
 		{
-			delete m_callbaks;
+			delete m_callbacks;
 		}
 
 		if(m_usrstate != NULL)
@@ -122,9 +122,9 @@ public:
 		
 		if(free_state)
 		{
-			if(m_callbaks != NULL)
+			if(m_callbacks != NULL)
 			{
-				delete m_callbaks;
+				delete m_callbacks;
 			}
 
 			if(m_usrstate != NULL)
@@ -133,14 +133,14 @@ public:
 			}
 		}
 
-		if(other.m_callbaks != NULL)
+		if(other.m_callbacks != NULL)
 		{
-			m_callbaks = new fd_callbacks_info();
-			*m_callbaks = *other.m_callbaks;
+			m_callbacks = new fd_callbacks_info();
+			*m_callbacks = *other.m_callbacks;
 		}
 		else
 		{
-			m_callbaks = NULL;
+			m_callbacks = NULL;
 		}
 
 		if(other.m_usrstate != NULL)
@@ -342,7 +342,7 @@ public:
 
 	inline bool has_decoder_callbacks()
 	{
-		return (m_callbaks != NULL);
+		return (m_callbacks != NULL);
 	}
 
 VISIBILITY_PRIVATE
@@ -494,7 +494,7 @@ private:
 	uint32_t m_dev;
 	uint64_t m_ino;
 
-	fd_callbacks_info* m_callbaks;
+	fd_callbacks_info* m_callbacks;
 
 	friend class sinsp;
 	friend class sinsp_parser;

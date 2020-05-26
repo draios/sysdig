@@ -103,7 +103,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_IOCTL_2_E */{"ioctl", EC_IO_OTHER, EF_USES_FD | EF_OLD_VERSION, 2, {{"fd", PT_FD, PF_DEC}, {"request", PT_UINT64, PF_HEX} } },
 	/* PPME_SYSCALL_IOCTL_2_X */{"ioctl", EC_IO_OTHER, EF_USES_FD | EF_OLD_VERSION, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_GETCWD_E */{"getcwd", EC_FILE, EF_DROP_SIMPLE_CONS, 0},
-	/* Note: path is PT_CHARBUF and not PT_FSPATH because we assume it's abosulte and will never need resolution */
+	/* Note: path is PT_CHARBUF and not PT_FSPATH because we assume it's absolute and will never need resolution */
 	/* PPME_SYSCALL_GETCWD_X */{"getcwd", EC_FILE, EF_DROP_SIMPLE_CONS, 2, {{"res", PT_ERRNO, PF_DEC}, {"path", PT_CHARBUF, PF_NA} } },
 	/* Note: path is PT_CHARBUF and not PT_FSPATH because we don't want it to be resolved, since the event handler already changes it */
 	/* PPME_SYSCALL_CHDIR_E */{"chdir", EC_FILE, EF_MODIFIES_STATE, 0},

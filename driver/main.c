@@ -218,7 +218,14 @@ do {								\
 
 static inline nanoseconds ppm_nsecs(void)
 {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0))
 	return ktime_get_real_ns();
+#else
+	/* Don't have ktime_get_real functions */
+	struct timespec ts;
+	getnstimeofday(&ts);
+	return SECOND_IN_NS * ts.tv_sec + ts.tv_nsec;
+#endif
 }
 
 inline void ppm_syscall_get_arguments(struct task_struct *task, struct pt_regs *regs, unsigned long *args)

@@ -115,7 +115,7 @@ function on_event()
 		elseif duration > THRESHOLD_YELLOW_NS then
 			color = terminal.yellow
 		elseif evt.field(fcontainername) ~= "host" then
-			-- if the data is assocaited with a container change the color to blue unless a threshold is met
+			-- if the data is associated with a container change the color to blue unless a threshold is met
 			color = terminal.blue
 		end
 

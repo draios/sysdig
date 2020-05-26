@@ -1028,7 +1028,7 @@ scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_
 	//
 	// Disable proc parsing since it would be too heavy when saving to memory.
 	// Before doing that, backup handle->refresh_proc_table_when_saving so we can
-	// restore whatever the current seetting is as soon as we're done.
+	// restore whatever the current setting is as soon as we're done.
 	//
 	bool tmp_refresh_proc_table_when_saving = handle->refresh_proc_table_when_saving;
 	handle->refresh_proc_table_when_saving = false;
@@ -2632,7 +2632,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 			break;
 		default:
 			//
-			// Unknwon block type. Skip the block.
+			// Unknown block type. Skip the block.
 			//
 			toread = bh.block_total_length - sizeof(block_header) - 4;
 			fseekres = (int)gzseek(f, (long)toread, SEEK_CUR);

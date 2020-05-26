@@ -111,7 +111,7 @@ function on_event()
 		infostr = string.format("%s------ Write %s to %s %s", terminal.blue, format_bytes(res), container, name_pname)
 	end
 
-	-- Print out the line (if -pc or -pcontainer sandwitch container color between either red of blue)
+	-- Print out the line (if -pc or -pcontainer sandwich container color between either red or blue)
 	print(infostr)
 
 	return true

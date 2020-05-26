@@ -3597,9 +3597,9 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 			//
 			// Call the protocol decoder callbacks associated to this event
 			//
-			if(evt->m_fdinfo->m_callbaks)
+			if(evt->m_fdinfo->m_callbacks)
 			{
-				vector<sinsp_protodecoder*>* cbacks = &(evt->m_fdinfo->m_callbaks->m_read_callbacks);
+				vector<sinsp_protodecoder*>* cbacks = &(evt->m_fdinfo->m_callbacks->m_read_callbacks);
 
 				for(auto it = cbacks->begin(); it != cbacks->end(); ++it)
 				{
@@ -3685,9 +3685,9 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 			//
 			// Call the protocol decoder callbacks associated to this event
 			//
-			if(evt->m_fdinfo->m_callbaks)
+			if(evt->m_fdinfo->m_callbacks)
 			{
-				vector<sinsp_protodecoder*>* cbacks = &(evt->m_fdinfo->m_callbaks->m_write_callbacks);
+				vector<sinsp_protodecoder*>* cbacks = &(evt->m_fdinfo->m_callbacks->m_write_callbacks);
 
 				for(auto it = cbacks->begin(); it != cbacks->end(); ++it)
 				{
