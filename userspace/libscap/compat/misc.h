@@ -33,6 +33,14 @@ limitations under the License.
 #define CLOCK_BOOTTIME 7
 #endif
 
+/*
+	O_TMPFILE was introduced in Linux >= 3.11 and defined as (__O_TMPFILE | O_DIRECTORY).
+	To maintain compatiblity with different build environments, the below is added.   
+*/
+#ifndef O_TMPFILE
+#define O_TMPFILE 020200000
+#endif
+
 static int sys_bpf(enum bpf_cmd cmd, union bpf_attr *attr, unsigned int size)
 {
 	return syscall(__NR_bpf, cmd, attr, size);

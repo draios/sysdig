@@ -16,8 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#define _GNU_SOURCE
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -28,6 +26,7 @@ limitations under the License.
 #include <sys/types.h>
 #include <fcntl.h>
 #include "uthash.h"
+#include "compat/misc.h"
 #ifdef _WIN32
 #include <Ws2tcpip.h>
 #elif defined(__APPLE__)
