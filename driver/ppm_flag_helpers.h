@@ -12,7 +12,6 @@ or GPL2.txt for full copies of the license.
 #include <linux/mman.h>
 #include <linux/futex.h>
 #include <linux/ptrace.h>
-
 #include "ppm.h"
 
 #define PPM_MS_MGC_MSK 0xffff0000
@@ -36,6 +35,9 @@ static __always_inline uint32_t open_flags_to_scap(unsigned long flags)
 
 	if (flags & O_CREAT)
 		res |= PPM_O_CREAT;
+
+    if (flags & O_TMPFILE)
+		res |= PPM_O_TMPFILE;
 
 	if (flags & O_APPEND)
 		res |= PPM_O_APPEND;

@@ -66,6 +66,18 @@ static const char *g_filler_names[PPM_FILLER_MAX] = {
 };
 #undef FILLER_NAME_FN
 
+static int sys_bpf(enum bpf_cmd cmd, union bpf_attr *attr, unsigned int size)
+{
+	return syscall(__NR_bpf, cmd, attr, size);
+}
+
+static int sys_perf_event_open(struct perf_event_attr *attr,
+			       pid_t pid, int cpu, int group_fd,
+			       unsigned long flags)
+{
+	return syscall(__NR_perf_event_open, attr, pid, cpu, group_fd, flags);
+}
+
 static int32_t lookup_filler_id(const char *filler_name)
 {
 	int j;

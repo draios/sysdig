@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -27,6 +26,7 @@ limitations under the License.
 #include <sys/types.h>
 #include <fcntl.h>
 #include "uthash.h"
+#include "compat/misc.h"
 #ifdef _WIN32
 #include <Ws2tcpip.h>
 #elif defined(__APPLE__)
@@ -776,6 +776,9 @@ static inline uint32_t open_flags_to_scap(unsigned long flags)
 
 	if (flags & O_CREAT)
 		res |= PPM_O_CREAT;
+	
+	if (flags & O_TMPFILE)
+		res |= PPM_O_TMPFILE;
 
 	if (flags & O_APPEND)
 		res |= PPM_O_APPEND;
