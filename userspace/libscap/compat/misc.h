@@ -19,8 +19,6 @@ limitations under the License.
 #ifndef __COMPAT_MISC_H
 #define __COMPAT_MISC_H
 
-#include "bpf.h"
-
 #ifndef __NR_bpf
 #ifdef __x86_64__
 #define __NR_bpf 321
