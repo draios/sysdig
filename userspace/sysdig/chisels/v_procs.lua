@@ -49,6 +49,12 @@ view_info =
 			colsize = 7,
 		},
 		{
+			name = "PPID",
+			description = "Process Parent PID.",
+			field = "proc.ppid",
+			colsize = 7,
+		},
+		{
 			tags = {"containers"},
 			name = "VPID",
 			field = "proc.vpid",
