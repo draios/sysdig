@@ -115,6 +115,9 @@ bool cri_async_source::parse_cri(sinsp_container_info& container, const libsinsp
 	container.m_full_id = resp_container.id();
 	container.m_name = resp_container.metadata().name();
 
+	// This is in Nanoseconds(in CRI API). Need to convert it to seconds.
+	container.m_created_time = static_cast<int64_t>(resp_container.created_at() / ONE_SECOND_IN_NS );
+
 	for(const auto &pair : resp_container.labels())
 	{
 		container.m_labels[pair.first] = pair.second;

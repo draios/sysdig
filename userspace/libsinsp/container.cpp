@@ -160,6 +160,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["privileged"] = container_info.m_privileged;
 	container["is_pod_sandbox"] = container_info.m_is_pod_sandbox;
 	container["lookup_state"] = static_cast<int>(container_info.m_lookup_state);
+	container["created_time"] = (Json::Value::Int64) container_info.m_created_time;
 
 	Json::Value mounts = Json::arrayValue;
 

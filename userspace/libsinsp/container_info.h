@@ -259,4 +259,11 @@ public:
 	 * This is not filled by default.
 	 */
 	int64_t m_size_rw_bytes;
+
+	/**
+	 * The time at which the container was created (IN SECONDS), cast from a value of `time_t`
+	 * We choose int64_t as we are not certain what type `time_t` is in a given
+	 * implementation; int64_t is the safest bet. Many default to int64_t anyway (e.g. CRI).
+	 */
+	int64_t m_created_time;
 };
