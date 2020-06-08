@@ -698,6 +698,10 @@ bool docker_async_source::parse_docker(const docker_async_instruction& instructi
 		container.m_is_pod_sandbox = true;
 	}
 
+	// Get the created time - this will be string format i.e. "%Y-%m-%dT%H:%M:%SZ"
+	// Convert it to seconds. This can be done with get_epoc_utc_seconds()
+	container.m_created_time = static_cast<int64_t>(get_epoch_utc_seconds(root["Created"].asString()));
+
 	const Json::Value& net_obj = root["NetworkSettings"];
 
 	string ip = net_obj["IPAddress"].asString();
