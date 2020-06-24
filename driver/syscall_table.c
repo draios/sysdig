@@ -27,7 +27,11 @@ or GPL2.txt for full copies of the license.
 #endif
 #else /* __KERNEL__ */
 #include <linux/unistd.h>
+#ifdef __mips__
+#define SYSCALL_TABLE_ID0 __NR_Linux
+#else /* __mips__ */
 #define SYSCALL_TABLE_ID0 0
+#endif /* __mips__ */
 #endif /* __KERNEL__ */
 
 #include "ppm_events_public.h"
