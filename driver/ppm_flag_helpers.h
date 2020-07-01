@@ -9,10 +9,12 @@ or GPL2.txt for full copies of the license.
 
 #ifndef PPM_FLAG_HELPERS_H_
 #define PPM_FLAG_HELPERS_H_
+#ifndef UDIG
 #include <linux/mman.h>
 #include <linux/futex.h>
 #include <linux/ptrace.h>
 #include "ppm.h"
+#endif
 
 #define PPM_MS_MGC_MSK 0xffff0000
 #define PPM_MS_MGC_VAL 0xC0ED0000
@@ -86,11 +88,15 @@ static __always_inline uint32_t open_flags_to_scap(unsigned long flags)
 static __always_inline u32 open_modes_to_scap(unsigned long flags,
 					      unsigned long modes)
 {
+#ifdef UDIG
+	unsigned long flags_mask = O_CREAT | O_TMPFILE;
+#else
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0)
 	unsigned long flags_mask = O_CREAT | O_TMPFILE;
 #else
 	unsigned long flags_mask = O_CREAT;
 #endif
+#endif /* UDIG */
 	u32 res = 0;
 
 	if ((flags & flags_mask) == 0)
@@ -358,8 +364,10 @@ static __always_inline u32 prot_flags_to_scap(int prot)
 	if (prot & PROT_EXEC)
 		res |= PPM_PROT_EXEC;
 
+#ifdef PROT_SEM
 	if (prot & PROT_SEM)
 		res |= PPM_PROT_SEM;
+#endif
 
 	if (prot & PROT_GROWSDOWN)
 		res |= PPM_PROT_GROWSDOWN;
@@ -460,6 +468,7 @@ static __always_inline u8 fcntl_cmd_to_scap(unsigned long cmd)
 		return PPM_FCNTL_F_SETSIG;
 	case F_GETSIG:
 		return PPM_FCNTL_F_GETSIG;
+#ifndef UDIG
 #ifndef CONFIG_64BIT
 	case F_GETLK64:
 		return PPM_FCNTL_F_GETLK64;
@@ -468,6 +477,7 @@ static __always_inline u8 fcntl_cmd_to_scap(unsigned long cmd)
 	case F_SETLKW64:
 		return PPM_FCNTL_F_SETLKW64;
 #endif
+#endif /* UDIG */
 #ifdef F_SETOWN_EX
 	case F_SETOWN_EX:
 		return PPM_FCNTL_F_SETOWN_EX;
@@ -797,6 +807,7 @@ static __always_inline u16 poll_events_to_scap(short revents)
 static __always_inline u16 futex_op_to_scap(unsigned long op)
 {
 	u16 res = 0;
+#ifndef UDIG
 	unsigned long flt_op = op & 127;
 
 	if (flt_op == FUTEX_WAIT)
@@ -841,7 +852,7 @@ static __always_inline u16 futex_op_to_scap(unsigned long op)
 	if (op & FUTEX_CLOCK_REALTIME)
 		res |= PPM_FU_FUTEX_CLOCK_REALTIME;
 #endif
-
+#endif /* UDIG */
 	return res;
 }
 
@@ -852,12 +863,21 @@ static __always_inline u32 access_flags_to_scap(unsigned flags)
 	if (flags == 0/*F_OK*/) {
 		res = PPM_F_OK;
 	} else {
+#ifdef UDIG
+		if (flags & X_OK)
+			res |= PPM_X_OK;
+		if (flags & R_OK)
+			res |= PPM_R_OK;
+		if (flags & W_OK)
+			res |= PPM_W_OK;
+#else
 		if (flags & MAY_EXEC)
 			res |= PPM_X_OK;
 		if (flags & MAY_READ)
 			res |= PPM_R_OK;
 		if (flags & MAY_WRITE)
 			res |= PPM_W_OK;
+#endif
 	}
 
 	return res;
@@ -1043,6 +1063,7 @@ static __always_inline uint16_t quotactl_cmd_to_scap(unsigned long cmd)
 	/*
 	 *  XFS specific
 	 */
+#ifndef UDIG
 	case Q_XQUOTAON:
 		res = PPM_Q_XQUOTAON;
 		break;
@@ -1064,6 +1085,7 @@ static __always_inline uint16_t quotactl_cmd_to_scap(unsigned long cmd)
 	case Q_XQUOTASYNC:
 		res = PPM_Q_XQUOTASYNC;
 		break;
+#endif		
 	default:
 		res = 0;
 	}
@@ -1227,14 +1249,18 @@ static __always_inline u16 ptrace_requests_to_scap(unsigned long req)
 		return PPM_PTRACE_KILL;
 	case PTRACE_CONT:
 		return PPM_PTRACE_CONT;
+#ifdef PTRACE_POKEUSR
 	case PTRACE_POKEUSR:
 		return PPM_PTRACE_POKEUSR;
+#endif		
 	case PTRACE_POKEDATA:
 		return PPM_PTRACE_POKEDATA;
 	case PTRACE_POKETEXT:
 		return PPM_PTRACE_POKETEXT;
+#ifdef PTRACE_PEEKUSR
 	case PTRACE_PEEKUSR:
 		return PPM_PTRACE_PEEKUSR;
+#endif
 	case PTRACE_PEEKDATA:
 		return PPM_PTRACE_PEEKDATA;
 	case PTRACE_PEEKTEXT:

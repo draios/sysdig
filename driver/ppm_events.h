@@ -11,7 +11,9 @@ or GPL2.txt for full copies of the license.
 #define EVENTS_H_
 
 /* To know about __NR_socketcall */
+#ifndef UDIG
 #include <asm/unistd.h>
+#endif
 #ifdef CONFIG_COMPAT
 #include <linux/compat.h>
 #endif
@@ -35,7 +37,7 @@ struct fault_data_t {
 };
 
 struct event_filler_arguments {
-	struct ppm_consumer_t *consumer;
+	ppm_consumer_t *consumer;
 	char *buffer; /* the buffer that will be filled with the data */
 	u32 buffer_size; /* the space in the ring buffer available for this event */
 	u32 syscall_id; /* the system call ID */
@@ -53,20 +55,30 @@ struct event_filler_arguments {
 	 * below per-event params in this union, it's not good to waste kernel
 	 * stack since all this stuff is always exclusive
 	 */
+#ifdef UDIG
+	u64 *regs; /* the registers containing the call arguments */
+#else
 	struct pt_regs *regs; /* the registers containing the call arguments */
+#endif
 	struct task_struct *sched_prev; /* for context switch events, the task that is being scheduled out */
 	struct task_struct *sched_next; /* for context switch events, the task that is being scheduled in */
 	char *str_storage; /* String storage. Size is one page. */
+#ifndef UDIG
 	unsigned long socketcall_args[6];
+#endif
 	bool is_socketcall;
+#ifndef UDIG
 	int socketcall_syscall;
 	bool compat;
+#endif
 	int fd; /* Passed by some of the fillers to val_to_ring to compute the snaplen dynamically */
 	bool enforce_snaplen;
+#ifndef UDIG
 	int signo; /* Signal number */
 	__kernel_pid_t spid; /* PID of source process */
 	__kernel_pid_t dpid; /* PID of destination process */
 	struct fault_data_t fault_data; /* For page faults */
+#endif	
 };
 
 extern const struct ppm_event_entry g_ppm_events[];

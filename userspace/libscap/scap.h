@@ -283,7 +283,7 @@ typedef enum {
 	 * Do not read system call data. If next is called, a dummy event is
 	 * returned.
 	 */
-	SCAP_MODE_NODRIVER
+	SCAP_MODE_NODRIVER,
 } scap_mode_t;
 
 typedef struct scap_open_args
@@ -300,6 +300,7 @@ typedef struct scap_open_args
 	                                                         // events should be returned, with a trailing NULL value.
 	                                                         // You can provide additional comm
 	                                                         // values via scap_suppress_events_comm().
+	bool udig; ///< If true, UDIG will be used for event capture. Otherwise, the kernel driver will be used.
 }scap_open_args;
 
 
@@ -520,6 +521,34 @@ struct ppm_syscall_desc {
 
 #define IN
 #define OUT
+
+//
+// udig stuff
+//
+#define UDIG_RING_SM_FNAME "udig_buf"
+#define UDIG_RING_DESCS_SM_FNAME "udig_descs"
+#define UDIG_RING_SIZE (8 * 1024 * 1024)
+
+#ifndef __APPLE__
+struct udig_ring_buffer_status {
+	volatile uint64_t m_buffer_lock;
+	volatile int m_initialized;
+	volatile int m_capturing_pid;
+	volatile int m_stopped;
+	volatile struct timespec m_last_print_time;
+	struct udig_consumer_t m_consumer;
+};
+#endif // __APPLE__
+
+typedef struct ppm_ring_buffer_info ppm_ring_buffer_info;
+
+int32_t udig_alloc_ring(int* ring_fd, uint8_t** ring, uint32_t *ringsize, char *error);
+int32_t udig_alloc_ring_descriptors(int* ring_descs_fd, 
+	struct ppm_ring_buffer_info** ring_info, 
+	struct udig_ring_buffer_status** ring_status, 
+	char *error);
+void udig_free_ring(uint8_t* addr, uint32_t size);
+void udig_free_ring_descriptors(uint8_t* addr);
 
 ///////////////////////////////////////////////////////////////////////////////
 // API functions

@@ -37,7 +37,7 @@ typedef struct wh_t wh_t;
 #include <crtdbg.h>
 #endif
 #include <assert.h>
-#ifdef USE_ZLIB
+#if defined(USE_ZLIB) && !defined(UDIG)
 #include <zlib.h>
 #else
 #define	gzFile FILE*
@@ -75,7 +75,9 @@ typedef struct wh_t wh_t;
 typedef struct scap_device
 {
 	int m_fd;
+	int m_bufinfo_fd; // used by udig
 	char* m_buffer;
+	uint32_t m_buffer_size; // used by udig
 	uint32_t m_lastreadsize;
 	char* m_sn_next_event; // Pointer to the next event available for scap_next
 	uint32_t m_sn_len; // Number of bytes available in the buffer pointed by m_sn_next_event
@@ -85,6 +87,7 @@ typedef struct scap_device
 		struct
 		{
 			struct ppm_ring_buffer_info* m_bufinfo;
+			struct udig_ring_buffer_status* m_bufstatus; // used by udig
 		};
 		// Anonymous struct with bpf stuff
 		struct
@@ -142,6 +145,8 @@ struct scap
 	wh_t* m_whh;
 #endif
 	bool m_bpf;
+	bool m_udig;
+	bool m_udig_capturing;
 	// Anonymous struct with bpf stuff
 	struct
 	{
@@ -350,6 +355,17 @@ extern const struct ppm_event_info g_event_info[];
 extern const struct ppm_syscall_desc g_syscall_info_table[];
 extern const struct ppm_event_entry g_ppm_events[];
 extern bool validate_info_table_size();
+
+//
+// udig stuff
+//
+int32_t udig_begin_capture(scap_t* handle, char *error);
+void udig_start_capture(scap_t* handle);
+void udig_stop_capture(scap_t* handle);
+void udig_end_capture(scap_t* handle);
+uint32_t udig_set_snaplen(scap_t* handle, uint32_t snaplen);
+int32_t udig_stop_dropping_mode(scap_t* handle);
+int32_t udig_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);
 
 #ifdef __cplusplus
 }

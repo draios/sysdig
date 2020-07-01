@@ -34,6 +34,12 @@ list(APPEND targetfiles
 	../../driver/event_table.c
 	../../driver/flags_table.c)
 
+if(NOT APPLE)
+	list(APPEND targetfiles
+		scap_udig.c)
+endif()
+
+
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	list(APPEND targetfiles
 		scap_bpf.c

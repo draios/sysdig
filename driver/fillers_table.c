@@ -11,12 +11,14 @@ or GPL2.txt for full copies of the license.
 #ifdef __KERNEL__
 #include "ppm.h"
 #else
+#ifndef UDIG
 #define CAPTURE_CONTEXT_SWITCHES
 #define CAPTURE_SIGNAL_DELIVERIES
 #define CAPTURE_PAGE_FAULTS
-#endif
+#endif /* UDIG */
+#endif /* __KERNEL__ */
 
-#ifdef __KERNEL__
+#if defined(__KERNEL__) || defined(UDIG)
 #define FILLER_REF(x) f_##x, PPM_FILLER_##x
 #else
 #define FILLER_REF(x) 0, PPM_FILLER_##x
@@ -124,7 +126,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_PWRITE_E] = {FILLER_REF(sys_autofill), 3, APT_REG, {{0}, {2}, {3} } },
 #else
 	[PPME_SYSCALL_PWRITE_E] = {FILLER_REF(sys_pwrite64_e)},
-#endif
+ #endif
 	[PPME_SYSCALL_PWRITE_X] = {FILLER_REF(sys_write_x)},
 	[PPME_SYSCALL_READV_E] = {FILLER_REF(sys_single)},
 	[PPME_SYSCALL_READV_X] = {FILLER_REF(sys_readv_preadv_x)},
@@ -220,10 +222,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_FORK_20_X] = {FILLER_REF(proc_startupdate)},
 	[PPME_SYSCALL_VFORK_20_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_VFORK_20_X] = {FILLER_REF(proc_startupdate)},
-#ifdef CAPTURE_SIGNAL_DELIVERIES
+ #ifdef CAPTURE_SIGNAL_DELIVERIES
 	[PPME_SIGNALDELIVER_E] = {FILLER_REF(sys_signaldeliver_e)},
 	[PPME_SIGNALDELIVER_X] = {FILLER_REF(sys_empty)},
-#endif
+ #endif
 	[PPME_SYSCALL_GETDENTS_E] = {FILLER_REF(sys_single)},
 	[PPME_SYSCALL_GETDENTS_X] = {FILLER_REF(sys_single_x)},
 	[PPME_SYSCALL_GETDENTS64_E] = {FILLER_REF(sys_single)},
@@ -265,10 +267,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_UNSHARE_X] = {FILLER_REF(sys_autofill), 1, APT_REG, {{AF_ID_RETVAL} } },
 	[PPME_SYSCALL_EXECVE_19_E] = {FILLER_REF(sys_execve_e)},
 	[PPME_SYSCALL_EXECVE_19_X] = {FILLER_REF(proc_startupdate)},
-#ifdef CAPTURE_PAGE_FAULTS
+ #ifdef CAPTURE_PAGE_FAULTS
 	[PPME_PAGE_FAULT_E] = {FILLER_REF(sys_pagefault_e)},
 	[PPME_PAGE_FAULT_X] = {FILLER_REF(sys_empty)},
-#endif
+ #endif
 	[PPME_SYSCALL_BPF_E] = {FILLER_REF(sys_autofill), 1, APT_REG, {{0} } },
 	[PPME_SYSCALL_BPF_X] = {FILLER_REF(sys_bpf_x)},
 	[PPME_SYSCALL_SECCOMP_E] = {FILLER_REF(sys_autofill), 1, APT_REG, {{0}, {1} } },

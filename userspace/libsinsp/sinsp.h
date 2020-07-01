@@ -229,6 +229,7 @@ public:
 	*/
 	void fdopen(int fd);
 
+	void open_udig(uint32_t timeout_ms = SCAP_TIMEOUT_MS);
 	void open_nodriver();
 
 	/*!
@@ -912,6 +913,7 @@ private:
 #endif
 
 	void open_int();
+	void open_live_common(uint32_t timeout_ms, scap_mode_t mode);
 	void init();
 	void import_thread_table();
 	void import_ifaddr_list();
@@ -1012,6 +1014,7 @@ private:
 	int m_input_fd;
 	std::string m_input_filename;
 	bool m_bpf;
+	bool m_udig;
 	std::string m_bpf_probe;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;

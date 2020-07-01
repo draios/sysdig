@@ -9,6 +9,7 @@ or GPL2.txt for full copies of the license.
 
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
 
+#ifndef UDIG
 #include <linux/compat.h>
 #include <linux/kobject.h>
 #include <linux/cdev.h>
@@ -32,6 +33,45 @@ or GPL2.txt for full copies of the license.
 #else
 #include <asm/syscall.h>
 #endif
+#else // UDIG
+#define _GNU_SOURCE
+#include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+#include <stdarg.h>
+#include <limits.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <signal.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/syscall.h>
+#include <time.h>
+#include <netinet/in.h>
+#include <sys/param.h>
+#include <sched.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <poll.h>
+#include <sys/sem.h>
+#include <sys/file.h>
+#include <sys/quota.h>
+#include <sys/ptrace.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <errno.h>
+
+#include "udig_capture.h"
+#include "ppm_ringbuffer.h"
+#include "ppm_events_public.h"
+#include "ppm_events.h"
+#include "ppm.h"
+
+#include "udig_inf.h"
+#endif // UDIG
 
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
@@ -44,6 +84,7 @@ or GPL2.txt for full copies of the license.
  * The kernel patched with grsecurity makes the default access_ok trigger a
  * might_sleep(), so if present we use the one defined by them
  */
+#ifndef UDIG
 #ifdef access_ok_noprefault
 #define ppm_access_ok access_ok_noprefault
 #else
@@ -63,6 +104,7 @@ static void memory_dump(char *p, size_t size)
 	for (j = 0; j < size; j += 8)
 		pr_info("%*ph\n", 8, &p[j]);
 }
+#endif // UDIG
 
 static inline bool in_port_range(uint16_t port, uint16_t min, uint16_t max)
 {
@@ -82,6 +124,7 @@ u32 g_http_trace_intval;
 u32 g_http_connect_intval;
 u32 g_http_resp_intval;
 
+#ifndef UDIG
 /*
  * What this function does is basically a special memcpy
  * so that, if the page fault handler detects the address is invalid,
@@ -159,6 +202,7 @@ strncpy_end:
 	pagefault_enable();
 	return res;
 }
+#endif
 
 int32_t dpi_lookahead_init(void)
 {
@@ -175,6 +219,7 @@ int32_t dpi_lookahead_init(void)
 	return PPM_SUCCESS;
 }
 
+#ifndef UDIG
 inline int sock_getname(struct socket* sock, struct sockaddr* sock_address, int peer)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)
@@ -487,6 +532,7 @@ done:
 	sockfd_put(sock);
 	return res;
 }
+#endif // UDIG
 
 /*
  * NOTES:
@@ -502,6 +548,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 	u32 max_arg_size = args->arg_data_size;
 
 	if (unlikely(args->curarg >= args->nargs)) {
+#ifndef UDIG
 		pr_err("(%u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u tid:%u\n",
 			smp_processor_id(),
 			args->nevents,
@@ -510,6 +557,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 			args->nargs,
 			current->pid);
 		memory_dump(args->buffer - sizeof(struct ppm_evt_hdr), 32);
+#endif		
 		ASSERT(0);
 		return PPM_FAILURE_BUG;
 	}
@@ -529,7 +577,11 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 			return PPM_FAILURE_BUG;
 		}
 
+#ifdef UDIG
+		dyn_params = (const struct ppm_param_info *)patch_pointer((uint8_t*)param_info->info);
+#else
 		dyn_params = (const struct ppm_param_info *)param_info->info;
+#endif
 
 		param_info = &dyn_params[dyn_idx];
 		if (likely(max_arg_size >= sizeof(u8)))	{
@@ -614,8 +666,9 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 					if (likely(args->enforce_snaplen)) {
 						u32 sl = args->consumer->snaplen;
 
+#ifndef UDIG
 						sl = compute_snaplen(args, args->buffer + args->arg_data_offset, dpi_lookahead_size);
-
+#endif
 						if (val_len > sl)
 							val_len = sl;
 					}
@@ -636,8 +689,11 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 				len = val_len;
 			} else {
 				if (likely(args->enforce_snaplen)) {
+#ifdef UDIG
+					u32 sl = args->consumer->snaplen;
+#else
 					u32 sl = compute_snaplen(args, (char *)(unsigned long)val, val_len);
-
+#endif
 					if (val_len > sl)
 						val_len = sl;
 				}
@@ -776,10 +832,12 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 		break;
 	default:
 		ASSERT(0);
+#ifndef UDIG
 		pr_err("val_to_ring: invalid argument type %d. Event %u (%s) might have less parameters than what has been declared in nparams\n",
 			(int)g_event_info[args->event_type].params[args->curarg].type,
 			(u32)args->event_type,
 			g_event_info[args->event_type].name);
+#endif			
 		return PPM_FAILURE_BUG;
 	}
 
@@ -945,6 +1003,7 @@ u16 fd_to_socktuple(int fd,
 	struct sockaddr_storage sock_address;
 	struct sockaddr_storage peer_address;
 
+#ifndef UDIG
 	/*
 	 * Get the socket from the fd
 	 * NOTE: sockfd_lookup() locks the socket, so we don't need to worry when we dig in it
@@ -960,11 +1019,23 @@ u16 fd_to_socktuple(int fd,
 			sockfd_put(sock);
 		return 0;
 	}
+#endif
 
+#ifdef UDIG
+	socklen_t alen = sizeof(struct sockaddr_storage);
+	err = udig_getsockname(fd, (struct sockaddr *)&sock_address, &alen);
+	if(err < 0)
+	{
+		return 0;
+	}
+
+	family = sock_address.ss_family;
+#else
 	err = sock_getname(sock, (struct sockaddr *)&sock_address, 0);
 	ASSERT(err == 0);
 
 	family = sock->sk->sk_family;
+#endif
 
 	/*
 	 * Extract and pack the info, based on the family
@@ -972,7 +1043,12 @@ u16 fd_to_socktuple(int fd,
 	switch (family) {
 	case AF_INET:
 		if (!use_userdata) {
+#ifdef UDIG
+			socklen_t palen = sizeof(struct sockaddr_storage);
+			err = udig_getpeername(fd, (struct sockaddr *)&peer_address, &palen);
+#else
 			err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
+#endif
 			if (err == 0) {
 				if (is_inbound) {
 					sip = ((struct sockaddr_in *) &peer_address)->sin_addr.s_addr;
@@ -1024,7 +1100,12 @@ u16 fd_to_socktuple(int fd,
 		break;
 	case AF_INET6:
 		if (!use_userdata) {
+#ifdef UDIG
+			socklen_t palen = sizeof(struct sockaddr_storage);
+			err = udig_getpeername(fd, (struct sockaddr *)&peer_address, &palen);
+#else
 			err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
+#endif
 			ASSERT(err == 0);
 
 			if (is_inbound) {
@@ -1074,6 +1155,9 @@ u16 fd_to_socktuple(int fd,
 
 		break;
 	case AF_UNIX:
+#ifdef UDIG
+		size = 0;
+#else
 		/*
 		 * Retrieve the addresses
 		 */
@@ -1132,16 +1216,19 @@ u16 fd_to_socktuple(int fd,
 
 		dest[UNIX_PATH_MAX - 1] = 0;
 		size += strlen(dest) + 1;
+	#endif /* UDIG */
 		break;
 	default:
 		size = 0;
 		break;
 	}
 
+#ifndef UDIG
 	/*
 	 * Digging finished. We can release the fd.
 	 */
 	sockfd_put(sock);
+#endif
 
 	return size;
 }
@@ -1226,8 +1313,11 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 			if (!args->is_socketcall) {
 				ppm_syscall_get_arguments(current, args->regs, syscall_args);
 				val = syscall_args[0];
-			} else
+			}
+#ifndef UDIG
+			else
 				val = args->socketcall_args[0];
+#endif
 			args->fd = (int)val;
 
 			/*
@@ -1294,6 +1384,8 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 
 	return PPM_SUCCESS;
 }
+
+#ifndef UDIG
 
 #ifdef CONFIG_COMPAT
 /*
@@ -1431,6 +1523,7 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 	return PPM_SUCCESS;
 }
 #endif /* CONFIG_COMPAT */
+#endif /* UDIG */
 
 /*
  * STANDARD FILLERS
