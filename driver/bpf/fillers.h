@@ -20,9 +20,11 @@ or GPL2.txt for full copies of the license.
 //#define COS_73_WORKAROUND
 
 #include "../ppm_flag_helpers.h"
+#include "../ppm_version.h"
 
 #include <linux/tty.h>
 #include <linux/audit.h>
+
 
 /*
  * Linux 5.6 kernels no longer include the old 32-bit timeval
@@ -1389,7 +1391,9 @@ static __always_inline int bpf_ppm_get_tty(struct task_struct *task)
 
 static __always_inline struct pid *bpf_task_pid(struct task_struct *task)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
+#if (PPM_RHEL_RELEASE_CODE > 0 && PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 0))
+	return _READ(task->thread_pid);
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
 	return _READ(task->pids[PIDTYPE_PID].pid);
 #else
 	return _READ(task->thread_pid);
@@ -1426,7 +1430,7 @@ static __always_inline pid_t bpf_pid_nr_ns(struct pid *pid,
 	return nr;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
+#if ((PPM_RHEL_RELEASE_CODE > 0 && PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 0))) || LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
 static __always_inline struct pid **bpf_task_pid_ptr(struct task_struct *task,
 						     enum pid_type type)
 {
@@ -1445,7 +1449,9 @@ static __always_inline pid_t bpf_task_pid_nr_ns(struct task_struct *task,
 	if (!ns)
 		ns = bpf_task_active_pid_ns(task);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
+#if (PPM_RHEL_RELEASE_CODE > 0 && PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 0))
+	nr = bpf_pid_nr_ns(_READ(*bpf_task_pid_ptr(task, type)), ns);
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
 	if (type != PIDTYPE_PID) {
 		if (type == __PIDTYPE_TGID)
 			type = PIDTYPE_PID;
@@ -1468,7 +1474,9 @@ static __always_inline pid_t bpf_task_pid_vnr(struct task_struct *task)
 
 static __always_inline pid_t bpf_task_tgid_vnr(struct task_struct *task)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
+#if (PPM_RHEL_RELEASE_CODE > 0 && PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 0))
+	return bpf_task_pid_nr_ns(task, PIDTYPE_TGID, NULL);
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
 	return bpf_task_pid_nr_ns(task, __PIDTYPE_TGID, NULL);
 #else
 	return bpf_task_pid_nr_ns(task, PIDTYPE_TGID, NULL);
