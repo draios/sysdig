@@ -484,17 +484,17 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	}
 }
 
-string sinsp_threadinfo::get_comm()
+std::string sinsp_threadinfo::get_comm() const
 {
 	return m_comm;
 }
 
-string sinsp_threadinfo::get_exe()
+std::string sinsp_threadinfo::get_exe() const
 {
 	return m_exe;
 }
 
-string sinsp_threadinfo::get_exepath()
+std::string sinsp_threadinfo::get_exepath() const
 {
 	return m_exepath;
 }
