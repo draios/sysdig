@@ -76,17 +76,17 @@ public:
 	/*!
 	  \brief Return the name of the process containing this thread, e.g. "top".
 	*/
-	std::string get_comm() const;
+	std::string get_comm();
 
 	/*!
 	  \brief Return the name of the process containing this thread from argv[0], e.g. "/bin/top".
 	*/
-	std::string get_exe() const;
+	std::string get_exe();
 
 	/*!
 	  \brief Return the full executable path of the process containing this thread, e.g. "/bin/top".
 	*/
-	std::string get_exepath() const;
+	std::string get_exepath();
 
 	/*!
 	  \brief Return the working directory of the process containing this thread.
@@ -454,7 +454,6 @@ VISIBILITY_PRIVATE
 class threadinfo_map_t
 {
 public:
-	typedef std::function<bool(const sinsp_threadinfo&)> const_visitor_t;
 	typedef std::function<bool(sinsp_threadinfo&)> visitor_t;
 	typedef std::shared_ptr<sinsp_threadinfo> ptr_t;
 
@@ -491,18 +490,6 @@ public:
 	inline void clear()
 	{
 		m_threads.clear();
-	}
-
-	bool const_loop(const_visitor_t callback) const
-	{
-		for (const auto& it : m_threads)
-		{
-			if (!callback(*it.second.get()))
-			{
-				return false;
-			}
-		}
-		return true;
 	}
 
 	bool loop(visitor_t callback)

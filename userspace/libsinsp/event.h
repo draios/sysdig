@@ -178,7 +178,7 @@ public:
 	/*!
 	  \brief Get the number of the CPU where this event was captured.
 	*/
-	inline int16_t get_cpuid() const
+	inline int16_t get_cpuid()
 	{
 		return m_cpuid;
 	}
@@ -188,7 +188,7 @@ public:
 
 	  \note For a list of event types, refer to \ref etypes.
 	*/
-	inline uint16_t get_type() const override
+	inline uint16_t get_type()
 	{
 		return m_pevt->type;
 	}
@@ -196,7 +196,7 @@ public:
 	/*!
 	  \brief Get the event's flags.
 	*/
-	inline ppm_event_flags get_info_flags() const
+	inline ppm_event_flags get_info_flags()
 	{
 		return m_info->flags;
 	}
@@ -204,7 +204,7 @@ public:
 	/*!
 	\brief Get the event's category.
 	*/
-	inline ppm_event_category get_info_category() const
+	inline ppm_event_category get_info_category()
 	{
 		return m_info->category;
 	}
@@ -212,14 +212,14 @@ public:
 	/*!
 	  \brief Return the event direction: in or out.
 	*/
-	event_direction get_direction() const;
+	event_direction get_direction();
 
 	/*!
 	  \brief Get the event timestamp.
 
 	  \return The event timestamp, in nanoseconds from epoch
 	*/
-	inline uint64_t get_ts() const override
+	inline uint64_t get_ts()
 	{
 		return m_pevt->ts;
 	}
@@ -227,12 +227,12 @@ public:
 	/*!
 	  \brief Return the event name string, e.g. 'open' or 'socket'.
 	*/
-	const char* get_name() const;
+	const char* get_name();
 
 	/*!
 	  \brief Return the event category.
 	*/
-	inline ppm_event_category get_category() const
+	inline ppm_event_category get_category()
 	{
 		return m_info->category;
 	}
@@ -261,7 +261,7 @@ public:
 		return m_fdinfo;
 	}
 
-	inline bool fdinfo_name_changed() const
+	inline bool fdinfo_name_changed()
 	{
 		return m_fdinfo_name_changed;
 	}
@@ -347,7 +347,7 @@ public:
 
 	bool simple_consumer_consider();
 
-	inline uint16_t get_source() const override
+	inline uint16_t get_source()
 	{
 		return ESRC_SINSP;
 	}
