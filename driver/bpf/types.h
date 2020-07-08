@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2013-2018 Draios Inc. dba Sysdig.
+Copyright (C) 2020 Sysdig Inc.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
@@ -13,7 +13,9 @@ or GPL2.txt for full copies of the license.
 
 #define __bpf_section(NAME) __attribute__((section(NAME), used))
 
+#ifndef __always_inline
 #define __always_inline inline __attribute__((always_inline))
+#endif
 
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 #define TP_NAME "raw_tracepoint/"
