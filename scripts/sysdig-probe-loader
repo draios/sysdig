@@ -377,7 +377,7 @@ load_bpf_probe() {
 ARCH=$(uname -m)
 KERNEL_RELEASE=$(uname -r)
 SCRIPT_NAME=$(basename "${0}")
-SYSDIG_PROBE_URL=${SYSDIG_PROBE_URL:-https://s3.amazonaws.com/download.draios.com}
+SYSDIG_PROBE_URL=${SYSDIG_PROBE_URL:-https://download.sysdig.com}
 if [ -n "$SYSDIG_PROBE_INSECURE_DOWNLOAD" ]
 then
 	SYSDIG_PROBE_CURL_OPTIONS=-fsSk
