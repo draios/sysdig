@@ -3179,7 +3179,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 	uint16_t etype = evt->get_type();
 
 	const char *dirfdarg = NULL, *patharg = NULL;
-	if(etype == PPME_SYSCALL_RENAMEAT_X)
+	if(etype == PPME_SYSCALL_RENAMEAT_X || etype == PPME_SYSCALL_RENAMEAT2_X)
 	{
 		if(m_argid == 0 || m_argid == 1)
 		{
