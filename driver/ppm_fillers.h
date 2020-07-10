@@ -85,6 +85,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_mmap_e)				\
 	FN(sys_brk_munmap_mmap_x)		\
 	FN(sys_renameat_x)			\
+	FN(sys_renameat2_x)			\
 	FN(sys_symlinkat_x)			\
 	FN(sys_procexit_e)			\
 	FN(sys_sendfile_e)			\

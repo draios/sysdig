@@ -518,3 +518,10 @@ const struct ppm_name_value chmod_mode[] = {
     {"S_ISUID", PPM_S_ISUID},
     {0, 0},
 };
+
+const struct ppm_name_value renameat2_flags[] = {
+	{"RENAME_NOREPLACE", PPM_RENAME_NOREPLACE},
+	{"RENAME_EXCHANGE", PPM_RENAME_EXCHANGE},
+	{"RENAME_WHITEOUT", PPM_RENAME_WHITEOUT},
+	{0, 0},
+};

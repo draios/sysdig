@@ -354,10 +354,11 @@
 #define __NR_ia32_setns		346
 #define __NR_ia32_process_vm_readv	347
 #define __NR_ia32_process_vm_writev	348
+#define __NR_ia32_renameat2 349
 
 #ifdef __KERNEL__
 
-#define NR_ia32_syscalls 349
+#define NR_ia32_syscalls 350
 
 #define __ARCH_WANT_IPC_PARSE_VERSION
 #define __ARCH_WANT_OLD_READDIR

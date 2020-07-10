@@ -585,6 +585,14 @@ or GPL2.txt for full copies of the license.
 #define PPM_PF_RESERVED_PAGE		(1 << 6)
 #define PPM_PF_INSTRUCTION_FETCH	(1 << 7)
 
+
+/*
+ * Rename flags
+ */
+#define PPM_RENAME_NOREPLACE	(1 << 0)	/* Don't overwrite target */
+#define PPM_RENAME_EXCHANGE		(1 << 1)	/* Exchange source and dest */
+#define PPM_RENAME_WHITEOUT		(1 << 2)	/* Whiteout source */
+
 /*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
@@ -947,7 +955,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_CHMOD_X = 315,
 	PPME_SYSCALL_FCHMOD_E = 316,
 	PPME_SYSCALL_FCHMOD_X = 317,
-	PPM_EVENT_MAX = 318
+	PPME_SYSCALL_RENAMEAT2_E = 318,
+	PPME_SYSCALL_RENAMEAT2_X = 319,
+	PPM_EVENT_MAX = 320
 };
 /*@}*/
 
@@ -1275,7 +1285,8 @@ enum ppm_syscall_code {
 	PPM_SC_SIGALTSTACK = 317,
 	PPM_SC_GETRANDOM = 318,
 	PPM_SC_FADVISE64 = 319,
-	PPM_SC_MAX = 320,
+	PPM_SC_RENAMEAT2 = 320,
+	PPM_SC_MAX = 321,
 };
 
 /*
@@ -1497,6 +1508,7 @@ extern const struct ppm_name_value pf_flags[];
 extern const struct ppm_name_value unlinkat_flags[];
 extern const struct ppm_name_value linkat_flags[];
 extern const struct ppm_name_value chmod_mode[];
+extern const struct ppm_name_value renameat2_flags[];
 
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
