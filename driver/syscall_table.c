@@ -195,9 +195,6 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 
 	[__NR_rename - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_RENAME_E, PPME_SYSCALL_RENAME_X},
 	[__NR_renameat - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_RENAMEAT_E, PPME_SYSCALL_RENAMEAT_X},
-#ifdef __NR_renameat2
-	[__NR_renameat2 - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_RENAMEAT2_E, PPME_SYSCALL_RENAMEAT2_X},
-#endif
 	[__NR_symlink - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_SYMLINK_E, PPME_SYSCALL_SYMLINK_X},
 	[__NR_symlinkat - SYSCALL_TABLE_ID0] =                  {UF_USED, PPME_SYSCALL_SYMLINKAT_E, PPME_SYSCALL_SYMLINKAT_X},
 	[__NR_sendfile - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_SENDFILE_E, PPME_SYSCALL_SENDFILE_X},
@@ -299,6 +296,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_seccomp
 	[__NR_seccomp - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_SECCOMP_E, PPME_SYSCALL_SECCOMP_X},
+#endif
+#ifdef __NR_renameat2
+	[__NR_renameat2 - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_RENAMEAT2_E, PPME_SYSCALL_RENAMEAT2_X},
 #endif
 };
 
@@ -545,9 +545,6 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_futimesat - SYSCALL_TABLE_ID0] = PPM_SC_FUTIMESAT,
 	[__NR_unlinkat - SYSCALL_TABLE_ID0] = PPM_SC_UNLINKAT,
 	[__NR_renameat - SYSCALL_TABLE_ID0] = PPM_SC_RENAMEAT,
-#ifdef __NR_renameat2
-	[__NR_renameat2 - SYSCALL_TABLE_ID0] = PPM_SC_RENAMEAT2,
-#endif
 	[__NR_linkat - SYSCALL_TABLE_ID0] = PPM_SC_LINKAT,
 	[__NR_symlinkat - SYSCALL_TABLE_ID0] = PPM_SC_SYMLINKAT,
 	[__NR_readlinkat - SYSCALL_TABLE_ID0] = PPM_SC_READLINKAT,
@@ -854,6 +851,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_fadvise64
 	[__NR_fadvise64 - SYSCALL_TABLE_ID0] = PPM_SC_FADVISE64,
 #endif
+#ifdef __NR_renameat2
+	[__NR_renameat2 - SYSCALL_TABLE_ID0] = PPM_SC_RENAMEAT2,
+#endif
 };
 
 #ifdef CONFIG_IA32_EMULATION
@@ -994,6 +994,7 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #endif
 
 	[__NR_ia32_rename - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_RENAME_E, PPME_SYSCALL_RENAME_X},
+	[__NR_ia32_renameat - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_RENAMEAT_E, PPME_SYSCALL_RENAMEAT_X},
 	[__NR_ia32_symlink - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_SYMLINK_E, PPME_SYSCALL_SYMLINK_X},
 	[__NR_ia32_symlinkat - SYSCALL_TABLE_ID0] =                  {UF_USED, PPME_SYSCALL_SYMLINKAT_E, PPME_SYSCALL_SYMLINKAT_X},
 	[__NR_ia32_sendfile - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_SENDFILE_E, PPME_SYSCALL_SENDFILE_X},
@@ -1089,7 +1090,6 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_ia32_renameat2
 	[__NR_ia32_renameat2 - SYSCALL_TABLE_ID0] =                  {UF_USED, PPME_SYSCALL_RENAMEAT2_E, PPME_SYSCALL_RENAMEAT2_X},
 #endif
-	[__NR_ia32_renameat - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_RENAMEAT_E, PPME_SYSCALL_RENAMEAT_X},
 };
 
 /*
@@ -1337,9 +1337,6 @@ const enum ppm_syscall_code g_syscall_ia32_code_routing_table[SYSCALL_TABLE_SIZE
 	[__NR_ia32_futimesat - SYSCALL_TABLE_ID0] = PPM_SC_FUTIMESAT,
 	[__NR_ia32_unlinkat - SYSCALL_TABLE_ID0] = PPM_SC_UNLINKAT,
 	[__NR_ia32_renameat - SYSCALL_TABLE_ID0] = PPM_SC_RENAMEAT,
-#ifdef __NR_ia32_renameat2
-	[__NR_ia32_renameat2 - SYSCALL_TABLE_ID0] = PPM_SC_RENAMEAT2,
-#endif
 	[__NR_ia32_linkat - SYSCALL_TABLE_ID0] = PPM_SC_LINKAT,
 	[__NR_ia32_symlinkat - SYSCALL_TABLE_ID0] = PPM_SC_SYMLINKAT,
 	[__NR_ia32_readlinkat - SYSCALL_TABLE_ID0] = PPM_SC_READLINKAT,
@@ -1645,6 +1642,9 @@ const enum ppm_syscall_code g_syscall_ia32_code_routing_table[SYSCALL_TABLE_SIZE
 #endif
 #ifdef __NR_ia32_fadvise64
 	[__NR_ia32_fadvise64 - SYSCALL_TABLE_ID0] = PPM_SC_FADVISE64,
+#endif
+#ifdef __NR_ia32_renameat2
+	[__NR_ia32_renameat2 - SYSCALL_TABLE_ID0] = PPM_SC_RENAMEAT2,
 #endif
 };
 
