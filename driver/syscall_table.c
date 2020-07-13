@@ -1337,7 +1337,7 @@ const enum ppm_syscall_code g_syscall_ia32_code_routing_table[SYSCALL_TABLE_SIZE
 	[__NR_ia32_futimesat - SYSCALL_TABLE_ID0] = PPM_SC_FUTIMESAT,
 	[__NR_ia32_unlinkat - SYSCALL_TABLE_ID0] = PPM_SC_UNLINKAT,
 	[__NR_ia32_renameat - SYSCALL_TABLE_ID0] = PPM_SC_RENAMEAT,
-#ifdef __NR_ia32_getcpu
+#ifdef __NR_ia32_renameat2
 	[__NR_ia32_renameat2 - SYSCALL_TABLE_ID0] = PPM_SC_RENAMEAT2,
 #endif
 	[__NR_ia32_linkat - SYSCALL_TABLE_ID0] = PPM_SC_LINKAT,
