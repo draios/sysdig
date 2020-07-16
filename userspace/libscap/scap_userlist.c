@@ -169,8 +169,99 @@ int32_t scap_create_userlist(scap_t* handle)
 	return SCAP_SUCCESS;
 }
 #else
+#include <Windows.h>
+#include <lm.h>
+
 int32_t scap_create_userlist(scap_t* handle)
 {
+	LPUSER_INFO_3 resbuf = NULL;
+	DWORD level = 20;
+	DWORD maxlen = MAX_PREFERRED_LENGTH;
+	DWORD eread = 0;
+	DWORD etot = 0;
+	DWORD resume_handle = 0;
+	NET_API_STATUS nueres;
+
+	nueres = NetUserEnum(NULL,
+						level,
+						FILTER_NORMAL_ACCOUNT, // global users
+						(LPBYTE*)&resbuf,
+						maxlen,
+						&eread,
+						&etot,
+						&resume_handle);
+
+	//
+	// Memory allocations
+	//
+	handle->m_userlist = (scap_userlist*)malloc(sizeof(scap_userlist));
+	if(handle->m_userlist == NULL)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "userlist allocation failed(1)");
+		return SCAP_FAILURE;
+	}
+
+	handle->m_userlist->nusers = eread;
+	handle->m_userlist->ngroups = 1;
+	handle->m_userlist->totsavelen = 0;
+	handle->m_userlist->users = (scap_userinfo*)malloc(handle->m_userlist->nusers * sizeof(scap_userinfo));
+	if(handle->m_userlist->users == NULL)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "userlist allocation failed(2)");
+		free(handle->m_userlist);
+		return SCAP_FAILURE;		
+	}
+
+	handle->m_userlist->groups = (scap_groupinfo*)malloc(handle->m_userlist->ngroups * sizeof(scap_groupinfo));
+	if(handle->m_userlist->groups == NULL)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "grouplist allocation failed(2)");
+		free(handle->m_userlist->users);
+		free(handle->m_userlist);
+		return SCAP_FAILURE;		
+	}
+
+	//
+	// Populate the users
+	//
+	for(uint32_t j = 0; j < eread; j++)
+	{
+		LPUSER_INFO_3 ui = &(resbuf[j]);
+
+		if(ui->usri3_name != NULL)
+		{
+			size_t clen = wcstombs(handle->m_userlist->users[j].name, ui->usri3_name, SCAP_MAX_PATH_SIZE);
+			if(clen == SCAP_MAX_PATH_SIZE)
+			{
+				handle->m_userlist->users[j].name[clen - 1] = 0;
+			}
+		}
+		else
+		{
+			strcpy(handle->m_userlist->users[j].name, "NA");
+		}
+
+		//
+		// Disabled because NetUserEnum seems to return a corrupted usri3_home_dir.
+		// Not a big deal.
+		//
+		// clen = wcstombs(handle->m_userlist->users[j].homedir, ui->usri3_home_dir, SCAP_MAX_PATH_SIZE);
+		// if(clen == SCAP_MAX_PATH_SIZE)
+		// {
+		//	 handle->m_userlist->users[j].name[clen - 1] = 0;
+		// }
+		handle->m_userlist->users[j].uid = ui->usri3_user_id;
+		handle->m_userlist->users[j].gid = ui->usri3_primary_group_id;
+		handle->m_userlist->users[j].homedir[0] = 0;
+		handle->m_userlist->users[j].shell[0] = 0;
+	}
+
+	//
+	// Only one fake group, since windows doesn't have unix groups
+	//
+	handle->m_userlist->groups[0].gid = 0;
+	strcpy(handle->m_userlist->groups[0].name, "NA");
+
 	return SCAP_SUCCESS;
 }
 #endif // HAS_CAPTURE

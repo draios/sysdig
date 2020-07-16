@@ -166,6 +166,8 @@ or GPL2.txt for full copies of the license.
 #define PPM_CL_CLONE_NEWCGROUP (1 << 28)
 #define PPM_CL_CHILD_IN_PIDNS (1<<29)			/* true if the thread created by clone() is *not*
 									in the init pid namespace */
+#define PPM_CL_IS_MAIN_THREAD (1 << 30)	/* libsinsp-specific flag. Set if this is the main thread */
+										/* in envs where main thread tid != pid.*/
 
 /*
  * Futex Operations
