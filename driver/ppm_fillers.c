@@ -151,7 +151,7 @@ int f_sys_generic(struct event_filler_arguments *args)
 		}
 	} else {
 		ASSERT(false);
-		res = val_to_ring(args, (unsigned long)"<out of bound>", 0, false, 0);
+		res = val_to_ring(args, (u64)"<out of bound>", 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 	}
@@ -167,7 +167,7 @@ int f_sys_empty(struct event_filler_arguments *args)
 int f_sys_single(struct event_filler_arguments *args)
 {
 	int res;
-	unsigned long val;
+	u64 val;
 
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
@@ -1122,7 +1122,7 @@ cgroups_error:
 int f_sys_execve_e(struct event_filler_arguments *args)
 {
 	int res;
-	unsigned long val;
+	uint64_t val;
 
 	/*
 	 * filename
@@ -1145,7 +1145,7 @@ int f_sys_socket_bind_x(struct event_filler_arguments *args)
 	int err = 0;
 	u16 size = 0;
 	struct sockaddr __user *usrsockaddr;
-	unsigned long val;
+	uint64_t val;
 	struct sockaddr_storage address;
 	char *targetbuf = args->str_storage;
 
@@ -1197,7 +1197,7 @@ int f_sys_socket_bind_x(struct event_filler_arguments *args)
 	 * Copy the endpoint info into the ring
 	 */
 	res = val_to_ring(args,
-			    (uint64_t)(unsigned long)targetbuf,
+			    (uint64_t)targetbuf,
 			    size,
 			    false,
 			    0);
@@ -1678,10 +1678,10 @@ int f_sys_accept_x(struct event_filler_arguments *args)
 	int fd;
 	char *targetbuf = args->str_storage;
 	u16 size = 0;
-	unsigned long queuepct = 0;
-	unsigned long ack_backlog = 0;
-	unsigned long max_ack_backlog = 0;
-	unsigned long srvskfd;
+	uint64_t queuepct = 0;
+	uint64_t ack_backlog = 0;
+	uint64_t max_ack_backlog = 0;
+	uint64_t srvskfd;
 	int err = 0;
 	struct socket *sock;
 
@@ -1708,7 +1708,7 @@ int f_sys_accept_x(struct event_filler_arguments *args)
 	 * Copy the endpoint info into the ring
 	 */
 	res = val_to_ring(args,
-			    (uint64_t)(unsigned long)targetbuf,
+			    (uint64_t)targetbuf,
 			    size,
 			    false,
 			    0);

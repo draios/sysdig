@@ -701,7 +701,7 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 	handle->m_driver_procinfo = NULL;
 	handle->refresh_proc_table_when_saving = true;
 	handle->m_fd_lookup_limit = 0;
-#ifdef CYGWING_AGENT
+#if CYGWING_AGENT || _WIN32
 	handle->m_whh = NULL;
 	handle->m_win_buf_handle = NULL;
 	handle->m_win_descs_handle = NULL;
@@ -1079,7 +1079,7 @@ void scap_close(scap_t* handle)
 #endif // HAS_CAPTURE
 	}
 
-#if defined(CYGWING_AGENT) || defined(_WIN32)
+#if CYGWING_AGENT || _WIN32
 	if(handle->m_whh != NULL)
 	{
 		scap_windows_hal_close(handle->m_whh);
