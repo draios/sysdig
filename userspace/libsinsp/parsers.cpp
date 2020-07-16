@@ -2244,8 +2244,11 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 	}
 	else
 	{
-		if(     domain != 10 && // IPv6
-		        domain != 17)   // AF_PACKET, used for packet capture
+		if(domain != 10 && // IPv6
+#ifdef _WIN32
+			domain != AF_INET6 && // IPv6 on Windows
+#endif
+			domain != 17)   // AF_PACKET, used for packet capture
 		{
 			//
 			// IPv6 will go here

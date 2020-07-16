@@ -110,7 +110,7 @@ public:
 	*/
 	inline bool is_main_thread() const
 	{
-		return m_tid == m_pid;
+		return (m_tid == m_pid) || m_flags & PPM_CL_IS_MAIN_THREAD;
 	}
 
 	/*!
@@ -124,7 +124,7 @@ public:
 			//
 			// Is this a child thread?
 			//
-			if(m_pid == m_tid)
+			if((m_pid == m_tid) || m_flags & PPM_CL_IS_MAIN_THREAD)
 			{
 				//
 				// No, this is either a single thread process or the root thread of a

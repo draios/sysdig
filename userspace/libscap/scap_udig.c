@@ -440,7 +440,7 @@ int32_t udig_alloc_ring_descriptors(HANDLE* ring_descs_fd, struct ppm_ring_buffe
 	uint32_t mem_size = sizeof(struct ppm_ring_buffer_info) + sizeof(struct udig_ring_buffer_status);
 
 	//
-	// First, try to open an existing ring
+	// First, try to open an existing memory area
 	//
 	HANDLE fh = OpenFileMapping(FILE_MAP_ALL_ACCESS,
 		TRUE,
@@ -449,7 +449,7 @@ int32_t udig_alloc_ring_descriptors(HANDLE* ring_descs_fd, struct ppm_ring_buffe
 	if(fh == NULL)
 	{
 		//
-		// No existing ring file found in /dev/shm, create a new one.
+		// No existing memory file found in /dev/shm, create a new one.
 		//
 		fh = CreateFileMapping(INVALID_HANDLE_VALUE,
 			NULL,
@@ -501,6 +501,14 @@ int32_t udig_alloc_ring_descriptors(HANDLE* ring_descs_fd, struct ppm_ring_buffe
 		(*ring_status)->m_stopped = 0;
 		(*ring_status)->m_last_print_time.tv_sec = 0;
 		(*ring_status)->m_last_print_time.tv_nsec = 0;
+		
+		(*ring_info)->head = 0;
+		(*ring_info)->tail = 0;
+		(*ring_info)->n_evts = 0;
+		(*ring_info)->n_drops_buffer = 0;
+		(*ring_info)->n_drops_pf = 0;
+		(*ring_info)->n_preemptions = 0;
+		(*ring_info)->n_context_switches = 0;
 	}
 
 	*ring_descs_fd = fh;

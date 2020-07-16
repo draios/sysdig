@@ -39,6 +39,9 @@ typedef wh_proc_perf_info (*fwh_wmi_get_proc_perf_info)(wh_t* handle, uint64_t p
 typedef bool (*fwh_create_fd_list)(wh_t* handle);
 typedef void (*fwh_free_fd_list)(wh_t* handle);
 typedef wh_fdlist (*fwh_get_pid_fds)(wh_t* handle, uint32_t pid);
+typedef bool (*fwh_create_tid_list)(wh_t* handle);
+typedef void (*fwh_free_tid_list)(wh_t* handle);
+typedef wh_tidlist (*fwh_get_pid_tids)(wh_t* handle, uint32_t pid);
 
 fwh_getlasterror p_wh_getlasterror;
 fwh_open p_wh_open;
@@ -51,6 +54,9 @@ fwh_wmi_get_proc_perf_info p_wh_wmi_get_proc_perf_info;
 fwh_create_fd_list p_wh_create_fd_list;
 fwh_free_fd_list p_wh_free_fd_list;
 fwh_get_pid_fds p_wh_get_pid_fds;
+fwh_create_tid_list p_wh_create_tid_list;
+fwh_free_tid_list p_wh_free_tid_list;
+fwh_get_pid_tids p_wh_get_pid_tids;
 
 int32_t scap_windows_hal_import(char* error)
 {
@@ -138,6 +144,27 @@ int32_t scap_windows_hal_import(char* error)
 		return SCAP_FAILURE;
 	}
 
+	p_wh_create_tid_list = (fwh_create_tid_list)GetProcAddress(pdll, "wh_create_tid_list");
+	if(p_wh_create_tid_list == NULL)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "win hal symbol wh_create_tid_list not found");
+		return SCAP_FAILURE;
+	}
+
+	p_wh_free_tid_list = (fwh_free_tid_list)GetProcAddress(pdll, "wh_free_tid_list");
+	if(p_wh_free_tid_list == NULL)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "win hal symbol wh_free_tid_list not found");
+		return SCAP_FAILURE;
+	}
+
+	p_wh_get_pid_tids = (fwh_get_pid_tids)GetProcAddress(pdll, "wh_get_pid_tids");
+	if(p_wh_get_pid_tids == NULL)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "win hal symbol wh_get_pid_tids not found");
+		return SCAP_FAILURE;
+	}
+
 	return SCAP_SUCCESS;
 }
 
@@ -174,6 +201,12 @@ static int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, char* error)
 {
 	struct scap_threadinfo* tinfo;
 
+	if(handle->m_proc_callback == NULL)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "process table construction in scap not supported on windows");
+		return SCAP_FAILURE;
+	}
+
 	//
 	//  Allocate the procinfo object.
 	//
@@ -189,7 +222,6 @@ static int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, char* error)
 	memset(tinfo, 0, sizeof(struct scap_threadinfo));
 
 	tinfo->pid = wpi->pid;
-	tinfo->tid = wpi->tid;
 	tinfo->ptid = wpi->ptid;
 	snprintf(tinfo->comm, SCAP_MAX_PATH_SIZE, "%s", wpi->comm);
 	snprintf(tinfo->exe, SCAP_MAX_PATH_SIZE, "%s", wpi->exe);
@@ -201,6 +233,7 @@ static int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, char* error)
 	tinfo->pfminor = wpi->pfminor;
 	tinfo->clone_ts = wpi->clone_ts;
 	tinfo->tty = wpi->tty;
+	tinfo->flags = 0;
 
 	wh_proc_perf_info pinfo = p_wh_wmi_get_proc_perf_info(handle->m_whh, tinfo->pid);
 	if(pinfo.m_result != 0)
@@ -214,8 +247,27 @@ static int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, char* error)
 		tinfo->vmswap_kb = 0;
 	}
 
+	wh_tidlist ptl = p_wh_get_pid_tids(handle->m_whh, (uint32_t)tinfo->pid);
+	if(ptl.m_result != 0)
+	{
+		if(ptl.m_count > 1)
+		{
+			for(uint32_t j = 1; j < ptl.m_count; j++)
+			{
+				tinfo->tid = ptl.m_tids[j];
+				handle->m_proc_callback(handle->m_proc_callback_context, handle, tinfo->tid, tinfo, NULL);
+			}
+		}
+
+		tinfo->tid = ptl.m_tids[0];
+	}
+	else
+	{
+		tinfo->tid = tinfo->ptid;
+	}
+
 	wh_fdlist pfl = p_wh_get_pid_fds(handle->m_whh, (uint32_t)tinfo->pid);
-	if(pfl.m_result == 0)
+	if(pfl.m_result != 0)
 	{
 		for(uint32_t j = 0; j < pfl.m_count; j++)
 		{
@@ -267,28 +319,10 @@ static int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, char* error)
 		}
 	}
 
-	//
-	// Done. Add the entry to the process table, or fire the notification callback
-	//
-	if(handle->m_proc_callback == NULL)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "process table construction in scap not supported on windows");
-		return SCAP_FAILURE;
+	tinfo->flags |= PPM_CL_IS_MAIN_THREAD;
+	handle->m_proc_callback(handle->m_proc_callback_context, handle, tinfo->tid, tinfo, NULL);
 
-		// int32_t uth_status = SCAP_SUCCESS;
-
-		// HASH_ADD_INT64(handle->m_proclist, pid, tinfo);
-		// if(uth_status != SCAP_SUCCESS)
-		// {
-		// 	snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (2)");
-		// 	return SCAP_FAILURE;
-		// }
-	}
-	else
-	{
-		handle->m_proc_callback(handle->m_proc_callback_context, handle, tinfo->tid, tinfo, NULL);
-		free(tinfo);
-	}
+	free(tinfo);
 
 	return SCAP_SUCCESS;
 }
@@ -330,7 +364,17 @@ int32_t scap_get_procs_windows(scap_t* handle, char* error)
 	//
 	// Scan the system handles and construct the FD list
 	//
-	if(p_wh_create_fd_list(handle->m_whh) == false)
+	bool cfdres = p_wh_create_fd_list(handle->m_whh);
+	if(cfdres != WH_SUCCESS)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "%s", p_wh_getlasterror(handle->m_whh));
+		return SCAP_FAILURE;
+	}
+
+	//
+	// Scan the system threads and construct the tid list
+	//
+	if(p_wh_create_tid_list(handle->m_whh) == false)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "%s", p_wh_getlasterror(handle->m_whh));
 		return SCAP_FAILURE;
@@ -345,14 +389,16 @@ int32_t scap_get_procs_windows(scap_t* handle, char* error)
 		if(addprocess_windows(wpi, handle, error) != SCAP_SUCCESS)
 		{
 			p_wh_free_fd_list(handle->m_whh);
+			p_wh_free_tid_list(handle->m_whh);
 			return SCAP_FAILURE;
 		}
 	}
 
 	//
-	// Done with the file descriptors, release the list to save memory
+	// Done with the file descriptors and tids, release the lists to save memory
 	//
 	p_wh_free_fd_list(handle->m_whh);
+	p_wh_free_tid_list(handle->m_whh);
 
 	return SCAP_SUCCESS;
 }

@@ -87,9 +87,9 @@ else()
 	target_link_libraries(csysdig
 		sinsp)
 
-	target_link_libraries(sysdig odbc32.lib odbccp32.lib)
+	target_link_libraries(sysdig odbc32.lib odbccp32.lib Netapi32.lib Iphlpapi.lib)
 
-	target_link_libraries(csysdig odbc32.lib odbccp32.lib)
+	target_link_libraries(csysdig odbc32.lib odbccp32.lib Netapi32.lib Iphlpapi.lib)
 
 	add_custom_command(TARGET sysdig POST_BUILD
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different

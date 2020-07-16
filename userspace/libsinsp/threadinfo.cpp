@@ -1305,7 +1305,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 		//
 		// If this is the main thread of a process, erase all the FDs that the process owns
 		//
-		if(tinfo->m_pid == tinfo->m_tid)
+		if((tinfo->m_pid == tinfo->m_tid) || tinfo->m_flags & PPM_CL_IS_MAIN_THREAD)
 		{
 			unordered_map<int64_t, sinsp_fdinfo_t>* fdtable = &(tinfo->get_fd_table()->m_table);
 			unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
