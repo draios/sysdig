@@ -167,7 +167,7 @@ int f_sys_empty(struct event_filler_arguments *args)
 int f_sys_single(struct event_filler_arguments *args)
 {
 	int res;
-	u64 val;
+	syscall_arg_t val;
 
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
@@ -1122,7 +1122,7 @@ cgroups_error:
 int f_sys_execve_e(struct event_filler_arguments *args)
 {
 	int res;
-	uint64_t val;
+	syscall_arg_t val;
 
 	/*
 	 * filename
@@ -1145,7 +1145,7 @@ int f_sys_socket_bind_x(struct event_filler_arguments *args)
 	int err = 0;
 	u16 size = 0;
 	struct sockaddr __user *usrsockaddr;
-	uint64_t val;
+	syscall_arg_t val;
 	struct sockaddr_storage address;
 	char *targetbuf = args->str_storage;
 
@@ -1678,10 +1678,10 @@ int f_sys_accept_x(struct event_filler_arguments *args)
 	int fd;
 	char *targetbuf = args->str_storage;
 	u16 size = 0;
-	uint64_t queuepct = 0;
-	uint64_t ack_backlog = 0;
-	uint64_t max_ack_backlog = 0;
-	uint64_t srvskfd;
+	syscall_arg_t queuepct = 0;
+	syscall_arg_t ack_backlog = 0;
+	syscall_arg_t max_ack_backlog = 0;
+	syscall_arg_t srvskfd;
 	int err = 0;
 	struct socket *sock;
 
