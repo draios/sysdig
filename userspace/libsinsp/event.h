@@ -391,6 +391,9 @@ private:
 
 	void set_iosize(uint32_t size);
 	uint32_t get_iosize();
+
+	std::string get_cwd(uint32_t id, sinsp_threadinfo* tinfo);
+
 	const char* get_param_as_str(uint32_t id, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
 	Json::Value get_param_as_json(uint32_t id, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
 
