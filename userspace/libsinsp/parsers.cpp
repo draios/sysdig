@@ -1286,6 +1286,11 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 
 	if(!(tinfo->m_flags & PPM_CL_CLONE_THREAD))
 	{
+		if(m_inspector->m_is_windows)
+		{
+			tinfo->m_flags |= PPM_CL_IS_MAIN_THREAD;
+		}
+
 		//
 		// Copy the fd list
 		// XXX this is a gross oversimplification that will need to be fixed.
@@ -1312,7 +1317,22 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		//
 		// Not a thread, copy cwd
 		//
-		tinfo->m_cwd = ptinfo->get_cwd();
+		if(m_inspector->m_is_windows)
+		{
+			if(ptinfo->m_tid == 0 && ptinfo->m_pid == 0)
+			{
+				parinfo = evt->get_param(6);
+				tinfo->m_cwd = parinfo->m_val;
+			}
+			else
+			{
+				tinfo->m_cwd = ptinfo->get_cwd();
+			}
+		}
+		else
+		{
+			tinfo->m_cwd = ptinfo->get_cwd();
+		}
 	}
 	//if((tinfo->m_flags & (PPM_CL_CLONE_FILES)))
 	//{
@@ -1741,7 +1761,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			{
 				sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
 											   evt->m_tinfo->m_cwd.c_str(), (uint32_t)evt->m_tinfo->m_cwd.size(),
-											   parinfo->m_val, (uint32_t)parinfo->m_len);
+											   parinfo->m_val, (uint32_t)parinfo->m_len, m_inspector->m_is_windows);
 				evt->m_tinfo->m_exepath = fullpath;
 			}
 		}
@@ -1801,7 +1821,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	// and shell pipe flags
 	//
 
-	auto spf = evt->m_tinfo->m_flags & (PPM_CL_PIPE_SRC | PPM_CL_PIPE_DST);
+	auto spf = evt->m_tinfo->m_flags & (PPM_CL_PIPE_SRC | PPM_CL_PIPE_DST | PPM_CL_IS_MAIN_THREAD);
 	bool inverted = ((evt->m_tinfo->m_flags & PPM_CL_CLONE_INVERTED) != 0);
 
 	evt->m_tinfo->m_flags = PPM_CL_ACTIVE;
@@ -2118,7 +2138,8 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	//mode = *(uint32_t*)parinfo->m_val;
 
 	char fullpath[SCAP_MAX_PATH_SIZE];
-	sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE, sdir.c_str(), (uint32_t)sdir.length(), name, namelen);
+	sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE, sdir.c_str(), (uint32_t)sdir.length(), 
+		name, namelen, m_inspector->m_is_windows);
 
 	if(fd >= 0)
 	{

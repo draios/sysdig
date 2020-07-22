@@ -787,7 +787,8 @@ void sinsp_threadinfo::set_cwd(const char* cwd, uint32_t cwdlen)
 			(char*)tinfo->m_cwd.c_str(),
 			(uint32_t)tinfo->m_cwd.size(),
 			cwd,
-			cwdlen);
+			cwdlen,
+			m_inspector->m_is_windows);
 
 		tinfo->m_cwd = tpath;
 

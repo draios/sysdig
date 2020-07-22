@@ -285,6 +285,13 @@ void sinsp::init()
 	}
 
 	//
+	// XXX
+	// This will need to be integrated in the machine info
+	//
+	scap_os_platform platform = scap_get_os_platform(m_h);
+	m_is_windows = (platform == SCAP_PFORM_WINDOWS_I386 || platform == SCAP_PFORM_WINDOWS_X64);
+
+	//
 	// Attach the protocol decoders
 	//
 #ifndef HAS_ANALYZER
