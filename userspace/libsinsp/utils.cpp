@@ -717,7 +717,7 @@ void rewind_to_parent_path(char* targetbase, char** tc, const char** pc, uint32_
 //                following parent directories
 //  - path: the path to copy
 //
-void copy_and_sanitize_path(char* target, char* targetbase, const char* path)
+void copy_and_sanitize_path(char* target, char* targetbase, const char* path, char separator)
 {
 	char* tc = target;
 	const char* pc = path;
@@ -730,9 +730,9 @@ void copy_and_sanitize_path(char* target, char* targetbase, const char* path)
 			*tc = 0;
 
 			//
-			// If the path ends with a '/', remove it, as the OS does.
+			// If the path ends with a separator, remove it, as the OS does.
 			//
-			if((tc > (targetbase + 1)) && (*(tc - 1) == '/'))
+			if((tc > (targetbase + 1)) && (*(tc - 1) == separator))
 			{
 				*(tc - 1) = 0;
 			}
@@ -751,10 +751,10 @@ void copy_and_sanitize_path(char* target, char* targetbase, const char* path)
 		}
 		else
 		{
-			if(*pc == '.' && *(pc + 1) == '.' && *(pc + 2) == '/')
+			if(*pc == '.' && *(pc + 1) == '.' && *(pc + 2) == separator)
 			{
 				//
-				// '../', rewind to the previous '/'
+				// '../', rewind to the previous separator
 				//
 				rewind_to_parent_path(targetbase, &tc, &pc, 3);
 
@@ -762,7 +762,7 @@ void copy_and_sanitize_path(char* target, char* targetbase, const char* path)
 			else if(*pc == '.' && *(pc + 1) == '.')
 			{
 				//
-				// '..', with no '/'.
+				// '..', with no separator.
 				// This is valid if we are at the end of the string, and in that case we rewind.
 				// Otherwise it shouldn't happen and we leave the string intact
 				//
@@ -778,7 +778,7 @@ void copy_and_sanitize_path(char* target, char* targetbase, const char* path)
 					tc += 2;
 				}
 			}
-			else if(*pc == '.' && *(pc + 1) == '/')
+			else if(*pc == '.' && *(pc + 1) == separator)
 			{
 				//
 				// './', just skip it
@@ -788,7 +788,7 @@ void copy_and_sanitize_path(char* target, char* targetbase, const char* path)
 			else if(*pc == '.')
 			{
 				//
-				// '.', with no '/'.
+				// '.', with no separator.
 				// This is valid if we are at the end of the string, and in that case we rewind.
 				// Otherwise it shouldn't happen and we leave the string intact
 				//
@@ -803,12 +803,12 @@ void copy_and_sanitize_path(char* target, char* targetbase, const char* path)
 					pc++;
 				}
 			}
-			else if(*pc == '/')
+			else if(*pc == separator)
 			{
 				//
-				// '/', if the last char is already a '/', skip it
+				// separator, if the last char is already a separator, skip it
 				//
-				if(tc > targetbase && *(tc - 1) == '/')
+				if(tc > targetbase && *(tc - 1) == separator)
 				{
 					pc++;
 				}
@@ -840,7 +840,8 @@ bool sinsp_utils::concatenate_paths(char* target,
 									const char* path1,
 									uint32_t len1,
 									const char* path2,
-									uint32_t len2)
+									uint32_t len2,
+									bool windows_paths)
 {
 	if(targetlen < (len1 + len2 + 1))
 	{
@@ -848,17 +849,35 @@ bool sinsp_utils::concatenate_paths(char* target,
 		return false;
 	}
 
-	if(len2 != 0 && path2[0] != '/')
+	if(windows_paths)
 	{
-		memcpy(target, path1, len1);
-		copy_and_sanitize_path(target + len1, target, path2);
-		return true;
+		if(len2 != 0 && path2[0] != '\\' && path2[1] != ':')
+		{
+			memcpy(target, path1, len1);
+			copy_and_sanitize_path(target + len1, target, path2, '\\');
+			return true;
+		}
+		else
+		{
+			target[0] = 0;
+			copy_and_sanitize_path(target, target, path2, '\\');
+			return false;
+		}
 	}
 	else
 	{
-		target[0] = 0;
-		copy_and_sanitize_path(target, target, path2);
-		return false;
+		if(len2 != 0 && path2[0] != '/')
+		{
+			memcpy(target, path1, len1);
+			copy_and_sanitize_path(target + len1, target, path2, '/');
+			return true;
+		}
+		else
+		{
+			target[0] = 0;
+			copy_and_sanitize_path(target, target, path2, '/');
+			return false;
+		}
 	}
 }
 

@@ -284,9 +284,9 @@ out_unlock:
 
 int f_sys_open_x(struct event_filler_arguments *args)
 {
-	unsigned long val;
-	unsigned long flags;
-	unsigned long modes;
+	syscall_arg_t val;
+	syscall_arg_t flags;
+	syscall_arg_t modes;
 	int res;
 	int64_t retval;
 

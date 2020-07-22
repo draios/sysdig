@@ -1622,7 +1622,8 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 					(char*)cwd.c_str(),
 					(uint32_t)cwd.length(),
 					payload,
-					payload_len))
+					payload_len,
+					m_inspector->m_is_windows))
 				{
 					m_resolved_paramstr_storage[0] = 0;
 				}
