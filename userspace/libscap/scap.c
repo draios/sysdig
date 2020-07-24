@@ -19,6 +19,7 @@ limitations under the License.
 
 #include <stdio.h>
 #include <stdlib.h>
+
 #ifndef _WIN32
 #include <unistd.h>
 #include <inttypes.h>
@@ -40,6 +41,9 @@ limitations under the License.
 #endif
 
 #include "scap.h"
+#ifdef UDIG_USE_SOCKET_MEMFD
+#include <pthread.h>
+#endif // UDIG_USE_SOCKET_MEMFD
 #ifdef HAS_CAPTURE
 #ifndef CYGWING_AGENT
 #include "driver_config.h"
@@ -129,6 +133,14 @@ static uint32_t get_max_consumers()
 
 	return 0;
 }
+
+#ifdef UDIG_USE_SOCKET_MEMFD
+static void udig_server_thread(scap_t *handle)
+{
+	udig_fd_server(&(handle->m_devs[0].m_bufinfo_fd), &(handle->m_devs[0].m_fd));
+	pthread_exit(NULL);
+}
+#endif
 
 scap_t* scap_open_live_int(char *error, int32_t *rc,
 			   proc_entry_callback proc_callback,
@@ -589,6 +601,14 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 		return NULL;
 	}
 
+#ifdef UDIG_USE_SOCKET_MEMFD
+	pthread_t thread;
+	int trc = pthread_create(&thread, NULL, udig_server_thread, (void *)handle);
+	if (trc) {
+		*rc = SCAP_FAILURE;
+		return NULL;	
+	}
+#endif
 	//
 	// Additional initializations
 	//
