@@ -250,6 +250,7 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
+
 	/*
 	 * name
 	 */
