@@ -63,7 +63,8 @@ int32_t scap_windows_hal_import(char* error)
 	HINSTANCE pdll = LoadLibrary("dragent_win_hal.dll");
 	if(pdll == NULL)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "dragent_win_hal.dll not found. Make sure the the windows HAL is installed.");
+		snprintf(error, SCAP_LASTERR_SIZE, "dragent_win_hal.dll not found. Make sure the the windows HAL is installed. Error: %u", 
+			GetLastError());
 		return SCAP_FAILURE;
 	}
 
