@@ -341,11 +341,15 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_PIPE_X:
 		parse_pipe_exit(evt);
 		break;
+
 	case PPME_SOCKET_SOCKET_X:
 		parse_socket_exit(evt);
 		break;
 	case PPME_SOCKET_BIND_X:
 		parse_bind_exit(evt);
+		break;
+	case PPME_SOCKET_CONNECT_E:
+		parse_connect_enter(evt);
 		break;
 	case PPME_SOCKET_CONNECT_X:
 		parse_connect_exit(evt);
@@ -2495,15 +2499,160 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 	}
 }
 
+/**
+ * Register a socket in pending state
+ */
+void sinsp_parser::parse_connect_enter(sinsp_evt *evt){
+    if (!m_track_connection_pending){
+        return;
+    }
+
+    sinsp_evt_param *parinfo;
+    uint8_t *packed_data;
+
+    if(evt->m_fdinfo == NULL)
+    {
+        return;
+    }
+
+    if(m_track_connection_status)
+    {
+        evt->m_fdinfo->set_socket_pending();
+    }
+
+    parinfo = evt->get_param(1);
+    if(parinfo->m_len == 0)
+    {
+        //
+        // No address, there's nothing we can really do with this.
+        // This happens for socket types that we don't support, so we have the assertion
+        // to make sure that this is not a type of socket that we support.
+        //
+        ASSERT(!(evt->m_fdinfo->is_unix_socket() || evt->m_fdinfo->is_ipv4_socket()));
+        return;
+    }
+
+    packed_data = (uint8_t*)parinfo->m_val;
+
+    fill_socket_info(evt, packed_data);
+
+    //
+    // If there's a listener callback, invoke it
+    //
+    if(m_fd_listener)
+    {
+        m_fd_listener->on_connect(evt, packed_data);
+    }
+}
+
+inline void sinsp_parser::fill_socket_info(sinsp_evt *evt, uint8_t *packed_data){
+    uint8_t family;
+    const char *parstr;
+    bool changed;
+
+    //
+    // Validate the family
+    //
+    family = *packed_data;
+
+    //
+    // Fill the fd with the socket info
+    //
+    if(family == PPM_AF_INET || family == PPM_AF_INET6)
+    {
+        if(family == PPM_AF_INET6)
+        {
+            //
+            // Check to see if it's an IPv4-mapped IPv6 address
+            // (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
+            //
+            uint8_t* sip = packed_data + 1;
+            uint8_t* dip = packed_data + 19;
+
+            if(!(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip)))
+            {
+                evt->m_fdinfo->m_type = SCAP_FD_IPV6_SOCK;
+                changed = m_inspector->m_parser->set_ipv6_addresses_and_ports(evt->m_fdinfo, packed_data);
+            }
+            else
+            {
+                evt->m_fdinfo->m_type = SCAP_FD_IPV4_SOCK;
+                changed = m_inspector->m_parser->set_ipv4_mapped_ipv6_addresses_and_ports(evt->m_fdinfo, packed_data);
+            }
+        }
+        else
+        {
+            evt->m_fdinfo->m_type = SCAP_FD_IPV4_SOCK;
+
+            //
+            // Update the FD info with this tuple
+            //
+            changed = m_inspector->m_parser->set_ipv4_addresses_and_ports(evt->m_fdinfo, packed_data);
+        }
+
+        if(changed && evt->m_fdinfo->is_role_server() && evt->m_fdinfo->is_udp_socket())
+        {
+            // connect done by a udp server, swap the addresses
+            swap_addresses(evt->m_fdinfo);
+        }
+
+        //
+        // Add the friendly name to the fd info
+        //
+        if(evt->m_fdinfo->is_role_server() && evt->m_fdinfo->is_udp_socket())
+        {
+            sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo,
+                                         evt->m_fdinfo->m_type, &evt->m_paramstr_storage[0],
+                                         (uint32_t)evt->m_paramstr_storage.size(),
+                                         m_inspector->m_hostname_and_port_resolution_enabled);
+
+            evt->m_fdinfo->m_name = &evt->m_paramstr_storage[0];
+        }
+        else
+        {
+            evt->m_fdinfo->m_name = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
+        }
+    }
+    else
+    {
+        if(!evt->m_fdinfo->is_unix_socket())
+        {
+            //
+            // This should happen only in case of a bug in our code, because I'm assuming that the OS
+            // causes a connect with the wrong socket type to fail.
+            // Assert in debug mode and just keep going in release mode.
+            //
+            ASSERT(false);
+        }
+
+        //
+        // Add the friendly name to the fd info
+        //
+        evt->m_fdinfo->m_name = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
+
+#ifndef HAS_ANALYZER
+        //
+        // Update the FD with this tuple
+        //
+        m_inspector->m_parser->set_unix_info(evt->m_fdinfo, packed_data);
+#endif
+    }
+
+    if(evt->m_fdinfo->is_role_none())
+    {
+        //
+        // Mark this fd as a client
+        //
+        evt->m_fdinfo->set_role_client();
+    }
+}
+
 void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 {
 	sinsp_evt_param *parinfo;
 	uint8_t *packed_data;
-	uint8_t family;
 	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
-	const char *parstr;
 	int64_t retval;
-	bool changed;
 
 	if(evt->m_fdinfo == NULL)
 	{
@@ -2550,101 +2699,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 
 	packed_data = (uint8_t*)parinfo->m_val;
 
-	//
-	// Validate the family
-	//
-	family = *packed_data;
-
-	//
-	// Fill the fd with the socket info
-	//
-	if(family == PPM_AF_INET || family == PPM_AF_INET6)
-	{
-		if(family == PPM_AF_INET6)
-		{
-			//
-			// Check to see if it's an IPv4-mapped IPv6 address
-			// (http://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses)
-			//
-			uint8_t* sip = packed_data + 1;
-			uint8_t* dip = packed_data + 19;
-
-			if(!(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip)))
-			{
-				evt->m_fdinfo->m_type = SCAP_FD_IPV6_SOCK;
-				changed = m_inspector->m_parser->set_ipv6_addresses_and_ports(evt->m_fdinfo, packed_data);
-			}
-			else
-			{
-				evt->m_fdinfo->m_type = SCAP_FD_IPV4_SOCK;
-				changed = m_inspector->m_parser->set_ipv4_mapped_ipv6_addresses_and_ports(evt->m_fdinfo, packed_data);
-			}
-		}
-		else
-		{
-			evt->m_fdinfo->m_type = SCAP_FD_IPV4_SOCK;
-
-			//
-			// Update the FD info with this tuple
-			//
-			changed = m_inspector->m_parser->set_ipv4_addresses_and_ports(evt->m_fdinfo, packed_data);
-		}
-
-		if(changed && evt->m_fdinfo->is_role_server() && evt->m_fdinfo->is_udp_socket())
-		{
-			// connect done by a udp server, swap the addresses
-			swap_addresses(evt->m_fdinfo);
-		}
-
-		//
-		// Add the friendly name to the fd info
-		//
-		if(evt->m_fdinfo->is_role_server() && evt->m_fdinfo->is_udp_socket())
-		{
-			sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo,
-						     evt->m_fdinfo->m_type, &evt->m_paramstr_storage[0],
-						     (uint32_t)evt->m_paramstr_storage.size(),
-						     m_inspector->m_hostname_and_port_resolution_enabled);
-
-			evt->m_fdinfo->m_name = &evt->m_paramstr_storage[0];
-		}
-		else
-		{
-			evt->m_fdinfo->m_name = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
-		}
-	}
-	else
-	{
-		if(!evt->m_fdinfo->is_unix_socket())
-		{
-			//
-			// This should happen only in case of a bug in our code, because I'm assuming that the OS
-			// causes a connect with the wrong socket type to fail.
-			// Assert in debug mode and just keep going in release mode.
-			//
-			ASSERT(false);
-		}
-
-		//
-		// Add the friendly name to the fd info
-		//
-		evt->m_fdinfo->m_name = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
-
-#ifndef HAS_ANALYZER
-		//
-		// Update the FD with this tuple
-		//
-		m_inspector->m_parser->set_unix_info(evt->m_fdinfo, packed_data);
-#endif
-	}
-
-	if(evt->m_fdinfo->is_role_none())
-	{
-		//
-		// Mark this fd as a client
-		//
-		evt->m_fdinfo->set_role_client();
-	}
+    fill_socket_info(evt, packed_data);
 
 	//
 	// Call the protocol decoder callbacks associated to this event
