@@ -57,7 +57,7 @@ static int udig_receive_fd(int conn, int* ring_fd, int* ring_desc_fd)
 	struct cmsghdr *cmsgh0;
 	struct cmsghdr *cmsgh1;
 
-	/* we need to send some placeholder data for the message to be sent */
+	// we need to send some placeholder data for the message to be sent
 	char placeholder;
 	iov.iov_base = &placeholder;
 	iov.iov_len = sizeof(char);
@@ -308,27 +308,15 @@ int32_t udig_fd_server(int* ring_descs_fd, int* ring_fd)
 		return SCAP_FAILURE;
 	}
 
-	int connect_attempts_left = UDIG_RING_CTRL_CONNECT_MAX_ATTEMPTS;
 	while(true)
 	{
 		conn = accept(sock, (struct sockaddr *) &address, &addrlen);
 		if(conn == -1)
 		{
-			fprintf(stderr, "udig_fd_server: accept error: %s\n", strerror(errno));
-			close(conn);
-			--connect_attempts_left;
-			if(connect_attempts_left <=  0) {
-				fprintf(
-					stderr,
-					"udig_fd_server: no more connect attempts left, shitting down the sockets server to connect new userspace producers, existing producers will still be able to work.\n"
-				);
-				return SCAP_FAILURE;
-			}
 			continue;
 		}
 		udig_send_fds(conn, *ring_fd, *ring_descs_fd);
 		close(conn);
-		connect_attempts_left = UDIG_RING_CTRL_CONNECT_MAX_ATTEMPTS;
 	}
 }
 
