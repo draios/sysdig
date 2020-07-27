@@ -18,9 +18,6 @@ limitations under the License.
 */
 
 #pragma once
-#ifdef __linux__
-#include <linux/version.h>
-#endif
 #ifdef __cplusplus
 extern "C" {
 #endif
