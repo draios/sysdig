@@ -335,6 +335,9 @@ int32_t udig_fd_server(int* ring_descs_fd, int* ring_fd)
 int udig_memfd_shm_open(const char *__name, int __oflag, mode_t __mode)
 {
 	int fd = -1;
+	// creation is only available to the consumer implementation
+	// event producers can't create the ring buffers.
+#ifndef UDIG
 	if(__oflag & O_CREAT)
 	{
 		fd = syscall(__NR_memfd_create, __name, (unsigned int)(PPM_MFD_CLOEXEC));
@@ -344,7 +347,7 @@ int udig_memfd_shm_open(const char *__name, int __oflag, mode_t __mode)
 		}
 		return fd;
 	} 
-
+#endif
 	int ret = -1;
 	// If we are a producer, we want to go get the file descriptor to use it
 	if(__name ==  (const char*)UDIG_RING_SM_FNAME)
@@ -373,6 +376,7 @@ int udig_memfd_shm_unlink(const char *name)
 #define ud_shm_unlink udig_memfd_shm_unlink
 #else
 int ud_shm_open(const char *name, int flag, mode_t mode);
+int ud_shm_unlink(const char *name);
 #endif
 
 
@@ -386,57 +390,57 @@ int32_t udig_alloc_ring(int* ring_fd,
 	uint32_t *ringsize,
 	char *error)
 {
-#ifdef UDIG
-	// This is a producer, let's tell it to open an existing
-	// ring using ud_shm_open
+	//
+	// First, try to open an existing ring
+	//
 	*ring_fd = ud_shm_open(UDIG_RING_SM_FNAME, O_RDWR, 0);
-	if(*ring_fd < 0)
-	{
-			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring shm_open error: %s\n", strerror(errno));
-			udig_memfd_shm_unlink(UDIG_RING_SM_FNAME);
-			return SCAP_FAILURE;
-	}
-
-	//
-	// Existing ring found, find out the size
-	//
-	struct stat rstat;
-	if(fstat(*ring_fd, &rstat) < 0)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring fstat error: %s\n", strerror(errno));
-		return SCAP_FAILURE;
-	}
-
-	*ringsize = (uint32_t)rstat.st_size;
-
-# else
-	// This is a consumers, consumers hold the creation of rings
-	// let's create one with ud_shm_open
-	*ringsize = UDIG_RING_SIZE;
-	*ring_fd = ud_shm_open(UDIG_RING_SM_FNAME, O_CREAT | O_RDWR, 
-		S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 	if(*ring_fd >= 0)
 	{
 		//
-		// For some reason, shm_open doesn't always set the write flag for
-		// 'group' and 'other'. Fix it here.
+		// Existing ring found, find out the size
 		//
-		fchmod(*ring_fd, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-
-		if(ftruncate(*ring_fd, *ringsize) < 0)
+		struct stat rstat;
+		if(fstat(*ring_fd, &rstat) < 0)
 		{
-			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring ftruncate error: %s\n", strerror(errno));
-			close(*ring_fd);
+			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring fstat error: %s\n", strerror(errno));
 			return SCAP_FAILURE;
 		}
-	} else
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring shm_open error: %s\n", strerror(errno));
-		udig_memfd_shm_unlink(UDIG_RING_SM_FNAME);
-		return SCAP_FAILURE;
+
+		*ringsize = (uint32_t)rstat.st_size;
 	}
-#endif
-	
+	else
+	{
+		//
+		// No ring found, allocate a new one.
+		// Note that, according to the man page, the content of the buffer will
+		// be initialized to 0.
+		//
+		*ringsize = UDIG_RING_SIZE;
+
+		*ring_fd = ud_shm_open(UDIG_RING_SM_FNAME, O_CREAT | O_RDWR, 
+			S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+		if(*ring_fd >= 0)
+		{
+			//
+			// For some reason, shm_open doesn't always set the write flag for
+			// 'group' and 'other'. Fix it here.
+			//
+			fchmod(*ring_fd, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+
+			if(ftruncate(*ring_fd, *ringsize) < 0)
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring ftruncate error: %s\n", strerror(errno));
+				close(*ring_fd);
+				return SCAP_FAILURE;
+			}
+		}
+		else
+		{
+			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring shm_open error: %s\n", strerror(errno));
+			return SCAP_FAILURE;
+		}
+	}
+
 	//
 	// Map the ring. This is a multi-step process because we want to map two
 	// consecutive copies of the same memory to reuse the driver fillers, which
@@ -492,46 +496,43 @@ int32_t udig_alloc_ring_descriptors(int* ring_descs_fd,
 {
 	uint32_t mem_size = sizeof(struct ppm_ring_buffer_info) + sizeof(struct udig_ring_buffer_status);
 
-#ifdef UDIG
-	// This is a producer, let's tell it to open an existing
-	// ring using ud_shm_open
+	//
+	// First, try to open an existing ring
+	//
 	*ring_descs_fd = ud_shm_open(UDIG_RING_DESCS_SM_FNAME, O_RDWR, 0);
 	if(*ring_descs_fd < 0)
 	{
-			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring_descriptors shm_open error: %s\n", strerror(errno));
-			udig_memfd_shm_unlink(UDIG_RING_DESCS_SM_FNAME);
-			return SCAP_FAILURE;
-	}
-#else
-	// This is a consumers, consumers hold the creation of rings
-	// let's create one with ud_shm_open
-	*ring_descs_fd = ud_shm_open(UDIG_RING_DESCS_SM_FNAME, O_CREAT | O_RDWR, 
-			S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-	if(*ring_descs_fd >= 0)
-	{
 		//
-		// For some reason, shm_open doesn't always set the write flag for
-		// 'group' and 'other'. Fix it here.
+		// No existing ring file found in /dev/shm, create a new one.
 		//
-		fchmod(*ring_descs_fd, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-
-		//
-		// Ring created, set its size
-		//
-		if(ftruncate(*ring_descs_fd, mem_size) < 0)
+		*ring_descs_fd = ud_shm_open(UDIG_RING_DESCS_SM_FNAME, O_CREAT | O_RDWR | O_EXCL, 
+				S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+		if(*ring_descs_fd >= 0)
 		{
-			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring_descriptors ftruncate error: %s\n", strerror(errno));
-			close(*ring_descs_fd);
-			udig_memfd_shm_unlink(UDIG_RING_DESCS_SM_FNAME);
+			//
+			// For some reason, shm_open doesn't always set the write flag for
+			// 'group' and 'other'. Fix it here.
+			//
+			fchmod(*ring_descs_fd, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+
+			//
+			// Ring created, set its size
+			//
+			if(ftruncate(*ring_descs_fd, mem_size) < 0)
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring_descriptors ftruncate error: %s\n", strerror(errno));
+				close(*ring_descs_fd);
+				ud_shm_unlink(UDIG_RING_DESCS_SM_FNAME);
+				return SCAP_FAILURE;
+			}
+		}
+		else
+		{
+			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring_descriptors shm_open error: %s\n", strerror(errno));
+			ud_shm_unlink(UDIG_RING_DESCS_SM_FNAME);
 			return SCAP_FAILURE;
 		}
-	} else 
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring_descriptors shm_open error: %s\n", strerror(errno));
-		udig_memfd_shm_unlink(UDIG_RING_DESCS_SM_FNAME);
-		return SCAP_FAILURE;
 	}
-#endif // UDIG
 
 	//
 	// Map the memory
