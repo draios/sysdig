@@ -137,8 +137,7 @@ static uint32_t get_max_consumers()
 #ifdef UDIG_USE_SOCKET_MEMFD
 static void udig_server_thread(scap_t *handle)
 {
-	udig_fd_server(&(handle->m_devs[0].m_bufinfo_fd), &(handle->m_devs[0].m_fd));
-	pthread_exit(NULL);
+	pthread_exit(udig_fd_server(&(handle->m_devs[0].m_bufinfo_fd), &(handle->m_devs[0].m_fd)));
 }
 #endif
 

@@ -37,6 +37,7 @@ int ud_shm_open(const char *name, int flag, mode_t mode);
 #endif
 
 #ifdef UDIG_USE_SOCKET_MEMFD
+#ifdef UDIG
 // udig_receive_fd is the action used to ask
 // the udig_fd_server for file descriptors relative to ring buffers
 static int udig_receive_fd(int conn, int* ring_fd, int* ring_desc_fd)
@@ -113,7 +114,7 @@ static int udig_receive_fd(int conn, int* ring_fd, int* ring_desc_fd)
 		return SCAP_FAILURE;
 	}
 
-	if(ring_fd != NULL
+	if(ring_fd != NULL)
 	{
 		*ring_fd = *((int *) CMSG_DATA(cmsgh0));
 	}
@@ -150,6 +151,7 @@ static int udig_server_connect()
 
 	return conn;
 }
+
 
 // udig_receive_ring_fd populates the passed
 // ring_fd witht the ring_fd descriptor.
@@ -188,7 +190,7 @@ static int udig_receive_ring_desc_fd(int* ring_desc_fd)
 	}
 	return SCAP_SUCCESS;
 }
-
+#else
 // udig_send_fds is in charge of sending the file descriptors
 // to an accepted connection that happens when a producer asks for them.
 static int udig_send_fds(int conn, int ring_fd, int ring_desc_fd)
@@ -269,7 +271,7 @@ static int udig_send_fds(int conn, int ring_fd, int ring_desc_fd)
 // The server only passes file descriptors around,
 // once the file descriptors are passed they are
 // available to the producers until the consumer is stopped.
-void udig_fd_server(int* ring_descs_fd, int* ring_fd)
+int32_t udig_fd_server(int* ring_descs_fd, int* ring_fd)
 {
 	int sock, conn, ret;
 	struct sockaddr_un address;
@@ -278,8 +280,8 @@ void udig_fd_server(int* ring_descs_fd, int* ring_fd)
 	sock = socket(PF_UNIX, SOCK_STREAM, 0);
 	if(sock == -1)
 	{
-		fprintf(stderr, "udig_fd_server: error registering unix socket: %s", strerror(errno));
-		return;
+		fprintf(stderr, "udig_fd_server: error registering unix socket: %s\n", strerror(errno));
+		return SCAP_FAILURE;
 	}
 
 	memset(&address, 0, sizeof(address));
@@ -289,39 +291,49 @@ void udig_fd_server(int* ring_descs_fd, int* ring_fd)
 	ret = unlink(UDIG_RING_CTRL_SOCKET_PATH);
 	if(ret != 0 && ret != -ENOENT && ret != -EPERM)
 	{
-		fprintf(stderr, "udig_fd_server: error unlinking unix socket: %s", strerror(errno));
-		return;
+		fprintf(stderr, "udig_fd_server: error unlinking unix socket: %s\n", strerror(errno));
+		return SCAP_FAILURE;
 	}
 
 	ret = bind(sock, (struct sockaddr *) &address, sizeof(address));
 	if(ret != 0)
 	{
-		fprintf(stderr, "udig_fd_server: error binding unix socket: %s", strerror(errno));
-		return;
+		fprintf(stderr, "udig_fd_server: error binding unix socket: %s\n", strerror(errno));
+		return SCAP_FAILURE;
 	}
 
 	ret = listen(sock, UDIG_RING_CTRL_SOCKET_CONNECT_BACKLOG);
 	if(ret != 0)
 	{
-		fprintf(stderr, "udig_fd_server: error on listen: %s", strerror(errno));
-		return;
+		fprintf(stderr, "udig_fd_server: error on listen: %s\n", strerror(errno));
+		return SCAP_FAILURE;
 	}
 
+	int connect_attempts_left = UDIG_RING_CTRL_CONNECT_MAX_ATTEMPTS;
 	while(true)
 	{
 		conn = accept(sock, (struct sockaddr *) &address, &addrlen);
 		if(conn == -1)
 		{
-			// XXX: what do we want to do here? Shut down the socket or try to restart.
-			// Current producers will continue to be work, however we can't attach new ones.
-			fprintf(stderr, "udig_fd_server: accept error, the udig control unix socket is shutting down now: %s", strerror(errno));
-			break;
+			fprintf(stderr, "udig_fd_server: accept error: %s\n", strerror(errno));
+			close(conn);
+			--connect_attempts_left;
+			if(connect_attempts_left <=  0) {
+				fprintf(
+					stderr,
+					"udig_fd_server: no more connect attempts left, shitting down the sockets server to connect new userspace producers, existing producers will still be able to work.\n"
+				);
+				return SCAP_FAILURE;
+			}
+			continue;
 		}
 		udig_send_fds(conn, *ring_fd, *ring_descs_fd);
 		close(conn);
+		connect_attempts_left = UDIG_RING_CTRL_CONNECT_MAX_ATTEMPTS;
 	}
 }
-#endif
+#endif // UDIG
+#endif // UDIG_USE_SOCKET_MEMFD
 
 ///////////////////////////////////////////////////////////////////////////////
 // The following 2 function map the ring buffer and the ring buffer 

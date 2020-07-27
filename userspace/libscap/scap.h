@@ -533,6 +533,7 @@ struct ppm_syscall_desc {
 #if defined(LINUX_VERSION_CODE) && LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0)
 #define UDIG_USE_SOCKET_MEMFD
 #define UDIG_RING_CTRL_SOCKET_PATH "/tmp/udig.sock" // XXX: do we want a different path? or make it configurable?
+#define UDIG_RING_CTRL_CONNECT_MAX_ATTEMPTS 500
 #define UDIG_RING_CTRL_SOCKET_CONNECT_BACKLOG  128
 #endif
 #ifndef __APPLE__
@@ -549,8 +550,9 @@ struct udig_ring_buffer_status {
 typedef struct ppm_ring_buffer_info ppm_ring_buffer_info;
 
 
-
-void udig_fd_server(int* ring_descs_fd, int* ring_fd);
+#ifndef UDIG
+int32_t udig_fd_server(int* ring_descs_fd, int* ring_fd);
+#endif // UDIG
 int32_t udig_alloc_ring(int* ring_fd, uint8_t** ring, uint32_t *ringsize, char *error);
 int32_t udig_alloc_ring_descriptors(int* ring_descs_fd, 
 	struct ppm_ring_buffer_info** ring_info, 
