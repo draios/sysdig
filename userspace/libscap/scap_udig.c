@@ -39,14 +39,17 @@ int ud_shm_open(const char *name, int flag, mode_t mode);
 #ifdef UDIG_USE_SOCKET_MEMFD
 // udig_receive_fd is the action used to ask
 // the udig_fd_server for file descriptors relative to ring buffers
-static int udig_receive_fd(int conn, int* ring_fd, int* ring_desc_fd) {
+static int udig_receive_fd(int conn, int* ring_fd, int* ring_desc_fd)
+{
 	struct mmsghdr msgh[2];
 	struct iovec iov;
-	union {
+	union
+	{
 		struct cmsghdr cmsgh;
 		char   control[CMSG_SPACE(sizeof(int))];
 	} control_ring_fd;
-	union {
+	union
+	{
 		struct cmsghdr cmsgh;
 		char   control[CMSG_SPACE(sizeof(int))];
 	} control_ring_desc_fd;
@@ -58,6 +61,7 @@ static int udig_receive_fd(int conn, int* ring_fd, int* ring_desc_fd) {
 	iov.iov_base = &placeholder;
 	iov.iov_len = sizeof(char);
 
+	// message header for ring_fd
 	msgh[0].msg_hdr.msg_name = NULL;
 	msgh[0].msg_hdr.msg_namelen = 0;
 	msgh[0].msg_hdr.msg_iov = &iov;
@@ -65,6 +69,7 @@ static int udig_receive_fd(int conn, int* ring_fd, int* ring_desc_fd) {
 	msgh[0].msg_hdr.msg_control = control_ring_fd.control;
 	msgh[0].msg_hdr.msg_controllen = sizeof(control_ring_fd.control);
 
+	// message header for ring_desc_fd
 	msgh[1].msg_hdr.msg_name = NULL;
 	msgh[1].msg_hdr.msg_namelen = 0;
 	msgh[1].msg_hdr.msg_iov = &iov;
@@ -73,38 +78,47 @@ static int udig_receive_fd(int conn, int* ring_fd, int* ring_desc_fd) {
 	msgh[1].msg_hdr.msg_controllen = sizeof(control_ring_desc_fd.control);
 
 	int retval = recvmmsg(conn, msgh, 2, 0, NULL);
-	if (retval == -1) {
+	if(retval == -1)
+	{
 		return SCAP_FAILURE;
 	}
 
 	cmsgh0 = CMSG_FIRSTHDR(&msgh[0].msg_hdr);
-	if (!cmsgh0) {
+	if(!cmsgh0)
+	{
 		return SCAP_FAILURE;
 	}
 
-	if (cmsgh0->cmsg_level != SOL_SOCKET) {
+	if(cmsgh0->cmsg_level != SOL_SOCKET)
+	{
 		return SCAP_FAILURE;
 	}
-	if (cmsgh0->cmsg_type != SCM_RIGHTS) {
+	if(cmsgh0->cmsg_type != SCM_RIGHTS)
+	{
 		return SCAP_FAILURE;
 	}
 
 	cmsgh1 = CMSG_FIRSTHDR(&msgh[1].msg_hdr);
-	if (!cmsgh1) {
+	if(!cmsgh1)
+	{
 		return SCAP_FAILURE;
 	}
 
-	if (cmsgh1->cmsg_level != SOL_SOCKET) {
+	if(cmsgh1->cmsg_level != SOL_SOCKET)
+	{
 		return SCAP_FAILURE;
 	}
-	if (cmsgh1->cmsg_type != SCM_RIGHTS) {
+	if(cmsgh1->cmsg_type != SCM_RIGHTS)
+	{
 		return SCAP_FAILURE;
 	}
 
-	if (ring_fd != NULL) {
+	if(ring_fd != NULL
+	{
 		*ring_fd = *((int *) CMSG_DATA(cmsgh0));
 	}
-	if (ring_desc_fd != NULL) {
+	if(ring_desc_fd != NULL)
+	{
 		*ring_desc_fd = *((int *) CMSG_DATA(cmsgh1));
 	}
 
@@ -113,12 +127,14 @@ static int udig_receive_fd(int conn, int* ring_fd, int* ring_desc_fd) {
 
 // udig_server_connect is used by producers
 // to connect to the udig socket exposed by consumers.
-static int udig_server_connect() {
+static int udig_server_connect()
+{
 	int conn, ret;
 	struct sockaddr_un address;
 
 	conn = socket(PF_UNIX, SOCK_STREAM, 0);
-	if (conn == -1) {
+	if(conn == -1)
+	{
 		return SCAP_FAILURE;
 	}
 
@@ -127,7 +143,8 @@ static int udig_server_connect() {
 	snprintf(address.sun_path, UNIX_PATH_MAX, UDIG_RING_CTRL_SOCKET_PATH);
 
 	ret = connect(conn, (struct sockaddr *)&address, sizeof(struct sockaddr_un));
-	if (ret != 0) {
+	if(ret != 0)
+	{
 		return SCAP_FAILURE;
 	}
 
@@ -138,13 +155,16 @@ static int udig_server_connect() {
 // ring_fd witht the ring_fd descriptor.
 // The ring_fd descriptor is taken from the consumer by
 // conneting to it via the unix socket.
-static int udig_receive_ring_fd(int* ring_fd) {
+static int udig_receive_ring_fd(int* ring_fd)
+{
 	int conn = udig_server_connect();
-	if (conn == SCAP_FAILURE) {
+	if(conn == SCAP_FAILURE)
+	{
 		return SCAP_FAILURE;
 	}
 	int res = udig_receive_fd(conn, ring_fd, NULL);
-	if (res == SCAP_FAILURE) {
+	if(res == SCAP_FAILURE)
+	{
 		return SCAP_FAILURE;
 	}
 	return SCAP_SUCCESS;
@@ -154,13 +174,16 @@ static int udig_receive_ring_fd(int* ring_fd) {
 // ring_fd witht the ring_desc_fd descriptor.
 // The ring_fd descriptor is taken from the consumer by
 // conneting to it via the unix socket.
-static int udig_receive_ring_desc_fd(int* ring_desc_fd) {
+static int udig_receive_ring_desc_fd(int* ring_desc_fd)
+{
 	int conn = udig_server_connect();
-	if (conn == SCAP_FAILURE) {
+	if(conn == SCAP_FAILURE)
+	{
 		return SCAP_FAILURE;
 	}
 	int res = udig_receive_fd(conn, NULL, ring_desc_fd);
-	if (res == SCAP_FAILURE) {
+	if(res == SCAP_FAILURE)
+	{
 		return SCAP_FAILURE;
 	}
 	return SCAP_SUCCESS;
@@ -175,30 +198,34 @@ static int udig_send_fds(int conn, int ring_fd, int ring_desc_fd)
 	// msgh[1] is for ring_desc_fd
 	struct mmsghdr msgh[2];
 	struct iovec iov;
-	union {
+	union
+	{
 		struct cmsghdr cmsgh;
 		char control[CMSG_SPACE(sizeof(int))];
 	} control_ring_fd;
-
-	union {
+	union
+	{
 		struct cmsghdr cmsgh;
 		char control[CMSG_SPACE(sizeof(int))];
 	} control_ring_desc_fd;
 
-	if (ring_fd == -1) {
+	if(ring_fd == -1)
+	{
 		fprintf(stderr, "udig_send_fds: ring_fd is not valid\n");
 		return SCAP_FAILURE;
 	}
-	if (ring_desc_fd == -1) {
+	if(ring_desc_fd == -1)
+	{
 		fprintf(stderr, "udig_send_fds: ring_desc_fd is not valid\n");
 		return SCAP_FAILURE;
 	}
 
-	/* we need to send some placeholder data for the message to be sent */
+	// we need to send some placeholder data for the message to be sent
 	char placeholder = 'A';
 	iov.iov_base = &placeholder;
 	iov.iov_len = sizeof(char);
 
+	// message for ring_fd
 	msgh[0].msg_hdr.msg_name = NULL;
 	msgh[0].msg_hdr.msg_namelen = 0;
 	msgh[0].msg_hdr.msg_iov = &iov;
@@ -206,6 +233,7 @@ static int udig_send_fds(int conn, int ring_fd, int ring_desc_fd)
 	msgh[0].msg_hdr.msg_control = control_ring_fd.control;
 	msgh[0].msg_hdr.msg_controllen = sizeof(control_ring_fd.control);
 
+	// message for ring_desc_fd
 	msgh[1].msg_hdr.msg_name = NULL;
 	msgh[1].msg_hdr.msg_namelen = 0;
 	msgh[1].msg_hdr.msg_iov = &iov;
@@ -213,11 +241,12 @@ static int udig_send_fds(int conn, int ring_fd, int ring_desc_fd)
 	msgh[1].msg_hdr.msg_control = control_ring_desc_fd.control;
 	msgh[1].msg_hdr.msg_controllen = sizeof(control_ring_desc_fd.control);
 
-	/* append the ring_fd file descriptor */
+	// append the ring_fd file descriptor
 	control_ring_fd.cmsgh.cmsg_len = CMSG_LEN(sizeof(int));
 	control_ring_fd.cmsgh.cmsg_level = SOL_SOCKET;
 	control_ring_fd.cmsgh.cmsg_type = SCM_RIGHTS;
 
+	// append the ring_desc_fd file descriptor
 	control_ring_desc_fd.cmsgh.cmsg_len = CMSG_LEN(sizeof(int));
 	control_ring_desc_fd.cmsgh.cmsg_level = SOL_SOCKET;
 	control_ring_desc_fd.cmsgh.cmsg_type = SCM_RIGHTS;
@@ -226,7 +255,8 @@ static int udig_send_fds(int conn, int ring_fd, int ring_desc_fd)
 	*((int *) CMSG_DATA(CMSG_FIRSTHDR(&msgh[1].msg_hdr))) = ring_desc_fd;
 
 	int size = sendmmsg(conn, msgh, 2, 0);
-	if (size < 0) {
+	if(size < 0)
+	{
 		fprintf(stderr, "udig_send_fds: error: %s\n", strerror(errno));
 		return SCAP_FAILURE;
 	}
@@ -246,7 +276,8 @@ void udig_fd_server(int* ring_descs_fd, int* ring_fd)
 	socklen_t addrlen;
 
 	sock = socket(PF_UNIX, SOCK_STREAM, 0);
-	if (sock == -1) {
+	if(sock == -1)
+	{
 		fprintf(stderr, "udig_fd_server: error registering unix socket: %s", strerror(errno));
 		return;
 	}
@@ -256,26 +287,31 @@ void udig_fd_server(int* ring_descs_fd, int* ring_fd)
 	snprintf(address.sun_path, UNIX_PATH_MAX, UDIG_RING_CTRL_SOCKET_PATH);
 
 	ret = unlink(UDIG_RING_CTRL_SOCKET_PATH);
-	if (ret != 0 && ret != -ENOENT && ret != -EPERM) {
+	if(ret != 0 && ret != -ENOENT && ret != -EPERM)
+	{
 		fprintf(stderr, "udig_fd_server: error unlinking unix socket: %s", strerror(errno));
 		return;
 	}
 
 	ret = bind(sock, (struct sockaddr *) &address, sizeof(address));
-	if (ret != 0) {
+	if(ret != 0)
+	{
 		fprintf(stderr, "udig_fd_server: error binding unix socket: %s", strerror(errno));
 		return;
 	}
 
 	ret = listen(sock, UDIG_RING_CTRL_SOCKET_CONNECT_BACKLOG);
-	if (ret != 0) {
+	if(ret != 0)
+	{
 		fprintf(stderr, "udig_fd_server: error on listen: %s", strerror(errno));
 		return;
 	}
 
-	while (true) {
+	while(true)
+	{
 		conn = accept(sock, (struct sockaddr *) &address, &addrlen);
-		if (conn == -1) {
+		if(conn == -1)
+		{
 			// XXX: what do we want to do here? Shut down the socket or try to restart.
 			// Current producers will continue to be work, however we can't attach new ones.
 			fprintf(stderr, "udig_fd_server: accept error, the udig control unix socket is shutting down now: %s", strerror(errno));
@@ -314,7 +350,8 @@ int32_t udig_alloc_ring(int* ring_fd,
 #else
 		// If we are a producer, we want to go get the file descriptor to use it
 		int resc = udig_receive_ring_fd(ring_fd);
-		if (resc == SCAP_FAILURE) {
+		if(resc == SCAP_FAILURE)
+		{
 			snprintf(error, SCAP_LASTERR_SIZE, "error receiving ring_fd: %s\n", strerror(errno));
 			return SCAP_FAILURE;
 		}
@@ -447,7 +484,8 @@ int32_t udig_alloc_ring_descriptors(int* ring_descs_fd,
 #else
 			// If we are a producer, we want to go get the file descriptor
 			int resc = udig_receive_ring_desc_fd(ring_descs_fd);
-			if (resc == SCAP_FAILURE) {
+			if(resc == SCAP_FAILURE)
+			{
 				snprintf(error, SCAP_LASTERR_SIZE, "error receiving ring_desc fd: %s\n", strerror(errno));
 				return SCAP_FAILURE;
 			}

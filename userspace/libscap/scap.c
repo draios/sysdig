@@ -604,7 +604,8 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 #ifdef UDIG_USE_SOCKET_MEMFD
 	pthread_t thread;
 	int trc = pthread_create(&thread, NULL, udig_server_thread, (void *)handle);
-	if (trc) {
+	if (trc)
+	{
 		*rc = SCAP_FAILURE;
 		return NULL;	
 	}
