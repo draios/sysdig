@@ -23,7 +23,7 @@ limitations under the License.
 
 #include "../common/sysdig_types.h"
 #define DRAGENT_WIN_HAL_C_ONLY
-#include "windows/dragent_win_hal_public.h"
+#include "win_hal/win_hal_public.h"
 #include "scap.h"
 #include "scap-int.h"
 #include "windows_hal.h"
