@@ -177,7 +177,6 @@ private:
 	string m_tracer_error_string;
 
 	bool m_track_connection_status = false;
-	bool m_track_connection_pending = false;
 
 	// FD listener callback
 	sinsp_fd_listener* m_fd_listener;

@@ -2503,7 +2503,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
  * Register a socket in pending state
  */
 void sinsp_parser::parse_connect_enter(sinsp_evt *evt){
-    if (!m_track_connection_pending){
+    if(!m_track_connection_status){
         return;
     }
 
@@ -2515,11 +2515,7 @@ void sinsp_parser::parse_connect_enter(sinsp_evt *evt){
         return;
     }
 
-    if(m_track_connection_status)
-    {
-        evt->m_fdinfo->set_socket_pending();
-    }
-
+    evt->m_fdinfo->set_socket_pending();
     parinfo = evt->get_param(1);
     if(parinfo->m_len == 0)
     {
