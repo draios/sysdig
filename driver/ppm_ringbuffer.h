@@ -14,8 +14,8 @@ or GPL2.txt for full copies of the license.
 #include <linux/types.h>
 #endif
 
-static const __u32 RING_BUF_SIZE = 8 * 1024 * 1024;
 static const __u32 MIN_USERSPACE_READ_SIZE = 128 * 1024;
+static __u32 ring_buf_size = 8 * 1024 * 1024;
 
 /*
  * This gets mapped to user level, so we want to keep it as clean as possible
