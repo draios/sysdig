@@ -716,6 +716,8 @@ long probe_kernel_read(void *dst, const void *src, size_t size)
 
 	return ret ? -EFAULT : 0;
 }
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
+#define probe_kernel_read copy_from_kernel_nofault
 #endif
 
 static int ppm_get_tty(void)
