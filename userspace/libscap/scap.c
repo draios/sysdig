@@ -323,6 +323,15 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		//
 		// Allocate the device descriptors.
 		//
+
+		FILE * fp = fopen("/sys/module/" SYSFS_NAME "/parameters/ring_buf_size", "r");
+		if (fp == NULL){
+			snprintf(error, SCAP_LASTERR_SIZE, "Could not read module parameter ring_buf_size at '/sys/module/" SYSFS_NAME "/parameters/ring_buf_size'");
+			*rc = SCAP_FAILURE;
+			return NULL;
+		}
+		fscanf(fp, "%d", &ring_buf_size);
+
 		len = ring_buf_size * 2;
 
 		for(j = 0, all_scanned_devs = 0; j < handle->m_ndevs && all_scanned_devs < handle->m_ncpus; ++all_scanned_devs)

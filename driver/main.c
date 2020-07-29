@@ -2628,10 +2628,38 @@ void sysdig_exit(void)
 #endif
 }
 
+static int set_ring_buf_size(const char *val, const struct kernel_param *kp)
+{
+    int n = 0, ret;
+
+    ret = kstrtoint(val, 10, &n);
+    if (ret != 0)
+        return -EINVAL;
+    else if (n < 2 * PAGE_SIZE) {
+        pr_err("Ring buffer size too small (%ld bytes, must be at least %ld bytes)\n",
+                       (long)n,
+                       (long)PAGE_SIZE * 2);
+        return -EINVAL;
+    }
+    else if (n / PAGE_SIZE * PAGE_SIZE != n) {
+        pr_err("Ring buffer size is not a multiple of the page size\n");
+        return -EINVAL;
+    }
+
+    return param_set_int(val, kp);
+}
+
+static const struct kernel_param_ops ring_buf_size_param_ops = {
+	.set	= set_ring_buf_size,
+	.get	= param_get_int,
+};
+
 module_init(sysdig_init);
 module_exit(sysdig_exit);
 module_param(max_consumers, uint, 0444);
 MODULE_PARM_DESC(max_consumers, "Maximum number of consumers that can simultaneously open the devices");
+module_param_cb(ring_buf_size, &ring_buf_size_param_ops, &ring_buf_size, 0660);
+MODULE_PARM_DESC(ring_buf_size, "Size of the ring buffer containing syscall");
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 module_param(verbose, bool, 0444);
 #endif
