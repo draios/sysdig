@@ -1171,9 +1171,9 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		 * Enforce ring buffer size
 		 */
 		if (ring_buf_size < 2 * PAGE_SIZE) {
-			pr_err("Ring buffer size too small (%ld bytes, must be at least %ld bytes\n",
+			pr_err("Ring buffer size too small (%ld bytes, must be at least %ld bytes)\n",
 			       (long)ring_buf_size,
-			       (long)PAGE_SIZE);
+			       (long)PAGE_SIZE * 2);
 			ret = -EIO;
 			goto cleanup_mmap;
 		}
