@@ -2530,7 +2530,7 @@ void sinsp_parser::parse_connect_enter(sinsp_evt *evt){
 
     packed_data = (uint8_t*)parinfo->m_val;
 
-    fill_socket_info(evt, packed_data);
+    fill_client_socket_info(evt, packed_data);
 
     //
     // If there's a listener callback, invoke it
@@ -2541,7 +2541,7 @@ void sinsp_parser::parse_connect_enter(sinsp_evt *evt){
     }
 }
 
-inline void sinsp_parser::fill_socket_info(sinsp_evt *evt, uint8_t *packed_data){
+inline void sinsp_parser::fill_client_socket_info(sinsp_evt *evt, uint8_t *packed_data){
     uint8_t family;
     const char *parstr;
     bool changed;
@@ -2695,7 +2695,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 
 	packed_data = (uint8_t*)parinfo->m_val;
 
-    fill_socket_info(evt, packed_data);
+    fill_client_socket_info(evt, packed_data);
 
 	//
 	// Call the protocol decoder callbacks associated to this event

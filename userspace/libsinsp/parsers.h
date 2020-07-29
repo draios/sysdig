@@ -146,7 +146,7 @@ private:
 	void parse_setsid_exit(sinsp_evt *evt);
 	void parse_getsockopt_exit(sinsp_evt *evt);
 
-	inline void fill_socket_info(sinsp_evt* evt, uint8_t* packed_data);
+	inline void fill_client_socket_info(sinsp_evt* evt, uint8_t* packed_data);
 	inline void add_socket(sinsp_evt* evt, int64_t fd, uint32_t domain, uint32_t type, uint32_t protocol);
 	inline void infer_sendto_fdinfo(sinsp_evt *evt);
 	inline void add_pipe(sinsp_evt *evt, int64_t tid, int64_t fd, uint64_t ino);
