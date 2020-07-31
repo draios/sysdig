@@ -16,10 +16,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
+#include <winsock2.h>
 #include <windows.h>
 #include <stdio.h>
 #include <tlhelp32.h>
 #include <psapi.h>
+#include <lm.h>
+#include <iphlpapi.h>
 
 #include "../common/sysdig_types.h"
 #define DRAGENT_WIN_HAL_C_ONLY
@@ -198,6 +201,286 @@ void scap_get_machine_info_windows(OUT uint32_t* num_cpus, OUT uint64_t* memory_
 	*memory_size_bytes = mem_kb * 1024;
 }
 
+int32_t scap_create_userlist_windows(scap_t* handle)
+{
+	LPUSER_INFO_3 resbuf = NULL;
+	DWORD level = 20;
+	DWORD maxlen = MAX_PREFERRED_LENGTH;
+	DWORD eread = 0;
+	DWORD etot = 0;
+	DWORD resume_handle = 0;
+	NET_API_STATUS nueres;
+
+	nueres = NetUserEnum(NULL,
+						level,
+						FILTER_NORMAL_ACCOUNT, // global users
+						(LPBYTE*)&resbuf,
+						maxlen,
+						&eread,
+						&etot,
+						&resume_handle);
+
+	//
+	// Memory allocations
+	//
+	handle->m_userlist = (scap_userlist*)malloc(sizeof(scap_userlist));
+	if(handle->m_userlist == NULL)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "userlist allocation failed(1)");
+		return SCAP_FAILURE;
+	}
+
+	handle->m_userlist->nusers = eread;
+	handle->m_userlist->ngroups = 1;
+	handle->m_userlist->totsavelen = 0;
+	handle->m_userlist->users = (scap_userinfo*)malloc(handle->m_userlist->nusers * sizeof(scap_userinfo));
+	if(handle->m_userlist->users == NULL)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "userlist allocation failed(2)");
+		free(handle->m_userlist);
+		return SCAP_FAILURE;		
+	}
+
+	handle->m_userlist->groups = (scap_groupinfo*)malloc(handle->m_userlist->ngroups * sizeof(scap_groupinfo));
+	if(handle->m_userlist->groups == NULL)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "grouplist allocation failed(2)");
+		free(handle->m_userlist->users);
+		free(handle->m_userlist);
+		return SCAP_FAILURE;		
+	}
+
+	//
+	// Populate the users
+	//
+	for(uint32_t j = 0; j < eread; j++)
+	{
+		LPUSER_INFO_3 ui = &(resbuf[j]);
+
+		if(ui->usri3_name != NULL)
+		{
+			size_t clen = wcstombs(handle->m_userlist->users[j].name, ui->usri3_name, SCAP_MAX_PATH_SIZE);
+			if(clen == SCAP_MAX_PATH_SIZE)
+			{
+				handle->m_userlist->users[j].name[clen - 1] = 0;
+			}
+		}
+		else
+		{
+			strcpy(handle->m_userlist->users[j].name, "NA");
+		}
+
+		//
+		// Disabled because NetUserEnum seems to return a corrupted usri3_home_dir.
+		// Not a big deal.
+		//
+		// clen = wcstombs(handle->m_userlist->users[j].homedir, ui->usri3_home_dir, SCAP_MAX_PATH_SIZE);
+		// if(clen == SCAP_MAX_PATH_SIZE)
+		// {
+		//	 handle->m_userlist->users[j].name[clen - 1] = 0;
+		// }
+		handle->m_userlist->users[j].uid = ui->usri3_user_id;
+		handle->m_userlist->users[j].gid = ui->usri3_primary_group_id;
+		handle->m_userlist->users[j].homedir[0] = 0;
+		handle->m_userlist->users[j].shell[0] = 0;
+	}
+
+	//
+	// Only one fake group, since windows doesn't have unix groups
+	//
+	handle->m_userlist->groups[0].gid = 0;
+	strcpy(handle->m_userlist->groups[0].name, "NA");
+
+	return SCAP_SUCCESS;
+}
+
+int32_t scap_create_iflist_windows(scap_t* handle)
+{
+	PIP_ADAPTER_INFO pAdapterInfo;
+	PIP_ADAPTER_INFO pAdapter = NULL;
+	DWORD dwRetVal = 0;
+	uint32_t ifcnt4 = 0;
+	uint32_t ifcnt6 = 0;
+
+	ULONG ulOutBufLen = sizeof (IP_ADAPTER_INFO);
+	pAdapterInfo = (IP_ADAPTER_INFO *) malloc(sizeof (IP_ADAPTER_INFO));
+	if(pAdapterInfo == NULL) 
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_create_iflist memory allocation error (1)");
+		return SCAP_FAILURE;
+	}
+
+	//
+	// Make an initial call to GetAdaptersAddresses to get
+	// the necessary size into the ulOutBufLen variable
+	//
+	DWORD rv, size;
+	PIP_ADAPTER_ADDRESSES adapter_addresses, aa;
+	PIP_ADAPTER_UNICAST_ADDRESS ua;
+
+	rv = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_PREFIX, NULL, NULL, &size);
+	if(rv != ERROR_BUFFER_OVERFLOW) {
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "GetAdaptersAddresses failed (1)");
+		return SCAP_FAILURE;
+	}
+	adapter_addresses = (PIP_ADAPTER_ADDRESSES)malloc(size);
+	if(adapter_addresses == NULL) 
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_create_iflist memory allocation error (2)");
+		return SCAP_FAILURE;
+	}
+
+	//
+	// Get the interfaces
+	//
+	rv = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_PREFIX, NULL, adapter_addresses, &size);
+	if(rv != ERROR_SUCCESS) 
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "GetAdaptersAddresses failed (2)");
+		free(adapter_addresses);
+		return SCAP_FAILURE;
+	}
+
+	//
+	// First pass: count the number of interfaces
+	//
+	for(aa = adapter_addresses; aa != NULL; aa = aa->Next) 
+	{
+		if(aa->OperStatus != IfOperStatusUp)
+		{
+			//
+			// Skip disabled interfaces
+			//
+			continue;
+		}
+
+		for(ua = aa->FirstUnicastAddress; ua != NULL; ua = ua->Next) 
+		{
+			int family = ua->Address.lpSockaddr->sa_family;
+			if(family == AF_INET)
+			{
+				ifcnt4++;
+			}
+			else if(family == AF_INET6)
+			{
+				//
+				// IPv6 support not implmented yet
+				//
+				//ifcnt6++;
+			}
+		}
+	}
+
+	//
+	// Allocate the handle and the arrays
+	//
+	handle->m_addrlist = (scap_addrlist*)malloc(sizeof(scap_addrlist));
+	if(!handle->m_addrlist)
+	{
+		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "getifaddrs allocation failed(1)");
+		free(adapter_addresses);
+		return SCAP_FAILURE;
+	}
+
+	if(ifcnt4 != 0)
+	{
+		handle->m_addrlist->v4list = (scap_ifinfo_ipv4*)malloc(ifcnt4 * sizeof(scap_ifinfo_ipv4));
+		if(!handle->m_addrlist->v4list)
+		{
+			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "getifaddrs allocation failed(2)");
+			free(adapter_addresses);
+			free(handle->m_addrlist);
+			return SCAP_FAILURE;
+		}
+	}
+	else
+	{
+		handle->m_addrlist->v4list = NULL;
+	}
+
+	if(ifcnt6 != 0)
+	{
+		handle->m_addrlist->v6list = (scap_ifinfo_ipv6*)malloc(ifcnt6 * sizeof(scap_ifinfo_ipv6));
+		if(!handle->m_addrlist->v6list)
+		{
+			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "getifaddrs allocation failed(3)");
+			if(handle->m_addrlist->v4list)
+			{
+				free(handle->m_addrlist->v4list);
+			}
+			free(adapter_addresses);
+			free(handle->m_addrlist);
+			return SCAP_FAILURE;
+		}
+	}
+	else
+	{
+		handle->m_addrlist->v6list = NULL;
+	}
+
+	handle->m_addrlist->n_v4_addrs = ifcnt4;
+	handle->m_addrlist->n_v6_addrs = ifcnt6;
+
+	//
+	// Second pass: populate the arrays
+	//
+	handle->m_addrlist->totlen = 0;
+	ifcnt4 = 0;
+	ifcnt6 = 0;
+
+	for(aa = adapter_addresses; aa != NULL; aa = aa->Next) 
+	{
+		if(aa->OperStatus != IfOperStatusUp)
+		{
+			//
+			// Skip disabled interfaces
+			//
+			continue;
+		}
+
+		for(ua = aa->FirstUnicastAddress; ua != NULL; ua = ua->Next) 
+		{
+			int family = ua->Address.lpSockaddr->sa_family;
+			if(family == AF_INET)
+			{
+				handle->m_addrlist->v4list[ifcnt4].type = SCAP_II_IPV4;
+
+				void* tempAddrPtr = &((struct sockaddr_in *)ua->Address.lpSockaddr->sa_data)->sin_addr;
+				handle->m_addrlist->v4list[ifcnt4].addr = *(uint32_t*)tempAddrPtr;
+
+				if(ua->OnLinkPrefixLength != 0)
+				{
+					ConvertLengthToIpv4Mask(ua->OnLinkPrefixLength, &handle->m_addrlist->v4list[ifcnt4].netmask);
+				}
+				else
+				{
+					handle->m_addrlist->v4list[ifcnt4].netmask = 0;
+				}
+
+				// XXX Not implemented on Windows yet
+				handle->m_addrlist->v4list[ifcnt4].bcast = 0;
+
+				handle->m_addrlist->v4list[ifcnt4].ifnamelen = (uint16_t)wcstombs(handle->m_addrlist->v4list[ifcnt4].ifname, aa->FriendlyName, SCAP_MAX_PATH_SIZE);
+
+				handle->m_addrlist->v4list[ifcnt4].linkspeed = 0;
+
+				handle->m_addrlist->totlen += (sizeof(scap_ifinfo_ipv4) + handle->m_addrlist->v4list[ifcnt4].ifnamelen - SCAP_MAX_PATH_SIZE);
+				ifcnt4++;
+			}
+			else if(family == AF_INET6)
+			{
+				//
+				// IPv6 support not implmented yet
+				//
+			}
+		}
+	}
+
+	free(adapter_addresses);
+
+	return SCAP_SUCCESS;
+}
+
 static int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, char* error)
 {
 	struct scap_threadinfo* tinfo;
@@ -327,8 +610,6 @@ static int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, char* error)
 
 	return SCAP_SUCCESS;
 }
-
-typedef int (CALLBACK* LPFNDLLFUNC1)();
 
 int32_t scap_get_procs_windows(scap_t* handle, char* error)
 {
