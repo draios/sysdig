@@ -15,29 +15,25 @@
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/mman.h>
+#include <sys/un.h>
 
 #include "scap.h"
 
 #include <pthread.h>
 #include <sys/socket.h>
-#include <linux/un.h>
 
 #include "scap-int.h"
 #include "../../driver/ppm_ringbuffer.h"
 
 #define PPM_PORT_STATSD 8125
+#define PPM_UNIX_PATH_MAX 108
 
 // needed for memfd_create it can be included using linux/memfd.h
 // but there are no guarantees it exists on older kernels.
 #define PPM_MFD_CLOEXEC	0x0001U
 
+
 #ifndef UDIG_INSTRUMENTER
-#ifndef UDIG
-static void udig_server_thread(scap_t *handle)
-{
-	pthread_exit(udig_fd_server(&(handle->m_devs[0].m_bufinfo_fd), &(handle->m_devs[0].m_fd)));
-}
-#endif
 // udig_receive_fd is the action used to ask
 // the udig_fd_server for file descriptors relative to ring buffers
 static int udig_receive_fd(int conn, int* ring_fd, int* ring_desc_fd)
@@ -47,15 +43,15 @@ static int udig_receive_fd(int conn, int* ring_fd, int* ring_desc_fd)
 	union
 	{
 		struct cmsghdr cmsgh;
-		char   control[CMSG_SPACE(sizeof(int))];
+		char control[CMSG_SPACE(sizeof(int))];
 	} control_ring_fd;
 	union
 	{
 		struct cmsghdr cmsgh;
-		char   control[CMSG_SPACE(sizeof(int))];
+		char control[CMSG_SPACE(sizeof(int))];
 	} control_ring_desc_fd;
-	struct cmsghdr *cmsgh0;
-	struct cmsghdr *cmsgh1;
+	struct cmsghdr* cmsgh0;
+	struct cmsghdr* cmsgh1;
 
 	// we need to send some placeholder data for the message to be sent
 	char placeholder;
@@ -116,11 +112,11 @@ static int udig_receive_fd(int conn, int* ring_fd, int* ring_desc_fd)
 
 	if(ring_fd != NULL)
 	{
-		*ring_fd = *((int *) CMSG_DATA(cmsgh0));
+		*ring_fd = *((int*)CMSG_DATA(cmsgh0));
 	}
 	if(ring_desc_fd != NULL)
 	{
-		*ring_desc_fd = *((int *) CMSG_DATA(cmsgh1));
+		*ring_desc_fd = *((int*)CMSG_DATA(cmsgh1));
 	}
 
 	return SCAP_SUCCESS;
@@ -141,7 +137,7 @@ static int udig_server_connect()
 
 	memset(&address, 0, sizeof(address));
 	address.sun_family = AF_UNIX;
-	snprintf(address.sun_path, UNIX_PATH_MAX, UDIG_RING_CTRL_SOCKET_PATH);
+	snprintf(address.sun_path, PPM_UNIX_PATH_MAX, UDIG_RING_CTRL_SOCKET_PATH);
 
 	ret = connect(conn, (struct sockaddr *)&address, sizeof(struct sockaddr_un));
 	if(ret != 0)
@@ -180,13 +176,16 @@ static int udig_receive_ring_desc_fd(int* ring_desc_fd)
 	int conn = udig_server_connect();
 	if(conn == SCAP_FAILURE)
 	{
+		close(conn);
 		return SCAP_FAILURE;
 	}
 	int res = udig_receive_fd(conn, NULL, ring_desc_fd);
 	if(res == SCAP_FAILURE)
 	{
+		close(conn);
 		return SCAP_FAILURE;
 	}
+	close(conn);
 	return SCAP_SUCCESS;
 }
 
@@ -285,7 +284,7 @@ int32_t udig_fd_server(int* ring_descs_fd, int* ring_fd)
 
 	memset(&address, 0, sizeof(address));
 	address.sun_family = AF_UNIX;
-	snprintf(address.sun_path, UNIX_PATH_MAX, UDIG_RING_CTRL_SOCKET_PATH);
+	snprintf(address.sun_path, PPM_UNIX_PATH_MAX, UDIG_RING_CTRL_SOCKET_PATH);
 
 	ret = unlink(UDIG_RING_CTRL_SOCKET_PATH);
 	if(ret != 0 && ret != -ENOENT && ret != -EPERM)
@@ -294,7 +293,7 @@ int32_t udig_fd_server(int* ring_descs_fd, int* ring_fd)
 		return SCAP_FAILURE;
 	}
 
-	ret = bind(sock, (struct sockaddr *) &address, sizeof(address));
+	ret = bind(sock, (struct sockaddr*)&address, sizeof(address));
 	if(ret != 0)
 	{
 		fprintf(stderr, "udig_fd_server: error binding unix socket: %s\n", strerror(errno));
@@ -310,9 +309,10 @@ int32_t udig_fd_server(int* ring_descs_fd, int* ring_fd)
 
 	while(true)
 	{
-		conn = accept(sock, (struct sockaddr *) &address, &addrlen);
+		conn = accept(sock, (struct sockaddr*)&address, &addrlen);
 		if(conn == -1)
 		{
+			close(conn);
 			continue;
 		}
 		udig_send_fds(conn, *ring_fd, *ring_descs_fd);
@@ -320,7 +320,16 @@ int32_t udig_fd_server(int* ring_descs_fd, int* ring_fd)
 	}
 }
 
-int udig_memfd_shm_open(const char *__name, int __oflag, mode_t __mode)
+#ifndef UDIG
+static void *udig_server_thread(void* handle)
+{
+   scap_t *h = handle;
+	udig_fd_server(&(h->m_devs[0].m_bufinfo_fd), &(h->m_devs[0].m_fd));
+  return NULL;
+}
+#endif
+
+int udig_memfd_shm_open(const char* __name, int __oflag, mode_t __mode)
 {
 	int fd = -1;
 	// creation is only available to the consumer implementation
@@ -334,19 +343,20 @@ int udig_memfd_shm_open(const char *__name, int __oflag, mode_t __mode)
 			return shm_open(__name, __oflag, __mode);
 		}
 		return fd;
-	} 
+	}
 #endif
 	int ret = -1;
 	// If we are a producer, we want to go get the file descriptor to use it
-	if(__name ==  (const char*)UDIG_RING_SM_FNAME)
+	if(strcmp(__name, UDIG_RING_SM_FNAME) == 0)
 	{
 		ret = udig_receive_ring_fd(&fd);
 	}
-	if(__name == (const char*)UDIG_RING_DESCS_SM_FNAME)
+	if(strcmp(__name, UDIG_RING_DESCS_SM_FNAME) == 0)
 	{
 		ret = udig_receive_ring_desc_fd(&fd);
 	}
-	if(ret == SCAP_FAILURE) {
+	if(ret == SCAP_FAILURE)
+	{
 		return -1;
 	}
 	return fd;
@@ -390,7 +400,7 @@ int32_t udig_alloc_ring(int* ring_fd,
 		struct stat rstat;
 		if(fstat(*ring_fd, &rstat) < 0)
 		{
-			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring fstat error: %s\n", strerror(errno));
+			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring fstat error\n");
 			return SCAP_FAILURE;
 		}
 
@@ -417,18 +427,17 @@ int32_t udig_alloc_ring(int* ring_fd,
 
 			if(ftruncate(*ring_fd, *ringsize) < 0)
 			{
-				snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring ftruncate error: %s\n", strerror(errno));
+				snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring ftruncate error\n");
 				close(*ring_fd);
 				return SCAP_FAILURE;
 			}
 		}
 		else
 		{
-			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring shm_open error: %s\n", strerror(errno));
+			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring ud_shm_open error\n");
 			return SCAP_FAILURE;
 		}
 	}
-
 	//
 	// Map the ring. This is a multi-step process because we want to map two
 	// consecutive copies of the same memory to reuse the driver fillers, which
@@ -456,7 +465,7 @@ int32_t udig_alloc_ring(int* ring_fd,
 		PROT_WRITE, MAP_SHARED | MAP_FIXED, *ring_fd, 0);
 	if(*ring != buf1)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring mmap 2 error: %s\n", strerror(errno));
+		snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring mmap 2 error\n");
 		close(*ring_fd);
 		return SCAP_FAILURE;
 	}
@@ -508,7 +517,7 @@ int32_t udig_alloc_ring_descriptors(int* ring_descs_fd,
 			//
 			if(ftruncate(*ring_descs_fd, mem_size) < 0)
 			{
-				snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring_descriptors ftruncate error: %s\n", strerror(errno));
+				snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring_descriptors ftruncate error\n");
 				close(*ring_descs_fd);
 				ud_shm_unlink(UDIG_RING_DESCS_SM_FNAME);
 				return SCAP_FAILURE;
@@ -516,7 +525,7 @@ int32_t udig_alloc_ring_descriptors(int* ring_descs_fd,
 		}
 		else
 		{
-			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring_descriptors shm_open error: %s\n", strerror(errno));
+			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring_descriptors ud_shm_open error\n");
 			ud_shm_unlink(UDIG_RING_DESCS_SM_FNAME);
 			return SCAP_FAILURE;
 		}
