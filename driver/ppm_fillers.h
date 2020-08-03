@@ -31,7 +31,19 @@ or GPL2.txt for full copies of the license.
 
 // probe_kernel_read() only added in kernel 2.6.26, name changed in 5.8.0
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 26)
-#define copy_from_kernel_nofault probe_kernel_read_old
+long copy_from_kernel_nofault(void *dst, const void *src, size_t size)
+{
+	long ret;
+	mm_segment_t old_fs = get_fs();
+
+	set_fs(KERNEL_DS);
+	pagefault_disable();
+	ret = __copy_from_user_inatomic(dst, (__force const void __user *)src, size);
+	pagefault_enable();
+	set_fs(old_fs);
+
+	return ret ? -EFAULT : 0;
+}
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
 #define copy_from_kernel_nofault probe_kernel_read
 #endif

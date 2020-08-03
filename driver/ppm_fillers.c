@@ -701,20 +701,6 @@ static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 
 #endif
 
-long probe_kernel_read_old(void *dst, const void *src, size_t size)
-{
-	long ret;
-	mm_segment_t old_fs = get_fs();
-
-	set_fs(KERNEL_DS);
-	pagefault_disable();
-	ret = __copy_from_user_inatomic(dst, (__force const void __user *)src, size);
-	pagefault_enable();
-	set_fs(old_fs);
-
-	return ret ? -EFAULT : 0;
-}
-
 static int ppm_get_tty(void)
 {
 	/* Locking of the signal structures seems too complicated across
