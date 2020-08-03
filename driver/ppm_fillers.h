@@ -10,6 +10,8 @@ or GPL2.txt for full copies of the license.
 #ifndef PPM_FILLERS_H_
 #define PPM_FILLERS_H_
 
+#include <linux/version.h>
+
 /* This is described in syscall(2). Some syscalls take 64-bit arguments. On
  * arches that have 64-bit registers, these arguments are shipped in a register.
  * On 32-bit arches, however, these are split between two consecutive registers,
@@ -26,6 +28,13 @@ or GPL2.txt for full copies of the license.
 #define _64BIT_ARGS_SINGLE_REGISTER
 #endif /* __x86_64__ */
 #endif /* __KERNEL__ */
+
+// probe_kernel_read() only added in kernel 2.6.26, name changed in 5.8.0
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 26)
+#define copy_from_kernel_nofault probe_kernel_read_old
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
+#define copy_from_kernel_nofault probe_kernel_read
+#endif
 
 #define FILLER_LIST_MAPPER(FN)			\
 	FN(sys_autofill)			\

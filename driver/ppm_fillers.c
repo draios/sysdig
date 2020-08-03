@@ -701,9 +701,7 @@ static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 
 #endif
 
-// probe_kernel_read() only added in kernel 2.6.26
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 26)
-long probe_kernel_read(void *dst, const void *src, size_t size)
+long probe_kernel_read_old(void *dst, const void *src, size_t size)
 {
 	long ret;
 	mm_segment_t old_fs = get_fs();
@@ -716,7 +714,6 @@ long probe_kernel_read(void *dst, const void *src, size_t size)
 
 	return ret ? -EFAULT : 0;
 }
-#endif
 
 static int ppm_get_tty(void)
 {
@@ -738,25 +735,25 @@ static int ppm_get_tty(void)
 	if (!sig)
 		return 0;
 
-	if (unlikely(probe_kernel_read(&tty, &sig->tty, sizeof(tty))))
+	if (unlikely(copy_from_kernel_nofault(&tty, &sig->tty, sizeof(tty))))
 		return 0;
 
 	if (!tty)
 		return 0;
 
-	if (unlikely(probe_kernel_read(&index, &tty->index, sizeof(index))))
+	if (unlikely(copy_from_kernel_nofault(&index, &tty->index, sizeof(index))))
 		return 0;
 
-	if (unlikely(probe_kernel_read(&driver, &tty->driver, sizeof(driver))))
+	if (unlikely(copy_from_kernel_nofault(&driver, &tty->driver, sizeof(driver))))
 		return 0;
 
 	if (!driver)
 		return 0;
 
-	if (unlikely(probe_kernel_read(&major, &driver->major, sizeof(major))))
+	if (unlikely(copy_from_kernel_nofault(&major, &driver->major, sizeof(major))))
 		return 0;
 
-	if (unlikely(probe_kernel_read(&minor_start, &driver->minor_start, sizeof(minor_start))))
+	if (unlikely(copy_from_kernel_nofault(&minor_start, &driver->minor_start, sizeof(minor_start))))
 		return 0;
 
 	tty_nr = new_encode_dev(MKDEV(major, minor_start) + index);
