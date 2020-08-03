@@ -84,58 +84,10 @@ or GPL2.txt for full copies of the license.
 #include <linux/bpf.h>
 #endif
 
-/*
- * Linux 5.6 kernels no longer include the old 32-bit timeval
- * structures. But the syscalls (might) still use them.
- */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
-#include <linux/time64.h>
-struct compat_timespec {
-	int32_t tv_sec;
-	int32_t tv_nsec;
-};
-
-struct timespec {
-	int32_t tv_sec;
-	int32_t tv_nsec;
-};
-
-struct timeval {
-	int32_t tv_sec;
-	int32_t tv_usec;
-};
-#else
-#define timeval64 timeval
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
-static inline struct inode *file_inode(struct file *f)
-{
-	return f->f_path.dentry->d_inode;
-}
-#endif
+#include "kernel_hacks.h"
 #endif /* UDIG */
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
-
-/*
- * Linux 5.1 kernels modify the syscall_get_arguments function to always
- * return all arguments rather than allowing the caller to select which
- * arguments are desired. This wrapper replicates the original
- * functionality.
- */
-#ifndef UDIG
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
-#define syscall_get_arguments_deprecated syscall_get_arguments
-#else
-#define syscall_get_arguments_deprecated(_task, _reg, _start, _len, _args) \
-	do { \
-		unsigned long _sga_args[6] = {}; \
-		syscall_get_arguments(_task, _reg, _sga_args); \
-		memcpy(_args, &_sga_args[_start], _len * sizeof(unsigned long)); \
-	} while(0)
-#endif
-#endif /* UDIG */
 
 #ifndef UDIG
 static inline struct pid_namespace *pid_ns_for_children(struct task_struct *task)
