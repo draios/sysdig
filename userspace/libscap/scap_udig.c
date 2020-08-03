@@ -532,12 +532,113 @@ void udig_free_ring_descriptors(uint8_t* addr)
 	UnmapViewOfFile(addr);
 }
 
-int32_t udig_begin_capture(scap_t* handle, char *error)
+#endif // _WIN32
+
+///////////////////////////////////////////////////////////////////////////////
+// Capture control helpers.
+///////////////////////////////////////////////////////////////////////////////
+bool acquire_and_init_ring_status_buffer(scap_t* handle)
 {
-	return SCAP_SUCCESS;
+	struct udig_ring_buffer_status* rbs = handle->m_devs[0].m_bufstatus;
+#ifdef _WIN32
+	LONG dval = InterlockedCompareExchange(&(rbs->m_capturing_pid), GetCurrentProcessId(), 0);
+	bool res = (dval == 0);
+#else
+	bool res = __sync_bool_compare_and_swap(&(rbs->m_capturing_pid), 0, getpid());
+#endif
+
+	if(res)
+	{
+		//
+		// Initialize the ring
+		//
+		rbs->m_stopped = 0;
+		rbs->m_last_print_time.tv_sec = 0;
+		rbs->m_last_print_time.tv_nsec = 0;
+
+		//
+		// Initialize the consumer
+		//
+		struct udig_consumer_t* consumer = &(rbs->m_consumer);
+
+		memset(consumer, 0, sizeof(struct udig_consumer_t));
+		consumer->dropping_mode = 0;
+		consumer->snaplen = RW_SNAPLEN;
+		consumer->sampling_ratio = 1;
+		consumer->sampling_interval = 0;
+		consumer->is_dropping = 0;
+		consumer->do_dynamic_snaplen = false;
+		consumer->need_to_insert_drop_e = 0;
+		consumer->need_to_insert_drop_x = 0;
+		consumer->fullcapture_port_range_start = 0;
+		consumer->fullcapture_port_range_end = 0;
+		consumer->statsd_port = PPM_PORT_STATSD;
+	}
+
+	return res;
 }
 
-#endif // _WIN32
+int32_t udig_begin_capture(scap_t* handle, char *error)
+{
+	struct udig_ring_buffer_status* rbs = handle->m_devs[0].m_bufstatus;
+
+	if(rbs->m_capturing_pid != 0)
+	{
+#ifdef _WIN32
+		HANDLE ph = OpenProcess(PROCESS_ALL_ACCESS, TRUE, rbs->m_capturing_pid);
+		DWORD ecode;
+		if(GetExitCodeProcess(ph, &ecode) != FALSE)
+		{
+			if(ecode != STILL_ACTIVE)
+			{
+				rbs->m_capturing_pid = 0;
+			}
+			else
+			{
+				CloseHandle(ph);
+				snprintf(error, SCAP_LASTERR_SIZE, "another udig capture is already active");
+				return SCAP_FAILURE;
+			}
+		}
+#else
+		//
+		// Looks like there is already a consumer, but ther variable might still
+		// be set by a previous crashed consumer. To understand that, we check if
+		// there is an alive process with that pid. If not, we reset the variable.
+		//
+		char fbuf[48];
+		snprintf(fbuf, sizeof(fbuf), "/proc/%d", rbs->m_capturing_pid);
+		FILE* f = fopen(fbuf, "r");
+		if(f == NULL)
+		{
+			rbs->m_capturing_pid = 0;
+		}
+		else
+		{
+			fclose(f);
+			snprintf(error, SCAP_LASTERR_SIZE, "another udig capture is already active");
+			return SCAP_FAILURE;
+		}
+#endif
+	}
+
+	struct ppm_ring_buffer_info* rbi = handle->m_devs[0].m_bufinfo;
+	rbi->head = 0;
+	rbi->tail = 0;
+	rbi->n_evts = 0;
+	rbi->n_drops_buffer = 0;
+
+	if(acquire_and_init_ring_status_buffer(handle))
+	{
+		handle->m_udig_capturing = true;
+		return SCAP_SUCCESS;
+	}
+	else
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "cannot start the capture");
+		return SCAP_FAILURE;
+	}
+}
 
 void udig_start_capture(scap_t* handle)
 {
