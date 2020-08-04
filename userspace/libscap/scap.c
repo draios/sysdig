@@ -100,7 +100,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 static uint32_t get_max_consumers()
 {
 	uint32_t max;
-	FILE *pfile = fopen("/sys/module/" PROBE_DEVICE_NAME "_probe/parameters/max_consumers", "r");
+	FILE *pfile = fopen("/sys/module/" SYSFS_NAME "/parameters/max_consumers", "r");
 	if(pfile != NULL)
 	{
 		int w = fscanf(pfile, "%"PRIu32, &max);
@@ -328,7 +328,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 				else if(errno == EBUSY)
 				{
 					uint32_t curr_max_consumers = get_max_consumers();
-					snprintf(error, SCAP_LASTERR_SIZE, "Too many sysdig instances attached to device %s. Current value for /sys/module/" PROBE_DEVICE_NAME "_probe/parameters/max_consumers is '%"PRIu32"'.", filename, curr_max_consumers);
+					snprintf(error, SCAP_LASTERR_SIZE, "Too many sysdig instances attached to device %s. Current value for /sys/module/" SYSFS_NAME "/parameters/max_consumers is '%"PRIu32"'.", filename, curr_max_consumers);
 				}
 				else
 				{
