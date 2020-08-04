@@ -84,58 +84,10 @@ or GPL2.txt for full copies of the license.
 #include <linux/bpf.h>
 #endif
 
-/*
- * Linux 5.6 kernels no longer include the old 32-bit timeval
- * structures. But the syscalls (might) still use them.
- */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
-#include <linux/time64.h>
-struct compat_timespec {
-	int32_t tv_sec;
-	int32_t tv_nsec;
-};
-
-struct timespec {
-	int32_t tv_sec;
-	int32_t tv_nsec;
-};
-
-struct timeval {
-	int32_t tv_sec;
-	int32_t tv_usec;
-};
-#else
-#define timeval64 timeval
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0)
-static inline struct inode *file_inode(struct file *f)
-{
-	return f->f_path.dentry->d_inode;
-}
-#endif
+#include "kernel_hacks.h"
 #endif /* UDIG */
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
-
-/*
- * Linux 5.1 kernels modify the syscall_get_arguments function to always
- * return all arguments rather than allowing the caller to select which
- * arguments are desired. This wrapper replicates the original
- * functionality.
- */
-#ifndef UDIG
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
-#define syscall_get_arguments_deprecated syscall_get_arguments
-#else
-#define syscall_get_arguments_deprecated(_task, _reg, _start, _len, _args) \
-	do { \
-		unsigned long _sga_args[6] = {}; \
-		syscall_get_arguments(_task, _reg, _sga_args); \
-		memcpy(_args, &_sga_args[_start], _len * sizeof(unsigned long)); \
-	} while(0)
-#endif
-#endif /* UDIG */
 
 #ifndef UDIG
 static inline struct pid_namespace *pid_ns_for_children(struct task_struct *task)
@@ -701,23 +653,6 @@ static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 
 #endif
 
-// probe_kernel_read() only added in kernel 2.6.26
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 26)
-long probe_kernel_read(void *dst, const void *src, size_t size)
-{
-	long ret;
-	mm_segment_t old_fs = get_fs();
-
-	set_fs(KERNEL_DS);
-	pagefault_disable();
-	ret = __copy_from_user_inatomic(dst, (__force const void __user *)src, size);
-	pagefault_enable();
-	set_fs(old_fs);
-
-	return ret ? -EFAULT : 0;
-}
-#endif
-
 static int ppm_get_tty(void)
 {
 	/* Locking of the signal structures seems too complicated across
@@ -738,25 +673,25 @@ static int ppm_get_tty(void)
 	if (!sig)
 		return 0;
 
-	if (unlikely(probe_kernel_read(&tty, &sig->tty, sizeof(tty))))
+	if (unlikely(copy_from_kernel_nofault(&tty, &sig->tty, sizeof(tty))))
 		return 0;
 
 	if (!tty)
 		return 0;
 
-	if (unlikely(probe_kernel_read(&index, &tty->index, sizeof(index))))
+	if (unlikely(copy_from_kernel_nofault(&index, &tty->index, sizeof(index))))
 		return 0;
 
-	if (unlikely(probe_kernel_read(&driver, &tty->driver, sizeof(driver))))
+	if (unlikely(copy_from_kernel_nofault(&driver, &tty->driver, sizeof(driver))))
 		return 0;
 
 	if (!driver)
 		return 0;
 
-	if (unlikely(probe_kernel_read(&major, &driver->major, sizeof(major))))
+	if (unlikely(copy_from_kernel_nofault(&major, &driver->major, sizeof(major))))
 		return 0;
 
-	if (unlikely(probe_kernel_read(&minor_start, &driver->minor_start, sizeof(minor_start))))
+	if (unlikely(copy_from_kernel_nofault(&minor_start, &driver->minor_start, sizeof(minor_start))))
 		return 0;
 
 	tty_nr = new_encode_dev(MKDEV(major, minor_start) + index);
