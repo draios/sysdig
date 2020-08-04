@@ -296,18 +296,28 @@ function build_probe {
 	elif [ -n "${BUILDER_DISTRO:-}" ]
 	then
 		# Try to find the gcc version used to build this particular kernel
-		# There is CONFIG_GCC_VERSION=90201 in the kernel config but it's
-		# too new for us to depend on
-		if [ -e $KERNELDIR/include/generated/compile.h ]
+		# Check CONFIG_GCC_VERSION=90201 in the kernel config first
+		# as 5.8.0 seems to have a different format for the LINUX_COMPILER string
+		if [ -e $KERNELDIR/include/generated/autoconf.h ]
 		then
-			BUILDER_GCC_VERSION=$(grep -Po '(?<=^#define LINUX_COMPILER "gcc version )[0-9.]+' $KERNELDIR/include/generated/compile.h)
-		elif [ -e $KERNELDIR/include/linux/compile.h ]
-		then
-			# RHEL6
-			BUILDER_GCC_VERSION=$(grep -Po '(?<=^#define LINUX_COMPILER "gcc version )[0-9.]+' $KERNELDIR/include/linux/compile.h)
+			BUILDER_GCC_VERSION=$(grep -Po '(?<=^#define CONFIG_GCC_VERSION ).*' $KERNELDIR/include/generated/autoconf.h | sed '-res@(.*)(..)(..)$@\1\.\2\.\3@' '-es@\.0@\.@g')
 		else
-			# ancient Ubuntu gets and ancient compiler
-			BUILDER_GCC_VERSION=4.8.0
+			BUILDER_GCC_VERSION=
+		fi
+
+		if [ -z "$BUILDER_GCC_VERSION" ]
+		then
+			if [ -e $KERNELDIR/include/generated/compile.h ]
+			then
+				BUILDER_GCC_VERSION=$(grep -Po '(?<=^#define LINUX_COMPILER "gcc version )[0-9.]+' $KERNELDIR/include/generated/compile.h)
+			elif [ -e $KERNELDIR/include/linux/compile.h ]
+			then
+				# RHEL6
+				BUILDER_GCC_VERSION=$(grep -Po '(?<=^#define LINUX_COMPILER "gcc version )[0-9.]+' $KERNELDIR/include/linux/compile.h)
+			else
+				# ancient Ubuntu gets and ancient compiler
+				BUILDER_GCC_VERSION=4.8.0
+			fi
 		fi
 
 		# We don't really care about the compiler patch levels, only the major/minor version

@@ -45,6 +45,7 @@ set(DRIVER_SOURCES
 	event_table.c
 	fillers_table.c
 	flags_table.c
+	kernel_hacks.h
 	main.c
 	ppm.h
 	ppm_events.c
