@@ -1303,7 +1303,7 @@ function build_output(captureDuration)
 			category = 'logs',
 			targetView = 'echo',
 			targetViewTitle = 'Error Application Log Messages',
-			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and (evt.arg.data icontains error or evt.arg.data icontains critic or evt.arg.data icontains emergency or evt.arg.data icontains alert)',
+			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and (evt.arg.data icontains error or evt.arg.data icontains critic or evt.arg.data icontains emerg or evt.arg.data icontains alert)',
 			drillDownKey = 'NONE',
 			data = gsummary.appLogCountE
 		}
