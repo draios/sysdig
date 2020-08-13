@@ -317,6 +317,7 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 		newfdi->m_openflags = fdi->info.regularinfo.open_flags;
 		newfdi->m_name = fdi->info.regularinfo.fname;
 		newfdi->m_dev = fdi->info.regularinfo.dev;
+		newfdi->m_mount_id = fdi->info.regularinfo.mount_id;
 
 		if(newfdi->m_name == USER_EVT_DEVICE_NAME)
 		{
@@ -402,6 +403,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_flags |= pi->flags;
 	m_flags |= PPM_CL_ACTIVE; // Assume that all the threads coming from /proc are real, active threads
 	m_fdtable.clear();
+	m_fdtable.m_tid = m_tid;
 	m_fdlimit = pi->fdlimit;
 	m_uid = pi->uid;
 	m_gid = pi->gid;
@@ -1144,6 +1146,7 @@ void sinsp_threadinfo::fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src)
 		dst->info.regularinfo.open_flags = src->m_openflags;
 		strncpy(dst->info.regularinfo.fname, src->m_name.c_str(), SCAP_MAX_PATH_SIZE);
 		dst->info.regularinfo.dev = src->m_dev;
+		dst->info.regularinfo.mount_id = src->m_mount_id;
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:
