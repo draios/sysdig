@@ -2136,6 +2136,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		}
 
 		fdi.m_openflags = flags;
+		fdi.m_mount_id = 0;
 		fdi.m_dev = dev;
 		fdi.add_filename(fullpath);
 

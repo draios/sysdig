@@ -24,6 +24,7 @@ limitations under the License.
 #endif
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "scap-int.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_fdinfo implementation
@@ -422,4 +423,22 @@ size_t sinsp_fdtable::size()
 void sinsp_fdtable::reset_cache()
 {
 	m_last_accessed_fd = -1;
+}
+
+void sinsp_fdtable::lookup_device(sinsp_fdinfo_t* fdi, uint64_t fd)
+{
+#ifdef HAS_CAPTURE
+	if(m_inspector->is_capture())
+	{
+		return;
+	}
+
+	if(fdi->is_file() && fdi->m_dev == 0 && fdi->m_mount_id != 0)
+	{
+		char procdir[SCAP_MAX_PATH_SIZE];
+		snprintf(procdir, sizeof(procdir), "%s/proc/%ld/", scap_get_host_root(), m_tid);
+		fdi->m_dev = scap_get_device_by_mount_id(m_inspector->m_h, procdir, fdi->m_mount_id);
+		fdi->m_mount_id = 0; // don't try again
+	}
+#endif
 }

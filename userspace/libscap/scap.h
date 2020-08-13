@@ -199,6 +199,7 @@ typedef struct scap_fdinfo
 		{
 			uint32_t open_flags; ///< Flags associated with the file
 			char fname[SCAP_MAX_PATH_SIZE]; ///< Name associated to this file
+			uint32_t mount_id; ///< The id of the vfs mount the file is in until we find dev major:minor
 			uint32_t dev; ///< Major/minor number of the device containing this file
 		} regularinfo; ///< Information specific to regular files
 		char fname[SCAP_MAX_PATH_SIZE];  ///< The name for file system FDs
