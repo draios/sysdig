@@ -190,6 +190,12 @@ if(NOT WIN32)
 			"${B64_LIB}"
 			rt
 			anl)
+		# when JQ is compiled statically, it will
+		# also compile a static object for oniguruma we need to link
+		if(USE_BUNDLED_JQ)
+			target_link_libraries(sinsp
+			"${ONIGURUMA_LIB}")
+		endif()
 	endif()
 
         if(USE_BUNDLED_OPENSSL)
