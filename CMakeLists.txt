@@ -300,6 +300,7 @@ endif()
 #
 if(NOT WIN32 AND NOT APPLE)
 	option(USE_BUNDLED_JQ "Enable building of the bundled jq" ${USE_BUNDLED_DEPS})
+
 	if(NOT USE_BUNDLED_JQ)
 		find_path(JQ_INCLUDE jq.h PATH_SUFFIXES jq)
 		find_library(JQ_LIB NAMES jq)
@@ -312,16 +313,18 @@ if(NOT WIN32 AND NOT APPLE)
 		set(JQ_SRC "${PROJECT_BINARY_DIR}/jq-prefix/src/jq")
 		message(STATUS "Using bundled jq in '${JQ_SRC}'")
 		set(JQ_INCLUDE "${JQ_SRC}")
-		set(JQ_LIB "${JQ_SRC}/.libs/libjq.a")
-		ExternalProject_Add(jq
-		URL "http://download.draios.com/dependencies/jq-1.5.tar.gz"
-		URL_MD5 "0933532b086bd8b6a41c1b162b1731f9"
-		CONFIGURE_COMMAND ./configure --disable-maintainer-mode --enable-all-static --disable-dependency-tracking
-		BUILD_COMMAND ${CMD_MAKE} LDFLAGS=-all-static
-		BUILD_IN_SOURCE 1
-		BUILD_BYPRODUCTS ${JQ_LIB}
-		PATCH_COMMAND wget -O jq-1.5-fix-tokenadd.patch https://github.com/stedolan/jq/commit/8eb1367ca44e772963e704a700ef72ae2e12babd.patch && patch -i jq-1.5-fix-tokenadd.patch
-		INSTALL_COMMAND "")
+		set(JQ_INSTALL_DIR "${JQ_SRC}/target")
+		set(JQ_LIB "${JQ_INSTALL_DIR}/lib/libjq.a")
+		set(ONIGURUMA_LIB "${JQ_INSTALL_DIR}/lib/libonig.a")
+
+		ExternalProject_Add(
+			jq
+			URL "https://github.com/stedolan/jq/releases/download/jq-1.6/jq-1.6.tar.gz"
+			URL_HASH "SHA256=5de8c8e29aaa3fb9cc6b47bb27299f271354ebb72514e3accadc7d38b5bbaa72"
+			CONFIGURE_COMMAND autoreconf -fi && ./configure --disable-maintainer-mode --enable-all-static --disable-dependency-tracking --with-oniguruma=builtin --prefix=${JQ_INSTALL_DIR}
+			BUILD_COMMAND ${CMD_MAKE} LDFLAGS=-all-static
+			BUILD_IN_SOURCE 1
+			INSTALL_COMMAND ${CMD_MAKE} install)
 	endif()
 endif()
 
