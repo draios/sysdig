@@ -312,16 +312,17 @@ if(NOT WIN32 AND NOT APPLE)
 	else()
 		set(JQ_SRC "${PROJECT_BINARY_DIR}/jq-prefix/src/jq")
 		message(STATUS "Using bundled jq in '${JQ_SRC}'")
-		set(JQ_INCLUDE "${JQ_SRC}")
+		set(JQ_INCLUDE "${JQ_SRC}/target/include")
 		set(JQ_INSTALL_DIR "${JQ_SRC}/target")
 		set(JQ_LIB "${JQ_INSTALL_DIR}/lib/libjq.a")
 		set(ONIGURUMA_LIB "${JQ_INSTALL_DIR}/lib/libonig.a")
+		message(STATUS "Bundled jq: include: ${JQ_INCLUDE}, lib: ${JQ_LIB}")
 
 		ExternalProject_Add(
 			jq
-			URL "https://github.com/stedolan/jq/releases/download/jq-1.6/jq-1.6.tar.gz"
-			URL_HASH "SHA256=5de8c8e29aaa3fb9cc6b47bb27299f271354ebb72514e3accadc7d38b5bbaa72"
-			CONFIGURE_COMMAND autoreconf -fi && ./configure --disable-maintainer-mode --enable-all-static --disable-dependency-tracking --with-oniguruma=builtin --prefix=${JQ_INSTALL_DIR}
+			URL "http://download.draios.com/dependencies/jq-1.6.tar.gz"
+			URL_HASH "SHA256=787518068c35e244334cc79b8e56b60dbab352dff175b7f04a94f662b540bfd9"
+			CONFIGURE_COMMAND ./configure --disable-maintainer-mode --enable-all-static --disable-dependency-tracking --with-oniguruma=builtin --prefix=${JQ_INSTALL_DIR}
 			BUILD_COMMAND ${CMD_MAKE} LDFLAGS=-all-static
 			BUILD_IN_SOURCE 1
 			INSTALL_COMMAND ${CMD_MAKE} install)
