@@ -1402,28 +1402,34 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	return ret;
 }
 
-string sinsp_evt::get_cwd(uint32_t id, sinsp_threadinfo* tinfo)
+string sinsp_evt::get_cwd(uint32_t id, sinsp_threadinfo *tinfo)
 {
 	auto cwd = tinfo->get_cwd();
 
-	auto param = &(m_params[id]);
-	auto payload = param->m_val;
+	// Defensively ensure that pathname is not at index 0
+	if (id > 0)
+	{
+		auto param = &(m_params[id]);
+		auto payload = param->m_val;
 
-	// If pathname is relative (does not start with a "/")
-	if (strncmp(payload, "/", 1) != 0) {
-		// Get the previous parameter
-		auto prev_id = id - 1;
-		auto prev_param = &(m_params[prev_id]);
-		auto prev_payload = prev_param->m_val;
-		auto prev_param_info = &(m_info->params[prev_id]);
-		// If the previous param is a fd with a value other than AT_FDCWD,
-		// use such value as the current working directory
-		if (prev_param_info->type == PT_FD && *prev_payload != PPM_AT_FDCWD) {
-			auto prev_fdinfo = tinfo->get_fd(*(int64_t*)prev_payload);
-			// Make sure we remove invalid characters from the resolved name
-			auto sanitized_prev_fd_str = prev_fdinfo->m_name;
-			sanitize_string(sanitized_prev_fd_str);
-			cwd = sanitized_prev_fd_str + "/";
+		// If pathname is relative (does not start with a "/")
+		if (strncmp(payload, "/", 1) != 0)
+		{
+			// Get the previous parameter
+			auto prev_id = id - 1;
+			auto prev_param = &(m_params[prev_id]);
+			auto prev_payload = prev_param->m_val;
+			auto prev_param_info = &(m_info->params[prev_id]);
+			// If the previous param is a fd with a value other than AT_FDCWD,
+			// use such value as the current working directory
+			if (prev_param_info->type == PT_FD && *prev_payload != PPM_AT_FDCWD)
+			{
+				auto prev_fdinfo = tinfo->get_fd(*(int64_t *)prev_payload);
+				// Make sure we remove invalid characters from the resolved name
+				auto sanitized_prev_fd_str = prev_fdinfo->m_name;
+				sanitize_string(sanitized_prev_fd_str);
+				cwd = sanitized_prev_fd_str + "/";
+			}
 		}
 	}
 
