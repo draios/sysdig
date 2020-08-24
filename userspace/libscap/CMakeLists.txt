@@ -43,12 +43,8 @@ endif()
 
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	if(NOT MINIMAL_BUILD)
-		list(APPEND targetfiles
-			scap_bpf.c
-		)
-	endif()
 	list(APPEND targetfiles
+		scap_bpf.c
 		../../driver/syscall_table.c
 		../../driver/fillers_table.c)
 

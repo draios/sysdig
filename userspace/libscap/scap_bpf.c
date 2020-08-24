@@ -26,7 +26,9 @@ limitations under the License.
 #include <sys/socket.h>
 #include <sys/syscall.h>
 #include <sys/utsname.h>
+#ifndef MINIMAL_BUILD
 #include <gelf.h>
+#endif
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
@@ -181,6 +183,7 @@ static int bpf_raw_tracepoint_open(const char *name, int prog_fd)
 	return sys_bpf(BPF_RAW_TRACEPOINT_OPEN, &attr, sizeof(attr));
 }
 
+#ifndef MINIMAL_BUILD
 static int32_t get_elf_section(Elf *elf, int i, GElf_Ehdr *ehdr, char **shname, GElf_Shdr *shdr, Elf_Data **data)
 {
 	Elf_Scn *scn = elf_getscn(elf, i);
@@ -208,7 +211,9 @@ static int32_t get_elf_section(Elf *elf, int i, GElf_Ehdr *ehdr, char **shname, 
 
 	return SCAP_SUCCESS;
 }
+#endif
 
+#ifndef MINIMAL_BUILD
 static int cmp_symbols(const void *l, const void *r)
 {
 	const GElf_Sym *lsym = (const GElf_Sym *)l;
@@ -227,6 +232,7 @@ static int cmp_symbols(const void *l, const void *r)
 		return 0;
 	}
 }
+
 
 static int32_t load_elf_maps_section(scap_t *handle, struct bpf_map_data *maps,
 				     int maps_shndx, Elf *elf, Elf_Data *symbols,
@@ -285,6 +291,7 @@ static int32_t load_elf_maps_section(scap_t *handle, struct bpf_map_data *maps,
 	free(sym);
 	return SCAP_SUCCESS;
 }
+#endif // MINIMAL_BUILD
 
 static int32_t load_maps(scap_t *handle, struct bpf_map_data *maps, int nr_maps)
 {
@@ -323,6 +330,7 @@ static int32_t load_maps(scap_t *handle, struct bpf_map_data *maps, int nr_maps)
 	return SCAP_SUCCESS;
 }
 
+#ifndef MINIMAL_BUILD
 static int32_t parse_relocations(scap_t *handle, Elf_Data *data, Elf_Data *symbols,
 				 GElf_Shdr *shdr, struct bpf_insn *insn,
 				 struct bpf_map_data *maps, int nr_maps)
@@ -376,6 +384,7 @@ static int32_t parse_relocations(scap_t *handle, Elf_Data *data, Elf_Data *symbo
 
 	return SCAP_SUCCESS;
 }
+#endif // MINIMAL_BUILD
 
 static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_insn *prog, int size)
 {
@@ -527,6 +536,7 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 	return SCAP_SUCCESS;
 }
 
+#ifndef MINIMAL_BUILD
 static int32_t load_bpf_file(scap_t *handle, const char *path)
 {
 	int j;
@@ -678,6 +688,7 @@ cleanup:
 	close(program_fd);
 	return res;
 }
+#endif // MINIMAL_BUILD
 
 static void *perf_event_mmap(scap_t *handle, int fd)
 {
@@ -1273,6 +1284,10 @@ static int32_t set_default_settings(scap_t *handle)
 
 int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 {
+#ifdef MINIMAL_BUILD
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+#else
 	int online_cpu;
 	int j;
 
@@ -1409,6 +1424,7 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 	}
 
 	return SCAP_SUCCESS;
+#endif // MINIMAL_BUILD
 }
 
 struct ppm_proclist_info *scap_bpf_get_threadlist(scap_t *handle)
