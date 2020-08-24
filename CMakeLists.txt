@@ -235,7 +235,7 @@ endif()
 #
 option(USE_BUNDLED_ZLIB "Enable building of the bundled zlib" ${USE_BUNDLED_DEPS})
 
-# if(NOT MINIMAL_BUILD)
+if(NOT MINIMAL_BUILD)
 	if(NOT USE_BUNDLED_ZLIB)
 		find_path(ZLIB_INCLUDE zlib.h PATH_SUFFIXES zlib)
 		find_library(ZLIB_LIB NAMES z)
@@ -270,7 +270,7 @@ option(USE_BUNDLED_ZLIB "Enable building of the bundled zlib" ${USE_BUNDLED_DEPS
 				INSTALL_COMMAND "")
 		endif()
 	endif()
-# endif() # MINIMAL_BUILD
+endif() # MINIMAL_BUILD
 
 #
 # Intel tbb
