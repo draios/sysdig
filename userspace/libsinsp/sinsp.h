@@ -105,9 +105,9 @@ class sinsp_analyzer;
 class sinsp_filter;
 class cycle_writer;
 class sinsp_protodecoder;
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 class k8s;
-#endif
+#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 class sinsp_partial_tracer;
 class mesos;
 
@@ -786,7 +786,7 @@ public:
 		}
 	}
 
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	void init_k8s_ssl(const std::string *ssl_cert);
 	void init_k8s_client(std::string* api_server, std::string* ssl_cert, bool verbose = false);
 	void make_k8s_client();
@@ -794,7 +794,7 @@ public:
 
 	void init_mesos_client(std::string* api_server, bool verbose = false);
 	mesos* get_mesos_client() const { return m_mesos_client; }
-#endif
+#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 	//
 	// Misc internal stuff
@@ -977,13 +977,13 @@ private:
 	sinsp_threadinfo* find_thread_test(int64_t tid, bool lookup_only);
 	bool remove_inactive_threads();
 
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	void k8s_discover_ext();
 	void collect_k8s();
 	void update_k8s_state();
 	void update_mesos_state();
 	bool get_mesos_data();
-#endif
+#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 	static int64_t get_file_size(const std::string& fname, char *error);
 	static std::string get_error_desc(const std::string& msg = "");
@@ -1054,7 +1054,7 @@ public:
 	//
 	// Kubernetes
 	//
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	std::string* m_k8s_api_server;
 	std::string* m_k8s_api_cert;
 #ifdef HAS_CAPTURE
@@ -1069,7 +1069,7 @@ public:
 #endif // HAS_CAPTURE
 	k8s* m_k8s_client;
 	uint64_t m_k8s_last_watch_time_ns;
-#endif // CYGWING_AGENT
+#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 	//
 	// Mesos/Marathon

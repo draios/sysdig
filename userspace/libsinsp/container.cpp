@@ -19,15 +19,17 @@ limitations under the License.
 
 #include <algorithm>
 
-#if defined(HAS_CAPTURE)
+#ifndef MINIMAL_BUILD
+#ifdef HAS_CAPTURE
 #include "container_engine/cri.h"
-#endif
+#endif // HAS_CAPTURE
 #include "container_engine/docker.h"
 #include "container_engine/rkt.h"
 #include "container_engine/libvirt_lxc.h"
 #include "container_engine/lxc.h"
 #include "container_engine/mesos.h"
 #include "container_engine/bpm.h"
+#endif // MINIMAL_BUILD
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -506,6 +508,7 @@ void sinsp_container_manager::subscribe_on_remove_container(remove_container_cb 
 
 void sinsp_container_manager::create_engines()
 {
+#ifndef MINIMAL_BUILD
 #ifdef CYGWING_AGENT
 	{
 		auto docker_engine = std::make_shared<container_engine::docker>(*this, m_inspector /*wmi source*/);
@@ -557,6 +560,7 @@ void sinsp_container_manager::create_engines()
 	}
 #endif // _WIN32
 #endif // CYGWING_AGENT
+#endif // MINIMAL_BUILD
 }
 
 void sinsp_container_manager::update_container_with_size(sinsp_container_type type,
@@ -587,49 +591,49 @@ void sinsp_container_manager::cleanup()
 
 void sinsp_container_manager::set_docker_socket_path(std::string socket_path)
 {
-#if defined(HAS_CAPTURE)
+#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE)
 	libsinsp::container_engine::docker::set_docker_sock(std::move(socket_path));
 #endif
 }
 
 void sinsp_container_manager::set_query_docker_image_info(bool query_image_info)
 {
-#ifndef _WIN32
+#if !defined(MINIMAL_BUILD) && !defined(_WIN32)
 	libsinsp::container_engine::docker_async_source::set_query_image_info(query_image_info);
 #endif
 }
 
 void sinsp_container_manager::set_cri_extra_queries(bool extra_queries)
 {
-#if defined(HAS_CAPTURE)
+#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE)
 	libsinsp::container_engine::cri::set_extra_queries(extra_queries);
 #endif
 }
 
 void sinsp_container_manager::set_cri_socket_path(const std::string &path)
 {
-#if defined(HAS_CAPTURE)
+#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE)
 	libsinsp::container_engine::cri::set_cri_socket_path(path);
 #endif
 }
 
 void sinsp_container_manager::set_cri_timeout(int64_t timeout_ms)
 {
-#if defined(HAS_CAPTURE)
+#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE)
 	libsinsp::container_engine::cri::set_cri_timeout(timeout_ms);
 #endif
 }
 
 void sinsp_container_manager::set_cri_async(bool async)
 {
-#if defined(HAS_CAPTURE)
+#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE)
 	libsinsp::container_engine::cri::set_async(async);
 #endif
 }
 
 void sinsp_container_manager::set_cri_delay(uint64_t delay_ms)
 {
-#if defined(HAS_CAPTURE)
+#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE)
 	libsinsp::container_engine::cri::set_cri_delay(delay_ms);
 #endif
 }

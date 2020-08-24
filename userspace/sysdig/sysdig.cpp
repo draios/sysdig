@@ -95,12 +95,14 @@ static void usage()
 "                    are millions of bytes (10^6, not 2^20). Use the -W flag to\n"
 "                    determine how many files will be saved to disk.\n"
 #ifdef HAS_CAPTURE
+#ifndef MINIMAL_BUILD
 " --cri <path>       Path to CRI socket for container metadata\n"
 "                    Use the specified socket to fetch data from a CRI-compatible runtime\n"
 "\n"
 " --cri-timeout <timeout_ms>\n"
 "                    Wait at most <timeout_ms> milliseconds for response from CRI\n"
-#endif
+#endif // MINIMAL_BUILD
+#endif // HAS_CAPTURE
 " -d, --displayflt   Make the given filter a display one\n"
 "                    Setting this option causes the events to be filtered\n"
 "                    after being parsed by the state system. Events are\n"
@@ -154,6 +156,7 @@ static void usage()
 #endif
 " -j, --json         Emit output as json, data buffer encoding will depend from the\n"
 "                    print format selected.\n"
+#ifndef MINIMAL_BUILD
 " -k <url>, --k8s-api=<url>\n"
 "                    Enable Kubernetes support by connecting to the API server\n"
 "                    specified as argument. E.g. \"http://admin:password@127.0.0.1:8080\".\n"
@@ -171,6 +174,7 @@ static void usage()
 "                    Note that the format of this command-line option prohibits use of files whose names contain\n"
 "                    ':' or '#' characters in the file name.\n"
 "                    Option can also be provided via the environment variable SYSDIG_K8S_API_CERT.\n"
+#endif // MINIMAL_BUILD
 " -L, --list-events  List the events that the engine supports\n"
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
@@ -775,9 +779,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool filter_proclist_flag = false;
 	string cname;
 	vector<summary_table_entry> summary_table;
+#ifndef MINIMAL_BUILD
 	string* k8s_api = 0;
 	string* k8s_api_cert = 0;
 	string* mesos_api = 0;
+#endif // MINIMAL_BUILD
 	bool force_tracers_capture = false;
 	bool page_faults = false;
 	bool bpf = false;
@@ -999,12 +1005,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				//
 				jflag = true;
 				break;
+#ifndef MINIMAL_BUILD
 			case 'k':
 				k8s_api = new string(optarg);
 				break;
 			case 'K':
 				k8s_api_cert = new string(optarg);
 				break;
+#endif // MINIMAL_BUILD
 			case 'h':
 				usage();
 				delete inspector;
@@ -1016,9 +1024,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				list_events(inspector);
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
+#ifndef MINIMAL_BUILD
 			case 'm':
 				mesos_api = new string(optarg);
 				break;
+#endif // MINIMAL_BUILD
 			case 'M':
 				duration_to_tot = atoi(optarg);
 				if(duration_to_tot <= 0)
@@ -1100,8 +1110,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			case 'r':
 				infiles.push_back(optarg);
+#ifndef MINIMAL_BUILD
 				k8s_api = new string();
 				mesos_api = new string();
+#endif // MINIMAL_BUILD
 				break;
 			case 'S':
 				for(uint32_t j = 0; j < PPM_EVENT_MAX; j++)
@@ -1550,6 +1562,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			//
 			chisels_on_capture_start();
 
+#ifndef MINIMAL_BUILD
 			//
 			// run k8s, if required
 			//
@@ -1606,7 +1619,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			}
 			delete mesos_api;
 			mesos_api = 0;
-
+#endif
 			cinfo = do_inspect(inspector,
 				cnt,
 				uint64_t(duration_to_tot*ONE_SECOND_IN_NS),
