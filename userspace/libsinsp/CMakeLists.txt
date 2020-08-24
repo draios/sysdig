@@ -81,7 +81,6 @@ set(SINSP_SOURCES
 	stats.cpp
 	table.cpp
 	token_bucket.cpp
-	sinsp_auth.cpp
 	stopwatch.cpp
 	uri_parser.c
 	uri.cpp
@@ -94,6 +93,7 @@ set(SINSP_SOURCES
 
 if(NOT MINIMAL_BUILD)
 	list(APPEND SINSP_SOURCES
+		sinsp_auth.cpp
 		k8s.cpp
 		k8s_api_error.cpp
 		k8s_api_handler.cpp
@@ -107,7 +107,6 @@ if(NOT MINIMAL_BUILD)
 		k8s_namespace_handler.cpp
 		k8s_net.cpp
 		k8s_node_handler.cpp
-		k8s_pod_handler.cpp
 		k8s_pod_handler.cpp
 		k8s_replicationcontroller_handler.cpp
 		k8s_replicaset_handler.cpp
@@ -202,8 +201,7 @@ if(NOT WIN32)
 			target_link_libraries(sinsp
 				"${JQ_LIB}"
 				"${B64_LIB}"
-				rt
-				anl)
+				rt)
 		endif() # NOT MINIMAL_BUILD
 		# when JQ is compiled statically, it will
 		# also compile a static object for oniguruma we need to link

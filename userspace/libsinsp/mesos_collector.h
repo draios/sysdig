@@ -19,7 +19,7 @@ limitations under the License.
 //
 // mesos_collector.h
 //
-
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #ifdef HAS_CAPTURE
@@ -74,3 +74,4 @@ inline void mesos_collector::stop()
 }
 
 #endif // HAS_CAPTURE
+#endif // MINIMAL_BUILD

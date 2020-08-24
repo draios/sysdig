@@ -18,6 +18,7 @@ limitations under the License.
 */
 
 #pragma once
+#include <bits/alltypes.h>
 
 #ifdef __cplusplus
 extern "C" {
