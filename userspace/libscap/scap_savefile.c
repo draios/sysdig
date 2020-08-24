@@ -84,6 +84,7 @@ int scap_dump_writev(scap_dumper_t *d, const struct iovec *iov, int iovcnt)
 	return totlen;
 }
 
+#ifdef USE_ZLIB
 int32_t compr(uint8_t* dest, uint64_t* destlen, const uint8_t* source, uint64_t sourcelen, int level)
 {
 	uLongf dl = compressBound(sourcelen);
@@ -104,6 +105,7 @@ int32_t compr(uint8_t* dest, uint64_t* destlen, const uint8_t* source, uint64_t 
 		return SCAP_FAILURE;
 	}
 }
+#endif
 
 uint8_t* scap_get_memorydumper_curpos(scap_dumper_t *d)
 {

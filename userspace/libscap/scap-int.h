@@ -48,6 +48,8 @@ typedef struct wh_t wh_t;
 #define gzoffset ftell
 #define gzwrite(F, B, S) fwrite(B, 1, S, F)
 #define gzread(F, B, S) fread(B, 1, S, F)
+#define gztell(F) ftell(F)
+#define gzerror(F, E) ({*E = ferror(F); "error reading file descriptor";})
 #define gzseek fseek
 #endif
 
