@@ -38,6 +38,7 @@ cmake_minimum_required(VERSION 2.8.2)
 project(sysdig)
 
 option(MINIMAL_BUILD "Produce a minimal sysdig binary with only the essential features, no kubernetes, mesos, marathon and container metadata" OFF)
+option(MUSL_OPTIMIZED_BUILD "Enable if you want a musl optimized build" OFF)
 
 # Add path for custom CMake modules.
 list(APPEND CMAKE_MODULE_PATH
@@ -69,7 +70,8 @@ endif()
 if(NOT WIN32)
 
 	set(SYSDIG_DEBUG_FLAGS "-D_DEBUG")
-	set(CMAKE_COMMON_FLAGS "-Wall -ggdb ${MINIMAL_BUILD_FLAGS}")
+	set(SYSDIG_MUSL_FLAGS "-static -Os -D__NEED_struct_timespec -D__NEED_time_t")
+	set(CMAKE_COMMON_FLAGS "-Wall -ggdb ${MINIMAL_BUILD_FLAGS} ${SYSDIG_MUSL_FLAGS}")
 
 	if(BUILD_WARNINGS_AS_ERRORS)
 		set(CMAKE_SUPPRESSED_WARNINGS "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare -Wno-type-limits -Wno-implicit-fallthrough -Wno-format-truncation")
