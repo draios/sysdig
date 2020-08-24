@@ -22,7 +22,7 @@ limitations under the License.
 #include <json/json.h>
 #include "filter_value.h"
 #include "prefix_search.h"
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 #include "k8s.h"
 #include "mesos.h"
 #endif
@@ -835,7 +835,7 @@ private:
 	char m_addrbuff[100];
 };
 
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 class sinsp_filter_check_k8s : public sinsp_filter_check
 {
@@ -888,9 +888,8 @@ private:
 	string m_tstr;
 };
 
-#endif // CYGWING_AGENT
 
-#ifndef CYGWING_AGENT
+
 class sinsp_filter_check_mesos : public sinsp_filter_check
 {
 public:
@@ -928,6 +927,6 @@ private:
 	string m_argname;
 	string m_tstr;
 };
-#endif // CYGWING_AGENT
+#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 #endif // HAS_FILTERING

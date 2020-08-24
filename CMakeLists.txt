@@ -37,6 +37,8 @@ cmake_minimum_required(VERSION 2.8.2)
 
 project(sysdig)
 
+option(MINIMAL_BUILD "Produce a minimal sysdig binary with only the essential features, no kubernetes, mesos, marathon and container metadata" OFF)
+
 # Add path for custom CMake modules.
 list(APPEND CMAKE_MODULE_PATH
 	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
@@ -60,10 +62,14 @@ add_definitions(-DK8S_DISABLE_THREAD)
 
 option(BUILD_WARNINGS_AS_ERRORS "Enable building with -Wextra -Werror flags")
 
+if(MINIMAL_BUILD)
+  set(MINIMAL_BUILD_FLAGS "-DMINIMAL_BUILD")
+endif()
+
 if(NOT WIN32)
 
 	set(SYSDIG_DEBUG_FLAGS "-D_DEBUG")
-	set(CMAKE_COMMON_FLAGS "-Wall -ggdb")
+	set(CMAKE_COMMON_FLAGS "-Wall -ggdb ${MINIMAL_BUILD_FLAGS}")
 
 	if(BUILD_WARNINGS_AS_ERRORS)
 		set(CMAKE_SUPPRESSED_WARNINGS "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare -Wno-type-limits -Wno-implicit-fallthrough -Wno-format-truncation")
@@ -229,40 +235,42 @@ endif()
 #
 option(USE_BUNDLED_ZLIB "Enable building of the bundled zlib" ${USE_BUNDLED_DEPS})
 
-if(NOT USE_BUNDLED_ZLIB)
-	find_path(ZLIB_INCLUDE zlib.h PATH_SUFFIXES zlib)
-	find_library(ZLIB_LIB NAMES z)
-	if(ZLIB_INCLUDE AND ZLIB_LIB)
-		message(STATUS "Found zlib: include: ${ZLIB_INCLUDE}, lib: ${ZLIB_LIB}")
+# if(NOT MINIMAL_BUILD)
+	if(NOT USE_BUNDLED_ZLIB)
+		find_path(ZLIB_INCLUDE zlib.h PATH_SUFFIXES zlib)
+		find_library(ZLIB_LIB NAMES z)
+		if(ZLIB_INCLUDE AND ZLIB_LIB)
+			message(STATUS "Found zlib: include: ${ZLIB_INCLUDE}, lib: ${ZLIB_LIB}")
+		else()
+			message(FATAL_ERROR "Couldn't find system zlib")
+		endif()
 	else()
-		message(FATAL_ERROR "Couldn't find system zlib")
+		set(ZLIB_SRC "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib")
+		message(STATUS "Using bundled zlib in '${ZLIB_SRC}'")
+		set(ZLIB_INCLUDE "${ZLIB_SRC}")
+		if(NOT WIN32)
+			set(ZLIB_LIB "${ZLIB_SRC}/libz.a")
+			ExternalProject_Add(zlib
+				URL "http://download.draios.com/dependencies/zlib-1.2.11.tar.gz"
+				URL_MD5 "1c9f62f0778697a09d36121ead88e08e"
+				CONFIGURE_COMMAND "./configure"
+				BUILD_COMMAND ${CMD_MAKE}
+				BUILD_IN_SOURCE 1
+				BUILD_BYPRODUCTS ${ZLIB_LIB}
+				INSTALL_COMMAND "")
+		else()
+			set(ZLIB_LIB "${ZLIB_SRC}/zdll.lib")
+			ExternalProject_Add(zlib
+				URL "http://download.draios.com/dependencies/zlib-1.2.11.tar.gz"
+				URL_MD5 "1c9f62f0778697a09d36121ead88e08e"
+				CONFIGURE_COMMAND ""
+				BUILD_COMMAND nmake -f win32/Makefile.msc
+				BUILD_IN_SOURCE 1
+				BUILD_BYPRODUCTS ${ZLIB_LIB}
+				INSTALL_COMMAND "")
+		endif()
 	endif()
-else()
-	set(ZLIB_SRC "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib")
-	message(STATUS "Using bundled zlib in '${ZLIB_SRC}'")
-	set(ZLIB_INCLUDE "${ZLIB_SRC}")
-	if(NOT WIN32)
-		set(ZLIB_LIB "${ZLIB_SRC}/libz.a")
-		ExternalProject_Add(zlib
-			URL "http://download.draios.com/dependencies/zlib-1.2.11.tar.gz"
-			URL_MD5 "1c9f62f0778697a09d36121ead88e08e"
-			CONFIGURE_COMMAND "./configure"
-			BUILD_COMMAND ${CMD_MAKE}
-			BUILD_IN_SOURCE 1
-			BUILD_BYPRODUCTS ${ZLIB_LIB}
-			INSTALL_COMMAND "")
-	else()
-		set(ZLIB_LIB "${ZLIB_SRC}/zdll.lib")
-		ExternalProject_Add(zlib
-			URL "http://download.draios.com/dependencies/zlib-1.2.11.tar.gz"
-			URL_MD5 "1c9f62f0778697a09d36121ead88e08e"
-			CONFIGURE_COMMAND ""
-			BUILD_COMMAND nmake -f win32/Makefile.msc
-			BUILD_IN_SOURCE 1
-			BUILD_BYPRODUCTS ${ZLIB_LIB}
-			INSTALL_COMMAND "")
-	endif()
-endif()
+# endif() # MINIMAL_BUILD
 
 #
 # Intel tbb
@@ -387,7 +395,7 @@ if(NOT WIN32 AND NOT APPLE)
 	endif()
 endif()
 
-if(NOT WIN32)
+if(NOT WIN32 AND NOT MINIMAL_BUILD)
 	#
 	# OpenSSL
 	#
@@ -447,7 +455,7 @@ if(NOT WIN32)
 			BUILD_BYPRODUCTS ${CURL_LIBRARIES}
 			INSTALL_COMMAND "")
 	endif()
-endif() # NOT WIN32 AND NOT APPLE
+endif() # NOT WIN32 AND NOT MINIMAL_BUILD
 
 if(NOT WIN32 AND NOT APPLE)
 	option(USE_BUNDLED_CARES "Enable building of the bundled c-ares" ${USE_BUNDLED_DEPS})
@@ -474,100 +482,103 @@ if(NOT WIN32 AND NOT APPLE)
 		INSTALL_COMMAND ${CMD_MAKE} install)
 	endif()
 
-	option(USE_BUNDLED_PROTOBUF "Enable building of the bundled protobuf" ${USE_BUNDLED_DEPS})
-	if(NOT USE_BUNDLED_PROTOBUF)
-		find_program(PROTOC NAMES protoc)
-		find_path(PROTOBUF_INCLUDE NAMES google/protobuf/message.h)
-		find_library(PROTOBUF_LIB NAMES protobuf)
-		if(PROTOC AND PROTOBUF_INCLUDE AND PROTOBUF_LIB)
-			message(STATUS "Found protobuf: compiler: ${PROTOC}, include: ${PROTOBUF_INCLUDE}, lib: ${PROTOBUF_LIB}")
+	if(NOT MINIMAL_BUILD)
+		option(USE_BUNDLED_PROTOBUF "Enable building of the bundled protobuf" ${USE_BUNDLED_DEPS})
+		if(NOT USE_BUNDLED_PROTOBUF)
+			find_program(PROTOC NAMES protoc)
+			find_path(PROTOBUF_INCLUDE NAMES google/protobuf/message.h)
+			find_library(PROTOBUF_LIB NAMES protobuf)
+			if(PROTOC AND PROTOBUF_INCLUDE AND PROTOBUF_LIB)
+				message(STATUS "Found protobuf: compiler: ${PROTOC}, include: ${PROTOBUF_INCLUDE}, lib: ${PROTOBUF_LIB}")
+			else()
+				message(FATAL_ERROR "Couldn't find system protobuf")
+			endif()
 		else()
-			message(FATAL_ERROR "Couldn't find system protobuf")
+			set(PROTOBUF_SRC "${PROJECT_BINARY_DIR}/protobuf-prefix/src/protobuf")
+			message(STATUS "Using bundled protobuf in '${PROTOBUF_SRC}'")
+			set(PROTOC "${PROTOBUF_SRC}/target/bin/protoc")
+			set(PROTOBUF_INCLUDE "${PROTOBUF_SRC}/target/include")
+			set(PROTOBUF_LIB "${PROTOBUF_SRC}/target/lib/libprotobuf.a")
+			if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "s390x")
+							ExternalProject_Add(protobuf
+							DEPENDS openssl zlib
+							URL "http://download.sysdig.com/dependencies/protobuf-cpp-3.5.0.tar.gz"
+							URL_MD5 "e4ba8284a407712168593e79e6555eb2"
+							PATCH_COMMAND wget http://download.sysdig.com/dependencies/protobuf-3.5.0-s390x.patch && patch -p1 -i protobuf-3.5.0-s390x.patch
+							# TODO what if using system zlib?
+							CONFIGURE_COMMAND /usr/bin/env CPPFLAGS=-I${ZLIB_INCLUDE} LDFLAGS=-L${ZLIB_SRC} ./configure --with-zlib --prefix=${PROTOBUF_SRC}/target
+							COMMAND aclocal && automake
+							BUILD_COMMAND ${CMD_MAKE}
+							BUILD_IN_SOURCE 1
+							BUILD_BYPRODUCTS ${PROTOC} ${PROTOBUF_INCLUDE} ${PROTOBUF_LIB}
+							INSTALL_COMMAND make install)
+					else()
+							ExternalProject_Add(protobuf
+							DEPENDS openssl zlib
+							URL "http://download.sysdig.com/dependencies/protobuf-cpp-3.5.0.tar.gz"
+							URL_MD5 "e4ba8284a407712168593e79e6555eb2"
+							# TODO what if using system zlib?
+							CONFIGURE_COMMAND /usr/bin/env CPPFLAGS=-I${ZLIB_INCLUDE} LDFLAGS=-L${ZLIB_SRC} ./configure --with-zlib --prefix=${PROTOBUF_SRC}/target
+							BUILD_COMMAND ${CMD_MAKE}
+							BUILD_IN_SOURCE 1
+							BUILD_BYPRODUCTS ${PROTOC} ${PROTOBUF_INCLUDE} ${PROTOBUF_LIB}
+							INSTALL_COMMAND make install)
+					endif()
 		endif()
-	else()
-		set(PROTOBUF_SRC "${PROJECT_BINARY_DIR}/protobuf-prefix/src/protobuf")
-		message(STATUS "Using bundled protobuf in '${PROTOBUF_SRC}'")
-		set(PROTOC "${PROTOBUF_SRC}/target/bin/protoc")
-		set(PROTOBUF_INCLUDE "${PROTOBUF_SRC}/target/include")
-		set(PROTOBUF_LIB "${PROTOBUF_SRC}/target/lib/libprotobuf.a")
-		if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "s390x")
-                        ExternalProject_Add(protobuf
-                        DEPENDS openssl zlib
-                        URL "http://download.sysdig.com/dependencies/protobuf-cpp-3.5.0.tar.gz"
-                        URL_MD5 "e4ba8284a407712168593e79e6555eb2"
-                        PATCH_COMMAND wget http://download.sysdig.com/dependencies/protobuf-3.5.0-s390x.patch && patch -p1 -i protobuf-3.5.0-s390x.patch
-                        # TODO what if using system zlib?
-                        CONFIGURE_COMMAND /usr/bin/env CPPFLAGS=-I${ZLIB_INCLUDE} LDFLAGS=-L${ZLIB_SRC} ./configure --with-zlib --prefix=${PROTOBUF_SRC}/target
-                        COMMAND aclocal && automake
-                        BUILD_COMMAND ${CMD_MAKE}
-                        BUILD_IN_SOURCE 1
-                        BUILD_BYPRODUCTS ${PROTOC} ${PROTOBUF_INCLUDE} ${PROTOBUF_LIB}
-                        INSTALL_COMMAND make install)
-                else()
-                        ExternalProject_Add(protobuf
-                        DEPENDS openssl zlib
-                        URL "http://download.sysdig.com/dependencies/protobuf-cpp-3.5.0.tar.gz"
-                        URL_MD5 "e4ba8284a407712168593e79e6555eb2"
-                        # TODO what if using system zlib?
-                        CONFIGURE_COMMAND /usr/bin/env CPPFLAGS=-I${ZLIB_INCLUDE} LDFLAGS=-L${ZLIB_SRC} ./configure --with-zlib --prefix=${PROTOBUF_SRC}/target
-                        BUILD_COMMAND ${CMD_MAKE}
-                        BUILD_IN_SOURCE 1
-                        BUILD_BYPRODUCTS ${PROTOC} ${PROTOBUF_INCLUDE} ${PROTOBUF_LIB}
-                        INSTALL_COMMAND make install)
-                endif()
-	endif()
 
-	option(USE_BUNDLED_GRPC "Enable building of the bundled grpc" ${USE_BUNDLED_DEPS})
-	if(NOT USE_BUNDLED_GRPC)
-		find_path(GRPCXX_INCLUDE NAMES grpc++/grpc++.h)
-		if(GRPCXX_INCLUDE)
-			set(GRPC_INCLUDE ${GRPCXX_INCLUDE})
+
+		option(USE_BUNDLED_GRPC "Enable building of the bundled grpc" ${USE_BUNDLED_DEPS})
+		if(NOT USE_BUNDLED_GRPC)
+			find_path(GRPCXX_INCLUDE NAMES grpc++/grpc++.h)
+			if(GRPCXX_INCLUDE)
+				set(GRPC_INCLUDE ${GRPCXX_INCLUDE})
+			else()
+				find_path(GRPCPP_INCLUDE NAMES grpcpp/grpcpp.h)
+				set(GRPC_INCLUDE ${GRPCPP_INCLUDE})
+				add_definitions(-DGRPC_INCLUDE_IS_GRPCPP=1)
+			endif()
+			find_library(GRPC_LIB NAMES grpc_unsecure)
+			find_library(GRPCPP_LIB NAMES grpc++_unsecure)
+			if(GRPC_INCLUDE AND GRPC_LIB AND GRPCPP_LIB)
+				message(STATUS "Found grpc: include: ${GRPC_INCLUDE}, C lib: ${GRPC_LIB}, C++ lib: ${GRPCPP_LIB}")
+			else()
+				message(FATAL_ERROR "Couldn't find system grpc")
+			endif()
+			find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin)
+			if(NOT GRPC_CPP_PLUGIN)
+				message(FATAL_ERROR "System grpc_cpp_plugin not found")
+			endif()
 		else()
-			find_path(GRPCPP_INCLUDE NAMES grpcpp/grpcpp.h)
-			set(GRPC_INCLUDE ${GRPCPP_INCLUDE})
-			add_definitions(-DGRPC_INCLUDE_IS_GRPCPP=1)
-		endif()
-		find_library(GRPC_LIB NAMES grpc_unsecure)
-		find_library(GRPCPP_LIB NAMES grpc++_unsecure)
-		if(GRPC_INCLUDE AND GRPC_LIB AND GRPCPP_LIB)
-			message(STATUS "Found grpc: include: ${GRPC_INCLUDE}, C lib: ${GRPC_LIB}, C++ lib: ${GRPCPP_LIB}")
-		else()
-			message(FATAL_ERROR "Couldn't find system grpc")
-		endif()
-		find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin)
-		if(NOT GRPC_CPP_PLUGIN)
-			message(FATAL_ERROR "System grpc_cpp_plugin not found")
-		endif()
-	else()
-		find_package(PkgConfig)
-		if(NOT PKG_CONFIG_FOUND)
-			message(FATAL_ERROR "pkg-config binary not found")
-		endif()
-		message(STATUS "Found pkg-config executable: ${PKG_CONFIG_EXECUTABLE}")
-		set(GRPC_SRC "${PROJECT_BINARY_DIR}/grpc-prefix/src/grpc")
-		message(STATUS "Using bundled grpc in '${GRPC_SRC}'")
-		set(GRPC_INCLUDE "${GRPC_SRC}/include")
-		set(GRPC_LIB "${GRPC_SRC}/libs/opt/libgrpc_unsecure.a")
-		set(GRPCPP_LIB "${GRPC_SRC}/libs/opt/libgrpc++_unsecure.a")
-		set(GRPC_CPP_PLUGIN "${GRPC_SRC}/bins/opt/grpc_cpp_plugin")
+			find_package(PkgConfig)
+			if(NOT PKG_CONFIG_FOUND)
+				message(FATAL_ERROR "pkg-config binary not found")
+			endif()
+			message(STATUS "Found pkg-config executable: ${PKG_CONFIG_EXECUTABLE}")
+			set(GRPC_SRC "${PROJECT_BINARY_DIR}/grpc-prefix/src/grpc")
+			message(STATUS "Using bundled grpc in '${GRPC_SRC}'")
+			set(GRPC_INCLUDE "${GRPC_SRC}/include")
+			set(GRPC_LIB "${GRPC_SRC}/libs/opt/libgrpc_unsecure.a")
+			set(GRPCPP_LIB "${GRPC_SRC}/libs/opt/libgrpc++_unsecure.a")
+			set(GRPC_CPP_PLUGIN "${GRPC_SRC}/bins/opt/grpc_cpp_plugin")
 
-		get_filename_component(PROTOC_DIR ${PROTOC} PATH)
+			get_filename_component(PROTOC_DIR ${PROTOC} PATH)
 
-		ExternalProject_Add(grpc
-		DEPENDS protobuf zlib c-ares
-		URL "http://download.draios.com/dependencies/grpc-1.8.1.tar.gz"
-		URL_MD5 "2fc42c182a0ed1b48ad77397f76bb3bc"
-		CONFIGURE_COMMAND ""
-		# TODO what if using system openssl, protobuf or cares?
-		BUILD_COMMAND CFLAGS=-Wno-implicit-fallthrough HAS_SYSTEM_ZLIB=false LDFLAGS=-static PATH=${PROTOC_DIR}:$ENV{PATH} PKG_CONFIG_PATH=${OPENSSL_BUNDLE_DIR}:${PROTOBUF_SRC}:${CARES_SRC} PKG_CONFIG=${PKG_CONFIG_EXECUTABLE} make grpc_cpp_plugin static_cxx static_c
-		BUILD_IN_SOURCE 1
-		BUILD_BYPRODUCTS ${GRPC_LIB} ${GRPCPP_LIB}
-		# TODO s390x support
-		# TODO what if using system zlib
-		PATCH_COMMAND rm -rf third_party/zlib && ln -s ${ZLIB_SRC} third_party/zlib && wget https://download.sysdig.com/dependencies/grpc-1.8.1-Makefile.patch && patch < grpc-1.8.1-Makefile.patch
-		INSTALL_COMMAND "")
-	endif()
-endif() # NOT WIN32 AND NOT APPLE
+			ExternalProject_Add(grpc
+			DEPENDS protobuf zlib c-ares
+			URL "http://download.draios.com/dependencies/grpc-1.8.1.tar.gz"
+			URL_MD5 "2fc42c182a0ed1b48ad77397f76bb3bc"
+			CONFIGURE_COMMAND ""
+			# TODO what if using system openssl, protobuf or cares?
+			BUILD_COMMAND CFLAGS=-Wno-implicit-fallthrough HAS_SYSTEM_ZLIB=false LDFLAGS=-static PATH=${PROTOC_DIR}:$ENV{PATH} PKG_CONFIG_PATH=${OPENSSL_BUNDLE_DIR}:${PROTOBUF_SRC}:${CARES_SRC} PKG_CONFIG=${PKG_CONFIG_EXECUTABLE} make grpc_cpp_plugin static_cxx static_c
+			BUILD_IN_SOURCE 1
+			BUILD_BYPRODUCTS ${GRPC_LIB} ${GRPCPP_LIB}
+			# TODO s390x support
+			# TODO what if using system zlib
+			PATCH_COMMAND rm -rf third_party/zlib && ln -s ${ZLIB_SRC} third_party/zlib && wget https://download.sysdig.com/dependencies/grpc-1.8.1-Makefile.patch && patch < grpc-1.8.1-Makefile.patch
+			INSTALL_COMMAND "")
+		endif()
+	endif() # NOT WIN32 AND NOT APPLE
+endif() # MINIMAL_BUILD
 
 option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
 if(CREATE_TEST_TARGETS AND NOT WIN32)
