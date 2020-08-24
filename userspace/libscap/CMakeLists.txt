@@ -59,7 +59,7 @@ endif()
 add_library(scap STATIC
 	${targetfiles})
 
-if(USE_BUNDLED_ZLIB)
+if(USE_BUNDLED_ZLIB AND NOT MINIMAL_BUILD)
 	add_dependencies(scap zlib)
 endif()
 
@@ -79,8 +79,10 @@ elseif (CYGWIN)
 		${WIN_HAL_LIB}/dragent_win_hal.lib)
 endif()
 
+if(NOT MINIMAL_BUILD)
 target_link_libraries(scap
 	"${ZLIB_LIB}")
+endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
