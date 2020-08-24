@@ -18,7 +18,9 @@ limitations under the License.
 */
 
 #pragma once
+#ifdef MUSL_OPTIMIZED
 #include <bits/alltypes.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {

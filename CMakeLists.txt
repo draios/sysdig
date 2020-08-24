@@ -67,11 +67,16 @@ if(MINIMAL_BUILD)
   set(MINIMAL_BUILD_FLAGS "-DMINIMAL_BUILD")
 endif()
 
+if(MUSL_OPTIMIZED_BUILD)
+	set(SYSDIG_MUSL_FLAGS "-static -Os -D__NEED_struct_timespec -D__NEED_time_t")
+	set(MUSL_OPTIMIZED_BUILD_FLAGS "-DMUSL_OPTIMIZED")
+endif()
+
+
 if(NOT WIN32)
 
 	set(SYSDIG_DEBUG_FLAGS "-D_DEBUG")
-	set(SYSDIG_MUSL_FLAGS "-static -Os -D__NEED_struct_timespec -D__NEED_time_t")
-	set(CMAKE_COMMON_FLAGS "-Wall -ggdb ${MINIMAL_BUILD_FLAGS} ${SYSDIG_MUSL_FLAGS}")
+	set(CMAKE_COMMON_FLAGS "-Wall -ggdb ${MINIMAL_BUILD_FLAGS} ${SYSDIG_MUSL_FLAGS} ${MUSL_OPTIMIZED_BUILD_FLAGS}")
 
 	if(BUILD_WARNINGS_AS_ERRORS)
 		set(CMAKE_SUPPRESSED_WARNINGS "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare -Wno-type-limits -Wno-implicit-fallthrough -Wno-format-truncation")
