@@ -21,6 +21,7 @@ limitations under the License.
 //
 // connects and gets the data from k8s_net REST API interface
 //
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #ifdef HAS_CAPTURE
@@ -180,3 +181,5 @@ namespace k8s_net
 }
 
 #endif // HAS_CAPTURE
+
+#endif // MINIMAL_BUILD

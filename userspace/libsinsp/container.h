@@ -28,7 +28,7 @@ limitations under the License.
 #include "event.h"
 #include "container_info.h"
 
-#if !defined(_WIN32) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
+#if !defined(_WIN32) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE) && !defined(MINIMAL_BUILD)
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <curl/multi.h>

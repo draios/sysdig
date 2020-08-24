@@ -21,7 +21,7 @@ limitations under the License.
 //
 // kubernetes REST API notification abstraction
 //
-
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #include "k8s.h"
@@ -227,3 +227,5 @@ inline void k8s_dispatcher::remove()
 {
 	m_messages.pop_front();
 }
+
+#endif // MINIMAL_BUILD

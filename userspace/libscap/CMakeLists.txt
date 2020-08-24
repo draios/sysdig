@@ -43,8 +43,12 @@ endif()
 
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+	if(NOT MINIMAL_BUILD)
+		list(APPEND targetfiles
+			scap_bpf.c
+		)
+	endif()
 	list(APPEND targetfiles
-		scap_bpf.c
 		../../driver/syscall_table.c
 		../../driver/fillers_table.c)
 
@@ -67,9 +71,11 @@ if (CMAKE_SYSTEM_NAME MATCHES "SunOS")
 	target_link_libraries(scap
 		socket nsl)
 elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
-	target_link_libraries(scap
-		elf
-		rt)
+	if(NOT MINIMAL_BUILD)
+		target_link_libraries(scap
+			elf
+			rt)
+	endif()
 elseif (WIN32)
 	target_link_libraries(scap
 		Ws2_32.lib)
