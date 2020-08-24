@@ -22,7 +22,7 @@ limitations under the License.
 #include <limits.h>
 #include <stdlib.h>
 #include <sys/time.h>
-#ifdef __GLIBC__ 
+#ifdef __GLIBC__
 #include <execinfo.h>
 #endif
 #include <unistd.h>
