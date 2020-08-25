@@ -1463,6 +1463,8 @@ const char* param_type_to_string(ppm_param_type pt)
 		return "CHARBUFARRAY";
 	case PT_CHARBUF_PAIR_ARRAY:
 		return "CHARBUF_PAIR_ARRAY";
+	case PT_FSRELPATH:
+		return "FSRELPATH";
 	default:
 		ASSERT(false);
 		return "<NA>";

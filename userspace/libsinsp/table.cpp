@@ -1455,6 +1455,7 @@ uint32_t sinsp_table::get_field_len(uint32_t id)
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
 	case PT_FSPATH:
+	case PT_FSRELPATH:
 	default:
 		ASSERT(false);
 		return false;

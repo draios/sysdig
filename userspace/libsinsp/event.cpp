@@ -24,6 +24,7 @@ limitations under the License.
 #include <inttypes.h>
 #include <sys/socket.h>
 #include <algorithm>
+#include <unistd.h>
 #else
 #define NOMINMAX
 #endif
@@ -896,6 +897,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 
 	case PT_CHARBUF:
 	case PT_FSPATH:
+	case PT_FSRELPATH:
 	case PT_BYTEBUF:
 		ret = get_param_as_str(id, resolved_str, fmt);
 		break;
@@ -1402,38 +1404,71 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	return ret;
 }
 
-string sinsp_evt::get_cwd(uint32_t id, sinsp_threadinfo *tinfo)
+std::string sinsp_evt::get_cwd(uint32_t id, sinsp_threadinfo *tinfo)
 {
-	auto cwd = tinfo->get_cwd();
+	std::string cwd = tinfo->get_cwd();
 
-	// Defensively ensure that pathname is not at index 0
-	if (id > 0)
+	const ppm_param_info* param_info = &m_info->params[id];
+
+	// Ensure we have the correct parameter type
+	if (param_info->type != PT_FSRELPATH)
 	{
-		auto param = &(m_params[id]);
-		auto payload = param->m_val;
-
-		// If pathname is relative (does not start with a "/")
-		if (strncmp(payload, "/", 1) != 0)
-		{
-			// Get the previous parameter
-			auto prev_id = id - 1;
-			auto prev_param = &(m_params[prev_id]);
-			auto prev_payload = prev_param->m_val;
-			auto prev_param_info = &(m_info->params[prev_id]);
-			// If the previous param is a fd with a value other than AT_FDCWD,
-			// use such value as the current working directory
-			if (prev_param_info->type == PT_FD && *prev_payload != PPM_AT_FDCWD)
-			{
-				auto prev_fdinfo = tinfo->get_fd(*(int64_t *)prev_payload);
-				// Make sure we remove invalid characters from the resolved name
-				auto sanitized_prev_fd_str = prev_fdinfo->m_name;
-				sanitize_string(sanitized_prev_fd_str);
-				cwd = sanitized_prev_fd_str + "/";
-			}
-		}
+		ASSERT(param_info->type == PT_FSRELPATH);
+		return cwd;
 	}
 
-	return cwd;
+	uint64_t dirfd_id = (uint64_t)param_info->info;
+	const ppm_param_info* dir_param_info = &(m_info->params[dirfd_id]);
+
+	// Ensure the index points to an actual FD
+	if (dir_param_info->type != PT_FD)
+	{
+		ASSERT(dir_param_info->type == PT_FD);
+		return cwd;
+	}
+
+	const sinsp_evt_param* dir_param = &m_params[dirfd_id];
+	const int64_t dirfd = *(int64_t*)dir_param->m_val;
+
+	// If the FD is special value PPM_AT_FDCWD, just use CWD
+	if (dirfd == PPM_AT_FDCWD)
+	{
+		return cwd;
+	}
+
+	// If the previous param is a fd with a value other than AT_FDCWD,
+	// use such value as the current working directory
+	sinsp_fdinfo_t* dir_fdinfo = tinfo->get_fd(dirfd);
+	if (!dir_fdinfo)
+	{
+#ifndef _WIN32
+		// Sad day; we don't have the directory in the tinfo's fd cache.
+		// Must manually look it up so we can resolve filenames correctly.
+		char path[PATH_MAX];
+		int ret;
+		ret = fchdir(dirfd);
+		if (ret != 0)
+		{
+			return cwd;
+		}
+		if (getcwd(path, PATH_MAX) == nullptr)
+		{
+			chdir(cwd.c_str());
+			return cwd;
+		}
+		chdir(cwd.c_str());
+		std::string rel_path_base = path;
+		sanitize_string(rel_path_base);
+		rel_path_base.append("/");
+		return rel_path_base;
+#else
+		return cwd;
+#endif
+	}
+	std::string rel_path_base = dir_fdinfo->m_name;
+	sanitize_string(rel_path_base);
+	rel_path_base.append("/");
+	return rel_path_base;
 }
 
 const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_str, sinsp_evt::param_fmt fmt)
@@ -1633,6 +1668,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		         "%s", payload);
 		break;
 	case PT_FSPATH:
+	case PT_FSRELPATH:
 	{
 		strcpy_sanitized(&m_paramstr_storage[0],
 			payload,
@@ -1644,7 +1680,16 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			if (strncmp(payload, "<NA>", 4) != 0)
 			{
-				string cwd = get_cwd(id, tinfo);
+				string cwd;
+				if (param_info->type == PT_FSPATH)
+				{
+					cwd = tinfo->get_cwd();
+				}
+				else
+				{
+					ASSERT(param_info->type == PT_FSRELPATH);
+					cwd = get_cwd(id, tinfo);
+				}
 
 				if(payload_len + cwd.length() >= m_resolved_paramstr_storage.size())
 				{

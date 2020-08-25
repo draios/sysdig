@@ -88,7 +88,7 @@ class SINSP_PUBLIC sinsp_evt_param
 {
 public:
 	char* m_val;	///< Pointer to the event parameter data.
-	uint16_t m_len; ///< Length os the parameter pointed by m_val.
+	uint16_t m_len; ///< Length of the parameter pointed by m_val.
 private:
 	inline void init(char* valptr, uint16_t len)
 	{
