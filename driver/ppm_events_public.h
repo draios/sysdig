@@ -1410,7 +1410,7 @@ struct ppm_param_info {
 	enum ppm_print_format fmt; /**< If this is a numeric parameter, this flag specifies if it should be rendered as decimal or hex. */
 	const void *info; /**< If this is a flags parameter, it points to an array of ppm_name_value,
 						   if this is a FSRELPATH parameter, it references the related dirfd,
-			       else if this is a dynamic parameter it points to an array of ppm_param_info */
+					   else if this is a dynamic parameter it points to an array of ppm_param_info */
 	uint8_t ninfo; /**< Number of entry in the info array. */
 } _packed;
 

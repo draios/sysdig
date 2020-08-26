@@ -813,8 +813,8 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 		case PT_BYTEBUF:
 		case PT_IPV4ADDR:
 		case PT_IPV6ADDR:
-	    case PT_IPADDR:
-	    case PT_FSRELPATH:
+		case PT_IPADDR:
+		case PT_FSRELPATH:
 			return rawval_to_string(rawval, ptype, print_format, len);
 		default:
 			ASSERT(false);
@@ -1040,7 +1040,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			return m_getpropertystr_storage;
 		case PT_CHARBUF:
 		case PT_FSPATH:
-	    case PT_FSRELPATH:
+		case PT_FSRELPATH:
 			return (char*)rawval;
 		case PT_BYTEBUF:
 			if(rawval[len] == 0)

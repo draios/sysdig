@@ -1410,10 +1410,10 @@ std::string sinsp_evt::get_cwd(uint32_t id, sinsp_threadinfo *tinfo)
 
 	const ppm_param_info* param_info = &m_info->params[id];
 
-	// Ensure we have the correct parameter type
+	// If it's a regular FSPATH, just return the thread's CWD
 	if (param_info->type != PT_FSRELPATH)
 	{
-		ASSERT(param_info->type == PT_FSRELPATH);
+		ASSERT(param_info->type == PT_FSPATH);
 		return cwd;
 	}
 
@@ -1444,20 +1444,22 @@ std::string sinsp_evt::get_cwd(uint32_t id, sinsp_threadinfo *tinfo)
 #ifndef _WIN32
 		// Sad day; we don't have the directory in the tinfo's fd cache.
 		// Must manually look it up so we can resolve filenames correctly.
-		char path[PATH_MAX];
+		char proc_path[PATH_MAX];
+		char dirfd_path[PATH_MAX];
 		int ret;
-		ret = fchdir(dirfd);
-		if (ret != 0)
+		snprintf(proc_path,
+		         sizeof(proc_path),
+		         "/proc/%lld/fd/%lld",
+		         (long long)tinfo->m_pid,
+		         (long long)dirfd);
+
+		ret = readlink(proc_path, dirfd_path, sizeof(dirfd_path) - 1);
+		if (ret < 0)
 		{
 			return cwd;
 		}
-		if (getcwd(path, PATH_MAX) == nullptr)
-		{
-			chdir(cwd.c_str());
-			return cwd;
-		}
-		chdir(cwd.c_str());
-		std::string rel_path_base = path;
+		dirfd_path[ret] = '\0';
+		std::string rel_path_base = dirfd_path;
 		sanitize_string(rel_path_base);
 		rel_path_base.append("/");
 		return rel_path_base;
@@ -1678,18 +1680,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 		if(tinfo && payload_len > 0)
 		{
-			if (strncmp(payload, "<NA>", 4) != 0)
+			if(strncmp(payload, "<NA>", 4) != 0)
 			{
-				string cwd;
-				if (param_info->type == PT_FSPATH)
-				{
-					cwd = tinfo->get_cwd();
-				}
-				else
-				{
-					ASSERT(param_info->type == PT_FSRELPATH);
-					cwd = get_cwd(id, tinfo);
-				}
+				string cwd = get_cwd(id, tinfo);
 
 				if(payload_len + cwd.length() >= m_resolved_paramstr_storage.size())
 				{
