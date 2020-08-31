@@ -1418,8 +1418,13 @@ std::string sinsp_evt::get_cwd(uint32_t id, sinsp_threadinfo *tinfo)
 	}
 
 	uint64_t dirfd_id = (uint64_t)param_info->info;
-	const ppm_param_info* dir_param_info = &(m_info->params[dirfd_id]);
+	if (dirfd_id >= m_info->nparams)
+	{
+		ASSERT(dirfd_id < m_info->nparams);
+		return cwd;
+	}
 
+	const ppm_param_info* dir_param_info = &(m_info->params[dirfd_id]);
 	// Ensure the index points to an actual FD
 	if (dir_param_info->type != PT_FD)
 	{
