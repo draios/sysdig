@@ -91,6 +91,12 @@ set(SINSP_SOURCES
 	viewinfo.cpp
 )
 
+if(MUSL_OPTIMIZED_BUILD)
+	list(APPEND SINSP_SOURCES
+		getaddrinfo_a.cpp
+	)
+endif()
+
 if(NOT MINIMAL_BUILD)
 	list(APPEND SINSP_SOURCES
 		sinsp_auth.cpp
@@ -194,9 +200,14 @@ if(NOT WIN32)
 				"${PROTOBUF_LIB}"
 				"${CARES_LIB}"
 				"${JQ_LIB}"
-				"${B64_LIB}"
+				"${B64_LIB}")
+
+			if(NOT MUSL_OPTIMIZED_BUILD)
+			target_link_libraries(sinsp
 				rt
 				anl)
+			endif()
+
 		else()
 			target_link_libraries(sinsp
 				"${JQ_LIB}"

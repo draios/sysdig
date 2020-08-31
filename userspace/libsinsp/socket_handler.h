@@ -25,6 +25,7 @@ limitations under the License.
 
 #ifdef HAS_CAPTURE
 
+#include "getaddrinfo_a.h"
 #include "http_parser.h"
 #include "uri.h"
 #include "json/json.h"
