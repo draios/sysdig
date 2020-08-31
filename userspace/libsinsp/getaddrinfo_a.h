@@ -19,7 +19,6 @@ int gai_error(struct gaicb *req);
 
 int gai_cancel(struct gaicb *gaicbp);
 
-// questo non puo' funzionare perche' abbiamo bisogno di avere i risultati
-// in maniera asincrona
+// This is just a placeholder for now, we need to do it in an asynchronous way like it is in glibc
 #define getaddrinfo_a(M, L, N, S) getaddrinfo(NULL, L[0]->ar_service, L[0]->ar_request, &L[0]->ar_result)
 #endif
