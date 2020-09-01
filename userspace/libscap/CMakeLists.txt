@@ -67,11 +67,9 @@ if (CMAKE_SYSTEM_NAME MATCHES "SunOS")
 	target_link_libraries(scap
 		socket nsl)
 elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
-	if(NOT MINIMAL_BUILD)
-		target_link_libraries(scap
-			elf
-			rt)
-	endif()
+	target_link_libraries(scap
+		elf
+		rt)
 elseif (WIN32)
 	target_link_libraries(scap
 		Ws2_32.lib)
