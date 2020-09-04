@@ -91,12 +91,6 @@ set(SINSP_SOURCES
 	viewinfo.cpp
 )
 
-if(MUSL_OPTIMIZED_BUILD)
-	list(APPEND SINSP_SOURCES
-		getaddrinfo_a.cpp
-	)
-endif()
-
 if(NOT MINIMAL_BUILD)
 	list(APPEND SINSP_SOURCES
 		sinsp_auth.cpp
@@ -156,7 +150,7 @@ endif()
 
 add_library(sinsp STATIC ${SINSP_SOURCES})
 
-target_link_libraries(sinsp 
+target_link_libraries(sinsp
 	scap
 	"${CURL_LIBRARIES}"
 	"${JSONCPP_LIB}"
@@ -190,13 +184,13 @@ if(NOT WIN32)
 				configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/patch/musl-cri.proto.patch ${CMAKE_CURRENT_BINARY_DIR}/cmake/patch/musl-cri.proto.patch COPYONLY)
 				set(CRI_PROTO_PATCH_MUSL_COMMAND patch -d ${CMAKE_CURRENT_BINARY_DIR}  -p3 -i ${CMAKE_CURRENT_BINARY_DIR}/cmake/patch/musl-cri.proto.patch)
 			endif()
-			
+
 			add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.cc
 						${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.h
 						${CMAKE_CURRENT_BINARY_DIR}/cri.pb.cc
 						${CMAKE_CURRENT_BINARY_DIR}/cri.pb.h
 					COMMENT "Generate CRI grpc code"
-					DEPENDS 
+					DEPENDS
 					COMMAND ${CRI_PROTO_PATCH_MUSL_COMMAND}
 					COMMAND ${PROTOC} -I ${CMAKE_CURRENT_BINARY_DIR} --cpp_out=. ${CMAKE_CURRENT_BINARY_DIR}/cri.proto
 					COMMAND ${PROTOC} -I ${CMAKE_CURRENT_BINARY_DIR} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} ${CMAKE_CURRENT_BINARY_DIR}/cri.proto
