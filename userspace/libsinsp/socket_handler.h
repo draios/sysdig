@@ -59,23 +59,6 @@ limitations under the License.
 #define SOCK_NONBLOCK 0
 #endif
 
-struct gaicb_free
-{
-	void operator() (struct gaicb **reqs) const
-		{
-			if(reqs[0]->ar_result)
-			{
-				freeaddrinfo(reqs[0]->ar_result);
-			}
-			if(reqs[0]->ar_name)
-			{
-				free((void*)reqs[0]->ar_name);
-			}
-			free(reqs[0]);
-			free(reqs);
-		}
-};
-
 template <typename T>
 class socket_data_handler
 {
@@ -1454,68 +1437,6 @@ private:
 		m_connect_called = true;
 	}
 
-	bool dns_req_done(struct gaicb** dns_reqs) const
-	{
-		if(dns_reqs && dns_reqs[0])
-		{
-			int ret = gai_cancel(dns_reqs[0]);
-			int err = gai_error(dns_reqs[0]);
-			if(ret == EAI_ALLDONE || err == EAI_CANCELED)
-			{
-				return true;
-			}
-			else if(err == EAI_INPROGRESS || err == EAI_AGAIN)
-			{
-				std::string errstr = (err == EAI_INPROGRESS ) ?
-									"processing in progress" :
-									"resources temporarily unavailable";
-				g_logger.log("Socket handler (" + m_id + ") connection [" + m_url.to_string(false) + "], "
-							 " cancelling DNS request postponed (" + errstr + ")"
-							 "\n err: (" + std::to_string(err) + ") " + gai_strerror(err),
-							 sinsp_logger::SEV_DEBUG);
-				return false;
-			}
-			else
-			{
-				g_logger.log("Socket handler (" + m_id + ") connection [" + m_url.to_string(false) + "], "
-							 "error canceling DNS request"
-							 "\n ret: (" + std::to_string(ret) + ") " + gai_strerror(ret) +
-							 "\n err: (" + std::to_string(err) + ") " + gai_strerror(err),
-							 sinsp_logger::SEV_ERROR);
-				return false;
-			}
-		}
-		return true;
-	}
-
-	void dns_cleanup()
-	{
-		for(dns_list_t::iterator it = m_pending_dns_reqs.begin(); it != m_pending_dns_reqs.end();)
-		{
-			if(dns_req_done(it->get()))
-			{
-				it = m_pending_dns_reqs.erase(it);
-				g_logger.log("Socket handler: postponed canceling of DNS request succeeded, number of pending "
-							 "cancellation requests: " + std::to_string(m_pending_dns_reqs.size()),
-							 sinsp_logger::SEV_TRACE);
-			}
-			else { ++it; }
-		}
-
-		std::size_t pending_reqs = m_pending_dns_reqs.size();
-		if(pending_reqs)
-		{
-			g_logger.log("Socket handler: number of pending DNS cancellation requests is " + std::to_string(pending_reqs),
-						 (pending_reqs > 10) ? sinsp_logger::SEV_WARNING : sinsp_logger::SEV_TRACE);
-		}
-
-		if(!dns_req_done(m_dns_reqs.get()))
-		{
-			m_pending_dns_reqs.emplace_back(std::move(m_dns_reqs));
-		}
-		m_dns_reqs = nullptr;
-	}
-
 	void ssl_cleanup()
 	{
 		SSL_free(m_ssl_connection);
@@ -1658,17 +1579,6 @@ private:
 		return http_reason::get(status);
 	}
 
-	using gaicb_t = std::unique_ptr<struct gaicb* [], gaicb_free>;
-	using dns_list_t = std::deque<gaicb_t>;
-
-	gaicb_t make_gaicb(const std::string &host)
-	{
-		gaicb_t dns_reqs((struct gaicb**)calloc(1, sizeof(struct gaicb*)));
-		dns_reqs[0] = (struct gaicb*)calloc(1, sizeof(struct gaicb));
-		dns_reqs[0]->ar_name = strdup(m_url.get_host().c_str());
-		return dns_reqs;
-	}
-
 	T&                       m_obj;
 	std::string              m_id;
 	uri                      m_url;
@@ -1684,8 +1594,6 @@ private:
 	bool                     m_blocking = false;
 	std::vector<char>        m_buf;
 	int                      m_sock_err = 0;
-	gaicb_t m_dns_reqs = nullptr;
-	static dns_list_t        m_pending_dns_reqs;
 	ssl_ptr_t                m_ssl;
 	bt_ptr_t                 m_bt;
 	long                     m_timeout_ms;
@@ -1733,7 +1641,5 @@ template <typename T>
 const std::string socket_data_handler<T>::HTTP_VERSION_10 = "1.0";
 template <typename T>
 const std::string socket_data_handler<T>::HTTP_VERSION_11 = "1.1";
-template <typename T>
-typename socket_data_handler<T>::dns_list_t socket_data_handler<T>::m_pending_dns_reqs;
 
 #endif // HAS_CAPTURE
