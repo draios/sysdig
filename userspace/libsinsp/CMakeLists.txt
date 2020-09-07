@@ -31,6 +31,7 @@ if(NOT WIN32 AND NOT APPLE)
 		include_directories("${PROTOBUF_INCLUDE}")
 		include_directories("${OPENSSL_INCLUDE_DIR}")
 		include_directories("${CURL_INCLUDE_DIR}")
+		include_directories("${CARES_INCLUDE}")
 	endif() # NOT MINIMAL_BUILD
 	include_directories("${JQ_INCLUDE}")
 	include_directories("${CMAKE_CURRENT_BINARY_DIR}")
@@ -41,6 +42,7 @@ if(NOT WIN32)
 endif() # NOT WIN32
 
 set(SINSP_SOURCES
+	addrinfo.cpp
 	chisel.cpp
 	chisel_api.cpp
 	container.cpp
@@ -154,7 +156,8 @@ target_link_libraries(sinsp
 	scap
 	"${CURL_LIBRARIES}"
 	"${JSONCPP_LIB}"
-	"${TBB_LIB}")
+	"${TBB_LIB}"
+	"${CARES_LIB}")
 
 if(USE_BUNDLED_LUAJIT)
 	add_dependencies(sinsp luajit)
