@@ -25,6 +25,8 @@ limitations under the License.
 
 #ifdef HAS_CAPTURE
 
+#include "ares.h"
+#include "addrinfo.h"
 #include "http_parser.h"
 #include "uri.h"
 #include "json/json.h"
@@ -1323,100 +1325,65 @@ private:
 
 	bool try_resolve()
 	{
-		if(is_resolved())
+		if (is_resolved())
 		{
 			return true;
 		}
 		else
 		{
-			if(inet_aton(m_url.get_host().c_str(), &m_serv_addr.sin_addr)) // IP address provided
+			if (inet_aton(m_url.get_host().c_str(), &m_serv_addr.sin_addr)) // IP address provided
 			{
 				m_address = m_url.get_host();
 			}
 			else // name provided, resolve to IP address
 			{
 				m_serv_addr = {0};
-				int ret = 0;
-				if(!m_dns_reqs) // first call, call async resolver
+
+				if (!m_ares_cb_res.done) // first call, call async resolver
 				{
 					g_logger.log("Socket handler (" + m_id + ") resolving " + m_url.get_host(),
 								 sinsp_logger::SEV_TRACE);
-					m_dns_reqs = make_gaicb(m_url.get_host());
-					ret = getaddrinfo_a(GAI_NOWAIT, m_dns_reqs.get(), 1, NULL);
-					if(ret)
+
+					// todo(leodido, fntlnz) > check these two opts
+					m_ares_opts.socket_send_buffer_size = 514;
+					m_ares_opts.socket_receive_buffer_size = 514;
+					ares_init_options(&m_ares_channel, &m_ares_opts, 0);
+					ares_gethostbyname(m_ares_channel, m_url.get_host().c_str(), AF_INET, ares_cb, &m_ares_cb_res);
+
+					if (!m_ares_cb_res.call)
 					{
-						throw sinsp_exception("Socket handler (" + m_id + "): " + m_url.get_host() +
-									 " getaddrinfo_a() failed: " + gai_strerror(ret));
+						int nfds;
+						fd_set read_fds, write_fds;
+						nfds = ares_fds(m_ares_channel, &read_fds, &write_fds);
+						if (nfds == 0)
+						{
+							// todo(leodido, fntlnz) > log
+							return false;
+						}
+						ares_process(m_ares_channel, &read_fds, &write_fds);
+						m_ares_cb_res.call = true;
 					}
+
+					// todo(leodido, fntlnz) > how to detect an early error (eg., malformed hostname) and throw a sinsp_exception?
 					return false;
 				}
-				else // rest of the calls, try to get resolver result
+				else // rest of the calls, check if address was resolved
 				{
-					g_logger.log("Socket handler (" + m_id + ") checking resolve for " + m_url.get_host(),
-								 sinsp_logger::SEV_TRACE);
-					ret = gai_error(m_dns_reqs[0]);
-					g_logger.log("Socket handler (" + m_id + ") gai_error=" + std::to_string(ret),
-								 sinsp_logger::SEV_TRACE);
-					if(!ret)
+					if (m_ares_cb_res.address.empty())
 					{
-						if(m_dns_reqs && m_dns_reqs[0] && m_dns_reqs[0]->ar_result)
-						{
-							for (struct addrinfo* ai = m_dns_reqs[0]->ar_result; ai; ai = ai->ai_next)
-							{
-								if(ai->ai_addrlen && ai->ai_addr && ai->ai_addr->sa_family == AF_INET)
-								{
-									struct sockaddr_in* saddr = (struct sockaddr_in*)ai->ai_addr;
-									if(saddr->sin_addr.s_addr)
-									{
-										m_serv_addr.sin_addr.s_addr = saddr->sin_addr.s_addr;
-										m_address = inet_ntoa(saddr->sin_addr);
-										g_logger.log("Socket handler (" + m_id + "): " + m_url.get_host() +
-													 " resolved to " + m_address, sinsp_logger::SEV_TRACE);
-										dns_cleanup();
-										break;
-									}
-								}
-							}
-							if(!m_serv_addr.sin_addr.s_addr)
-							{
-								g_logger.log("Socket handler (" + m_id + "): " + m_url.get_host() +
-											 " address not resolved yet.", sinsp_logger::SEV_TRACE);
-								return false;
-							}
-						}
-						else
-						{
-							throw sinsp_exception("Socket handler (" + m_id + "): " + m_url.get_host() +
-												  ", resolver request is NULL.");
-						}
-					}
-					else
-					{
-						switch(ret)
-						{
-							case EAI_AGAIN:
-							case EAI_INPROGRESS:
-								g_logger.log("Socket handler (" + m_id + ") [" + m_url.get_host() + "]: " +
-											 gai_strerror(ret), sinsp_logger::SEV_DEBUG);
-								break;
-							case EAI_SYSTEM:
-								g_logger.log("Socket handler (" + m_id + ") [" + m_url.get_host() + "]: " +
-											 ", resolver error: " + gai_strerror(ret) +
-											 ", system error: " + strerror(errno), sinsp_logger::SEV_ERROR);
-								break;
-							default:
-								g_logger.log("Socket handler (" + m_id + ") [" + m_url.get_host() + "]: " +
-											 ", resolver error: " + gai_strerror(ret),
-											 sinsp_logger::SEV_ERROR);
-						}
+						g_logger.log("Socket handler (" + m_id + "): " + m_url.get_host() +
+										 " address not resolved yet.",
+									 sinsp_logger::SEV_TRACE);
 						return false;
 					}
 				}
 			}
 		}
+		m_address = m_ares_cb_res.address;
+		m_serv_addr.sin_addr = m_ares_cb_res.addr;
 		m_serv_addr.sin_family = AF_INET;
 		m_serv_addr.sin_port = htons(m_url.get_port());
-		m_sa = (sockaddr*)&m_serv_addr;
+		m_sa = (sockaddr *)&m_serv_addr;
 		m_sa_len = sizeof(struct sockaddr_in);
 		return true;
 	}
@@ -1562,7 +1529,7 @@ private:
 		free(m_http_parser);
 		m_http_parser = nullptr;
 		close_socket();
-		dns_cleanup();
+		//dns_cleanup();
 		ssl_cleanup();
 	}
 
@@ -1745,6 +1712,10 @@ private:
 	http_parser*             m_http_parser = nullptr;
 	http_parser_data         m_http_parser_data;
 	unsigned                 m_data_limit = 524288; // bytes
+
+	ares_channel             m_ares_channel;
+	ares_options             m_ares_opts;
+	ares_cb_result           m_ares_cb_res;
 
 	// older versions of kubernetes send pretty-printed JSON by default;
 	// that creates a problem with JSON-newline-delimit-based detection logic,
