@@ -7,11 +7,6 @@
 
 void ares_cb(void *arg, int status, int timeouts, struct hostent *host)
 {
-    if (status == ARES_EDESTRUCTION)
-    {
-        return;
-    }
-
     if (status == ARES_SUCCESS)
     {
         struct in_addr addr;
@@ -23,7 +18,5 @@ void ares_cb(void *arg, int status, int timeouts, struct hostent *host)
         res->address = addr_str;
         res->addr = addr;
         res->done = true;
-
-        // todo(leodido, fntlnz) > cleanup? ares_destroy?
     }
 }

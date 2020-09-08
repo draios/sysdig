@@ -1327,14 +1327,10 @@ private:
 					g_logger.log("Socket handler (" + m_id + ") resolving " + m_url.get_host(),
 								 sinsp_logger::SEV_TRACE);
 
-					// todo(leodido, fntlnz) > check these two opts
-					m_ares_opts.socket_send_buffer_size = 514;
-					m_ares_opts.socket_receive_buffer_size = 514;
 					ares_init_options(&m_ares_channel, &m_ares_opts, 0);
 					ares_gethostbyname(m_ares_channel, m_url.get_host().c_str(), AF_INET, ares_cb, &m_ares_cb_res);
 					m_ares_cb_res.call = true;
 
-					// todo(leodido, fntlnz) > how to detect an early error (eg., malformed hostname) and throw a sinsp_exception?
 					return false;
 				}
 				else if (!m_ares_cb_res.done)
@@ -1344,7 +1340,6 @@ private:
 					nfds = ares_fds(m_ares_channel, &read_fds, &write_fds);
 					if (nfds == 0)
 					{
-						// todo(leodido, fntlnz) > log
 						return false;
 					}
 					ares_process(m_ares_channel, &read_fds, &write_fds);
@@ -1447,10 +1442,10 @@ private:
 
 	void cleanup()
 	{
+		ares_destroy(m_ares_channel);
 		free(m_http_parser);
 		m_http_parser = nullptr;
 		close_socket();
-		//dns_cleanup();
 		ssl_cleanup();
 	}
 
