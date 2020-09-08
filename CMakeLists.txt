@@ -464,7 +464,7 @@ if(NOT WIN32 AND NOT MINIMAL_BUILD)
 	endif()
 endif() # NOT WIN32 AND NOT MINIMAL_BUILD
 
-if(NOT WIN32 AND NOT APPLE)
+if(NOT MINIMAL_BUILD)
 	option(USE_BUNDLED_CARES "Enable building of the bundled c-ares" ${USE_BUNDLED_DEPS})
 	if(NOT USE_BUNDLED_CARES)
 		find_path(CARES_INCLUDE NAMES cares/ares.h ares.h)
@@ -488,7 +488,9 @@ if(NOT WIN32 AND NOT APPLE)
 		BUILD_BYPRODUCTS ${CARES_INCLUDE} ${CARES_LIB}
 		INSTALL_COMMAND ${CMD_MAKE} install)
 	endif()
+endif() # NOT MINIMAL_BUILD
 
+if(NOT WIN32 AND NOT APPLE)
 	if(NOT MINIMAL_BUILD)
 		option(USE_BUNDLED_PROTOBUF "Enable building of the bundled protobuf" ${USE_BUNDLED_DEPS})
 		if(NOT USE_BUNDLED_PROTOBUF)
