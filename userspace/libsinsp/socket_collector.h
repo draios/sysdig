@@ -19,7 +19,7 @@ limitations under the License.
 //
 // socket_collector.h
 //
-
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #ifdef HAS_CAPTURE
@@ -388,3 +388,4 @@ private:
 };
 
 #endif // HAS_CAPTURE
+#endif // MINIMAL_BUILD

@@ -20,7 +20,7 @@ limitations under the License.
 //
 // socket_handler.h
 //
-
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #ifdef HAS_CAPTURE
@@ -1638,3 +1638,4 @@ template <typename T>
 const std::string socket_data_handler<T>::HTTP_VERSION_11 = "1.1";
 
 #endif // HAS_CAPTURE
+#endif // MINIMAL_BUILD
