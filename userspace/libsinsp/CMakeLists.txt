@@ -42,7 +42,6 @@ if(NOT WIN32)
 endif() # NOT WIN32
 
 set(SINSP_SOURCES
-	addrinfo.cpp
 	chisel.cpp
 	chisel_api.cpp
 	container.cpp
@@ -95,6 +94,7 @@ set(SINSP_SOURCES
 
 if(NOT MINIMAL_BUILD)
 	list(APPEND SINSP_SOURCES
+		addrinfo.cpp
 		sinsp_auth.cpp
 		k8s.cpp
 		k8s_api_error.cpp
