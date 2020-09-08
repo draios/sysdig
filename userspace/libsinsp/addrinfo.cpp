@@ -23,5 +23,7 @@ void ares_cb(void *arg, int status, int timeouts, struct hostent *host)
         res->address = addr_str;
         res->addr = addr;
         res->done = true;
+
+        // todo(leodido, fntlnz) > cleanup? ares_destroy?
     }
 }

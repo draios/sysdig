@@ -1322,7 +1322,7 @@ private:
 			{
 				m_serv_addr = {0};
 
-				if (!m_ares_cb_res.done) // first call, call async resolver
+				if (!m_ares_cb_res.call) // first call, call async resolver
 				{
 					g_logger.log("Socket handler (" + m_id + ") resolving " + m_url.get_host(),
 								 sinsp_logger::SEV_TRACE);
@@ -1332,22 +1332,22 @@ private:
 					m_ares_opts.socket_receive_buffer_size = 514;
 					ares_init_options(&m_ares_channel, &m_ares_opts, 0);
 					ares_gethostbyname(m_ares_channel, m_url.get_host().c_str(), AF_INET, ares_cb, &m_ares_cb_res);
-
-					if (!m_ares_cb_res.call)
-					{
-						int nfds;
-						fd_set read_fds, write_fds;
-						nfds = ares_fds(m_ares_channel, &read_fds, &write_fds);
-						if (nfds == 0)
-						{
-							// todo(leodido, fntlnz) > log
-							return false;
-						}
-						ares_process(m_ares_channel, &read_fds, &write_fds);
-						m_ares_cb_res.call = true;
-					}
+					m_ares_cb_res.call = true;
 
 					// todo(leodido, fntlnz) > how to detect an early error (eg., malformed hostname) and throw a sinsp_exception?
+					return false;
+				}
+				else if (!m_ares_cb_res.done)
+				{
+					int nfds;
+					fd_set read_fds, write_fds;
+					nfds = ares_fds(m_ares_channel, &read_fds, &write_fds);
+					if (nfds == 0)
+					{
+						// todo(leodido, fntlnz) > log
+						return false;
+					}
+					ares_process(m_ares_channel, &read_fds, &write_fds);
 					return false;
 				}
 				else // rest of the calls, check if address was resolved
