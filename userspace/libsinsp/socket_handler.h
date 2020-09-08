@@ -1359,11 +1359,11 @@ private:
 									 sinsp_logger::SEV_TRACE);
 						return false;
 					}
+					m_address = m_ares_cb_res.address;
+					m_serv_addr.sin_addr = m_ares_cb_res.addr;
 				}
 			}
 		}
-		m_address = m_ares_cb_res.address;
-		m_serv_addr.sin_addr = m_ares_cb_res.addr;
 		m_serv_addr.sin_family = AF_INET;
 		m_serv_addr.sin_port = htons(m_url.get_port());
 		m_sa = (sockaddr *)&m_serv_addr;
