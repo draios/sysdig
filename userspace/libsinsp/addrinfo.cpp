@@ -15,7 +15,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#ifndef MINIMAL_BUILD
 #include "addrinfo.h"
 
 #include <ares.h>
@@ -38,4 +37,3 @@ void ares_cb(void *arg, int status, int timeouts, struct hostent *host)
         res->done = true;
     }
 }
-#endif // MINIMAL_BUILD

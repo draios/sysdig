@@ -23,6 +23,10 @@ include_directories(./include)
 include_directories("${JSONCPP_INCLUDE}")
 include_directories("${LUAJIT_INCLUDE}")
 
+if(NOT MINIMAL_BUILD)
+	include_directories("${CARES_INCLUDE}")
+endif()
+
 if(NOT WIN32 AND NOT APPLE)
 	include_directories("${B64_INCLUDE}")
 	include_directories("${CURSES_INCLUDE_DIR}")
@@ -31,7 +35,6 @@ if(NOT WIN32 AND NOT APPLE)
 		include_directories("${PROTOBUF_INCLUDE}")
 		include_directories("${OPENSSL_INCLUDE_DIR}")
 		include_directories("${CURL_INCLUDE_DIR}")
-		include_directories("${CARES_INCLUDE}")
 	endif() # NOT MINIMAL_BUILD
 	include_directories("${JQ_INCLUDE}")
 	include_directories("${CMAKE_CURRENT_BINARY_DIR}")
