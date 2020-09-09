@@ -1,4 +1,3 @@
-
 /*
 Copyright (C) 2020 Sysdig Inc.
 
