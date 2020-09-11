@@ -19,7 +19,7 @@ limitations under the License.
 //
 // k8s_api_error.h
 //
-
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #include "json/json.h"
@@ -122,3 +122,4 @@ inline std::string k8s_api_error::to_string() const
 		"Code: " << m_message;
 	return os.str();
 }
+#endif // MINIMAL_BUILD

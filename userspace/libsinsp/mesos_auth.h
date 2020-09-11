@@ -20,7 +20,7 @@ limitations under the License.
 //
 // mesos_auth.h
 //
-
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #include "json/json.h"
@@ -57,3 +57,4 @@ private:
 	time_t m_last_token_refresh_s;
 };
 
+#endif // MINIMAL_BUILD

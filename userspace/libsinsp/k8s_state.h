@@ -21,7 +21,7 @@ limitations under the License.
 //
 // kubernetes state abstraction
 //
-
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #include "k8s_component.h"
@@ -661,3 +661,5 @@ inline int k8s_state_t::get_capture_version() const
 {
 	return m_capture_version;
 }
+
+#endif // MINIMAL_BUILD

@@ -19,7 +19,7 @@ limitations under the License.
 //
 // mesos.h
 //
-
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #include "json/json.h"
@@ -264,3 +264,5 @@ inline void mesos::parse_groups(Json::Value&& json, const std::string& framework
 {
 	m_state.parse_groups(std::move(json), framework_id);
 }
+
+#endif // MINIMAL_BUILD

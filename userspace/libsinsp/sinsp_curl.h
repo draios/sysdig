@@ -22,7 +22,7 @@ limitations under the License.
 // Curl utility
 //
 
-#if defined(__linux__)
+#if defined(__linux__) && !defined(MINIMAL_BUILD)
 
 #pragma once
 

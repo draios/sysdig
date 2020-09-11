@@ -19,7 +19,7 @@ limitations under the License.
 //
 // k8s_event_handler.h
 //
-
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #include "json/json.h"
@@ -60,3 +60,5 @@ private:
 	bool         m_event_ignored = false;
 	bool         m_event_limit_exceeded = false;
 };
+
+#endif // MINIMAL_BUILD

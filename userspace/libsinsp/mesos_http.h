@@ -19,7 +19,7 @@ limitations under the License.
 //
 // mesos_http.h
 //
-
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #ifdef HAS_CAPTURE
@@ -263,3 +263,4 @@ public:
 };
 
 #endif // HAS_CAPTURE
+#endif // MINIMAL_BUILD

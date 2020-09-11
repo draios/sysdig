@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2020 Sysdig Inc.
 
 This file is part of sysdig.
 
@@ -14,16 +14,22 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
 */
-//
-// This flag can be used to include unsupported or unrecognized sockets
-// in the fd tables. It's useful to debug close() leaks
-//
-#define INCLUDE_UNKNOWN_SOCKET_FDS
 
 #ifndef MINIMAL_BUILD
-#define USE_ZLIB
-#endif // MINIMAL_BUILD
+#pragma once
 
-#define SCAP_NODRIVER_MAX_FD_LOOKUP 20
+#include <netinet/in.h>
+#include <string>
+
+struct ares_cb_result
+{
+    std::string address;
+    in_addr addr;
+    bool done = false;
+    bool call = false;
+};
+
+void ares_cb(void *arg, int status, int timeouts, struct hostent *host);
+
+#endif // MINIMAL_BUILD

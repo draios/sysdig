@@ -21,7 +21,7 @@ limitations under the License.
 //
 // extracts needed data from the k8s REST API interface
 //
-
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #include "json/json.h"
@@ -147,3 +147,4 @@ inline void k8s::set_machine_id(const std::string& machine_id)
 	}
 #endif // HAS_CAPTURE
 }
+#endif // MINIMAL_BUILD
