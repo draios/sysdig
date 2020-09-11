@@ -68,15 +68,14 @@ if(MINIMAL_BUILD)
 endif()
 
 if(MUSL_OPTIMIZED_BUILD)
-	set(SYSDIG_MUSL_FLAGS "-static -Os -D__NEED_struct_timespec -D__NEED_time_t")
-	set(MUSL_OPTIMIZED_BUILD_FLAGS "-DMUSL_OPTIMIZED")
+	set(SYSDIG_MUSL_FLAGS "-static -Os")
 endif()
 
 
 if(NOT WIN32)
 
 	set(SYSDIG_DEBUG_FLAGS "-D_DEBUG")
-	set(CMAKE_COMMON_FLAGS "-Wall -ggdb ${MINIMAL_BUILD_FLAGS} ${SYSDIG_MUSL_FLAGS} ${MUSL_OPTIMIZED_BUILD_FLAGS}")
+	set(CMAKE_COMMON_FLAGS "-Wall -ggdb ${MINIMAL_BUILD_FLAGS} ${SYSDIG_MUSL_FLAGS}")
 
 	if(BUILD_WARNINGS_AS_ERRORS)
 		set(CMAKE_SUPPRESSED_WARNINGS "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare -Wno-type-limits -Wno-implicit-fallthrough -Wno-format-truncation")
@@ -192,7 +191,7 @@ else()
                         BUILD_COMMAND ${CMD_MAKE}
                         BUILD_IN_SOURCE 1
                         BUILD_BYPRODUCTS ${LUAJIT_LIB}
-                        INSTALL_COMMAND "")		
+                        INSTALL_COMMAND "")
 		else()
 		ExternalProject_Add(luajit
 			URL "http://download.draios.com/dependencies/LuaJIT-2.0.3.tar.gz"
