@@ -1056,6 +1056,48 @@ uint64_t sinsp::max_buf_used()
 	}
 }
 
+void sinsp::get_procs_cpu_from_driver(uint64_t ts)
+{
+	if(ts > m_next_flush_time_ns)
+	{
+		if(m_next_flush_time_ns != 0)
+		{
+			struct timeval tod;
+			gettimeofday(&tod, NULL);
+
+			uint64_t procrequest_tod = (uint64_t)tod.tv_sec * 1000000000 + tod.tv_usec * 1000;
+
+			if(procrequest_tod - m_last_procrequest_tod > ONE_SECOND_IN_NS / 2)
+			{
+				m_last_procrequest_tod = procrequest_tod;
+				m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
+
+				m_meinfo.m_pli = scap_get_threadlist(m_h);
+				if(m_meinfo.m_pli == NULL)
+				{
+					throw sinsp_exception(string("scap error: ") + scap_getlasterr(m_h));
+				}
+
+				m_meinfo.m_n_procinfo_evts = m_meinfo.m_pli->n_entries;
+
+				if(m_meinfo.m_n_procinfo_evts > 0)
+				{
+					m_meinfo.m_cur_procinfo_evt = -1;
+
+					m_meinfo.m_piscapevt->ts = m_next_flush_time_ns - (ONE_SECOND_IN_NS + 1);
+					add_meta_event_callback(&schedule_next_threadinfo_evt, &m_meinfo);
+					schedule_next_threadinfo_evt(this, &m_meinfo);
+				}
+
+				return;
+			}
+		}
+
+		m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
+	}
+
+}
+
 int32_t sinsp::next(OUT sinsp_evt **puevt)
 {
 	sinsp_evt* evt;
@@ -1151,43 +1193,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	if(m_get_procs_cpu_from_driver && is_live() && !m_udig)
 	{
-		if(ts > m_next_flush_time_ns)
-		{
-			if(m_next_flush_time_ns != 0)
-			{
-				struct timeval tod;
-				gettimeofday(&tod, NULL);
-
-				uint64_t procrequest_tod = (uint64_t)tod.tv_sec * 1000000000 + tod.tv_usec * 1000;
-
-				if(procrequest_tod - m_last_procrequest_tod > ONE_SECOND_IN_NS / 2)
-				{
-					m_last_procrequest_tod = procrequest_tod;
-					m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
-
-					m_meinfo.m_pli = scap_get_threadlist(m_h);
-					if(m_meinfo.m_pli == NULL)
-					{
-						throw sinsp_exception(string("scap error: ") + scap_getlasterr(m_h));
-					}
-
-					m_meinfo.m_n_procinfo_evts = m_meinfo.m_pli->n_entries;
-
-					if(m_meinfo.m_n_procinfo_evts > 0)
-					{
-						m_meinfo.m_cur_procinfo_evt = -1;
-
-						m_meinfo.m_piscapevt->ts = m_next_flush_time_ns - (ONE_SECOND_IN_NS + 1);
-						add_meta_event_callback(&schedule_next_threadinfo_evt, &m_meinfo);
-						schedule_next_threadinfo_evt(this, &m_meinfo);
-					}
-
-					return SCAP_TIMEOUT;
-				}
-			}
-
-			m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
-		}
+		get_procs_cpu_from_driver(ts);
 	}
 
 	//

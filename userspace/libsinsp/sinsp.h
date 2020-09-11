@@ -1003,6 +1003,8 @@ private:
 		       m_increased_snaplen_port_range.range_end > 0;
 	}
 
+	void get_procs_cpu_from_driver(uint64_t ts);
+
 	scap_t* m_h;
 	uint32_t m_nevts;
 	int64_t m_filesize;
