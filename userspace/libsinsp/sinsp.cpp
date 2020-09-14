@@ -1058,8 +1058,6 @@ uint64_t sinsp::max_buf_used()
 
 void sinsp::get_procs_cpu_from_driver(uint64_t ts)
 {
-	struct timeval tod;
-
 	if(ts <= m_next_flush_time_ns)
 	{
 		return;
@@ -1075,9 +1073,7 @@ void sinsp::get_procs_cpu_from_driver(uint64_t ts)
 
 	m_next_flush_time_ns = next_full_second;
 
-	gettimeofday(&tod, NULL);
-	uint64_t procrequest_tod = (uint64_t)tod.tv_sec * 1000000000 + tod.tv_usec * 1000;
-
+	uint64_t procrequest_tod = sinsp_utils::get_current_time_ns();
 	if(procrequest_tod - m_last_procrequest_tod <= ONE_SECOND_IN_NS / 2)
 	{
 		return;
