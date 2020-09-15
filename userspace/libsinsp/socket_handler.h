@@ -1616,7 +1616,7 @@ private:
 	http_parser_data         m_http_parser_data;
 	unsigned                 m_data_limit = 524288; // bytes
 
-	ares_channel             m_ares_channel;
+	ares_channel             m_ares_channel = nullptr;
 	ares_options             m_ares_opts;
 	ares_cb_result           m_ares_cb_res;
 
