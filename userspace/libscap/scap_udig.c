@@ -532,8 +532,6 @@ void udig_free_ring_descriptors(uint8_t* addr)
 	UnmapViewOfFile(addr);
 }
 
-#endif // _WIN32
-
 ///////////////////////////////////////////////////////////////////////////////
 // Capture control helpers.
 ///////////////////////////////////////////////////////////////////////////////
@@ -639,6 +637,8 @@ int32_t udig_begin_capture(scap_t* handle, char *error)
 		return SCAP_FAILURE;
 	}
 }
+
+#endif // _WIN32
 
 void udig_start_capture(scap_t* handle)
 {
