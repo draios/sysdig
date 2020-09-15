@@ -1442,37 +1442,12 @@ std::string sinsp_evt::get_cwd(uint32_t id, sinsp_threadinfo *tinfo)
 	}
 
 	// If the previous param is a fd with a value other than AT_FDCWD,
-	// use such value as the current working directory
-	sinsp_fdinfo_t* dir_fdinfo = tinfo->get_fd(dirfd);
-	if (!dir_fdinfo)
+	// get the path to that fd and use it in place of CWD
+	std::string rel_path_base = tinfo->get_path_for_dir_fd(dirfd);
+	if (rel_path_base.empty())
 	{
-#ifndef _WIN32
-		// Sad day; we don't have the directory in the tinfo's fd cache.
-		// Must manually look it up so we can resolve filenames correctly.
-		char proc_path[PATH_MAX];
-		char dirfd_path[PATH_MAX];
-		int ret;
-		snprintf(proc_path,
-		         sizeof(proc_path),
-		         "/proc/%lld/fd/%lld",
-		         (long long)tinfo->m_pid,
-		         (long long)dirfd);
-
-		ret = readlink(proc_path, dirfd_path, sizeof(dirfd_path) - 1);
-		if (ret < 0)
-		{
-			return cwd;
-		}
-		dirfd_path[ret] = '\0';
-		std::string rel_path_base = dirfd_path;
-		sanitize_string(rel_path_base);
-		rel_path_base.append("/");
 		return rel_path_base;
-#else
-		return cwd;
-#endif
 	}
-	std::string rel_path_base = dir_fdinfo->m_name;
 	sanitize_string(rel_path_base);
 	rel_path_base.append("/");
 	return rel_path_base;
@@ -1687,7 +1662,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			if(strncmp(payload, "<NA>", 4) != 0)
 			{
-				string cwd = get_cwd(id, tinfo);
+				std::string cwd = get_cwd(id, tinfo);
 
 				if(payload_len + cwd.length() >= m_resolved_paramstr_storage.size())
 				{

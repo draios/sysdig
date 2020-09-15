@@ -238,6 +238,13 @@ public:
 	// readiness probe, or liveness probe.
 	bool is_health_probe();
 
+	/*!
+	  \brief Translate a directory's file descriptor into its path
+	  \param dir_fd  A file descriptor for a directory
+	  \return  A path (or "" if failure)
+	 */
+	std::string get_path_for_dir_fd(int64_t dir_fd);
+
 	//
 	// Core state
 	//
