@@ -985,14 +985,15 @@ string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd)
 		int ret;
 		snprintf(proc_path,
 		         sizeof(proc_path),
-		         "/proc/%lld/fd/%lld",
+		         "%s/proc/%lld/fd/%lld",
+		         scap_get_host_root(),
 		         (long long)m_pid,
 		         (long long)dir_fd);
 
 		ret = readlink(proc_path, dirfd_path, sizeof(dirfd_path) - 1);
 		if (ret < 0)
 		{
-			g_logger.log("Unable to determine working directory for thread.",
+			g_logger.log("Unable to determine path for file descriptor.",
 			             sinsp_logger::SEV_INFO);
 			return "";
 		}

@@ -1404,7 +1404,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	return ret;
 }
 
-std::string sinsp_evt::get_cwd(uint32_t id, sinsp_threadinfo *tinfo)
+std::string sinsp_evt::get_base_dir(uint32_t id, sinsp_threadinfo *tinfo)
 {
 	std::string cwd = tinfo->get_cwd();
 
@@ -1662,7 +1662,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		{
 			if(strncmp(payload, "<NA>", 4) != 0)
 			{
-				std::string cwd = get_cwd(id, tinfo);
+				std::string cwd = get_base_dir(id, tinfo);
 
 				if(payload_len + cwd.length() >= m_resolved_paramstr_storage.size())
 				{
