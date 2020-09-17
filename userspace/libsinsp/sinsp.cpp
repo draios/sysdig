@@ -1191,7 +1191,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	// If required, retrieve the processes cpu from the kernel
 	//
-	if(m_get_procs_cpu_from_driver && is_live() && !m_udig)
+	if(m_get_procs_cpu_from_driver && is_live())
 	{
 		get_procs_cpu_from_driver(ts);
 	}

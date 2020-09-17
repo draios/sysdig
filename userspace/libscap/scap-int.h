@@ -305,6 +305,8 @@ int32_t scap_update_suppressed(scap_t *handle,
 // Wrapper around strerror using buffer in handle
 const char *scap_strerror(scap_t *handle, int errnum);
 
+struct ppm_proclist_info *scap_procfs_get_threadlist(scap_t *handle);
+
 //
 // ASSERT implementation
 //

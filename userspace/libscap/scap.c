@@ -2241,14 +2241,9 @@ struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
 		}
 	}
 
-	if(handle->m_bpf)
+	if(handle->m_bpf || handle->m_udig)
 	{
-		return scap_bpf_get_threadlist(handle);
-	}
-	else if(handle->m_udig)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_get_threadlist not supported on udig captures");
-		return NULL;
+		return scap_procfs_get_threadlist(handle);
 	}
 	else
 	{
