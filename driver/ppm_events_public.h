@@ -1377,7 +1377,8 @@ enum ppm_param_type {
 	PT_IPADDR = 40,  /* Either an IPv4 or IPv6 address. The length indicates which one it is. */
 	PT_IPNET = 41,  /* Either an IPv4 or IPv6 network. The length indicates which one it is. */
 	PT_MODE = 42, /* a 32 bit bitmask to represent file modes. */
-	PT_MAX = 43 /* array size */
+	PT_FSRELPATH = 43, /* A path relative to a dirfd. */
+	PT_MAX = 44 /* array size */
 };
 
 enum ppm_print_format {
@@ -1398,6 +1399,8 @@ struct ppm_name_value {
 	uint32_t value;
 };
 
+#define DIRFD_PARAM(_param_num) ((void*)_param_num)
+
 /*!
   \brief Event parameter information.
 */
@@ -1406,7 +1409,8 @@ struct ppm_param_info {
 	enum ppm_param_type type; /**< Parameter type, e.g. 'uint16', 'string'... */
 	enum ppm_print_format fmt; /**< If this is a numeric parameter, this flag specifies if it should be rendered as decimal or hex. */
 	const void *info; /**< If this is a flags parameter, it points to an array of ppm_name_value,
-			       else if this is a dynamic parameter it points to an array of ppm_param_info */
+						   if this is a FSRELPATH parameter, it references the related dirfd,
+					   else if this is a dynamic parameter it points to an array of ppm_param_info */
 	uint8_t ninfo; /**< Number of entry in the info array. */
 } _packed;
 

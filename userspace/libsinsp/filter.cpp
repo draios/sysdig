@@ -518,6 +518,7 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 	case PT_FDLIST:
 	case PT_FSPATH:
 	case PT_SIGSET:
+	case PT_FSRELPATH:
 	default:
 		ASSERT(false);
 		return false;
@@ -812,7 +813,8 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 		case PT_BYTEBUF:
 		case PT_IPV4ADDR:
 		case PT_IPV6ADDR:
-	        case PT_IPADDR:
+		case PT_IPADDR:
+		case PT_FSRELPATH:
 			return rawval_to_string(rawval, ptype, print_format, len);
 		default:
 			ASSERT(false);
@@ -1038,6 +1040,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			return m_getpropertystr_storage;
 		case PT_CHARBUF:
 		case PT_FSPATH:
+		case PT_FSRELPATH:
 			return (char*)rawval;
 		case PT_BYTEBUF:
 			if(rawval[len] == 0)
@@ -1272,6 +1275,7 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 		case PT_FDLIST:
 		case PT_FSPATH:
 		case PT_SIGSET:
+		case PT_FSRELPATH:
 			for (uint16_t i=0; i < m_val_storages.size(); i++)
 			{
 				if (::flt_compare(CO_EQ,
@@ -1285,7 +1289,6 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 				}
 			}
 			return false;
-			break;
 		default:
 			// For raw strings, the length may not be set. So we do a strlen to find it.
 			if(type == PT_CHARBUF && op1_len == 0)

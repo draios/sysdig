@@ -601,6 +601,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 	switch (param_info->type) {
 	case PT_CHARBUF:
 	case PT_FSPATH:
+	case PT_FSRELPATH:
 		if (likely(val != 0)) {
 			if (fromuser) {
 				len = ppm_strncpy_from_user(args->buffer + args->arg_data_offset,

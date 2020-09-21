@@ -21,6 +21,8 @@ limitations under the License.
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #endif
+#include <stdio.h>
+#include <unistd.h>
 #include <algorithm>
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -967,7 +969,47 @@ bool sinsp_threadinfo::is_health_probe()
 {
 	return (m_category == sinsp_threadinfo::CAT_HEALTHCHECK ||
 		m_category == sinsp_threadinfo::CAT_LIVENESS_PROBE ||
-		m_category == sinsp_threadinfo::CAT_READINESS_PROBE);
+	        m_category == sinsp_threadinfo::CAT_READINESS_PROBE);
+}
+
+string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd)
+{
+	sinsp_fdinfo_t* dir_fdinfo = get_fd(dir_fd);
+	if (!dir_fdinfo || dir_fdinfo->m_name.empty())
+	{
+#ifdef HAS_CAPTURE
+		// Sad day; we don't have the directory in the tinfo's fd cache.
+		// Must manually look it up so we can resolve filenames correctly.
+		char proc_path[PATH_MAX];
+		char dirfd_path[PATH_MAX];
+		int ret;
+		snprintf(proc_path,
+		         sizeof(proc_path),
+		         "%s/proc/%lld/fd/%lld",
+		         scap_get_host_root(),
+		         (long long)m_pid,
+		         (long long)dir_fd);
+
+		ret = readlink(proc_path, dirfd_path, sizeof(dirfd_path) - 1);
+		if (ret < 0)
+		{
+			g_logger.log("Unable to determine path for file descriptor.",
+			             sinsp_logger::SEV_INFO);
+			return "";
+		}
+		dirfd_path[ret] = '\0';
+		std::string rel_path_base = dirfd_path;
+		sanitize_string(rel_path_base);
+		rel_path_base.append("/");
+		g_logger.log(std::string("Translating to ") + rel_path_base);
+		return rel_path_base;
+#else
+		g_logger.log("Can't translate working directory outside of live capture.",
+		             sinsp_logger::SEV_INFO);
+		return "";
+#endif
+	}
+	return dir_fdinfo->m_name;
 }
 
 shared_ptr<sinsp_threadinfo> sinsp_threadinfo::lookup_thread() const
