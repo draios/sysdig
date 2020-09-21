@@ -32,6 +32,9 @@ limitations under the License.
 #include "chisel.h"
 #include "scap_open_exception.h"
 #include "sinsp_capture_interrupt_exception.h"
+#ifdef HAS_CAPTURE
+#include "driver_config.h"
+#endif // HAS_CAPTURE
 #include "sysdig.h"
 #include "utils.h"
 
