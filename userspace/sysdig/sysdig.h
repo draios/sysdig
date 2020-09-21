@@ -20,10 +20,6 @@ limitations under the License.
 #pragma once
 
 #include <config_sysdig.h>
-#ifdef HAS_CAPTURE
-#include "driver_config.h"
-#endif // HAS_CAPTURE
-
 //
 // ASSERT implementation
 //
