@@ -14,4 +14,6 @@ or GPL2.txt for full copies of the license.
 
 #define PROBE_DEVICE_NAME "${PROBE_DEVICE_NAME}"
 
-#define KBUILD_MODNAME PROBE_DEVICE_NAME
+#ifndef KBUILD_MODNAME
+#define KBUILD_MODNAME PROBE_NAME
+#endif
