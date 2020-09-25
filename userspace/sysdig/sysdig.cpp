@@ -36,6 +36,7 @@ limitations under the License.
 #include "driver_config.h"
 #endif // HAS_CAPTURE
 #include "sysdig.h"
+#include "fields_info.h"
 #include "utils.h"
 
 #ifdef _WIN32

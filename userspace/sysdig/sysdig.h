@@ -88,17 +88,3 @@ struct summary_table_entry_rsort_comparer
 		return first.m_ncalls > second.m_ncalls;
 	}
 };
-
-//
-// Printer functions
-//
-void list_fields(bool verbose, bool markdown, bool names_only=false);
-void list_events(sinsp* inspector);
-
-#ifdef HAS_CHISELS
-void print_chisel_info(chisel_desc* cd);
-void list_chisels(vector<chisel_desc>* chlist, bool verbose);
-#endif
-
-
-
