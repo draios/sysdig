@@ -734,7 +734,8 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 
 	switch (type) {
 	case PT_CHARBUF:
-	case PT_FSPATH: {
+	case PT_FSPATH:
+	case PT_FSRELPATH: {
 		if (!data->curarg_already_on_frame) {
 			int res;
 
