@@ -458,6 +458,9 @@ function on_init()
 	finfraname = chisel.request_field("evt.arg.name")
 	fpname = chisel.request_field("proc.pname")
 
+	-- kick off GC
+	collectgarbage()
+
 	print('{"slices": [')
 	return true
 end
@@ -480,7 +483,6 @@ function on_capture_start()
 			end
 		end
 	end
-
 	parse_thread_table_startup()
 	return true
 end
@@ -736,6 +738,10 @@ function on_interval(ts_s, ts_ns, delta)
 	parse_thread_table_interval()
 	parse_container_table()
 
+	if nintervals == 0 then
+		-- clean up events  
+		collectgarbage() 
+	end
 --print(json.encode(ssummary.connectionCount, { indent = true }))
 	add_summaries(ts_s, ts_ns, gsummary, ssummary)
 	reset_summary(ssummary)
