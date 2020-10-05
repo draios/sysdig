@@ -20,7 +20,6 @@ if(NOT WIN32)
 	if(NOT MINIMAL_BUILD)
 		include_directories("${CURL_INCLUDE_DIR}")
 	endif() # MINIMAL_BUILD
-	include_directories("${CURSES_INCLUDE_DIR}")
 endif() # NOT WIN32
 
 include_directories("${PROJECT_SOURCE_DIR}/common")

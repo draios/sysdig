@@ -26,7 +26,6 @@ if(NOT MINIMAL_BUILD)
 endif()
 
 if(NOT WIN32 AND NOT APPLE)
-	include_directories("${CURSES_INCLUDE_DIR}")
 	if(NOT MINIMAL_BUILD)
 		include_directories("${GRPC_INCLUDE}")
 		include_directories("${PROTOBUF_INCLUDE}")
