@@ -31,7 +31,9 @@ limitations under the License.
 #include <sinsp.h>
 #include "chisel.h"
 #ifdef HAS_CAPTURE
+#ifndef WIN32
 #include "driver_config.h"
+#endif // WIN32
 #endif // HAS_CAPTURE
 #include "sysdig.h"
 #include "fields_info.h"
