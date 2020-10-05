@@ -20,7 +20,6 @@ include_directories(../../common)
 include_directories(../libscap)
 include_directories(../async)
 include_directories(./include)
-include_directories("${LUAJIT_INCLUDE}")
 
 if(NOT MINIMAL_BUILD)
 	include_directories("${CARES_INCLUDE}")
