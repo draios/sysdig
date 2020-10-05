@@ -20,9 +20,9 @@ limitations under the License.
 #ifndef _WIN32
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
+#include <unistd.h>
 #endif
 #include <stdio.h>
-#include <unistd.h>
 #include <algorithm>
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -978,6 +978,7 @@ string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd)
 	sinsp_fdinfo_t* dir_fdinfo = get_fd(dir_fd);
 	if (!dir_fdinfo || dir_fdinfo->m_name.empty())
 	{
+#ifndef WIN32 // we will have to implement this for Windows
 #ifdef HAS_CAPTURE
 		// Sad day; we don't have the directory in the tinfo's fd cache.
 		// Must manually look it up so we can resolve filenames correctly.
@@ -1009,6 +1010,7 @@ string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd)
 		             sinsp_logger::SEV_INFO);
 		return "";
 #endif
+#endif // WIN32
 	}
 	return dir_fdinfo->m_name;
 }

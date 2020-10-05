@@ -2716,7 +2716,11 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 		if(readsize != sizeof(bh))
 		{
 			int err_no = 0;
+#ifdef WIN32
+			const char* err_str = "read error";
+#else
 			const char* err_str = gzerror(f, &err_no);
+#endif
 			if(err_no)
 			{
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading file: %s, ernum=%d", err_str, err_no);

@@ -71,7 +71,6 @@ if(MUSL_OPTIMIZED_BUILD)
 	set(SYSDIG_MUSL_FLAGS "-static -Os")
 endif()
 
-
 if(NOT WIN32)
 
 	set(SYSDIG_DEBUG_FLAGS "-D_DEBUG")
@@ -122,8 +121,9 @@ if(NOT WIN32)
 	endif()
 
 else()
+	set(MINIMAL_BUILD ON)
 
-	set(SYSDIG_FLAGS_WIN "-D_CRT_SECURE_NO_WARNINGS -DWIN32 /EHsc /W3 /Zi")
+	set(SYSDIG_FLAGS_WIN "-D_CRT_SECURE_NO_WARNINGS -DWIN32 -DMINIMAL_BUILD /EHsc /W3 /Zi")
 	set(SYSDIG_FLAGS_WIN_DEBUG "/MTd /Od")
 	set(SYSDIG_FLAGS_WIN_RELEASE "/MT")
 
@@ -243,7 +243,7 @@ endif()
 #
 option(USE_BUNDLED_ZLIB "Enable building of the bundled zlib" ${USE_BUNDLED_DEPS})
 
-if(NOT MINIMAL_BUILD)
+if(WIN32)
 	if(NOT USE_BUNDLED_ZLIB)
 		find_path(ZLIB_INCLUDE zlib.h PATH_SUFFIXES zlib)
 		find_library(ZLIB_LIB NAMES z)

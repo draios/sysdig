@@ -47,7 +47,9 @@ limitations under the License.
 #ifndef MINIMAL_BUILD
 #include <curl/curl.h>
 #endif // MINIMAL_BUILD
+#ifndef WIN32
 #include <mntent.h>
+#endif // WIN32
 #endif
 #endif
 
