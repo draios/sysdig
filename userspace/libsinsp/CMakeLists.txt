@@ -37,10 +37,6 @@ if(NOT WIN32 AND NOT APPLE)
 	include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 endif()
 
-if(NOT WIN32)
-	include_directories("${TBB_INCLUDE_DIR}")
-endif() # NOT WIN32
-
 set(SINSP_SOURCES
 	chisel.cpp
 	chisel_api.cpp

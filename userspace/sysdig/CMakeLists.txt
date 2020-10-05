@@ -17,7 +17,6 @@
 #
 
 if(NOT WIN32)
-	include_directories("${TBB_INCLUDE_DIR}")
 	if(NOT MINIMAL_BUILD)
 		include_directories("${CURL_INCLUDE_DIR}")
 	endif() # MINIMAL_BUILD
