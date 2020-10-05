@@ -17,9 +17,6 @@
 #
 
 include_directories("${GTEST_INCLUDE_DIR}")
-if(NOT MINIMAL_BUILD)
-	include_directories("${CURL_INCLUDE_DIR}")
-endif() # MINIMAL_BUILD
 
 include_directories("..")
 include_directories("../../libscap")

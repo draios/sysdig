@@ -29,7 +29,6 @@ if(NOT WIN32 AND NOT APPLE)
 	if(NOT MINIMAL_BUILD)
 		include_directories("${GRPC_INCLUDE}")
 		include_directories("${PROTOBUF_INCLUDE}")
-		include_directories("${CURL_INCLUDE_DIR}")
 	endif() # NOT MINIMAL_BUILD
 	include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 endif()
