@@ -823,7 +823,7 @@ static inline uint32_t open_flags_to_scap(unsigned long flags)
 	return res;
 }
 
-static uint32_t scap_get_device_by_mount_id(scap_t *handle, const char *procdir, unsigned long requested_mount_id)
+uint32_t scap_get_device_by_mount_id(scap_t *handle, const char *procdir, unsigned long requested_mount_id)
 {
 	char fd_dir_name[SCAP_MAX_PATH_SIZE];
 	char line[SCAP_MAX_PATH_SIZE];
@@ -886,6 +886,8 @@ void scap_fd_flags_file(scap_t *handle, scap_fdinfo *fdi, const char *procdir)
 	{
 		return;
 	}
+	fdi->info.regularinfo.mount_id = 0;
+	fdi->info.regularinfo.dev = 0;
 
 	while(fgets(line, sizeof(line), finfo) != NULL)
 	{
@@ -915,20 +917,13 @@ void scap_fd_flags_file(scap_t *handle, scap_fdinfo *fdi, const char *procdir)
 		}
 		else if(!strncmp(line, "mnt_id:\t", sizeof("mnt_id:\t") - 1))
 		{
-			uint32_t dev;
 			errno = 0;
 			unsigned long mount_id = strtoul(line + sizeof("mnt_id:\t") - 1, NULL, 10);
 
-			if(errno == ERANGE)
+			if(errno != ERANGE)
 			{
-				dev = 0;
+				fdi->info.regularinfo.mount_id = mount_id;
 			}
-			else
-			{
-				dev = scap_get_device_by_mount_id(handle, procdir, mount_id);
-			}
-
-			fdi->info.regularinfo.dev = dev;
 		}
 	}
 

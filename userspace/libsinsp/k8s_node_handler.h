@@ -19,7 +19,7 @@ limitations under the License.
 //
 // k8s_node_handler.h
 //
-
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #include "json/json.h"
@@ -53,3 +53,5 @@ private:
 
 	virtual bool handle_component(const Json::Value& json, const msg_data* data = 0);
 };
+
+#endif // MINIMAL_BUILD

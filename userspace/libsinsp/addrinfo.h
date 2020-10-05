@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2020 Sysdig Inc.
 
 This file is part of sysdig.
 
@@ -14,37 +14,22 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
 */
-//
-// marathon_http.h
-//
+
 #ifndef MINIMAL_BUILD
 #pragma once
 
-#if defined(HAS_CAPTURE) && !defined(_WIN32)
+#include <netinet/in.h>
+#include <string>
 
-#include "curl/curl.h"
-#include "uri.h"
-#include "mesos_http.h"
-#include <memory>
-
-class marathon_http : public mesos_http
+struct ares_cb_result
 {
-public:
-	typedef std::shared_ptr<marathon_http> ptr_t;
-
-	marathon_http(mesos& m, const uri& url, bool discover_marathon, int timeout_ms = 5000L, const string& token = "");
-
-	~marathon_http();
-
-	bool refresh_data();
-
-	std::string get_groups(const std::string& group_id);
-
-private:
-	std::string m_data;
+    std::string address;
+    in_addr addr;
+    bool done = false;
+    bool call = false;
 };
 
-#endif // HAS_CAPTURE
+void ares_cb(void *arg, int status, int timeouts, struct hostent *host);
+
 #endif // MINIMAL_BUILD

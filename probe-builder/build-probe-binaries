@@ -34,6 +34,8 @@ RETRIES=10
 DOWNLOAD_TIMEOUT=300
 PROBE_VERSION=
 RUNNING_IN_DOCKER=
+FAILED=
+FAIL_LOG=$(mktemp /tmp/fail.log.XXXXXX)
 
 usage() {
 	cat >&2 <<EOF
@@ -273,19 +275,7 @@ function run_toolkit {
 }
 
 declare -A builders
-function build_probe {
-	# Skip Kernel 4.15.0-29 because probe does not build against it
-	if [ $KERNEL_RELEASE-$HASH = "4.15.0-29-generic-ea0aa038a6b9bdc4bb42152682bba6ce"  ]; then
-		echo "Temporarily skipping " $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko
-		return
-	fi
-
-	if [ -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] &&
-	   [ -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
-		echo "Skipping $PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko (already built)"
-		return
-	fi
-
+function build_probe_impl {
 	PROBE_ROOT=${PROBE_ROOT:-/build/probe}
 	if [ -n "${DOCKER_BUILDER:-}" ]
 	then
@@ -296,18 +286,34 @@ function build_probe {
 	elif [ -n "${BUILDER_DISTRO:-}" ]
 	then
 		# Try to find the gcc version used to build this particular kernel
-		# There is CONFIG_GCC_VERSION=90201 in the kernel config but it's
-		# too new for us to depend on
-		if [ -e $KERNELDIR/include/generated/compile.h ]
+		# Check CONFIG_GCC_VERSION=90201 in the kernel config first
+		# as 5.8.0 seems to have a different format for the LINUX_COMPILER string
+		if [ -e $KERNELDIR/include/generated/autoconf.h ]
 		then
-			BUILDER_GCC_VERSION=$(grep -Po '(?<=^#define LINUX_COMPILER "gcc version )[0-9.]+' $KERNELDIR/include/generated/compile.h)
-		elif [ -e $KERNELDIR/include/linux/compile.h ]
-		then
-			# RHEL6
-			BUILDER_GCC_VERSION=$(grep -Po '(?<=^#define LINUX_COMPILER "gcc version )[0-9.]+' $KERNELDIR/include/linux/compile.h)
+			BUILDER_GCC_VERSION=$(grep -Po '(?<=^#define CONFIG_GCC_VERSION ).*' $KERNELDIR/include/generated/autoconf.h | sed '-res@(.*)(..)(..)$@\1\.\2\.\3@' '-es@\.0@\.@g')
 		else
-			# ancient Ubuntu gets and ancient compiler
-			BUILDER_GCC_VERSION=4.8.0
+			BUILDER_GCC_VERSION=
+		fi
+
+		if [ -z "$BUILDER_GCC_VERSION" ]
+		then
+			if [ -e $KERNELDIR/include/generated/compile.h ]
+			then
+				BUILDER_GCC_VERSION=$(grep -Po '(?<=^#define LINUX_COMPILER "gcc version )[0-9.]+' $KERNELDIR/include/generated/compile.h || true)
+			elif [ -e $KERNELDIR/include/linux/compile.h ]
+			then
+				# RHEL6
+				BUILDER_GCC_VERSION=$(grep -Po '(?<=^#define LINUX_COMPILER "gcc version )[0-9.]+' $KERNELDIR/include/linux/compile.h || true)
+			else
+				# ancient Ubuntu gets and ancient compiler
+				BUILDER_GCC_VERSION=4.8.0
+			fi
+		fi
+
+		if [ -z "$BUILDER_GCC_VERSION" ]
+		then
+			echo "Failed to find gcc version for $KERNELDIR"
+			return 1
 		fi
 
 		# We don't really care about the compiler patch levels, only the major/minor version
@@ -370,15 +376,15 @@ function build_probe {
 	IMAGE_NAME="sysdig-probe-builder:${DOCKERFILE_TAG}"
 	CONTAINER_NAME="sysdig-probe-builder-${DOCKERFILE_TAG}"
 
-	docker ps -q -f "name=$CONTAINER_NAME" | xargs --no-run-if-empty docker rm
+	docker ps -q -f "name=$CONTAINER_NAME" | xargs --no-run-if-empty docker rm || return 1
 	if [ -n "$BUILDER_IMAGE_PREFIX" ]
 	then
 		IMAGE_NAME="${BUILDER_IMAGE_PREFIX}${IMAGE_NAME}"
 	else
 		if [ -z "${builders[$IMAGE_NAME]:-}" ]
 		then
-			docker build -t "$IMAGE_NAME" -f $DOCKERFILE --pull $BUILDER_SOURCE
-			docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi
+			docker build -t "$IMAGE_NAME" -f $DOCKERFILE --pull $BUILDER_SOURCE || return 1
+			docker images -q -f 'dangling=true' | xargs --no-run-if-empty docker rmi || true
 			builders[$IMAGE_NAME]=1
 		fi
 	fi
@@ -393,7 +399,34 @@ function build_probe {
 		-e HASH=$HASH \
 		-e HASH_ORIG=$HASH_ORIG \
 		--name $CONTAINER_NAME \
-		$IMAGE_NAME
+		$IMAGE_NAME || return 1
+}
+
+function build_probe {
+	PROBE_ID=$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko
+
+	# Skip Kernel 4.15.0-29 because probe does not build against it
+	if [ $KERNEL_RELEASE-$HASH = "4.15.0-29-generic-ea0aa038a6b9bdc4bb42152682bba6ce"  ]; then
+		echo "Temporarily skipping $PROBE_ID"
+		return
+	fi
+
+	if [ -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH.ko ] &&
+	   [ -f $BASEDIR/output/$PROBE_NAME-$PROBE_VERSION-$ARCH-$KERNEL_RELEASE-$HASH_ORIG.ko ]; then
+		echo "Skipping $PROBE_ID (already built)"
+		return
+	fi
+
+    LOG=$(mktemp /tmp/log.XXXXXX)
+    if ! build_probe_impl &> $LOG
+    then
+        (echo "Build for $PROBE_ID failed"; cat $LOG) | tee -a $FAIL_LOG
+        FAILED=1
+    else
+		echo "Build for $PROBE_ID successful"
+		cat $LOG
+    fi
+    rm -f $LOG
 }
 
 function coreos_build {
@@ -980,6 +1013,19 @@ case "$KERNEL_TYPE" in
 		;;
 esac
 
-echo "Success."
+if [ -s "$FAIL_LOG" ]
+then
+	echo "Failed builds:"
+	echo "------------------------------"
+	cat $FAIL_LOG
+fi
+rm -f $FAIL_LOG
+if [ -n "$FAILED" ]
+then
+	echo "Build failed."
+	exit 1
+else
+	echo "Success."
+fi
 
 # vim: :set tabstop=8 shiftwidth=8 noexpandtab:

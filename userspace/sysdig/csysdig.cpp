@@ -30,6 +30,9 @@ limitations under the License.
 
 #include <sinsp.h>
 #include "chisel.h"
+#ifdef HAS_CAPTURE
+#include "driver_config.h"
+#endif // HAS_CAPTURE
 #include "sysdig.h"
 #include "table.h"
 #include "utils.h"

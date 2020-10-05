@@ -42,7 +42,9 @@ matrix:
     - env: BUILD_TYPE=Release
       os: linux
       arch: s390x
-      dist: bionic    
+      dist: bionic
+    - env: BUILD_TYPE=Debug MINIMAL_BUILD=On
+      os: linux
 
 sudo: required
 services:

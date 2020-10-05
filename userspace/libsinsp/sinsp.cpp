@@ -39,10 +39,14 @@ limitations under the License.
 #include "protodecoder.h"
 #include "dns_manager.h"
 
-#if !defined(CYGWING_AGENT) && !defined(_WIN32)
+#ifndef CYGWING_AGENT
+#ifndef MINIMAL_BUILD
 #include "k8s_api_handler.h"
-#if defined(HAS_CAPTURE)
+#endif // MINIMAL_BUILD
+#ifdef HAS_CAPTURE
+#ifndef MINIMAL_BUILD
 #include <curl/curl.h>
+#endif // MINIMAL_BUILD
 #include <mntent.h>
 #endif
 #endif
@@ -70,7 +74,7 @@ sinsp::sinsp() :
 	m_container_manager(this),
 	m_suppressed_comms()
 {
-#if !defined(CYGWING_AGENT) && !defined(_WIN32) && defined(HAS_CAPTURE)
+#if !defined(MINIMAL_BUILD) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	// used by mesos and container_manager
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 #endif
@@ -156,7 +160,7 @@ sinsp::sinsp() :
 	m_meinfo.m_n_procinfo_evts = 0;
 	m_meta_event_callback = NULL;
 	m_meta_event_callback_data = NULL;
-#if !defined(CYGWING_AGENT) && !defined(_WIN32)
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	m_k8s_client = NULL;
 	m_k8s_last_watch_time_ns = 0;
 
@@ -166,7 +170,7 @@ sinsp::sinsp() :
 
 	m_mesos_client = NULL;
 	m_mesos_last_watch_time_ns = 0;
-#endif
+#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 	m_filter_proc_table_when_saving = false;
 }
@@ -205,7 +209,7 @@ sinsp::~sinsp()
 
 	m_container_manager.cleanup();
 
-#if !defined(CYGWING_AGENT) && !defined(_WIN32)
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	delete m_k8s_client;
 	delete m_k8s_api_server;
 	delete m_k8s_api_cert;
@@ -1252,14 +1256,14 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		m_thread_manager->remove_inactive_threads();
 		m_container_manager.remove_inactive_containers();
 
-#if !defined(CYGWING_AGENT) && !defined(_WIN32)
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 		update_k8s_state();
 
 		if(m_mesos_client)
 		{
 			update_mesos_state();
 		}
-#endif
+#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	}
 #endif // HAS_ANALYZER
 
@@ -2093,7 +2097,7 @@ bool sinsp::remove_inactive_threads()
 	return m_thread_manager->remove_inactive_threads();
 }
 
-#if !defined(CYGWING_AGENT) && !defined(_WIN32)
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 void sinsp::init_mesos_client(string* api_server, bool verbose)
 {
 	m_verbose_json = verbose;

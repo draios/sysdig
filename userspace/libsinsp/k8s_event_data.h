@@ -21,6 +21,7 @@ limitations under the License.
 //
 // connects and gets the data from k8s_net REST API interface
 //
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #include "k8s_component.h"
@@ -57,3 +58,4 @@ inline std::string k8s_event_data::data() const
 {
 	return m_data;
 }
+#endif // MINIMAL_BUILD

@@ -22,6 +22,8 @@ limitations under the License.
 //
 #define INCLUDE_UNKNOWN_SOCKET_FDS
 
+#ifndef MINIMAL_BUILD
 #define USE_ZLIB
+#endif // MINIMAL_BUILD
 
 #define SCAP_NODRIVER_MAX_FD_LOOKUP 20

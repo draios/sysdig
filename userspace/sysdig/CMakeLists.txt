@@ -19,9 +19,11 @@ include_directories("${JSONCPP_INCLUDE}")
 
 if(NOT WIN32)
 	include_directories("${TBB_INCLUDE_DIR}")
-	include_directories("${CURL_INCLUDE_DIR}")
+	if(NOT MINIMAL_BUILD)
+		include_directories("${CURL_INCLUDE_DIR}")
+	endif() # MINIMAL_BUILD
 	include_directories("${CURSES_INCLUDE_DIR}")
-endif()
+endif() # NOT WIN32
 
 include_directories("${PROJECT_SOURCE_DIR}/common")
 include_directories("${PROJECT_SOURCE_DIR}/userspace/libscap")

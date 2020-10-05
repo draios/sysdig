@@ -458,6 +458,9 @@ function on_init()
 	finfraname = chisel.request_field("evt.arg.name")
 	fpname = chisel.request_field("proc.pname")
 
+	-- kick off GC
+	collectgarbage()
+
 	print('{"slices": [')
 	return true
 end
@@ -480,7 +483,6 @@ function on_capture_start()
 			end
 		end
 	end
-
 	parse_thread_table_startup()
 	return true
 end
@@ -736,6 +738,10 @@ function on_interval(ts_s, ts_ns, delta)
 	parse_thread_table_interval()
 	parse_container_table()
 
+	if nintervals == 0 then
+		-- clean up events  
+		collectgarbage() 
+	end
 --print(json.encode(ssummary.connectionCount, { indent = true }))
 	add_summaries(ts_s, ts_ns, gsummary, ssummary)
 	reset_summary(ssummary)
@@ -1303,7 +1309,7 @@ function build_output(captureDuration)
 			category = 'logs',
 			targetView = 'echo',
 			targetViewTitle = 'Error Application Log Messages',
-			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and (evt.arg.data icontains error or evt.arg.data icontains critic or evt.arg.data icontains emergency or evt.arg.data icontains alert)',
+			targetViewFilter = '((fd.name contains .log or fd.name contains _log or fd.name contains /var/log) and not (fd.name contains .gz or fd.name contains .tgz)) and evt.is_io_write=true and (evt.arg.data icontains error or evt.arg.data icontains critic or evt.arg.data icontains emerg or evt.arg.data icontains alert)',
 			drillDownKey = 'NONE',
 			data = gsummary.appLogCountE
 		}

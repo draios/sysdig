@@ -19,7 +19,7 @@ limitations under the License.
 //
 // k8s_handler.h
 //
-
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #include "json/json.h"
@@ -313,3 +313,5 @@ private:
 		return false;
 	};
 };
+
+#endif // MINIMAL_BUILD

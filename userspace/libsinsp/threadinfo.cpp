@@ -21,6 +21,8 @@ limitations under the License.
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #endif
+#include <stdio.h>
+#include <unistd.h>
 #include <algorithm>
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -317,6 +319,7 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 		newfdi->m_openflags = fdi->info.regularinfo.open_flags;
 		newfdi->m_name = fdi->info.regularinfo.fname;
 		newfdi->m_dev = fdi->info.regularinfo.dev;
+		newfdi->m_mount_id = fdi->info.regularinfo.mount_id;
 
 		if(newfdi->m_name == USER_EVT_DEVICE_NAME)
 		{
@@ -402,6 +405,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_flags |= pi->flags;
 	m_flags |= PPM_CL_ACTIVE; // Assume that all the threads coming from /proc are real, active threads
 	m_fdtable.clear();
+	m_fdtable.m_tid = m_tid;
 	m_fdlimit = pi->fdlimit;
 	m_uid = pi->uid;
 	m_gid = pi->gid;
@@ -966,7 +970,47 @@ bool sinsp_threadinfo::is_health_probe()
 {
 	return (m_category == sinsp_threadinfo::CAT_HEALTHCHECK ||
 		m_category == sinsp_threadinfo::CAT_LIVENESS_PROBE ||
-		m_category == sinsp_threadinfo::CAT_READINESS_PROBE);
+	        m_category == sinsp_threadinfo::CAT_READINESS_PROBE);
+}
+
+string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd)
+{
+	sinsp_fdinfo_t* dir_fdinfo = get_fd(dir_fd);
+	if (!dir_fdinfo || dir_fdinfo->m_name.empty())
+	{
+#ifdef HAS_CAPTURE
+		// Sad day; we don't have the directory in the tinfo's fd cache.
+		// Must manually look it up so we can resolve filenames correctly.
+		char proc_path[PATH_MAX];
+		char dirfd_path[PATH_MAX];
+		int ret;
+		snprintf(proc_path,
+		         sizeof(proc_path),
+		         "%s/proc/%lld/fd/%lld",
+		         scap_get_host_root(),
+		         (long long)m_pid,
+		         (long long)dir_fd);
+
+		ret = readlink(proc_path, dirfd_path, sizeof(dirfd_path) - 1);
+		if (ret < 0)
+		{
+			g_logger.log("Unable to determine path for file descriptor.",
+			             sinsp_logger::SEV_INFO);
+			return "";
+		}
+		dirfd_path[ret] = '\0';
+		std::string rel_path_base = dirfd_path;
+		sanitize_string(rel_path_base);
+		rel_path_base.append("/");
+		g_logger.log(std::string("Translating to ") + rel_path_base);
+		return rel_path_base;
+#else
+		g_logger.log("Can't translate working directory outside of live capture.",
+		             sinsp_logger::SEV_INFO);
+		return "";
+#endif
+	}
+	return dir_fdinfo->m_name;
 }
 
 shared_ptr<sinsp_threadinfo> sinsp_threadinfo::lookup_thread() const
@@ -1145,6 +1189,7 @@ void sinsp_threadinfo::fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src)
 		dst->info.regularinfo.open_flags = src->m_openflags;
 		strncpy(dst->info.regularinfo.fname, src->m_name.c_str(), SCAP_MAX_PATH_SIZE);
 		dst->info.regularinfo.dev = src->m_dev;
+		dst->info.regularinfo.mount_id = src->m_mount_id;
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:

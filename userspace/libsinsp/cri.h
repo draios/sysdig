@@ -22,8 +22,10 @@ limitations under the License.
 #include <memory>
 #include <string>
 
+#ifndef MINIMAL_BUILD
 #include "cri.pb.h"
 #include "cri.grpc.pb.h"
+#endif // MINIMAL_BUILD
 
 #include "container_info.h"
 

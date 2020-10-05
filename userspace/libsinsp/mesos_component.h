@@ -22,7 +22,7 @@ limitations under the License.
 // mesos components (frameworks, tasks, slaves)
 // abstraction
 //
-
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #include "json/json.h"
@@ -294,3 +294,4 @@ inline bool mesos_framework::is_root_marathon(const std::string& name)
 // task
 //
 
+#endif // MINIMAL_BUILD

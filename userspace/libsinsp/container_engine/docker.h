@@ -18,8 +18,8 @@ limitations under the License.
 */
 
 #pragma once
-
-#ifndef _WIN32
+#ifndef MINIMAL_BUILD
+#ifndef _WIN32 
 
 #include <memory>
 #include <string>
@@ -204,3 +204,4 @@ private:
 }
 
 #endif // _WIN32
+#endif // MINIMAL_BUILD

@@ -25,7 +25,6 @@ or GPL2.txt for full copies of the license.
 #endif
 
 #include <linux/time.h>
-typedef u64 nanoseconds;
 
 /*
  * Global defines

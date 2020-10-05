@@ -48,6 +48,8 @@ typedef struct wh_t wh_t;
 #define gzoffset ftell
 #define gzwrite(F, B, S) fwrite(B, 1, S, F)
 #define gzread(F, B, S) fread(B, 1, S, F)
+#define gztell(F) ftell(F)
+#define gzerror(F, E) ({*E = ferror(F); "error reading file descriptor";})
 #define gzseek fseek
 #endif
 
@@ -263,6 +265,8 @@ int32_t scap_fd_scan_fd_dir(scap_t* handle, char * procdir, scap_threadinfo* pi,
 int32_t scap_fd_read_ipv4_sockets_from_proc_fs(scap_t* handle, const char * dir, int l4proto, scap_fdinfo ** sockets);
 // read all sockets and add them to the socket table hashed by their ino
 int32_t scap_fd_read_sockets(scap_t* handle, char* procdir, struct scap_ns_socket_list* sockets, char *error);
+// get the device major/minor number for the requested_mount_id, looking in procdir/mountinfo if needed
+uint32_t scap_get_device_by_mount_id(scap_t *handle, const char *procdir, unsigned long requested_mount_id);
 // prints procs details for a give tid
 void scap_proc_print_proc_by_tid(scap_t* handle, uint64_t tid);
 // Allocate and return the list of interfaces on this system

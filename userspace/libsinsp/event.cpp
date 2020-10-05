@@ -24,6 +24,7 @@ limitations under the License.
 #include <inttypes.h>
 #include <sys/socket.h>
 #include <algorithm>
+#include <unistd.h>
 #else
 #define NOMINMAX
 #endif
@@ -896,6 +897,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 
 	case PT_CHARBUF:
 	case PT_FSPATH:
+	case PT_FSRELPATH:
 	case PT_BYTEBUF:
 		ret = get_param_as_str(id, resolved_str, fmt);
 		break;
@@ -1402,6 +1404,55 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	return ret;
 }
 
+std::string sinsp_evt::get_base_dir(uint32_t id, sinsp_threadinfo *tinfo)
+{
+	std::string cwd = tinfo->get_cwd();
+
+	const ppm_param_info* param_info = &m_info->params[id];
+
+	// If it's a regular FSPATH, just return the thread's CWD
+	if (param_info->type != PT_FSRELPATH)
+	{
+		ASSERT(param_info->type == PT_FSPATH);
+		return cwd;
+	}
+
+	uint64_t dirfd_id = (uint64_t)param_info->info;
+	if (dirfd_id >= m_info->nparams)
+	{
+		ASSERT(dirfd_id < m_info->nparams);
+		return cwd;
+	}
+
+	const ppm_param_info* dir_param_info = &(m_info->params[dirfd_id]);
+	// Ensure the index points to an actual FD
+	if (dir_param_info->type != PT_FD)
+	{
+		ASSERT(dir_param_info->type == PT_FD);
+		return cwd;
+	}
+
+	const sinsp_evt_param* dir_param = &m_params[dirfd_id];
+	const int64_t dirfd = *(int64_t*)dir_param->m_val;
+
+	// If the FD is special value PPM_AT_FDCWD, just use CWD
+	if (dirfd == PPM_AT_FDCWD)
+	{
+		return cwd;
+	}
+
+	// If the previous param is a fd with a value other than AT_FDCWD,
+	// get the path to that fd and use it in place of CWD
+	std::string rel_path_base = tinfo->get_path_for_dir_fd(dirfd);
+	if (rel_path_base.empty())
+	{
+		return rel_path_base;
+	}
+	sanitize_string(rel_path_base);
+	rel_path_base.append("/");
+	return rel_path_base;
+}
+
 const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_str, sinsp_evt::param_fmt fmt)
 {
 	char* prfmt;
@@ -1599,6 +1650,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		         "%s", payload);
 		break;
 	case PT_FSPATH:
+	case PT_FSRELPATH:
 	{
 		strcpy_sanitized(&m_paramstr_storage[0],
 			payload,
@@ -1608,9 +1660,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 		if(tinfo && payload_len > 0)
 		{
-			if (strncmp(payload, "<NA>", 4) != 0)
+			if(strncmp(payload, "<NA>", 4) != 0)
 			{
-				string cwd = tinfo->get_cwd();
+				std::string cwd = get_base_dir(id, tinfo);
 
 				if(payload_len + cwd.length() >= m_resolved_paramstr_storage.size())
 				{

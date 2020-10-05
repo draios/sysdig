@@ -22,7 +22,7 @@ limitations under the License.
 #include <limits.h>
 #include <stdlib.h>
 #include <sys/time.h>
-#ifndef CYGWING_AGENT
+#ifdef __GLIBC__
 #include <execinfo.h>
 #endif
 #include <unistd.h>
@@ -51,7 +51,7 @@ limitations under the License.
 #include "chisel.h"
 #include "protodecoder.h"
 #include "uri.h"
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(MINIMAL_BUILD)
 #include "curl/curl.h"
 #endif
 
@@ -956,6 +956,7 @@ bool sinsp_utils::glob_match(const char *pattern, const char *string)
 
 #ifndef CYGWING_AGENT
 #ifndef _WIN32
+#ifdef __GLIBC__
 void sinsp_utils::bt(void)
 {
 	static const char start[] = "BACKTRACE ------------";
@@ -977,6 +978,7 @@ void sinsp_utils::bt(void)
 
 	free(bt_syms);
 }
+#endif // __GLIBC__
 #endif // _WIN32
 #endif // CYGWING_AGENT
 
@@ -1482,6 +1484,8 @@ const char* param_type_to_string(ppm_param_type pt)
 		return "CHARBUFARRAY";
 	case PT_CHARBUF_PAIR_ARRAY:
 		return "CHARBUF_PAIR_ARRAY";
+	case PT_FSRELPATH:
+		return "FSRELPATH";
 	default:
 		ASSERT(false);
 		return "<NA>";

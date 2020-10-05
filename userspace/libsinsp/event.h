@@ -88,7 +88,7 @@ class SINSP_PUBLIC sinsp_evt_param
 {
 public:
 	char* m_val;	///< Pointer to the event parameter data.
-	uint16_t m_len; ///< Length os the parameter pointed by m_val.
+	uint16_t m_len; ///< Length of the parameter pointed by m_val.
 private:
 	inline void init(char* valptr, uint16_t len)
 	{
@@ -391,6 +391,9 @@ private:
 
 	void set_iosize(uint32_t size);
 	uint32_t get_iosize();
+
+	std::string get_base_dir(uint32_t id, sinsp_threadinfo *tinfo);
+
 	const char* get_param_as_str(uint32_t id, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
 	Json::Value get_param_as_json(uint32_t id, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
 

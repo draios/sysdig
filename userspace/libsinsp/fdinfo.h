@@ -118,6 +118,7 @@ public:
 		m_oldname = other.m_oldname;
 		m_flags = other.m_flags;
 		m_dev = other.m_dev;
+		m_mount_id = other.m_mount_id;
 		m_ino = other.m_ino;
 		
 		if(free_state)
@@ -492,6 +493,7 @@ private:
 	T* m_usrstate;
 	uint32_t m_flags;
 	uint32_t m_dev;
+	uint32_t m_mount_id;
 	uint64_t m_ino;
 
 	fd_callbacks_info* m_callbacks;
@@ -553,6 +555,7 @@ public:
 	#endif
 			m_last_accessed_fd = fd;
 			m_last_accessed_fdinfo = &(fdit->second);
+			lookup_device(&(fdit->second), fd);
 			return &(fdit->second);
 		}
 	}
@@ -573,4 +576,8 @@ public:
 	//
 	int64_t m_last_accessed_fd;
 	sinsp_fdinfo_t *m_last_accessed_fdinfo;
+	uint64_t m_tid;
+
+private:
+	void lookup_device(sinsp_fdinfo_t* fdi, uint64_t fd);
 };

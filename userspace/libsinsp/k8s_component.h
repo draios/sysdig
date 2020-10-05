@@ -22,7 +22,7 @@ limitations under the License.
 // kubernetes components (nodes, namespaces, pods, replication controllers, services)
 // abstraction
 //
-
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #include "json/json.h"
@@ -1066,3 +1066,4 @@ inline bool k8s_event_t::has_pending_events() const
 {
 	return m_postponed_events.size() != 0;
 }
+#endif // MINIMAL_BUILD

@@ -111,6 +111,7 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, ppm_par
 			return 1;
 		case PT_CHARBUF:
 		case PT_FSPATH:
+		case PT_FSRELPATH:
 			lua_pushlstring(ls, (char*)rawval, len);
 			return 1;
 		case PT_BYTEBUF:
