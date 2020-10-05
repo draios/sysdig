@@ -16,8 +16,6 @@
 # limitations under the License.
 #
 
-include_directories("${GTEST_INCLUDE_DIR}")
-
 include_directories("..")
 include_directories("../../libscap")
 
