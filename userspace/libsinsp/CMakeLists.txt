@@ -20,7 +20,6 @@ include_directories(../../common)
 include_directories(../libscap)
 include_directories(../async)
 include_directories(./include)
-include_directories("${JSONCPP_INCLUDE}")
 include_directories("${LUAJIT_INCLUDE}")
 
 if(NOT MINIMAL_BUILD)

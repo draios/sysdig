@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-include_directories("${JSONCPP_INCLUDE}")
 
 if(NOT WIN32)
 	include_directories("${TBB_INCLUDE_DIR}")
