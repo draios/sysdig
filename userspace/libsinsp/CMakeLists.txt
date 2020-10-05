@@ -229,7 +229,7 @@ if(NOT WIN32)
 		endif() # NOT MINIMAL_BUILD
 		# when JQ is compiled statically, it will
 		# also compile a static object for oniguruma we need to link
-		if(USE_BUNDLED_JQ)
+		if(ONIGURUMA_LIB)
 			target_link_libraries(sinsp
 			"${ONIGURUMA_LIB}")
 		endif()
