@@ -21,10 +21,6 @@ include_directories(../libscap)
 include_directories(../async)
 include_directories(./include)
 
-if(NOT MINIMAL_BUILD)
-	include_directories("${CARES_INCLUDE}")
-endif()
-
 if(NOT WIN32 AND NOT APPLE)
 	if(NOT MINIMAL_BUILD)
 		include_directories("${GRPC_INCLUDE}")
