@@ -243,7 +243,7 @@ endif()
 #
 option(USE_BUNDLED_ZLIB "Enable building of the bundled zlib" ${USE_BUNDLED_DEPS})
 
-if(WIN32)
+if(WIN32 OR NOT MINIMAL_BUILD)
 	if(NOT USE_BUNDLED_ZLIB)
 		find_path(ZLIB_INCLUDE zlib.h PATH_SUFFIXES zlib)
 		find_library(ZLIB_LIB NAMES z)
