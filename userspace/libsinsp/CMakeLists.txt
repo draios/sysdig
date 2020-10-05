@@ -33,7 +33,6 @@ if(NOT WIN32 AND NOT APPLE)
 		include_directories("${OPENSSL_INCLUDE_DIR}")
 		include_directories("${CURL_INCLUDE_DIR}")
 	endif() # NOT MINIMAL_BUILD
-	include_directories("${JQ_INCLUDE}")
 	include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 endif()
 
