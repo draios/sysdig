@@ -22,9 +22,6 @@ include_directories(../async)
 include_directories(./include)
 
 if(NOT WIN32 AND NOT APPLE)
-	if(NOT MINIMAL_BUILD)
-		include_directories("${GRPC_INCLUDE}")
-	endif() # NOT MINIMAL_BUILD
 	include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 endif()
 
