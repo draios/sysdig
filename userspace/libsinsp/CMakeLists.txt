@@ -15,11 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-include_directories(./)
-include_directories(../../common)
-include_directories(../libscap)
+include_directories(${LIBSINSP_INCLUDE_DIRS})
 include_directories(../async)
-include_directories(./include)
 
 if(NOT WIN32 AND NOT APPLE)
 	include_directories("${CMAKE_CURRENT_BINARY_DIR}")

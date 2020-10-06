@@ -63,51 +63,15 @@ include(ExternalProject)
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
 
-include(luajit)
-include(jsoncpp)
-
-if(NOT MINIMAL_BUILD)
-	include(zlib)
-endif() # MINIMAL_BUILD
-
-include(tbb)
-
-if(NOT WIN32 AND NOT APPLE)
-	include(jq)
-endif()
-
-if(NOT WIN32)
-	include(ncurses)
-endif()
-
-if(NOT WIN32 AND NOT APPLE)
-	include(b64)
-endif()
-
-if(NOT WIN32 AND NOT MINIMAL_BUILD)
-	include(openssl)
-	include(curl)
-endif() # NOT WIN32 AND NOT MINIMAL_BUILD
-
-if(NOT MINIMAL_BUILD)
-	include(cares)
-endif() # NOT MINIMAL_BUILD
-
-if(NOT WIN32 AND NOT APPLE)
-	if(NOT MINIMAL_BUILD)
-		include(protobuf)
-		include(grpc)
-	endif() # NOT WIN32 AND NOT APPLE
-endif() # MINIMAL_BUILD
+include(libsinsp)
 
 option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
 if(CREATE_TEST_TARGETS AND NOT WIN32)
 	include(libsinsp-tests)
 endif() # NOT WIN32
 
+include(CompilerFlags)
 add_subdirectory(userspace/sysdig)
-include(libscap)
-add_subdirectory(userspace/libsinsp)
 
 set(CPACK_PACKAGE_NAME "${PACKAGE_NAME}")
 set(CPACK_PACKAGE_VENDOR "Sysdig Inc.")
