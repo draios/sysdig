@@ -102,24 +102,12 @@ endif() # MINIMAL_BUILD
 
 option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
 if(CREATE_TEST_TARGETS AND NOT WIN32)
-	include(gtest)
+	include(libsinsp-tests)
 endif() # NOT WIN32
 
 add_subdirectory(userspace/sysdig)
 include(libscap)
 add_subdirectory(userspace/libsinsp)
-
-if(CREATE_TEST_TARGETS AND NOT WIN32)
-		# Add unit test directories
-		add_subdirectory(userspace/libsinsp/test)
-
-		# Add command to run all unit tests at once via the make system.
-		# This is preferred vs using ctest's add_test because it will build
-		# the code and output to stdout.
-		add_custom_target(run-unit-tests
-			COMMAND ${CMAKE_MAKE_PROGRAM} run-unit-test-libsinsp
-		)
-endif()
 
 set(CPACK_PACKAGE_NAME "${PACKAGE_NAME}")
 set(CPACK_PACKAGE_VENDOR "Sysdig Inc.")
