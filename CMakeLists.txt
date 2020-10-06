@@ -57,28 +57,6 @@ set(PACKAGE_NAME "sysdig")
 
 include(CompilerFlags)
 
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-		set(KBUILD_FLAGS "${SYSDIG_DEBUG_FLAGS} ${SYSDIG_FEATURE_FLAGS}")
-	else()
-		set(KBUILD_FLAGS "${SYSDIG_FEATURE_FLAGS}")
-	endif()
-
-	if(NOT DEFINED PROBE_VERSION)
-		set(PROBE_VERSION "${SYSDIG_VERSION}")
-	endif()
-	if(NOT DEFINED PROBE_NAME)
-		set(PROBE_NAME "sysdig-probe")
-	endif()
-
-	if(NOT DEFINED PROBE_DEVICE_NAME)
-		set(PROBE_DEVICE_NAME "sysdig")
-	endif()
-
-	add_subdirectory(driver)
-	add_definitions(-DHAS_CAPTURE)
-endif()
-
 add_subdirectory(scripts)
 
 include(ExternalProject)
@@ -128,7 +106,7 @@ if(CREATE_TEST_TARGETS AND NOT WIN32)
 endif() # NOT WIN32
 
 add_subdirectory(userspace/sysdig)
-add_subdirectory(userspace/libscap)
+include(libscap)
 add_subdirectory(userspace/libsinsp)
 
 if(CREATE_TEST_TARGETS AND NOT WIN32)

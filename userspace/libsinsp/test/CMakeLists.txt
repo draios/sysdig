@@ -17,7 +17,7 @@
 #
 
 include_directories("..")
-include_directories("../../libscap")
+include_directories("${LIBSCAP_INCLUDE_DIRS}")
 
 add_executable(unit-test-libsinsp
 	cgroup_list_counter.ut.cpp
