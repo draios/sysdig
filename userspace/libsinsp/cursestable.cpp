@@ -33,8 +33,6 @@ limitations under the License.
 using namespace std;
 
 #include "sinsp.h"
-#include "sinsp_int.h"
-#include "../../driver/ppm_ringbuffer.h"
 #include "filter.h"
 #include "filterchecks.h"
 

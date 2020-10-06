@@ -18,8 +18,6 @@ limitations under the License.
 */
 
 #include "sinsp.h"
-#include "sinsp_int.h"
-#include "../../driver/ppm_events_public.h"
 
 #include <gtest.h>
 
