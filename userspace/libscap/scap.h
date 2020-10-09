@@ -66,7 +66,7 @@ struct iovec;
 #include "../../driver/ppm_events_public.h"
 #ifdef _WIN32
 #include <time.h>
-#define MAP_FAILED NULL
+#define MAP_FAILED (void*)-1
 #endif
 
 //
