@@ -21,7 +21,7 @@ limitations under the License.
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifndef _WIN32
+#ifndef WIN32
 #include <unistd.h>
 #include <sys/uio.h>
 #else
@@ -112,7 +112,7 @@ uint8_t* scap_get_memorydumper_curpos(scap_dumper_t *d)
 	return d->m_targetbufcurpos;
 }
 
-#ifndef _WIN32
+#ifndef WIN32
 static inline uint32_t scap_normalize_block_len(uint32_t blocklen)
 #else
 static uint32_t scap_normalize_block_len(uint32_t blocklen)
@@ -818,7 +818,7 @@ int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fname)
 	// so we don't lose information about processes created in the interval
 	// between opening the handle and starting the dump
 	//
-#if defined(HAS_CAPTURE) && !defined(_WIN32)
+#if defined(HAS_CAPTURE) && !defined(WIN32)
 	if(handle->m_file == NULL && handle->refresh_proc_table_when_saving)
 	{
 		proc_entry_callback tcb = handle->m_proc_callback;
@@ -945,7 +945,7 @@ scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mod
 
 	if(fname[0] == '-' && fname[1] == '\0')
 	{
-#ifndef	_WIN32
+#ifndef	WIN32
 		fd = dup(STDOUT_FILENO);
 #else
 		fd = 1;
@@ -963,7 +963,7 @@ scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mod
 
 	if(f == NULL)
 	{
-#ifndef	_WIN32
+#ifndef	WIN32
 		if(fd != -1)
 		{
 			close(fd);
