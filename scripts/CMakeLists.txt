@@ -26,6 +26,3 @@ install(FILES completions/zsh/_sysdig
 
 install(FILES completions/zsh/_sysdig
 	DESTINATION share/zsh/site-functions)
-
-install(PROGRAMS sysdig-probe-loader
-	DESTINATION bin)

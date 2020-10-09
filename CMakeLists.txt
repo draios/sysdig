@@ -39,6 +39,7 @@ project(sysdig)
 
 option(MINIMAL_BUILD "Produce a minimal sysdig binary with only the essential features (no eBPF probe driver, no kubernetes, no mesos, no marathon and no container metadata)" OFF)
 option(MUSL_OPTIMIZED_BUILD "Enable if you want a musl optimized build" OFF)
+option(INSTALL_PROBE_LOADER "Install the prebuilt probe loader" ON)
 
 # Add path for custom CMake modules.
 list(APPEND CMAKE_MODULE_PATH

@@ -7,6 +7,7 @@
 
 option(BUILD_DRIVER "Build the driver on Linux" ON)
 option(ENABLE_DKMS "Enable DKMS on Linux" ON)
+option(INSTALL_PROBE_LOADER "Install the prebuilt probe loader" OFF)
 
 # The driver build process is somewhat involved because we use the same
 # sources for building the driver locally and for shipping as a DKMS module.
@@ -105,6 +106,13 @@ if(ENABLE_DKMS)
 		DESTINATION "src/${PACKAGE_NAME}-${PROBE_VERSION}"
 		COMPONENT agent-kmodule)
 
+endif()
+
+if(INSTALL_PROBE_LOADER)
+	install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/sysdig-probe-loader
+		DESTINATION bin
+		RENAME ${PROBE_NAME}-loader
+		COMPONENT agent-slim)
 endif()
 
 add_subdirectory(bpf)
