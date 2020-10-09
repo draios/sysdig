@@ -166,7 +166,7 @@ static __always_inline u32 open_modes_to_scap(unsigned long flags,
 
 static __always_inline u32 clone_flags_to_scap(unsigned long flags)
 {
-#ifdef UDIG
+#ifdef WDIG
 	return 0;
 #else
 	u32 res = 0;
