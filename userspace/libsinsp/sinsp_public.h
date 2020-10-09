@@ -18,11 +18,7 @@ limitations under the License.
 */
 #pragma once
 
-#ifdef _WIN32
 #define SINSP_PUBLIC
-#else
-#define SINSP_PUBLIC
-#endif
 
 #ifndef ASSERT
 #ifdef _DEBUG
