@@ -19,8 +19,6 @@ limitations under the License.
 //
 // k8s.cpp
 //
-#ifndef _WIN32
-
 #include "k8s.h"
 #include "k8s_component.h"
 #include "k8s_dispatcher.h"
@@ -321,4 +319,3 @@ std::size_t k8s::count(k8s_component::type component) const
 	os << "Unknown component " << static_cast<int>(component);
 	throw sinsp_exception(os.str());
 }
-#endif // CYGWING_AGENT
