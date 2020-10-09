@@ -271,7 +271,7 @@ static __always_inline u8 socket_family_to_scap(u8 family)
 	else if (family == AF_UNIX)
 		return PPM_AF_UNIX;
 #ifdef AF_NETLINK
-	else if (family == )
+	else if (family == AF_NETLINK)
 		return PPM_AF_NETLINK;
 #endif
 #ifdef AF_PACKET
