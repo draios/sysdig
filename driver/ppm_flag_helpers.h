@@ -601,7 +601,7 @@ static __always_inline u8 sockopt_level_to_scap(int level)
 	switch (level) {
 		case SOL_SOCKET:
 			return PPM_SOCKOPT_LEVEL_SOL_SOCKET;
-#ifndef WDIG
+#ifdef SOL_TCP
 		case SOL_TCP:
 			return PPM_SOCKOPT_LEVEL_SOL_TCP;
 #endif
