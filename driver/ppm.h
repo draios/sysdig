@@ -104,9 +104,7 @@ typedef unsigned long syscall_arg_t;
  * These are analogous to get_user(), copy_from_user() and strncpy_from_user(),
  * but they can't sleep, barf on page fault or be preempted
  */
-#ifndef WDIG
 #define ppm_get_user(x, ptr) ({ ppm_copy_from_user(&x, ptr, sizeof(x)) ? -EFAULT : 0; })
-#endif
 #ifndef UDIG
 unsigned long ppm_copy_from_user(void *to, const void __user *from, unsigned long n);
 long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n);
