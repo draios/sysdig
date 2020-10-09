@@ -56,13 +56,15 @@ static __always_inline uint32_t open_flags_to_scap(unsigned long flags)
 	if (flags & O_EXCL)
 		res |= PPM_O_EXCL;
 
-#ifndef WDIG
+#ifdef O_NONBLOCK
 	if (flags & O_NONBLOCK)
 		res |= PPM_O_NONBLOCK;
+#endif
 
+#ifdef O_SYNC
 	if (flags & O_SYNC)
 		res |= PPM_O_SYNC;
-#endif 
+#endif
 
 	if (flags & O_TRUNC)
 		res |= PPM_O_TRUNC;
