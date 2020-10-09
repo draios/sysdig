@@ -576,11 +576,7 @@ int accumulate_argv_or_env(const char __user * __user *argv,
 	for (;;) {
 		const char __user *p;
 
-#ifdef WDIG
-		if (ppm_copy_from_user(&p, argv, sizeof(p)) != 0)
-#else
 		if (unlikely(ppm_get_user(p, argv)))
-#endif
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		if (p == NULL)
