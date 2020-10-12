@@ -19,6 +19,7 @@ limitations under the License.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #ifdef _WIN32
 #include <winsock2.h>
 #else

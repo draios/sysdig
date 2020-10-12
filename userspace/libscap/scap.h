@@ -58,9 +58,7 @@ struct iovec;
 //
 // Core types
 //
-#ifndef __APPLE__
 #include <time.h>
-#endif
 #include "uthash.h"
 #include "../common/sysdig_types.h"
 #include "../../driver/ppm_events_public.h"
@@ -533,7 +531,6 @@ struct ppm_syscall_desc {
 #define UDIG_RING_DESCS_SM_FNAME "udig_descs"
 #define UDIG_RING_SIZE (8 * 1024 * 1024)
 
-#ifndef __APPLE__
 struct udig_ring_buffer_status {
 	volatile uint64_t m_buffer_lock;
 	volatile int m_initialized;
@@ -542,7 +539,6 @@ struct udig_ring_buffer_status {
 	volatile struct timespec m_last_print_time;
 	struct udig_consumer_t m_consumer;
 };
-#endif // __APPLE__
 
 typedef struct ppm_ring_buffer_info ppm_ring_buffer_info;
 
