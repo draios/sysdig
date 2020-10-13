@@ -367,7 +367,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_open
 	[__NR_creat - SYSCALL_TABLE_ID0] = PPM_SC_CREAT,
 #endif
+#ifdef __NR_link
 	[__NR_link - SYSCALL_TABLE_ID0] = PPM_SC_LINK,
+#endif
 #ifdef __NR_unlink
 	[__NR_unlink - SYSCALL_TABLE_ID0] = PPM_SC_UNLINK,
 #endif
@@ -407,7 +409,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_rename
 	[__NR_rename - SYSCALL_TABLE_ID0] = PPM_SC_RENAME,
 #endif
+#ifdef __NR_mkdir
 	[__NR_mkdir - SYSCALL_TABLE_ID0] = PPM_SC_MKDIR,
+#endif
 #ifdef __NR_rmdir
 	[__NR_rmdir - SYSCALL_TABLE_ID0] = PPM_SC_RMDIR,
 #endif
@@ -427,10 +431,16 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_setpgid - SYSCALL_TABLE_ID0] = PPM_SC_SETPGID,
 	[__NR_umask - SYSCALL_TABLE_ID0] = PPM_SC_UMASK,
 	[__NR_chroot - SYSCALL_TABLE_ID0] = PPM_SC_CHROOT,
+#ifdef __NR_ustat
 	[__NR_ustat - SYSCALL_TABLE_ID0] = PPM_SC_USTAT,
+#endif
+#ifdef __NR_dup2
 	[__NR_dup2 - SYSCALL_TABLE_ID0] = PPM_SC_DUP2,
+#endif
 	[__NR_getppid - SYSCALL_TABLE_ID0] = PPM_SC_GETPPID,
+#ifdef __NR_getpgrp
 	[__NR_getpgrp - SYSCALL_TABLE_ID0] = PPM_SC_GETPGRP,
+#endif
 	[__NR_setsid - SYSCALL_TABLE_ID0] = PPM_SC_SETSID,
 	[__NR_sethostname - SYSCALL_TABLE_ID0] = PPM_SC_SETHOSTNAME,
 	[__NR_setrlimit - SYSCALL_TABLE_ID0] = PPM_SC_SETRLIMIT,
@@ -447,7 +457,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_lstat
 	[__NR_lstat - SYSCALL_TABLE_ID0] = PPM_SC_LSTAT,
 #endif
+#ifdef __NR_readlink
 	[__NR_readlink - SYSCALL_TABLE_ID0] = PPM_SC_READLINK,
+#endif
 #ifdef __NR_uselib
 	[__NR_uselib - SYSCALL_TABLE_ID0] = PPM_SC_USELIB,
 #endif
@@ -487,7 +499,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_delete_module - SYSCALL_TABLE_ID0] = PPM_SC_DELETE_MODULE,
 	[__NR_getpgid - SYSCALL_TABLE_ID0] = PPM_SC_GETPGID,
 	[__NR_fchdir - SYSCALL_TABLE_ID0] = PPM_SC_FCHDIR,
+#ifdef __NR_sysfs
 	[__NR_sysfs - SYSCALL_TABLE_ID0] = PPM_SC_SYSFS,
+#endif
 	[__NR_personality - SYSCALL_TABLE_ID0] = PPM_SC_PERSONALITY,
 /* [__NR_setfsuid16 - SYSCALL_TABLE_ID0] = PPM_SC_NR_SETFSUID16, */
 /* [__NR_setfsgid16 - SYSCALL_TABLE_ID0] = PPM_SC_NR_SETFSGID16, */
@@ -553,7 +567,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_getgroups - SYSCALL_TABLE_ID0] = PPM_SC_GETGROUPS,
 	[__NR_setgroups - SYSCALL_TABLE_ID0] = PPM_SC_SETGROUPS,
 	[__NR_fchown - SYSCALL_TABLE_ID0] = PPM_SC_FCHOWN,
+#ifdef __NR_chown
 	[__NR_chown - SYSCALL_TABLE_ID0] = PPM_SC_CHOWN,
+#endif
 	[__NR_setfsuid - SYSCALL_TABLE_ID0] = PPM_SC_SETFSUID,
 	[__NR_setfsgid - SYSCALL_TABLE_ID0] = PPM_SC_SETFSGID,
 	[__NR_pivot_root - SYSCALL_TABLE_ID0] = PPM_SC_PIVOT_ROOT,
