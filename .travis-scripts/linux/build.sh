@@ -43,7 +43,7 @@ sudo make install
 cd ..
 mkdir build
 cd build
-cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DMINIMAL_BUILD=$MINIMAL_BUILD
 make VERBOSE=1
 make package
 make run-unit-tests
