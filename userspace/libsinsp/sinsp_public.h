@@ -25,6 +25,8 @@ limitations under the License.
 #endif
 
 #ifndef ASSERT
+
+#include <assert.h>
 #ifdef _DEBUG
 
 #ifdef ASSERT_TO_LOG

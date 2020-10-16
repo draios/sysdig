@@ -33,6 +33,7 @@ limitations under the License.
 using namespace std;
 
 #include "sinsp.h"
+#include "sinsp_int.h"
 #include "filter.h"
 #include "filterchecks.h"
 
