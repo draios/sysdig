@@ -32,7 +32,7 @@ extern "C" {
 #include "lauxlib.h"
 }
 
-const static struct luaL_reg ll_filter [] =
+const static struct luaL_Reg ll_filter [] =
 {
 	{"rel_expr", &lua_parser_cbacks::rel_expr},
 	{"bool_op", &lua_parser_cbacks::bool_op},

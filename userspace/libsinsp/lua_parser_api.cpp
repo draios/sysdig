@@ -266,7 +266,7 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 					string err = "Got non-table as in-expression operand\n";
 					throw sinsp_exception("parser API error");
 				}
-				int n = luaL_getn(ls, 4);  /* get size of table */
+				int n = lua_objlen (ls, 4);  /* get size of table */
 				for (i=1; i<=n; i++)
 				{
 					lua_rawgeti(ls, 4, i);

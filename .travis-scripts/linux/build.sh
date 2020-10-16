@@ -20,7 +20,7 @@ set -e
 
 arch="$(uname -i)"
 
-if [[ "$arch" == "s390x" ]] || [[ "$arch" == "ppc64le" ]]; then
+if [[ "$arch" == "s390x" ]] || [[ "$arch" == "ppc64le" ]] || [[ "$arch" == "aarch64" ]]; then
 	export CC="gcc-7"
 	export CXX="g++-7"
 else

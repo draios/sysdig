@@ -98,7 +98,7 @@ void lua_stackdump(lua_State *L)
 // Lua callbacks
 ///////////////////////////////////////////////////////////////////////////////
 #ifdef HAS_LUA_CHISELS
-const static struct luaL_reg ll_sysdig [] =
+const static struct luaL_Reg ll_sysdig [] =
 {
 	{"set_filter", &lua_cbacks::set_global_filter},
 	{"set_snaplen", &lua_cbacks::set_snaplen},
@@ -134,7 +134,7 @@ const static struct luaL_reg ll_sysdig [] =
 	{NULL,NULL}
 };
 
-const static struct luaL_reg ll_chisel [] =
+const static struct luaL_Reg ll_chisel [] =
 {
 	{"request_field", &lua_cbacks::request_field},
 	{"set_filter", &lua_cbacks::set_filter},
@@ -146,7 +146,7 @@ const static struct luaL_reg ll_chisel [] =
 	{NULL,NULL}
 };
 
-const static struct luaL_reg ll_evt [] =
+const static struct luaL_Reg ll_evt [] =
 {
 	{"field", &lua_cbacks::field},
 	{"get_num", &lua_cbacks::get_num},

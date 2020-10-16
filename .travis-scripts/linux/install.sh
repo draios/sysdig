@@ -18,7 +18,7 @@
 #
 arch="$(uname -i)"
 
-if [[ "$arch" != "s390x" ]] && [[ "$arch" != "ppc64le" ]]; then
+if [[ "$arch" != "s390x" ]] && [[ "$arch" != "ppc64le" ]] && [[ "$arch" != "aarch64" ]]; then
 	sudo apt-get --force-yes install g++-4.8
 fi
 sudo apt-get install rpm linux-headers-$(uname -r) libelf-dev

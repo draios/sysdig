@@ -45,6 +45,18 @@ matrix:
       dist: bionic
     - env: BUILD_TYPE=Debug MINIMAL_BUILD=On
       os: linux
+    - env: BUILD_TYPE=Debug
+      os: linux
+      arch: arm64-graviton2
+      dist: bionic
+      virt: lxd
+      group: edge
+    - env: BUILD_TYPE=Release
+      os: linux
+      arch: arm64-graviton2
+      dist: bionic
+      virt: lxd
+      group: edge
 
 sudo: required
 services:
