@@ -613,25 +613,24 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 	case PT_FSPATH:
 	case PT_FSRELPATH:
 		if (likely(val != 0)) {
-#ifndef WDIG // strlcpy does not exist on Windows, where in any case we only have 
-			 // userlevel capture, so we default to ppm_strncpy_from_user.
-			if (fromuser) {
+#ifdef WDIG // strlcpy does not exist on Windows, where in any case we only have 
+			 // userlevel capture, so we default to ppm_strncpy_from_user
+			fromuser = true;
 #endif
+			if (fromuser) {
 				len = ppm_strncpy_from_user(args->buffer + args->arg_data_offset,
 					(const char __user *)(syscall_arg_t)val, max_arg_size);
 
 				if (unlikely(len < 0))
 					return PPM_FAILURE_INVALID_USER_MEMORY;
-#ifndef WDIG
 			} else {
-				len = strlcpy(args->buffer + args->arg_data_offset,
+				len = (int)strlcpy(args->buffer + args->arg_data_offset,
 								(const char *)(syscall_arg_t)val,
 								max_arg_size);
 
-				if (++len > max_arg_size)
+				if (++len > (int)max_arg_size)
 					len = max_arg_size;
 			}
-#endif
 
 			/*
 			 * Make sure the string is null-terminated
@@ -641,15 +640,9 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 			/*
 			 * Handle NULL pointers
 			 */
-#ifdef WDIG
-			strcpy(args->buffer + args->arg_data_offset,
-				"(NULL)");
-			len = (int)strlen(args->buffer + args->arg_data_offset);
-#else
-			len = strlcpy(args->buffer + args->arg_data_offset,
+			len = (int)strlcpy(args->buffer + args->arg_data_offset,
 				"(NULL)",
 				max_arg_size);
-#endif
 
 			if (++len > (int)max_arg_size)
 				len = max_arg_size;
