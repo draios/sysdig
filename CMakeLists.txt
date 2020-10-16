@@ -339,6 +339,7 @@ if(NOT WIN32 AND NOT APPLE)
 			CONFIGURE_COMMAND ./configure --disable-maintainer-mode --enable-all-static --disable-dependency-tracking --with-oniguruma=builtin --prefix=${JQ_INSTALL_DIR}
 			BUILD_COMMAND ${CMD_MAKE} LDFLAGS=-all-static
 			BUILD_IN_SOURCE 1
+			BUILD_BYPRODUCTS ${JQ_LIB} ${ONIGURUMA_LIB}
 			INSTALL_COMMAND ${CMD_MAKE} install)
 	endif()
 endif()
