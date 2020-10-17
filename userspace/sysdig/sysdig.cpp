@@ -196,7 +196,8 @@ static void usage()
 "                    Marathon url is optional and defaults to Mesos address, port 8080.\n"
 "                    The API servers can also be specified via the environment variable\n"
 "                    SYSDIG_MESOS_API.\n"
-" -M <num_seconds>   Stop collecting after <num_seconds> reached.\n"
+" -M <num_seconds>   Stop collecting after <num_seconds> reached after the first matched\n"
+"                    event.\n"
 " -n <num>, --numevents=<num>\n"
 "                    Stop capturing after <num> events\n"
 " --page-faults      Capture user/kernel major/minor page faults\n"
@@ -613,13 +614,36 @@ captureinfo do_inspect(sinsp* inspector,
 
 		if(res == SCAP_TIMEOUT)
 		{
-			if(ev != NULL && ev->is_filtered_out())
+			if(ev != NULL) 
 			{
 				//
-				// The event has been dropped by the filtering system.
-				// Give the chisels a chance to run their timeout logic.
+				// See #1696 - Sysdig capture running endless while using filters
+				// Previously this check was done after a filter which meant that
+				// we did not observe the duration rule.
 				//
-				chisels_do_timeout(ev);
+				// The choice of this compound if statement is intentional. We want
+				// this to effectively only "have cost" if we're using the -M option
+				//
+				// Note that we set duration_start below. Comments down there 
+				// as to why.
+				//
+				if(duration_to_tot_ns > 0 && duration_start != 0)
+				{
+					if(ev->get_ts() - duration_start >= duration_to_tot_ns)
+					{
+						handle_end_of_file(print_progress, formatter);
+						break;
+					}
+				}
+
+				if(ev->is_filtered_out())
+				{
+					//
+					// The event has been dropped by the filtering system.
+					// Give the chisels a chance to run their timeout logic.
+					//
+					chisels_do_timeout(ev);
+				}
 			}
 
 			continue;
@@ -640,17 +664,21 @@ captureinfo do_inspect(sinsp* inspector,
 			throw sinsp_exception(inspector->getlasterr().c_str());
 		}
 
+		// 
+		// Prior to the patch for #1696 - Sysdig capture running endless while using filters
+		// The duration_start would be set at the first match. This previously undocumented 
+		// feature (it is now documented in the help text that can be seen in the commit hunk
+		// associated with this line of text) is useful because it allows someone to start up 
+		// sysdig, then run their tests and not have to worry about the timing delay between 
+		// those two events before the -M countdown timer begins.
+		//
+		// This likely unintended side-effect of the initial implementation has been preserved
+		// to accommodate people who have likely built workflows based on this.
+		//
 		if (duration_start == 0)
 		{
 			duration_start = ev->get_ts();
-		} else if(duration_to_tot_ns > 0)
-		{
-			if(ev->get_ts() - duration_start >= duration_to_tot_ns)
-			{
-				handle_end_of_file(print_progress, formatter);
-				break;
-			}
-		}
+		} 
 		retval.m_nevts++;
 
 		if(print_progress)
