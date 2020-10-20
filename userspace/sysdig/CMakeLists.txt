@@ -33,20 +33,16 @@ include_directories(.)
 
 if(NOT WIN32)
 	set(SOURCE_FILES
-		fields_info.cpp
 		sysdig.cpp)
 
 	set(SOURCE_FILES_CSYSDIG
-		fields_info.cpp
 		csysdig.cpp)
 else()
 	set(SOURCE_FILES
-		fields_info.cpp
 		sysdig.cpp
 		win32/getopt.c)
 
 	set(SOURCE_FILES_CSYSDIG
-		fields_info.cpp
 		csysdig.cpp
 		win32/getopt.c)
 endif()

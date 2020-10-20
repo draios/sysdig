@@ -33,8 +33,6 @@ limitations under the License.
 
 #include "container_engine/mesos.h"
 #include "sinsp.h"
-#include "sinsp_int.h"
-#include "../../driver/ppm_ringbuffer.h"
 #include "tracers.h"
 #include "parsers.h"
 #include "sinsp_errno.h"

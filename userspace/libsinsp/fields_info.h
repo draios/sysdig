@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2020 Sysdig Inc.
 
 This file is part of sysdig.
 
@@ -17,22 +17,20 @@ limitations under the License.
 
 */
 
-#include <gtest.h>
-#include "sinsp.h"
+#pragma once
 
-TEST(inspector,get_proc_by_invalid_tid)
-{
-	sinsp inspector;
-	EXPECT_TRUE(NULL == inspector.get_process(-100));
-}
+#include <vector>
 
-TEST(inspector,get_proc_by_valid_tid)
-{
-	sinsp inspector;
-	EXPECT_TRUE(NULL == inspector.get_process(-100));
-	sinsp_procinfo newpi(&inspector);
-	newpi.m_tgid = -100;
-	inspector.m_proctable[-100] = newpi;
+class sinsp;
+class chisel_desc;
 
-	EXPECT_TRUE(NULL != inspector.get_process(-100));
-}
+//
+// Printer functions
+//
+void list_fields(bool verbose, bool markdown, bool names_only=false);
+void list_events(sinsp* inspector);
+
+#ifdef HAS_CHISELS
+void print_chisel_info(chisel_desc* cd);
+void list_chisels(std::vector<chisel_desc>* chlist, bool verbose);
+#endif

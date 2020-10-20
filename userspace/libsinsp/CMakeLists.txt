@@ -62,6 +62,7 @@ set(SINSP_SOURCES
 	dumper.cpp
 	fdinfo.cpp
 	filter.cpp
+	fields_info.cpp
 	filterchecks.cpp
 	gen_filter.cpp
 	http_parser.c

@@ -28,7 +28,6 @@ limitations under the License.
 #include "sinsp_public.h"
 #include "scap.h"
 #include "gen_filter.h"
-#include "../../driver/ppm_events_public.h"
 #include "settings.h"
 
 typedef class sinsp sinsp;

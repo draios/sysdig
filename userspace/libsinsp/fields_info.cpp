@@ -28,7 +28,7 @@ limitations under the License.
 
 #include <sinsp.h>
 #include "chisel.h"
-#include "sysdig.h"
+#include "fields_info.h"
 
 // Must match the value in the zsh tab completion
 #define DESCRIPTION_TEXT_START 16
@@ -188,6 +188,8 @@ struct summary_chisel_comparer
 		: first.m_category < second.m_category;
 	}
 };
+
+void list_chisels(vector<chisel_desc>* chlist, bool verbose);
 
 void print_chisel_info(chisel_desc* cd)
 {

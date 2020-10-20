@@ -38,6 +38,7 @@ limitations under the License.
 #endif // WIN32
 #endif // HAS_CAPTURE
 #include "sysdig.h"
+#include "fields_info.h"
 #include "utils.h"
 
 #ifdef _WIN32

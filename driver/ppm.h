@@ -124,6 +124,8 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n);
   #define SYSCALL_TABLE_ID0 0
 #elif defined CONFIG_S390
   #define SYSCALL_TABLE_ID0 0
+#elif defined CONFIG_ARM64
+  #define SYSCALL_TABLE_ID0 0
 #endif
 
 extern const struct syscall_evt_pair g_syscall_table[];
