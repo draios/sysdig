@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2013-2020 Sysdig Inc.
 
 This file is part of sysdig.
 
@@ -830,13 +830,17 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #endif
 		{"file-size", required_argument, 0, 'C' },
 		{"json", no_argument, 0, 'j' },
+#ifndef MINIMAL_BUILD
 		{"k8s-api", required_argument, 0, 'k'},
 		{"k8s-api-cert", required_argument, 0, 'K' },
+#endif // MINIMAL_BUILD
 		{"large-environment", no_argument, 0, 0 },
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
 		{"list-markdown", no_argument, 0, 0 },
+#ifndef MINIMAL_BUILD
 		{"mesos-api", required_argument, 0, 'm'},
+#endif // MINIMAL_BUILD
 		{"numevents", required_argument, 0, 'n' },
 		{"page-faults", no_argument, 0, 0 },
 		{"progress", required_argument, 0, 'P' },

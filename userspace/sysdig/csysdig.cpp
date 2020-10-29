@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2013-2020 Sysdig Inc.
 
 This file is part of sysdig.
 
@@ -107,6 +107,7 @@ static void usage()
 "                    better with terminals like putty. Try to use this flag if you experience\n"
 "                    terminal issues like the mouse not working.\n"
 " -h, --help         Print this page\n"
+#ifndef MINIMAL_BUILD
 " -k <url>, --k8s-api=<url>\n"
 "                    Enable Kubernetes support by connecting to the API server\n"
 "                    specified as argument. E.g. \"http://admin:password@127.0.0.1:8080\".\n"
@@ -124,6 +125,7 @@ static void usage()
 "                    Note that the format of this command-line option prohibits use of files whose names contain\n"
 "                    ':' or '#' characters in the file name.\n"
 "                    Option can also be provided via the environment variable SYSDIG_K8S_API_CERT.\n"
+#endif // MINIMAL_BUILD
 " -l, --list         List all the fields that can be used in views.\n"
 " --large-environment\n"
 "                    Support environments larger than 4KiB\n"
@@ -335,9 +337,11 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 #else
 	sinsp_table::output_type output_type = sinsp_table::OT_JSON;
 #endif
+#ifndef MINIMAL_BUILD
 	string* k8s_api = 0;
 	string* k8s_api_cert = 0;
 	string* mesos_api = 0;
+#endif // MINIMAL_BUILD
 	bool terminal_with_mouse = false;
 	bool force_tracers_capture = false;
 	bool force_term_compat = false;
@@ -356,14 +360,18 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"exclude-users", no_argument, 0, 'E' },
 		{"from", required_argument, 0, 0 },
 		{"help", no_argument, 0, 'h' },
+#ifndef MINIMAL_BUILD
 		{"k8s-api", required_argument, 0, 'k'},
 		{"k8s-api-cert", required_argument, 0, 'K' },
+#endif // MINIMAL_BUILD
 		{"json", no_argument, 0, 'j' },
 		{"interactive", optional_argument, 0, 0 },
 		{"large-environment", no_argument, 0, 0 },
 		{"list", optional_argument, 0, 'l' },
 		{"list-views", no_argument, 0, 0},
+#ifndef MINIMAL_BUILD
 		{"mesos-api", required_argument, 0, 'm'},
+#endif // MINIMAL_BUILD
 		{"numevents", required_argument, 0, 'n' },
 		{"page-faults", no_argument, 0, 0 },
 		{"print", required_argument, 0, 'p' },
@@ -449,21 +457,25 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				usage();
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
+#ifndef MINIMAL_BUILD
 			case 'k':
 				k8s_api = new string(optarg);
 				break;
 			case 'K':
 				k8s_api_cert = new string(optarg);
 				break;
+#endif // MINIMAL_BUILD
 			case 'j':
 				output_type = sinsp_table::OT_JSON;
 				break;
 			case 'l':
 				list_flds = true;
 				break;
+#ifndef MINIMAL_BUILD
 			case 'm':
 				mesos_api = new string(optarg);
 				break;
+#endif // MINIMAL_BUILD
 			case 'n':
 				try
 				{
@@ -494,8 +506,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 			case 'r':
 				infiles.push_back(optarg);
+#ifndef MINIMAL_BUILD
 				k8s_api = new string();
 				mesos_api = new string();
+#endif // MINIMAL_BUILD
 				break;
 			case 's':
 				snaplen = atoi(optarg);
@@ -540,6 +554,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 						inspector->set_large_envs(true);
 					}
 #ifdef HAS_CAPTURE
+#ifndef MINIMAL_BUILD
 					else if(optname == "cri")
 					{
 						cri_socket_path = optarg;
@@ -548,6 +563,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					{
 						inspector->set_cri_timeout(sinsp_numparser::parsed64(optarg));
 					}
+#endif // MINIMAL_BUILD
 #endif
 					else if(optname == "logfile")
 					{
@@ -904,6 +920,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				inspector->enable_page_faults();
 			}
 
+#ifndef MINIMAL_BUILD
 			//
 			// run k8s, if required
 			//
@@ -969,6 +986,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					printf("{\"progress\": 0},\n");
 				}
 			}
+#endif // MINIMAL_BUILD
 
 			//
 			// Start the capture loop
