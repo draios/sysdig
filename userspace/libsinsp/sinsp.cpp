@@ -1056,13 +1056,355 @@ uint64_t sinsp::max_buf_used()
 	}
 }
 
+int32_t sinsp::next_per_cpu(OUT sinsp_evt **puevt, uint16_t j)
+{
+	sinsp_evt *evt;
+	int32_t res;
+
+	//
+	// Check if there are fake cpu events to events
+	//
+	if (m_metaevt != NULL)
+	{
+		res = SCAP_SUCCESS;
+		evt = m_metaevt;
+		m_metaevt = NULL;
+
+		if (m_meta_event_callback != NULL)
+		{
+			m_meta_event_callback(this, m_meta_event_callback_data);
+		}
+	}
+#ifndef _WIN32
+	else if (m_pending_container_evts.try_pop(m_container_evt))
+	{
+		res = SCAP_SUCCESS;
+		evt = m_container_evt.get();
+	}
+#endif
+	else
+	{
+		evt = &m_evt;
+
+		//
+		// Reset previous event's decoders if required
+		//
+		if (m_decoders_reset_list.size() != 0)
+		{
+			vector<sinsp_protodecoder *>::iterator it;
+			for (it = m_decoders_reset_list.begin(); it != m_decoders_reset_list.end(); ++it)
+			{
+				(*it)->on_reset(evt);
+			}
+
+			m_decoders_reset_list.clear();
+		}
+
+		//
+		// Get the event from libscap
+		//
+		res = scap_next_per_cpu(m_h, &(evt->m_pevt), j);
+		if (res != SCAP_SUCCESS)
+		{
+			if (res == SCAP_TIMEOUT)
+			{
+				if (m_external_event_processor)
+				{
+					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_TIMEOUT);
+				}
+				*puevt = NULL;
+				return res;
+			}
+			else if (res == SCAP_EOF)
+			{
+				if (m_external_event_processor)
+				{
+					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_EOF);
+				}
+			}
+			else if (res == SCAP_UNEXPECTED_BLOCK)
+			{
+				uint64_t filepos = scap_ftell(m_h) - scap_get_unexpected_block_readsize(m_h);
+				restart_capture_at_filepos(filepos);
+				return SCAP_TIMEOUT;
+			}
+			else
+			{
+				m_lasterr = scap_getlasterr(m_h);
+			}
+
+			return res;
+		}
+	}
+
+	uint64_t ts = evt->get_ts();
+
+	if (m_firstevent_ts == 0 && evt->m_pevt->type != PPME_CONTAINER_JSON_E)
+	{
+		m_firstevent_ts = ts;
+	}
+
+	//
+	// If required, retrieve the processes cpu from the kernel
+	//
+	if (m_get_procs_cpu_from_driver && is_live() && !m_udig)
+	{
+		if (ts > m_next_flush_time_ns)
+		{
+			if (m_next_flush_time_ns != 0)
+			{
+				struct timeval tod;
+				gettimeofday(&tod, NULL);
+
+				uint64_t procrequest_tod = (uint64_t)tod.tv_sec * 1000000000 + tod.tv_usec * 1000;
+
+				if (procrequest_tod - m_last_procrequest_tod > ONE_SECOND_IN_NS / 2)
+				{
+					m_last_procrequest_tod = procrequest_tod;
+					m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
+
+					m_meinfo.m_pli = scap_get_threadlist(m_h);
+					if (m_meinfo.m_pli == NULL)
+					{
+						throw sinsp_exception(string("scap error: ") + scap_getlasterr(m_h));
+					}
+
+					m_meinfo.m_n_procinfo_evts = m_meinfo.m_pli->n_entries;
+
+					if (m_meinfo.m_n_procinfo_evts > 0)
+					{
+						m_meinfo.m_cur_procinfo_evt = -1;
+
+						m_meinfo.m_piscapevt->ts = m_next_flush_time_ns - (ONE_SECOND_IN_NS + 1);
+						add_meta_event_callback(&schedule_next_threadinfo_evt, &m_meinfo);
+						schedule_next_threadinfo_evt(this, &m_meinfo);
+					}
+
+					return SCAP_TIMEOUT;
+				}
+			}
+
+			m_next_flush_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
+		}
+	}
+
+	//
+	// Store a couple of values that we'll need later inside the event.
+	//
+	m_nevts++;
+	evt->m_evtnum = m_nevts;
+	m_lastevent_ts = ts;
+
+#ifndef HAS_ANALYZER
+	//
+	// Delayed removal of threads from the thread table, so that
+	// things like exit() or close() can be parsed.
+	// We only do this if the analyzer is not enabled, because the analyzer
+	// needs the process at the end of the sample and will take care of deleting
+	// it.
+	//
+	if (m_tid_to_remove != -1)
+	{
+		remove_thread(m_tid_to_remove, false);
+		m_tid_to_remove = -1;
+	}
+
+	if (is_debug_enabled() && is_live())
+	{
+		if (ts > m_next_stats_print_time_ns)
+		{
+			if (m_next_stats_print_time_ns)
+			{
+				scap_stats stats;
+				get_capture_stats(&stats);
+
+				g_logger.format(sinsp_logger::SEV_DEBUG,
+								"n_evts:%" PRIu64
+								" n_drops:%" PRIu64
+								" n_drops_buffer:%" PRIu64
+								" n_drops_pf:%" PRIu64
+								" n_drops_bug:%" PRIu64,
+								stats.n_evts,
+								stats.n_drops,
+								stats.n_drops_buffer,
+								stats.n_drops_pf,
+								stats.n_drops_bug);
+			}
+
+			m_next_stats_print_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
+		}
+	}
+
+	//
+	// Run the periodic connection and thread table cleanup
+	//
+	if (!is_capture())
+	{
+		m_thread_manager->remove_inactive_threads();
+		m_container_manager.remove_inactive_containers();
+
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
+		update_k8s_state();
+
+		if (m_mesos_client)
+		{
+			update_mesos_state();
+		}
+#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
+	}
+#endif // HAS_ANALYZER
+
+	//
+	// Delayed removal of the fd, so that
+	// things like exit() or close() can be parsed.
+	//
+	uint32_t nfdr = (uint32_t)m_fds_to_remove->size();
+
+	if (nfdr != 0)
+	{
+		sinsp_threadinfo *ptinfo = get_thread(m_tid_of_fd_to_remove, true, true);
+		if (!ptinfo)
+		{
+			ASSERT(false);
+			return res;
+		}
+
+		for (uint32_t j = 0; j < nfdr; j++)
+		{
+			ptinfo->remove_fd(m_fds_to_remove->at(j));
+		}
+
+		m_fds_to_remove->clear();
+	}
+
+#ifdef SIMULATE_DROP_MODE
+	bool sd = false;
+	bool sw = false;
+
+	if (m_analyzer)
+	{
+		m_analyzer->m_configuration->set_analyzer_sample_len_ns(500000000);
+	}
+
+	sd = should_drop(evt, &m_isdropping, &sw);
+#endif
+
+	//
+	// Run the state engine
+	//
+#ifdef SIMULATE_DROP_MODE
+	if (!sd || m_isdropping)
+	{
+		m_parser->process_event(evt);
+	}
+
+	if (sd && !m_isdropping)
+	{
+		*evt = NULL;
+		return SCAP_TIMEOUT;
+	}
+#else
+	m_parser->process_event(evt);
+#endif
+
+	//
+	// If needed, dump the event to file
+	//
+	if (NULL != m_dumper)
+	{
+
+#if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
+		scap_dump_flags dflags;
+
+		bool do_drop;
+		dflags = evt->get_dump_flags(&do_drop);
+		if (do_drop)
+		{
+			*puevt = evt;
+			return SCAP_TIMEOUT;
+		}
+#endif
+
+		if (m_write_cycling)
+		{
+			switch (m_cycle_writer->consider(evt))
+			{
+			case cycle_writer::NEWFILE:
+				autodump_next_file();
+				break;
+
+			case cycle_writer::DOQUIT:
+				stop_capture();
+				return SCAP_EOF;
+				break;
+
+			case cycle_writer::SAMEFILE:
+				// do nothing.
+				break;
+			}
+		}
+
+		scap_evt *pdevt = (evt->m_poriginal_evt) ? evt->m_poriginal_evt : evt->m_pevt;
+
+		res = scap_dump(m_h, m_dumper, pdevt, evt->m_cpuid, dflags);
+
+		if (SCAP_SUCCESS != res)
+		{
+			throw sinsp_exception(scap_getlasterr(m_h));
+		}
+	}
+
+#if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
+	if (evt->m_filtered_out)
+	{
+		ppm_event_category cat = evt->get_info_category();
+
+		// Skip the event, unless we're in internal events
+		// mode and the category of this event is internal.
+		if (!(m_isinternal_events_enabled && (cat & EC_INTERNAL)))
+		{
+			*puevt = evt;
+			return SCAP_TIMEOUT;
+		}
+	}
+#endif
+
+	//
+	// Run the analysis engine
+	//
+	if (m_external_event_processor)
+	{
+		m_external_event_processor->process_event(evt, libsinsp::EVENT_RETURN_NONE);
+	}
+
+	// Clean parse related event data after analyzer did its parsing too
+	m_parser->event_cleanup(evt);
+
+	//
+	// Update the last event time for this thread
+	//
+	if (evt->m_tinfo &&
+		evt->get_type() != PPME_SCHEDSWITCH_1_E &&
+		evt->get_type() != PPME_SCHEDSWITCH_6_E)
+	{
+		evt->m_tinfo->m_prevevent_ts = evt->m_tinfo->m_lastevent_ts;
+		evt->m_tinfo->m_lastevent_ts = m_lastevent_ts;
+	}
+
+	//
+	// Done
+	//
+	*puevt = evt;
+	return res;
+}
+
 int32_t sinsp::next(OUT sinsp_evt **puevt)
 {
 	sinsp_evt* evt;
 	int32_t res;
 
 	//
-	// Check if there are fake cpu events to  events
+	// Check if there are fake cpu events to events
 	//
 	if(m_metaevt != NULL)
 	{
