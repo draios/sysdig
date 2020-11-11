@@ -255,6 +255,25 @@ public:
 	virtual int32_t next(OUT sinsp_evt **evt);
 
 	/*!
+	  \brief Get the next event from the j-th CPU buffer from the open capture source
+
+	  \param evt a \ref sinsp_evt pointer that will be initialized to point to
+	  the next available event.
+
+	  \param j an integer representing the CPU
+
+	  \return SCAP_SUCCESS if the call is successful and pevent and pcpuid contain
+	   valid data. SCAP_TIMEOUT in case the read timeout expired and no event is
+	   available. SCAP_EOF when the end of an offline capture is reached.
+	   On Failure, SCAP_FAILURE is returned and getlasterr() can be used to
+	   obtain the cause of the error.
+
+	  \note: the returned event can be considered valid only until the next
+	   call to \ref)
+	*/
+	virtual int32_t next_per_cpu(OUT sinsp_evt **evt, uint16_t j);
+
+	/*!
 	  \brief Get the maximum number of bytes currently in use by any CPU buffer
      */
 	uint64_t max_buf_used();
@@ -524,7 +543,7 @@ public:
     {
         return m_external_event_processor ? m_external_event_processor->build_threadinfo(this)
                                           : new sinsp_threadinfo(this);
-    } 
+    }
 
 	/*!
 	  \brief registers external event processor.
