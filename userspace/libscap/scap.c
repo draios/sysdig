@@ -579,8 +579,8 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	//
 	// Map the ppm_ring_buffer_info that contains the buffer pointers
 	//
-	if(udig_alloc_ring_descriptors(&(handle->m_devs[0].m_bufinfo_fd), 
-		&handle->m_devs[0].m_bufinfo, 
+	if(udig_alloc_ring_descriptors(&(handle->m_devs[0].m_bufinfo_fd),
+		&handle->m_devs[0].m_bufinfo,
 		&handle->m_devs[0].m_bufstatus,
 		error) != SCAP_SUCCESS)
 	{
@@ -1236,6 +1236,46 @@ static bool are_buffers_empty(scap_t* handle)
 	return true;
 }
 
+int32_t refill_read_cpu_buffer(scap_t *handle, uint16_t j)
+{
+	uint32_t ndevs = handle->m_ndevs;
+	if (j >= ndevs)
+	{
+		return SCAP_FAILURE;
+	}
+
+	if (are_buffers_empty(handle))
+	{
+		usleep(handle->m_buffer_empty_wait_time_us);
+		handle->m_buffer_empty_wait_time_us = MIN(handle->m_buffer_empty_wait_time_us * 2,
+												  BUFFER_EMPTY_WAIT_TIME_US_MAX);
+	}
+	else
+	{
+		handle->m_buffer_empty_wait_time_us = BUFFER_EMPTY_WAIT_TIME_US_START;
+	}
+
+	//
+	// Refill our data for the specific device
+	//
+	struct scap_device *dev = &(handle->m_devs[j]);
+	int32_t res = scap_readbuf(handle,
+							   j,
+							   &dev->m_sn_next_event,
+							   &dev->m_sn_len);
+	if (res != SCAP_SUCCESS)
+	{
+		return res;
+	}
+
+	//
+	// Note: we might return a spurious timeout here in case the previous loop extracted valid data to parse.
+	//       It's ok, since this is rare and the caller will just call us again after receiving a
+	//       SCAP_TIMEOUT.
+	//
+	return SCAP_TIMEOUT;
+}
+
 int32_t refill_read_buffers(scap_t* handle)
 {
 	uint32_t j;
@@ -1280,6 +1320,90 @@ int32_t refill_read_buffers(scap_t* handle)
 }
 
 #endif // HAS_CAPTURE
+
+static int32_t scap_next_live_per_cpu(scap_t *handle, OUT scap_evt **pevent, uint16_t j)
+{
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
+	//
+	// this should be prevented at open time
+	//
+	ASSERT(false);
+	return SCAP_FAILURE;
+#else
+	uint64_t max_ts = 0xffffffffffffffffLL;
+	scap_evt *pe = NULL;
+	uint32_t ndevs = handle->m_ndevs;
+
+	if (j >= ndevs)
+	{
+		return SCAP_FAILURE;
+	}
+
+	scap_device *dev = &(handle->m_devs[j]);
+	if (dev->m_sn_len == 0)
+	{
+		//
+		// If we don't have data from this ring, but we are
+		// still occupying, free the resources for the
+		// producer rather than sitting on them.
+		//
+		if (dev->m_lastreadsize > 0)
+		{
+			scap_advance_tail(handle, j);
+		}
+
+		return refill_read_cpu_buffer(handle, j);
+	}
+
+	if (handle->m_bpf)
+	{
+		pe = scap_bpf_evt_from_perf_sample(dev->m_sn_next_event);
+	}
+	else
+	{
+		pe = (scap_evt *)dev->m_sn_next_event;
+	}
+
+	//
+	// We want to consume the event with the lowest timestamp
+	//
+	if (pe->ts < max_ts)
+	{
+		if (pe->len > dev->m_sn_len)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_next buffer corruption");
+
+			//
+			// if you get the following assertion, first recompile the driver and libscap
+			//
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
+
+		*pevent = pe;
+		max_ts = pe->ts;
+	}
+
+	//
+	// Update the pointers.
+	//
+	if (handle->m_bpf)
+	{
+		scap_bpf_advance_to_evt(handle, j, true,
+								dev->m_sn_next_event,
+								&dev->m_sn_next_event,
+								&dev->m_sn_len);
+	}
+	else
+	{
+		ASSERT(dev->m_sn_len >= (*pevent)->len);
+		dev->m_sn_len -= (*pevent)->len;
+		dev->m_sn_next_event += (*pevent)->len;
+	}
+
+	return SCAP_SUCCESS;
+#endif
+}
 
 #ifndef _WIN32
 static inline int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
@@ -1531,6 +1655,59 @@ uint64_t scap_max_buf_used(scap_t* handle)
 #else
 	return 0;
 #endif
+}
+
+int32_t scap_next_per_cpu(scap_t *handle, OUT scap_evt **pevent, uint16_t pcpuid)
+{
+	int32_t res = SCAP_FAILURE;
+
+	switch (handle->m_mode)
+	{
+	case SCAP_MODE_CAPTURE:
+		res = scap_next_offline(handle, pevent, pcpuid); // TODO(leodido, fntlnz)
+		break;
+	case SCAP_MODE_LIVE:
+		if (handle->m_udig)
+		{
+			res = scap_next_udig(handle, pevent, pcpuid); // TODO(leodido, fntlnz)
+		}
+		else
+		{
+			res = scap_next_live_per_cpu(handle, pevent, pcpuid);
+		}
+		break;
+#ifndef _WIN32
+	case SCAP_MODE_NODRIVER:
+		res = scap_next_nodriver(handle, pevent, pcpuid); // TODO(leodido, fntlnz)
+		break;
+#endif
+	case SCAP_MODE_NONE:
+		res = SCAP_FAILURE;
+	}
+
+	if (res == SCAP_SUCCESS)
+	{
+		bool suppressed;
+
+		// Check to see if the event should be suppressed due
+		// to coming from a supressed tid
+		if ((res = scap_check_suppressed(handle, *pevent, &suppressed)) != SCAP_SUCCESS)
+		{
+			return res;
+		}
+
+		if (suppressed)
+		{
+			handle->m_num_suppressed_evts++;
+			return SCAP_TIMEOUT;
+		}
+		else
+		{
+			handle->m_evtcnt++;
+		}
+	}
+
+	return res;
 }
 
 int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
