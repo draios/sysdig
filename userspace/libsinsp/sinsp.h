@@ -274,6 +274,13 @@ public:
 	virtual int32_t next_per_cpu(OUT sinsp_evt **evt, uint16_t j);
 
 	/*!
+	  \brief Get the number of devices that are \ref open()
+
+	  \return the number of open devices.
+	*/
+	uint32_t get_open_ndevs();
+
+	/*!
 	  \brief Get the maximum number of bytes currently in use by any CPU buffer
      */
 	uint64_t max_buf_used();

@@ -1056,6 +1056,15 @@ uint64_t sinsp::max_buf_used()
 	}
 }
 
+uint32_t sinsp::get_open_ndevs()
+{
+	if (m_h == NULL)
+	{
+		return 0;
+	}
+	return scap_get_ndevs(m_h);
+}
+
 int32_t sinsp::next_per_cpu(OUT sinsp_evt **puevt, uint16_t j)
 {
 	sinsp_evt *evt;
