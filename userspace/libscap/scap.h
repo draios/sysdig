@@ -614,6 +614,20 @@ scap_t* scap_open_offline_fd(int fd, char *error, int32_t *rc);
 scap_t* scap_open(scap_open_args args, char *error, int32_t *rc);
 
 /*!
+  \brief Advanced function to start a capture.
+
+  \param j the CPU number.
+  \param args a \ref scap_open_args structure containing the open parameters.
+  \param error Pointer to a buffer that will contain the error string in case the
+    function fails. The buffer must have size SCAP_LASTERR_SIZE.
+  \param rc Integer pointer that will contain the scap return code in case the
+    function fails.
+
+  \return The capture instance handle in case of success. NULL in case of failure.
+*/
+scap_t* scap_open_per_cpu(uint16_t j, scap_open_args args, char *error, int32_t *rc);
+
+/*!
   \brief Close a capture handle.
 
   \param handle Handle to the capture instance.

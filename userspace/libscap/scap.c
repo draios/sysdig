@@ -130,23 +130,22 @@ static uint32_t get_max_consumers()
 	return 0;
 }
 
-scap_t* scap_open_live_int(char *error, int32_t *rc,
-			   proc_entry_callback proc_callback,
-			   void* proc_callback_context,
-			   bool import_users,
-			   const char *bpf_probe,
-			   const char **suppressed_comms)
+scap_t *scap_open_live_int_per_cpu(uint16_t j, char *error, int32_t *rc,
+								   proc_entry_callback proc_callback,
+								   void *proc_callback_context,
+								   bool import_users,
+								   const char *bpf_probe,
+								   const char **suppressed_comms)
 {
-	uint32_t j;
 	char filename[SCAP_MAX_PATH_SIZE];
-	scap_t* handle = NULL;
+	scap_t *handle = NULL;
 	uint32_t ndevs;
 
 	//
 	// Allocate the handle
 	//
-	handle = (scap_t*) calloc(sizeof(scap_t), 1);
-	if(!handle)
+	handle = (scap_t *)calloc(sizeof(scap_t), 1);
+	if (!handle)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
 		*rc = SCAP_FAILURE;
@@ -165,20 +164,333 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	// to do one more check here in scap so we don't have to repeat the logic
 	// in all the possible users of the libraries (sysdig, csysdig, dragent, ...)
 	//
-	if(!bpf_probe)
+	if (!bpf_probe)
 	{
 		bpf_probe = scap_get_bpf_probe_from_env();
 	}
 
 	char buf[SCAP_MAX_PATH_SIZE];
-	if(bpf_probe)
+	if (bpf_probe)
 	{
 		handle->m_bpf = true;
 
-		if(strlen(bpf_probe) == 0)
+		if (strlen(bpf_probe) == 0)
 		{
 			const char *home = getenv("HOME");
-			if(!home)
+			if (!home)
+			{
+				scap_close(handle);
+				snprintf(error, SCAP_LASTERR_SIZE, "HOME environment not set");
+				*rc = SCAP_FAILURE;
+				return NULL;
+			}
+
+			snprintf(buf, sizeof(buf), "%s/.falco/%s-bpf.o", home, PROBE_NAME); // todo(leodido, fntlnz) > put sysdig back and patch this
+			bpf_probe = buf;
+		}
+	}
+	else
+	{
+		handle->m_bpf = false;
+	}
+
+	handle->m_ncpus = sysconf(_SC_NPROCESSORS_CONF);
+	if (handle->m_ncpus == -1)
+	{
+		scap_close(handle);
+		snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_CONF: %s", scap_strerror(handle, errno));
+		*rc = SCAP_FAILURE;
+		return NULL;
+	}
+
+	//
+	// Find out how many devices we have to open, which equals to the number of CPUs
+	//
+	ndevs = sysconf(_SC_NPROCESSORS_ONLN);
+	if (ndevs == -1)
+	{
+		scap_close(handle);
+		snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_ONLN: %s", scap_strerror(handle, errno));
+		*rc = SCAP_FAILURE;
+		return NULL;
+	}
+
+	if (j > ndevs)
+	{
+		*rc = SCAP_FAILURE;
+		return NULL;
+	}
+
+	handle->m_devs = (scap_device *)calloc(sizeof(scap_device), 1);
+	if (!handle->m_devs)
+	{
+		scap_close(handle);
+		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the device handle");
+		*rc = SCAP_FAILURE;
+		return NULL;
+	}
+
+	// todo(leodido, fntlnz) > guard this array access (even if it's unlikely to break)
+	handle->m_devs[j].m_buffer = (char *)MAP_FAILED;
+	if (!handle->m_bpf)
+	{
+		handle->m_devs[j].m_bufinfo = (struct ppm_ring_buffer_info *)MAP_FAILED;
+		handle->m_devs[j].m_bufstatus = (struct udig_ring_buffer_status *)MAP_FAILED;
+	}
+
+	handle->m_ndevs = ndevs;
+
+	//
+	// Extract machine information
+	//
+	handle->m_proc_callback = proc_callback;
+	handle->m_proc_callback_context = proc_callback_context;
+	handle->m_machine_info.num_cpus = ndevs;
+	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
+	gethostname(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname) / sizeof(handle->m_machine_info.hostname[0]));
+	handle->m_machine_info.reserved1 = 0;
+	handle->m_machine_info.reserved2 = 0;
+	handle->m_machine_info.reserved3 = 0;
+	handle->m_machine_info.reserved4 = 0;
+	handle->m_driver_procinfo = NULL;
+	handle->m_fd_lookup_limit = 0;
+#ifdef CYGWING_AGENT
+	handle->m_whh = NULL;
+#endif
+
+	//
+	// Create the interface list
+	//
+	if ((*rc = scap_create_iflist(handle)) != SCAP_SUCCESS)
+	{
+		scap_close(handle);
+		snprintf(error, SCAP_LASTERR_SIZE, "error creating the interface list");
+		return NULL;
+	}
+
+	//
+	// Create the user list
+	//
+	if (import_users)
+	{
+		if ((*rc = scap_create_userlist(handle)) != SCAP_SUCCESS)
+		{
+			scap_close(handle);
+			snprintf(error, SCAP_LASTERR_SIZE, "error creating the interface list");
+			return NULL;
+		}
+	}
+	else
+	{
+		handle->m_userlist = NULL;
+	}
+
+	handle->m_fake_kernel_proc.tid = -1;
+	handle->m_fake_kernel_proc.pid = -1;
+	handle->m_fake_kernel_proc.flags = 0;
+	snprintf(handle->m_fake_kernel_proc.comm, SCAP_MAX_PATH_SIZE, "kernel");
+	snprintf(handle->m_fake_kernel_proc.exe, SCAP_MAX_PATH_SIZE, "kernel");
+	handle->m_fake_kernel_proc.args[0] = 0;
+	handle->refresh_proc_table_when_saving = true;
+
+	handle->m_suppressed_comms = NULL;
+	handle->m_num_suppressed_comms = 0;
+	handle->m_suppressed_tids = NULL;
+	handle->m_num_suppressed_evts = 0;
+	handle->m_buffer_empty_wait_time_us = BUFFER_EMPTY_WAIT_TIME_US_START;
+
+	if ((*rc = copy_comms(handle, suppressed_comms)) != SCAP_SUCCESS)
+	{
+		scap_close(handle);
+		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
+		return NULL;
+	}
+
+	//
+	// Open and initialize all the devices
+	//
+	if (handle->m_bpf)
+	{
+		if ((*rc = scap_bpf_load(handle, bpf_probe)) != SCAP_SUCCESS)
+		{
+			snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
+			scap_close(handle);
+			return NULL;
+		}
+	}
+	else
+	{
+		//
+		// Allocate the device descriptors.
+		//
+		int len = RING_BUF_SIZE * 2;
+
+		//
+		// Open the device
+		//
+		snprintf(filename, sizeof(filename), "%s/dev/" PROBE_DEVICE_NAME "%d", scap_get_host_root(), j);
+
+		if ((handle->m_devs[j].m_fd = open(filename, O_RDWR | O_SYNC)) < 0)
+		{
+			if (errno == ENODEV)
+			{
+				//
+				// This CPU is offline, so we just skip it
+				//
+				scap_close(handle);
+				snprintf(error, SCAP_LASTERR_SIZE, "this CPU is offline");
+				*rc = SCAP_FAILURE;
+				return NULL;
+			}
+			else if (errno == EBUSY)
+			{
+				uint32_t curr_max_consumers = get_max_consumers();
+				snprintf(error, SCAP_LASTERR_SIZE, "too many sysdig instances attached to device %s. Current value for /sys/module/" PROBE_DEVICE_NAME "_probe/parameters/max_consumers is '%" PRIu32 "'.", filename, curr_max_consumers);
+			}
+			else
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "error opening device %s. Make sure you have root credentials and that the " PROBE_NAME " module is loaded.", filename);
+			}
+
+			scap_close(handle);
+			*rc = SCAP_FAILURE;
+			return NULL;
+		}
+
+		// Set close-on-exec for the fd
+		if (fcntl(handle->m_devs[j].m_fd, F_SETFD, FD_CLOEXEC) == -1)
+		{
+			snprintf(error, SCAP_LASTERR_SIZE, "Can not set close-on-exec flag for fd for device %s (%s)", filename, scap_strerror(handle, errno));
+			scap_close(handle);
+			*rc = SCAP_FAILURE;
+			return NULL;
+		}
+
+		//
+		// Map the ring buffer
+		//
+		handle->m_devs[j].m_buffer = (char *)mmap(0,
+												  len,
+												  PROT_READ,
+												  MAP_SHARED,
+												  handle->m_devs[j].m_fd,
+												  0);
+
+		if (handle->m_devs[j].m_buffer == MAP_FAILED)
+		{
+			// we cleanup this fd and then we let scap_close() take care of the other ones
+			close(handle->m_devs[j].m_fd);
+
+			scap_close(handle);
+			snprintf(error, SCAP_LASTERR_SIZE, "error mapping the ring buffer for device %s", filename);
+			*rc = SCAP_FAILURE;
+			return NULL;
+		}
+
+		//
+		// Map the ppm_ring_buffer_info that contains the buffer pointers
+		//
+		handle->m_devs[j].m_bufinfo = (struct ppm_ring_buffer_info *)mmap(0,
+																		  sizeof(struct ppm_ring_buffer_info),
+																		  PROT_READ | PROT_WRITE,
+																		  MAP_SHARED,
+																		  handle->m_devs[j].m_fd,
+																		  0);
+
+		if (handle->m_devs[j].m_bufinfo == MAP_FAILED)
+		{
+			// we cleanup this fd and then we let scap_close() take care of the other ones
+			munmap(handle->m_devs[j].m_buffer, len);
+			close(handle->m_devs[j].m_fd);
+
+			scap_close(handle);
+
+			snprintf(error, SCAP_LASTERR_SIZE, "error mapping the ring buffer info for device %s", filename);
+			*rc = SCAP_FAILURE;
+			return NULL;
+		}
+	}
+
+	//
+	// Additional initializations
+	//
+	handle->m_devs[j].m_lastreadsize = 0;
+	handle->m_devs[j].m_sn_len = 0;
+	scap_stop_dropping_mode(handle);
+
+	//
+	// Create the process list
+	//
+	error[0] = '\0';
+	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
+	if ((*rc = scap_proc_scan_proc_dir(handle, filename, error)) != SCAP_SUCCESS)
+	{
+		scap_close(handle);
+		snprintf(error, SCAP_LASTERR_SIZE, "error creating the process list. Make sure you have root credentials.");
+		return NULL;
+	}
+
+	//
+	// Now that sysdig has done all its /proc parsing, start the capture
+	//
+	if ((*rc = scap_start_capture(handle)) != SCAP_SUCCESS)
+	{
+		scap_close(handle);
+		return NULL;
+	}
+
+	return handle;
+}
+
+scap_t *scap_open_live_int(char *error, int32_t *rc,
+						   proc_entry_callback proc_callback,
+						   void *proc_callback_context,
+						   bool import_users,
+						   const char *bpf_probe,
+						   const char **suppressed_comms)
+{
+	uint32_t j;
+	char filename[SCAP_MAX_PATH_SIZE];
+	scap_t *handle = NULL;
+	uint32_t ndevs;
+
+	//
+	// Allocate the handle
+	//
+	handle = (scap_t *)calloc(sizeof(scap_t), 1);
+	if (!handle)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
+		*rc = SCAP_FAILURE;
+		return NULL;
+	}
+
+	//
+	// Preliminary initializations
+	//
+	handle->m_mode = SCAP_MODE_LIVE;
+	handle->m_udig = false;
+
+	//
+	// While in theory we could always rely on the scap caller to properly
+	// set a BPF probe from the environment variable, it's in practice easier
+	// to do one more check here in scap so we don't have to repeat the logic
+	// in all the possible users of the libraries (sysdig, csysdig, dragent, ...)
+	//
+	if (!bpf_probe)
+	{
+		bpf_probe = scap_get_bpf_probe_from_env();
+	}
+
+	char buf[SCAP_MAX_PATH_SIZE];
+	if (bpf_probe)
+	{
+		handle->m_bpf = true;
+
+		if (strlen(bpf_probe) == 0)
+		{
+			const char *home = getenv("HOME");
+			if (!home)
 			{
 				scap_close(handle);
 				snprintf(error, SCAP_LASTERR_SIZE, "HOME environment not set");
@@ -196,7 +508,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	}
 
 	handle->m_ncpus = sysconf(_SC_NPROCESSORS_CONF);
-	if(handle->m_ncpus == -1)
+	if (handle->m_ncpus == -1)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_CONF: %s", scap_strerror(handle, errno));
@@ -208,7 +520,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	// Find out how many devices we have to open, which equals to the number of CPUs
 	//
 	ndevs = sysconf(_SC_NPROCESSORS_ONLN);
-	if(ndevs == -1)
+	if (ndevs == -1)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_ONLN: %s", scap_strerror(handle, errno));
@@ -216,8 +528,8 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		return NULL;
 	}
 
-	handle->m_devs = (scap_device*) calloc(sizeof(scap_device), ndevs);
-	if(!handle->m_devs)
+	handle->m_devs = (scap_device *)calloc(sizeof(scap_device), ndevs);
+	if (!handle->m_devs)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the device handles");
@@ -225,13 +537,13 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		return NULL;
 	}
 
-	for(j = 0; j < ndevs; j++)
+	for (j = 0; j < ndevs; j++)
 	{
-		handle->m_devs[j].m_buffer = (char*)MAP_FAILED;
-		if(!handle->m_bpf)
+		handle->m_devs[j].m_buffer = (char *)MAP_FAILED;
+		if (!handle->m_bpf)
 		{
-			handle->m_devs[j].m_bufinfo = (struct ppm_ring_buffer_info*)MAP_FAILED;
-			handle->m_devs[j].m_bufstatus = (struct udig_ring_buffer_status*)MAP_FAILED;
+			handle->m_devs[j].m_bufinfo = (struct ppm_ring_buffer_info *)MAP_FAILED;
+			handle->m_devs[j].m_bufstatus = (struct udig_ring_buffer_status *)MAP_FAILED;
 		}
 	}
 
@@ -242,7 +554,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	//
 	handle->m_proc_callback = proc_callback;
 	handle->m_proc_callback_context = proc_callback_context;
-	handle->m_machine_info.num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
+	handle->m_machine_info.num_cpus = ndevs;
 	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
 	gethostname(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname) / sizeof(handle->m_machine_info.hostname[0]));
 	handle->m_machine_info.reserved1 = 0;
@@ -869,6 +1181,16 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 
 	return handle;
 #endif // HAS_CAPTURE
+}
+
+scap_t *scap_open_per_cpu(uint16_t j, scap_open_args args, char *error, int32_t *rc)
+{
+	// todo(leodido, fntlnz) > assuming SCAP_MODE_LIVE && !udig
+	return scap_open_live_int_per_cpu(j, error, rc, args.proc_callback,
+									  args.proc_callback_context,
+									  args.import_users,
+									  args.bpf_probe,
+									  args.suppressed_comms);
 }
 
 scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
