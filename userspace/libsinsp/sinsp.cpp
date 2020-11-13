@@ -501,9 +501,69 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 	init();
 }
 
+void sinsp::open_live_common_per_cpu(uint16_t j, uint32_t timeout_ms, scap_mode_t mode)
+{
+	char error[SCAP_LASTERR_SIZE];
+
+	g_logger.log("starting live capture");
+
+	//
+	// Reset the thread manager
+	//
+	m_thread_manager->clear();
+
+	//
+	// Start the capture
+	//
+	m_mode = mode;
+	scap_open_args oargs;
+	oargs.mode = mode;
+	oargs.fname = NULL;
+	oargs.proc_callback = NULL;
+	oargs.proc_callback_context = NULL;
+	oargs.udig = m_udig;
+
+	if (!m_filter_proc_table_when_saving)
+	{
+		oargs.proc_callback = ::on_new_entry_from_proc;
+		oargs.proc_callback_context = this;
+	}
+	oargs.import_users = m_import_users;
+
+	add_suppressed_comms(oargs);
+
+	if (m_bpf)
+	{
+		oargs.bpf_probe = m_bpf_probe.c_str();
+	}
+	else
+	{
+		oargs.bpf_probe = NULL;
+	}
+
+	add_suppressed_comms(oargs);
+
+	int32_t scap_rc;
+	m_h = scap_open_per_cpu(j, oargs, error, &scap_rc);
+
+	if (m_h == NULL)
+	{
+		throw scap_open_exception(error, scap_rc);
+	}
+
+	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
+
+	init();
+}
+
 void sinsp::open(uint32_t timeout_ms)
 {
 	open_live_common(timeout_ms, SCAP_MODE_LIVE);
+}
+
+void sinsp::open_per_cpu(uint16_t j, uint32_t timeout_ms)
+{
+	open_live_common_per_cpu(j, timeout_ms, SCAP_MODE_LIVE);
 }
 
 void sinsp::open_udig(uint32_t timeout_ms)

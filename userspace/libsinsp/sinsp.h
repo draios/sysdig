@@ -210,6 +210,19 @@ public:
 	virtual void open(uint32_t timeout_ms = SCAP_TIMEOUT_MS);
 
 	/*!
+	  \brief Start a live event capture for a specific CPU.
+
+	  \param j the CPU number.
+
+	  \param timeout_ms the optional read timeout, i.e. the time after which a
+	  call to \ref next() returns even if no events are available.
+
+	  @throws a sinsp_exception containing the error string is thrown in case
+	   of failure.
+	*/
+	virtual void open_per_cpu(uint16_t j, uint32_t timeout_ms = SCAP_TIMEOUT_MS);
+
+	/*!
 	  \brief Start an event capture from a trace file.
 
 	  \param filename the trace file name.
@@ -940,6 +953,7 @@ private:
 
 	void open_int();
 	void open_live_common(uint32_t timeout_ms, scap_mode_t mode);
+	void open_live_common_per_cpu(uint16_t j, uint32_t timeout_ms, scap_mode_t mode);
 	void init();
 	void import_thread_table();
 	void import_ifaddr_list();
