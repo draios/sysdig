@@ -551,6 +551,14 @@ public:
 	*/
 	void get_capture_stats(scap_stats* stats) const override;
 
+	/*!
+	  \brief Fill the given structure with statistics about the currently
+	   open capture for a specific cpu
+
+	  \note this call won't work on file captures.
+	*/
+	void get_capture_stats_per_cpu(scap_stats* stats, uint16_t cpuid) const override;
+
 	void set_max_thread_table_size(uint32_t value);
 
 #ifdef GATHER_INTERNAL_STATS

@@ -221,7 +221,7 @@ scap_t *scap_open_live_int_per_cpu(uint16_t j, char *error, int32_t *rc,
 		return NULL;
 	}
 
-	handle->m_devs = (scap_device *)calloc(sizeof(scap_device), 1);
+	handle->m_devs = (scap_device *)calloc(sizeof(scap_device), ndevs);
 	if (!handle->m_devs)
 	{
 		scap_close(handle);
@@ -433,7 +433,7 @@ scap_t *scap_open_live_int_per_cpu(uint16_t j, char *error, int32_t *rc,
 	//
 	// Now that sysdig has done all its /proc parsing, start the capture
 	//
-	if ((*rc = scap_start_capture(handle)) != SCAP_SUCCESS)
+	if ((*rc = scap_start_capture_per_cpu(handle, j)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		return NULL;
@@ -656,7 +656,7 @@ scap_t *scap_open_live_int(char *error, int32_t *rc,
 				else if(errno == EBUSY)
 				{
 					uint32_t curr_max_consumers = get_max_consumers();
-					snprintf(error, SCAP_LASTERR_SIZE, "Too many sysdig instances attached to device %s. Current value for /sys/module/" PROBE_DEVICE_NAME "_probe/parameters/max_consumers is '%"PRIu32"'.", filename, curr_max_consumers);
+snprintf(error, SCAP_LASTERR_SIZE, "Too many sysdig instances attached to device %s. Current value for /sys/module/" PROBE_DEVICE_NAME "_probe/parameters/max_consumers is '%"PRIu32"'.", filename, curr_max_consumers);
 				}
 				else
 				{
@@ -1558,6 +1558,15 @@ static bool are_buffers_empty(scap_t* handle)
 	return true;
 }
 
+static bool is_buffer_empty(scap_t* handle, uint16_t cpuid)
+{
+	if(buf_size_used(handle, cpuid) > BUFFER_EMPTY_THRESHOLD_B)
+	{
+		return false;
+	}
+	return true;
+}
+
 int32_t refill_read_cpu_buffer(scap_t *handle, uint16_t j)
 {
 	uint32_t ndevs = handle->m_ndevs;
@@ -1566,7 +1575,7 @@ int32_t refill_read_cpu_buffer(scap_t *handle, uint16_t j)
 		return SCAP_FAILURE;
 	}
 
-	if (are_buffers_empty(handle))
+	if (is_buffer_empty(handle, j))
 	{
 		usleep(handle->m_buffer_empty_wait_time_us);
 		handle->m_buffer_empty_wait_time_us = MIN(handle->m_buffer_empty_wait_time_us * 2,
@@ -2131,6 +2140,41 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	return SCAP_SUCCESS;
 }
 
+
+int32_t scap_get_stats_per_cpu(scap_t* handle, OUT scap_stats* stats, uint16_t cpuid)
+{
+  if(cpuid > handle->m_ndevs) {
+    return SCAP_FAILURE;
+  }
+	stats->n_evts = 0;
+	stats->n_drops = 0;
+	stats->n_drops_buffer = 0;
+	stats->n_drops_pf = 0;
+	stats->n_drops_bug = 0;
+	stats->n_preemptions = 0;
+	stats->n_suppressed = handle->m_num_suppressed_evts;
+	stats->n_tids_suppressed = HASH_COUNT(handle->m_suppressed_tids);
+
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
+	if(handle->m_bpf)
+	{
+    // todo(fntlnz,leodido): do the percpu for bpf too
+		return scap_bpf_get_stats(handle, stats);
+	}
+	else
+	{
+			stats->n_evts += handle->m_devs[cpuid].m_bufinfo->n_evts;
+			stats->n_drops_buffer += handle->m_devs[cpuid].m_bufinfo->n_drops_buffer;
+			stats->n_drops_pf += handle->m_devs[cpuid].m_bufinfo->n_drops_pf;
+			stats->n_drops += handle->m_devs[cpuid].m_bufinfo->n_drops_buffer +
+						handle->m_devs[cpuid].m_bufinfo->n_drops_pf;
+			stats->n_preemptions += handle->m_devs[cpuid].m_bufinfo->n_preemptions;
+	}
+#endif
+
+	return SCAP_SUCCESS;
+}
+
 //
 // Stop capturing the events
 //
@@ -2174,6 +2218,50 @@ int32_t scap_stop_capture(scap_t* handle)
 	else
 	{
 		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "cannot stop offline live captures");
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+#endif // HAS_CAPTURE
+}
+
+int32_t scap_start_capture_per_cpu(scap_t *handle, uint16_t cpuid)
+{
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	return SCAP_FAILURE;
+#else
+
+	//
+	// Not supported for files
+	//
+	if (handle->m_mode == SCAP_MODE_LIVE)
+	{
+		//
+		// Enable capture on all the rings
+		//
+		if (handle->m_bpf)
+		{
+			return scap_bpf_start_capture(handle);
+		}
+		else if (handle->m_udig)
+		{
+			udig_start_capture(handle);
+		}
+		else
+		{
+			if (ioctl(handle->m_devs[cpuid].m_fd, PPM_IOCTL_ENABLE_CAPTURE))
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_start_capture failed for device %" PRIu16, cpuid);
+				ASSERT(false);
+				return SCAP_FAILURE;
+			}
+		}
+	}
+	else
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "cannot start offline live captures");
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}

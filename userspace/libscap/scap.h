@@ -868,6 +868,21 @@ scap_threadinfo* scap_get_proc_table(scap_t* handle);
 */
 int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats);
 
+
+/*!
+  \brief Return the capture statistics for the given capture handle for a given cpu
+
+  \param handle Handle to the capture instance.
+  \param stats Pointer to a \ref scap_stats structure that will be filled with the
+  statistics.
+  \param cpuid The cpu number.
+
+  \return SCAP_SECCESS if the call is successful.
+   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
+   the cause of the error.
+*/
+int32_t scap_get_stats_per_cpu(scap_t* handle, OUT scap_stats* stats, uint16_t cpuid);
+
 /*!
   \brief This function can be used to temporarily interrupt event capture.
 
@@ -889,6 +904,18 @@ int32_t scap_stop_capture(scap_t* handle);
    the cause of the error.
 */
 int32_t scap_start_capture(scap_t* handle);
+
+/*!
+  \brief Start capture the events, if it was stopped with \ref scap_stop_capture.
+
+  \param handle Handle to the capture that will be started.
+  \param cpuid The cpu number
+
+  \return SCAP_SUCCESS if the call is successful.
+   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
+   the cause of the error.
+*/
+int32_t scap_start_capture_per_cpu(scap_t* handle, uint16_t cpuid);
 
 /*!
   \brief Return the list of the the user interfaces of the machine from which the

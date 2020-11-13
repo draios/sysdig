@@ -1285,7 +1285,7 @@ int32_t sinsp::next_per_cpu(OUT sinsp_evt **puevt, uint16_t j)
 			if (m_next_stats_print_time_ns)
 			{
 				scap_stats stats;
-				get_capture_stats(&stats);
+				get_capture_stats_per_cpu(&stats, j);
 
 				g_logger.format(sinsp_logger::SEV_DEBUG,
 								"n_evts:%" PRIu64
@@ -2262,6 +2262,14 @@ uint32_t sinsp::reserve_thread_memory(uint32_t size)
 void sinsp::get_capture_stats(scap_stats* stats) const
 {
 	if(scap_get_stats(m_h, stats) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+}
+
+void sinsp::get_capture_stats_per_cpu(scap_stats* stats, uint16_t cpuid) const
+{
+	if(scap_get_stats_per_cpu(m_h, stats, cpuid) != SCAP_SUCCESS)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
 	}

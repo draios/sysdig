@@ -19,6 +19,7 @@ limitations under the License.
 #pragma once
 
 #include "sinsp_public.h"
+#include <cstdint>
 
 class scap_stats;
 
@@ -45,4 +46,5 @@ public:
 	 * @param[out] stats The capture statistics
 	 */
 	virtual void get_capture_stats(scap_stats* stats) const = 0;
+	virtual void get_capture_stats_per_cpu(scap_stats* stats, uint16_t cpuid) const = 0;
 };
