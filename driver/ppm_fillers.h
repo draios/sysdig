@@ -37,6 +37,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_read_x)				\
 	FN(sys_write_x)				\
 	FN(sys_execve_e)			\
+	FN(sys_execveat_e)			\
 	FN(proc_startupdate)			\
 	FN(proc_startupdate_2)			\
 	FN(proc_startupdate_3)			\

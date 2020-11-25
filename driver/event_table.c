@@ -331,7 +331,9 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_FCHMOD_E */{"fchmod", EC_FILE, EF_NONE, 0},
 	/* PPME_SYSCALL_FCHMOD_X */{"fchmod", EC_FILE, EF_NONE, 3, {{"res", PT_ERRNO, PF_DEC}, {"fd", PT_FD, PF_DEC}, {"mode", PT_MODE, PF_OCT, chmod_mode} } },
 	/* PPME_SYSCALL_RENAMEAT2_E */{"renameat2", EC_FILE, EF_NONE, 0 },
-	/* PPME_SYSCALL_RENAMEAT2_X */{"renameat2", EC_FILE, EF_NONE, 6, {{"res", PT_ERRNO, PF_DEC}, {"olddirfd", PT_FD, PF_DEC}, {"oldpath", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)}, {"newdirfd", PT_FD, PF_DEC}, {"newpath", PT_FSRELPATH, PF_NA, DIRFD_PARAM(3)}, {"flags", PT_FLAGS32, PF_HEX, renameat2_flags} } }
+	/* PPME_SYSCALL_RENAMEAT2_X */{"renameat2", EC_FILE, EF_NONE, 6, {{"res", PT_ERRNO, PF_DEC}, {"olddirfd", PT_FD, PF_DEC}, {"oldpath", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)}, {"newdirfd", PT_FD, PF_DEC}, {"newpath", PT_FSRELPATH, PF_NA, DIRFD_PARAM(3)}, {"flags", PT_FLAGS32, PF_HEX, renameat2_flags} } },
+	/* PPME_SYSCALL_EXECVE_E */{"execveat", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"filename", PT_FSPATH, PF_NA} } },
+	/* PPME_SYSCALL_EXECVE_X */{"execveat", EC_PROCESS, EF_MODIFIES_STATE, 5, {{"dirfd", PT_ERRNO, PF_DEC}, {"pathname", PT_CHARBUF, PF_NA}, {"argv", PT_CHARBUFARRAY, PF_NA}, {"envp", PT_CHARBUFARRAY, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, renameat2_flags} } }
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
 	 *     New event types are allowed only for new syscalls or new internal events.
 	 *     The number of parameters can be used to differentiate between event versions.

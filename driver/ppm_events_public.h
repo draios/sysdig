@@ -594,6 +594,12 @@ or GPL2.txt for full copies of the license.
 #define PPM_RENAME_WHITEOUT		(1 << 2)	/* Whiteout source */
 
 /*
+* execveat() flags
+*/
+#define PPM_AT_EMPTY_PATH (1 << 0)
+#define PPM_AT_SYMLINK_NOFOLLOW (1 << 1)
+
+/*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
  *
@@ -957,7 +963,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_FCHMOD_X = 317,
 	PPME_SYSCALL_RENAMEAT2_E = 318,
 	PPME_SYSCALL_RENAMEAT2_X = 319,
-	PPM_EVENT_MAX = 320
+	PPME_SYSCALL_EXECVEAT_E = 320,
+	PPME_SYSCALL_EXECVEAT_X = 321,
+	PPM_EVENT_MAX = 322,
 };
 /*@}*/
 
@@ -1286,7 +1294,8 @@ enum ppm_syscall_code {
 	PPM_SC_GETRANDOM = 318,
 	PPM_SC_FADVISE64 = 319,
 	PPM_SC_RENAMEAT2 = 320,
-	PPM_SC_MAX = 321,
+	PPM_SC_EXECVEAT = 321,
+	PPM_SC_MAX = 322,
 };
 
 /*
@@ -1513,6 +1522,7 @@ extern const struct ppm_name_value unlinkat_flags[];
 extern const struct ppm_name_value linkat_flags[];
 extern const struct ppm_name_value chmod_mode[];
 extern const struct ppm_name_value renameat2_flags[];
+extern const struct ppm_name_value execveat_flags[];
 
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
@@ -1525,8 +1535,6 @@ enum ppm_driver_event_id {
 	DEI_NONE = 0,
 	DEI_DISABLE_DROPPING = 1,
 	DEI_ENABLE_DROPPING = 2,
-};
-
 /*!
   \brief Process information as returned by the PPM_IOCTL_GET_PROCLIST IOCTL.
 */

@@ -1357,6 +1357,66 @@ FILLER(sys_execve_e, true)
 	return res;
 }
 
+FILLER(sys_execveat_e, true)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * dirfd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	if (res == PPM_FAILURE_INVALID_USER_MEMORY)
+	{
+		char na[] = "<NA>";
+
+		res = bpf_val_to_ring(data, (unsigned long)na);
+	}
+
+	/*
+	 * pathname
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
+	if (res == PPM_FAILURE_INVALID_USER_MEMORY)
+	{
+		char na[] = "<NA>";
+
+		res = bpf_val_to_ring(data, (unsigned long)na);
+	}
+
+	/*
+	 * argv
+	 */
+	val = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring(data, val);
+	if (res == PPM_FAILURE_INVALID_USER_MEMORY)
+	{
+		char na[] = "<NA>";
+
+		res = bpf_val_to_ring(data, (unsigned long)na);
+	}
+
+	/*
+	 * envp
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * flags
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return res;
+}
+
 static __always_inline int bpf_ppm_get_tty(struct task_struct *task)
 {
 	struct signal_struct *sig;

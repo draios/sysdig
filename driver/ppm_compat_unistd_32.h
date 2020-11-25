@@ -358,7 +358,7 @@
 
 #ifdef __KERNEL__
 
-#define NR_ia32_syscalls 350
+#define NR_ia32_syscalls 351
 
 #define __ARCH_WANT_IPC_PARSE_VERSION
 #define __ARCH_WANT_OLD_READDIR
