@@ -1009,7 +1009,26 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		//
 		if(evt->m_tinfo && evt->m_tinfo->m_clone_ts != 0)
 		{
-			if(evt->get_ts() - evt->m_tinfo->m_clone_ts > CLONE_STALE_TIME_NS)
+			// has the original thread lived long enough to assume
+			// it can't possibly be the same thread and we must have lost
+			// the exit event?
+			bool long_lived = evt->get_ts() - evt->m_tinfo->m_clone_ts > CLONE_STALE_TIME_NS;
+
+			// if the old thread appeared in response to a clone event,
+			// we know it's a different one, so we can unconditionally
+			// replace it (we've rolled over all pids in the CLONE_STALE_TIME_NS
+			// interval)
+			bool from_proc = evt->m_tinfo->m_flags & PPM_CL_FROM_PROC;
+
+			// XXX: we probably want to treat threads that have already exited
+			// as stale, but we cannot rely 100% on the event ordering
+			// Otherwise, a clone event would always signal the existing
+			// entry is stale; AIUI, we can receive other events from
+			// a freshly cloned thread before we see its clone event
+//			bool already_closed = evt->m_tinfo->m_flags & PPM_CL_CLOSED;
+//			bool stale = already_closed || !from_proc;
+			bool stale = !from_proc;
+			if(long_lived || stale)
 			{
 				m_inspector->remove_thread(tid, true);
 				evt->m_tinfo = NULL;
