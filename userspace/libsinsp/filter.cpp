@@ -254,7 +254,13 @@ bool flt_compare_string(cmpop op, char* operand1, char* operand2)
 		return (strstr(operand1, operand2) != NULL);
     case CO_ICONTAINS:
 #ifdef _WIN32
-		return (_strnicmp(operand1, operand2, strlen(operand1)) != NULL);
+	{
+		string s1(operand1);
+		string s2(operand2);
+		std::transform(s1.begin(), s1.end(), s1.begin(), [](unsigned char c){ return std::tolower(c); });
+		std::transform(s2.begin(), s2.end(), s2.begin(), [](unsigned char c){ return std::tolower(c); });
+		return (strstr(s1.c_str(), s2.c_str()) != NULL);
+	}
 #else
 		return (strcasestr(operand1, operand2) != NULL);
 #endif
@@ -1341,16 +1347,51 @@ uint8_t* sinsp_filter_check::extract(gen_event *evt, OUT uint32_t* len, bool san
 	return extract((sinsp_evt *) evt, len, sanitize_strings);
 }
 
+uint8_t* sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+{
+	if(m_extraction_cache_entry != NULL)
+	{
+		uint64_t en = ((sinsp_evt *)evt)->get_num();
+
+		if(en != m_extraction_cache_entry->m_evtnum)
+		{
+			m_extraction_cache_entry->m_evtnum = en;
+			m_extraction_cache_entry->m_res = extract(evt, len, sanitize_strings);
+		}
+
+		return m_extraction_cache_entry->m_res;
+	}
+	else
+	{
+		return extract(evt, len, sanitize_strings);
+	}
+}
+
 bool sinsp_filter_check::compare(gen_event *evt)
 {
-	return compare((sinsp_evt *) evt);
+	if(m_eval_cache_entry != NULL)
+	{
+		uint64_t en = ((sinsp_evt *)evt)->get_num();
+
+		if(en != m_eval_cache_entry->m_evtnum)
+		{
+			m_eval_cache_entry->m_evtnum = en;
+			m_eval_cache_entry->m_res = compare((sinsp_evt *) evt);
+		}
+
+		return m_eval_cache_entry->m_res;
+	}
+	else
+	{
+		return compare((sinsp_evt *) evt);
+	}
 }
 
 bool sinsp_filter_check::compare(sinsp_evt *evt)
 {
 	uint32_t evt_val_len=0;
 	bool sanitize_strings = false;
-	uint8_t* extracted_val = extract(evt, &evt_val_len, sanitize_strings);
+	uint8_t* extracted_val = extract_cached(evt, &evt_val_len, sanitize_strings);
 
 	if(extracted_val == NULL)
 	{
@@ -1916,7 +1957,7 @@ sinsp_filter* sinsp_filter_compiler::compile()
 	catch(const sinsp_exception& e)
 	{
 		delete m_filter;
-		throw;
+		throw sinsp_exception(string("filter error at position ") + to_string(m_scanpos) + ": " + e.what());
 	}
 	catch(...)
 	{
@@ -1946,7 +1987,12 @@ sinsp_filter* sinsp_filter_compiler::compile_()
 
 			if(m_state != ST_EXPRESSION_DONE)
 			{
-				throw sinsp_exception("filter error: unexpected end of filter at position " + to_string((long long) m_scanpos));
+				throw sinsp_exception("filter error: unexpected end of filter");
+			}
+
+			if(m_filter->m_filter->get_expr_boolop() == -1)
+			{
+				throw sinsp_exception("expression mixes 'and' and 'or' in an ambiguous way. Please use brackets.");
 			}
 
 			//
@@ -1979,7 +2025,7 @@ sinsp_filter* sinsp_filter_compiler::compile_()
 				}
 				else
 				{
-					throw sinsp_exception("syntax error in filter at position " + to_string((long long)m_scanpos));
+					throw sinsp_exception("syntax error in filter");
 				}
 
 				if(m_state != ST_EXPRESSION_DONE)
@@ -2006,7 +2052,7 @@ sinsp_filter* sinsp_filter_compiler::compile_()
 				}
 				else
 				{
-					throw sinsp_exception("syntax error in filter at position " + to_string((long long)m_scanpos));
+					throw sinsp_exception("syntax error in filter");
 				}
 
 				if(m_state != ST_EXPRESSION_DONE)
@@ -2030,7 +2076,7 @@ sinsp_filter* sinsp_filter_compiler::compile_()
 			}
 			else
 			{
-				throw sinsp_exception("syntax error in filter at position " + to_string((long long) m_scanpos));
+				throw sinsp_exception("syntax error in filter");
 			}
 
 			if(m_state != ST_EXPRESSION_DONE && m_state != ST_NEED_EXPRESSION)
@@ -2050,7 +2096,7 @@ sinsp_filter* sinsp_filter_compiler::compile_()
 			}
 			else
 			{
-				throw sinsp_exception("syntax error in filter at position " + to_string((long long) m_scanpos));
+				throw sinsp_exception("syntax error in filter");
 			}
 			break;
 		}

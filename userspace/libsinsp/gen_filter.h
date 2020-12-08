@@ -154,6 +154,14 @@ public:
 
 	uint8_t* extract(gen_event *evt, uint32_t* len, bool sanitize_strings = true);
 
+	//
+	// An expression is consistent if all its checks are of the same type (or/and).
+	//
+	// This method returns the expression operator (BO_AND/BO_OR/BO_NONE) if the 
+	// expression is consistent. It returns -1 if the expression is not consistent.
+	//
+	int32_t get_expr_boolop();
+
 	gen_event_filter_expression* m_parent;
 	std::vector<gen_event_filter_check*> m_checks;
 };
@@ -178,10 +186,13 @@ public:
 	void pop_expression();
 	void add_check(gen_event_filter_check* chk);
 
-protected:
-	gen_event_filter_expression* m_curexpr;
 	gen_event_filter_expression* m_filter;
 
+protected:
+	gen_event_filter_expression* m_curexpr;
+
+	friend class sinsp_filter_compiler;
+	friend class sinsp_filter_optimizer;
 };
 
 class gen_event_filter_factory
@@ -197,5 +208,3 @@ public:
 	// Create a new filtercheck
 	virtual gen_event_filter_check *new_filtercheck(const char *fldname) = 0;
 };
-
-
