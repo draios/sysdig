@@ -565,7 +565,7 @@ int32_t scap_proc_fill_loginuid(scap_t *handle, struct scap_threadinfo* tinfo, c
 //
 // Add a process to the list by parsing its entry under /proc
 //
-static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procdirname, struct scap_ns_socket_list** sockets_by_ns, scap_threadinfo** procinfo, char *error)
+static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procdirname, struct scap_ns_socket_list** sockets_by_ns, scap_threadinfo** procinfo, bool suppress, char *error)
 {
 	char dir_name[256];
 	char target_name[SCAP_MAX_PATH_SIZE];
@@ -653,7 +653,14 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "can't open %s (error %s)", filename, scap_strerror(handle, errno));
 		free(tinfo);
-		return SCAP_FAILURE;
+		if (suppress)
+		{
+			return SCAP_SUCCESS;
+		}
+		else
+		{
+		    return SCAP_FAILURE;
+		}
 	}
 	else
 	{
@@ -665,7 +672,14 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 				 filename, scap_strerror(handle, errno));
 			fclose(f);
 			free(tinfo);
-			return SCAP_FAILURE;
+			if (suppress)
+		    {
+			    return SCAP_SUCCESS;
+		    }
+		    else
+		    {
+		        return SCAP_FAILURE;
+		    }
 		}
 
 		line[SCAP_MAX_PATH_SIZE - 1] = 0;
@@ -783,7 +797,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	//
 	if(SCAP_FAILURE == scap_proc_fill_info_from_stats(handle, dir_name, tinfo))
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "can't fill cwd for %s (%s)",
+		snprintf(error, SCAP_LASTERR_SIZE, "can't fill uid and pid for %s (%s)",
 			 dir_name, handle->m_lasterr);
 		free(tinfo);
 		return SCAP_FAILURE;
@@ -922,7 +936,7 @@ int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, s
 		sockets_by_ns = (void*)-1;
 	}
 
-	res = scap_proc_add_from_proc(handle, tid, procdirname, &sockets_by_ns, pi, add_error);
+	res = scap_proc_add_from_proc(handle, tid, procdirname, &sockets_by_ns, pi, FALSE, add_error);
 	if(res != SCAP_SUCCESS)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "cannot add proc tid = %"PRIu64", dirname = %s, error=%s", tid, procdirname, add_error);
@@ -939,7 +953,7 @@ int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, s
 //
 // Scan a directory containing multiple processes under /proc
 //
-static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, int parenttid, char *error)
+static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, int parenttid, bool suppress, char *error)
 {
 	DIR *dir_p;
 	struct dirent *dir_entry_p;
@@ -998,7 +1012,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		//
 		// We have a process that needs to be explored
 		//
-		res = scap_proc_add_from_proc(handle, tid, procdirname, &sockets_by_ns, NULL, add_error);
+		res = scap_proc_add_from_proc(handle, tid, procdirname, &sockets_by_ns, NULL, suppress, add_error);
 		if(res != SCAP_SUCCESS)
 		{
 			snprintf(error, SCAP_LASTERR_SIZE, "cannot add procs tid = %"PRIu64", parenttid = %"PRIi32", dirname = %s, error=%s", tid, parenttid, procdirname, add_error);
@@ -1011,7 +1025,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		if(parenttid == -1 && handle->m_mode != SCAP_MODE_NODRIVER)
 		{
 			snprintf(childdir, sizeof(childdir), "%s/%u/task", procdirname, (int)tid);
-			if(_scap_proc_scan_proc_dir_impl(handle, childdir, tid, error) == SCAP_FAILURE)
+			if(_scap_proc_scan_proc_dir_impl(handle, childdir, tid, suppress, error) == SCAP_FAILURE)
 			{
 				res = SCAP_FAILURE;
 				break;
@@ -1027,9 +1041,9 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 	return res;
 }
 
-int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, char *error)
+int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, bool suppress, char *error)
 {
-	return _scap_proc_scan_proc_dir_impl(handle, procdirname, -1, error);
+	return _scap_proc_scan_proc_dir_impl(handle, procdirname, -1, suppress, error);
 }
 
 #endif // CYGWING_AGENT
@@ -1102,7 +1116,7 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 #endif // HAS_CAPTURE
 
 #ifdef CYGWING_AGENT
-int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, char *error)
+int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, bool suppress, char *error)
 {
 	return scap_proc_scan_proc_dir_windows(handle, error);
 }
@@ -1235,7 +1249,7 @@ int scap_proc_scan_proc_table(scap_t *handle)
 	handle->m_lasterr[0] = '\0';
 
 	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-	return scap_proc_scan_proc_dir(handle, filename, handle->m_lasterr);
+	return scap_proc_scan_proc_dir(handle, filename, FALSE, handle->m_lasterr);
 }
 
 void scap_refresh_proc_table(scap_t* handle)
