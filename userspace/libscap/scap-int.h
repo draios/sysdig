@@ -347,11 +347,6 @@ const char *scap_strerror(scap_t *handle, int errnum);
 #define MAX(X,Y) ((X) > (Y)? (X):(Y))
 #endif
 
-#undef  TRUE
-#define TRUE 1
-
-#undef  FALSE
-#define FALSE 0
 
 //
 // Driver proc info table sizes

@@ -427,7 +427,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	//
 	error[0] = '\0';
 	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-	if((*rc = scap_proc_scan_proc_dir(handle, filename, TRUE, error)) != SCAP_SUCCESS)
+	if((*rc = scap_proc_scan_proc_dir(handle, filename, true, error)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "scap_open_live_int() error creating the process list. Make sure you have root credentials.");
@@ -601,7 +601,7 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	//
 	error[0] = '\0';
 	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-	if((*rc = scap_proc_scan_proc_dir(handle, filename, FALSE, error)) != SCAP_SUCCESS)
+	if((*rc = scap_proc_scan_proc_dir(handle, filename, false, error)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "scap_open_udig_int() error creating the process list. Make sure you have root credentials.");
@@ -860,7 +860,7 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 	//
 	error[0] = '\0';
 	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-	if((*rc = scap_proc_scan_proc_dir(handle, filename, FALSE, error)) != SCAP_SUCCESS)
+	if((*rc = scap_proc_scan_proc_dir(handle, filename, false, error)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "scap_open_live() error creating the process list. Make sure you have root credentials.");
