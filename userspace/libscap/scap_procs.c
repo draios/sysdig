@@ -1012,7 +1012,10 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 			{
 				res = SCAP_SUCCESS;
 			}
-			break;
+			else
+			{
+				break;
+			}
 		}
 
 		//
