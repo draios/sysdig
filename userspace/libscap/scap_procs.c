@@ -665,7 +665,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 				 filename, scap_strerror(handle, errno));
 			fclose(f);
 			free(tinfo);
-		    return SCAP_FAILURE;
+			return SCAP_FAILURE;
 		}
 
 		line[SCAP_MAX_PATH_SIZE - 1] = 0;
