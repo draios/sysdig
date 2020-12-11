@@ -814,7 +814,29 @@ bool docker_async_source::parse_docker(const docker_async_instruction& instructi
 	{
 		container.m_cpu_shares = cpu_shares;
 	}
-	container.m_cpu_quota = host_config_obj["CpuQuota"].asInt64();
+
+	/**
+	 * 2 separate docker APIs use CFS CPU scheduler to constrain container CPU usage
+	 * Reference: https://docs.docker.com/engine/reference/run/
+	 * 1) docker run --cpus=<Number of CPUS>
+	 *    <Number of CPUs> is converted into a cfs_cpu_quota value for the default cfs_cpu_period=100000
+	 *    cfs_cpu_period cannot be changed with this API
+	 *    For example, if <Number of CPUs>=0.5, cfs_cpu_quota=50000 and cfs_cpu_period=100000
+	 * 2) docker run --cpu-quota=<quota> --cpu-period=<period>
+	 *    CFS quota and/or period can be set directly. The default period is 100000 and default quota
+	 *    is 0 (which translates to unconstrained)
+	 *    For example, if <quota>=12345 and <period>=67890, then cfs_cpu_quota=12345 and cfs_cpu_period=67890
+	 * These 2 APIs are mutually exclusive: docker throws an error if an attempt is made to use --cpus in combination
+	 * with either --cpu-quota or --cpu-period
+	 *
+	 * docker_response json output:
+	 * 1) When --cpus is used, the value is returned as NanoCpus; both CpuQuota and CpuPeriod are 0
+	 *    Since cfs_cpu_period=100000=10^5 and 10^9 NanoCpus is 1 CPU, which translates to cfs_cpu_quota=100000=10^5,
+	 *    we need to divide NanoCpus by 10^4=10000 to convert NanoCpus into cfs_cpu_quota
+	 *
+	 * 2) When --cpu-quota and/or --cpu-period are used, the corresponding values are returned; NanoCpus is 0
+	 */
+	container.m_cpu_quota = max(host_config_obj["CpuQuota"].asInt64(), host_config_obj["NanoCpus"].asInt64()/10000);
 	const auto cpu_period = host_config_obj["CpuPeriod"].asInt64();
 	if(cpu_period > 0)
 	{

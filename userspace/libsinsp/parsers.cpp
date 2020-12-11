@@ -4557,7 +4557,7 @@ namespace
 		std::string val_as_string = value.isConvertibleTo(Json::stringValue) ? value.asString().c_str() : "value not convertible to string";
 		std::string err_msg = "Unable to convert json value '" + val_as_string + "' for the field: '" + field +"'";
 
-		return std::move(err_msg);
+		return err_msg;
 	}
 
 	bool check_int64_json_is_convertible(const Json::Value& value, const char* field) {

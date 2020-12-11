@@ -783,7 +783,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	//
 	if(SCAP_FAILURE == scap_proc_fill_info_from_stats(handle, dir_name, tinfo))
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "can't fill cwd for %s (%s)",
+		snprintf(error, SCAP_LASTERR_SIZE, "can't fill uid and pid for %s (%s)",
 			 dir_name, handle->m_lasterr);
 		free(tinfo);
 		return SCAP_FAILURE;
@@ -1001,12 +1001,25 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		res = scap_proc_add_from_proc(handle, tid, procdirname, &sockets_by_ns, NULL, add_error);
 		if(res != SCAP_SUCCESS)
 		{
-			snprintf(error, SCAP_LASTERR_SIZE, "cannot add procs tid = %"PRIu64", parenttid = %"PRIi32", dirname = %s, error=%s", tid, parenttid, procdirname, add_error);
-			break;
+			//
+			// When a /proc lookup fails (while scanning the whole directory, 
+			// not just while looking up a single tid), 
+			// we should drop this thread/process completely. 
+			// We will fill the gap later, when the first event 
+			// for that process arrives.
+			//
+			//
+			res = SCAP_SUCCESS;
+			//
+			// Continue because if we failed to read details of pid=1234, 
+			// it doesn’t say anything about pid=1235
+			//
+			continue;
 		}
 
 		//
 		// See if this process includes tasks that need to be added
+		// Note the use of recursion will re-enter this function for the childdir.
 		//
 		if(parenttid == -1 && handle->m_mode != SCAP_MODE_NODRIVER)
 		{
