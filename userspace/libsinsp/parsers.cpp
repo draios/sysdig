@@ -4845,10 +4845,8 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 	else
 	{
 		std::string errstr;
-		errstr = Json::Reader().getFormattedErrorMessages();
-		// We should not be throwing an exception that doesn't get handled.
-		// If a container JSON could not be parsed, throw a warning and move on.
-		SINSP_WARNING("Invalid JSON encountered while parsing container info json: %s. Error = %s", json.c_str(), errstr.c_str());
+                errstr = Json::Reader().getFormattedErrorMessages();
+                throw sinsp_exception("Invalid JSON encountered while parsing container info: " + json + "error=" + errstr);
 	}
 }
 
