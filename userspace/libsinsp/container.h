@@ -144,6 +144,7 @@ public:
 	void set_cri_timeout(int64_t timeout_ms);
 	void set_cri_async(bool async);
 	void set_cri_delay(uint64_t delay_ms);
+	void set_container_labels_max_len(uint32_t max_label_len);
 	sinsp* get_inspector() { return m_inspector; }
 
 	/**

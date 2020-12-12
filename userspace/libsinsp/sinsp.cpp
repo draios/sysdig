@@ -1623,6 +1623,11 @@ void sinsp::set_cri_delay(uint64_t delay_ms)
 	m_container_manager.set_cri_delay(delay_ms);
 }
 
+void sinsp::set_container_labels_max_len(uint32_t max_label_len)
+{
+	m_container_manager.set_container_labels_max_len(max_label_len);
+}
+
 void sinsp::set_snaplen(uint32_t snaplen)
 {
 	//

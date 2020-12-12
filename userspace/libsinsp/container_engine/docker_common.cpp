@@ -793,7 +793,9 @@ bool docker_async_source::parse_docker(const docker_async_instruction& instructi
 	for(vector<string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
 	{
 		string val = config_obj["Labels"][*it].asString();
-		container.m_labels[*it] = val;
+		if(val.length() <= sinsp_container_info::m_container_label_max_length ) {
+			container.m_labels[*it] = val;
+		}
 	}
 
 	const Json::Value& env_vars = config_obj["Env"];

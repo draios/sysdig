@@ -120,7 +120,10 @@ bool cri_async_source::parse_cri(sinsp_container_info& container, const libsinsp
 
 	for(const auto &pair : resp_container.labels())
 	{
-		container.m_labels[pair.first] = pair.second;
+		std::string label_val = pair.second;
+		if(label_val.length() <= sinsp_container_info::m_container_label_max_length) {
+			container.m_labels[pair.first] = pair.second;
+		}
 	}
 
 	m_cri->parse_cri_image(resp_container, container);
