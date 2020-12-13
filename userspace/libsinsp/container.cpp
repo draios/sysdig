@@ -638,3 +638,8 @@ void sinsp_container_manager::set_cri_delay(uint64_t delay_ms)
 #endif
 }
 
+void sinsp_container_manager::set_container_labels_max_len(uint32_t max_label_len)
+{
+	sinsp_container_info::m_container_label_max_length = max_label_len;
+}
+
