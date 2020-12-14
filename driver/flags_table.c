@@ -525,3 +525,7 @@ const struct ppm_name_value renameat2_flags[] = {
 	{"RENAME_WHITEOUT", PPM_RENAME_WHITEOUT},
 	{0, 0},
 };
+
+const struct ppm_name_value copy_file_range_flags[] = {
+	{0, 0},
+};

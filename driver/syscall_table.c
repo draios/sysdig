@@ -7,6 +7,7 @@ or GPL2.txt for full copies of the license.
 
 */
 
+#include <asm/unistd_64.h>
 #ifdef __KERNEL__
 #include <linux/kobject.h>
 #include <linux/cdev.h>
@@ -353,8 +354,12 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_seccomp - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_SECCOMP_E, PPME_SYSCALL_SECCOMP_X},
 #endif
 #ifdef __NR_renameat2
-	[__NR_renameat2 - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_RENAMEAT2_E, PPME_SYSCALL_RENAMEAT2_X},
+	[__NR_renameat2 - SYSCALL_TABLE_ID0] =                  {UF_USED, PPME_SYSCALL_RENAMEAT2_E, PPME_SYSCALL_RENAMEAT2_X},
 #endif
+#ifdef __NR_copy_file_range
+	[__NR_copy_file_range - SYSCALL_TABLE_ID0] =            {UF_USED, PPME_SYSCALL_COPY_FILE_RANGE_E, PPME_SYSCALL_COPY_FILE_RANGE_X},
+#endif
+
 };
 
 /*
@@ -1207,6 +1212,10 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_ia32_renameat2
 	[__NR_ia32_renameat2 - SYSCALL_TABLE_ID0] =                  {UF_USED, PPME_SYSCALL_RENAMEAT2_E, PPME_SYSCALL_RENAMEAT2_X},
 #endif
+#ifdef __NR_ia32_copy_file_range
+	[__NR_ia32_copy_file_range - SYSCALL_TABLE_ID0] =            {UF_USED, PPME_SYSCALL_COPY_FILE_RANGE_E, PPME_SYSCALL_COPY_FILE_RANGE_X},
+#endif
+
 };
 
 /*
@@ -1762,6 +1771,9 @@ const enum ppm_syscall_code g_syscall_ia32_code_routing_table[SYSCALL_TABLE_SIZE
 #endif
 #ifdef __NR_ia32_renameat2
 	[__NR_ia32_renameat2 - SYSCALL_TABLE_ID0] = PPM_SC_RENAMEAT2,
+#endif
+#ifdef __NR_ia32_copy_file_range
+	[__NR_ia32_copy_file_range - SYSCALL_TABLE_ID0] = PPM_SC_COPY_FILE_RANGE,
 #endif
 };
 
