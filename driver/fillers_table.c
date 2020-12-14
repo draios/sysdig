@@ -294,5 +294,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_FCHMOD_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_FCHMOD_X] = {FILLER_REF(sys_fchmod_x)},
 	[PPME_SYSCALL_RENAMEAT2_E] = {FILLER_REF(sys_empty)},
-	[PPME_SYSCALL_RENAMEAT2_X] = {FILLER_REF(sys_renameat2_x)}
+	[PPME_SYSCALL_RENAMEAT2_X] = {FILLER_REF(sys_renameat2_x)},
+	[PPME_SYSCALL_COPY_FILE_RANGE_E] = {FILLER_REF(sys_copy_file_range_e)},
+	[PPME_SYSCALL_COPY_FILE_RANGE_X] = {FILLER_REF(sys_copy_file_range_x)}
 };

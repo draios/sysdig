@@ -957,7 +957,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_FCHMOD_X = 317,
 	PPME_SYSCALL_RENAMEAT2_E = 318,
 	PPME_SYSCALL_RENAMEAT2_X = 319,
-	PPM_EVENT_MAX = 320
+	PPME_SYSCALL_COPY_FILE_RANGE_E = 320,
+	PPME_SYSCALL_COPY_FILE_RANGE_X = 321,
+	PPM_EVENT_MAX = 322
 };
 /*@}*/
 
@@ -1286,7 +1288,8 @@ enum ppm_syscall_code {
 	PPM_SC_GETRANDOM = 318,
 	PPM_SC_FADVISE64 = 319,
 	PPM_SC_RENAMEAT2 = 320,
-	PPM_SC_MAX = 321,
+	PPM_SC_COPY_FILE_RANGE = 321,
+	PPM_SC_MAX = 322,
 };
 
 /*
@@ -1513,6 +1516,7 @@ extern const struct ppm_name_value unlinkat_flags[];
 extern const struct ppm_name_value linkat_flags[];
 extern const struct ppm_name_value chmod_mode[];
 extern const struct ppm_name_value renameat2_flags[];
+extern const struct ppm_name_value copy_file_range_flags[];
 
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
