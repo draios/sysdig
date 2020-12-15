@@ -333,7 +333,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_RENAMEAT2_E */{"renameat2", EC_FILE, EF_NONE, 0 },
 	/* PPME_SYSCALL_RENAMEAT2_X */{"renameat2", EC_FILE, EF_NONE, 6, {{"res", PT_ERRNO, PF_DEC}, {"olddirfd", PT_FD, PF_DEC}, {"oldpath", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)}, {"newdirfd", PT_FD, PF_DEC}, {"newpath", PT_FSRELPATH, PF_NA, DIRFD_PARAM(3)}, {"flags", PT_FLAGS32, PF_HEX, renameat2_flags} } },
 	/* PPME_SYSCALL_COPY_FILE_RANGE_E */{"copy_file_range", EC_IO_WRITE, EF_USES_FD | EF_DROP_SIMPLE_CONS, 6, {{"fd_in", PT_FD, PF_DEC}, {"off_in", PT_UINT64, PF_DEC}, {"fd_out", PT_FD, PF_DEC}, {"off_out", PT_UINT64, PF_DEC}, {"len", PT_UINT64, PF_DEC} , {"flags", PT_FLAGS32, PF_HEX, file_flags} } },
-	/* PPME_SYSCALL_COPY_FILE_RANGE_X */{"copy_file_range", EC_IO_WRITE, EF_USES_FD | EF_DROP_SIMPLE_CONS, 2, {{"res", PT_ERRNO, PF_DEC}, {"offset", PT_UINT64, PF_DEC} } },
+	/* PPME_SYSCALL_COPY_FILE_RANGE_X */{"copy_file_range", EC_IO_WRITE, EF_USES_FD | EF_DROP_SIMPLE_CONS, 3, {{"res", PT_ERRNO, PF_DEC}, {"off_in", PT_UINT64, PF_DEC}, {"off_out", PT_UINT64, PF_DEC} } },
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
 	 *     New event types are allowed only for new syscalls or new internal events.
 	 *     The number of parameters can be used to differentiate between event versions.
