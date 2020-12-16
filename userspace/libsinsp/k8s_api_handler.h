@@ -20,7 +20,7 @@ limitations under the License.
 // k8s_api_handler.h
 //
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 
 #pragma once
 

@@ -57,7 +57,9 @@ struct ppm_ring_buffer_context {
 	bool capture_enabled;
 	struct ppm_ring_buffer_info *info;
 	char *buffer;
+#ifndef WDIG
 	nanoseconds last_print_time;
+#endif
 	u32 nevents;
 #ifndef UDIG
 	atomic_t preempt_count;
@@ -90,13 +92,19 @@ struct ppm_consumer_t {
 
 #define STR_STORAGE_SIZE PAGE_SIZE
 
+#ifdef WDIG
+typedef uint64_t syscall_arg_t;
+#else
+typedef unsigned long syscall_arg_t;
+#endif
+
 /*
  * Global functions
  *
  * These are analogous to get_user(), copy_from_user() and strncpy_from_user(),
  * but they can't sleep, barf on page fault or be preempted
  */
-#define ppm_get_user(x, ptr) ({ ppm_copy_from_user(&x, ptr, sizeof(x)) ? -EFAULT : 0; })
+#define ppm_get_user(x, ptr) (ppm_copy_from_user(&x, ptr, sizeof(x)) ? -EFAULT : 0)
 #ifndef UDIG
 unsigned long ppm_copy_from_user(void *to, const void __user *from, unsigned long n);
 long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n);

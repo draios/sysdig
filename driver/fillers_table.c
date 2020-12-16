@@ -9,6 +9,7 @@ or GPL2.txt for full copies of the license.
 #include "ppm_events_public.h"
 
 #ifdef __KERNEL__
+#include <linux/compat.h>
 #include "ppm.h"
 #else
 #ifndef UDIG
@@ -54,8 +55,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_RECV_X] = {FILLER_REF(sys_recv_x)},
 	[PPME_SOCKET_RECVFROM_E] = {FILLER_REF(sys_autofill), 2, APT_SOCK, {{0}, {2} } },
 	[PPME_SOCKET_RECVFROM_X] = {FILLER_REF(sys_recvfrom_x)},
+#ifndef WDIG
 	[PPME_SOCKET_SHUTDOWN_E] = {FILLER_REF(sys_shutdown_e)},
 	[PPME_SOCKET_SHUTDOWN_X] = {FILLER_REF(sys_single_x)},
+#endif
 	[PPME_SOCKET_GETSOCKNAME_E] = {FILLER_REF(sys_empty)},
 	[PPME_SOCKET_GETSOCKNAME_X] = {FILLER_REF(sys_empty)},
 	[PPME_SOCKET_GETPEERNAME_E] = {FILLER_REF(sys_empty)},
@@ -66,6 +69,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_SETSOCKOPT_X] = {FILLER_REF(sys_setsockopt_x)},
 	[PPME_SOCKET_GETSOCKOPT_E] = {FILLER_REF(sys_empty)},
 	[PPME_SOCKET_GETSOCKOPT_X] = {FILLER_REF(sys_getsockopt_x)},
+#ifndef WDIG
 	[PPME_SOCKET_SENDMSG_E] = {FILLER_REF(sys_sendmsg_e)},
 	[PPME_SOCKET_SENDMSG_X] = {FILLER_REF(sys_sendmsg_x)},
 	[PPME_SOCKET_SENDMMSG_E] = {FILLER_REF(sys_empty)},
@@ -216,8 +220,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_GETRESUID_X] = {FILLER_REF(sys_getresuid_and_gid_x)},
 	[PPME_SYSCALL_GETRESGID_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_GETRESGID_X] = {FILLER_REF(sys_getresuid_and_gid_x)},
+#endif /* WDIG */
 	[PPME_SYSCALL_CLONE_20_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_CLONE_20_X] = {FILLER_REF(proc_startupdate)},
+#ifndef WDIG
 	[PPME_SYSCALL_FORK_20_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_FORK_20_X] = {FILLER_REF(proc_startupdate)},
 	[PPME_SYSCALL_VFORK_20_E] = {FILLER_REF(sys_empty)},
@@ -235,8 +241,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_FLOCK_E] = {FILLER_REF(sys_flock_e)},
 	[PPME_SYSCALL_FLOCK_X] = {FILLER_REF(sys_autofill), 1, APT_REG, {{AF_ID_RETVAL} } },
 	[PPME_CPU_HOTPLUG_E] = {FILLER_REF(cpu_hotplug_e)},
+#endif /* WDIG */
 	[PPME_SOCKET_ACCEPT_5_E] = {FILLER_REF(sys_empty)},
 	[PPME_SOCKET_ACCEPT_5_X] = {FILLER_REF(sys_accept_x)},
+#ifndef WDIG
 	[PPME_SOCKET_ACCEPT4_5_E] = {FILLER_REF(sys_accept4_e)},
 	[PPME_SOCKET_ACCEPT4_5_X] = {FILLER_REF(sys_accept_x)},
 	[PPME_SYSCALL_SEMOP_E] = {FILLER_REF(sys_single)},
@@ -265,8 +273,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_RMDIR_2_X] = {FILLER_REF(sys_autofill), 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_SYSCALL_UNSHARE_E] = {FILLER_REF(sys_unshare_e)},
 	[PPME_SYSCALL_UNSHARE_X] = {FILLER_REF(sys_autofill), 1, APT_REG, {{AF_ID_RETVAL} } },
+#endif /* WDIG */
 	[PPME_SYSCALL_EXECVE_19_E] = {FILLER_REF(sys_execve_e)},
 	[PPME_SYSCALL_EXECVE_19_X] = {FILLER_REF(proc_startupdate)},
+#ifndef WDIG
  #ifdef CAPTURE_PAGE_FAULTS
 	[PPME_PAGE_FAULT_E] = {FILLER_REF(sys_pagefault_e)},
 	[PPME_PAGE_FAULT_X] = {FILLER_REF(sys_empty)},
@@ -295,4 +305,5 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_FCHMOD_X] = {FILLER_REF(sys_fchmod_x)},
 	[PPME_SYSCALL_RENAMEAT2_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_RENAMEAT2_X] = {FILLER_REF(sys_renameat2_x)}
+#endif /* WDIG */
 };

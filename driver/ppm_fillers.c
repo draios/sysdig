@@ -39,6 +39,7 @@ or GPL2.txt for full copies of the license.
 #endif
 #else /* UDIG */
 #define _GNU_SOURCE
+#ifndef WDIG
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,6 +65,15 @@ or GPL2.txt for full copies of the license.
 #include <sys/file.h>
 #include <sys/quota.h>
 #include <sys/ptrace.h>
+#else /* WDIG */
+#include "stdint.h"
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <afunix.h>
+#include "portal.h"
+
+#pragma warning(disable : 4996)
+#endif /* WDIG */
 
 #include "udig_capture.h"
 #include "ppm_ringbuffer.h"
@@ -141,7 +151,7 @@ int f_sys_generic(struct event_filler_arguments *args)
 		}
 	} else {
 		ASSERT(false);
-		res = val_to_ring(args, (unsigned long)"<out of bound>", 0, false, 0);
+		res = val_to_ring(args, (u64)"<out of bound>", 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 	}
@@ -157,7 +167,7 @@ int f_sys_empty(struct event_filler_arguments *args)
 int f_sys_single(struct event_filler_arguments *args)
 {
 	int res;
-	unsigned long val;
+	syscall_arg_t val;
 
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
@@ -226,9 +236,9 @@ out_unlock:
 
 int f_sys_open_x(struct event_filler_arguments *args)
 {
-	unsigned long val;
-	unsigned long flags;
-	unsigned long modes;
+	syscall_arg_t val;
+	syscall_arg_t flags;
+	syscall_arg_t modes;
 	int res;
 	int64_t retval;
 
@@ -239,6 +249,7 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, retval, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
+
 
 	/*
 	 * name
@@ -1108,7 +1119,7 @@ cgroups_error:
 int f_sys_execve_e(struct event_filler_arguments *args)
 {
 	int res;
-	unsigned long val;
+	syscall_arg_t val;
 
 	/*
 	 * filename
@@ -1131,7 +1142,7 @@ int f_sys_socket_bind_x(struct event_filler_arguments *args)
 	int err = 0;
 	u16 size = 0;
 	struct sockaddr __user *usrsockaddr;
-	unsigned long val;
+	syscall_arg_t val;
 	struct sockaddr_storage address;
 	char *targetbuf = args->str_storage;
 
@@ -1183,7 +1194,7 @@ int f_sys_socket_bind_x(struct event_filler_arguments *args)
 	 * Copy the endpoint info into the ring
 	 */
 	res = val_to_ring(args,
-			    (uint64_t)(unsigned long)targetbuf,
+			    (uint64_t)targetbuf,
 			    size,
 			    false,
 			    0);
@@ -1203,7 +1214,7 @@ int f_sys_connect_x(struct event_filler_arguments *args)
 	u16 size = 0;
 	char *targetbuf = args->str_storage;
 	struct sockaddr_storage address;
-	unsigned long val;
+	syscall_arg_t val;
 
 	/*
 	 * Push the result
@@ -1272,7 +1283,7 @@ int f_sys_connect_x(struct event_filler_arguments *args)
 	 * Copy the endpoint info into the ring
 	 */
 	res = val_to_ring(args,
-			    (uint64_t)(unsigned long)targetbuf,
+			    (uint64_t)targetbuf,
 			    size,
 			    false,
 			    0);
@@ -1557,7 +1568,7 @@ int f_sys_setsockopt_x(struct event_filler_arguments *args)
 {
 	int res;
 	int64_t retval;
-	unsigned long val[5] = {};
+	syscall_arg_t val[5] = {0};
 
 	syscall_get_arguments_deprecated(current, args->regs, 0, 5, val);
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
@@ -1601,7 +1612,7 @@ int f_sys_getsockopt_x(struct event_filler_arguments *args)
 	int res;
 	int64_t retval;
 	uint32_t optlen;
-	unsigned long val[5] = {};
+	syscall_arg_t val[5] = {0};
 
 	syscall_get_arguments_deprecated(current, args->regs, 0, 5, val);
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
@@ -1664,10 +1675,10 @@ int f_sys_accept_x(struct event_filler_arguments *args)
 	int fd;
 	char *targetbuf = args->str_storage;
 	u16 size = 0;
-	unsigned long queuepct = 0;
-	unsigned long ack_backlog = 0;
-	unsigned long max_ack_backlog = 0;
-	unsigned long srvskfd;
+	syscall_arg_t queuepct = 0;
+	syscall_arg_t ack_backlog = 0;
+	syscall_arg_t max_ack_backlog = 0;
+	syscall_arg_t srvskfd;
 	int err = 0;
 	struct socket *sock;
 
@@ -1694,7 +1705,7 @@ int f_sys_accept_x(struct event_filler_arguments *args)
 	 * Copy the endpoint info into the ring
 	 */
 	res = val_to_ring(args,
-			    (uint64_t)(unsigned long)targetbuf,
+			    (uint64_t)targetbuf,
 			    size,
 			    false,
 			    0);
@@ -2095,6 +2106,7 @@ int f_sys_recvfrom_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#ifndef WDIG
 int f_sys_sendmsg_e(struct event_filler_arguments *args)
 {
 	int res;
@@ -2470,6 +2482,7 @@ int f_sys_creat_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+#endif /* WDIG */
 
 int f_sys_pipe_x(struct event_filler_arguments *args)
 {
@@ -2558,6 +2571,7 @@ int f_sys_eventfd_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#ifndef WDIG
 int f_sys_shutdown_e(struct event_filler_arguments *args)
 {
 	int res;
@@ -2878,6 +2892,7 @@ int f_sys_poll_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+#endif /* WDIG */
 
 int f_sys_mount_e(struct event_filler_arguments *args)
 {
@@ -2898,6 +2913,7 @@ int f_sys_mount_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#ifndef WDIG
 int f_sys_openat_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -4168,6 +4184,7 @@ int f_sys_symlinkat_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+#endif /* WDIG */
 
 int f_sys_procexit_e(struct event_filler_arguments *args)
 {
@@ -4194,6 +4211,7 @@ int f_sys_procexit_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#ifndef WDIG
 int f_sys_sendfile_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -5083,3 +5101,5 @@ int f_sys_fchmod_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+#endif /* WDIG */

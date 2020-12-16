@@ -266,4 +266,10 @@ public:
 	 * implementation; int64_t is the safest bet. Many default to int64_t anyway (e.g. CRI).
 	 */
 	int64_t m_created_time;
+
+	/**
+	 * The max container label length value. This is static because it is 
+	 * universal across all instances and needs to be set once only.
+	 */
+	static uint32_t m_container_label_max_length;
 };

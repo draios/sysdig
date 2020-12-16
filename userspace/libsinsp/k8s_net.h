@@ -24,7 +24,7 @@ limitations under the License.
 #ifndef MINIMAL_BUILD
 #pragma once
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 
 #include "k8s_component.h"
 #include "k8s_event_data.h"
