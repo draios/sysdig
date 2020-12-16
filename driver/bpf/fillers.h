@@ -2361,6 +2361,100 @@ FILLER(sys_sendfile_x, true)
 	return res;
 }
 
+FILLER(sys_copy_file_range_e, true)
+{
+	unsigned long val;
+	loff_t *off_inp;
+	loff_t off_in;
+	loff_t *off_outp;
+	loff_t off_out;
+	int res;
+
+	/*
+	 * fd_in
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * off_in
+	 */
+	off_inp = (loff_t *)bpf_syscall_get_argument(data, 1);
+	off_in = _READ(*off_inp);
+	res = bpf_val_to_ring(data, off_in);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * fd_out
+	 */
+	val = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * off_out
+	 */
+	off_outp = (loff_t *)bpf_syscall_get_argument(data, 3);
+	off_out = _READ(*off_outp);
+	res = bpf_val_to_ring(data, off_out);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * len
+	 */
+	val = bpf_syscall_get_argument(data, 4);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * flags
+	 */
+	val = bpf_syscall_get_argument(data, 5);
+	res = bpf_val_to_ring(data, val);
+
+	return res;
+}
+
+FILLER(sys_copy_file_range_x, true)
+{
+	long retval;
+	loff_t *off_inp;
+	loff_t off_in;
+	loff_t *off_outp;
+	loff_t off_out;
+	int res;
+
+	/*
+	 * res
+	 */
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * off_in
+	 */
+	off_inp = (loff_t *)bpf_syscall_get_argument(data, 1);
+	off_in = _READ(*off_inp);
+	res = bpf_val_to_ring(data, off_in);
+
+	/*
+	 * off_out
+	 */
+	off_outp = (loff_t *)bpf_syscall_get_argument(data, 3);
+	off_out = _READ(*off_outp);
+	res = bpf_val_to_ring(data, off_out);
+
+	return res;
+}
+
 FILLER(sys_prlimit_e, true)
 {
 	unsigned long val;
