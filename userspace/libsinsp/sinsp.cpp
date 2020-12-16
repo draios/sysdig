@@ -69,11 +69,11 @@ void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_thr
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp::sinsp() :
+sinsp::sinsp(bool static_container, const std::string static_id, const std::string static_name, const std::string static_image) :
 	m_external_event_processor(),
 	m_evt(this),
 	m_lastevent_ts(0),
-	m_container_manager(this),
+	m_container_manager(this, static_container, static_id, static_name, static_image),
 	m_suppressed_comms()
 {
 #if !defined(MINIMAL_BUILD) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)

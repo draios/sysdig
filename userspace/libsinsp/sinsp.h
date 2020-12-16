@@ -195,7 +195,10 @@ public:
 	typedef std::set<std::string> k8s_ext_list_t;
 	typedef std::shared_ptr<k8s_ext_list_t> k8s_ext_list_ptr_t;
 
-	sinsp();
+	sinsp(bool static_container = false,
+		  const std::string static_id = "",
+		  const std::string static_name = "",
+		  const std::string static_image = "");
 	virtual ~sinsp();
 
 	/*!
