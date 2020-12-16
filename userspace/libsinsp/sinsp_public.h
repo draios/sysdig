@@ -25,6 +25,10 @@ limitations under the License.
 #include <assert.h>
 #ifdef _DEBUG
 
+#ifdef _WIN32
+#include <cassert>
+#endif
+
 #ifdef ASSERT_TO_LOG
 #define ASSERT(X) \
         if(!(X)) \
