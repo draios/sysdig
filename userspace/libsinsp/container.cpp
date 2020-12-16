@@ -39,7 +39,7 @@ limitations under the License.
 
 using namespace libsinsp;
 
-sinsp_container_manager::sinsp_container_manager(sinsp* inspector, bool static_continaer, const std::string static_id, const std::string static_name, const std::string static_image) :
+sinsp_container_manager::sinsp_container_manager(sinsp* inspector, bool static_container, const std::string static_id, const std::string static_name, const std::string static_image) :
 	m_inspector(inspector),
 	m_last_flush_time_ns(0),
 	m_static_container(static_container),
