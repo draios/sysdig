@@ -240,7 +240,7 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 		if(chk == NULL)
 		{
 			string err = "filter_check called with nonexistent field " + string(fld);
-			throw sinsp_exception("parser API error");
+			throw sinsp_exception(err);
 		}
 
 		int i;
@@ -263,8 +263,8 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 			{
 				if (!lua_istable(ls, 4))
 				{
-					string err = "Got non-table as in-expression operand\n";
-					throw sinsp_exception("parser API error");
+					string err = "Got non-table as in-expression operand for field " + string(fld);
+					throw sinsp_exception(err);
 				}
 				int n = luaL_getn(ls, 4);  /* get size of table */
 				for (i=1; i<=n; i++)
