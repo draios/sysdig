@@ -982,7 +982,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			}
 			delete mesos_api;
 			mesos_api = 0;
-#endif // _WIN32
 
 			if(output_type == sinsp_table::OT_JSON)
 			{
