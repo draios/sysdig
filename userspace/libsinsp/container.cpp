@@ -29,6 +29,7 @@ limitations under the License.
 #include "container_engine/lxc.h"
 #include "container_engine/mesos.h"
 #include "container_engine/bpm.h"
+#include "container_engine/static_container.h"
 #endif // MINIMAL_BUILD
 
 #include "sinsp.h"
@@ -38,9 +39,13 @@ limitations under the License.
 
 using namespace libsinsp;
 
-sinsp_container_manager::sinsp_container_manager(sinsp* inspector) :
+sinsp_container_manager::sinsp_container_manager(sinsp* inspector, bool static_continaer, const std::string static_id, const std::string static_name, const std::string static_image) :
 	m_inspector(inspector),
-	m_last_flush_time_ns(0)
+	m_last_flush_time_ns(0),
+	m_static_Container(static_container),
+	m_static_id(static_id),
+	m_static_name(static_name),
+	m_static_image(static_image)
 {
 }
 
@@ -508,6 +513,16 @@ void sinsp_container_manager::subscribe_on_remove_container(remove_container_cb 
 
 void sinsp_container_manager::create_engines()
 {
+	if (m_static_container)
+	{
+		auto engine = std::make_shared<container_engine::static_container>(*this,
+																		   m_static_id,
+																		   m_static_name,
+																		   m_static_image);
+		m_container_engines.push_back(engine);
+		m_container_engine_by_type[CT_STATIC] = engine;
+		return;
+	}
 #ifndef MINIMAL_BUILD
 #ifdef CYGWING_AGENT
 	{

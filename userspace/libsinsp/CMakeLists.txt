@@ -49,6 +49,7 @@ set(SINSP_SOURCES
 	chisel_api.cpp
 	container.cpp
 	container_engine/container_engine_base.cpp
+	container_engine/static_container.cpp
 	container_info.cpp
 	ctext.cpp
 	cyclewriter.cpp
