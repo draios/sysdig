@@ -45,7 +45,19 @@ class sinsp_container_manager :
 public:
 	using map_ptr_t = libsinsp::ConstMutexGuard<std::unordered_map<std::string, sinsp_container_info::ptr_t>>;
 
-	sinsp_container_manager(sinsp* inspector);
+	/**
+	 * Due to how the container manager is architected, it makes it difficult
+	 * to dynamically select which engines we want to be valid. As such, we unfortunately
+	 * need to indicate at construction time which we want, with the only possible options
+	 * right now being "static" or not. I'm sure we will find time in the future to do this
+	 * in a more general way. 2020/11/24
+	 */
+	sinsp_container_manager(sinsp* inspector,
+	                        bool static_container = false,
+	                        const std::string static_id = "",
+	                        const std::string static_name = "",
+	                        const std::string static_image = "");
+
 	virtual ~sinsp_container_manager();
 
 	/**
@@ -197,6 +209,14 @@ private:
 	uint64_t m_last_flush_time_ns;
 	std::list<new_container_cb> m_new_callbacks;
 	std::list<remove_container_cb> m_remove_callbacks;
+
+	// indicates whether we should use only the static container engine, or the other engines.
+	// if true, we expect to have the subsequent bits of metadata as well. If this bool is false,
+	// then the values of those metadata are undefined
+	bool m_static_container;
+	std::string m_static_id;
+	std::string m_static_name;
+	std::string m_static_image;
 
 	friend class test_helper;
 };
