@@ -1,4 +1,4 @@
-FROM debian:unstable
+FROM debian:stable
 
 MAINTAINER Sysdig <support@sysdig.com>
 
@@ -7,13 +7,16 @@ MAINTAINER Sysdig <support@sysdig.com>
 RUN apt-get update \
  && apt-get dist-upgrade -y \
  && apt-get install -y --no-install-recommends \
-	clang \
+	clang-7 \
 	gcc \
 	libelf-dev \
 	libelf1 \
-	llvm \
+	llvm-7 \
 	make \
- && rm -rf /var/lib/apt/lists/*
+ && rm -rf /var/lib/apt/lists/* \
+ && ln -s /usr/bin/clang-7 /usr/bin/clang \
+ && ln -s /usr/bin/llc-7 /usr/bin/llc
+
 
 COPY ./probe-builder-entrypoint.sh /
 

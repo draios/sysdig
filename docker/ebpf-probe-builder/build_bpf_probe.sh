@@ -4,7 +4,7 @@ set -eu
 
 # Defaults
 DRIVER_DIR=/opt/draios/src/draios-agent-0.1.1dev
-KERNEL_DIR=/lib/modules/$(uname -r)/build
+KERNEL_DIR=/lib/modules/$(uname -r)
 OUT_DIR=${HOME}/.sysdig
 
 usage()

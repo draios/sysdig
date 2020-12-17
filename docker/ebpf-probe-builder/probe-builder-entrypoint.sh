@@ -43,7 +43,11 @@ done
 
 cd /driver/bpf
 echo "Building bpf"
-KERNELDIR=/kernel make
+KERNELDIR=/kernel/build make clean
+KERNELDIR=/kernel/build make
 
 echo "** Done building probe"
+if [ -e /out/${BPF_PROBE_FILENAME} ]; then
+	rm /out/${BPF_PROBE_FILENAME}
+fi
 cp probe.o /out/${BPF_PROBE_FILENAME}
