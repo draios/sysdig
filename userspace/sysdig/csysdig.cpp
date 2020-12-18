@@ -925,7 +925,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			}
 
 #ifndef MINIMAL_BUILD
-#ifndef _WIN32
 			//
 			// run k8s, if required
 			//
