@@ -22,7 +22,7 @@ limitations under the License.
 #ifndef MINIMAL_BUILD
 #pragma once
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 
 #include "curl/curl.h"
 #include "uri.h"

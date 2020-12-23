@@ -18,16 +18,16 @@ limitations under the License.
 */
 #pragma once
 
-#ifdef _WIN32
-#define SINSP_PUBLIC __declspec(dllexport)
-#else
 #define SINSP_PUBLIC
-#endif
 
 #ifndef ASSERT
 
 #include <assert.h>
 #ifdef _DEBUG
+
+#ifdef _WIN32
+#include <cassert>
+#endif
 
 #ifdef ASSERT_TO_LOG
 #define ASSERT(X) \

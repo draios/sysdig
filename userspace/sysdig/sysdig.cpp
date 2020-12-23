@@ -33,7 +33,9 @@ limitations under the License.
 #include "scap_open_exception.h"
 #include "sinsp_capture_interrupt_exception.h"
 #ifdef HAS_CAPTURE
+#ifndef WIN32
 #include "driver_config.h"
+#endif // WIN32
 #endif // HAS_CAPTURE
 #include "sysdig.h"
 #include "fields_info.h"
@@ -1491,6 +1493,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 				}
 				
+#ifndef _WIN32
 				//
 				// Starting the live capture failed, try to load the driver with
 				// modprobe.
@@ -1519,13 +1522,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 					inspector->open("");
 				}
-#else
+#endif // _WIN32
+#else // HAS_CAPTURE
 				//
 				// Starting live capture
 				// If this fails on Windows and OSX, don't try with any driver
 				//
 				inspector->open("");
-#endif
+#endif // HAS_CAPTURE
 
 				//
 				// Enable gathering the CPU from the kernel module

@@ -49,6 +49,20 @@ public:
 	string m_description;
 };
 
+class check_extraction_cache_entry
+{
+public:
+	uint64_t m_evtnum = UINT64_MAX;
+	uint8_t* m_res;
+};
+
+class check_eval_cache_entry
+{
+public:
+	uint64_t m_evtnum = UINT64_MAX;
+	bool m_res;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // The filter check interface
 // NOTE: in order to add a new type of filter check, you need to add a class for
@@ -110,6 +124,12 @@ public:
 	virtual uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true) = 0;
 
 	//
+	// Wrapper for extract() that implements caching to speed up multiple extractions of the same value,
+	// which are common in Falco.
+	//
+	uint8_t* extract_cached(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
+
+	//
 	// Extract the field as json from the event (by default, fall
 	// back to the regular extract functionality)
 	//
@@ -139,6 +159,8 @@ public:
 	bool m_needs_state_tracking = false;
 	sinsp_field_aggregation m_aggregation;
 	sinsp_field_aggregation m_merge_aggregation;
+	check_eval_cache_entry* m_eval_cache_entry = NULL;
+	check_extraction_cache_entry* m_extraction_cache_entry = NULL;
 
 protected:
 	bool flt_compare(cmpop op, ppm_param_type type, void* operand1, uint32_t op1_len = 0, uint32_t op2_len = 0);
@@ -174,6 +196,8 @@ private:
 	void set_inspector(sinsp* inspector);
 
 friend class sinsp_filter_check_list;
+friend class sinsp_filter_optimizer;
+friend class chk_compare_helper;
 };
 
 //
@@ -888,8 +912,6 @@ private:
 	string m_tstr;
 };
 
-
-
 class sinsp_filter_check_mesos : public sinsp_filter_check
 {
 public:
@@ -927,6 +949,7 @@ private:
 	string m_argname;
 	string m_tstr;
 };
+
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 #endif // HAS_FILTERING

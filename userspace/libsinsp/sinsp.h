@@ -111,7 +111,7 @@ class k8s;
 class sinsp_partial_tracer;
 class mesos;
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 class sinsp_ssl;
 class sinsp_bearer_token;
 template <class T> class socket_data_handler;
@@ -195,7 +195,10 @@ public:
 	typedef std::set<std::string> k8s_ext_list_t;
 	typedef std::shared_ptr<k8s_ext_list_t> k8s_ext_list_ptr_t;
 
-	sinsp();
+	sinsp(bool static_container = false,
+		  const std::string static_id = "",
+		  const std::string static_name = "",
+		  const std::string static_image = "");
 	virtual ~sinsp();
 
 	/*!
@@ -850,10 +853,10 @@ public:
 
 	static unsigned num_possible_cpus();
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	static std::shared_ptr<std::string> lookup_cgroup_dir(const std::string& subsys);
 #endif
-#ifdef CYGWING_AGENT
+#if defined(CYGWING_AGENT)
 	wh_t* get_wmi_handle() override
 	{
 		return scap_get_wmi_handle(m_h);
@@ -893,6 +896,7 @@ public:
 	void set_cri_timeout(int64_t timeout_ms);
 	void set_cri_async(bool async);
 	void set_cri_delay(uint64_t delay_ms);
+	void set_container_labels_max_len(uint32_t max_label_len);
 
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
@@ -1015,6 +1019,7 @@ private:
 	std::string m_input_filename;
 	bool m_bpf;
 	bool m_udig;
+	bool m_is_windows;
 	std::string m_bpf_probe;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;

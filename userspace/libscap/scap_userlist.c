@@ -21,7 +21,7 @@ limitations under the License.
 #include "scap.h"
 #include "scap-int.h"
 
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 #include <sys/types.h>
 
 #include <pwd.h>
@@ -168,6 +168,21 @@ int32_t scap_create_userlist(scap_t* handle)
 
 	return SCAP_SUCCESS;
 }
+#else // HAS_CAPTURE
+#ifdef WIN32
+#include "windows_hal.h"
+
+int32_t scap_create_userlist(scap_t* handle)
+{
+	return scap_create_userlist_windows(handle);
+}
+#else // WIN32
+int32_t scap_create_userlist(scap_t* handle)
+{
+	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_create_userlist not implement on this platform");
+	return SCAP_FAILURE;
+}
+#endif // WIN32
 #endif // HAS_CAPTURE
 
 //

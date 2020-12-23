@@ -31,6 +31,9 @@ std::vector<std::string> sinsp_container_info::container_health_probe::probe_typ
 	"End"
 };
 
+// Initialize container max label length to default 100 value
+uint32_t sinsp_container_info::m_container_label_max_length = 100; 
+
 sinsp_container_info::container_health_probe::container_health_probe()
 {
 }

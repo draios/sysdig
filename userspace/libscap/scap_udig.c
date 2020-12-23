@@ -1,9 +1,9 @@
-#ifndef _WIN32
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
 #include <stdio.h>
 #include <stdlib.h>
+#ifndef _WIN32
 #include <unistd.h>
 #include <inttypes.h>
 #include <sys/stat.h>
@@ -18,6 +18,13 @@
 #include <fcntl.h>
 #include <sys/syscall.h>
 #include <pthread.h>
+#else // _WIN32
+// enable use of snprintf
+#pragma warning(disable : 4996)
+// enable zero-sized array in struct/union
+#pragma warning(disable : 4200)
+#include <windows.h>
+#endif // _WIN32
 
 #include "scap.h"
 #include "scap-int.h"
@@ -25,6 +32,7 @@
 
 #define PPM_PORT_STATSD 8125
 
+#ifndef _WIN32
 #ifndef UDIG_INSTRUMENTER
 #define ud_shm_open shm_open
 #else
@@ -36,11 +44,13 @@ int ud_shm_open(const char *name, int flag, mode_t mode);
 // descriptors into the address space of this process.
 // This is the buffer that will be consumed by scap.
 ///////////////////////////////////////////////////////////////////////////////
-int32_t udig_alloc_ring(int* ring_fd, 
+int32_t udig_alloc_ring(void* ring_id, 
 	uint8_t** ring, 
 	uint32_t *ringsize,
 	char *error)
 {
+	int* ring_fd = (int*)ring_id;
+
 	//
 	// First, try to open an existing ring
 	//
@@ -140,11 +150,12 @@ int32_t udig_alloc_ring(int* ring_fd,
 	return SCAP_SUCCESS;
 }
 
-int32_t udig_alloc_ring_descriptors(int* ring_descs_fd, 
+int32_t udig_alloc_ring_descriptors(void* ring_descs_id, 
 	struct ppm_ring_buffer_info** ring_info, 
 	struct udig_ring_buffer_status** ring_status,
 	char *error)
 {
+	int* ring_descs_fd = (int*)ring_descs_id;
 	uint32_t mem_size = sizeof(struct ppm_ring_buffer_info) + sizeof(struct udig_ring_buffer_status);
 
 	//
@@ -321,6 +332,314 @@ int32_t udig_begin_capture(scap_t* handle, char *error)
 	}
 }
 
+#else // _WIN32
+
+///////////////////////////////////////////////////////////////////////////////
+// The following 2 function map the ring buffer and the ring buffer 
+// descriptors into the address space of this process.
+// This is the buffer that will be consumed by scap.
+///////////////////////////////////////////////////////////////////////////////
+int32_t udig_alloc_ring(HANDLE* ring_handle,
+	uint8_t** ring,
+	uint32_t* ringsize,
+	char* error)
+{
+	*ring_handle = NULL;
+
+	//
+	// First, try to open an existing ring
+	//
+	HANDLE fh = OpenFileMapping(
+		FILE_MAP_ALL_ACCESS,
+		FALSE,
+		(TCHAR*)TEXT(UDIG_RING_SM_FNAME));
+
+	if(fh != NULL)
+	{
+		//
+		// Existing ring found, find out the size
+		//
+		uint8_t* pdbuf = (uint8_t*)MapViewOfFile(fh,
+			FILE_MAP_ALL_ACCESS,
+			0,
+			0,
+			0);
+
+		MEMORY_BASIC_INFORMATION info;
+		SIZE_T szBufferSize = VirtualQueryEx(GetCurrentProcess(), pdbuf, &info, sizeof(info));
+
+		*ringsize = (uint32_t)info.RegionSize;
+
+		UnmapViewOfFile(pdbuf);
+	}
+	else
+	{
+		//
+		// No ring found, allocate a new one.
+		// Note that, according to the man page, the content of the buffer will
+		// be initialized to 0.
+		//
+		*ringsize = UDIG_RING_SIZE;
+
+		fh = CreateFileMapping(INVALID_HANDLE_VALUE,
+			NULL,
+			PAGE_READWRITE,
+			0,
+			*ringsize,
+			(TCHAR*)TEXT(UDIG_RING_SM_FNAME));
+
+		if(fh == NULL)
+		{
+			_snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring CreateFileMapping error: %u\n", GetLastError());
+			return SCAP_FAILURE;
+		}
+	}
+
+	//
+	// Map the ring. This is a multi-step process because we want to map two
+	// consecutive copies of the same memory to reuse the driver fillers, which
+	// expect to be able to go past the end of the ring.
+	// First of all, map the first ring copy at exactly the beginning of the 
+	// previously allocated area.
+	*ring = (uint8_t*)MapViewOfFileEx(fh,
+		FILE_MAP_ALL_ACCESS,
+		0,
+		0,
+		*ringsize,
+		NULL);
+	if(*ring == NULL)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "can't map first copy of buffer error: %u\n", GetLastError());
+		CloseHandle(fh);
+		return SCAP_FAILURE;
+	}
+
+	// Map the second ring copy just after the end of the first one.
+	uint8_t* buf2 = (*ring) + (*ringsize);
+	uint8_t* ring2 = (uint8_t*)MapViewOfFileEx(fh,
+		FILE_MAP_ALL_ACCESS,
+		0,
+		0,
+		*ringsize,
+		buf2);
+	if(ring2 != buf2)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "can't map second copy of buffer, needed %p, obtained %p, base=%p\n", 
+			buf2, ring2, *ring);
+		UnmapViewOfFile(*ring);
+		CloseHandle(fh);
+		return SCAP_FAILURE;
+	}
+
+	*ring_handle = fh;
+	return SCAP_SUCCESS;
+}
+
+int32_t udig_alloc_ring_descriptors(HANDLE* ring_descs_fd, struct ppm_ring_buffer_info** ring_info, 
+	struct udig_ring_buffer_status** ring_status, char *error)
+{
+	*ring_descs_fd = NULL;
+
+	uint32_t mem_size = sizeof(struct ppm_ring_buffer_info) + sizeof(struct udig_ring_buffer_status);
+
+	//
+	// First, try to open an existing memory area
+	//
+	HANDLE fh = OpenFileMapping(FILE_MAP_ALL_ACCESS,
+		TRUE,
+		(TCHAR*)TEXT(UDIG_RING_DESCS_SM_FNAME));
+
+	if(fh == NULL)
+	{
+		//
+		// No existing memory file found in /dev/shm, create a new one.
+		//
+		fh = CreateFileMapping(INVALID_HANDLE_VALUE,
+			NULL,
+			PAGE_READWRITE,
+			0,
+			mem_size,
+			(TCHAR*)TEXT(UDIG_RING_DESCS_SM_FNAME));
+
+		if(fh == NULL)
+		{
+			snprintf(error, SCAP_LASTERR_SIZE, "udig_alloc_ring_descriptors CreateFileMapping error: %u\n", GetLastError());
+			return SCAP_FAILURE;
+		}
+	}
+
+	//
+	// Map the memory
+	//
+	uint8_t* descs = (uint8_t*)MapViewOfFile(fh,
+		FILE_MAP_ALL_ACCESS,
+		0,
+		0,
+		0);
+	if(descs == NULL)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "can't map descriptors\n");
+		CloseHandle(fh);
+		return SCAP_FAILURE;
+	}
+
+	*ring_info = (struct ppm_ring_buffer_info*)descs;
+
+	//
+	// Locate the ring buffer status object
+	//
+	*ring_status = (struct udig_ring_buffer_status*)((uint64_t)*ring_info + 
+		sizeof(struct ppm_ring_buffer_info));
+
+	//
+	// If we are the original creators of the shared buffer, proceed to
+	// initialize it.
+	// Note that, according to the documentation of CreateFileMapping, we are 
+	// guaranteed that the content of the buffer will initiually be initialized to 0.
+	//
+	if(InterlockedCompareExchange((volatile LONG*)&((*ring_status)->m_initialized), 1, 0) == 0)
+	{
+		(*ring_status)->m_buffer_lock = 0;
+		(*ring_status)->m_capturing_pid = 0;
+		(*ring_status)->m_stopped = 0;
+		(*ring_status)->m_last_print_time.tv_sec = 0;
+		(*ring_status)->m_last_print_time.tv_nsec = 0;
+		
+		(*ring_info)->head = 0;
+		(*ring_info)->tail = 0;
+		(*ring_info)->n_evts = 0;
+		(*ring_info)->n_drops_buffer = 0;
+		(*ring_info)->n_drops_pf = 0;
+		(*ring_info)->n_preemptions = 0;
+		(*ring_info)->n_context_switches = 0;
+	}
+
+	*ring_descs_fd = fh;
+	return SCAP_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// These 2 function free the ring buffer and the ring buffer descriptors.
+///////////////////////////////////////////////////////////////////////////////
+void udig_free_ring(uint8_t* addr, uint32_t size)
+{
+	UnmapViewOfFile(addr);
+	UnmapViewOfFile(addr + size / 2);
+}
+
+void udig_free_ring_descriptors(uint8_t* addr)
+{
+	UnmapViewOfFile(addr);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Capture control helpers.
+///////////////////////////////////////////////////////////////////////////////
+bool acquire_and_init_ring_status_buffer(scap_t* handle)
+{
+	struct udig_ring_buffer_status* rbs = handle->m_devs[0].m_bufstatus;
+#ifdef _WIN32
+	LONG dval = InterlockedCompareExchange(&(rbs->m_capturing_pid), GetCurrentProcessId(), 0);
+	bool res = (dval == 0);
+#else
+	bool res = __sync_bool_compare_and_swap(&(rbs->m_capturing_pid), 0, getpid());
+#endif
+
+	if(res)
+	{
+		//
+		// Initialize the ring
+		//
+		rbs->m_stopped = 0;
+		rbs->m_last_print_time.tv_sec = 0;
+		rbs->m_last_print_time.tv_nsec = 0;
+
+		//
+		// Initialize the consumer
+		//
+		struct udig_consumer_t* consumer = &(rbs->m_consumer);
+
+		memset(consumer, 0, sizeof(struct udig_consumer_t));
+		consumer->dropping_mode = 0;
+		consumer->snaplen = RW_SNAPLEN;
+		consumer->sampling_ratio = 1;
+		consumer->sampling_interval = 0;
+		consumer->is_dropping = 0;
+		consumer->do_dynamic_snaplen = false;
+		consumer->need_to_insert_drop_e = 0;
+		consumer->need_to_insert_drop_x = 0;
+		consumer->fullcapture_port_range_start = 0;
+		consumer->fullcapture_port_range_end = 0;
+		consumer->statsd_port = PPM_PORT_STATSD;
+	}
+
+	return res;
+}
+
+int32_t udig_begin_capture(scap_t* handle, char *error)
+{
+	struct udig_ring_buffer_status* rbs = handle->m_devs[0].m_bufstatus;
+
+	if(rbs->m_capturing_pid != 0)
+	{
+#ifdef _WIN32
+		HANDLE ph = OpenProcess(PROCESS_ALL_ACCESS, TRUE, rbs->m_capturing_pid);
+		DWORD ecode;
+		if(GetExitCodeProcess(ph, &ecode) != FALSE)
+		{
+			if(ecode != STILL_ACTIVE)
+			{
+				rbs->m_capturing_pid = 0;
+			}
+			else
+			{
+				CloseHandle(ph);
+				snprintf(error, SCAP_LASTERR_SIZE, "another udig capture is already active");
+				return SCAP_FAILURE;
+			}
+		}
+#else
+		//
+		// Looks like there is already a consumer, but ther variable might still
+		// be set by a previous crashed consumer. To understand that, we check if
+		// there is an alive process with that pid. If not, we reset the variable.
+		//
+		char fbuf[48];
+		snprintf(fbuf, sizeof(fbuf), "/proc/%d", rbs->m_capturing_pid);
+		FILE* f = fopen(fbuf, "r");
+		if(f == NULL)
+		{
+			rbs->m_capturing_pid = 0;
+		}
+		else
+		{
+			fclose(f);
+			snprintf(error, SCAP_LASTERR_SIZE, "another udig capture is already active");
+			return SCAP_FAILURE;
+		}
+#endif
+	}
+
+	struct ppm_ring_buffer_info* rbi = handle->m_devs[0].m_bufinfo;
+	rbi->head = 0;
+	rbi->tail = 0;
+	rbi->n_evts = 0;
+	rbi->n_drops_buffer = 0;
+
+	if(acquire_and_init_ring_status_buffer(handle))
+	{
+		handle->m_udig_capturing = true;
+		return SCAP_SUCCESS;
+	}
+	else
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "cannot start the capture");
+		return SCAP_FAILURE;
+	}
+}
+
+#endif // _WIN32
+
 void udig_start_capture(scap_t* handle)
 {
 	struct udig_ring_buffer_status* rbs = handle->m_devs[0].m_bufstatus;
@@ -385,4 +704,3 @@ int32_t udig_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 	return SCAP_SUCCESS;
 }
 
-#endif // _WIN32

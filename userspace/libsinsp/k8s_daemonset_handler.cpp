@@ -79,7 +79,7 @@ std::string k8s_daemonset_handler::NULL_FILTER =
 	"}";
 
 k8s_daemonset_handler::k8s_daemonset_handler(k8s_state_t& state
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	,ptr_t dependency_handler
 	,collector_ptr_t collector
 	,std::string url
@@ -91,7 +91,7 @@ k8s_daemonset_handler::k8s_daemonset_handler(k8s_state_t& state
 #endif // HAS_CAPTURE
 	):
 		k8s_handler("k8s_daemonset_handler", true,
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 					url,
 					"/apis/apps/v1/daemonsets",
 					STATE_FILTER, EVENT_FILTER, NULL_FILTER, collector,

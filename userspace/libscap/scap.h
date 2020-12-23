@@ -64,6 +64,10 @@ struct iovec;
 #include "uthash.h"
 #include "../common/sysdig_types.h"
 #include "../../driver/ppm_events_public.h"
+#ifdef _WIN32
+#include <time.h>
+#define MAP_FAILED (void*)-1
+#endif
 
 //
 // Return types
@@ -546,8 +550,8 @@ struct udig_ring_buffer_status {
 
 typedef struct ppm_ring_buffer_info ppm_ring_buffer_info;
 
-int32_t udig_alloc_ring(int* ring_fd, uint8_t** ring, uint32_t *ringsize, char *error);
-int32_t udig_alloc_ring_descriptors(int* ring_descs_fd,
+int32_t udig_alloc_ring(void* ring_id, uint8_t** ring, uint32_t *ringsize, char *error);
+int32_t udig_alloc_ring_descriptors(void* ring_descs_id,
 	struct ppm_ring_buffer_info** ring_info,
 	struct udig_ring_buffer_status** ring_status,
 	char *error);

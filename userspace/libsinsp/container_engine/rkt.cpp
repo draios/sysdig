@@ -215,7 +215,10 @@ bool rkt::rkt::parse_rkt(sinsp_container_info &container, const string &podid, c
 		container.m_image = jroot["name"].asString();
 		for(const auto& label_entry : jroot["labels"])
 		{
-			container.m_labels.emplace(label_entry["name"].asString(), label_entry["value"].asString());
+			string val = label_entry["value"].asString();
+			if(val.length() <= sinsp_container_info::m_container_label_max_length ) {
+				container.m_labels.emplace(label_entry["name"].asString(), val);
+			}
 		}
 		auto version_label_it = container.m_labels.find("version");
 		if(version_label_it != container.m_labels.end())

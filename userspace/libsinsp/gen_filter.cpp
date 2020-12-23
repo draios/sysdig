@@ -173,6 +173,34 @@ uint8_t *gen_event_filter_expression::extract(gen_event *evt, uint32_t *len, boo
 	return NULL;
 }
 
+int32_t gen_event_filter_expression::get_expr_boolop()
+{
+	std::vector<gen_event_filter_check*>* cks = &(m_checks);
+
+	if(cks->size() <= 1)
+	{
+		return m_boolop;
+	}
+
+	// Reset bit 0 to remove irrelevant not
+	boolop b0 = (boolop)((uint32_t)(cks->at(1)->m_boolop) & (uint32_t)~1);
+
+	if(cks->size() <= 2)
+	{
+		return b0;
+	}
+
+	for(uint32_t l = 2; l < cks->size(); l++)
+	{
+		if((boolop)((uint32_t)(cks->at(l)->m_boolop) & (uint32_t)~1) != b0)
+		{
+			return -1;
+		}
+	}
+
+	return b0;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -205,6 +233,11 @@ void gen_event_filter::pop_expression()
 {
 	ASSERT(m_curexpr->m_parent != NULL);
 
+	if(m_curexpr->get_expr_boolop() == -1)
+	{
+		throw sinsp_exception("expression mixes 'and' and 'or' in an ambiguous way. Please use brackets.");
+	}
+
 	m_curexpr = m_curexpr->m_parent;
 }
 
@@ -217,5 +250,3 @@ void gen_event_filter::add_check(gen_event_filter_check* chk)
 {
 	m_curexpr->add_check((gen_event_filter_check *) chk);
 }
-
-
