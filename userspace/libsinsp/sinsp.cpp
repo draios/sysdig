@@ -175,6 +175,8 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 	m_filter_proc_table_when_saving = false;
+
+	m_src_plugin = NULL;
 }
 
 sinsp::~sinsp()
@@ -498,6 +500,17 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 	}
 
 	add_suppressed_comms(oargs);
+
+	//
+	// If a plugin was configured, pass it to scap and set the capture mode to
+	// SCAP_MODE_PLUGIN.
+	//
+	if(m_src_plugin != NULL)
+	{
+		oargs.src_plugin = m_src_plugin;
+		m_mode = SCAP_MODE_PLUGIN;
+		oargs.mode = SCAP_MODE_PLUGIN;
+	}
 
 	int32_t scap_rc;
 	m_h = scap_open(oargs, error, &scap_rc);
@@ -1703,6 +1716,11 @@ void sinsp::set_statsd_port(const uint16_t port)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
 	}
+}
+
+void sinsp::set_source_plugin(scap_src_info* src_plugin)
+{
+	m_src_plugin = src_plugin;
 }
 
 void sinsp::stop_capture()

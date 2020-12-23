@@ -56,6 +56,146 @@ vector<sinsp_chisel*> g_chisels;
 
 static void usage();
 
+#define TEST_SRC
+
+#ifdef TEST_SRC
+
+typedef struct test_plugin_state
+{
+	char filename[SCAP_MAX_PATH_SIZE];
+	uint32_t id = 33;
+}test_plugin_state;
+
+src_plugin_t* testinit(char* config, char *error, int32_t* rc)
+{
+	*rc = SCAP_SUCCESS;
+
+	test_plugin_state* s = (test_plugin_state*)malloc(sizeof(test_plugin_state));
+	if(s == NULL)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "plugin state allocation failure");
+		*rc = SCAP_FAILURE;
+	}
+
+	return s;
+}
+
+void testdestroy(src_plugin_t* s)
+{
+	if(s)
+	{
+		free(s);
+	}
+}
+
+#define DMESG_FILE_NAME "dmesg.txt"
+src_instance_t* testopen(src_plugin_t* s, char *error, int32_t* rc)
+{
+	*rc = SCAP_SUCCESS;
+
+	int fd = _open(DMESG_FILE_NAME, _O_BINARY | _O_RDONLY);
+	if(fd < 0)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "dmesg plugin open error: cannot open %s", DMESG_FILE_NAME);
+		*rc = SCAP_FAILURE;
+	}
+
+	return (src_instance_t*)(uint64_t)fd;
+}
+
+void testclose(src_instance_t* h)
+{
+	if(h != NULL)
+	{
+		_close((int)(int64_t)h);
+	}
+}
+
+int32_t testnext(src_instance_t* h, scap_evt** pevent)
+{
+	Sleep(100);
+	return SCAP_TIMEOUT;
+}
+
+scap_src_info create_test_source()
+{
+	scap_src_info si;
+	memset(&si, 0, sizeof(si));
+	si.init = testinit;
+	si.destroy = testdestroy;
+	si.open = testopen;
+	si.close = testclose;
+	si.next = testnext;
+
+	return si;
+}
+
+void configure_source_plugin(sinsp* inspector, scap_src_info* si, char* config)
+{
+	char error[SCAP_LASTERR_SIZE];
+	int init_res;
+
+	ASSERT(inspector != NULL);
+	ASSERT(si != NULL);
+
+	//
+	// Make a persistent copy of the plugin info
+	//
+	scap_src_info* psi = (scap_src_info*)malloc(sizeof(scap_src_info));
+	if(psi == NULL)
+	{
+		throw sinsp_exception("unable to allocate memory for the source plugin info");
+	}
+	*psi = *si;
+
+	if(psi->open == NULL)
+	{
+		throw sinsp_exception("invalid source plugin: 'open' method missing");
+	}
+
+	if(psi->close == NULL)
+	{
+		throw sinsp_exception("invalid source plugin: 'close' method missing");
+	}
+
+	if(psi->next == NULL)
+	{
+		throw sinsp_exception("invalid source plugin: 'next' method missing");
+	}
+
+	//
+	// Initialize the plugin
+	//
+	if(psi->init != NULL)
+	{
+		psi->state = psi->init(config, error, &init_res);
+		if(init_res != SCAP_SUCCESS)
+		{
+			throw sinsp_exception(error);
+		}
+	}
+
+	//
+	// Register the plugin in the inspector
+	//
+	inspector->set_source_plugin(psi);
+}
+
+void destroy_source_plugin(scap_src_info* si)
+{
+	if(si != NULL)
+	{
+		if(si->destroy != NULL)
+		{
+			si->destroy(si->state);
+		}
+
+		free(si);
+	}
+}
+
+#endif
+
 //
 // Helper functions
 //
@@ -799,6 +939,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string cri_socket_path;
 #endif
 	bool udig = false;
+	scap_src_info src_plugin;
+	bool has_src_plugin = false;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -1468,6 +1610,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				// No file to open, this is a live capture
 				//
 #if defined(HAS_CAPTURE)
+#ifdef TEST_SRC
+				src_plugin = create_test_source();
+				has_src_plugin = true;
+				configure_source_plugin(inspector, &src_plugin, NULL);
+#endif
+
 				bool open_success = true;
 
 				if(print_progress)
@@ -1483,46 +1631,52 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				else
 				{
-					try
+					if(has_src_plugin)
 					{
 						inspector->open("");
 					}
-					catch(const sinsp_exception& e)
-					{
-						open_success = false;
-					}
-				}
-				
-#ifndef _WIN32
-				//
-				// Starting the live capture failed, try to load the driver with
-				// modprobe.
-				//
-				if(!open_success)
-				{
-					open_success = true;
-
-					if(bpf)
-					{
-						if(bpf_probe.empty())
-						{
-							if(system("sysdig-probe-loader bpf"))
-							{
-								fprintf(stderr, "Unable to load the BPF probe\n");
-							}
-						}
-					}
 					else
 					{
-						if(system("modprobe " PROBE_NAME " > /dev/null 2> /dev/null"))
+						try
 						{
-							fprintf(stderr, "Unable to load the driver\n");
+							inspector->open("");
+						}
+						catch(const sinsp_exception& e)
+						{
+							open_success = false;
 						}
 					}
+#ifndef _WIN32
+					//
+					// Starting the live capture failed, try to load the driver with
+					// modprobe.
+					//
+					if(!open_success)
+					{
+						open_success = true;
 
-					inspector->open("");
-				}
+						if(bpf)
+						{
+							if(bpf_probe.empty())
+							{
+								if(system("sysdig-probe-loader bpf"))
+								{
+									fprintf(stderr, "Unable to load the BPF probe\n");
+								}
+							}
+						}
+						else
+						{
+							if(system("modprobe " PROBE_NAME " > /dev/null 2> /dev/null"))
+							{
+								fprintf(stderr, "Unable to load the driver\n");
+							}
+						}
+
+						inspector->open("");
+					}
 #endif // _WIN32
+				}
 #else // HAS_CAPTURE
 				//
 				// Starting live capture
@@ -1715,6 +1869,10 @@ exit:
 	// Free all the stuff that was allocated
 	//
 	free_chisels();
+
+#ifdef TEST_SRC
+	destroy_source_plugin(inspector->m_src_plugin);
+#endif
 
 	if(inspector)
 	{

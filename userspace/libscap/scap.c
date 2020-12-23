@@ -920,6 +920,65 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 #endif // HAS_CAPTURE
 }
 
+scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_src_info* src_plugin)
+{
+	scap_t* handle = NULL;
+
+	//
+	// Allocate the handle
+	//
+	handle = (scap_t*)malloc(sizeof(scap_t));
+	if(!handle)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
+		*rc = SCAP_FAILURE;
+		return NULL;
+	}
+
+	//
+	// Preliminary initializations
+	//
+	memset(handle, 0, sizeof(scap_t));
+	handle->m_mode = SCAP_MODE_PLUGIN;
+
+	//
+	// Extract machine information
+	//
+	handle->m_proc_callback = NULL;
+	handle->m_proc_callback_context = NULL;
+#ifdef _WIN32
+	handle->m_machine_info.num_cpus = 0;
+	handle->m_machine_info.memory_size_bytes = 0;
+#else
+	handle->m_machine_info.num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
+	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
+#endif
+	gethostname(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname) / sizeof(handle->m_machine_info.hostname[0]));
+	handle->m_machine_info.reserved1 = 0;
+	handle->m_machine_info.reserved2 = 0;
+	handle->m_machine_info.reserved3 = 0;
+	handle->m_machine_info.reserved4 = 0;
+	handle->m_driver_procinfo = NULL;
+	handle->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP; // fd lookup is limited here because is very expensive
+	handle->m_fake_kernel_proc.tid = -1;
+	handle->m_fake_kernel_proc.pid = -1;
+	handle->m_fake_kernel_proc.flags = 0;
+	snprintf(handle->m_fake_kernel_proc.comm, SCAP_MAX_PATH_SIZE, "kernel");
+	snprintf(handle->m_fake_kernel_proc.exe, SCAP_MAX_PATH_SIZE, "kernel");
+	handle->m_fake_kernel_proc.args[0] = 0;
+	handle->refresh_proc_table_when_saving = true;
+
+	handle->src_plugin = src_plugin;
+	handle->src_plugin->handle = handle->src_plugin->open(handle->src_plugin->state, error, rc);
+	if(*rc != SCAP_SUCCESS)
+	{
+		scap_close(handle);
+		return NULL;
+	}
+
+	return handle;
+}
+
 scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 {
 	switch(args.mode)
@@ -974,7 +1033,7 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 						args.suppressed_comms);
 		}
 #else
-		snprintf(error,	SCAP_LASTERR_SIZE, "scap_open: live mode currently not supported on windows. Use nodriver mode instead.");
+		snprintf(error,	SCAP_LASTERR_SIZE, "scap_open: live mode currently not supported on Windows.");
 		*rc = SCAP_NOT_SUPPORTED;
 		return NULL;
 #endif
@@ -982,6 +1041,8 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 		return scap_open_nodriver_int(error, rc, args.proc_callback,
 					      args.proc_callback_context,
 					      args.import_users);
+	case SCAP_MODE_PLUGIN:
+		return scap_open_plugin_int(error, rc, args.src_plugin);
 	case SCAP_MODE_NONE:
 		// error
 		break;
@@ -1080,6 +1141,10 @@ void scap_close(scap_t* handle)
 			free(handle->m_devs);
 		}
 #endif // HAS_CAPTURE
+	}
+	else if(handle->m_mode == SCAP_MODE_PLUGIN)
+	{
+		handle->src_plugin->close(handle->src_plugin->handle);
 	}
 
 #if CYGWING_AGENT || _WIN32
@@ -1650,6 +1715,8 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 		res = scap_next_nodriver(handle, pevent, pcpuid);
 		break;
 #endif
+	case SCAP_MODE_PLUGIN:
+		return handle->src_plugin->next(handle->src_plugin->handle, pevent);
 	case SCAP_MODE_NONE:
 		res = SCAP_FAILURE;
 	}
