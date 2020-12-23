@@ -968,8 +968,8 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_src_info* src_plugin
 	handle->m_fake_kernel_proc.args[0] = 0;
 	handle->refresh_proc_table_when_saving = true;
 
-	handle->src_plugin = src_plugin;
-	handle->src_plugin->handle = handle->src_plugin->open(handle->src_plugin->state, error, rc);
+	handle->m_src_plugin = src_plugin;
+	handle->m_src_plugin->handle = handle->m_src_plugin->open(handle->m_src_plugin->state, error, rc);
 	if(*rc != SCAP_SUCCESS)
 	{
 		scap_close(handle);
@@ -1144,7 +1144,7 @@ void scap_close(scap_t* handle)
 	}
 	else if(handle->m_mode == SCAP_MODE_PLUGIN)
 	{
-		handle->src_plugin->close(handle->src_plugin->handle);
+		handle->m_src_plugin->close(handle->m_src_plugin->state, handle->m_src_plugin->handle);
 	}
 
 #if CYGWING_AGENT || _WIN32
@@ -1673,6 +1673,45 @@ static int32_t scap_next_nodriver(scap_t* handle, OUT scap_evt** pevent, OUT uin
 }
 #endif // _WIN32
 
+static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+{
+	uint8_t* data;
+	uint32_t datalen;
+	int32_t res = handle->m_src_plugin->next(handle->m_src_plugin->state, 
+		handle->m_src_plugin->handle, &data, &datalen);
+
+	uint32_t reqsize = sizeof(scap_evt) + 2 + 4 + 2 + datalen;
+	if(handle->m_src_plugin_evt_storage_len < reqsize)
+	{
+		handle->m_src_plugin_evt_storage = (uint8_t*)malloc(reqsize);
+		handle->m_src_plugin_evt_storage_len = reqsize;
+	}
+
+	scap_evt* evt = (scap_evt*)handle->m_src_plugin_evt_storage;
+	evt->len = 0;
+	evt->tid = -1;
+	evt->type = PPME_PLUGINEVENT_E;
+	evt->nparams = 2;
+
+	uint8_t* buf = handle->m_src_plugin_evt_storage + sizeof(scap_evt);
+	*(uint16_t*)buf = 4;
+	buf += 2;
+	*(uint16_t*)buf = datalen;
+	buf += 2;
+	*(uint32_t*)buf = handle->m_src_plugin->id;
+	buf += 4;
+	memcpy(buf, data, datalen);
+
+	struct timeval tv;
+	//gettimeofday(&tv, NULL);
+	tv.tv_sec = 0;
+	tv.tv_usec = 1;
+
+	evt->ts = tv.tv_sec * (uint64_t) 1000000000 + tv.tv_usec * 1000;
+	*pevent = evt;
+	return res;
+}
+
 uint64_t scap_max_buf_used(scap_t* handle)
 {
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
@@ -1716,7 +1755,8 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 		break;
 #endif
 	case SCAP_MODE_PLUGIN:
-		return handle->src_plugin->next(handle->src_plugin->handle, pevent);
+		res = scap_next_plugin(handle, pevent, pcpuid);
+		break;
 	case SCAP_MODE_NONE:
 		res = SCAP_FAILURE;
 	}

@@ -62,8 +62,7 @@ static void usage();
 
 typedef struct test_plugin_state
 {
-	char filename[SCAP_MAX_PATH_SIZE];
-	uint32_t id = 33;
+	char databuf[4096];
 }test_plugin_state;
 
 src_plugin_t* testinit(char* config, char *error, int32_t* rc)
@@ -88,6 +87,11 @@ void testdestroy(src_plugin_t* s)
 	}
 }
 
+uint32_t testgetid()
+{
+	return 1;
+}
+
 #define DMESG_FILE_NAME "dmesg.txt"
 src_instance_t* testopen(src_plugin_t* s, char *error, int32_t* rc)
 {
@@ -103,7 +107,7 @@ src_instance_t* testopen(src_plugin_t* s, char *error, int32_t* rc)
 	return (src_instance_t*)(uint64_t)fd;
 }
 
-void testclose(src_instance_t* h)
+void testclose(src_plugin_t* s, src_instance_t* h)
 {
 	if(h != NULL)
 	{
@@ -111,10 +115,14 @@ void testclose(src_instance_t* h)
 	}
 }
 
-int32_t testnext(src_instance_t* h, scap_evt** pevent)
+int32_t testnext(src_plugin_t* s, src_instance_t* h, uint8_t** data, uint32_t* datalen)
 {
-	Sleep(100);
-	return SCAP_TIMEOUT;
+//	(*pevent)->type = PPME_SYSCALL_OPEN_E;
+	test_plugin_state* ts = (test_plugin_state*)s;
+	snprintf(ts->databuf, 4096, "ciao");
+	*data = (uint8_t*)ts->databuf;
+	*datalen = 4;
+	return SCAP_SUCCESS;
 }
 
 scap_src_info create_test_source()
@@ -123,6 +131,7 @@ scap_src_info create_test_source()
 	memset(&si, 0, sizeof(si));
 	si.init = testinit;
 	si.destroy = testdestroy;
+	si.get_id = testgetid;
 	si.open = testopen;
 	si.close = testclose;
 	si.next = testnext;
@@ -147,6 +156,11 @@ void configure_source_plugin(sinsp* inspector, scap_src_info* si, char* config)
 		throw sinsp_exception("unable to allocate memory for the source plugin info");
 	}
 	*psi = *si;
+
+	if(psi->get_id == NULL)
+	{
+		throw sinsp_exception("invalid source plugin: 'get_id' method missing");
+	}
 
 	if(psi->open == NULL)
 	{
@@ -174,6 +188,8 @@ void configure_source_plugin(sinsp* inspector, scap_src_info* si, char* config)
 			throw sinsp_exception(error);
 		}
 	}
+
+	psi->id = psi->get_id();
 
 	//
 	// Register the plugin in the inspector
