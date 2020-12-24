@@ -110,6 +110,8 @@ class k8s;
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 class sinsp_partial_tracer;
 class mesos;
+class sinsp_source_plugin;
+typedef struct sinsp_src_interface sinsp_src_interface;
 
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 class sinsp_ssl;
@@ -898,7 +900,9 @@ public:
 	void set_cri_delay(uint64_t delay_ms);
 	void set_container_labels_max_len(uint32_t max_label_len);
 
-	void set_source_plugin(scap_src_info* src_plugin);
+	sinsp_source_plugin* add_source_plugin(sinsp_src_interface* src_plugin, char* config);
+	void set_input_source_plugin(uint32_t plugin_id);
+	sinsp_source_plugin* get_source_plugin_by_id(uint32_t plugin_id);
 
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
@@ -1223,9 +1227,15 @@ public:
 	std::set<std::string> m_suppressed_comms;
 
 	//
-	// Custom event source plugin if configured by the user
+	// Table of event source plugin configured by the user, indexed by
+	// plugin id.
 	//
-	scap_src_info* m_src_plugin;
+	unordered_map<uint32_t, sinsp_source_plugin*> m_src_plugins_table;
+	//
+	// The ID of the source plugin to use as event input, or zero
+	// if no source plugin should be used as source
+	//
+	uint32_t m_input_src_plugin_id;
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;

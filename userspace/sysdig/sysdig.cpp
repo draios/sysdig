@@ -40,6 +40,7 @@ limitations under the License.
 #include "sysdig.h"
 #include "fields_info.h"
 #include "utils.h"
+#include "source_plugin.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -125,89 +126,24 @@ int32_t testnext(src_plugin_t* s, src_instance_t* h, uint8_t** data, uint32_t* d
 	return SCAP_SUCCESS;
 }
 
-scap_src_info create_test_source()
+char* testevent_to_string(uint8_t* data, uint32_t datalen)
 {
-	scap_src_info si;
+	return "dete";
+}
+
+sinsp_src_interface create_test_source()
+{
+	sinsp_src_interface si;
 	memset(&si, 0, sizeof(si));
 	si.init = testinit;
 	si.destroy = testdestroy;
 	si.get_id = testgetid;
-	si.open = testopen;
-	si.close = testclose;
-	si.next = testnext;
+	si.event_to_string = testevent_to_string;
+	si.scap_src.open = testopen;
+	si.scap_src.close = testclose;
+	si.scap_src.next = testnext;
 
 	return si;
-}
-
-void configure_source_plugin(sinsp* inspector, scap_src_info* si, char* config)
-{
-	char error[SCAP_LASTERR_SIZE];
-	int init_res;
-
-	ASSERT(inspector != NULL);
-	ASSERT(si != NULL);
-
-	//
-	// Make a persistent copy of the plugin info
-	//
-	scap_src_info* psi = (scap_src_info*)malloc(sizeof(scap_src_info));
-	if(psi == NULL)
-	{
-		throw sinsp_exception("unable to allocate memory for the source plugin info");
-	}
-	*psi = *si;
-
-	if(psi->get_id == NULL)
-	{
-		throw sinsp_exception("invalid source plugin: 'get_id' method missing");
-	}
-
-	if(psi->open == NULL)
-	{
-		throw sinsp_exception("invalid source plugin: 'open' method missing");
-	}
-
-	if(psi->close == NULL)
-	{
-		throw sinsp_exception("invalid source plugin: 'close' method missing");
-	}
-
-	if(psi->next == NULL)
-	{
-		throw sinsp_exception("invalid source plugin: 'next' method missing");
-	}
-
-	//
-	// Initialize the plugin
-	//
-	if(psi->init != NULL)
-	{
-		psi->state = psi->init(config, error, &init_res);
-		if(init_res != SCAP_SUCCESS)
-		{
-			throw sinsp_exception(error);
-		}
-	}
-
-	psi->id = psi->get_id();
-
-	//
-	// Register the plugin in the inspector
-	//
-	inspector->set_source_plugin(psi);
-}
-
-void destroy_source_plugin(scap_src_info* si)
-{
-	if(si != NULL)
-	{
-		if(si->destroy != NULL)
-		{
-			si->destroy(si->state);
-		}
-
-		free(si);
-	}
 }
 
 #endif
@@ -662,7 +598,7 @@ static void chisels_do_timeout(sinsp_evt* ev)
 #endif
 }
 
-void handle_end_of_file(bool print_progress, sinsp_evt_formatter* formatter = NULL)
+void handle_end_of_file(bool print_progress, sinsp_evt_formatter_with_plugin_support* formatter = NULL)
 {
 	string line;
 
@@ -739,7 +675,7 @@ captureinfo do_inspect(sinsp* inspector,
 	bool print_progress,
 	sinsp_filter* display_filter,
 	vector<summary_table_entry> &summary_table,
-	sinsp_evt_formatter* formatter)
+	sinsp_evt_formatter_with_plugin_support* formatter)
 {
 	captureinfo retval;
 	int32_t res;
@@ -933,6 +869,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	int duration_to_tot = 0;
 	captureinfo cinfo;
 	string output_format;
+	string output_format_plugin;
 	uint32_t snaplen = 0;
 	int long_index = 0;
 	int32_t n_filterargs = 0;
@@ -955,7 +892,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string cri_socket_path;
 #endif
 	bool udig = false;
-	scap_src_info src_plugin;
+	sinsp_src_interface src_plugin;
 	bool has_src_plugin = false;
 
 	// These variables are for the cycle_writer engine
@@ -1026,6 +963,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	};
 
 	output_format = "*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
+	output_format_plugin = "*%evt.num %evt.outputtime [%evt.pluginname] %evt.plugininfo";
 
 	try
 	{
@@ -1267,6 +1205,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				else
 				{
 					output_format = optarg;
+					output_format_plugin = optarg;
 				}
 
 				break;
@@ -1543,7 +1482,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		//
 		// Create the event formatter
 		//
-		sinsp_evt_formatter formatter(inspector, output_format);
+		sinsp_evt_formatter_with_plugin_support formatter(inspector, 
+			output_format, 
+			output_format_plugin);
 
 		//
 		// Set output buffers len
@@ -1629,7 +1570,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #ifdef TEST_SRC
 				src_plugin = create_test_source();
 				has_src_plugin = true;
-				configure_source_plugin(inspector, &src_plugin, NULL);
+				sinsp_source_plugin* sp = inspector->add_source_plugin(&src_plugin, NULL);
+				inspector->set_input_source_plugin(sp->get_id());
 #endif
 
 				bool open_success = true;
@@ -1885,10 +1827,6 @@ exit:
 	// Free all the stuff that was allocated
 	//
 	free_chisels();
-
-#ifdef TEST_SRC
-	destroy_source_plugin(inspector->m_src_plugin);
-#endif
 
 	if(inspector)
 	{

@@ -177,7 +177,7 @@ struct scap
 	// matching an entry in m_suppressed_comms.
 	uint64_t m_num_suppressed_evts;
 
-	scap_src_info* m_src_plugin;
+	scap_src_interface* m_src_plugin;
 	uint8_t* m_src_plugin_evt_storage;
 	uint32_t m_src_plugin_evt_storage_len;
 };

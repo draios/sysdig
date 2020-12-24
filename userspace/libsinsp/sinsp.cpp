@@ -38,6 +38,7 @@ limitations under the License.
 #include "cyclewriter.h"
 #include "protodecoder.h"
 #include "dns_manager.h"
+#include "source_plugin.h"
 
 #ifndef CYGWING_AGENT
 #ifndef MINIMAL_BUILD
@@ -176,7 +177,7 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 
 	m_filter_proc_table_when_saving = false;
 
-	m_src_plugin = NULL;
+	m_input_src_plugin_id = 0;
 }
 
 sinsp::~sinsp()
@@ -224,6 +225,11 @@ sinsp::~sinsp()
 	sinsp_dns_manager::get().cleanup();
 #endif
 #endif
+
+	for(auto it : m_src_plugins_table)
+	{
+		delete it.second;
+	}
 }
 
 void sinsp::add_protodecoders()
@@ -505,9 +511,14 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 	// If a plugin was configured, pass it to scap and set the capture mode to
 	// SCAP_MODE_PLUGIN.
 	//
-	if(m_src_plugin != NULL)
+	if(m_input_src_plugin_id != 0)
 	{
-		oargs.src_plugin = m_src_plugin;
+		auto it = m_src_plugins_table.find(m_input_src_plugin_id);
+		if(it == m_src_plugins_table.end())
+		{
+			throw sinsp_exception("source plugin with ID " + to_string(m_input_src_plugin_id) + " not present");
+		}
+		oargs.src_plugin = &(it->second->m_plugin_info.scap_src);
 		m_mode = SCAP_MODE_PLUGIN;
 		oargs.mode = SCAP_MODE_PLUGIN;
 	}
@@ -1718,9 +1729,41 @@ void sinsp::set_statsd_port(const uint16_t port)
 	}
 }
 
-void sinsp::set_source_plugin(scap_src_info* src_plugin)
+sinsp_source_plugin* sinsp::add_source_plugin(sinsp_src_interface* src_plugin, char* config)
 {
-	m_src_plugin = src_plugin;
+	sinsp_source_plugin* nsp = new sinsp_source_plugin(this);
+	nsp->configure(src_plugin, config);
+	uint32_t id = nsp->m_plugin_info.get_id();
+
+	auto it = m_src_plugins_table.find(id);
+	if(it == m_src_plugins_table.end())
+	{
+		m_src_plugins_table[id] = nsp;
+	}
+	else
+	{
+		throw sinsp_exception("source plugin with ID " + to_string(id) + " loaded twice");
+	}
+
+	return nsp;
+}
+
+void sinsp::set_input_source_plugin(uint32_t plugin_id)
+{
+	m_input_src_plugin_id = plugin_id;
+}
+
+sinsp_source_plugin* sinsp::get_source_plugin_by_id(uint32_t plugin_id)
+{
+	auto it = m_src_plugins_table.find(plugin_id);
+	if(it != m_src_plugins_table.end())
+	{
+		return it->second;
+	}
+	else
+	{
+		return NULL;
+	}
 }
 
 void sinsp::stop_capture()

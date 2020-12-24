@@ -32,6 +32,7 @@ limitations under the License.
 #include "protodecoder.h"
 #include "tracers.h"
 #include "value_parser.h"
+#include "source_plugin.h"
 
 extern sinsp_evttables g_infotables;
 int32_t g_csysdig_screen_w = -1;
@@ -2858,6 +2859,8 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.name", "for docker infrastructure events, the name of the impacted container."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.image", "for docker infrastructure events, the image name of the impacted container."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_exec", "'true' for open/openat or creat events where a file is created with execute permissions"},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.pluginname", "if the event comes from a plugin, the name of the plugin that generated it."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.plugininfo", "if the event comes from a plugin, the name of the plugin that generated it."},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -4513,6 +4516,25 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 						}
 					}
 				}
+			}
+		}
+		break;
+	case TYPE_PLUGIN_NAME:
+		RETURN_EXTRACT_CSTR("ciao");
+		break;
+	case TYPE_PLUGIN_INFO:
+		if(evt->get_type() == PPME_PLUGINEVENT_E)
+		{
+			sinsp_evt_param *parinfo = evt->get_param(0);
+			ASSERT(parinfo->m_len == sizeof(int32_t));
+			uint32_t pgid = *(int32_t *)parinfo->m_val;
+			sinsp_source_plugin* ppg = m_inspector->get_source_plugin_by_id(pgid);
+
+			if(ppg != NULL)
+			{
+				sinsp_evt_param *parinfo = evt->get_param(1);
+				char* estr = ppg->m_plugin_info.event_to_string((uint8_t*)parinfo->m_val, parinfo->m_len);
+				RETURN_EXTRACT_CSTR(estr);
 			}
 		}
 		break;

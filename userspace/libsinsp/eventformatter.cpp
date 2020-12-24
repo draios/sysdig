@@ -22,6 +22,7 @@ limitations under the License.
 #include "filter.h"
 #include "filterchecks.h"
 #include "eventformatter.h"
+#include "source_plugin.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // rawstring_check implementation
@@ -202,6 +203,25 @@ bool sinsp_evt_formatter::resolve_tokens(sinsp_evt *evt, map<string,string>& val
 	return retval;
 }
 
+bool sinsp_evt_formatter::tostring_plugin(sinsp_evt* evt, OUT string* res)
+{
+	sinsp_evt_param *parinfo = evt->get_param(0);
+	ASSERT(parinfo->m_len == sizeof(int32_t));
+	uint32_t pgid = *(int32_t *)parinfo->m_val;
+	sinsp_source_plugin* ppg = m_inspector->get_source_plugin_by_id(pgid);
+
+	if(ppg != NULL)
+	{
+		sinsp_evt_param *parinfo = evt->get_param(1);
+		char* estr = ppg->m_plugin_info.event_to_string((uint8_t*)parinfo->m_val, parinfo->m_len);
+		res->append(estr);
+	}
+	else
+	{
+	}
+
+	return true;
+}
 
 bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 {
@@ -345,4 +365,50 @@ bool sinsp_evt_formatter_cache::resolve_tokens(sinsp_evt *evt, string &format, m
 bool sinsp_evt_formatter_cache::tostring(sinsp_evt *evt, string &format, OUT string *res)
 {
 	return get_cached_formatter(format)->tostring(evt, res);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// sinsp_evt_formatter_with_plugin_support implementation
+///////////////////////////////////////////////////////////////////////////////
+sinsp_evt_formatter_with_plugin_support::sinsp_evt_formatter_with_plugin_support(sinsp* inspector,
+	const string& syscall_fmt,
+	const string& plugin_fmt)
+{
+	m_syscall_formatter = new sinsp_evt_formatter(inspector, syscall_fmt);
+	m_plugin_formatter = new sinsp_evt_formatter(inspector, plugin_fmt);
+}
+
+sinsp_evt_formatter_with_plugin_support::~sinsp_evt_formatter_with_plugin_support()
+{
+	delete m_syscall_formatter;
+	delete m_plugin_formatter;
+}
+
+bool sinsp_evt_formatter_with_plugin_support::resolve_tokens(sinsp_evt *evt, map<string,string>& values)
+{
+	if(evt->get_type() == PPME_PLUGINEVENT_E)
+	{
+		return m_plugin_formatter->resolve_tokens(evt, values);
+	}
+	else
+	{
+		return m_syscall_formatter->resolve_tokens(evt, values);
+	}
+}
+
+bool sinsp_evt_formatter_with_plugin_support::tostring(sinsp_evt* evt, OUT string* res)
+{
+	if(evt->get_type() == PPME_PLUGINEVENT_E)
+	{
+		return m_plugin_formatter->tostring(evt, res);
+	}
+	else
+	{
+		return m_syscall_formatter->tostring(evt, res);
+	}
+}
+
+bool sinsp_evt_formatter_with_plugin_support::on_capture_end(OUT string* res)
+{
+	return m_syscall_formatter->on_capture_end(res);
 }

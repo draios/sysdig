@@ -49,17 +49,3 @@ limitations under the License.
 #include "scap_bpf.h"
 #endif
 
-int32_t scap_source_register(scap_src_info* src_info, char* config, char *error, int32_t* rc)
-{
-	return SCAP_SUCCESS;
-}
-
-//void scap_source_test()
-//{
-//	scap_src_info si;
-//	memset(&si, 0, sizeof(si));
-//	si.open = testopen;
-//	char error[SCAP_LASTERR_SIZE];
-//
-//	scap_source_register(&si, NULL, error);
-//}

@@ -81,6 +81,7 @@ public:
 
 private:
 	void set_format(const string& fmt);
+	bool tostring_plugin(sinsp_evt* evt, OUT string* res);
 
 	// vector of (full string of the token, filtercheck) pairs
 	// e.g. ("proc.aname[2], ptr to sinsp_filter_check_thread)
@@ -123,5 +124,64 @@ private:
 
 	std::map<std::string,std::shared_ptr<sinsp_evt_formatter>> m_formatter_cache;
 	sinsp *m_inspector;
+};
+
+/*!
+  \brief Event formatter with support for plugin events in addition to system calls.
+*/
+class SINSP_PUBLIC sinsp_evt_formatter_with_plugin_support
+{
+public:
+	/*!
+	  \brief Constructs a formatter.
+
+	  \param inspector Pointer to the inspector instance that will generate the
+	   events to be formatter.
+	  \param syscall_fmt The printf-like format to use when rendering system call 
+	   events coming from the driver.
+	  \param plugin_fmt The printf-like format to use when rendering events coming 
+	   from plugin s.
+	*/
+	sinsp_evt_formatter_with_plugin_support(sinsp* inspector,
+		const string& syscall_fmt,
+		const string& plugin_fmt);
+
+	~sinsp_evt_formatter_with_plugin_support();
+
+	/*!
+	  \brief Resolve all the formatted tokens and return them in a key/value
+	  map.
+
+	  \param evt Pointer to the event to be converted into string.
+	  \param res Reference to the map that will be filled with the result.
+
+	  \return true if all the tokens can be retrieved successfully, false
+	  otherwise.
+	*/
+	bool resolve_tokens(sinsp_evt *evt, map<string,string>& values);
+
+	/*!
+	  \brief Fills res with the string rendering of the event.
+
+	  \param evt Pointer to the event to be converted into string.
+	  \param res Pointer to the string that will be filled with the result.
+
+	  \return true if the string should be shown (based on the initial *),
+	   false otherwise.
+	*/
+	bool tostring(sinsp_evt* evt, OUT string* res);
+
+	/*!
+	  \brief Fills res with end of capture string rendering of the event.
+	  \param res Pointer to the string that will be filled with the result.
+
+	  \return true if there is a string to show (based on the format),
+	   false otherwise.
+	*/
+	bool on_capture_end(OUT string* res);
+
+private:
+	sinsp_evt_formatter *m_syscall_formatter;
+	sinsp_evt_formatter *m_plugin_formatter;
 };
 /*@}*/
