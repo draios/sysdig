@@ -67,9 +67,14 @@ void sinsp_source_plugin::configure(sinsp_src_interface* plugin_info, char* conf
 		throw sinsp_exception("invalid source plugin: 'next' method missing");
 	}
 
-	if(m_plugin_info.event_to_string== NULL)
+	if(m_plugin_info.event_to_string == NULL)
 	{
 		throw sinsp_exception("invalid source plugin: 'event_to_string' method missing");
+	}
+
+	if(m_plugin_info.get_name == NULL)
+	{
+		throw sinsp_exception("invalid source plugin: 'get_name' method missing");
 	}
 
 	//

@@ -540,6 +540,14 @@ static int32_t scap_write_iflist(scap_t *handle, scap_dumper_t* d)
 	uint32_t j;
 
 	//
+	// No interface list on disk if the source is a plugin
+	//
+	if(handle->m_mode == SCAP_MODE_PLUGIN)
+	{
+		return SCAP_SUCCESS;
+	}
+
+	//
 	// Get the interface list
 	//
 	if(handle->m_addrlist == NULL)
@@ -647,6 +655,14 @@ static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
 	uint16_t shelllen;
 	uint8_t type;
 	uint32_t totlen = 0;
+
+	//
+	// No user list on disk if the source is a plugin
+	//
+	if(handle->m_mode == SCAP_MODE_PLUGIN)
+	{
+		return SCAP_SUCCESS;
+	}
 
 	//
 	// Make sure we have a user list interface list
@@ -2674,17 +2690,22 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 		return SCAP_FAILURE;
 	}
 
-	if(!found_ul)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find user list block.");
-		return SCAP_FAILURE;
-	}
+	//
+	// NOTE: the following 2 checks are commented because, with the introduction of source plugins,
+	//       it is legitimate to have trace files that don't contain user list and interface list blocks.
+	//
 
-	if(!found_il)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find interface list block.");
-		return SCAP_FAILURE;
-	}
+	//if(!found_ul)
+	//{
+	//	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find user list block.");
+	//	return SCAP_FAILURE;
+	//}
+
+	//if(!found_il)
+	//{
+	//	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't find interface list block.");
+	//	return SCAP_FAILURE;
+	//}
 
 	return SCAP_SUCCESS;
 }

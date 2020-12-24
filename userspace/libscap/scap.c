@@ -1688,7 +1688,7 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 	}
 
 	scap_evt* evt = (scap_evt*)handle->m_src_plugin_evt_storage;
-	evt->len = 0;
+	evt->len = reqsize;
 	evt->tid = -1;
 	evt->type = PPME_PLUGINEVENT_E;
 	evt->nparams = 2;

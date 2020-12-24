@@ -4520,7 +4520,23 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		}
 		break;
 	case TYPE_PLUGIN_NAME:
-		RETURN_EXTRACT_CSTR("ciao");
+		if(evt->get_type() == PPME_PLUGINEVENT_E)
+		{
+			sinsp_evt_param *parinfo = evt->get_param(0);
+			ASSERT(parinfo->m_len == sizeof(int32_t));
+			uint32_t pgid = *(int32_t *)parinfo->m_val;
+			sinsp_source_plugin* ppg = m_inspector->get_source_plugin_by_id(pgid);
+
+			if(ppg != NULL)
+			{
+				sinsp_evt_param *parinfo = evt->get_param(1);
+				char* estr = ppg->m_plugin_info.get_name();
+				RETURN_EXTRACT_CSTR(estr);
+			}
+
+			m_strstorage = "plugin ID " + to_string(pgid) + " (not loaded)";
+			RETURN_EXTRACT_STRING(m_strstorage);
+		}
 		break;
 	case TYPE_PLUGIN_INFO:
 		if(evt->get_type() == PPME_PLUGINEVENT_E)
@@ -4536,6 +4552,15 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				char* estr = ppg->m_plugin_info.event_to_string((uint8_t*)parinfo->m_val, parinfo->m_len);
 				RETURN_EXTRACT_CSTR(estr);
 			}
+
+			parinfo = evt->get_param(1);
+			m_strstorage = string(parinfo->m_val, parinfo->m_len);
+			if(m_strstorage.size() > 100)
+			{
+				m_strstorage = m_strstorage.substr(0, 100);
+				m_strstorage += "...";
+			}
+			RETURN_EXTRACT_STRING(m_strstorage);
 		}
 		break;
 	default:

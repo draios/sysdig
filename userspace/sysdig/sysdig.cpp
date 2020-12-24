@@ -88,9 +88,14 @@ void testdestroy(src_plugin_t* s)
 	}
 }
 
-uint32_t testgetid()
+uint32_t testget_id()
 {
 	return 1;
+}
+
+char* testget_name()
+{
+	return "kmesg";
 }
 
 #define DMESG_FILE_NAME "dmesg.txt"
@@ -120,7 +125,7 @@ int32_t testnext(src_plugin_t* s, src_instance_t* h, uint8_t** data, uint32_t* d
 {
 //	(*pevent)->type = PPME_SYSCALL_OPEN_E;
 	test_plugin_state* ts = (test_plugin_state*)s;
-	snprintf(ts->databuf, 4096, "ciao");
+	snprintf(ts->databuf, 4096, "ci\5o");
 	*data = (uint8_t*)ts->databuf;
 	*datalen = 4;
 	return SCAP_SUCCESS;
@@ -137,7 +142,8 @@ sinsp_src_interface create_test_source()
 	memset(&si, 0, sizeof(si));
 	si.init = testinit;
 	si.destroy = testdestroy;
-	si.get_id = testgetid;
+	si.get_id = testget_id;
+	si.get_name = testget_name;
 	si.event_to_string = testevent_to_string;
 	si.scap_src.open = testopen;
 	si.scap_src.close = testclose;
@@ -1362,6 +1368,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			}
 		}
 
+#ifdef TEST_SRC
+		//src_plugin = create_test_source();
+		//has_src_plugin = true;
+		//sinsp_source_plugin* sp = inspector->add_source_plugin(&src_plugin, NULL);
+#endif
+
 #ifdef HAS_CAPTURE
 		if(!cri_socket_path.empty())
 		{
@@ -1568,10 +1580,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				//
 #if defined(HAS_CAPTURE)
 #ifdef TEST_SRC
-				src_plugin = create_test_source();
-				has_src_plugin = true;
-				sinsp_source_plugin* sp = inspector->add_source_plugin(&src_plugin, NULL);
-				inspector->set_input_source_plugin(sp->get_id());
+//				inspector->set_input_source_plugin(sp->get_id());
 #endif
 
 				bool open_success = true;
