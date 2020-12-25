@@ -81,7 +81,6 @@ public:
 
 private:
 	void set_format(const string& fmt);
-	bool tostring_plugin(sinsp_evt* evt, OUT string* res);
 
 	// vector of (full string of the token, filtercheck) pairs
 	// e.g. ("proc.aname[2], ptr to sinsp_filter_check_thread)

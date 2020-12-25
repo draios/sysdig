@@ -203,26 +203,6 @@ bool sinsp_evt_formatter::resolve_tokens(sinsp_evt *evt, map<string,string>& val
 	return retval;
 }
 
-bool sinsp_evt_formatter::tostring_plugin(sinsp_evt* evt, OUT string* res)
-{
-	sinsp_evt_param *parinfo = evt->get_param(0);
-	ASSERT(parinfo->m_len == sizeof(int32_t));
-	uint32_t pgid = *(int32_t *)parinfo->m_val;
-	sinsp_source_plugin* ppg = m_inspector->get_source_plugin_by_id(pgid);
-
-	if(ppg != NULL)
-	{
-		sinsp_evt_param *parinfo = evt->get_param(1);
-		char* estr = ppg->m_plugin_info.event_to_string((uint8_t*)parinfo->m_val, parinfo->m_len);
-		res->append(estr);
-	}
-	else
-	{
-	}
-
-	return true;
-}
-
 bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 {
 	bool retval = true;
