@@ -21,7 +21,7 @@ limitations under the License.
 #include "sinsp_int.h"
 #include "filter.h"
 #include "filterchecks.h"
-#include "scap_source_interface.h"
+#include "source_plugin_info.h"
 #include "source_plugin.h"
 
 extern sinsp_filter_check_list g_filterlist;
