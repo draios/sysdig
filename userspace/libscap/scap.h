@@ -69,7 +69,7 @@ struct iovec;
 #define MAP_FAILED (void*)-1
 #endif
 
-#include "scap_source_interface.h"
+#include "source_plugin_info.h"
 
 //
 // Return types
@@ -315,7 +315,7 @@ typedef struct scap_open_args
 	                                                         // You can provide additional comm
 	                                                         // values via scap_suppress_events_comm().
 	bool udig; ///< If true, UDIG will be used for event capture. Otherwise, the kernel driver will be used.
-	scap_src_interface* src_plugin; ///< use this to configure a source plugin that will produce the events for this capture
+	source_plugin_info* src_plugin; ///< use this to configure a source plugin that will produce the events for this capture
 }scap_open_args;
 
 

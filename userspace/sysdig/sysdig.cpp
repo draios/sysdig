@@ -146,9 +146,9 @@ char* testextract_as_string(uint32_t id, uint8_t* data, uint32_t datalen)
 	return "estratto stringatto";
 }
 
-sinsp_src_interface create_test_source()
+source_plugin_info create_test_source()
 {
-	sinsp_src_interface si;
+	source_plugin_info si;
 	memset(&si, 0, sizeof(si));
 	si.init = testinit;
 	si.destroy = testdestroy;
@@ -156,9 +156,9 @@ sinsp_src_interface create_test_source()
 	si.get_name = testget_name;
 	si.get_fields = testget_fields;
 	si.event_to_string = testevent_to_string;
-	si.scap_src.open = testopen;
-	si.scap_src.close = testclose;
-	si.scap_src.next = testnext;
+	si.open = testopen;
+	si.close = testclose;
+	si.next = testnext;
 	si.extract_as_string = testextract_as_string;
 
 	return si;
@@ -863,6 +863,10 @@ captureinfo do_inspect(sinsp* inspector,
 	return retval;
 }
 
+void register_source_plugins(sinsp* inspector)
+{
+}
+
 //
 // ARGUMENT PARSING AND PROGRAM SETUP
 //
@@ -910,7 +914,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string cri_socket_path;
 #endif
 	bool udig = false;
-	sinsp_src_interface src_plugin;
+	source_plugin_info src_plugin;
 	bool has_src_plugin = false;
 
 	// These variables are for the cycle_writer engine
@@ -993,6 +997,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #endif
 
 #ifdef TEST_SRC
+//		register_source_plugins(inspector);
 		src_plugin = create_test_source();
 		has_src_plugin = true;
 		sinsp_source_plugin* sp = inspector->add_source_plugin(&src_plugin, NULL);

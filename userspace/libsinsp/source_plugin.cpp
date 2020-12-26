@@ -115,11 +115,11 @@ sinsp_source_plugin::~sinsp_source_plugin()
 {
 	if(m_source_info.destroy != NULL)
 	{
-		m_source_info.destroy(m_source_info.scap_src.state);
+		m_source_info.destroy(m_source_info.state);
 	}
 }
 
-void sinsp_source_plugin::configure(sinsp_src_interface* plugin_info, char* config)
+void sinsp_source_plugin::configure(source_plugin_info* plugin_info, char* config)
 {
 	char error[SCAP_LASTERR_SIZE];
 	int init_res;
@@ -134,17 +134,17 @@ void sinsp_source_plugin::configure(sinsp_src_interface* plugin_info, char* conf
 		throw sinsp_exception("invalid source plugin: 'get_id' method missing");
 	}
 
-	if(m_source_info.scap_src.open == NULL)
+	if(m_source_info.open == NULL)
 	{
 		throw sinsp_exception("invalid source plugin: 'open' method missing");
 	}
 
-	if(m_source_info.scap_src.close == NULL)
+	if(m_source_info.close == NULL)
 	{
 		throw sinsp_exception("invalid source plugin: 'close' method missing");
 	}
 
-	if(m_source_info.scap_src.next == NULL)
+	if(m_source_info.next == NULL)
 	{
 		throw sinsp_exception("invalid source plugin: 'next' method missing");
 	}
@@ -174,7 +174,7 @@ void sinsp_source_plugin::configure(sinsp_src_interface* plugin_info, char* conf
 	//
 	if(m_source_info.init != NULL)
 	{
-		m_source_info.scap_src.state = m_source_info.init(config, error, &init_res);
+		m_source_info.state = m_source_info.init(config, error, &init_res);
 		if(init_res != SCAP_SUCCESS)
 		{
 			throw sinsp_exception(error);
@@ -182,7 +182,7 @@ void sinsp_source_plugin::configure(sinsp_src_interface* plugin_info, char* conf
 	}
 
 	m_id = m_source_info.get_id();
-	m_source_info.scap_src.id = m_id;
+	m_source_info.id = m_id;
 
 	//
 	// Get JSON with the fields exported by the plugin, parse it and created our

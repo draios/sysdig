@@ -111,7 +111,6 @@ class k8s;
 class sinsp_partial_tracer;
 class mesos;
 class sinsp_source_plugin;
-typedef struct sinsp_src_interface sinsp_src_interface;
 
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 class sinsp_ssl;
@@ -900,7 +899,7 @@ public:
 	void set_cri_delay(uint64_t delay_ms);
 	void set_container_labels_max_len(uint32_t max_label_len);
 
-	sinsp_source_plugin* add_source_plugin(sinsp_src_interface* src_plugin, char* config);
+	sinsp_source_plugin* add_source_plugin(source_plugin_info* src_plugin, char* config);
 	void set_input_source_plugin(uint32_t plugin_id);
 	sinsp_source_plugin* get_source_plugin_by_id(uint32_t plugin_id);
 

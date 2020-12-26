@@ -920,7 +920,7 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 #endif // HAS_CAPTURE
 }
 
-scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_src_interface* src_plugin)
+scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* src_plugin)
 {
 	scap_t* handle = NULL;
 
