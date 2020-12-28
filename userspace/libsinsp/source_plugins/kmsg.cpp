@@ -13,7 +13,10 @@
 #include <getopt.h>
 #endif
 
-#define DATABUF_SIZE 4096
+#define READ_FROM_FILE
+#define READ_FROM_FILE_FNAME "dmesg.txt"
+#define READ_FROM_KERNEL_FNAME "/dev/kmsg"
+#define DATABUF_SIZE (4096 * 4)
 
 typedef struct kmsg_plugin_state
 {
@@ -70,27 +73,40 @@ char* kmsgget_fields()
 		;
 }
 
-#define DMESG_FILE_NAME "dmesg.txt"
-
 src_instance_t* kmsgopen(src_plugin_t* s, char *error, int32_t* rc)
 {
 	*rc = SCAP_SUCCESS;
 
-	int fd = _open(DMESG_FILE_NAME, _O_BINARY | _O_RDONLY);
+#ifdef READ_FROM_FILE
+	FILE* f = fopen(READ_FROM_FILE_FNAME, "r");
+	if(f == NULL)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "dmesg plugin open error: cannot open file %s", READ_FROM_FILE_FNAME);
+		*rc = SCAP_FAILURE;
+	}
+
+	return (src_instance_t*)f;
+#else
+	int fd = open(READ_FROM_KERNEL_FNAME, _O_BINARY | _O_RDONLY);
 	if(fd < 0)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "dmesg plugin open error: cannot open %s", DMESG_FILE_NAME);
+		snprintf(error, SCAP_LASTERR_SIZE, "dmesg plugin open error: cannot open %s", READ_FROM_KERNEL_FNAME);
 		*rc = SCAP_FAILURE;
 	}
 
 	return (src_instance_t*)(uint64_t)fd;
+#endif
 }
 
 void kmsgclose(src_plugin_t* s, src_instance_t* h)
 {
 	if(h != NULL)
 	{
-		_close((int)(int64_t)h);
+#ifdef READ_FROM_FILE
+		fclose((FILE*)h);
+#else
+		close((int)(int64_t)h);
+#endif
 	}
 }
 
@@ -98,14 +114,26 @@ int32_t kmsgnext(src_plugin_t* s, src_instance_t* h, uint8_t** data, uint32_t* d
 {
 //	(*pevent)->type = PPME_SYSCALL_OPEN_E;
 	kmsg_plugin_state* ts = (kmsg_plugin_state*)s;
-	
-	int rres = _read((int)(int64_t)h, ts->databuf, DATABUF_SIZE);
+	int rres;
+
+#ifdef READ_FROM_FILE
+	if(fgets(ts->databuf, DATABUF_SIZE, (FILE*)h) != NULL)
+	{
+		rres = strlen(ts->databuf);
+	}
+	else
+	{
+		Sleep(1000);
+		return SCAP_TIMEOUT;
+	}
+#else
+	int rres = read((int)(int64_t)h, ts->databuf, DATABUF_SIZE);
 	if(rres <= 0)
 	{
 		Sleep(1000);
 		return SCAP_TIMEOUT;
 	}
-
+#endif
 	*data = (uint8_t*)ts->databuf;
 	*datalen = rres;
 printf("%s\n", *data);
