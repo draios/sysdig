@@ -123,14 +123,18 @@ int32_t kmsgnext(src_plugin_t* s, src_instance_t* h, uint8_t** data, uint32_t* d
 	}
 	else
 	{
+#ifdef _WIN32		
 		Sleep(1000);
+#else
+		sleep(1);
+#endif
 		return SCAP_TIMEOUT;
 	}
 #else
 	int rres = read((int)(int64_t)h, ts->databuf, DATABUF_SIZE);
 	if(rres <= 0)
 	{
-		Sleep(1000);
+		sleep(1);
 		return SCAP_TIMEOUT;
 	}
 #endif
