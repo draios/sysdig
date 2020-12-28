@@ -140,7 +140,19 @@ int32_t kmsgnext(src_plugin_t* s, src_instance_t* h, uint8_t** data, uint32_t* d
 #endif
 	*data = (uint8_t*)ts->databuf;
 	*datalen = rres;
-printf("%s\n", *data);
+
+	string sline((char*)*data);
+	std::vector<std::string> parts = sinsp_split(sline, ':');
+	if(parts.size() < 2)
+	{
+		// We don't understand this line. Just skip it.
+		ASSERT(false);
+		return SCAP_TIMEOUT;
+	}
+
+	string machine_part = parts[0];
+	std::vector<std::string> machine_components = sinsp_split(machine_part, ',');
+
 	return SCAP_SUCCESS;
 }
 

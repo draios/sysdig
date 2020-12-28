@@ -19,32 +19,6 @@ limitations under the License.
 
 #pragma once
 
-#include "filterchecks.h"
-
-//
-// Events in tracers checks
-//
-class sinsp_filter_check_plugin : public sinsp_filter_check
-{
-public:
-	enum check_type
-	{
-		TYPE_CNT = 0,
-	};
-
-	sinsp_filter_check_plugin();
-//	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
-	sinsp_filter_check* allocate_new();
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
-
-	void set_name(string name);
-	void set_fields(filtercheck_field_info* fields, uint32_t nfields);
-
-	uint64_t m_cnt;
-	uint32_t m_id;
-	source_plugin_info* m_source_info;
-};
-
 class sinsp_source_plugin
 {
 public:
