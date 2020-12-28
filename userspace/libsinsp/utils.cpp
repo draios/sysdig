@@ -1541,7 +1541,7 @@ vector<string> sinsp_split(const string &s, char delim)
 //
 string& ltrim(string &s)
 {
-	s.erase(s.begin(), find_if(s.begin(), s.end(), not1(ptr_fun<int, int>(isspace))));
+	s.erase(s.begin(), find_if(s.begin(), s.end(), [](int c) {return !std::isspace(c);}));
 	return s;
 }
 
@@ -1550,7 +1550,7 @@ string& ltrim(string &s)
 //
 string& rtrim(string &s)
 {
-	s.erase(find_if(s.rbegin(), s.rend(), not1(ptr_fun<int, int>(isspace))).base(), s.end());
+	s.erase(find_if(s.rbegin(), s.rend(), [](int c) {return !std::isspace(c);}).base(), s.end());
 	return s;
 }
 

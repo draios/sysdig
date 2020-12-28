@@ -900,7 +900,8 @@ public:
 	void set_container_labels_max_len(uint32_t max_label_len);
 
 	sinsp_source_plugin* add_source_plugin(source_plugin_info* src_plugin, char* config);
-	void set_input_source_plugin(uint32_t plugin_id);
+	void set_input_source_plugin(string plugin_name);
+	void get_input_source_plugins(vector<sinsp_source_plugin*>* res);
 	sinsp_source_plugin* get_source_plugin_by_id(uint32_t plugin_id);
 
 VISIBILITY_PROTECTED

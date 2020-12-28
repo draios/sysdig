@@ -1748,9 +1748,26 @@ sinsp_source_plugin* sinsp::add_source_plugin(source_plugin_info* src_plugin, ch
 	return nsp;
 }
 
-void sinsp::set_input_source_plugin(uint32_t plugin_id)
+void sinsp::set_input_source_plugin(string plugin_name)
 {
-	m_input_src_plugin_id = plugin_id;
+	for(auto& it : m_src_plugins_table)
+	{
+		if(it.second->m_source_info.get_name() == plugin_name)
+		{
+			m_input_src_plugin_id = it.second->get_id();
+			return;
+		}
+	}
+
+	throw sinsp_exception("source with name " + plugin_name + " does not exist");
+}
+
+void sinsp::get_input_source_plugins(vector<sinsp_source_plugin*>* res)
+{
+	for(auto& it : m_src_plugins_table)
+	{
+		res->push_back(it.second);
+	}
 }
 
 sinsp_source_plugin* sinsp::get_source_plugin_by_id(uint32_t plugin_id)

@@ -169,6 +169,11 @@ void sinsp_source_plugin::configure(source_plugin_info* plugin_info, char* confi
 		throw sinsp_exception("invalid source plugin: 'extract_as_string' method missing");
 	}
 
+	if(m_source_info.get_description == NULL)
+	{
+		throw sinsp_exception("invalid source plugin: 'get_description' method missing");
+	}
+
 	//
 	// Initialize the plugin
 	//
@@ -188,7 +193,7 @@ void sinsp_source_plugin::configure(source_plugin_info* plugin_info, char* confi
 	// Get JSON with the fields exported by the plugin, parse it and created our
 	// list of fields.
 	//
-	std::string json(m_source_info.get_fields());
+	string json(m_source_info.get_fields());
 	SINSP_DEBUG("Parsing Container JSON=%s", json.c_str());
 	Json::Value root;
 	if(Json::Reader().parse(json, root) == false)
@@ -196,7 +201,8 @@ void sinsp_source_plugin::configure(source_plugin_info* plugin_info, char* confi
 		throw sinsp_exception(string("error in plugin ") + m_source_info.get_name() + ": get_fields returned an invalid JSON");
 	}
 
-	for(Json::Value::ArrayIndex j = 0; j != root.size(); j++)
+int a = root.size();
+	for(Json::Value::ArrayIndex j = 0; j < root.size(); j++)
 	{
 		filtercheck_field_info tf;
 		tf.m_flags = EPF_NONE;

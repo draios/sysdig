@@ -160,6 +160,12 @@ static void usage()
 "                    If no data format is specified, this can be used with -W flag to\n"
 "                    create a ring buffer of events.\n"
 " -h, --help         Print this page\n"
+" -I <inputname>, --input <inputname>\n"
+"                    capture events from the source with name inputname.\n"
+"                    The available event sources vary depending on which plugins have\n"
+"                    been installed and can be listed by using the -Il flag.\n"
+" -Il, --list-inputs\n"
+"                    lists the available event sources that can be used for capture.\n"
 #ifdef HAS_CHISELS
 " -i <chiselname>, --chisel-info <chiselname>\n"
 "                    Get a longer description and the arguments associated with\n"
@@ -760,6 +766,8 @@ captureinfo do_inspect(sinsp* inspector,
 
 void register_source_plugins(sinsp* inspector)
 {
+	source_plugin_info src_plugin = create_kmsg_source();
+	sinsp_source_plugin* sp = inspector->add_source_plugin(&src_plugin, NULL);
 }
 
 //
@@ -809,7 +817,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string cri_socket_path;
 #endif
 	bool udig = false;
-	source_plugin_info src_plugin;
+	string inputname;
 	bool has_src_plugin = false;
 
 	// These variables are for the cycle_writer engine
@@ -839,6 +847,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"filter-proclist", no_argument, 0, 0 },
 		{"seconds", required_argument, 0, 'G' },
 		{"help", no_argument, 0, 'h' },
+		{"input", required_argument, 0, 'I' },
 #ifdef HAS_CHISELS
 		{"chisel-info", required_argument, 0, 'i' },
 #endif
@@ -890,13 +899,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #ifdef HAS_CHISELS
 		add_chisel_dirs(inspector);
 #endif
-
-#ifdef TEST_SRC
-//		register_source_plugins(inspector);
-		src_plugin = create_test_source();
-		has_src_plugin = true;
-		sinsp_source_plugin* sp = inspector->add_source_plugin(&src_plugin, NULL);
-#endif
+		register_source_plugins(inspector);
 
 		//
 		// Parse the args
@@ -906,7 +909,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "C:"
                                         "dDEe:F"
                                         "G:"
-                                        "hi:jk:K:lLm:M:n:Pp:qRr:Ss:t:TU:uv"
+                                        "hI:i:jk:K:lLm:M:n:Pp:qRr:Ss:t:TU:uv"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
@@ -1001,7 +1004,22 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					goto exit;
 				}
 				break;
+			case 'I':
+				{
+					inputname = optarg;
+					if(inputname == "l")
+					{
+						vector<sinsp_source_plugin*> splist;
+						inspector->get_input_source_plugins(&splist);
+						list_sources(&splist);
+						delete inspector;
+						return sysdig_init_res(EXIT_SUCCESS);
+					}
 
+					has_src_plugin = true;
+					inspector->set_input_source_plugin(inputname);
+				}
+				break;
 #ifdef HAS_CHISELS
 			// --chisel-info and -i
 			case 'i':
@@ -1025,7 +1043,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				break;
 #endif
-
 			case 'd':
 				is_filter_display = true;
 				break;
@@ -1491,10 +1508,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				// No file to open, this is a live capture
 				//
 #if defined(HAS_CAPTURE)
-#ifdef TEST_SRC
-				inspector->set_input_source_plugin(sp->get_id());
-#endif
-
 				bool open_success = true;
 
 				if(print_progress)

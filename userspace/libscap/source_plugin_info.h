@@ -78,6 +78,12 @@ typedef struct
 	//
 	char* (*get_name)();
 	//
+	// Return the descriptions of the plugin, which will be printed when displaying
+	// information about the plugin or its events.
+	// This method is required.
+	//
+	char* (*get_description)();
+	//
 	// Return the list of extractor fields exported by this plugin. Extractor
 	// fields can be used in falco rules and sysdig filters.
 	// This method returns a string with the list of fields encoded as a json
