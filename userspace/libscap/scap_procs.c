@@ -30,6 +30,9 @@ limitations under the License.
 #include <sys/syscall.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <sys/fsuid.h>
+#include <sys/types.h>
+#include <fcntl.h>
 #endif // CYGWING_AGENT
 #endif // HAS_CAPTURE
 
@@ -566,6 +569,63 @@ int32_t scap_proc_fill_loginuid(scap_t *handle, struct scap_threadinfo* tinfo, c
 	}
 }
 
+int32_t scap_proc_fill_is_exe_writable(scap_t* handle, struct scap_threadinfo* tinfo,  uint32_t uid, uint32_t gid, const char *procdirname, const char *exetarget)
+{
+	char proc_exe_path[SCAP_MAX_PATH_SIZE];
+	struct stat targetstat;
+
+	// if the process is running as root it can always write to the file unless
+	// it has CAP_FOWNER removed, but this rarely happens
+	if(uid == 0 && gid == 0)
+	{
+		tinfo->flags |= PPM_CL_IS_EXE_WRITABLE;
+		return SCAP_SUCCESS;
+	}
+
+	snprintf(proc_exe_path, sizeof(proc_exe_path), "%sroot%s", procdirname, exetarget);
+
+	// if the file doesn't exist we can't determine if it was writable, assume false
+	if(stat(proc_exe_path, &targetstat) < 0)
+	{
+		return SCAP_SUCCESS;
+	}
+
+	// if you're the user owning the file you can chmod, so you can effectively write to it
+	if(targetstat.st_uid == uid) {
+		tinfo->flags |= PPM_CL_IS_EXE_WRITABLE;
+		return SCAP_SUCCESS;
+	}
+
+	int sysdig_uid = setfsuid(uid);
+	int sysdig_gid = setfsgid(gid);
+	if(setfsuid(-1) == uid && setfsgid(-1) == gid) {
+		int fd = open(proc_exe_path, O_WRONLY);
+		if(fd != -1)
+		{
+			tinfo->flags |= PPM_CL_IS_EXE_WRITABLE;
+			close(fd);
+		}
+	}
+
+	setfsuid(sysdig_uid);
+	setfsgid(sysdig_gid);
+	if(setfsuid(-1) != sysdig_uid)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not restore sysdig fsuid from %d to %d",
+			uid, sysdig_uid);
+		return SCAP_FAILURE;
+	}
+
+	if(setfsgid(-1) != sysdig_gid)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not restore sysdig fsgid from %d to %d",
+			gid, sysdig_gid);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+}
+
 //
 // Add a process to the list by parsing its entry under /proc
 //
@@ -864,6 +924,16 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	{
 		tinfo->flags = PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES;
 	}
+
+	if(SCAP_FAILURE == scap_proc_fill_is_exe_writable(handle, tinfo, tinfo->uid, tinfo->gid, dir_name, target_name))
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "can't fill exe writable access for %s (%s)",
+			 dir_name, handle->m_lasterr);
+		free(tinfo);
+		return SCAP_FAILURE;
+	}
+
+	bool is_writable = ((tinfo->flags & PPM_CL_IS_EXE_WRITABLE) != 0);
 
 	//
 	// if procinfo is set we assume this is a runtime lookup so no
