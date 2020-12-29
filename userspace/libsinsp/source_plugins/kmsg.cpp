@@ -112,7 +112,6 @@ void kmsgclose(src_plugin_t* s, src_instance_t* h)
 
 int32_t kmsgnext(src_plugin_t* s, src_instance_t* h, uint8_t** data, uint32_t* datalen)
 {
-//	(*pevent)->type = PPME_SYSCALL_OPEN_E;
 	kmsg_plugin_state* ts = (kmsg_plugin_state*)s;
 	int rres;
 
@@ -170,15 +169,15 @@ source_plugin_info create_kmsg_source()
 {
 	source_plugin_info si =
 	{
-		.open = kmsgopen,
-		.close = kmsgclose,
-		.next = kmsgnext,
 		.init = kmsginit,
 		.destroy = kmsgdestroy,
 		.get_id = kmsgget_id,
 		.get_name = kmsgget_name,
 		.get_description = kmsgget_description,
 		.get_fields = kmsgget_fields,
+		.open = kmsgopen,
+		.close = kmsgclose,
+		.next = kmsgnext,
 		.event_to_string = kmsgevent_to_string,
 		.extract_as_string = kmsgextract_as_string
 	};
