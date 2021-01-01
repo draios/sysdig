@@ -168,6 +168,7 @@ or GPL2.txt for full copies of the license.
 									in the init pid namespace */
 #define PPM_CL_IS_MAIN_THREAD (1 << 30)	/* libsinsp-specific flag. Set if this is the main thread */
 										/* in envs where main thread tid != pid.*/
+#define PPM_CL_IS_EXE_WRITABLE (1 << 31)
 
 /*
  * Futex Operations

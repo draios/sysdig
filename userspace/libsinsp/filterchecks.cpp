@@ -1856,6 +1856,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_container_healthcheck", "true if this process is running as a part of the container's health check."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_container_liveness_probe", "true if this process is running as a part of the container's liveness probe."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_container_readiness_probe", "true if this process is running as a part of the container's readiness probe."},
+	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_exe_writable", "true if this process' executable file is writable by the same user that spawned the process."},
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -2652,6 +2653,9 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		RETURN_EXTRACT_VAR(m_tbool);
 	case TYPE_IS_CONTAINER_READINESS_PROBE:
 		m_tbool = (tinfo->m_category == sinsp_threadinfo::CAT_READINESS_PROBE);
+		RETURN_EXTRACT_VAR(m_tbool);
+	case TYPE_IS_EXE_WRITABLE:
+		m_tbool = ((tinfo->m_flags & PPM_CL_IS_EXE_WRITABLE) != 0);
 		RETURN_EXTRACT_VAR(m_tbool);
 	default:
 		ASSERT(false);
