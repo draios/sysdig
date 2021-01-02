@@ -1034,6 +1034,7 @@ cgroups_error:
 		 */
 		long env_len = 0;
 		int tty_nr = 0;
+		bool exe_writable = false;
 
 		if (likely(retval >= 0)) {
 			/*
@@ -1110,6 +1111,11 @@ cgroups_error:
 		res = val_to_ring(args, val, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
+
+		if (mm->exe_file != NULL && mm->exe_file->f_inode != NULL) {
+			exe_writable |= (inode_permission(mm->exe_file->f_inode, MAY_WRITE) == 0);
+			exe_writable |= inode_owner_or_capable(mm->exe_file->f_inode);
+		}
 	}
 
 	return add_sentinel(args);
