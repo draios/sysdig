@@ -1809,6 +1809,16 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		evt->m_tinfo->m_loginuid = *(uint32_t *) parinfo->m_val;
 	}
 
+	bool is_exe_writable = false;
+
+	// Get is_exe_writable
+	if(evt->get_num_params() > 19)
+	{
+		parinfo = evt->get_param(19);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		is_exe_writable = (*(uint32_t *) parinfo->m_val != 0);
+	}
+
 	//
 	// execve starts with a clean fd list, so we get rid of the fd list that clone
 	// copied from the parent
@@ -1832,6 +1842,11 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		evt->m_tinfo->m_flags |= PPM_CL_CLONE_INVERTED;
 	}
 
+	if(is_exe_writable)
+	{
+		evt->m_tinfo->m_flags |= PPM_CL_IS_EXE_WRITABLE;
+	}
+	
 	//
 	// This process' name changed, so we need to include it in the protocol again
 	//
