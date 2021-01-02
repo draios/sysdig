@@ -136,6 +136,9 @@ int32_t kmsgnext(src_plugin_t* s, src_instance_t* h, uint8_t** data, uint32_t* d
 		sleep(1);
 		return SCAP_TIMEOUT;
 	}
+
+	printf("%d) %s\n", rres, ts->databuf);
+	exit(0);
 #endif
 	*data = (uint8_t*)ts->databuf;
 	*datalen = rres;

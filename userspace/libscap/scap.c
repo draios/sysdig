@@ -969,9 +969,11 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* src_p
 	handle->refresh_proc_table_when_saving = true;
 
 	handle->m_src_plugin = src_plugin;
-	handle->m_src_plugin->handle = handle->m_src_plugin->open(handle->m_src_plugin->state, error, rc);
+	handle->m_src_plugin->handle = handle->m_src_plugin->open(handle->m_src_plugin->state, rc);
+
 	if(*rc != SCAP_SUCCESS)
 	{
+		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_src_plugin->get_last_error());
 		scap_close(handle);
 		return NULL;
 	}
@@ -1694,6 +1696,14 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 	uint32_t datalen;
 	int32_t res = handle->m_src_plugin->next(handle->m_src_plugin->state, 
 		handle->m_src_plugin->handle, &data, &datalen);
+	if(res != SCAP_SUCCESS)
+	{
+		if(res != SCAP_TIMEOUT)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", handle->m_src_plugin->get_last_error());
+		}
+		return res;
+	}
 
 	uint32_t reqsize = sizeof(scap_evt) + 2 + 4 + 2 + datalen;
 	if(handle->m_src_plugin_evt_storage_len < reqsize)

@@ -50,7 +50,7 @@ limitations under the License.
 #include <getopt.h>
 #endif
 
-#include "source_plugins/kmsg.h"
+#include "source_plugins/dynlib.h"
 
 static bool g_terminate = false;
 #ifdef HAS_CHISELS
@@ -649,7 +649,7 @@ captureinfo do_inspect(sinsp* inspector,
 			// Notify the chisels that we're exiting, and then die with an error.
 			//
 			handle_end_of_file(print_progress, formatter);
-			cerr << "res = " << res << endl;
+			cerr << "resz = " << res << endl;
 			throw sinsp_exception(inspector->getlasterr().c_str());
 		}
 
@@ -766,8 +766,8 @@ captureinfo do_inspect(sinsp* inspector,
 
 void register_source_plugins(sinsp* inspector)
 {
-	source_plugin_info src_plugin = create_kmsg_source();
-	sinsp_source_plugin* sp = inspector->add_source_plugin(&src_plugin, NULL);
+	source_plugin_info src_plugin = create_dynlib_source();
+	inspector->add_source_plugin(&src_plugin, NULL);
 }
 
 //

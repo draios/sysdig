@@ -138,13 +138,17 @@ sinsp_source_plugin::~sinsp_source_plugin()
 
 void sinsp_source_plugin::configure(source_plugin_info* plugin_info, char* config)
 {
-	char error[SCAP_LASTERR_SIZE];
 	int init_res;
 
 	ASSERT(m_inspector != NULL);
 	ASSERT(plugin_info != NULL);
 
 	m_source_info = *plugin_info;
+
+	if(m_source_info.get_last_error == NULL)
+	{
+		throw sinsp_exception("invalid source plugin: 'get_last_error' method missing");
+	}
 
 	if(m_source_info.get_id == NULL)
 	{
@@ -196,10 +200,10 @@ void sinsp_source_plugin::configure(source_plugin_info* plugin_info, char* confi
 	//
 	if(m_source_info.init != NULL)
 	{
-		m_source_info.state = m_source_info.init(config, error, &init_res);
+		m_source_info.state = m_source_info.init(config, &init_res);
 		if(init_res != SCAP_SUCCESS)
 		{
-			throw sinsp_exception(error);
+			throw sinsp_exception(m_source_info.get_last_error());
 		}
 	}
 
@@ -210,7 +214,12 @@ void sinsp_source_plugin::configure(source_plugin_info* plugin_info, char* confi
 	// Get JSON with the fields exported by the plugin, parse it and created our
 	// list of fields.
 	//
-	string json(m_source_info.get_fields());
+	char* sfields = m_source_info.get_fields();
+	if(sfields == NULL)
+	{
+		throw sinsp_exception(string("error in plugin ") + m_source_info.get_name() + ": get_fields returned a null string");
+	}
+	string json(sfields);
 	SINSP_DEBUG("Parsing Container JSON=%s", json.c_str());
 	Json::Value root;
 	if(Json::Reader().parse(json, root) == false)
@@ -218,7 +227,6 @@ void sinsp_source_plugin::configure(source_plugin_info* plugin_info, char* confi
 		throw sinsp_exception(string("error in plugin ") + m_source_info.get_name() + ": get_fields returned an invalid JSON");
 	}
 
-int a = root.size();
 	for(Json::Value::ArrayIndex j = 0; j < root.size(); j++)
 	{
 		filtercheck_field_info tf;

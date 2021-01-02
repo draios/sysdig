@@ -96,7 +96,7 @@ set(SINSP_SOURCES
 	user_event.cpp
 	value_parser.cpp
 	viewinfo.cpp
-	source_plugins/kmsg.cpp
+	source_plugins/dynlib.cpp
 )
 
 if(NOT MINIMAL_BUILD)
