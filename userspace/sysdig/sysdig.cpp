@@ -51,6 +51,7 @@ limitations under the License.
 #endif
 
 #include "source_plugins/dynlib.h"
+#include "source_plugins/kmsg.h"
 
 static bool g_terminate = false;
 #ifdef HAS_CHISELS

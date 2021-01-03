@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 	"unsafe"
 )
@@ -63,7 +64,8 @@ func plugin_init(config *C.char, rc *int32) *C.char {
 	g_ctx = plugin_context{
 		evtBufLen:          int(NEXT_BUF_LEN),
 		outBufLen:          int(OUT_BUF_LEN),
-		cloudTrailFilesDir: "/home/loris/git/cloud-connector/test/cloudtrail",
+//		cloudTrailFilesDir: "/home/loris/git/cloud-connector/test/cloudtrail",
+		cloudTrailFilesDir: "c:\\windump\\GitHub\\cloud-connector\\test\\cloudtrail",
 		curFileNum:         0,
 	}
 
@@ -77,10 +79,10 @@ func plugin_init(config *C.char, rc *int32) *C.char {
 	// At the same time, we map them as byte[] arrays to make it easy to deal with them
 	// on the go side.
 	//
-	g_ctx.evtBufRaw = C.malloc(C.ulong(NEXT_BUF_LEN))
+	g_ctx.evtBufRaw = C.malloc(C.ulonglong(NEXT_BUF_LEN))
 	g_ctx.evtBuf = (*[1 << 30]byte)(unsafe.Pointer(g_ctx.evtBufRaw))[:int(g_ctx.evtBufLen):int(g_ctx.evtBufLen)]
 
-	g_ctx.outBufRaw = C.malloc(C.ulong(OUT_BUF_LEN))
+	g_ctx.outBufRaw = C.malloc(C.ulonglong(OUT_BUF_LEN))
 	g_ctx.outBuf = (*[1 << 30]byte)(unsafe.Pointer(g_ctx.outBufRaw))[:int(g_ctx.outBufLen):int(g_ctx.outBufLen)]
 
 	*rc = SCAP_SUCCESS
@@ -133,7 +135,7 @@ func plugin_get_description() *C.char {
 func plugin_get_fields() *C.char {
 	log.Printf("[%s] plugin_get_fields\n", PLUGIN_NAME)
 	flds := []get_fields_entry{
-		{Type: "string", Name: "myfield", Desc: "description of myfield"},
+		{Type: "string", Name: "jevt.value", Desc: "allows to extract a value from a JSON-encoded input. Syntax is jevt.value[/x/y/z], where x,y and z are levels in the JSON hierarchy."},
 	}
 
 	b, err := json.Marshal(&flds)
@@ -203,6 +205,7 @@ func plugin_next(plg_state *C.char, open_state *C.char, data **C.char, datalen *
 	}
 
 	file := g_ctx.files[g_ctx.curFileNum]
+//fmt.Println("**", file)
 	str, err := ioutil.ReadFile(file)
 	if err != nil {
 		g_lastError = err.Error()
@@ -237,7 +240,6 @@ func plugin_next(plg_state *C.char, open_state *C.char, data **C.char, datalen *
 //export plugin_event_to_string
 func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
 	//	log.Printf("[%s] plugin_event_to_string\n", PLUGIN_NAME)
-	//	fmt.Printf("LL %s\n\n", C.GoString(data))
 	var line string
 	var jdata map[string]interface{}
 
@@ -271,9 +273,48 @@ func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
 }
 
 //export plugin_extract_as_string
-func plugin_extract_as_string(id uint32, data *C.char, datalen uint32) *C.char {
-	log.Printf("[%s] plugin_extract_as_string\n", PLUGIN_NAME)
-	return nil
+func plugin_extract_as_string(evtnum uint64, id uint32, arg *C.char, data *C.char, datalen uint32) *C.char {
+	//	log.Printf("[%s] plugin_extract_as_string\n", PLUGIN_NAME)
+
+	var line string
+	var jdata map[string]interface{}
+
+	if(id != 0) {
+		line = "<NA>"
+	} else {
+		err := json.Unmarshal([]byte(C.GoString(data)), &jdata)
+		if err != nil {
+			return nil
+		} else {
+			sarg := C.GoString(arg)
+			if sarg[0] == '/' {
+				sarg = sarg[1:]
+			}
+			hc := strings.Split(sarg, "/")
+			for j := 0; j < len(hc) - 1; j++ {
+				key := hc[j]
+				if jdata[key] != nil {
+					jdata = jdata[key].(map[string]interface{})
+				} else {
+					return nil
+				}
+			}
+			val := jdata[hc[len(hc) - 1]]
+			if val == nil {
+				return nil
+			}
+			line = fmt.Sprintf("%v", val)
+		}
+	}
+
+	line += "\x00"
+
+	//
+	// Copy the the line into the event buffer
+	//
+	copy(g_ctx.outBuf[:], line)
+
+	return (*C.char)(g_ctx.outBufRaw)
 }
 
 func main() {

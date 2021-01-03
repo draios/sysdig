@@ -50,7 +50,31 @@ public:
 		m_cnt = 0;
 	}
 
-//	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
+	{
+		int32_t res = sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
+
+		if(res != -1)
+		{
+			string val(str);
+			size_t pos1 = val.find_first_of('[', 0);
+			if(pos1 != string::npos)
+			{
+				size_t argstart = pos1 + 1;
+				if(argstart < val.size())
+				{
+					m_argstr = val.substr(argstart);
+					size_t pos2 = m_argstr.find_first_of(']', 0);
+					m_argstr = m_argstr.substr(0, pos2);
+					m_arg = (char*)m_argstr.c_str();
+					return pos1 + pos2 + 2;
+				}
+			}
+		}
+
+		return res;
+	}
+
 	sinsp_filter_check* allocate_new()
 	{
 		sinsp_filter_check_plugin* np = new sinsp_filter_check_plugin();
@@ -91,8 +115,22 @@ public:
 		{
 		case PT_CHARBUF:
 		{
-			char* pret = m_source_info->extract_as_string(m_field_id, (uint8_t*)parinfo->m_val, parinfo->m_len);
-			*len = strlen(pret);
+			char* pret = m_source_info->extract_as_string(evt->get_num(), 
+				m_field_id, m_arg, 
+				(uint8_t*)parinfo->m_val, 
+				parinfo->m_len);
+			//if(pret == NULL)
+			//{
+			//	throw sinsp_exception("plugin's extract_as_string returned a NULL result");
+			//}
+			if(pret != NULL)
+			{
+				*len = strlen(pret);
+			}
+			else
+			{
+				*len = 0;
+			}
 			return (uint8_t*)pret;
 		}
 		default:
@@ -117,6 +155,8 @@ public:
 
 	uint64_t m_cnt;
 	uint32_t m_id;
+	string m_argstr;
+	char* m_arg = NULL;
 	source_plugin_info* m_source_info;
 };
 

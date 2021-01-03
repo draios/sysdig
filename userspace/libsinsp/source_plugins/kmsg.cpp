@@ -23,18 +23,22 @@ typedef struct kmsg_plugin_state
 	char databuf[DATABUF_SIZE];
 }kmsg_plugin_state;
 
-src_plugin_t* kmsginit(char* config, char *error, int32_t* rc)
+src_plugin_t* kmsginit(char* config, int32_t* rc)
 {
 	*rc = SCAP_SUCCESS;
 
 	kmsg_plugin_state* s = (kmsg_plugin_state*)malloc(sizeof(kmsg_plugin_state));
 	if(s == NULL)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "plugin state allocation failure");
 		*rc = SCAP_FAILURE;
 	}
 
 	return s;
+}
+
+char* kmsgget_last_error()
+{
+	return (char*)"kmsg plugin failure";
 }
 
 void kmsgdestroy(src_plugin_t* s)
@@ -73,7 +77,7 @@ char* kmsgget_fields()
 		;
 }
 
-src_instance_t* kmsgopen(src_plugin_t* s, char *error, int32_t* rc)
+src_instance_t* kmsgopen(src_plugin_t* s, int32_t* rc)
 {
 	*rc = SCAP_SUCCESS;
 
@@ -81,7 +85,6 @@ src_instance_t* kmsgopen(src_plugin_t* s, char *error, int32_t* rc)
 	FILE* f = fopen(READ_FROM_FILE_FNAME, "r");
 	if(f == NULL)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "dmesg plugin open error: cannot open file %s", READ_FROM_FILE_FNAME);
 		*rc = SCAP_FAILURE;
 	}
 
@@ -148,7 +151,6 @@ int32_t kmsgnext(src_plugin_t* s, src_instance_t* h, uint8_t** data, uint32_t* d
 	if(parts.size() < 2)
 	{
 		// We don't understand this line. Just skip it.
-		ASSERT(false);
 		return SCAP_TIMEOUT;
 	}
 
@@ -163,7 +165,7 @@ char* kmsgevent_to_string(uint8_t* data, uint32_t datalen)
 	return (char*)"dete";
 }
 
-char* kmsgextract_as_string(uint32_t id, uint8_t* data, uint32_t datalen)
+char* kmsgextract_as_string(uint64_t evtnum, uint32_t id, char* arg, uint8_t* data, uint32_t datalen)
 {
 	return (char*)"estratto stringatto";
 }
@@ -173,6 +175,7 @@ source_plugin_info create_kmsg_source()
 	source_plugin_info si =
 	{
 		.init = kmsginit,
+		.get_last_error = kmsgget_last_error,
 		.destroy = kmsgdestroy,
 		.get_id = kmsgget_id,
 		.get_name = kmsgget_name,

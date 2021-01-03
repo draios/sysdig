@@ -3,10 +3,14 @@
 #include <stdio.h>
 #include <sinsp.h>
 #include "source_plugin.h"
+#ifdef _WIN32
+#define DYNLIB_NAME ".\\cloudtrail_file.dll"
+#else
 #include <dlfcn.h>
 #include <inttypes.h>
+#define DYNLIB_NAME "./libcloudtrail_file.so"
+#endif
 
-#define SO_NAME "./libcloudtrail_file.so"
 
 //
 // Plugin method types defintions
@@ -22,100 +26,192 @@ typedef src_instance_t* (*open_t)(src_plugin_t* s, int32_t* rc);
 typedef void (*close_t)(src_plugin_t* s, src_instance_t* h);
 typedef int32_t (*next_t)(src_plugin_t* s, src_instance_t* h, uint8_t** data, uint32_t* datalen);
 typedef char* (*event_to_string_t)(uint8_t* data, uint32_t datalen);
-typedef char* (*extract_as_string_t)(uint32_t id, uint8_t* data, uint32_t datalen);
+typedef char* (*extract_as_string_t)(uint64_t evtnum, uint32_t id, char* arg, uint8_t* data, uint32_t datalen);
 
 source_plugin_info create_dynlib_source()
 {
-	void* handle = dlopen(SO_NAME, RTLD_LAZY);
+#ifndef _WIN32
+	void* handle = dlopen(DYNLIB_NAME, RTLD_LAZY);
 
 	if(handle == NULL)
 	{
-		throw sinsp_exception(string("error loading plugin ") + SO_NAME + ": " + strerror(errno));
+		throw sinsp_exception(string("error loading plugin ") + DYNLIB_NAME + ": " + strerror(errno));
 	}
 
 	init_t pinit;
 	*(void**)(&pinit) = dlsym(handle, "plugin_init");
 	if(pinit == NULL)
 	{
-		throw sinsp_exception(string("plugin ") + SO_NAME + " is not exporting the plugin_init() function");
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_init() function");
 	}
 
 	get_last_error_t pget_last_error;
 	*(void**)(&pget_last_error) = dlsym(handle, "plugin_get_last_error");
 	if(pget_last_error == NULL)
 	{
-		throw sinsp_exception(string("plugin ") + SO_NAME + " is not exporting the plugin_get_last_error() function");
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_get_last_error() function");
 	}
 
 	destroy_t pdestroy;
 	*(void**)(&pdestroy) = dlsym(handle, "plugin_destroy");
 	if(pdestroy == NULL)
 	{
-		throw sinsp_exception(string("plugin ") + SO_NAME + " is not exporting the plugin_destroy() function");
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_destroy() function");
 	}
 
 	get_id_t pget_id;
 	*(void**)(&pget_id) = dlsym(handle, "plugin_get_id");
 	if(pget_id == NULL)
 	{
-		throw sinsp_exception(string("plugin ") + SO_NAME + " is not exporting the plugin_get_id() function");
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_get_id() function");
 	}
 
 	get_name_t pget_name;
 	*(void**)(&pget_name) = dlsym(handle, "plugin_get_name");
 	if(pget_name == NULL)
 	{
-		throw sinsp_exception(string("plugin ") + SO_NAME + " is not exporting the plugin_get_name() function");
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_get_name() function");
 	}
 
 	get_description_t pget_description;
 	*(void**)(&pget_description) = dlsym(handle, "plugin_get_description");
 	if(pget_description == NULL)
 	{
-		throw sinsp_exception(string("plugin ") + SO_NAME + " is not exporting the plugin_get_description() function");
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_get_description() function");
 	}
 
 	get_fields_t pget_fields;
 	*(void**)(&pget_fields) = dlsym(handle, "plugin_get_fields");
 	if(pget_fields == NULL)
 	{
-		throw sinsp_exception(string("plugin ") + SO_NAME + " is not exporting the plugin_get_fields() function");
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_get_fields() function");
 	}
 
 	open_t popen;
 	*(void**)(&popen) = dlsym(handle, "plugin_open");
 	if(popen == NULL)
 	{
-		throw sinsp_exception(string("plugin ") + SO_NAME + " is not exporting the plugin_open() function");
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_open() function");
 	}
 
 	close_t pclose;
 	*(void**)(&pclose) = dlsym(handle, "plugin_close");
 	if(pclose == NULL)
 	{
-		throw sinsp_exception(string("plugin ") + SO_NAME + " is not exporting the plugin_close() function");
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_close() function");
 	}
 
 	next_t pnext;
 	*(void**)(&pnext) = dlsym(handle, "plugin_next");
 	if(pnext == NULL)
 	{
-		throw sinsp_exception(string("plugin ") + SO_NAME + " is not exporting the plugin_next() function");
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_next() function");
 	}
 
 	event_to_string_t pevent_to_string;
 	*(void**)(&pevent_to_string) = dlsym(handle, "plugin_event_to_string");
 	if(pevent_to_string == NULL)
 	{
-		throw sinsp_exception(string("plugin ") + SO_NAME + " is not exporting the plugin_event_to_string() function");
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_event_to_string() function");
 	}
 
 	extract_as_string_t pextract_as_string;
 	*(void**)(&pextract_as_string) = dlsym(handle, "plugin_extract_as_string");
 	if(pextract_as_string == NULL)
 	{
-		throw sinsp_exception(string("plugin ") + SO_NAME + " is not exporting the plugin_extract_as_string() function");
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_extract_as_string() function");
 	}
+#else // _WIN32
+	HINSTANCE pdll = LoadLibrary(DYNLIB_NAME);
+	if(pdll == NULL)
+	{
+		throw sinsp_exception(string("error loading plugin ") + DYNLIB_NAME + ": " + to_string(GetLastError()));
+	}
+
+	init_t pinit;
+	*(void**)(&pinit) = GetProcAddress(pdll, "plugin_init");
+	if(pinit == NULL)
+	{
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_init() function");
+	}
+
+	get_last_error_t pget_last_error;
+	*(void**)(&pget_last_error) = GetProcAddress(pdll, "plugin_get_last_error");
+	if(pget_last_error == NULL)
+	{
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_get_last_error() function");
+	}
+
+	destroy_t pdestroy;
+	*(void**)(&pdestroy) = GetProcAddress(pdll, "plugin_destroy");
+	if(pdestroy == NULL)
+	{
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_destroy() function");
+	}
+
+	get_id_t pget_id;
+	*(void**)(&pget_id) = GetProcAddress(pdll, "plugin_get_id");
+	if(pget_id == NULL)
+	{
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_get_id() function");
+	}
+
+	get_name_t pget_name;
+	*(void**)(&pget_name) = GetProcAddress(pdll, "plugin_get_name");
+	if(pget_name == NULL)
+	{
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_get_name() function");
+	}
+
+	get_description_t pget_description;
+	*(void**)(&pget_description) = GetProcAddress(pdll, "plugin_get_description");
+	if(pget_description == NULL)
+	{
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_get_description() function");
+	}
+
+	get_fields_t pget_fields;
+	*(void**)(&pget_fields) = GetProcAddress(pdll, "plugin_get_fields");
+	if(pget_fields == NULL)
+	{
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_get_fields() function");
+	}
+
+	open_t popen;
+	*(void**)(&popen) = GetProcAddress(pdll, "plugin_open");
+	if(popen == NULL)
+	{
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_open() function");
+	}
+
+	close_t pclose;
+	*(void**)(&pclose) = GetProcAddress(pdll, "plugin_close");
+	if(pclose == NULL)
+	{
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_close() function");
+	}
+
+	next_t pnext;
+	*(void**)(&pnext) = GetProcAddress(pdll, "plugin_next");
+	if(pnext == NULL)
+	{
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_next() function");
+	}
+
+	event_to_string_t pevent_to_string;
+	*(void**)(&pevent_to_string) = GetProcAddress(pdll, "plugin_event_to_string");
+	if(pevent_to_string == NULL)
+	{
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_event_to_string() function");
+	}
+
+	extract_as_string_t pextract_as_string;
+	*(void**)(&pextract_as_string) = GetProcAddress(pdll, "plugin_extract_as_string");
+	if(pextract_as_string == NULL)
+	{
+		throw sinsp_exception(string("plugin ") + DYNLIB_NAME + " is not exporting the plugin_extract_as_string() function");
+	}
+#endif // _WIN32
 
 	source_plugin_info si =
 	{

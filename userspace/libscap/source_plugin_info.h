@@ -104,12 +104,18 @@ typedef struct
 	char* (*event_to_string)(uint8_t* data, uint32_t datalen);
 	//
 	// Extract a.string filter value from an event.
+	// - evtnum is the number of the event that is bein processed
 	// - id is the numeric identifier of the field to extract. It corresponds to the
 	// position of the field in the array returned by get_fields().
+	// - arg is the field argument, if an argument has been specified for the field,
+	//   otherwise it's NULL. For example:
+	//    * if the field specified by the user is foo.bar[pippo], arg will be the 
+	//      string "pippo"
+	//    * if the field specified by the user is foo.bar, arg will be NULL
 	// - data and datalen contain the event information to be decoded.
 	// This method is required.
 	//
-	char* (*extract_as_string)(uint32_t id, uint8_t* data, uint32_t datalen);
+	char* (*extract_as_string)(uint64_t evtnum, uint32_t id, char* arg, uint8_t* data, uint32_t datalen);
 
 	//
 	// The following members are PRIVATE for the engine and should not be touched.
