@@ -25,8 +25,7 @@ limitations under the License.
 #include "source_plugin_info.h"
 #include "source_plugin.h"
 
-#include "source_plugins/dynlib.h"
-#include "source_plugins/kmsg.h"
+#include "source_plugins/source_dynlib.h"
 
 #include <third-party/tinydir.h>
 
@@ -412,6 +411,9 @@ void sinsp_source_plugin::register_source_plugins(sinsp* inspector, string sysdi
 	add_plugin_dirs(inspector, sysdig_installation_dir);
 	load_dynlib_plugins(inspector);
 
+	//
+	// ADD INTERNAL SOURCE PLUGINS HERE
+	//
 //	source_plugin_info src_plugin = create_dynlib_source(DYNLIB_NAME);
 //	inspector->add_source_plugin(&src_plugin, NULL);
 }
