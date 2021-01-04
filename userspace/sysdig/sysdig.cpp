@@ -50,9 +50,6 @@ limitations under the License.
 #include <getopt.h>
 #endif
 
-#include "source_plugins/dynlib.h"
-#include "source_plugins/kmsg.h"
-
 static bool g_terminate = false;
 #ifdef HAS_CHISELS
 vector<sinsp_chisel*> g_chisels;
@@ -765,12 +762,6 @@ captureinfo do_inspect(sinsp* inspector,
 	return retval;
 }
 
-void register_source_plugins(sinsp* inspector)
-{
-	source_plugin_info src_plugin = create_dynlib_source();
-	inspector->add_source_plugin(&src_plugin, NULL);
-}
-
 //
 // ARGUMENT PARSING AND PROGRAM SETUP
 //
@@ -900,7 +891,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #ifdef HAS_CHISELS
 		add_chisel_dirs(inspector);
 #endif
-		register_source_plugins(inspector);
+		sinsp_source_plugin::register_source_plugins(inspector, SYSDIG_INSTALLATION_DIR);
 
 		//
 		// Parse the args

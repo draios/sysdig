@@ -572,6 +572,16 @@ public:
 	void add_chisel_dir(string dirname, bool front_add);
 
 	/*!
+	  \brief Add a new directory containing sinsp plugins.
+
+	  \parame front_add if true, the plugin directory is added at the front of
+	   the search list and therefore gets priority.
+
+	  \note This function is not reentrant.
+	*/
+	void add_plugin_dir(string dirname, bool front_add);
+
+	/*!
 	  \brief Get the list of machine network interfaces.
 
 	  \return Pointer to the interface list manager.

@@ -20,7 +20,7 @@ import (
 const PLUGIN_ID uint32 = 2
 const PLUGIN_NAME string = "cloudtrail_file"
 
-const VERBOSE bool = true
+const VERBOSE bool = false
 const NEXT_BUF_LEN uint32 = 65535
 const OUT_BUF_LEN uint32 = 4096
 
@@ -318,5 +318,4 @@ func plugin_extract_as_string(evtnum uint64, id uint32, arg *C.char, data *C.cha
 }
 
 func main() {
-	log.Printf("[%s] plugin_next\n", PLUGIN_NAME)
 }

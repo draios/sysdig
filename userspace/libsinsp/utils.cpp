@@ -71,6 +71,12 @@ const chiseldir_info g_chisel_dirs_array[] =
 };
 #endif
 
+const chiseldir_info g_plugin_dirs_array[] =
+{
+	{false, "./plugins/"},
+	{true, "~/.sinsp_plugins/"},
+};
+
 #ifndef _WIN32
 static std::string realpath_ex(const std::string& path)
 {
@@ -115,6 +121,7 @@ sinsp_protodecoder_list g_decoderlist;
 #ifdef HAS_CHISELS
 vector<chiseldir_info>* g_chisel_dirs = NULL;
 #endif
+vector<chiseldir_info>* g_plugin_dirs = NULL;
 
 //
 // loading time initializations
@@ -167,6 +174,40 @@ sinsp_initializer::sinsp_initializer()
 		}
 	}
 #endif // HAS_CHISELS
+
+	//
+	// Init the plugins directory list
+	//
+	g_plugin_dirs = NULL;
+	g_plugin_dirs = new vector<chiseldir_info>();
+
+	for(uint32_t j = 0; j < sizeof(g_plugin_dirs_array) / sizeof(g_plugin_dirs_array[0]); j++)
+	{
+		if(g_plugin_dirs_array[j].m_need_to_resolve)
+		{
+#ifndef _WIN32
+			std::string resolved_path = realpath_ex(g_plugin_dirs_array[j].m_dir);
+			if(!resolved_path.empty())
+			{
+				if(resolved_path[resolved_path.size() - 1] != '/')
+				{
+					resolved_path += '/';
+				}
+
+				plugindir_info cdi;
+				cdi.m_need_to_resolve = false;
+				cdi.m_dir = std::move(resolved_path);
+				g_plugin_dirs->push_back(cdi);
+			}
+#else
+			g_plugin_dirs->push_back(g_plugin_dirs_array[j]);
+#endif
+		}
+		else
+		{
+			g_plugin_dirs->push_back(g_plugin_dirs_array[j]);
+		}
+	}
 
 	//
 	// Sockets initialization on windows

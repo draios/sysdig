@@ -63,6 +63,7 @@ limitations under the License.
 #ifdef HAS_CHISELS
 extern vector<chiseldir_info>* g_chisel_dirs;
 #endif
+extern vector<chiseldir_info>* g_plugin_dirs;
 
 void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_threadinfo* tinfo,
 							scap_fdinfo* fdinfo);
@@ -2056,6 +2057,30 @@ void sinsp::add_chisel_dir(string dirname, bool front_add)
 		g_chisel_dirs->push_back(ncdi);
 	}
 #endif
+}
+
+void sinsp::add_plugin_dir(string dirname, bool front_add)
+{
+	trim(dirname);
+
+	if(dirname[dirname.size() -1] != '/')
+	{
+		dirname += "/";
+	}
+
+	chiseldir_info ncdi;
+
+	ncdi.m_dir = std::move(dirname);
+	ncdi.m_need_to_resolve = false;
+
+	if(front_add)
+	{
+		g_plugin_dirs->insert(g_plugin_dirs->begin(), ncdi);
+	}
+	else
+	{
+		g_plugin_dirs->push_back(ncdi);
+	}
 }
 
 void sinsp::set_buffer_format(sinsp_evt::param_fmt format)

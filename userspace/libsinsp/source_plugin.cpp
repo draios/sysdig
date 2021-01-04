@@ -20,19 +20,24 @@ limitations under the License.
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "filter.h"
+#include "chisel.h"
 #include "filterchecks.h"
 #include "source_plugin_info.h"
 #include "source_plugin.h"
 
+#include "source_plugins/dynlib.h"
+#include "source_plugins/kmsg.h"
+
+#include <third-party/tinydir.h>
+
 extern sinsp_filter_check_list g_filterlist;
+extern vector<chiseldir_info>* g_plugin_dirs;
 
 ///////////////////////////////////////////////////////////////////////////////
-// sinsp_source_plugin implementation
+// source_plugin filter check implementation
+// This class implements a dynamic filter check that acts as a bridge to the
+// plugin simplified field extraction implementations
 ///////////////////////////////////////////////////////////////////////////////
-
-//
-// Events in tracers checks
-//
 class sinsp_filter_check_plugin : public sinsp_filter_check
 {
 public:
@@ -327,4 +332,86 @@ void sinsp_source_plugin::configure(source_plugin_info* plugin_info, char* confi
 uint32_t sinsp_source_plugin::get_id()
 {
 	return m_id;
+}
+
+void sinsp_source_plugin::add_plugin_dirs(sinsp* inspector, string sysdig_installation_dir)
+{
+	//
+	// Add the default chisel directory statically configured by the build system
+	//
+	inspector->add_plugin_dir(sysdig_installation_dir + PLUGINS_INSTALLATION_DIR, false);
+
+	//
+	// Add the directories configured in the SYSDIG_PLUGIN_DIR environment variable
+	//
+	char* s_user_cdirs = getenv("SYSDIG_PLUGIN_DIR");
+
+	if(s_user_cdirs != NULL)
+	{
+		vector<string> user_cdirs = sinsp_split(s_user_cdirs, ';');
+
+		for(uint32_t j = 0; j < user_cdirs.size(); j++)
+		{
+			inspector->add_plugin_dir(user_cdirs[j], true);
+		}
+	}
+}
+
+//
+// 1. Iterates through the plugin files on disk
+// 2. Opens them and add them to the inspector
+//
+void sinsp_source_plugin::load_dynlib_plugins(sinsp* inspector)
+{
+	for(vector<chiseldir_info>::const_iterator it = g_plugin_dirs->begin();
+		it != g_plugin_dirs->end(); ++it)
+	{
+		if(string(it->m_dir).empty())
+		{
+			continue;
+		}
+
+		tinydir_dir dir = {};
+
+		tinydir_open(&dir, it->m_dir.c_str());
+
+		while(dir.has_next)
+		{
+			tinydir_file file;
+			tinydir_readfile(&dir, &file);
+
+			string fname(file.name);
+			string fpath(file.path);
+			bool add_to_vector = false;
+			source_plugin_info si;
+			string error;
+
+			if(fname == "." || fname == "..")
+			{
+				goto nextfile;
+			}
+
+			if(create_dynlib_source(file.path, &si, &error) == false)
+			{
+				fprintf(stderr, "cannot load plugin %s : %s", file.path, error.c_str());
+				goto nextfile;
+			}
+
+			inspector->add_source_plugin(&si, NULL);
+
+nextfile:
+			tinydir_next(&dir);
+		}
+
+		tinydir_close(&dir);
+	}
+}
+
+void sinsp_source_plugin::register_source_plugins(sinsp* inspector, string sysdig_installation_dir)
+{
+	add_plugin_dirs(inspector, sysdig_installation_dir);
+	load_dynlib_plugins(inspector);
+
+//	source_plugin_info src_plugin = create_dynlib_source(DYNLIB_NAME);
+//	inspector->add_source_plugin(&src_plugin, NULL);
 }

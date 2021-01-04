@@ -19,6 +19,14 @@ limitations under the License.
 
 #pragma once
 
+class sinsp_plugin_desc
+{
+public:
+	string m_name;
+	string m_description;
+	uint32_t m_id;
+};
+
 class sinsp_source_plugin
 {
 public:
@@ -26,10 +34,14 @@ public:
 	~sinsp_source_plugin();
 	void configure(source_plugin_info* plugin_info, char* config);
 	uint32_t get_id();
+	static void register_source_plugins(sinsp* inspector, string sysdig_installation_dir);
 
 	source_plugin_info m_source_info;
 
 private:
+	static void add_plugin_dirs(sinsp* inspector, string sysdig_installation_dir);
+	static void load_dynlib_plugins(sinsp* inspector);
+
 	sinsp* m_inspector;
 	uint32_t m_id;
 	vector<filtercheck_field_info> m_fields;

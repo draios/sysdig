@@ -89,6 +89,11 @@ limitations under the License.
 #define CHISELS_INSTALLATION_DIR "/share/sysdig/chisels"
 
 //
+// Relative path to chisels
+//
+#define PLUGINS_INSTALLATION_DIR "/share/sysdig/plugins"
+
+//
 // Default snaplen
 //
 #define DEFAULT_SNAPLEN 80
