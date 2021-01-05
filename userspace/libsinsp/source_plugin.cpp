@@ -29,8 +29,6 @@ limitations under the License.
 #include "source_plugin_info.h"
 #include "source_plugin.h"
 
-#include "source_plugins/source_dynlib.h"
-
 #include <third-party/tinydir.h>
 
 extern sinsp_filter_check_list g_filterlist;
