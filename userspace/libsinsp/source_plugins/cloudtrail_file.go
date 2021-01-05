@@ -78,10 +78,10 @@ func plugin_init(config *C.char, rc *int32) *C.char {
 	// At the same time, we map them as byte[] arrays to make it easy to deal with them
 	// on the go side.
 	//
-	g_ctx.evtBufRaw = C.malloc(C.ulong(NEXT_BUF_LEN))
+	g_ctx.evtBufRaw = C.malloc(C.size_t(NEXT_BUF_LEN))
 	g_ctx.evtBuf = (*[1 << 30]byte)(unsafe.Pointer(g_ctx.evtBufRaw))[:int(g_ctx.evtBufLen):int(g_ctx.evtBufLen)]
 
-	g_ctx.outBufRaw = C.malloc(C.ulong(OUT_BUF_LEN))
+	g_ctx.outBufRaw = C.malloc(C.size_t(OUT_BUF_LEN))
 	g_ctx.outBuf = (*[1 << 30]byte)(unsafe.Pointer(g_ctx.outBufRaw))[:int(g_ctx.outBufLen):int(g_ctx.outBufLen)]
 
 	*rc = SCAP_SUCCESS
