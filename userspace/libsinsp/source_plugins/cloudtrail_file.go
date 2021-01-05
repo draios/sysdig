@@ -135,6 +135,7 @@ const FIELD_ID_CLOUDTRAIL_SRC uint32 = 1
 const FIELD_ID_CLOUDTRAIL_NAME uint32 = 2
 const FIELD_ID_CLOUDTRAIL_USER uint32 = 3
 const FIELD_ID_CLOUDTRAIL_REGION uint32 = 4
+const FIELD_ID_S3_BUCKETNAME uint32 = 5
 
 //export plugin_get_fields
 func plugin_get_fields() *C.char {
@@ -145,6 +146,7 @@ func plugin_get_fields() *C.char {
 		{Type: "string", Name: "cloudtrail.name", Desc: "the name of the cloudtrail event (eventName in the json)."},
 		{Type: "string", Name: "cloudtrail.user", Desc: "the user of the cloudtrail event (userIdentity.userName in the json)."},
 		{Type: "string", Name: "cloudtrail.region", Desc: "the region of the cloudtrail event (awsRegion in the json)."},
+		{Type: "string", Name: "s3.bucketname", Desc: "the region of the cloudtrail event (awsRegion in the json)."},
 	}
 
 	b, err := json.Marshal(&flds)
@@ -362,6 +364,15 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 		line = fmt.Sprintf("%s", re["userName"])
 	case FIELD_ID_CLOUDTRAIL_REGION:
 		line = fmt.Sprintf("%s", jdata["awsRegion"])
+	case FIELD_ID_S3_BUCKETNAME:
+		if jdata["requestParameters"] == nil {
+			return nil
+		}
+		bn := jdata["requestParameters"].(map[string]interface{})["bucketName"]
+		if bn == nil {
+			return nil
+		}
+		line = fmt.Sprintf("%s", bn)
 	default:
 		line = "<NA>"
 	}
