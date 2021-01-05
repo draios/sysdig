@@ -119,7 +119,7 @@ public:
 		{
 		case PT_CHARBUF:
 		{
-			char* pret = m_source_info->extract_as_string(evt->get_num(), 
+			char* pret = m_source_info->extract_str(evt->get_num(), 
 				m_field_id, m_arg, 
 				(uint8_t*)parinfo->m_val, 
 				parinfo->m_len);
@@ -234,9 +234,9 @@ void sinsp_source_plugin::configure(source_plugin_info* plugin_info, char* confi
 		throw sinsp_exception("invalid source plugin: 'get_name' method missing");
 	}
 
-	if(m_source_info.extract_as_string == NULL)
+	if(m_source_info.extract_str == NULL)
 	{
-		throw sinsp_exception("invalid source plugin: 'extract_as_string' method missing");
+		throw sinsp_exception("invalid source plugin: 'extract_str' method missing");
 	}
 
 	if(m_source_info.get_description == NULL)
@@ -397,7 +397,7 @@ void sinsp_source_plugin::load_dynlib_plugins(sinsp* inspector)
 
 			if(create_dynlib_source(file.path, &si, &error) == false)
 			{
-				fprintf(stderr, "cannot load plugin %s : %s", file.path, error.c_str());
+				fprintf(stderr, "warning: cannot load plugin %s: %s\n", file.path, error.c_str());
 				goto nextfile;
 			}
 

@@ -72,7 +72,7 @@ func plugin_init(config *C.char, rc *int32) *C.char {
 	// We need two different pieces of memory to share data with the C code:
 	// - a buffer that contains the events that we create and send to the engine
 	//   through next()
-	// - storage for functions like plugin_event_to_string and plugin_extract_as_string,
+	// - storage for functions like plugin_event_to_string and plugin_extract_str,
 	//   so that their results can be shared without allocations or data copies.
 	// We allocate these buffers with malloc so we can easily share them with the C code.
 	// At the same time, we map them as byte[] arrays to make it easy to deal with them
@@ -302,9 +302,9 @@ func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
 	return (*C.char)(g_ctx.outBufRaw)
 }
 
-//export plugin_extract_as_string
-func plugin_extract_as_string(evtnum uint64, id uint32, arg *C.char, data *C.char, datalen uint32) *C.char {
-	//	log.Printf("[%s] plugin_extract_as_string\n", PLUGIN_NAME)
+//export plugin_extract_str
+func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, datalen uint32) *C.char {
+	//	log.Printf("[%s] plugin_extract_str\n", PLUGIN_NAME)
 
 	var line string
 	var jdata map[string]interface{}
