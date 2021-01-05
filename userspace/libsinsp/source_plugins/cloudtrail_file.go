@@ -130,11 +130,21 @@ func plugin_get_description() *C.char {
 	return C.CString("reads cloudtrail JSON data saved to file in the directory specified in the settings")
 }
 
+const FIELD_ID_JEVT uint32 = 0
+const FIELD_ID_CLOUDTRAIL_SRC uint32 = 1
+const FIELD_ID_CLOUDTRAIL_NAME uint32 = 2
+const FIELD_ID_CLOUDTRAIL_USER uint32 = 3
+const FIELD_ID_CLOUDTRAIL_REGION uint32 = 4
+
 //export plugin_get_fields
 func plugin_get_fields() *C.char {
 	log.Printf("[%s] plugin_get_fields\n", PLUGIN_NAME)
-	flds := []get_fields_entry{
+	flds := []get_fields_entry {
 		{Type: "string", Name: "jevt.value", Desc: "allows to extract a value from a JSON-encoded input. Syntax is jevt.value[/x/y/z], where x,y and z are levels in the JSON hierarchy."},
+		{Type: "string", Name: "cloudtrail.src", Desc: "the source of the cloudtrail event (eventSource in the json, without the '.amazonaws.com' trailer)."},
+		{Type: "string", Name: "cloudtrail.name", Desc: "the name of the cloudtrail event (eventName in the json)."},
+		{Type: "string", Name: "cloudtrail.user", Desc: "the user of the cloudtrail event (userIdentity.userName in the json)."},
+		{Type: "string", Name: "cloudtrail.region", Desc: "the region of the cloudtrail event (awsRegion in the json)."},
 	}
 
 	b, err := json.Marshal(&flds)
@@ -299,32 +309,62 @@ func plugin_extract_as_string(evtnum uint64, id uint32, arg *C.char, data *C.cha
 	var line string
 	var jdata map[string]interface{}
 
-	if(id != 0) {
-		line = "<NA>"
-	} else {
-		err := json.Unmarshal([]byte(C.GoString(data)), &jdata)
-		if err != nil {
-			return nil
-		} else {
-			sarg := C.GoString(arg)
-			if sarg[0] == '/' {
-				sarg = sarg[1:]
-			}
-			hc := strings.Split(sarg, "/")
-			for j := 0; j < len(hc) - 1; j++ {
-				key := hc[j]
-				if jdata[key] != nil {
-					jdata = jdata[key].(map[string]interface{})
-				} else {
-					return nil
-				}
-			}
-			val := jdata[hc[len(hc) - 1]]
-			if val == nil {
+	//
+	// Decode the json
+	//
+	err := json.Unmarshal([]byte(C.GoString(data)), &jdata)
+	if err != nil {
+		//
+		// Not a json file. We return nil to indicate that the field is not 
+		// present.
+		//
+		return nil
+	}
+
+	switch id {
+	case FIELD_ID_JEVT:
+		sarg := C.GoString(arg)
+		if sarg[0] == '/' {
+			sarg = sarg[1:]
+		}
+		hc := strings.Split(sarg, "/")
+		for j := 0; j < len(hc) - 1; j++ {
+			key := hc[j]
+			if jdata[key] != nil {
+				jdata = jdata[key].(map[string]interface{})
+			} else {
 				return nil
 			}
-			line = fmt.Sprintf("%v", val)
 		}
+		val := jdata[hc[len(hc) - 1]]
+		if val == nil {
+			return nil
+		}
+		line = fmt.Sprintf("%v", val)
+	case FIELD_ID_CLOUDTRAIL_SRC:
+		line = fmt.Sprintf("%s", jdata["eventSource"])
+
+		if len(line) > len(".amazonaws.com") {
+			srctrailer := line[len(line) - len(".amazonaws.com"):]
+			if srctrailer == ".amazonaws.com" {
+				line = line[0:len(line) - len(".amazonaws.com")]
+			}
+		}
+	case FIELD_ID_CLOUDTRAIL_NAME:
+		line = fmt.Sprintf("%s", jdata["eventName"])
+	case FIELD_ID_CLOUDTRAIL_USER:
+		if jdata["userIdentity"] == nil {
+			return nil
+		}
+		re := jdata["userIdentity"].(map[string]interface{})
+		if re["userName"] == nil {
+			return nil
+		}
+		line = fmt.Sprintf("%s", re["userName"])
+	case FIELD_ID_CLOUDTRAIL_REGION:
+		line = fmt.Sprintf("%s", jdata["awsRegion"])
+	default:
+		line = "<NA>"	
 	}
 
 	line += "\x00"

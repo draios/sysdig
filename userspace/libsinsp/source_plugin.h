@@ -18,6 +18,7 @@ limitations under the License.
 */
 
 #pragma once
+class sinsp_filter_check_plugin;
 
 class sinsp_plugin_desc
 {
@@ -45,4 +46,5 @@ private:
 	sinsp* m_inspector;
 	uint32_t m_id;
 	vector<filtercheck_field_info> m_fields;
+	sinsp_filter_check_plugin* m_filtercheck = NULL;
 };

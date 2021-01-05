@@ -121,7 +121,7 @@ typedef struct
 	//      string "pippo"
 	//    * if the field specified by the user is foo.bar, arg will be NULL
 	// - data and datalen contain the event information to be decoded.
-	// This method is required.
+	// This method is optional.
 	//
 	char* (*extract_as_string)(uint64_t evtnum, uint32_t id, char* arg, uint8_t* data, uint32_t datalen);
 

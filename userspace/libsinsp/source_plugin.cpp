@@ -178,6 +178,11 @@ sinsp_source_plugin::~sinsp_source_plugin()
 	{
 		m_source_info.destroy(m_source_info.state);
 	}
+
+	if(m_filtercheck)
+	{
+		delete m_filtercheck;
+	}
 }
 
 void sinsp_source_plugin::configure(source_plugin_info* plugin_info, char* config)
@@ -318,14 +323,14 @@ void sinsp_source_plugin::configure(source_plugin_info* plugin_info, char* confi
 		m_fields.push_back(tf);
 	}
 
-	sinsp_filter_check_plugin* fc = new sinsp_filter_check_plugin();
-	fc->set_name(string("plugin_") + m_source_info.get_name());
-	fc->set_fields((filtercheck_field_info*)&m_fields[0], 
+	m_filtercheck = new sinsp_filter_check_plugin();
+	m_filtercheck->set_name(string("plugin_") + m_source_info.get_name());
+	m_filtercheck->set_fields((filtercheck_field_info*)&m_fields[0], 
 		m_fields.size());
-	fc->m_id = m_id;
-	fc->m_source_info = &m_source_info;
+	m_filtercheck->m_id = m_id;
+	m_filtercheck->m_source_info = &m_source_info;
 
-	g_filterlist.add_filter_check(fc);
+	g_filterlist.add_filter_check(m_filtercheck);
 }
 
 uint32_t sinsp_source_plugin::get_id()
