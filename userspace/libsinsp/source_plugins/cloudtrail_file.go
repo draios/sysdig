@@ -11,7 +11,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 	"unsafe"
@@ -256,15 +255,28 @@ func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
 		g_lastError = err.Error()
 		line = "<invalid JSON: " + err.Error() + ">"
 	} else {
-		var rv string = "BOH"
-		if jdata["responseElements"] != nil {
-			re := jdata["responseElements"].(map[string]interface{})
-			if re["_return"] != nil {
-				rv = strconv.FormatBool(re["_return"].(bool))
+		var user string = "<NA>"
+		if jdata["userIdentity"] != nil {
+			re := jdata["userIdentity"].(map[string]interface{})
+			if re["userName"] != nil {
+				user = fmt.Sprintf("%s", re["userName"])
 			}
 		}
 
-		line = fmt.Sprintf("%s Res:%s Region:%s", jdata["eventName"], rv, jdata["awsRegion"])
+		src := fmt.Sprintf("%s", jdata["eventSource"])
+
+		if len(src) > len(".amazonaws.com") {
+			srctrailer := src[len(src) - len(".amazonaws.com"):]
+			if srctrailer == ".amazonaws.com" {
+				src = src[0:len(src) - len(".amazonaws.com")]
+			}
+		}
+
+		line = fmt.Sprintf("[cloudtrail] src:%s name:%s user:%s reg:%s", 
+			src, 
+			jdata["eventName"], 
+			user, 
+			jdata["awsRegion"])
 	}
 
 	//
