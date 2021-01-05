@@ -41,6 +41,8 @@ public:
 
 private:
 	static void add_plugin_dirs(sinsp* inspector, string sysdig_installation_dir);
+	static void* getsym(void* handle, const char* name);
+	static bool create_dynlib_source(string libname, OUT source_plugin_info* info, OUT string* error);
 	static void load_dynlib_plugins(sinsp* inspector);
 
 	sinsp* m_inspector;
