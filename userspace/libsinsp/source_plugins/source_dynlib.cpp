@@ -14,7 +14,7 @@ static void* getsym(void* handle, const char* name)
 #ifdef _WIN32
 	return GetProcAddress((HINSTANCE)handle, name);
 #else
-	return = dlsym(handle, name);
+	return dlsym(handle, name);
 #endif
 }
 

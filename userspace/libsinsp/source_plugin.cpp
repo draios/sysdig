@@ -178,11 +178,6 @@ sinsp_source_plugin::~sinsp_source_plugin()
 	{
 		m_source_info.destroy(m_source_info.state);
 	}
-
-	if(m_filtercheck)
-	{
-		delete m_filtercheck;
-	}
 }
 
 void sinsp_source_plugin::configure(source_plugin_info* plugin_info, char* config)

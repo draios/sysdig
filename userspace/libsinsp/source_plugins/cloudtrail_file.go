@@ -61,11 +61,11 @@ func plugin_init(config *C.char, rc *int32) *C.char {
 	// Allocate the state struct
 	//
 	g_ctx = plugin_context{
-		evtBufLen:          int(NEXT_BUF_LEN),
-		outBufLen:          int(OUT_BUF_LEN),
-//		cloudTrailFilesDir: "/home/loris/git/cloud-connector/test/cloudtrail",
-//		cloudTrailFilesDir: "c:\\windump\\GitHub\\cloud-connector\\test\\cloudtrail",
-		curFileNum:         0,
+		evtBufLen: int(NEXT_BUF_LEN),
+		outBufLen: int(OUT_BUF_LEN),
+		//	cloudTrailFilesDir: "/home/loris/git/cloud-connector/test/cloudtrail",
+		//	cloudTrailFilesDir: "c:\\windump\\GitHub\\cloud-connector\\test\\cloudtrail",
+		curFileNum: 0,
 	}
 
 	//
@@ -78,10 +78,10 @@ func plugin_init(config *C.char, rc *int32) *C.char {
 	// At the same time, we map them as byte[] arrays to make it easy to deal with them
 	// on the go side.
 	//
-	g_ctx.evtBufRaw = C.malloc(C.ulonglong(NEXT_BUF_LEN))
+	g_ctx.evtBufRaw = C.malloc(C.ulong(NEXT_BUF_LEN))
 	g_ctx.evtBuf = (*[1 << 30]byte)(unsafe.Pointer(g_ctx.evtBufRaw))[:int(g_ctx.evtBufLen):int(g_ctx.evtBufLen)]
 
-	g_ctx.outBufRaw = C.malloc(C.ulonglong(OUT_BUF_LEN))
+	g_ctx.outBufRaw = C.malloc(C.ulong(OUT_BUF_LEN))
 	g_ctx.outBuf = (*[1 << 30]byte)(unsafe.Pointer(g_ctx.outBufRaw))[:int(g_ctx.outBufLen):int(g_ctx.outBufLen)]
 
 	*rc = SCAP_SUCCESS
@@ -139,7 +139,7 @@ const FIELD_ID_CLOUDTRAIL_REGION uint32 = 4
 //export plugin_get_fields
 func plugin_get_fields() *C.char {
 	log.Printf("[%s] plugin_get_fields\n", PLUGIN_NAME)
-	flds := []get_fields_entry {
+	flds := []get_fields_entry{
 		{Type: "string", Name: "jevt.value", Desc: "allows to extract a value from a JSON-encoded input. Syntax is jevt.value[/x/y/z], where x,y and z are levels in the JSON hierarchy."},
 		{Type: "string", Name: "cloudtrail.src", Desc: "the source of the cloudtrail event (eventSource in the json, without the '.amazonaws.com' trailer)."},
 		{Type: "string", Name: "cloudtrail.name", Desc: "the name of the cloudtrail event (eventName in the json)."},
@@ -162,7 +162,7 @@ func plugin_open(plg_state *C.char, params *C.char, rc *int32) *C.char {
 
 	*rc = SCAP_SUCCESS
 
-	g_ctx.cloudTrailFilesDir = C.GoString(params);
+	g_ctx.cloudTrailFilesDir = C.GoString(params)
 
 	if len(g_ctx.cloudTrailFilesDir) == 0 {
 		g_lastError = "cloudtrail_file plugin error: missing input directory argument"
@@ -222,7 +222,6 @@ func plugin_next(plg_state *C.char, open_state *C.char, data **C.char, datalen *
 	}
 
 	file := g_ctx.files[g_ctx.curFileNum]
-//fmt.Println("**", file)
 	str, err := ioutil.ReadFile(file)
 	if err != nil {
 		g_lastError = err.Error()
@@ -276,16 +275,16 @@ func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
 		src := fmt.Sprintf("%s", jdata["eventSource"])
 
 		if len(src) > len(".amazonaws.com") {
-			srctrailer := src[len(src) - len(".amazonaws.com"):]
+			srctrailer := src[len(src)-len(".amazonaws.com"):]
 			if srctrailer == ".amazonaws.com" {
-				src = src[0:len(src) - len(".amazonaws.com")]
+				src = src[0 : len(src)-len(".amazonaws.com")]
 			}
 		}
 
-		line = fmt.Sprintf("[cloudtrail] src:%s name:%s user:%s reg:%s", 
-			src, 
-			jdata["eventName"], 
-			user, 
+		line = fmt.Sprintf("[cloudtrail] src:%s name:%s user:%s reg:%s",
+			src,
+			jdata["eventName"],
+			user,
 			jdata["awsRegion"])
 	}
 
@@ -315,7 +314,7 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 	err := json.Unmarshal([]byte(C.GoString(data)), &jdata)
 	if err != nil {
 		//
-		// Not a json file. We return nil to indicate that the field is not 
+		// Not a json file. We return nil to indicate that the field is not
 		// present.
 		//
 		return nil
@@ -328,7 +327,7 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 			sarg = sarg[1:]
 		}
 		hc := strings.Split(sarg, "/")
-		for j := 0; j < len(hc) - 1; j++ {
+		for j := 0; j < len(hc)-1; j++ {
 			key := hc[j]
 			if jdata[key] != nil {
 				jdata = jdata[key].(map[string]interface{})
@@ -336,7 +335,7 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 				return nil
 			}
 		}
-		val := jdata[hc[len(hc) - 1]]
+		val := jdata[hc[len(hc)-1]]
 		if val == nil {
 			return nil
 		}
@@ -345,9 +344,9 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 		line = fmt.Sprintf("%s", jdata["eventSource"])
 
 		if len(line) > len(".amazonaws.com") {
-			srctrailer := line[len(line) - len(".amazonaws.com"):]
+			srctrailer := line[len(line)-len(".amazonaws.com"):]
 			if srctrailer == ".amazonaws.com" {
-				line = line[0:len(line) - len(".amazonaws.com")]
+				line = line[0 : len(line)-len(".amazonaws.com")]
 			}
 		}
 	case FIELD_ID_CLOUDTRAIL_NAME:
@@ -364,7 +363,7 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 	case FIELD_ID_CLOUDTRAIL_REGION:
 		line = fmt.Sprintf("%s", jdata["awsRegion"])
 	default:
-		line = "<NA>"	
+		line = "<NA>"
 	}
 
 	line += "\x00"

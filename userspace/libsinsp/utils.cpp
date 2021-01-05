@@ -194,7 +194,7 @@ sinsp_initializer::sinsp_initializer()
 					resolved_path += '/';
 				}
 
-				plugindir_info cdi;
+				chiseldir_info cdi;
 				cdi.m_need_to_resolve = false;
 				cdi.m_dir = std::move(resolved_path);
 				g_plugin_dirs->push_back(cdi);
