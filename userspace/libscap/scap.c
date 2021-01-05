@@ -920,7 +920,7 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 #endif // HAS_CAPTURE
 }
 
-scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* src_plugin)
+scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* src_plugin, char* src_plugin_params)
 {
 	scap_t* handle = NULL;
 
@@ -969,7 +969,9 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* src_p
 	handle->refresh_proc_table_when_saving = true;
 
 	handle->m_src_plugin = src_plugin;
-	handle->m_src_plugin->handle = handle->m_src_plugin->open(handle->m_src_plugin->state, rc);
+	handle->m_src_plugin->handle = handle->m_src_plugin->open(handle->m_src_plugin->state, 
+		src_plugin_params,
+		rc);
 
 	if(*rc != SCAP_SUCCESS)
 	{
@@ -1044,7 +1046,7 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 					      args.proc_callback_context,
 					      args.import_users);
 	case SCAP_MODE_PLUGIN:
-		return scap_open_plugin_int(error, rc, args.src_plugin);
+		return scap_open_plugin_int(error, rc, args.src_plugin, args.src_plugin_params);
 	case SCAP_MODE_NONE:
 		// error
 		break;

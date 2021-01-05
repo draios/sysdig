@@ -19,7 +19,7 @@ typedef uint32_t (*get_id_t)();
 typedef char* (*get_name_t)();
 typedef char* (*get_description_t)();
 typedef char* (*get_fields_t)();
-typedef src_instance_t* (*open_t)(src_plugin_t* s, int32_t* rc);
+typedef src_instance_t* (*open_t)(src_plugin_t* s, char* params, int32_t* rc);
 typedef void (*close_t)(src_plugin_t* s, src_instance_t* h);
 typedef int32_t (*next_t)(src_plugin_t* s, src_instance_t* h, uint8_t** data, uint32_t* datalen);
 typedef char* (*event_to_string_t)(uint8_t* data, uint32_t datalen);

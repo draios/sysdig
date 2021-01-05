@@ -520,6 +520,7 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 			throw sinsp_exception("source plugin with ID " + to_string(m_input_src_plugin_id) + " not present");
 		}
 		oargs.src_plugin = &(it->second->m_source_info);
+		oargs.src_plugin_params = (char*)m_input_src_plugin_params.c_str();
 		m_mode = SCAP_MODE_PLUGIN;
 		oargs.mode = SCAP_MODE_PLUGIN;
 	}
@@ -1761,6 +1762,11 @@ void sinsp::set_input_source_plugin(string plugin_name)
 	}
 
 	throw sinsp_exception("source with name " + plugin_name + " does not exist");
+}
+
+void sinsp::set_input_source_plugin_open_params(string params)
+{
+	m_input_src_plugin_params = params;
 }
 
 void sinsp::get_input_source_plugins(vector<sinsp_source_plugin*>* res)

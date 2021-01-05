@@ -65,7 +65,7 @@ func plugin_init(config *C.char, rc *int32) *C.char {
 		evtBufLen:          int(NEXT_BUF_LEN),
 		outBufLen:          int(OUT_BUF_LEN),
 //		cloudTrailFilesDir: "/home/loris/git/cloud-connector/test/cloudtrail",
-		cloudTrailFilesDir: "c:\\windump\\GitHub\\cloud-connector\\test\\cloudtrail",
+//		cloudTrailFilesDir: "c:\\windump\\GitHub\\cloud-connector\\test\\cloudtrail",
 		curFileNum:         0,
 	}
 
@@ -148,10 +148,18 @@ func plugin_get_fields() *C.char {
 }
 
 //export plugin_open
-func plugin_open(plg_state *C.char, rc *int32) *C.char {
+func plugin_open(plg_state *C.char, params *C.char, rc *int32) *C.char {
 	log.Printf("[%s] plugin_open\n", PLUGIN_NAME)
 
 	*rc = SCAP_SUCCESS
+
+	g_ctx.cloudTrailFilesDir = C.GoString(params);
+
+	if len(g_ctx.cloudTrailFilesDir) == 0 {
+		g_lastError = "cloudtrail_file plugin error: missing input directory argument"
+		*rc = SCAP_FAILURE
+		return nil
+	}
 
 	log.Printf("[%s] scanning directory %s\n", PLUGIN_NAME, g_ctx.cloudTrailFilesDir)
 
@@ -172,7 +180,7 @@ func plugin_open(plg_state *C.char, rc *int32) *C.char {
 		*rc = SCAP_FAILURE
 	}
 	if len(g_ctx.files) == 0 {
-		g_lastError = "no json files found in " + g_ctx.cloudTrailFilesDir
+		g_lastError = "cloudtrail_file plugin error: no json files found in " + g_ctx.cloudTrailFilesDir
 		*rc = SCAP_FAILURE
 	}
 

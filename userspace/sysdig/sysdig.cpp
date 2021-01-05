@@ -1009,7 +1009,21 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 
 					has_src_plugin = true;
-					inspector->set_input_source_plugin(inputname);
+
+					size_t cpos = inputname.find(':');
+					string pgname;
+					string pgpars;
+					if(cpos != string::npos)
+					{
+						pgname = inputname.substr(0, cpos);
+						pgpars = inputname.substr(cpos + 1);
+						inspector->set_input_source_plugin(pgname);
+						inspector->set_input_source_plugin_open_params(pgpars);
+					}
+					else
+					{
+						inspector->set_input_source_plugin(inputname);
+					}
 				}
 				break;
 #ifdef HAS_CHISELS

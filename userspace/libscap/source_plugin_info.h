@@ -82,9 +82,17 @@ typedef struct
 	char* (*get_fields)();
 	//
 	// Open the source and start a capture.
+	// Arguments:
+	// - s: the plugin state returned by init()
+	// - params: the open parameters, as a string. The format is defined by the plugin 
+	//   itsef
+	// - rc: pointer to an integer that will contain the open result, as a SCAP_* value 
+	//   (e.g. SCAP_SUCCESS=0, SCAP_FAILURE=1)
+	// The return value is a pointer to the open context that will be passed to next(), 
+	// close(), event_to_string() and extract_as_*.
 	// This method is required.
 	//
-	src_instance_t* (*open)(src_plugin_t* s, int32_t* rc);
+	src_instance_t* (*open)(src_plugin_t* s, char* params, int32_t* rc);
 	//
 	// Open the source and start a capture.
 	// This method is required.

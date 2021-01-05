@@ -911,6 +911,7 @@ public:
 
 	sinsp_source_plugin* add_source_plugin(source_plugin_info* src_plugin, char* config);
 	void set_input_source_plugin(string plugin_name);
+	void set_input_source_plugin_open_params(string params);
 	void get_input_source_plugins(vector<sinsp_source_plugin*>* res);
 	sinsp_source_plugin* get_source_plugin_by_id(uint32_t plugin_id);
 
@@ -1246,6 +1247,11 @@ public:
 	// if no source plugin should be used as source
 	//
 	uint32_t m_input_src_plugin_id;
+	//
+	// The ID of the source plugin to use as event input, or zero
+	// if no source plugin should be used as source
+	//
+	string m_input_src_plugin_params;
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;

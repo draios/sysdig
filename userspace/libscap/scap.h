@@ -316,6 +316,7 @@ typedef struct scap_open_args
 	                                                         // values via scap_suppress_events_comm().
 	bool udig; ///< If true, UDIG will be used for event capture. Otherwise, the kernel driver will be used.
 	source_plugin_info* src_plugin; ///< use this to configure a source plugin that will produce the events for this capture
+	char* src_plugin_params; ///< optional parameters string for the source plugin pointed by src_plugin
 }scap_open_args;
 
 
