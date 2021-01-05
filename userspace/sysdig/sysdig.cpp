@@ -44,7 +44,7 @@ limitations under the License.
 #endif
 #include "fields_info.h"
 #include "utils.h"
-#include "source_plugin.h"
+#include "plugin.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -971,7 +971,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #ifdef HAS_CHISELS
 		add_chisel_dirs(inspector);
 #endif
-		sinsp_source_plugin::register_source_plugins(inspector, SYSDIG_INSTALLATION_DIR);
+		sinsp_plugin::register_source_plugins(inspector, SYSDIG_INSTALLATION_DIR);
 
 		//
 		// Parse the args
@@ -1081,9 +1081,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					inputname = optarg;
 					if(inputname == "l")
 					{
-						vector<sinsp_source_plugin*> splist;
-						inspector->get_input_source_plugins(&splist);
-						list_sources(&splist);
+						sinsp_plugin::list_plugins(inspector);
 						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
@@ -1097,12 +1095,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					{
 						pgname = inputname.substr(0, cpos);
 						pgpars = inputname.substr(cpos + 1);
-						inspector->set_input_source_plugin(pgname);
-						inspector->set_input_source_plugin_open_params(pgpars);
+						inspector->set_input_plugin(pgname);
+						inspector->set_input_plugin_open_params(pgpars);
 					}
 					else
 					{
-						inspector->set_input_source_plugin(inputname);
+						inspector->set_input_plugin(inputname);
 					}
 				}
 				break;
