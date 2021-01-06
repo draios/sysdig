@@ -1001,9 +1001,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					inputname = optarg;
 					if(inputname == "l")
 					{
-						vector<sinsp_source_plugin*> splist;
-						inspector->get_input_source_plugins(&splist);
-						list_sources(&splist);
+						sinsp_source_plugin::list_plugins(inspector);
 						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
@@ -1017,12 +1015,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					{
 						pgname = inputname.substr(0, cpos);
 						pgpars = inputname.substr(cpos + 1);
-						inspector->set_input_source_plugin(pgname);
-						inspector->set_input_source_plugin_open_params(pgpars);
+						inspector->set_input_plugin(pgname);
+						inspector->set_input_plugin_open_params(pgpars);
 					}
 					else
 					{
-						inspector->set_input_source_plugin(inputname);
+						inspector->set_input_plugin(inputname);
 					}
 				}
 				break;

@@ -333,16 +333,3 @@ void list_chisels(vector<chisel_desc>* chlist, bool verbose)
 	}
 }
 #endif // HAS_CHISELS
-
-void list_sources(vector<sinsp_source_plugin*>* srclist)
-{
-	//
-	// Print the list to the screen
-	//
-	for(uint32_t j = 0; j < srclist->size(); j++)
-	{
-		printf("name: %s\n", srclist->at(j)->m_source_info.get_name());
-		printf("id: %" PRIu32 "\n", srclist->at(j)->get_id());
-		printf("description: %s\n\n", srclist->at(j)->m_source_info.get_description());
-	}
-}

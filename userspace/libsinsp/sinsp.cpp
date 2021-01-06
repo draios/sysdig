@@ -178,7 +178,7 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 
 	m_filter_proc_table_when_saving = false;
 
-	m_input_src_plugin_id = 0;
+	m_input_plugin = NULL;
 }
 
 sinsp::~sinsp()
@@ -227,9 +227,9 @@ sinsp::~sinsp()
 #endif
 #endif
 
-	for(auto it : m_src_plugins_table)
+	for(auto it : m_plugins_list)
 	{
-		delete it.second;
+		delete it;
 	}
 }
 
@@ -512,15 +512,10 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 	// If a plugin was configured, pass it to scap and set the capture mode to
 	// SCAP_MODE_PLUGIN.
 	//
-	if(m_input_src_plugin_id != 0)
+	if(m_input_plugin != NULL)
 	{
-		auto it = m_src_plugins_table.find(m_input_src_plugin_id);
-		if(it == m_src_plugins_table.end())
-		{
-			throw sinsp_exception("source plugin with ID " + to_string(m_input_src_plugin_id) + " not present");
-		}
-		oargs.src_plugin = &(it->second->m_source_info);
-		oargs.src_plugin_params = (char*)m_input_src_plugin_params.c_str();
+		oargs.input_plugin = &(m_input_plugin->m_source_info);
+		oargs.input_plugin_params = (char*)m_input_plugin_open_params.c_str();
 		m_mode = SCAP_MODE_PLUGIN;
 		oargs.mode = SCAP_MODE_PLUGIN;
 	}
@@ -1731,63 +1726,70 @@ void sinsp::set_statsd_port(const uint16_t port)
 	}
 }
 
-sinsp_source_plugin* sinsp::add_source_plugin(source_plugin_info* src_plugin, char* config)
+sinsp_source_plugin* sinsp::add_plugin(ss_plugin_info* src_plugin, char* config)
 {
 	sinsp_source_plugin* nsp = new sinsp_source_plugin(this);
 	nsp->configure(src_plugin, config);
-	uint32_t id = nsp->m_source_info.get_id();
+	uint32_t id = nsp->get_id();
+	string name = nsp->m_source_info.get_name();
 
-	auto it = m_src_plugins_table.find(id);
-	if(it == m_src_plugins_table.end())
+	for(auto& it : m_plugins_list)
 	{
-		m_src_plugins_table[id] = nsp;
-	}
-	else
-	{
-		throw sinsp_exception("source plugin with ID " + to_string(id) + " loaded twice");
+		if(id != 0 && it->get_id() == id)
+		{
+			throw sinsp_exception("found multiple plugins with ID " + to_string(id) + ". Aborting.");
+		}
+
+		if(it->m_source_info.get_name() == name)
+		{
+			throw sinsp_exception("found multiple plugins with name " + name + ". Aborting.");
+		}
 	}
 
+	m_plugins_list.push_back(nsp);
 	return nsp;
 }
 
-void sinsp::set_input_source_plugin(string plugin_name)
+void sinsp::set_input_plugin(string plugin_name)
 {
-	for(auto& it : m_src_plugins_table)
+	for(auto& it : m_plugins_list)
 	{
-		if(it.second->m_source_info.get_name() == plugin_name)
+		if(it->m_source_info.get_name() == plugin_name)
 		{
-			m_input_src_plugin_id = it.second->get_id();
+			if(it->get_type() != TYPE_SOURCE_PLUGIN)
+			{
+				throw sinsp_exception("plugin " + plugin_name + " is not a source plugin and cannot be used as input.");
+			}
+
+			m_input_plugin = it;
 			return;
 		}
 	}
 
-	throw sinsp_exception("source with name " + plugin_name + " does not exist");
+	throw sinsp_exception("plugin " + plugin_name + " does not exist");
 }
 
-void sinsp::set_input_source_plugin_open_params(string params)
+void sinsp::set_input_plugin_open_params(string params)
 {
-	m_input_src_plugin_params = params;
+	m_input_plugin_open_params = params;
 }
 
-void sinsp::get_input_source_plugins(vector<sinsp_source_plugin*>* res)
+vector<sinsp_source_plugin*>* sinsp::get_plugins()
 {
-	for(auto& it : m_src_plugins_table)
-	{
-		res->push_back(it.second);
-	}
+	return &m_plugins_list;
 }
 
 sinsp_source_plugin* sinsp::get_source_plugin_by_id(uint32_t plugin_id)
 {
-	auto it = m_src_plugins_table.find(plugin_id);
-	if(it != m_src_plugins_table.end())
+	for(auto it : m_plugins_list)
 	{
-		return it->second;
+		if(it->get_id() == plugin_id)
+		{
+			return it;
+		}
 	}
-	else
-	{
-		return NULL;
-	}
+
+	return NULL;
 }
 
 void sinsp::stop_capture()

@@ -33,20 +33,23 @@ class sinsp_source_plugin
 public:
 	sinsp_source_plugin(sinsp* inspector);
 	~sinsp_source_plugin();
-	void configure(source_plugin_info* plugin_info, char* config);
+	void configure(ss_plugin_info* plugin_info, char* config);
 	uint32_t get_id();
+	ss_plugin_type get_type();
 	static void register_source_plugins(sinsp* inspector, string sysdig_installation_dir);
+	static void list_plugins(sinsp* inspector);
 
-	source_plugin_info m_source_info;
+	ss_plugin_info m_source_info;
 
 private:
 	static void add_plugin_dirs(sinsp* inspector, string sysdig_installation_dir);
 	static void* getsym(void* handle, const char* name);
-	static bool create_dynlib_source(string libname, OUT source_plugin_info* info, OUT string* error);
+	static bool create_dynlib_source(string libname, OUT ss_plugin_info* info, OUT string* error);
 	static void load_dynlib_plugins(sinsp* inspector);
 
 	sinsp* m_inspector;
 	uint32_t m_id;
 	vector<filtercheck_field_info> m_fields;
 	sinsp_filter_check_plugin* m_filtercheck = NULL;
+	ss_plugin_type m_type;
 };

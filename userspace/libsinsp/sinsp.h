@@ -909,10 +909,10 @@ public:
 	void set_cri_delay(uint64_t delay_ms);
 	void set_container_labels_max_len(uint32_t max_label_len);
 
-	sinsp_source_plugin* add_source_plugin(source_plugin_info* src_plugin, char* config);
-	void set_input_source_plugin(string plugin_name);
-	void set_input_source_plugin_open_params(string params);
-	void get_input_source_plugins(vector<sinsp_source_plugin*>* res);
+	sinsp_source_plugin* add_plugin(ss_plugin_info* src_plugin, char* config);
+	void set_input_plugin(string plugin_name);
+	void set_input_plugin_open_params(string params);
+	vector<sinsp_source_plugin*>* get_plugins();
 	sinsp_source_plugin* get_source_plugin_by_id(uint32_t plugin_id);
 
 VISIBILITY_PROTECTED
@@ -1238,20 +1238,20 @@ public:
 	std::set<std::string> m_suppressed_comms;
 
 	//
-	// Table of event source plugin configured by the user, indexed by
+	// List of the sinsp/scap plugins configured by the user, indexed by
 	// plugin id.
 	//
-	unordered_map<uint32_t, sinsp_source_plugin*> m_src_plugins_table;
+	vector<sinsp_source_plugin*> m_plugins_list;
 	//
-	// The ID of the source plugin to use as event input, or zero
+	// The ID of the plugin to use as event input, or zero
 	// if no source plugin should be used as source
 	//
-	uint32_t m_input_src_plugin_id;
+	sinsp_source_plugin* m_input_plugin;
 	//
-	// The ID of the source plugin to use as event input, or zero
-	// if no source plugin should be used as source
+	// String with the parameters for the plugin to be used as input.
+	// These parameters will be passed to the open function of the plugin.
 	//
-	string m_input_src_plugin_params;
+	string m_input_plugin_open_params;
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;

@@ -11,29 +11,37 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 	"unsafe"
 )
 
 const PLUGIN_ID uint32 = 2
 const PLUGIN_NAME string = "cloudtrail_file"
+const PLUGIN_DESCRIPTION = "reads cloudtrail JSON data saved to file in the directory specified in the settings"
 
 const VERBOSE bool = false
 const NEXT_BUF_LEN uint32 = 65535
 const OUT_BUF_LEN uint32 = 4096
 
+///////////////////////////////////////////////////////////////////////////////
+// framework constants
+
 const SCAP_SUCCESS int32 = 0
 const SCAP_FAILURE int32 = 1
 const SCAP_TIMEOUT int32 = -1
 
-type get_fields_entry struct {
+const TYPE_SOURCE_PLUGIN uint32 = 1
+const TYPE_EXTRACTOR_PLUGIN uint32 = 2
+
+type getFieldsEntry struct {
 	Type string `json:"type"`
 	Name string `json:"name"`
 	Desc string `json:"desc"`
 }
 
-type plugin_context struct {
+///////////////////////////////////////////////////////////////////////////////
+
+type pluginContext struct {
 	evtBufRaw          unsafe.Pointer
 	evtBuf             []byte
 	evtBufLen          int
@@ -45,8 +53,13 @@ type plugin_context struct {
 	curFileNum         uint32
 }
 
-var g_ctx plugin_context
-var g_lastError string = ""
+var gCtx pluginContext
+var gLastError string = ""
+
+//export plugin_get_type
+func plugin_get_type() uint32 {
+	return TYPE_SOURCE_PLUGIN
+}
 
 //export plugin_init
 func plugin_init(config *C.char, rc *int32) *C.char {
@@ -54,13 +67,13 @@ func plugin_init(config *C.char, rc *int32) *C.char {
 		log.SetOutput(ioutil.Discard)
 	}
 
-	log.Printf("[cloudtrail_file] plugin_init\n")
+	log.Printf("[%s] plugin_init\n", PLUGIN_NAME)
 	log.Printf("config string:\n%s\n", C.GoString(config))
 
 	//
 	// Allocate the state struct
 	//
-	g_ctx = plugin_context{
+	gCtx = pluginContext{
 		evtBufLen: int(NEXT_BUF_LEN),
 		outBufLen: int(OUT_BUF_LEN),
 		//	cloudTrailFilesDir: "/home/loris/git/cloud-connector/test/cloudtrail",
@@ -78,11 +91,11 @@ func plugin_init(config *C.char, rc *int32) *C.char {
 	// At the same time, we map them as byte[] arrays to make it easy to deal with them
 	// on the go side.
 	//
-	g_ctx.evtBufRaw = C.malloc(C.size_t(NEXT_BUF_LEN))
-	g_ctx.evtBuf = (*[1 << 30]byte)(unsafe.Pointer(g_ctx.evtBufRaw))[:int(g_ctx.evtBufLen):int(g_ctx.evtBufLen)]
+	gCtx.evtBufRaw = C.malloc(C.size_t(NEXT_BUF_LEN))
+	gCtx.evtBuf = (*[1 << 30]byte)(unsafe.Pointer(gCtx.evtBufRaw))[:int(gCtx.evtBufLen):int(gCtx.evtBufLen)]
 
-	g_ctx.outBufRaw = C.malloc(C.size_t(OUT_BUF_LEN))
-	g_ctx.outBuf = (*[1 << 30]byte)(unsafe.Pointer(g_ctx.outBufRaw))[:int(g_ctx.outBufLen):int(g_ctx.outBufLen)]
+	gCtx.outBufRaw = C.malloc(C.size_t(OUT_BUF_LEN))
+	gCtx.outBuf = (*[1 << 30]byte)(unsafe.Pointer(gCtx.outBufRaw))[:int(gCtx.outBufLen):int(gCtx.outBufLen)]
 
 	*rc = SCAP_SUCCESS
 
@@ -98,7 +111,7 @@ func plugin_init(config *C.char, rc *int32) *C.char {
 //export plugin_get_last_error
 func plugin_get_last_error() *C.char {
 	log.Printf("[%s] plugin_get_last_error\n", PLUGIN_NAME)
-	return C.CString(g_lastError)
+	return C.CString(gLastError)
 }
 
 //export plugin_destroy
@@ -108,8 +121,8 @@ func plugin_destroy(context *byte) {
 	//
 	// Release the memory buffers
 	//
-	C.free(g_ctx.evtBufRaw)
-	C.free(g_ctx.outBufRaw)
+	C.free(gCtx.evtBufRaw)
+	C.free(gCtx.outBufRaw)
 }
 
 //export plugin_get_id
@@ -127,21 +140,19 @@ func plugin_get_name() *C.char {
 //export plugin_get_description
 func plugin_get_description() *C.char {
 	log.Printf("[%s] plugin_get_description\n", PLUGIN_NAME)
-	return C.CString("reads cloudtrail JSON data saved to file in the directory specified in the settings")
+	return C.CString(PLUGIN_DESCRIPTION)
 }
 
-const FIELD_ID_JEVT uint32 = 0
-const FIELD_ID_CLOUDTRAIL_SRC uint32 = 1
-const FIELD_ID_CLOUDTRAIL_NAME uint32 = 2
-const FIELD_ID_CLOUDTRAIL_USER uint32 = 3
-const FIELD_ID_CLOUDTRAIL_REGION uint32 = 4
-const FIELD_ID_S3_BUCKETNAME uint32 = 5
+const FIELD_ID_CLOUDTRAIL_SRC uint32 = 0
+const FIELD_ID_CLOUDTRAIL_NAME uint32 = 1
+const FIELD_ID_CLOUDTRAIL_USER uint32 = 2
+const FIELD_ID_CLOUDTRAIL_REGION uint32 = 3
+const FIELD_ID_S3_BUCKETNAME uint32 = 4
 
 //export plugin_get_fields
 func plugin_get_fields() *C.char {
 	log.Printf("[%s] plugin_get_fields\n", PLUGIN_NAME)
-	flds := []get_fields_entry{
-		{Type: "string", Name: "jevt.value", Desc: "allows to extract a value from a JSON-encoded input. Syntax is jevt.value[/x/y/z], where x,y and z are levels in the JSON hierarchy."},
+	flds := []getFieldsEntry{
 		{Type: "string", Name: "cloudtrail.src", Desc: "the source of the cloudtrail event (eventSource in the json, without the '.amazonaws.com' trailer)."},
 		{Type: "string", Name: "cloudtrail.name", Desc: "the name of the cloudtrail event (eventName in the json)."},
 		{Type: "string", Name: "cloudtrail.user", Desc: "the user of the cloudtrail event (userIdentity.userName in the json)."},
@@ -159,22 +170,22 @@ func plugin_get_fields() *C.char {
 }
 
 //export plugin_open
-func plugin_open(plg_state *C.char, params *C.char, rc *int32) *C.char {
+func plugin_open(plgState *C.char, params *C.char, rc *int32) *C.char {
 	log.Printf("[%s] plugin_open\n", PLUGIN_NAME)
 
 	*rc = SCAP_SUCCESS
 
-	g_ctx.cloudTrailFilesDir = C.GoString(params)
+	gCtx.cloudTrailFilesDir = C.GoString(params)
 
-	if len(g_ctx.cloudTrailFilesDir) == 0 {
-		g_lastError = "cloudtrail_file plugin error: missing input directory argument"
+	if len(gCtx.cloudTrailFilesDir) == 0 {
+		gLastError = PLUGIN_NAME + " plugin error: missing input directory argument"
 		*rc = SCAP_FAILURE
 		return nil
 	}
 
-	log.Printf("[%s] scanning directory %s\n", PLUGIN_NAME, g_ctx.cloudTrailFilesDir)
+	log.Printf("[%s] scanning directory %s\n", PLUGIN_NAME, gCtx.cloudTrailFilesDir)
 
-	err := filepath.Walk(g_ctx.cloudTrailFilesDir, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(gCtx.cloudTrailFilesDir, func(path string, info os.FileInfo, err error) error {
 		if info != nil && info.IsDir() {
 			return nil
 		}
@@ -183,19 +194,19 @@ func plugin_open(plg_state *C.char, params *C.char, rc *int32) *C.char {
 			return nil
 		}
 
-		g_ctx.files = append(g_ctx.files, path)
+		gCtx.files = append(gCtx.files, path)
 		return nil
 	})
 	if err != nil {
-		g_lastError = err.Error()
+		gLastError = err.Error()
 		*rc = SCAP_FAILURE
 	}
-	if len(g_ctx.files) == 0 {
-		g_lastError = "cloudtrail_file plugin error: no json files found in " + g_ctx.cloudTrailFilesDir
+	if len(gCtx.files) == 0 {
+		gLastError = PLUGIN_NAME + " plugin error: no json files found in " + gCtx.cloudTrailFilesDir
 		*rc = SCAP_FAILURE
 	}
 
-	log.Printf("[%s] found %d json files\n", PLUGIN_NAME, len(g_ctx.files))
+	log.Printf("[%s] found %d json files\n", PLUGIN_NAME, len(gCtx.files))
 
 	//
 	// XXX open state is currently global, so we don't return it to the engine.
@@ -207,33 +218,33 @@ func plugin_open(plg_state *C.char, params *C.char, rc *int32) *C.char {
 }
 
 //export plugin_close
-func plugin_close(plg_state *C.char, open_state *C.char) {
+func plugin_close(plgState *C.char, openState *C.char) {
 	log.Printf("[%s] plugin_close\n", PLUGIN_NAME)
 }
 
 //export plugin_next
-func plugin_next(plg_state *C.char, open_state *C.char, data **C.char, datalen *uint32) int32 {
+func plugin_next(plgState *C.char, openState *C.char, data **C.char, datalen *uint32) int32 {
 	//	log.Printf("[%s] plugin_next\n", PLUGIN_NAME)
 
 	//
 	// Open the next file and bring its content into memeory
 	//
-	if g_ctx.curFileNum >= uint32(len(g_ctx.files)) {
+	if gCtx.curFileNum >= uint32(len(gCtx.files)) {
 		time.Sleep(100 * time.Millisecond)
 		return SCAP_TIMEOUT
 	}
 
-	file := g_ctx.files[g_ctx.curFileNum]
+	file := gCtx.files[gCtx.curFileNum]
 	str, err := ioutil.ReadFile(file)
 	if err != nil {
-		g_lastError = err.Error()
+		gLastError = err.Error()
 		return SCAP_FAILURE
 	}
 
-	g_ctx.curFileNum++
+	gCtx.curFileNum++
 
-	if len(str) > len(g_ctx.evtBuf) {
-		g_lastError = fmt.Sprintf("cloudwatch message too long: %d, max 65535 supported", len(str))
+	if len(str) > len(gCtx.evtBuf) {
+		gLastError = fmt.Sprintf("cloudwatch message too long: %d, max 65535 supported", len(str))
 		return SCAP_FAILURE
 	}
 
@@ -245,12 +256,12 @@ func plugin_next(plg_state *C.char, open_state *C.char, data **C.char, datalen *
 	//
 	// Copy the json string into the event buffer
 	//
-	copy(g_ctx.evtBuf[:], str)
+	copy(gCtx.evtBuf[:], str)
 
 	//
 	// Ready to return the event
 	//
-	*data = (*C.char)(g_ctx.evtBufRaw)
+	*data = (*C.char)(gCtx.evtBufRaw)
 	*datalen = uint32(len(str))
 	return SCAP_SUCCESS
 }
@@ -263,7 +274,7 @@ func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
 
 	err := json.Unmarshal([]byte(C.GoString(data)), &jdata)
 	if err != nil {
-		g_lastError = err.Error()
+		gLastError = err.Error()
 		line = "<invalid JSON: " + err.Error() + ">"
 	} else {
 		var user string = "<NA>"
@@ -298,9 +309,9 @@ func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
 	//
 	// Copy the the line into the event buffer
 	//
-	copy(g_ctx.outBuf[:], line)
+	copy(gCtx.outBuf[:], line)
 
-	return (*C.char)(g_ctx.outBufRaw)
+	return (*C.char)(gCtx.outBufRaw)
 }
 
 //export plugin_extract_str
@@ -323,25 +334,6 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 	}
 
 	switch id {
-	case FIELD_ID_JEVT:
-		sarg := C.GoString(arg)
-		if sarg[0] == '/' {
-			sarg = sarg[1:]
-		}
-		hc := strings.Split(sarg, "/")
-		for j := 0; j < len(hc)-1; j++ {
-			key := hc[j]
-			if jdata[key] != nil {
-				jdata = jdata[key].(map[string]interface{})
-			} else {
-				return nil
-			}
-		}
-		val := jdata[hc[len(hc)-1]]
-		if val == nil {
-			return nil
-		}
-		line = fmt.Sprintf("%v", val)
 	case FIELD_ID_CLOUDTRAIL_SRC:
 		line = fmt.Sprintf("%s", jdata["eventSource"])
 
@@ -382,9 +374,9 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 	//
 	// Copy the the line into the event buffer
 	//
-	copy(g_ctx.outBuf[:], line)
+	copy(gCtx.outBuf[:], line)
 
-	return (*C.char)(g_ctx.outBufRaw)
+	return (*C.char)(gCtx.outBufRaw)
 }
 
 func main() {

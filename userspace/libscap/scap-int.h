@@ -177,9 +177,9 @@ struct scap
 	// matching an entry in m_suppressed_comms.
 	uint64_t m_num_suppressed_evts;
 
-	source_plugin_info* m_src_plugin;
-	uint8_t* m_src_plugin_evt_storage;
-	uint32_t m_src_plugin_evt_storage_len;
+	ss_plugin_info* m_input_plugin;
+	uint8_t* m_input_plugin_evt_storage;
+	uint32_t m_input_plugin_evt_storage_len;
 };
 
 typedef enum ppm_dumper_type

@@ -920,7 +920,7 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 #endif // HAS_CAPTURE
 }
 
-scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* src_plugin, char* src_plugin_params)
+scap_t* scap_open_plugin_int(char *error, int32_t *rc, ss_plugin_info* input_plugin, char* input_plugin_params)
 {
 	scap_t* handle = NULL;
 
@@ -968,14 +968,14 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* src_p
 	handle->m_fake_kernel_proc.args[0] = 0;
 	handle->refresh_proc_table_when_saving = true;
 
-	handle->m_src_plugin = src_plugin;
-	handle->m_src_plugin->handle = handle->m_src_plugin->open(handle->m_src_plugin->state, 
-		src_plugin_params,
+	handle->m_input_plugin = input_plugin;
+	handle->m_input_plugin->handle = handle->m_input_plugin->open(handle->m_input_plugin->state, 
+		input_plugin_params,
 		rc);
 
 	if(*rc != SCAP_SUCCESS)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_src_plugin->get_last_error());
+		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_input_plugin->get_last_error());
 		scap_close(handle);
 		return NULL;
 	}
@@ -1046,7 +1046,7 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 					      args.proc_callback_context,
 					      args.import_users);
 	case SCAP_MODE_PLUGIN:
-		return scap_open_plugin_int(error, rc, args.src_plugin, args.src_plugin_params);
+		return scap_open_plugin_int(error, rc, args.input_plugin, args.input_plugin_params);
 	case SCAP_MODE_NONE:
 		// error
 		break;
@@ -1148,7 +1148,7 @@ void scap_close(scap_t* handle)
 	}
 	else if(handle->m_mode == SCAP_MODE_PLUGIN)
 	{
-		handle->m_src_plugin->close(handle->m_src_plugin->state, handle->m_src_plugin->handle);
+		handle->m_input_plugin->close(handle->m_input_plugin->state, handle->m_input_plugin->handle);
 	}
 
 #if CYGWING_AGENT || _WIN32
@@ -1696,36 +1696,36 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 {
 	uint8_t* data;
 	uint32_t datalen;
-	int32_t res = handle->m_src_plugin->next(handle->m_src_plugin->state, 
-		handle->m_src_plugin->handle, &data, &datalen);
+	int32_t res = handle->m_input_plugin->next(handle->m_input_plugin->state, 
+		handle->m_input_plugin->handle, &data, &datalen);
 	if(res != SCAP_SUCCESS)
 	{
 		if(res != SCAP_TIMEOUT)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", handle->m_src_plugin->get_last_error());
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", handle->m_input_plugin->get_last_error());
 		}
 		return res;
 	}
 
 	uint32_t reqsize = sizeof(scap_evt) + 2 + 4 + 2 + datalen;
-	if(handle->m_src_plugin_evt_storage_len < reqsize)
+	if(handle->m_input_plugin_evt_storage_len < reqsize)
 	{
-		handle->m_src_plugin_evt_storage = (uint8_t*)malloc(reqsize);
-		handle->m_src_plugin_evt_storage_len = reqsize;
+		handle->m_input_plugin_evt_storage = (uint8_t*)malloc(reqsize);
+		handle->m_input_plugin_evt_storage_len = reqsize;
 	}
 
-	scap_evt* evt = (scap_evt*)handle->m_src_plugin_evt_storage;
+	scap_evt* evt = (scap_evt*)handle->m_input_plugin_evt_storage;
 	evt->len = reqsize;
 	evt->tid = -1;
 	evt->type = PPME_PLUGINEVENT_E;
 	evt->nparams = 2;
 
-	uint8_t* buf = handle->m_src_plugin_evt_storage + sizeof(scap_evt);
+	uint8_t* buf = handle->m_input_plugin_evt_storage + sizeof(scap_evt);
 	*(uint16_t*)buf = 4;
 	buf += 2;
 	*(uint16_t*)buf = datalen;
 	buf += 2;
-	*(uint32_t*)buf = handle->m_src_plugin->id;
+	*(uint32_t*)buf = handle->m_input_plugin->id;
 	buf += 4;
 	memcpy(buf, data, datalen);
 
