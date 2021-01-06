@@ -1726,9 +1726,9 @@ void sinsp::set_statsd_port(const uint16_t port)
 	}
 }
 
-sinsp_source_plugin* sinsp::add_plugin(ss_plugin_info* src_plugin, char* config)
+sinsp_plugin* sinsp::add_plugin(ss_plugin_info* src_plugin, char* config)
 {
-	sinsp_source_plugin* nsp = new sinsp_source_plugin(this);
+	sinsp_plugin* nsp = new sinsp_plugin(this);
 	nsp->configure(src_plugin, config);
 	uint32_t id = nsp->get_id();
 	string name = nsp->m_source_info.get_name();
@@ -1774,12 +1774,12 @@ void sinsp::set_input_plugin_open_params(string params)
 	m_input_plugin_open_params = params;
 }
 
-vector<sinsp_source_plugin*>* sinsp::get_plugins()
+vector<sinsp_plugin*>* sinsp::get_plugins()
 {
 	return &m_plugins_list;
 }
 
-sinsp_source_plugin* sinsp::get_source_plugin_by_id(uint32_t plugin_id)
+sinsp_plugin* sinsp::get_source_plugin_by_id(uint32_t plugin_id)
 {
 	for(auto it : m_plugins_list)
 	{

@@ -178,12 +178,12 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_source_plugin implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_source_plugin::sinsp_source_plugin(sinsp* inspector)
+sinsp_plugin::sinsp_plugin(sinsp* inspector)
 {
 	m_inspector = inspector;
 }
 
-sinsp_source_plugin::~sinsp_source_plugin()
+sinsp_plugin::~sinsp_plugin()
 {
 	if(m_source_info.destroy != NULL)
 	{
@@ -191,7 +191,7 @@ sinsp_source_plugin::~sinsp_source_plugin()
 	}
 }
 
-void sinsp_source_plugin::configure(ss_plugin_info* plugin_info, char* config)
+void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
 {
 	int init_res;
 
@@ -329,17 +329,17 @@ void sinsp_source_plugin::configure(ss_plugin_info* plugin_info, char* config)
 	}
 }
 
-uint32_t sinsp_source_plugin::get_id()
+uint32_t sinsp_plugin::get_id()
 {
 	return m_id;
 }
 
-ss_plugin_type sinsp_source_plugin::get_type()
+ss_plugin_type sinsp_plugin::get_type()
 {
 	return m_type;
 }
 
-void sinsp_source_plugin::add_plugin_dirs(sinsp* inspector, string sysdig_installation_dir)
+void sinsp_plugin::add_plugin_dirs(sinsp* inspector, string sysdig_installation_dir)
 {
 	//
 	// Add the default chisel directory statically configured by the build system
@@ -362,9 +362,9 @@ void sinsp_source_plugin::add_plugin_dirs(sinsp* inspector, string sysdig_instal
 	}
 }
 
-void sinsp_source_plugin::list_plugins(sinsp* inspector)
+void sinsp_plugin::list_plugins(sinsp* inspector)
 {
-	vector<sinsp_source_plugin*>* plist = inspector->get_plugins();
+	vector<sinsp_plugin*>* plist = inspector->get_plugins();
 
 	//
 	// Print the list to the screen
@@ -389,7 +389,7 @@ void sinsp_source_plugin::list_plugins(sinsp* inspector)
 	}
 }
 
-void* sinsp_source_plugin::getsym(void* handle, const char* name)
+void* sinsp_plugin::getsym(void* handle, const char* name)
 {
 #ifdef _WIN32
 	return GetProcAddress((HINSTANCE)handle, name);
@@ -401,7 +401,7 @@ void* sinsp_source_plugin::getsym(void* handle, const char* name)
 //
 // Polulate a source_plugin_info struct with the symbols coming from a dynamic library
 //
-bool sinsp_source_plugin::create_dynlib_source(string libname, OUT ss_plugin_info* info, OUT string* error)
+bool sinsp_plugin::create_dynlib_source(string libname, OUT ss_plugin_info* info, OUT string* error)
 {
 #ifdef _WIN32
 	HINSTANCE handle = LoadLibrary(libname.c_str());
@@ -435,7 +435,7 @@ bool sinsp_source_plugin::create_dynlib_source(string libname, OUT ss_plugin_inf
 // 1. Iterates through the plugin files on disk
 // 2. Opens them and add them to the inspector
 //
-void sinsp_source_plugin::load_dynlib_plugins(sinsp* inspector)
+void sinsp_plugin::load_dynlib_plugins(sinsp* inspector)
 {
 	for(vector<chiseldir_info>::const_iterator it = g_plugin_dirs->begin();
 		it != g_plugin_dirs->end(); ++it)
@@ -481,7 +481,7 @@ nextfile:
 	}
 }
 
-void sinsp_source_plugin::register_source_plugins(sinsp* inspector, string sysdig_installation_dir)
+void sinsp_plugin::register_source_plugins(sinsp* inspector, string sysdig_installation_dir)
 {
 	add_plugin_dirs(inspector, sysdig_installation_dir);
 	load_dynlib_plugins(inspector);

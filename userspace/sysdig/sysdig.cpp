@@ -891,7 +891,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #ifdef HAS_CHISELS
 		add_chisel_dirs(inspector);
 #endif
-		sinsp_source_plugin::register_source_plugins(inspector, SYSDIG_INSTALLATION_DIR);
+		sinsp_plugin::register_source_plugins(inspector, SYSDIG_INSTALLATION_DIR);
 
 		//
 		// Parse the args
@@ -1001,7 +1001,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					inputname = optarg;
 					if(inputname == "l")
 					{
-						sinsp_source_plugin::list_plugins(inspector);
+						sinsp_plugin::list_plugins(inspector);
 						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}

@@ -28,11 +28,11 @@ public:
 	uint32_t m_id;
 };
 
-class sinsp_source_plugin
+class sinsp_plugin
 {
 public:
-	sinsp_source_plugin(sinsp* inspector);
-	~sinsp_source_plugin();
+	sinsp_plugin(sinsp* inspector);
+	~sinsp_plugin();
 	void configure(ss_plugin_info* plugin_info, char* config);
 	uint32_t get_id();
 	ss_plugin_type get_type();

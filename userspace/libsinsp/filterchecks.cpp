@@ -4525,7 +4525,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			sinsp_evt_param *parinfo = evt->get_param(0);
 			ASSERT(parinfo->m_len == sizeof(int32_t));
 			uint32_t pgid = *(int32_t *)parinfo->m_val;
-			sinsp_source_plugin* ppg = m_inspector->get_source_plugin_by_id(pgid);
+			sinsp_plugin* ppg = m_inspector->get_source_plugin_by_id(pgid);
 
 			if(ppg != NULL)
 			{
@@ -4544,7 +4544,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			sinsp_evt_param *parinfo = evt->get_param(0);
 			ASSERT(parinfo->m_len == sizeof(int32_t));
 			uint32_t pgid = *(int32_t *)parinfo->m_val;
-			sinsp_source_plugin* ppg = m_inspector->get_source_plugin_by_id(pgid);
+			sinsp_plugin* ppg = m_inspector->get_source_plugin_by_id(pgid);
 
 			if(ppg != NULL)
 			{
