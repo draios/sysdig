@@ -26,7 +26,6 @@ limitations under the License.
 #include "filter.h"
 #include "chisel.h"
 #include "filterchecks.h"
-#include "source_plugin_info.h"
 #include "plugin.h"
 
 #include <third-party/tinydir.h>
