@@ -40,7 +40,7 @@ limitations under the License.
 #include "sysdig.h"
 #include "fields_info.h"
 #include "utils.h"
-#include "source_plugin.h"
+#include "plugin.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"

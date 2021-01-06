@@ -22,7 +22,6 @@ limitations under the License.
 #include "filter.h"
 #include "filterchecks.h"
 #include "eventformatter.h"
-#include "source_plugin.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // rawstring_check implementation

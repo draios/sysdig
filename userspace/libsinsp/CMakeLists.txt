@@ -79,12 +79,12 @@ set(SINSP_SOURCES
 	"${JSONCPP_LIB_SRC}"
 	logger.cpp
 	parsers.cpp
+	plugin.cpp
 	prefix_search.cpp
 	protodecoder.cpp
 	threadinfo.cpp
 	tuples.cpp
 	sinsp.cpp
-	source_plugin.cpp
 	stats.cpp
 	table.cpp
 	token_bucket.cpp

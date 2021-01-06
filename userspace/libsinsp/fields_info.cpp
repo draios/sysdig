@@ -29,7 +29,6 @@ limitations under the License.
 #include <sinsp.h>
 #include "chisel.h"
 #include "fields_info.h"
-#include "source_plugin.h"
 
 // Must match the value in the zsh tab completion
 #define DESCRIPTION_TEXT_START 16

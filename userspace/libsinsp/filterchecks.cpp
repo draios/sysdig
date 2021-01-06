@@ -32,7 +32,7 @@ limitations under the License.
 #include "protodecoder.h"
 #include "tracers.h"
 #include "value_parser.h"
-#include "source_plugin.h"
+#include "plugin.h"
 
 extern sinsp_evttables g_infotables;
 int32_t g_csysdig_screen_w = -1;

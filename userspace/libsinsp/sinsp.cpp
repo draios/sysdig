@@ -38,7 +38,7 @@ limitations under the License.
 #include "cyclewriter.h"
 #include "protodecoder.h"
 #include "dns_manager.h"
-#include "source_plugin.h"
+#include "plugin.h"
 
 #ifndef CYGWING_AGENT
 #ifndef MINIMAL_BUILD
