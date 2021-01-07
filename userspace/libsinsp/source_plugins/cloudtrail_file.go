@@ -5,12 +5,15 @@ package main
 */
 import "C"
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 	"unsafe"
 )
@@ -41,6 +44,11 @@ type getFieldsEntry struct {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+type fileInfo struct {
+	name         string
+	isCompressed bool
+}
+
 type pluginContext struct {
 	evtBufRaw          unsafe.Pointer
 	evtBuf             []byte
@@ -49,8 +57,10 @@ type pluginContext struct {
 	outBuf             []byte
 	outBufLen          int
 	cloudTrailFilesDir string
-	files              []string
+	files              []fileInfo
 	curFileNum         uint32
+	evtJsonList        []interface{}
+	evtJsonListPos     int
 }
 
 var gCtx pluginContext
@@ -78,7 +88,8 @@ func plugin_init(config *C.char, rc *int32) *C.char {
 		outBufLen: int(OUT_BUF_LEN),
 		//	cloudTrailFilesDir: "/home/loris/git/cloud-connector/test/cloudtrail",
 		//	cloudTrailFilesDir: "c:\\windump\\GitHub\\cloud-connector\\test\\cloudtrail",
-		curFileNum: 0,
+		curFileNum:     0,
+		evtJsonListPos: 0,
 	}
 
 	//
@@ -153,11 +164,11 @@ const FIELD_ID_S3_BUCKETNAME uint32 = 4
 func plugin_get_fields() *C.char {
 	log.Printf("[%s] plugin_get_fields\n", PLUGIN_NAME)
 	flds := []getFieldsEntry{
-		{Type: "string", Name: "cloudtrail.src", Desc: "the source of the cloudtrail event (eventSource in the json, without the '.amazonaws.com' trailer)."},
-		{Type: "string", Name: "cloudtrail.name", Desc: "the name of the cloudtrail event (eventName in the json)."},
-		{Type: "string", Name: "cloudtrail.user", Desc: "the user of the cloudtrail event (userIdentity.userName in the json)."},
-		{Type: "string", Name: "cloudtrail.region", Desc: "the region of the cloudtrail event (awsRegion in the json)."},
-		{Type: "string", Name: "s3.bucketname", Desc: "the region of the cloudtrail event (awsRegion in the json)."},
+		{Type: "string", Name: "ct.src", Desc: "the source of the cloudtrail event (eventSource in the json, without the '.amazonaws.com' trailer)."},
+		{Type: "string", Name: "ct.name", Desc: "the name of the cloudtrail event (eventName in the json)."},
+		{Type: "string", Name: "ct.user", Desc: "the user of the cloudtrail event (userIdentity.userName in the json)."},
+		{Type: "string", Name: "ct.region", Desc: "the region of the cloudtrail event (awsRegion in the json)."},
+		{Type: "string", Name: "ct.bucketname", Desc: "the region of the cloudtrail event (awsRegion in the json)."},
 	}
 
 	b, err := json.Marshal(&flds)
@@ -190,11 +201,13 @@ func plugin_open(plgState *C.char, params *C.char, rc *int32) *C.char {
 			return nil
 		}
 
-		if filepath.Ext(path) != ".json" {
+		isCompressed := strings.HasSuffix(path, ".json.gz")
+		if filepath.Ext(path) != ".json" && !isCompressed {
 			return nil
 		}
 
-		gCtx.files = append(gCtx.files, path)
+		var fi fileInfo = fileInfo{name: path, isCompressed: isCompressed}
+		gCtx.files = append(gCtx.files, fi)
 		return nil
 	})
 	if err != nil {
@@ -225,23 +238,62 @@ func plugin_close(plgState *C.char, openState *C.char) {
 //export plugin_next
 func plugin_next(plgState *C.char, openState *C.char, data **C.char, datalen *uint32) int32 {
 	//	log.Printf("[%s] plugin_next\n", PLUGIN_NAME)
+	var str []byte
+	var err error
 
-	//
-	// Open the next file and bring its content into memeory
-	//
-	if gCtx.curFileNum >= uint32(len(gCtx.files)) {
-		time.Sleep(100 * time.Millisecond)
-		return SCAP_TIMEOUT
+	if gCtx.evtJsonListPos == len(gCtx.evtJsonList) {
+		//
+		// Open the next file and bring its content into memeory
+		//
+		if gCtx.curFileNum >= uint32(len(gCtx.files)) {
+			time.Sleep(100 * time.Millisecond)
+			println("dete")
+			return SCAP_TIMEOUT
+		}
+
+		file := gCtx.files[gCtx.curFileNum]
+
+		str, err = ioutil.ReadFile(file.name)
+		if err != nil {
+			gLastError = err.Error()
+			return SCAP_FAILURE
+		}
+
+		if file.isCompressed {
+			gr, err := gzip.NewReader(bytes.NewBuffer(str))
+			defer gr.Close()
+			zdata, err := ioutil.ReadAll(gr)
+			if err != nil {
+				return SCAP_TIMEOUT
+			}
+			str = zdata
+		}
+
+		var jdata map[string]interface{}
+		err = json.Unmarshal(str, &jdata)
+		if err != nil {
+			return SCAP_TIMEOUT
+		}
+
+		if len(jdata) == 1 && jdata["Records"] != nil {
+			gCtx.evtJsonList = jdata["Records"].([]interface{})
+			gCtx.evtJsonListPos = 0
+		}
+
+		gCtx.curFileNum++
 	}
 
-	file := gCtx.files[gCtx.curFileNum]
-	str, err := ioutil.ReadFile(file)
-	if err != nil {
-		gLastError = err.Error()
-		return SCAP_FAILURE
-	}
+	if len(gCtx.evtJsonList) != 0 {
+		cr := gCtx.evtJsonList[gCtx.evtJsonListPos]
+		gCtx.evtJsonListPos++
 
-	gCtx.curFileNum++
+		b, err := json.Marshal(&cr)
+		if err != nil {
+			return SCAP_TIMEOUT
+		}
+
+		str = b
+	}
 
 	if len(str) > len(gCtx.evtBuf) {
 		gLastError = fmt.Sprintf("cloudwatch message too long: %d, max 65535 supported", len(str))

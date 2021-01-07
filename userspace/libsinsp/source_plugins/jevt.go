@@ -107,7 +107,7 @@ func plugin_destroy(context *byte) {
 
 //export plugin_get_name
 func plugin_get_name() *C.char {
-	//	log.Printf("[%s] plugin_get_name\n", PLUGIN_NAME)
+	log.Printf("[%s] plugin_get_name\n", PLUGIN_NAME)
 	return C.CString(PLUGIN_NAME)
 }
 
@@ -137,8 +137,6 @@ func plugin_get_fields() *C.char {
 
 //export plugin_extract_str
 func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, datalen uint32) *C.char {
-	//	log.Printf("[%s] plugin_extract_str\n", PLUGIN_NAME)
-
 	var line string
 	var jdata map[string]interface{}
 
