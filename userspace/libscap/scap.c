@@ -1696,8 +1696,9 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 {
 	uint8_t* data;
 	uint32_t datalen;
+	uint64_t* ts = UINT64_MAX;
 	int32_t res = handle->m_input_plugin->next(handle->m_input_plugin->state, 
-		handle->m_input_plugin->handle, &data, &datalen);
+		handle->m_input_plugin->handle, &data, &datalen, &ts);
 	if(res != SCAP_SUCCESS)
 	{
 		if(res != SCAP_TIMEOUT)
@@ -1729,14 +1730,22 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 	buf += 4;
 	memcpy(buf, data, datalen);
 
+	if(ts != UINT64_MAX)
+	{
+		evt->ts = ts;
+	}
+	else
+	{
 #ifdef _WIN32
-	struct timespec ts;
-	evt->ts = get_windows_timestamp();
+		struct timespec ts;
+		evt->ts = get_windows_timestamp();
 #else
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	evt->ts = tv.tv_sec * (uint64_t) 1000000000 + tv.tv_usec * 1000;
+		struct timeval tv;
+		gettimeofday(&tv, NULL);
+		evt->ts = tv.tv_sec * (uint64_t) 1000000000 + tv.tv_usec * 1000;
 #endif
+	}
+
 	*pevent = evt;
 	return res;
 }

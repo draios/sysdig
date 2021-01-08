@@ -117,18 +117,20 @@ func plugin_get_description() *C.char {
 	return C.CString(PLUGIN_DESCRIPTION)
 }
 
-const FIELD_ID_JEVT uint32 = 0
+const FIELD_ID_VALUE uint32 = 0
+const FIELD_ID_MSG uint32 = 1
 
 //export plugin_get_fields
 func plugin_get_fields() *C.char {
 	log.Printf("[%s] plugin_get_fields\n", PLUGIN_NAME)
 	flds := []getFieldsEntry{
 		{Type: "string", Name: "jevt.value", Desc: "allows to extract a value from a JSON-encoded input. Syntax is jevt.value[/x/y/z], where x,y and z are levels in the JSON hierarchy."},
+		{Type: "string", Name: "jevt.json", Desc: "the full json message as a text string."},
 	}
 
 	b, err := json.Marshal(&flds)
 	if err != nil {
-		fmt.Println(err)
+		gLastError = err.Error()
 		return nil
 	}
 
@@ -153,7 +155,7 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 	}
 
 	switch id {
-	case FIELD_ID_JEVT:
+	case FIELD_ID_VALUE:
 		sarg := C.GoString(arg)
 		if sarg[0] == '/' {
 			sarg = sarg[1:]
@@ -172,6 +174,10 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 			return nil
 		}
 		line = fmt.Sprintf("%v", val)
+	case FIELD_ID_MSG:
+		js, _ := json.MarshalIndent(&jdata, "", "  ")
+		line = string(js)
+		line += "\n"
 	default:
 		line = "<NA>"
 	}

@@ -32,6 +32,7 @@ const OUT_BUF_LEN uint32 = 4096
 const SCAP_SUCCESS int32 = 0
 const SCAP_FAILURE int32 = 1
 const SCAP_TIMEOUT int32 = -1
+const SCAP_EOF int32 = 6
 
 const TYPE_SOURCE_PLUGIN uint32 = 1
 const TYPE_EXTRACTOR_PLUGIN uint32 = 2
@@ -173,7 +174,7 @@ func plugin_get_fields() *C.char {
 
 	b, err := json.Marshal(&flds)
 	if err != nil {
-		fmt.Println(err)
+		gLastError = err.Error()
 		return nil
 	}
 
@@ -236,19 +237,22 @@ func plugin_close(plgState *C.char, openState *C.char) {
 }
 
 //export plugin_next
-func plugin_next(plgState *C.char, openState *C.char, data **C.char, datalen *uint32) int32 {
+func plugin_next(plgState *C.char, openState *C.char, data **C.char, datalen *uint32, ts *uint64) int32 {
 	//	log.Printf("[%s] plugin_next\n", PLUGIN_NAME)
 	var str []byte
 	var err error
+	var jdata map[string]interface{}
 
+	//
+	// Only open the next file once we're sure that the content of the previous one has been full consumed
+	//
 	if gCtx.evtJsonListPos == len(gCtx.evtJsonList) {
 		//
 		// Open the next file and bring its content into memeory
 		//
 		if gCtx.curFileNum >= uint32(len(gCtx.files)) {
-			time.Sleep(100 * time.Millisecond)
-			println("dete")
-			return SCAP_TIMEOUT
+			//time.Sleep(100 * time.Millisecond)
+			return SCAP_EOF
 		}
 
 		file := gCtx.files[gCtx.curFileNum]
@@ -259,6 +263,9 @@ func plugin_next(plgState *C.char, openState *C.char, data **C.char, datalen *ui
 			return SCAP_FAILURE
 		}
 
+		//
+		// The file can be gzipped. If it is, we unzip it.
+		//
 		if file.isCompressed {
 			gr, err := gzip.NewReader(bytes.NewBuffer(str))
 			defer gr.Close()
@@ -269,7 +276,10 @@ func plugin_next(plgState *C.char, openState *C.char, data **C.char, datalen *ui
 			str = zdata
 		}
 
-		var jdata map[string]interface{}
+		//
+		// Interpret the json to undestand the file format (single vs multiple
+		// events) and extract the individual records.
+		//
 		err = json.Unmarshal(str, &jdata)
 		if err != nil {
 			return SCAP_TIMEOUT
@@ -283,16 +293,40 @@ func plugin_next(plgState *C.char, openState *C.char, data **C.char, datalen *ui
 		gCtx.curFileNum++
 	}
 
+	//
+	// Extract the next record
+	//
+	var cr map[string]interface{}
 	if len(gCtx.evtJsonList) != 0 {
-		cr := gCtx.evtJsonList[gCtx.evtJsonListPos]
+		cr = gCtx.evtJsonList[gCtx.evtJsonListPos].(map[string]interface{})
 		gCtx.evtJsonListPos++
+	} else {
+		cr = jdata
+	}
 
-		b, err := json.Marshal(&cr)
-		if err != nil {
-			return SCAP_TIMEOUT
-		}
+	//
+	// Extract the timestamp
+	//
+	t1, err := time.Parse(
+		time.RFC3339,
+		fmt.Sprintf("%s", cr["eventTime"]))
+	if err != nil {
+		gLastError = fmt.Sprintf("time in unknown format: %s", cr["eventTime"])
+		return SCAP_FAILURE
+	}
+	*ts = uint64(t1.Unix()) * 1000000000
 
-		str = b
+	//
+	// Re-convert the event into a cunsumable string.
+	// Note: this is done so that the engine in the libraries can treat things
+	// as portable strings, which helps supporting features like transparent
+	// capture file support. It's a bit unfortunate that we have to do a sequence
+	// of multiple marshalings/unmarshalings and it's definitely not the best in
+	// terms of efficiency. We'll work on optimizing it if it becomes a problem.
+	//
+	str, err = json.Marshal(&cr)
+	if err != nil {
+		return SCAP_TIMEOUT
 	}
 
 	if len(str) > len(gCtx.evtBuf) {
@@ -318,6 +352,41 @@ func plugin_next(plgState *C.char, openState *C.char, data **C.char, datalen *ui
 	return SCAP_SUCCESS
 }
 
+func getUser(jdata map[string]interface{}) string {
+	if jdata["userIdentity"] != nil {
+		ui := jdata["userIdentity"].(map[string]interface{})
+		utype := ui["type"]
+
+		switch utype {
+		case "Root", "IAMUser":
+			if ui["userName"] != nil {
+				return fmt.Sprintf("%s", ui["userName"])
+			}
+		case "AWSService":
+			if ui["invokedBy"] != nil {
+				return fmt.Sprintf("%s", ui["invokedBy"])
+			}
+		case "AssumedRole":
+			if ui["sessionContext"] != nil {
+				if ui["sessionContext"].(map[string]interface{})["sessionIssuer"] != nil {
+					if ui["sessionContext"].(map[string]interface{})["sessionIssuer"].(map[string]interface{})["userName"] != nil {
+						return fmt.Sprintf("%s", ui["sessionContext"].(map[string]interface{})["sessionIssuer"].(map[string]interface{})["userName"])
+					}
+				}
+			}
+			return "AssumedRole"
+		case "AWSAccount":
+			return "AWSAccount"
+		case "FederatedUser":
+			return "FederatedUser"
+		default:
+			return "<unknown user type>"
+		}
+	}
+
+	return ""
+}
+
 //export plugin_event_to_string
 func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
 	//	log.Printf("[%s] plugin_event_to_string\n", PLUGIN_NAME)
@@ -329,12 +398,9 @@ func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
 		gLastError = err.Error()
 		line = "<invalid JSON: " + err.Error() + ">"
 	} else {
-		var user string = "<NA>"
-		if jdata["userIdentity"] != nil {
-			re := jdata["userIdentity"].(map[string]interface{})
-			if re["userName"] != nil {
-				user = fmt.Sprintf("%s", re["userName"])
-			}
+		var user string = getUser(jdata)
+		if user == "" {
+			user = "<NAZ>"
 		}
 
 		src := fmt.Sprintf("%s", jdata["eventSource"])
