@@ -16,6 +16,9 @@ import (
 	"strings"
 	"time"
 	"unsafe"
+
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 const PLUGIN_ID uint32 = 2
@@ -181,10 +184,7 @@ func plugin_get_fields() *C.char {
 	return C.CString(string(b))
 }
 
-//export plugin_open
-func plugin_open(plgState *C.char, params *C.char, rc *int32) *C.char {
-	log.Printf("[%s] plugin_open\n", PLUGIN_NAME)
-
+func open_file(plgState *C.char, params *C.char, rc *int32) *C.char {
 	*rc = SCAP_SUCCESS
 
 	gCtx.cloudTrailFilesDir = C.GoString(params)
@@ -229,6 +229,53 @@ func plugin_open(plgState *C.char, params *C.char, rc *int32) *C.char {
 	// We will need to fix this
 	//
 	return nil
+}
+
+func open_s3(plgState *C.char, params *C.char, rc *int32) *C.char {
+	// getObject
+
+	fmt.Println("@0\n")
+
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
+	svc := s3.New(sess)
+
+	fmt.Println("@1\n")
+
+	fileCnt := 0
+	prf := "cloudtrail/AWSLogs/273107874544/CloudTrail/us-west-2/2021/01/06/"
+	err := svc.ListObjectsPages(&s3.ListObjectsInput{
+		Bucket: &os.Args[1],
+		Prefix: &prf,
+	}, func(p *s3.ListObjectsOutput, last bool) (shouldContinue bool) {
+		for _, obj := range p.Contents {
+			fmt.Printf("%v %v\n", *obj.Size, *obj.Key)
+			fileCnt++
+		}
+		return true
+	})
+	if err != nil {
+		fmt.Println("failed to list objects", err)
+		return nil
+	}
+
+	fmt.Printf("found %d objects", fileCnt)
+
+	return nil
+}
+
+//export plugin_open
+func plugin_open(plgState *C.char, params *C.char, rc *int32) *C.char {
+	log.Printf("[%s] plugin_open\n", PLUGIN_NAME)
+
+	input := C.GoString(params)
+
+	if input[:5] == "s3://" {
+		return open_s3(plgState, params, rc)
+	} else {
+		return open_file(plgState, params, rc)
+	}
 }
 
 //export plugin_close
