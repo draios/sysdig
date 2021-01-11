@@ -9,6 +9,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -22,7 +23,7 @@ import (
 )
 
 const PLUGIN_ID uint32 = 2
-const PLUGIN_NAME string = "cloudtrail_file"
+const PLUGIN_NAME string = "cloudtrail"
 const PLUGIN_DESCRIPTION = "reads cloudtrail JSON data saved to file in the directory specified in the settings"
 
 const VERBOSE bool = false
@@ -53,7 +54,13 @@ type fileInfo struct {
 	isCompressed bool
 }
 
+type s3State struct {
+	bucket string
+	awsSvc *s3.S3
+}
+
 type pluginContext struct {
+	isS3               bool
 	evtBufRaw          unsafe.Pointer
 	evtBuf             []byte
 	evtBufLen          int
@@ -65,6 +72,7 @@ type pluginContext struct {
 	curFileNum         uint32
 	evtJsonList        []interface{}
 	evtJsonListPos     int
+	s3                 s3State
 }
 
 var gCtx pluginContext
@@ -184,7 +192,7 @@ func plugin_get_fields() *C.char {
 	return C.CString(string(b))
 }
 
-func open_file(plgState *C.char, params *C.char, rc *int32) *C.char {
+func openLocal(plgState *C.char, params *C.char, rc *int32) *C.char {
 	*rc = SCAP_SUCCESS
 
 	gCtx.cloudTrailFilesDir = C.GoString(params)
@@ -231,36 +239,58 @@ func open_file(plgState *C.char, params *C.char, rc *int32) *C.char {
 	return nil
 }
 
-func open_s3(plgState *C.char, params *C.char, rc *int32) *C.char {
-	// getObject
+func openS3(plgState *C.char, params *C.char, rc *int32) *C.char {
+	*rc = SCAP_SUCCESS
+	input := C.GoString(params)
 
-	fmt.Println("@0\n")
+	//
+	// remove the initial "s3://"
+	//
+	input = input[5:]
+	slashindex := strings.Index(input, "/")
 
+	//
+	// Extract the URL components
+	//
+	var prefix string
+	if slashindex == -1 {
+		gCtx.s3.bucket = input
+		prefix = ""
+	} else {
+		gCtx.s3.bucket = input[:slashindex]
+		prefix = input[slashindex+1:]
+	}
+
+	//
+	// Fetch the list of keys
+	//
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
-	svc := s3.New(sess)
 
-	fmt.Println("@1\n")
+	gCtx.s3.awsSvc = s3.New(sess)
 
-	fileCnt := 0
-	prf := "cloudtrail/AWSLogs/273107874544/CloudTrail/us-west-2/2021/01/06/"
-	err := svc.ListObjectsPages(&s3.ListObjectsInput{
-		Bucket: &os.Args[1],
-		Prefix: &prf,
+	err := gCtx.s3.awsSvc.ListObjectsPages(&s3.ListObjectsInput{
+		Bucket: &gCtx.s3.bucket,
+		Prefix: &prefix,
 	}, func(p *s3.ListObjectsOutput, last bool) (shouldContinue bool) {
 		for _, obj := range p.Contents {
-			fmt.Printf("%v %v\n", *obj.Size, *obj.Key)
-			fileCnt++
+			//fmt.Printf("%v %v\n", *obj.Size, *obj.Key)
+			path := obj.Key
+			isCompressed := strings.HasSuffix(*path, ".json.gz")
+			if filepath.Ext(*path) != ".json" && !isCompressed {
+				continue
+			}
+
+			var fi fileInfo = fileInfo{name: *path, isCompressed: false}
+			gCtx.files = append(gCtx.files, fi)
 		}
 		return true
 	})
 	if err != nil {
-		fmt.Println("failed to list objects", err)
-		return nil
+		gLastError = PLUGIN_NAME + " plugin error: failed to list objects: " + err.Error()
+		*rc = SCAP_FAILURE
 	}
-
-	fmt.Printf("found %d objects", fileCnt)
 
 	return nil
 }
@@ -272,15 +302,34 @@ func plugin_open(plgState *C.char, params *C.char, rc *int32) *C.char {
 	input := C.GoString(params)
 
 	if input[:5] == "s3://" {
-		return open_s3(plgState, params, rc)
+		gCtx.isS3 = true
+		return openS3(plgState, params, rc)
 	} else {
-		return open_file(plgState, params, rc)
+		gCtx.isS3 = false
+		return openLocal(plgState, params, rc)
 	}
 }
 
 //export plugin_close
 func plugin_close(plgState *C.char, openState *C.char) {
 	log.Printf("[%s] plugin_close\n", PLUGIN_NAME)
+}
+
+func readFileS3(fileName string) ([]byte, error) {
+	output, err := gCtx.s3.awsSvc.GetObject(&s3.GetObjectInput{
+		Bucket: &gCtx.s3.bucket,
+		Key:    &fileName,
+	})
+
+	buf := new(strings.Builder)
+	_, err = io.Copy(buf, output.Body)
+	output.Body.Close()
+
+	return []byte(buf.String()), err
+}
+
+func readFileLocal(fileName string) ([]byte, error) {
+	return ioutil.ReadFile(fileName)
 }
 
 //export plugin_next
@@ -298,13 +347,17 @@ func plugin_next(plgState *C.char, openState *C.char, data **C.char, datalen *ui
 		// Open the next file and bring its content into memeory
 		//
 		if gCtx.curFileNum >= uint32(len(gCtx.files)) {
-			//time.Sleep(100 * time.Millisecond)
 			return SCAP_EOF
 		}
 
 		file := gCtx.files[gCtx.curFileNum]
+		gCtx.curFileNum++
 
-		str, err = ioutil.ReadFile(file.name)
+		if gCtx.isS3 {
+			str, err = readFileS3(file.name)
+		} else {
+			str, err = readFileLocal(file.name)
+		}
 		if err != nil {
 			gLastError = err.Error()
 			return SCAP_FAILURE
@@ -336,8 +389,6 @@ func plugin_next(plgState *C.char, openState *C.char, data **C.char, datalen *ui
 			gCtx.evtJsonList = jdata["Records"].([]interface{})
 			gCtx.evtJsonListPos = 0
 		}
-
-		gCtx.curFileNum++
 	}
 
 	//
