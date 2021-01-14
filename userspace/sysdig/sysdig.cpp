@@ -647,7 +647,6 @@ captureinfo do_inspect(sinsp* inspector,
 			// Notify the chisels that we're exiting, and then die with an error.
 			//
 			handle_end_of_file(print_progress, formatter);
-			cerr << "resz = " << res << endl;
 			throw sinsp_exception(inspector->getlasterr().c_str());
 		}
 

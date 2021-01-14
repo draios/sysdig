@@ -15,17 +15,21 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 	"unsafe"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
 const PLUGIN_ID uint32 = 2
 const PLUGIN_NAME string = "cloudtrail"
 const PLUGIN_DESCRIPTION = "reads cloudtrail JSON data saved to file in the directory specified in the settings"
 
+const S3_DOWNLOAD_CONCURRENCY = 512
 const VERBOSE bool = false
 const NEXT_BUF_LEN uint32 = 65535
 const OUT_BUF_LEN uint32 = 4096
@@ -47,6 +51,13 @@ type getFieldsEntry struct {
 	Desc string `json:"desc"`
 }
 
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 type fileInfo struct {
@@ -55,8 +66,15 @@ type fileInfo struct {
 }
 
 type s3State struct {
-	bucket string
-	awsSvc *s3.S3
+	bucket                string
+	awsSvc                *s3.S3
+	awsSess               *session.Session
+	downloader            *s3manager.Downloader
+	DownloadWg            sync.WaitGroup
+	DownloadBufs          [][]byte
+	lastDownloadedFileNum int
+	nFilledBufs           int
+	curBuf                int
 }
 
 type pluginContext struct {
@@ -96,13 +114,15 @@ func plugin_init(config *C.char, rc *int32) *C.char {
 	// Allocate the state struct
 	//
 	gCtx = pluginContext{
-		evtBufLen: int(NEXT_BUF_LEN),
-		outBufLen: int(OUT_BUF_LEN),
-		//	cloudTrailFilesDir: "/home/loris/git/cloud-connector/test/cloudtrail",
-		//	cloudTrailFilesDir: "c:\\windump\\GitHub\\cloud-connector\\test\\cloudtrail",
+		evtBufLen:      int(NEXT_BUF_LEN),
+		outBufLen:      int(OUT_BUF_LEN),
 		curFileNum:     0,
 		evtJsonListPos: 0,
 	}
+
+	gCtx.s3.lastDownloadedFileNum = 0
+	gCtx.s3.nFilledBufs = 0
+	gCtx.s3.curBuf = 0
 
 	//
 	// We need two different pieces of memory to share data with the C code:
@@ -119,6 +139,12 @@ func plugin_init(config *C.char, rc *int32) *C.char {
 
 	gCtx.outBufRaw = C.malloc(C.size_t(OUT_BUF_LEN))
 	gCtx.outBuf = (*[1 << 30]byte)(unsafe.Pointer(gCtx.outBufRaw))[:int(gCtx.outBufLen):int(gCtx.outBufLen)]
+
+	//
+	// We create an array of download buffers that will be used to concurrently
+	// download files from s3
+	//
+	gCtx.s3.DownloadBufs = make([][]byte, S3_DOWNLOAD_CONCURRENCY)
 
 	*rc = SCAP_SUCCESS
 
@@ -264,11 +290,11 @@ func openS3(plgState *C.char, params *C.char, rc *int32) *C.char {
 	//
 	// Fetch the list of keys
 	//
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
+	gCtx.s3.awsSess = session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
 
-	gCtx.s3.awsSvc = s3.New(sess)
+	gCtx.s3.awsSvc = s3.New(gCtx.s3.awsSess)
 
 	err := gCtx.s3.awsSvc.ListObjectsPages(&s3.ListObjectsInput{
 		Bucket: &gCtx.s3.bucket,
@@ -291,6 +317,8 @@ func openS3(plgState *C.char, params *C.char, rc *int32) *C.char {
 		gLastError = PLUGIN_NAME + " plugin error: failed to list objects: " + err.Error()
 		*rc = SCAP_FAILURE
 	}
+
+	gCtx.s3.downloader = s3manager.NewDownloader(gCtx.s3.awsSess)
 
 	return nil
 }
@@ -315,7 +343,57 @@ func plugin_close(plgState *C.char, openState *C.char) {
 	log.Printf("[%s] plugin_close\n", PLUGIN_NAME)
 }
 
-func readFileS3(fileName string) ([]byte, error) {
+var dlErrChan chan error
+
+func s3Download(downloader *s3manager.Downloader, name string, dloadSlotNum int) {
+	defer gCtx.s3.DownloadWg.Done()
+
+	buff := &aws.WriteAtBuffer{}
+	_, err := downloader.Download(buff,
+		&s3.GetObjectInput{
+			Bucket: &gCtx.s3.bucket,
+			Key:    &name,
+		})
+	if err != nil {
+		dlErrChan <- err
+		return
+	}
+
+	gCtx.s3.DownloadBufs[dloadSlotNum] = buff.Bytes()
+}
+
+func readNextFileS3(fileName string) ([]byte, error) {
+	/*
+		if gCtx.s3.curBuf < gCtx.s3.nFilledBufs {
+			//fmt.Printf("*R %d %d\n", gCtx.s3.curBuf, gCtx.s3.nFilledBufs)
+			curBuf := gCtx.s3.curBuf
+			gCtx.s3.curBuf++
+			return gCtx.s3.DownloadBufs[curBuf], nil
+		}
+
+		dlErrChan = make(chan error, S3_DOWNLOAD_CONCURRENCY)
+		k := gCtx.s3.lastDownloadedFileNum
+		gCtx.s3.nFilledBufs = min(S3_DOWNLOAD_CONCURRENCY, len(gCtx.files)-k)
+		//fmt.Printf("*D [%d %d]\n", k, gCtx.s3.nFilledBufs-1)
+		for j, f := range gCtx.files[k : k+gCtx.s3.nFilledBufs] {
+			//fmt.Printf("$ %d %s\n", j, f.name)
+			gCtx.s3.DownloadWg.Add(1)
+			go s3Download(gCtx.s3.downloader, f.name, j)
+		}
+		gCtx.s3.DownloadWg.Wait()
+
+		select {
+		case e := <-dlErrChan:
+			return nil, e
+		default:
+		}
+
+		gCtx.s3.lastDownloadedFileNum += S3_DOWNLOAD_CONCURRENCY
+
+		gCtx.s3.curBuf = 1
+		//fmt.Printf("*r %d\n", 0)
+		return gCtx.s3.DownloadBufs[0], nil
+	*/
 	output, err := gCtx.s3.awsSvc.GetObject(&s3.GetObjectInput{
 		Bucket: &gCtx.s3.bucket,
 		Key:    &fileName,
@@ -354,7 +432,7 @@ func plugin_next(plgState *C.char, openState *C.char, data **C.char, datalen *ui
 		gCtx.curFileNum++
 
 		if gCtx.isS3 {
-			str, err = readFileS3(file.name)
+			str, err = readNextFileS3(file.name)
 		} else {
 			str, err = readFileLocal(file.name)
 		}
