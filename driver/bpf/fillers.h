@@ -300,6 +300,9 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
 #endif
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
+	if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
+		return PPM_FAILURE_BUFFER_FULL;
+
 	off = data->state->tail_ctx.curoff + sizeof(u16);
 	fds_count = 0;
 
