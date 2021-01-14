@@ -34,6 +34,10 @@ static __always_inline void fixup_evt_arg_len(char *p,
 					      unsigned int argnum,
 					      unsigned int arglen)
 {
+	if (argnum > PPM_MAX_EVENT_PARAMS)
+	{
+		return;
+	}
 	volatile unsigned int argnumv = argnum;
 	*((u16 *)&p[sizeof(struct ppm_evt_hdr)] + (argnumv & (PPM_MAX_EVENT_PARAMS - 1))) = arglen;
 }
