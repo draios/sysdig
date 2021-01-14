@@ -9,7 +9,6 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -308,7 +307,7 @@ func openS3(plgState *C.char, params *C.char, rc *int32) *C.char {
 				continue
 			}
 
-			var fi fileInfo = fileInfo{name: *path, isCompressed: false}
+			var fi fileInfo = fileInfo{name: *path, isCompressed: true}
 			gCtx.files = append(gCtx.files, fi)
 		}
 		return true
@@ -362,48 +361,32 @@ func s3Download(downloader *s3manager.Downloader, name string, dloadSlotNum int)
 	gCtx.s3.DownloadBufs[dloadSlotNum] = buff.Bytes()
 }
 
-func readNextFileS3(fileName string) ([]byte, error) {
-	/*
-		if gCtx.s3.curBuf < gCtx.s3.nFilledBufs {
-			//fmt.Printf("*R %d %d\n", gCtx.s3.curBuf, gCtx.s3.nFilledBufs)
-			curBuf := gCtx.s3.curBuf
-			gCtx.s3.curBuf++
-			return gCtx.s3.DownloadBufs[curBuf], nil
-		}
+func readNextFileS3() ([]byte, error) {
+	if gCtx.s3.curBuf < gCtx.s3.nFilledBufs {
+		curBuf := gCtx.s3.curBuf
+		gCtx.s3.curBuf++
+		return gCtx.s3.DownloadBufs[curBuf], nil
+	}
 
-		dlErrChan = make(chan error, S3_DOWNLOAD_CONCURRENCY)
-		k := gCtx.s3.lastDownloadedFileNum
-		gCtx.s3.nFilledBufs = min(S3_DOWNLOAD_CONCURRENCY, len(gCtx.files)-k)
-		//fmt.Printf("*D [%d %d]\n", k, gCtx.s3.nFilledBufs-1)
-		for j, f := range gCtx.files[k : k+gCtx.s3.nFilledBufs] {
-			//fmt.Printf("$ %d %s\n", j, f.name)
-			gCtx.s3.DownloadWg.Add(1)
-			go s3Download(gCtx.s3.downloader, f.name, j)
-		}
-		gCtx.s3.DownloadWg.Wait()
+	dlErrChan = make(chan error, S3_DOWNLOAD_CONCURRENCY)
+	k := gCtx.s3.lastDownloadedFileNum
+	gCtx.s3.nFilledBufs = min(S3_DOWNLOAD_CONCURRENCY, len(gCtx.files)-k)
+	for j, f := range gCtx.files[k : k+gCtx.s3.nFilledBufs] {
+		gCtx.s3.DownloadWg.Add(1)
+		go s3Download(gCtx.s3.downloader, f.name, j)
+	}
+	gCtx.s3.DownloadWg.Wait()
 
-		select {
-		case e := <-dlErrChan:
-			return nil, e
-		default:
-		}
+	select {
+	case e := <-dlErrChan:
+		return nil, e
+	default:
+	}
 
-		gCtx.s3.lastDownloadedFileNum += S3_DOWNLOAD_CONCURRENCY
+	gCtx.s3.lastDownloadedFileNum += S3_DOWNLOAD_CONCURRENCY
 
-		gCtx.s3.curBuf = 1
-		//fmt.Printf("*r %d\n", 0)
-		return gCtx.s3.DownloadBufs[0], nil
-	*/
-	output, err := gCtx.s3.awsSvc.GetObject(&s3.GetObjectInput{
-		Bucket: &gCtx.s3.bucket,
-		Key:    &fileName,
-	})
-
-	buf := new(strings.Builder)
-	_, err = io.Copy(buf, output.Body)
-	output.Body.Close()
-
-	return []byte(buf.String()), err
+	gCtx.s3.curBuf = 1
+	return gCtx.s3.DownloadBufs[0], nil
 }
 
 func readFileLocal(fileName string) ([]byte, error) {
@@ -432,7 +415,7 @@ func plugin_next(plgState *C.char, openState *C.char, data **C.char, datalen *ui
 		gCtx.curFileNum++
 
 		if gCtx.isS3 {
-			str, err = readNextFileS3(file.name)
+			str, err = readNextFileS3()
 		} else {
 			str, err = readFileLocal(file.name)
 		}
