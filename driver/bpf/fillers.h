@@ -2640,7 +2640,7 @@ FILLER(sys_recvfrom_x, true)
 	unsigned long val;
 	u16 size = 0;
 	long retval;
-	int addrlen;
+	unsigned long addrlen;
 	int err = 0;
 	int res;
 	int fd;
@@ -2770,7 +2770,7 @@ FILLER(sys_recvmsg_x_2, true)
 	unsigned long val;
 	u16 size = 0;
 	long retval;
-	int addrlen;
+	unsigned long addrlen;
 	int res;
 	int fd;
 
@@ -2832,7 +2832,7 @@ FILLER(sys_sendmsg_e, true)
 	unsigned long iovcnt;
 	unsigned long val;
 	u16 size = 0;
-	int addrlen;
+	unsigned long addrlen;
 	int err = 0;
 	int res;
 	int fd;

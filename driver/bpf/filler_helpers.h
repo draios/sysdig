@@ -19,6 +19,9 @@ or GPL2.txt for full copies of the license.
 
 #include "../ppm_flag_helpers.h"
 
+// Maximum var size allowed by the verifier
+#define BPF_MAX_VAR_SIZE 1ULL << 29
+
 static __always_inline bool in_port_range(uint16_t port, uint16_t min, uint16_t max)
 {
 	return port >= min && port <= max;
@@ -212,10 +215,10 @@ static __always_inline bool bpf_getsockname(struct socket *sock,
 	return true;
 }
 
-static __always_inline int bpf_addr_to_kernel(void *uaddr, int ulen,
+static __always_inline int bpf_addr_to_kernel(void *uaddr, unsigned long ulen,
 					      struct sockaddr *kaddr)
 {
-	if (ulen < 0 || ulen > sizeof(struct sockaddr_storage))
+	if (ulen > BPF_MAX_VAR_SIZE)
 		return -EINVAL;
 
 	if (ulen == 0)
@@ -289,7 +292,7 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 			if (!bpf_getsockname(sock, peer_address, 1))
 				return res;
 		} else {
-			int addrlen = bpf_syscall_get_argument(data, 5);
+			unsigned long addrlen = bpf_syscall_get_argument(data, 5);
 
 			if (addrlen != 0) {
 				if (bpf_addr_to_kernel(usrsockaddr, addrlen, (struct sockaddr *)peer_address))
@@ -302,7 +305,7 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 		struct sockaddr *usrsockaddr;
 		struct user_msghdr mh;
 		unsigned long val;
-		int addrlen;
+		unsigned long addrlen;
 
 		val = bpf_syscall_get_argument(data, 1);
 		if (bpf_probe_read(&mh, sizeof(mh), (void *)val)) {
