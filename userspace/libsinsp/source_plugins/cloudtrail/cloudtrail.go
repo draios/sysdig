@@ -470,10 +470,21 @@ func plugin_next(plgState *C.char, openState *C.char, data **C.char, datalen *ui
 		time.RFC3339,
 		fmt.Sprintf("%s", cr["eventTime"]))
 	if err != nil {
-		gLastError = fmt.Sprintf("time in unknown format: %s", cr["eventTime"])
-		return SCAP_FAILURE
+		// gLastError = fmt.Sprintf("time in unknown format: %s, %v(%v)",
+		// 	cr["eventTime"],
+		// 	gCtx.evtJsonListPos,
+		// 	len(gCtx.evtJsonList))
+		//
+		// We assume this is just some spurious data and we continue
+		//
+		return SCAP_TIMEOUT
 	}
 	*ts = uint64(t1.Unix()) * 1000000000
+
+	ets := fmt.Sprintf("%s", cr["eventType"])
+	if ets == "AwsCloudTrailInsight" {
+		return SCAP_TIMEOUT
+	}
 
 	//
 	// Re-convert the event into a cunsumable string.
