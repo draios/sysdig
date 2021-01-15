@@ -20,6 +20,7 @@ or GPL2.txt for full copies of the license.
 #include "../ppm_flag_helpers.h"
 
 // Maximum var size allowed by the verifier
+// From BPF_MAX_VAR_SIZ in linux/bpf_verifier.h
 #define BPF_MAX_VAR_SIZE 1ULL << 29
 
 static __always_inline bool in_port_range(uint16_t port, uint16_t min, uint16_t max)
