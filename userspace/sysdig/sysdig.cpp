@@ -62,8 +62,6 @@ vector<sinsp_chisel*> g_chisels;
 
 static void usage();
 
-#define TEST_SRC
-
 //
 // Helper functions
 //
