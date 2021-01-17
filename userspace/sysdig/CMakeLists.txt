@@ -131,6 +131,10 @@ else()
 			$<TARGET_FILE:csysdig>
 			"${PROJECT_BINARY_DIR}/$(Configuration)/csysdig.exe")
 
+	add_custom_command(TARGET csysdig POST_BUILD
+		COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+			$<TARGET_FILE:csysdig>
+			"${PROJECT_BINARY_DIR}/$(Configuration)/csysdig-aws.exe")
 endif()
 
 configure_file(config_sysdig.h.in config_sysdig.h)
