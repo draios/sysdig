@@ -74,7 +74,7 @@ typedef struct _section_header_block
 ///////////////////////////////////////////////////////////////////////////////
 #define MI_BLOCK_TYPE			0x201
 #define MI_BLOCK_TYPE_INT		0x8002ABCD	// This is the unofficial number used before the
-											// library release. We'll keep him for a while for
+											// library release. We'll keep it for a while for
 											// backward compatibility
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -82,17 +82,17 @@ typedef struct _section_header_block
 ///////////////////////////////////////////////////////////////////////////////
 #define PL_BLOCK_TYPE_V1		0x202
 #define PL_BLOCK_TYPE_V1_INT	0x8000ABCD	// This is the unofficial number used before the
-											// library release. We'll keep him for a while for
+											// library release. We'll keep it for a while for
 											// backward compatibility
 
 #define PL_BLOCK_TYPE_V2		0x207
 #define PL_BLOCK_TYPE_V2_INT	0x8013ABCD	// This is the unofficial number used before the
-											// library release. We'll keep him for a while for
+											// library release. We'll keep it for a while for
 											// backward compatibility
 
 #define PL_BLOCK_TYPE_V3		0x209
 #define PL_BLOCK_TYPE_V3_INT	0x8014ABCD	// This is the unofficial number used before the
-											// library release. We'll keep him for a while for
+											// library release. We'll keep it for a while for
 											// backward compatibility
 
 #define PL_BLOCK_TYPE_V4		0x210
@@ -112,7 +112,7 @@ typedef struct _section_header_block
 ///////////////////////////////////////////////////////////////////////////////
 #define FDL_BLOCK_TYPE			0x203
 #define FDL_BLOCK_TYPE_INT		0x8001ABCD	// This is the unofficial number used before the
-											// library release. We'll keep him for a while for
+											// library release. We'll keep it for a while for
 											// backward compatibility
 #define FDL_BLOCK_TYPE_V2		0x218
 
@@ -121,7 +121,7 @@ typedef struct _section_header_block
 ///////////////////////////////////////////////////////////////////////////////
 #define EV_BLOCK_TYPE			0x204
 #define EV_BLOCK_TYPE_INT		0x8010ABCD	// This is the unofficial number used before the
-											// library release. We'll keep him for a while for
+											// library release. We'll keep it for a while for
 											// backward compatibility
 #define EV_BLOCK_TYPE_V2		0x216
 
@@ -130,7 +130,7 @@ typedef struct _section_header_block
 ///////////////////////////////////////////////////////////////////////////////
 #define IL_BLOCK_TYPE			0x205
 #define IL_BLOCK_TYPE_INT		0x8011ABCD	// This is the unofficial number used before the
-											// library release. We'll keep him for a while for
+											// library release. We'll keep it for a while for
 											// backward compatibility
 #define IL_BLOCK_TYPE_V2		0x219
 
@@ -139,7 +139,7 @@ typedef struct _section_header_block
 ///////////////////////////////////////////////////////////////////////////////
 #define UL_BLOCK_TYPE			0x206
 #define UL_BLOCK_TYPE_INT		0x8012ABCD	// This is the unofficial number used before the
-											// library release. We'll keep him for a while for
+											// library release. We'll keep it for a while for
 											// backward compatibility
 #define UL_BLOCK_TYPE_V2		0x220
 

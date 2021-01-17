@@ -456,6 +456,10 @@ void sinsp_table::process_event(sinsp_evt* evt)
 	{
 		uint32_t len;
 		uint8_t* val = m_premerge_extractors[j]->extract(evt, &len);
+if(val == NULL || string((char*)val) == "")
+{
+	int a = 0;
+}
 
 		sinsp_table_field* pfld = &(m_premerge_fld_pointers[j]);
 
