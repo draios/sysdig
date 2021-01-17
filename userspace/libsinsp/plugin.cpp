@@ -128,14 +128,11 @@ public:
 		{
 		case PT_CHARBUF:
 		{
+			//char* pret = NULL;
 			char* pret = m_source_info->extract_str(evt->get_num(), 
 				m_field_id, m_arg, 
 				(uint8_t*)parinfo->m_val, 
 				parinfo->m_len);
-			//if(pret == NULL)
-			//{
-			//	throw sinsp_exception("plugin's extract_as_string returned a NULL result");
-			//}
 			if(pret != NULL)
 			{
 				*len = strlen(pret);
@@ -455,7 +452,6 @@ void sinsp_plugin::load_dynlib_plugins(sinsp* inspector)
 
 			string fname(file.name);
 			string fpath(file.path);
-			bool add_to_vector = false;
 			ss_plugin_info si;
 			string error;
 

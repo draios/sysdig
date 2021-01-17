@@ -39,6 +39,7 @@ limitations under the License.
 #include "fields_info.h"
 #include "table.h"
 #include "utils.h"
+#include "plugin.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -109,6 +110,12 @@ static void usage()
 "                    better with terminals like putty. Try to use this flag if you experience\n"
 "                    terminal issues like the mouse not working.\n"
 " -h, --help         Print this page\n"
+" -I <inputname>, --input <inputname>\n"
+"                    capture events from the source with name inputname.\n"
+"                    The available event sources vary depending on which plugins have\n"
+"                    been installed and can be listed by using the -Il flag.\n"
+" -Il, --list-inputs\n"
+"                    lists the available event sources that can be used for capture.\n"
 #ifndef MINIMAL_BUILD
 " -k <url>, --k8s-api=<url>\n"
 "                    Enable Kubernetes support by connecting to the API server\n"
@@ -330,6 +337,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	bool list_views = false;
 	bool bpf = false;
 	string bpf_probe;
+	string inputname;
+	bool has_src_plugin = false;
 #ifdef HAS_CAPTURE
 	string cri_socket_path;
 #endif
@@ -362,6 +371,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"exclude-users", no_argument, 0, 'E' },
 		{"from", required_argument, 0, 0 },
 		{"help", no_argument, 0, 'h' },
+		{"input", required_argument, 0, 'I' },
 #ifndef MINIMAL_BUILD
 		{"k8s-api", required_argument, 0, 'k'},
 		{"k8s-api-cert", required_argument, 0, 'K' },
@@ -402,12 +412,13 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 #ifdef HAS_CHISELS
 		add_chisel_dirs(inspector);
 #endif
+		sinsp_plugin::register_source_plugins(inspector, SYSDIG_INSTALLATION_DIR);
 
 		//
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-			"AB::d:Ehk:K:jlm:n:p:Rr:s:Tv:X", long_options, &long_index)) != -1)
+			"AB::d:EhI:k:K:jlm:n:p:Rr:s:Tv:X", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -459,6 +470,35 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				usage();
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
+			case 'I':
+				{
+					inputname = optarg;
+					if(inputname == "l")
+					{
+						sinsp_plugin::list_plugins(inspector);
+						delete inspector;
+						return sysdig_init_res(EXIT_SUCCESS);
+					}
+
+					has_src_plugin = true;
+
+
+					size_t cpos = inputname.find(':');
+					string pgname;
+					string pgpars;
+					if(cpos != string::npos)
+					{
+						pgname = inputname.substr(0, cpos);
+						pgpars = inputname.substr(cpos + 1);
+						inspector->set_input_plugin(pgname);
+						inspector->set_input_plugin_open_params(pgpars);
+					}
+					else
+					{
+						inspector->set_input_plugin(inputname);
+					}
+				}
+				break;
 #ifndef MINIMAL_BUILD
 			case 'k':
 				k8s_api = new string(optarg);
@@ -702,7 +742,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				//
 				setenv("TERM", mct, 1);
 			}
-
 			(void) initscr();      // initialize the curses library
 			(void) nonl();         // tell curses not to do NL->CR/NL on output
 			intrflush(stdscr, false);
@@ -850,13 +889,20 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 #if defined(HAS_CAPTURE)
 				bool open_success = true;
 
-				try
+				if(has_src_plugin)
 				{
 					inspector->open("");
 				}
-				catch(const sinsp_exception& e)
+				else
 				{
-					open_success = false;
+					try
+					{
+						inspector->open("");
+					}
+					catch(const sinsp_exception& e)
+					{
+						open_success = false;
+					}
 				}
 
 #ifndef _WIN32
