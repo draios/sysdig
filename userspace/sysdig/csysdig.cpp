@@ -345,8 +345,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 
 #ifndef _WIN32
 	sinsp_table::output_type output_type = sinsp_table::OT_CURSES;
+	bool is_aws = sinsp_utils::endswith(argv[0], "csysdig-aws");
 #else
 	sinsp_table::output_type output_type = sinsp_table::OT_JSON;
+	bool is_aws = sinsp_utils::endswith(argv[0], "csysdig-aws.exe");
 #endif
 #ifndef MINIMAL_BUILD
 	string* k8s_api = 0;
@@ -802,6 +804,19 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					{
 						continue;
 					}
+				}
+
+				bool is_view_aws = false;
+				if(std::find(it.m_viewinfo.m_tags.begin(),
+					it.m_viewinfo.m_tags.end(),
+					"csysdig-aws") != it.m_viewinfo.m_tags.end())
+				{
+					is_view_aws = true;
+				}
+
+				if(is_aws != is_view_aws)
+				{
+					continue;
 				}
 
 				view_manager.add(&it.m_viewinfo);
