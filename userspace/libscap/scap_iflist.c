@@ -243,6 +243,15 @@ int32_t scap_create_iflist(scap_t* handle)
 	return scap_create_iflist_windows(handle);
 }
 
+#else // _WIN32
+//
+// This is the fallback for MacOS and the other OSes where we don't support live
+// captures
+//
+int32_t scap_create_iflist(scap_t* handle)
+{
+	return SCAP_FAILURE;
+}
 #endif // _WIN32
 #endif // HAS_CAPTURE
 
