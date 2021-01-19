@@ -28,7 +28,7 @@ const PLUGIN_ID uint32 = 2
 const PLUGIN_NAME string = "cloudtrail"
 const PLUGIN_DESCRIPTION = "reads cloudtrail JSON data saved to file in the directory specified in the settings"
 
-const S3_DOWNLOAD_CONCURRENCY = 512
+const S3_DOWNLOAD_CONCURRENCY = 256
 const VERBOSE bool = false
 const NEXT_BUF_LEN uint32 = 65535
 const OUT_BUF_LEN uint32 = 4096
@@ -195,9 +195,12 @@ const FIELD_ID_CLOUDTRAIL_SRC uint32 = 0
 const FIELD_ID_CLOUDTRAIL_NAME uint32 = 1
 const FIELD_ID_CLOUDTRAIL_USER uint32 = 2
 const FIELD_ID_CLOUDTRAIL_REGION uint32 = 3
-const FIELD_ID_S3_BUCKETNAME uint32 = 4
-const FIELD_ID_SRCIP uint32 = 5
-const FIELD_ID_S3_USERAGENT uint32 = 6
+const FIELD_ID_CLOUDTRAIL_SRCIP uint32 = 4
+const FIELD_ID_CLOUDTRAIL_USERAGENT uint32 = 5
+const FIELD_ID_S3_BUCKET uint32 = 6
+const FIELD_ID_S3_KEY uint32 = 7
+const FIELD_ID_S3_HOST uint32 = 8
+const FIELD_ID_S3_URI uint32 = 9
 
 //export plugin_get_fields
 func plugin_get_fields() *C.char {
@@ -207,9 +210,12 @@ func plugin_get_fields() *C.char {
 		{Type: "string", Name: "ct.name", Desc: "the name of the cloudtrail event (eventName in the json)."},
 		{Type: "string", Name: "ct.user", Desc: "the user of the cloudtrail event (userIdentity.userName in the json)."},
 		{Type: "string", Name: "ct.region", Desc: "the region of the cloudtrail event (awsRegion in the json)."},
-		{Type: "string", Name: "ct.bucketname", Desc: "the region of the cloudtrail event (awsRegion in the json)."},
 		{Type: "string", Name: "ct.srcip", Desc: "the IP address generating the event (sourceIPAddress in the json)."},
 		{Type: "string", Name: "ct.useragent", Desc: "the user agent generating the event (userAgent in the json)."},
+		{Type: "string", Name: "s3.bucket", Desc: "the bucket name for s3 events."},
+		{Type: "string", Name: "s3.key", Desc: "the key name for s3 events."},
+		{Type: "string", Name: "s3.host", Desc: "the host name for s3 events."},
+		{Type: "string", Name: "s3.uri", Desc: "the s3 URI (s3://<bucket>/<key>) for s3 events."},
 	}
 
 	b, err := json.Marshal(&flds)
@@ -304,7 +310,7 @@ func openS3(plgState *C.char, params *C.char, rc *int32) *C.char {
 		Prefix: &prefix,
 	}, func(p *s3.ListObjectsOutput, last bool) (shouldContinue bool) {
 		for _, obj := range p.Contents {
-			//fmt.Printf("%v %v\n", *obj.Size, *obj.Key)
+			//fmt.Printf("> %v %v\n", *obj.Size, *obj.Key)
 			path := obj.Key
 			isCompressed := strings.HasSuffix(*path, ".json.gz")
 			if filepath.Ext(*path) != ".json" && !isCompressed {
@@ -648,7 +654,11 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 		line = fmt.Sprintf("%s", re["userName"])
 	case FIELD_ID_CLOUDTRAIL_REGION:
 		line = fmt.Sprintf("%s", jdata["awsRegion"])
-	case FIELD_ID_S3_BUCKETNAME:
+	case FIELD_ID_CLOUDTRAIL_SRCIP:
+		line = fmt.Sprintf("%s", jdata["sourceIPAddress"])
+	case FIELD_ID_CLOUDTRAIL_USERAGENT:
+		line = fmt.Sprintf("%s", jdata["userAgent"])
+	case FIELD_ID_S3_BUCKET:
 		if jdata["requestParameters"] == nil {
 			return nil
 		}
@@ -657,11 +667,37 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 			return nil
 		}
 		line = fmt.Sprintf("%s", bn)
-	case FIELD_ID_SRCIP:
-		line = fmt.Sprintf("%s", jdata["sourceIPAddress"])
-	case FIELD_ID_S3_USERAGENT:
-		line = fmt.Sprintf("%s", jdata["userAgent"])
-
+	case FIELD_ID_S3_KEY:
+		if jdata["requestParameters"] == nil {
+			return nil
+		}
+		bn := jdata["requestParameters"].(map[string]interface{})["key"]
+		if bn == nil {
+			return nil
+		}
+		line = fmt.Sprintf("%s", bn)
+	case FIELD_ID_S3_HOST:
+		if jdata["requestParameters"] == nil {
+			return nil
+		}
+		bn := jdata["requestParameters"].(map[string]interface{})["Host"]
+		if bn == nil {
+			return nil
+		}
+		line = fmt.Sprintf("%s", bn)
+	case FIELD_ID_S3_URI:
+		if jdata["requestParameters"] == nil {
+			return nil
+		}
+		sbucket := jdata["requestParameters"].(map[string]interface{})["bucketName"]
+		if sbucket == nil {
+			return nil
+		}
+		skey := jdata["requestParameters"].(map[string]interface{})["key"]
+		if skey == nil {
+			return nil
+		}
+		line = fmt.Sprintf("s3://%s/%s", sbucket, skey)
 	default:
 		line = "<NA>"
 	}
