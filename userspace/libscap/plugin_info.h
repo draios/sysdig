@@ -151,7 +151,9 @@ typedef struct
 	//
 	char* (*event_to_string)(uint8_t* data, uint32_t datalen);
 	//
-	// Extract a filter field value from an event, as a string.
+	// Extract a filter field value from an event. 
+	// We offer multiple versions of extract(), differing from each other only in 
+	// the type of the value they return (string, integer...).
 	// Arguments:
 	// - evtnum: the number of the event that is bein processed
 	// - id: the numeric identifier of the field to extract. It corresponds to the
@@ -163,9 +165,10 @@ typedef struct
 	//    * if the field specified by the user is foo.bar, arg will be NULL
 	// - data: the buffer produced by next().
 	// - datalen: the length of the buffer produced by next().
-	// Return value: the string value of the filter field.
+	// Return value: the produced value of the filter field.
 	//
 	char* (*extract_str)(uint64_t evtnum, uint32_t id, char* arg, uint8_t* data, uint32_t datalen);
+	uint64_t (*extract_u64)(uint64_t evtnum, uint32_t id, char* arg, uint8_t* data, uint32_t datalen);
 
 	//
 	// The following members are PRIVATE for the engine and should not be touched.

@@ -128,7 +128,11 @@ public:
 		{
 		case PT_CHARBUF:
 		{
-			//char* pret = NULL;
+			if(m_source_info->extract_str == NULL)
+			{
+				throw sinsp_exception(string("plugin ") + m_source_info->get_name() + "is missing the extract_str export");
+			}
+
 			char* pret = m_source_info->extract_str(evt->get_num(), 
 				m_field_id, m_arg, 
 				(uint8_t*)parinfo->m_val, 
@@ -142,6 +146,19 @@ public:
 				*len = 0;
 			}
 			return (uint8_t*)pret;
+		}
+		case PT_UINT64:
+		{
+			if(m_source_info->extract_u64 == NULL)
+			{
+				throw sinsp_exception(string("plugin ") + m_source_info->get_name() + "is missing the extract_u64 export");
+			}
+
+			m_u64_res = m_source_info->extract_u64(evt->get_num(), 
+				m_field_id, m_arg, 
+				(uint8_t*)parinfo->m_val, 
+				parinfo->m_len);
+			return (uint8_t*)&m_u64_res;
 		}
 		default:
 			ASSERT(false);
@@ -169,6 +186,7 @@ public:
 	char* m_arg = NULL;
 	ss_plugin_info* m_source_info;
 	ss_plugin_type m_type;
+	uint64_t m_u64_res;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -216,7 +234,6 @@ void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
 		ENSURE_PLUGIN_EXPORT(get_name);
 		ENSURE_PLUGIN_EXPORT(get_description);
 		ENSURE_PLUGIN_EXPORT(get_fields);
-		ENSURE_PLUGIN_EXPORT(extract_str);
 	}
 	else
 	{
@@ -297,7 +314,11 @@ void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
 			{
 				tf.m_type = PT_CHARBUF;
 			}
-			else if(ftype == "integer")
+			else if(ftype == "uint64")
+			{
+				tf.m_type = PT_UINT64;
+			}
+			else if(ftype == "int64")
 			{
 				tf.m_type = PT_INT64;
 			}
@@ -423,6 +444,7 @@ bool sinsp_plugin::create_dynlib_source(string libname, OUT ss_plugin_info* info
 	*(void**)(&(info->next)) = getsym(handle, "plugin_next");
 	*(void**)(&(info->event_to_string)) = getsym(handle, "plugin_event_to_string");
 	*(void**)(&(info->extract_str)) = getsym(handle, "plugin_extract_str");
+	*(void**)(&(info->extract_u64)) = getsym(handle, "plugin_extract_u64");
 
 	return true;
 }
