@@ -201,6 +201,9 @@ const FIELD_ID_S3_BUCKET uint32 = 6
 const FIELD_ID_S3_KEY uint32 = 7
 const FIELD_ID_S3_HOST uint32 = 8
 const FIELD_ID_S3_URI uint32 = 9
+const FIELD_ID_S3_BYTES uint32 = 10
+const FIELD_ID_S3_BYTES_IN uint32 = 11
+const FIELD_ID_S3_BYTES_OUT uint32 = 12
 
 //export plugin_get_fields
 func plugin_get_fields() *C.char {
@@ -216,6 +219,9 @@ func plugin_get_fields() *C.char {
 		{Type: "string", Name: "s3.key", Desc: "the key name for s3 events."},
 		{Type: "string", Name: "s3.host", Desc: "the host name for s3 events."},
 		{Type: "string", Name: "s3.uri", Desc: "the s3 URI (s3://<bucket>/<key>) for s3 events."},
+		{Type: "uint64", Name: "s3.bytes", Desc: "the size of an s3 download or upload, in bytes."},
+		{Type: "uint64", Name: "s3.bytes.in", Desc: "the size of an s3 upload, in bytes."},
+		{Type: "uint64", Name: "s3.bytes.out", Desc: "the size of an s3 download, in bytes."},
 	}
 
 	b, err := json.Marshal(&flds)
@@ -614,8 +620,6 @@ func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
 
 //export plugin_extract_str
 func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, datalen uint32) *C.char {
-	//	log.Printf("[%s] plugin_extract_str\n", PLUGIN_NAME)
-
 	var line string
 	var jdata map[string]interface{}
 
@@ -710,6 +714,62 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 	copy(gCtx.outBuf[:], line)
 
 	return (*C.char)(gCtx.outBufRaw)
+}
+
+//export plugin_extract_u64
+func plugin_extract_u64(evtnum uint64, id uint32, arg *C.char, data *C.char, datalen uint32) uint64 {
+	var jdata map[string]interface{}
+
+	//
+	// Decode the json
+	//
+	err := json.Unmarshal([]byte(C.GoString(data)), &jdata)
+	if err != nil {
+		//
+		// Not a json file. We return nil to indicate that the field is not
+		// present.
+		//
+		return 0
+	}
+
+	switch id {
+	case FIELD_ID_S3_BYTES:
+		if jdata["additionalEventData"] == nil {
+			return 0
+		}
+		var tot uint64 = 0
+		in := jdata["additionalEventData"].(map[string]interface{})["bytesTransferredIn"]
+		if in != nil {
+			tot = tot + in.(uint64)
+		}
+		out := jdata["additionalEventData"].(map[string]interface{})["bytesTransferredOut"]
+		if out != nil {
+			tot = tot + out.(uint64)
+		}
+		return tot
+	case FIELD_ID_S3_BYTES_IN:
+		if jdata["additionalEventData"] == nil {
+			return 0
+		}
+		var tot uint64 = 0
+		in := jdata["additionalEventData"].(map[string]interface{})["bytesTransferredIn"]
+		if in != nil {
+			tot = tot + in.(uint64)
+		}
+		return tot
+	case FIELD_ID_S3_BYTES_OUT:
+		if jdata["additionalEventData"] == nil {
+			return 0
+		}
+		var tot uint64 = 0
+		in := jdata["additionalEventData"].(map[string]interface{})["bytesTransferredOut"]
+		if in != nil {
+			tot = tot + in.(uint64)
+		}
+		return tot
+	default:
+		return 0
+	}
 }
 
 func main() {
