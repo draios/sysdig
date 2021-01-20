@@ -34,7 +34,6 @@ using namespace std;
 
 #include "sinsp.h"
 #include "sinsp_int.h"
-#include "../../driver/ppm_ringbuffer.h"
 #include "filter.h"
 #include "filterchecks.h"
 
@@ -100,10 +99,12 @@ curses_table::curses_table(sinsp_cursesui* parent, sinsp* inspector, sinsp_table
 	m_colsizes[PT_FLAGS8] = 32;
 	m_colsizes[PT_FLAGS16] = 32;
 	m_colsizes[PT_FLAGS32] = 32;
+	m_colsizes[PT_MODE] = 32;
 	m_colsizes[PT_UID] = 12;
 	m_colsizes[PT_GID] = 12;
 	m_colsizes[PT_DOUBLE] = 8;
 	m_colsizes[PT_SIGSET] = 32;
+	m_colsizes[PT_FSRELPATH] = 32;
 
 	//
 	// Define the table size

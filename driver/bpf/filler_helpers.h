@@ -19,6 +19,11 @@ or GPL2.txt for full copies of the license.
 
 #include "../ppm_flag_helpers.h"
 
+static __always_inline bool in_port_range(uint16_t port, uint16_t min, uint16_t max)
+{
+	return port >= min && port <= max;
+}
+
 static __always_inline struct file *bpf_fget(int fd)
 {
 	struct task_struct *task;
@@ -72,23 +77,35 @@ static __always_inline struct socket *bpf_sockfd_lookup(struct filler_data *data
 	return sock;
 }
 
-static __always_inline bool bpf_get_ino_fd(int fd, unsigned long *ino)
+static __always_inline unsigned long bpf_encode_dev(dev_t dev)
 {
-	struct file *file;
-	struct dentry *dentry;
+	unsigned int major = MAJOR(dev);
+	unsigned int minor = MINOR(dev);
+
+	return (minor & 0xff) | (major << 8) | ((minor & ~0xff) << 12);
+}
+
+static __always_inline bool bpf_get_fd_dev_ino(int fd, unsigned long *dev, unsigned long *ino)
+{
+	struct super_block *sb;
 	struct inode *inode;
+	struct file *file;
+	dev_t kdev;
 
 	file = bpf_fget(fd);
 	if (!file)
 		return false;
 
-	dentry = _READ(file->f_path.dentry);
-	if (!dentry)
-		return false;
-
-	inode = _READ(dentry->d_inode);
+	inode = _READ(file->f_inode);
 	if (!inode)
 		return false;
+
+	sb = _READ(inode->i_sb);
+	if (!sb)
+		return false;
+
+	kdev = _READ(sb->s_dev);
+	*dev = bpf_encode_dev(kdev);
 
 	*ino = _READ(inode->i_ino);
 
@@ -323,7 +340,18 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 		dport = 0;
 	}
 
-	if (sport == PPM_PORT_MYSQL || dport == PPM_PORT_MYSQL) {
+	uint16_t min_port = data->settings->fullcapture_port_range_start;
+	uint16_t max_port = data->settings->fullcapture_port_range_end;
+
+	if (max_port > 0 &&
+		(in_port_range(sport, min_port, max_port) ||
+		 in_port_range(dport, min_port, max_port))) {
+		/*
+		 * Before checking the well-known ports, see if the user has requested
+		 * an increased snaplen for the port in question.
+		 */
+		return RW_MAX_FULLCAPTURE_PORT_SNAPLEN;
+	} else if (sport == PPM_PORT_MYSQL || dport == PPM_PORT_MYSQL) {
 		if (lookahead_size >= 5) {
 			if (get_buf(0) == 3 ||
 			    get_buf(1) == 3 ||
@@ -338,7 +366,7 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 	} else if (sport == PPM_PORT_POSTGRES || dport == PPM_PORT_POSTGRES) {
 		if (lookahead_size >= 2) {
 			if ((get_buf(0) == 'Q' && get_buf(1) == 0) || /* SimpleQuery command */
-			    (get_buf(0) == 'P' && get_buf(1) == 0) || /* Prepare statement commmand */
+			    (get_buf(0) == 'P' && get_buf(1) == 0) || /* Prepare statement command */
 			    (get_buf(4) == 0 && get_buf(5) == 3 && get_buf(6) == 0) || /* startup command */
 			    (get_buf(0) == 'E' && get_buf(1) == 0) /* error or execute command */
 			) {
@@ -355,7 +383,7 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 						  *(s32 *)&get_buf(12) == 2006 ||
 						  *(s32 *)&get_buf(12) == 2007))) {
 		return 2000;
-	} else if (dport == PPM_PORT_STATSD) {
+	} else if (dport == data->settings->statsd_port) {
 		return 2000;
 	} else {
 		if (lookahead_size >= 5) {
@@ -706,14 +734,15 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 
 	switch (type) {
 	case PT_CHARBUF:
-	case PT_FSPATH: {
+	case PT_FSPATH:
+	case PT_FSRELPATH: {
 		if (!data->curarg_already_on_frame) {
 			int res;
 
 			res = bpf_probe_read_str(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 						 PPM_MAX_ARG_SIZE,
 						 (const void *)val);
-			if (res < 0)
+			if (res == -EFAULT)
 				return PPM_FAILURE_INVALID_USER_MEMORY;
 			len = res;
 		} else {
@@ -802,6 +831,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 		len = sizeof(u16);
 		break;
 	case PT_FLAGS32:
+	case PT_MODE:
 	case PT_UINT32:
 	case PT_UID:
 	case PT_GID:
@@ -902,6 +932,9 @@ static __always_inline int bpf_val_to_ring_type(struct filler_data *data,
 
 static __always_inline bool bpf_in_ia32_syscall()
 {
+#ifdef __ppc64__
+	return 0;
+#else
 	struct task_struct *task;
 	u32 status;
 
@@ -918,6 +951,7 @@ static __always_inline bool bpf_in_ia32_syscall()
 #endif
 
 	return status & TS_COMPAT;
+#endif // #ifdef __ppc64__
 }
 
 #endif

@@ -24,8 +24,21 @@ limitations under the License.
 #define VISIBILITY_PRIVATE private:
 #endif
 
+#include "sinsp_inet.h"
+#include "sinsp_public.h"
+#include "scap.h"
+#include "gen_filter.h"
+#include "settings.h"
+
 typedef class sinsp sinsp;
 typedef class sinsp_threadinfo sinsp_threadinfo;
+
+
+namespace test_helpers {
+	class event_builder;
+	class sinsp_mock;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Event arguments
@@ -74,7 +87,7 @@ class SINSP_PUBLIC sinsp_evt_param
 {
 public:
 	char* m_val;	///< Pointer to the event parameter data.
-	uint16_t m_len; ///< Length os the parameter pointed by m_val.
+	uint16_t m_len; ///< Length of the parameter pointed by m_val.
 private:
 	inline void init(char* valptr, uint16_t len)
 	{
@@ -92,7 +105,7 @@ private:
   events and their parameters, including parsing, formatting and extracting
   state like the event process or FD.
 */
-class SINSP_PUBLIC sinsp_evt
+class SINSP_PUBLIC sinsp_evt : public gen_event
 {
 public:
 	/*!
@@ -146,9 +159,17 @@ public:
 	~sinsp_evt();
 
 	/*!
+	  \brief Set the inspector.
+	*/
+	void inspector(sinsp *value)
+	{
+		m_inspector = value;
+	}
+
+	/*!
 	  \brief Get the incremental number of this event.
 	*/
-	inline uint64_t get_num()
+	inline uint64_t get_num() const
 	{
 		return m_evtnum;
 	}
@@ -156,7 +177,7 @@ public:
 	/*!
 	  \brief Get the number of the CPU where this event was captured.
 	*/
-	inline int16_t get_cpuid()
+	inline int16_t get_cpuid() const
 	{
 		return m_cpuid;
 	}
@@ -166,7 +187,7 @@ public:
 
 	  \note For a list of event types, refer to \ref etypes.
 	*/
-	inline uint16_t get_type()
+	inline uint16_t get_type() const override
 	{
 		return m_pevt->type;
 	}
@@ -174,7 +195,7 @@ public:
 	/*!
 	  \brief Get the event's flags.
 	*/
-	inline ppm_event_flags get_info_flags()
+	inline ppm_event_flags get_info_flags() const
 	{
 		return m_info->flags;
 	}
@@ -182,7 +203,7 @@ public:
 	/*!
 	\brief Get the event's category.
 	*/
-	inline ppm_event_category get_info_category()
+	inline ppm_event_category get_info_category() const
 	{
 		return m_info->category;
 	}
@@ -190,14 +211,14 @@ public:
 	/*!
 	  \brief Return the event direction: in or out.
 	*/
-	event_direction get_direction();
+	event_direction get_direction() const;
 
 	/*!
 	  \brief Get the event timestamp.
 
 	  \return The event timestamp, in nanoseconds from epoch
 	*/
-	inline uint64_t get_ts()
+	inline uint64_t get_ts() const override
 	{
 		return m_pevt->ts;
 	}
@@ -205,12 +226,12 @@ public:
 	/*!
 	  \brief Return the event name string, e.g. 'open' or 'socket'.
 	*/
-	const char* get_name();
+	const char* get_name() const;
 
 	/*!
 	  \brief Return the event category.
 	*/
-	inline ppm_event_category get_category()
+	inline ppm_event_category get_category() const
 	{
 		return m_info->category;
 	}
@@ -239,7 +260,7 @@ public:
 		return m_fdinfo;
 	}
 
-	inline bool fdinfo_name_changed()
+	inline bool fdinfo_name_changed() const
 	{
 		return m_fdinfo_name_changed;
 	}
@@ -300,23 +321,13 @@ public:
 	   before returning it. For example, and FD number will be converted into
 	   the correspondent file, TCP tuple, etc.
 	*/
-	string get_param_value_str(const string& name, bool resolved = true);
+	std::string get_param_value_str(const std::string& name, bool resolved = true);
 
 	/*!
 	  \brief Return the event's category, based on the event type and the FD on
 	   which the event operates.
 	*/
 	void get_category(OUT sinsp_evt::category* cat);
-
-	/*!
-	  \brief Set an opaque "check id", corresponding to the id of the last filtercheck that matched this event.
-	*/
-	void set_check_id(int32_t id);
-
-	/*!
-	  \brief Get the opaque "check id" (-1 if not set).
-	*/
-	int32_t get_check_id();
 
 #ifdef HAS_FILTERING
 	/*!
@@ -327,12 +338,50 @@ public:
 #endif
 
 	/*!
-	  \brief Return whether or not falco should consider this
-	  event. (Generally, these events are automatically filtered
-	  out, but some events related to internal tracking are returned by next() anyway).
+	  \brief Return whether or not a simple consumer that privileges low overhead to
+	  full event capture should consider this event. (Generally, these events are
+	  automatically filtered out, but some events related to internal tracking are
+	  returned by next() anyway).
 	*/
 
-	bool falco_consider();
+	bool simple_consumer_consider();
+
+	inline uint16_t get_source() const override
+	{
+		return ESRC_SINSP;
+	}
+
+	/*!
+	  \brief Returns true if this event represents a system call error,
+	         false otherwise.
+	*/
+	bool is_syscall_error() const;
+
+	/*!
+	  \brief Returns true if this event represents a file open system
+	         call error, false otherwise.
+
+          Precondition: is_syscall_error() must return true.
+	*/
+	bool is_file_open_error() const;
+
+	/*!
+	  \brief Returns true if this event represents a file-related system
+	         call error (including open errors), false otherwise.
+
+	  Precondition: is_syscall_error() must return true.
+	*/
+	bool is_file_error() const;
+
+	/*!
+	  \brief Returns true if this event represents a network-related system
+	         call error, false otherwise.
+
+	  Precondition: is_syscall_error() must return true.
+	*/
+	bool is_network_error() const;
+
+	uint64_t get_lastevent_ts() const;
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
@@ -341,26 +390,35 @@ private:
 
 	void set_iosize(uint32_t size);
 	uint32_t get_iosize();
+
+	std::string get_base_dir(uint32_t id, sinsp_threadinfo *tinfo);
+
 	const char* get_param_as_str(uint32_t id, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
 	Json::Value get_param_as_json(uint32_t id, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
 
 	const char* get_param_value_str(const char* name, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
 
-	inline void init()
+	inline void init_keep_threadinfo()
 	{
 		m_flags = EF_NONE;
 		m_info = &(m_event_info_table[m_pevt->type]);
-		m_tinfo = NULL;
 		m_fdinfo = NULL;
 		m_fdinfo_name_changed = false;
 		m_iosize = 0;
 		m_poriginal_evt = NULL;
+	}
+	inline void init()
+	{
+		init_keep_threadinfo();
+		m_tinfo_ref.reset();
+		m_tinfo = NULL;
 	}
 	inline void init(uint8_t* evdata, uint16_t cpuid)
 	{
 		m_flags = EF_NONE;
 		m_pevt = (scap_evt *)evdata;
 		m_info = &(m_event_info_table[m_pevt->type]);
+		m_tinfo_ref.reset();
 		m_tinfo = NULL;
 		m_fdinfo = NULL;
 		m_fdinfo_name_changed = false;
@@ -368,6 +426,17 @@ private:
 		m_cpuid = cpuid;
 		m_evtnum = 0;
 		m_poriginal_evt = NULL;
+	}
+	inline void init(scap_evt *scap_event,
+			 ppm_event_info * ppm_event,
+			 sinsp_threadinfo *threadinfo,
+			 sinsp_fdinfo_t *fdinfo)
+	{
+		m_pevt = scap_event;
+		m_info = ppm_event;
+		m_tinfo_ref.reset(); // we don't own the threadinfo so don't try to manage its lifetime
+		m_tinfo = threadinfo;
+		m_fdinfo = fdinfo;
 	}
 	inline void load_params()
 	{
@@ -392,8 +461,8 @@ private:
 			valptr += lens[j];
 		}
 	}
-	string get_param_value_str(uint32_t id, bool resolved);
-	string get_param_value_str(const char* name, bool resolved = true);
+	std::string get_param_value_str(uint32_t id, bool resolved);
+	std::string get_param_value_str(const char* name, bool resolved = true);
 	char* render_fd(int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
 	int render_fd_json(Json::Value *ret, int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
 	uint32_t get_dump_flags();
@@ -409,17 +478,20 @@ VISIBILITY_PRIVATE
 	sinsp* m_inspector;
 	scap_evt* m_pevt;
 	scap_evt* m_poriginal_evt;	// This is used when the original event is replaced by a different one (e.g. in the case of user events)
+	char *m_pevt_storage;           // In some cases an alternate buffer is used to hold m_pevt. This points to that storage.
 	uint16_t m_cpuid;
 	uint64_t m_evtnum;
 	uint32_t m_flags;
-	int32_t m_check_id = 0;
 	bool m_params_loaded;
 	const struct ppm_event_info* m_info;
-	vector<sinsp_evt_param> m_params;
+	std::vector<sinsp_evt_param> m_params;
 
-	vector<char> m_paramstr_storage;
-	vector<char> m_resolved_paramstr_storage;
+	std::vector<char> m_paramstr_storage;
+	std::vector<char> m_resolved_paramstr_storage;
 
+	// reference to keep threadinfo alive. currently only used for synthetic container event thread info
+	// it should either be null, or point to the same place as m_tinfo
+	std::shared_ptr<sinsp_threadinfo> m_tinfo_ref;
 	sinsp_threadinfo* m_tinfo;
 	sinsp_fdinfo_t* m_fdinfo;
 
@@ -446,7 +518,6 @@ VISIBILITY_PRIVATE
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_analyzer_parsers;
 	friend class lua_cbacks;
-	friend class sinsp_proto_detector;
 	friend class sinsp_container_manager;
 	friend class sinsp_table;
 	friend class sinsp_cursesui;
@@ -455,6 +526,9 @@ VISIBILITY_PRIVATE
 	friend class capture_job;
 	friend class sinsp_memory_dumper;
 	friend class sinsp_memory_dumper_job;
+	friend class protocol_manager;
+	friend class test_helpers::event_builder;
+	friend class test_helpers::sinsp_mock;
 };
 
 /*@}*/

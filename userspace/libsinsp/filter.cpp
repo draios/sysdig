@@ -80,10 +80,10 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 	add_filter_check(new sinsp_filter_check_container());
 	add_filter_check(new sinsp_filter_check_utils());
 	add_filter_check(new sinsp_filter_check_fdlist());
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	add_filter_check(new sinsp_filter_check_k8s());
 	add_filter_check(new sinsp_filter_check_mesos());
-#endif
+#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	add_filter_check(new sinsp_filter_check_tracer());
 	add_filter_check(new sinsp_filter_check_evtin());
 }
@@ -254,7 +254,13 @@ bool flt_compare_string(cmpop op, char* operand1, char* operand2)
 		return (strstr(operand1, operand2) != NULL);
     case CO_ICONTAINS:
 #ifdef _WIN32
-		return (_strnicmp(operand1, operand2, strlen(operand1)) != NULL);
+	{
+		string s1(operand1);
+		string s2(operand2);
+		std::transform(s1.begin(), s1.end(), s1.begin(), [](unsigned char c){ return std::tolower(c); });
+		std::transform(s2.begin(), s2.end(), s2.begin(), [](unsigned char c){ return std::tolower(c); });
+		return (strstr(s1.c_str(), s2.c_str()) != NULL);
+	}
 #else
 		return (strcasestr(operand1, operand2) != NULL);
 #endif
@@ -467,6 +473,7 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 		return flt_compare_uint64(op, (uint64_t)*(uint16_t*)operand1, (uint64_t)*(uint16_t*)operand2);
 	case PT_UINT32:
 	case PT_FLAGS32:
+	case PT_MODE:
 	case PT_BOOL:
 	case PT_IPV4ADDR:
 		return flt_compare_uint64(op, (uint64_t)*(uint32_t*)operand1, (uint64_t)*(uint32_t*)operand2);
@@ -517,6 +524,7 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 	case PT_FDLIST:
 	case PT_FSPATH:
 	case PT_SIGSET:
+	case PT_FSRELPATH:
 	default:
 		ASSERT(false);
 		return false;
@@ -598,6 +606,7 @@ bool flt_compare_avg(cmpop op,
 		return flt_compare_uint64(op, u641, u642);
 	case PT_UINT32:
 	case PT_FLAGS32:
+	case PT_MODE:
 	case PT_BOOL:
 	case PT_IPV4ADDR:
 	case PT_IPV6ADDR:
@@ -810,7 +819,8 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 		case PT_BYTEBUF:
 		case PT_IPV4ADDR:
 		case PT_IPV6ADDR:
-	        case PT_IPADDR:
+		case PT_IPADDR:
+		case PT_FSRELPATH:
 			return rawval_to_string(rawval, ptype, print_format, len);
 		default:
 			ASSERT(false);
@@ -1036,6 +1046,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			return m_getpropertystr_storage;
 		case PT_CHARBUF:
 		case PT_FSPATH:
+		case PT_FSRELPATH:
 			return (char*)rawval;
 		case PT_BYTEBUF:
 			if(rawval[len] == 0)
@@ -1191,17 +1202,6 @@ int32_t sinsp_filter_check::parse_field_name(const char* str, bool alloc_state, 
 	return max_fldlen;
 }
 
-void sinsp_filter_check::set_check_id(int32_t id)
-{
-	m_check_id = id;
-}
-
-int32_t sinsp_filter_check::get_check_id()
-{
-	return m_check_id;
-}
-
-
 void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_t i)
 {
 	size_t parsed_len;
@@ -1266,7 +1266,7 @@ const filtercheck_field_info* sinsp_filter_check::get_field_info()
 
 bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operand1, uint32_t op1_len, uint32_t op2_len)
 {
-	if (op == CO_IN || op == CO_PMATCH)
+	if (op == CO_IN || op == CO_PMATCH || op == CO_INTERSECTS)
 	{
 		// Certain filterchecks can't be done as a set
 		// membership test/group match. For these, just loop over the
@@ -1281,6 +1281,7 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 		case PT_FDLIST:
 		case PT_FSPATH:
 		case PT_SIGSET:
+		case PT_FSRELPATH:
 			for (uint16_t i=0; i < m_val_storages.size(); i++)
 			{
 				if (::flt_compare(CO_EQ,
@@ -1294,7 +1295,6 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 				}
 			}
 			return false;
-			break;
 		default:
 			// For raw strings, the length may not be set. So we do a strlen to find it.
 			if(type == PT_CHARBUF && op1_len == 0)
@@ -1304,8 +1304,13 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 
 			filter_value_t item((uint8_t *) operand1, op1_len);
 
-			if (op == CO_IN)
+			if (op == CO_IN || op == CO_INTERSECTS)
 			{
+				// CO_INTERSECTS is really more interesting when a filtercheck can extract
+				// multiple values, and you're comparing the set of extracted values
+				// against the set of rhs values. sinsp_filter_checks only extract a
+				// single value, so CO_INTERSECTS is really the same as CO_IN.
+
 				if(op1_len >= m_val_storages_min_size &&
 				   op1_len <= m_val_storages_max_size &&
 				   m_val_storages_members.find(item) != m_val_storages_members.end())
@@ -1337,11 +1342,56 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 	}
 }
 
+uint8_t* sinsp_filter_check::extract(gen_event *evt, OUT uint32_t* len, bool sanitize_strings)
+{
+	return extract((sinsp_evt *) evt, len, sanitize_strings);
+}
+
+uint8_t* sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+{
+	if(m_extraction_cache_entry != NULL)
+	{
+		uint64_t en = ((sinsp_evt *)evt)->get_num();
+
+		if(en != m_extraction_cache_entry->m_evtnum)
+		{
+			m_extraction_cache_entry->m_evtnum = en;
+			m_extraction_cache_entry->m_res = extract(evt, len, sanitize_strings);
+		}
+
+		return m_extraction_cache_entry->m_res;
+	}
+	else
+	{
+		return extract(evt, len, sanitize_strings);
+	}
+}
+
+bool sinsp_filter_check::compare(gen_event *evt)
+{
+	if(m_eval_cache_entry != NULL)
+	{
+		uint64_t en = ((sinsp_evt *)evt)->get_num();
+
+		if(en != m_eval_cache_entry->m_evtnum)
+		{
+			m_eval_cache_entry->m_evtnum = en;
+			m_eval_cache_entry->m_res = compare((sinsp_evt *) evt);
+		}
+
+		return m_eval_cache_entry->m_res;
+	}
+	else
+	{
+		return compare((sinsp_evt *) evt);
+	}
+}
+
 bool sinsp_filter_check::compare(sinsp_evt *evt)
 {
 	uint32_t evt_val_len=0;
 	bool sanitize_strings = false;
-	uint8_t* extracted_val = extract(evt, &evt_val_len, sanitize_strings);
+	uint8_t* extracted_val = extract_cached(evt, &evt_val_len, sanitize_strings);
 
 	if(extracted_val == NULL)
 	{
@@ -1355,176 +1405,13 @@ bool sinsp_filter_check::compare(sinsp_evt *evt)
 			   m_val_storage_len);
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// sinsp_filter_expression implementation
-///////////////////////////////////////////////////////////////////////////////
-sinsp_filter_expression::sinsp_filter_expression()
-{
-	m_parent = NULL;
-}
-
-sinsp_filter_expression::~sinsp_filter_expression()
-{
-	uint32_t j;
-
-	for(j = 0; j < m_checks.size(); j++)
-	{
-		delete m_checks[j];
-	}
-}
-
-// Only filter checks get IDs
-int32_t sinsp_filter_expression::get_check_id()
-{
-	return 0;
-}
-
-sinsp_filter_check* sinsp_filter_expression::allocate_new()
-{
-	ASSERT(false);
-	return NULL;
-}
-
-void sinsp_filter_expression::add_check(sinsp_filter_check* chk)
-{
-	m_checks.push_back(chk);
-}
-
-void sinsp_filter_expression::parse(string expr)
-{
-}
-
-bool sinsp_filter_expression::compare(sinsp_evt *evt)
-{
-	uint32_t j;
-	uint32_t size = (uint32_t)m_checks.size();
-	bool res = true;
-	sinsp_filter_check* chk = NULL;
-
-	for(j = 0; j < size; j++)
-	{
-		chk = m_checks[j];
-		ASSERT(chk != NULL);
-
-		if(j == 0)
-		{
-			switch(chk->m_boolop)
-			{
-			case BO_NONE:
-				res = chk->compare(evt);
-				if (res) {
-					evt->set_check_id(chk->get_check_id());
-				}
-				break;
-			case BO_NOT:
-				res = !chk->compare(evt);
-				break;
-			default:
-				ASSERT(false);
-				break;
-			}
-		}
-		else
-		{
-			switch(chk->m_boolop)
-			{
-			case BO_OR:
-				if(res)
-				{
-					goto done;
-				}
-				res = chk->compare(evt);
-				if (res) {
-					evt->set_check_id(chk->get_check_id());
-				}
-				break;
-			case BO_AND:
-				if(!res)
-				{
-					goto done;
-				}
-				res = chk->compare(evt);
-				if (res) {
-					evt->set_check_id(chk->get_check_id());
-				}
-				break;
-			case BO_ORNOT:
-				if(res)
-				{
-					goto done;
-				}
-				res = !chk->compare(evt);
-				if (res) {
-					evt->set_check_id(chk->get_check_id());
-				}
-				break;
-			case BO_ANDNOT:
-				if(!res)
-				{
-					goto done;
-				}
-				res = !chk->compare(evt);
-				if (res) {
-					evt->set_check_id(chk->get_check_id());
-				}
-				break;
-			default:
-				ASSERT(false);
-				break;
-			}
-		}
-	}
- done:
-
-	return res;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// sinsp_filter implementation
-///////////////////////////////////////////////////////////////////////////////
-sinsp_filter::sinsp_filter(sinsp* inspector)
+sinsp_filter::sinsp_filter(sinsp *inspector)
 {
 	m_inspector = inspector;
-	m_filter = new sinsp_filter_expression();
-	m_curexpr = m_filter;
-
 }
 
 sinsp_filter::~sinsp_filter()
 {
-	if(m_filter)
-	{
-		delete m_filter;
-	}
-}
-
-void sinsp_filter::push_expression(boolop op)
-{
-	sinsp_filter_expression* newexpr = new sinsp_filter_expression();
-	newexpr->m_boolop = op;
-	newexpr->m_parent = m_curexpr;
-
-	add_check((sinsp_filter_check*)newexpr);
-	m_curexpr = newexpr;
-}
-
-void sinsp_filter::pop_expression()
-{
-	ASSERT(m_curexpr->m_parent != NULL);
-
-	m_curexpr = m_curexpr->m_parent;
-}
-
-bool sinsp_filter::run(sinsp_evt *evt)
-{
-	//	printf("m_filter: %p", (void*) m_filter);
-	//	ASSERT(m_filter != NULL);
-	return m_filter->compare(evt);
-}
-
-void sinsp_filter::add_check(sinsp_filter_check* chk)
-{
-	m_curexpr->add_check(chk);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1851,6 +1738,11 @@ cmpop sinsp_filter_compiler::next_comparison_operator()
 		m_scanpos += 2;
 		return CO_IN;
 	}
+	else if(compare_no_consume("intersects"))
+	{
+		m_scanpos += 10;
+		return CO_INTERSECTS;
+	}
 	else if(compare_no_consume("pmatch"))
 	{
 		m_scanpos += 6;
@@ -1905,7 +1797,7 @@ void sinsp_filter_compiler::parse_check()
 
 	chk->parse_field_name((char *)&operand1[0], true, true);
 
-	if(co == CO_IN || co == CO_PMATCH)
+	if(co == CO_IN || co == CO_INTERSECTS || co == CO_PMATCH)
 	{
 		//
 		// Skip spaces
@@ -1917,7 +1809,7 @@ void sinsp_filter_compiler::parse_check()
 
 		if(m_fltstr[m_scanpos] != '(')
 		{
-			throw sinsp_exception("expected '(' after 'in/pmatch' operand");
+			throw sinsp_exception("expected '(' after 'in/intersects/pmatch' operand");
 		}
 
 		//
@@ -2062,10 +1954,10 @@ sinsp_filter* sinsp_filter_compiler::compile()
 	{
 		return compile_();
 	}
-	catch(sinsp_exception& e)
+	catch(const sinsp_exception& e)
 	{
 		delete m_filter;
-		throw e;
+		throw sinsp_exception(string("filter error at position ") + to_string(m_scanpos) + ": " + e.what());
 	}
 	catch(...)
 	{
@@ -2095,7 +1987,12 @@ sinsp_filter* sinsp_filter_compiler::compile_()
 
 			if(m_state != ST_EXPRESSION_DONE)
 			{
-				throw sinsp_exception("filter error: unexpected end of filter at position " + to_string((long long) m_scanpos));
+				throw sinsp_exception("filter error: unexpected end of filter");
+			}
+
+			if(m_filter->m_filter->get_expr_boolop() == -1)
+			{
+				throw sinsp_exception("expression mixes 'and' and 'or' in an ambiguous way. Please use brackets.");
 			}
 
 			//
@@ -2128,7 +2025,7 @@ sinsp_filter* sinsp_filter_compiler::compile_()
 				}
 				else
 				{
-					throw sinsp_exception("syntax error in filter at position " + to_string((long long)m_scanpos));
+					throw sinsp_exception("syntax error in filter");
 				}
 
 				if(m_state != ST_EXPRESSION_DONE)
@@ -2155,7 +2052,7 @@ sinsp_filter* sinsp_filter_compiler::compile_()
 				}
 				else
 				{
-					throw sinsp_exception("syntax error in filter at position " + to_string((long long)m_scanpos));
+					throw sinsp_exception("syntax error in filter");
 				}
 
 				if(m_state != ST_EXPRESSION_DONE)
@@ -2179,7 +2076,7 @@ sinsp_filter* sinsp_filter_compiler::compile_()
 			}
 			else
 			{
-				throw sinsp_exception("syntax error in filter at position " + to_string((long long) m_scanpos));
+				throw sinsp_exception("syntax error in filter");
 			}
 
 			if(m_state != ST_EXPRESSION_DONE && m_state != ST_NEED_EXPRESSION)
@@ -2199,7 +2096,7 @@ sinsp_filter* sinsp_filter_compiler::compile_()
 			}
 			else
 			{
-				throw sinsp_exception("syntax error in filter at position " + to_string((long long) m_scanpos));
+				throw sinsp_exception("syntax error in filter");
 			}
 			break;
 		}
@@ -2500,5 +2397,28 @@ void sinsp_evttype_filter::syscalls_for_ruleset(std::vector<bool> &syscalls, uin
 {
 	return m_rulesets[ruleset]->syscalls_for_ruleset(syscalls);
 }
+
+sinsp_filter_factory::sinsp_filter_factory(sinsp *inspector)
+	: m_inspector(inspector)
+{
+}
+
+sinsp_filter_factory::~sinsp_filter_factory()
+{
+}
+
+gen_event_filter *sinsp_filter_factory::new_filter()
+{
+	return new sinsp_filter(m_inspector);
+}
+
+
+gen_event_filter_check *sinsp_filter_factory::new_filtercheck(const char *fldname)
+{
+	return g_filterlist.new_filter_check_from_fldname(fldname,
+							  m_inspector,
+							  true);
+}
+
 
 #endif // HAS_FILTERING

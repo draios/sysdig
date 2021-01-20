@@ -34,6 +34,8 @@ limitations under the License.
 
 const std::string k8s_state_t::m_docker_prefix = "docker://";
 const std::string k8s_state_t::m_rkt_prefix = "rkt://";
+const std::string k8s_state_t::m_containerd_prefix = "containerd://";
+const std::string k8s_state_t::m_crio_prefix = "cri-o://";
 const unsigned    k8s_state_t::m_id_length = 12u;
 
 k8s_state_t::k8s_state_t(bool is_captured, int capture_version):
@@ -59,19 +61,32 @@ void k8s_state_t::cache_pod(container_pod_map& map, const std::string& id, const
 	ASSERT(pod);
 	ASSERT(!pod->get_name().empty());
 	std::string::size_type pos = id.find(m_docker_prefix);
-	if (pos == 0)
+	if(pos == 0)
 	{
 		map[id.substr(m_docker_prefix.size(), m_id_length)] = pod;
 		return;
 	}
 	pos = id.find(m_rkt_prefix);
-	if( pos == 0)
+	if(pos == 0)
 	{
 		map[id.substr(m_rkt_prefix.size())] = pod;
 		return;
 	}
-	throw sinsp_exception("Invalid container ID (expected '" + m_docker_prefix +
-						  "{ID}' or '" + m_rkt_prefix + "{ID}'): " + id);
+	pos = id.find(m_containerd_prefix);
+	if(pos == 0)
+	{
+		map[id.substr(m_containerd_prefix.size(), m_id_length)] = pod;
+		return;
+	}
+	pos = id.find(m_crio_prefix);
+	if(pos == 0)
+	{
+		map[id.substr(m_crio_prefix.size(), m_id_length)] = pod;
+		return;
+	}
+	throw sinsp_exception("Invalid container ID (expected one of: '" + m_docker_prefix +
+						 "{ID}', '" + m_rkt_prefix + "{ID}', '" + m_containerd_prefix +
+						 "{ID}', '" + m_crio_prefix + "{ID}'): " + id);
 }
 
 bool k8s_state_t::has_pod(k8s_pod_t& pod)

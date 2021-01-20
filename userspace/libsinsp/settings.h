@@ -55,8 +55,8 @@ limitations under the License.
 //
 // Max size that the thread table can reach
 //
-#define MAX_THREAD_TABLE_SIZE 65536
-#define DEFAULT_THREAD_TABLE_SIZE 32768
+#define MAX_THREAD_TABLE_SIZE 131072
+#define DEFAULT_THREAD_TABLE_SIZE 65536
 
 //
 // Max size that the FD table of a process can reach
@@ -123,9 +123,9 @@ limitations under the License.
 #define CLONE_STALE_TIME_NS 2000000000
 
 //
-// For internal use
+// Port range to enable larger snaplen on
 //
-#define FALCOBL_FULL_PROCESSING
+#define DEFAULT_INCREASE_SNAPLEN_PORT_RANGE {0, 0}
 
 //
 // FD class customized with the storage we need

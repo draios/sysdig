@@ -22,7 +22,7 @@ limitations under the License.
 // Curl utility
 //
 
-#if defined(__linux__)
+#if defined(__linux__) && !defined(MINIMAL_BUILD)
 
 #pragma once
 
@@ -117,12 +117,12 @@ public:
 	{
 		return m_response_headers;
 	}
-	
-	const long get_response_code() const
+
+	long get_response_code() const
 	{
 		return m_response_code;
 	}
-	
+
 private:
 	struct data
 	{

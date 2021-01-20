@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2013-2020 Sysdig Inc.
 
 This file is part of sysdig.
 
@@ -30,7 +30,13 @@ limitations under the License.
 
 #include <sinsp.h>
 #include "chisel.h"
+#ifdef HAS_CAPTURE
+#ifndef WIN32
+#include "driver_config.h"
+#endif // WIN32
+#endif // HAS_CAPTURE
 #include "sysdig.h"
+#include "fields_info.h"
 #include "table.h"
 #include "utils.h"
 
@@ -46,6 +52,8 @@ limitations under the License.
 #include "cursescomponents.h"
 #include "cursestable.h"
 #include "cursesui.h"
+#include "scap_open_exception.h"
+#include "sinsp_capture_interrupt_exception.h"
 
 #define MOUSE_CAPABLE_TERM "xterm-1003"
 #define MOUSE_CAPABLE_TERM_COMPAT "xterm-1002"
@@ -78,6 +86,13 @@ static void usage()
 "                    The BPF probe can also be specified via the environment variable\n"
 "                    SYSDIG_BPF_PROBE. If <bpf_probe> is left empty, sysdig will\n"
 "                    try to load one from the sysdig-probe-loader script.\n"
+#ifdef HAS_CAPTURE
+" --cri <path>       Path to CRI socket for container metadata\n"
+"                    Use the specified socket to fetch data from a CRI-compatible runtime\n"
+"\n"
+" --cri-timeout <timeout_ms>\n"
+"                    Wait at most <timeout_ms> milliseconds for response from CRI\n"
+#endif
 " -d <period>, --delay=<period>\n"
 "                    Set the delay between updates, in milliseconds. This works\n"
 "                    similarly to the -d option in top.\n"
@@ -94,6 +109,7 @@ static void usage()
 "                    better with terminals like putty. Try to use this flag if you experience\n"
 "                    terminal issues like the mouse not working.\n"
 " -h, --help         Print this page\n"
+#ifndef MINIMAL_BUILD
 " -k <url>, --k8s-api=<url>\n"
 "                    Enable Kubernetes support by connecting to the API server\n"
 "                    specified as argument. E.g. \"http://admin:password@127.0.0.1:8080\".\n"
@@ -111,7 +127,14 @@ static void usage()
 "                    Note that the format of this command-line option prohibits use of files whose names contain\n"
 "                    ':' or '#' characters in the file name.\n"
 "                    Option can also be provided via the environment variable SYSDIG_K8S_API_CERT.\n"
+#endif // MINIMAL_BUILD
 " -l, --list         List all the fields that can be used in views.\n"
+" --large-environment\n"
+"                    Support environments larger than 4KiB\n"
+"                    When the environment is larger than 4KiB, load the whole\n"
+"                    environment from /proc instead of truncating to the first 4KiB\n"
+"                    This may fail for short-lived processes and in that case\n"
+"                    the truncated environment is used instead.\n"
 " --logfile=<file>\n"
 "                    Print program logs into the given file.\n"
 " -n <num>, --numevents=<num>\n"
@@ -221,8 +244,8 @@ static void print_views(sinsp_view_manager* view_manager)
 		root.append(jv);
 	}
 
-	string ouput = writer.write(root);
-	printf("%s", ouput.substr(0, ouput.size() - 1).c_str());
+	string output = writer.write(root);
+	printf("%s", output.substr(0, output.size() - 1).c_str());
 }
 #endif
 
@@ -307,15 +330,20 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	bool list_views = false;
 	bool bpf = false;
 	string bpf_probe;
+#ifdef HAS_CAPTURE
+	string cri_socket_path;
+#endif
 
 #ifndef _WIN32
 	sinsp_table::output_type output_type = sinsp_table::OT_CURSES;
 #else
 	sinsp_table::output_type output_type = sinsp_table::OT_JSON;
 #endif
+#ifndef MINIMAL_BUILD
 	string* k8s_api = 0;
 	string* k8s_api_cert = 0;
 	string* mesos_api = 0;
+#endif // MINIMAL_BUILD
 	bool terminal_with_mouse = false;
 	bool force_tracers_capture = false;
 	bool force_term_compat = false;
@@ -326,17 +354,26 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	{
 		{"print-ascii", no_argument, 0, 'A' },
 		{"bpf", optional_argument, 0, 'B' },
+#ifdef HAS_CAPTURE
+		{"cri", required_argument, 0, 0 },
+		{"cri-timeout", required_argument, 0, 0 },
+#endif
 		{"delay", required_argument, 0, 'd' },
 		{"exclude-users", no_argument, 0, 'E' },
 		{"from", required_argument, 0, 0 },
 		{"help", no_argument, 0, 'h' },
+#ifndef MINIMAL_BUILD
 		{"k8s-api", required_argument, 0, 'k'},
 		{"k8s-api-cert", required_argument, 0, 'K' },
+#endif // MINIMAL_BUILD
 		{"json", no_argument, 0, 'j' },
 		{"interactive", optional_argument, 0, 0 },
+		{"large-environment", no_argument, 0, 0 },
 		{"list", optional_argument, 0, 'l' },
 		{"list-views", no_argument, 0, 0},
+#ifndef MINIMAL_BUILD
 		{"mesos-api", required_argument, 0, 'm'},
+#endif // MINIMAL_BUILD
 		{"numevents", required_argument, 0, 'n' },
 		{"page-faults", no_argument, 0, 0 },
 		{"print", required_argument, 0, 'p' },
@@ -422,21 +459,25 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				usage();
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
+#ifndef MINIMAL_BUILD
 			case 'k':
 				k8s_api = new string(optarg);
 				break;
 			case 'K':
 				k8s_api_cert = new string(optarg);
 				break;
+#endif // MINIMAL_BUILD
 			case 'j':
 				output_type = sinsp_table::OT_JSON;
 				break;
 			case 'l':
 				list_flds = true;
 				break;
+#ifndef MINIMAL_BUILD
 			case 'm':
 				mesos_api = new string(optarg);
 				break;
+#endif // MINIMAL_BUILD
 			case 'n':
 				try
 				{
@@ -467,8 +508,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 			case 'r':
 				infiles.push_back(optarg);
+#ifndef MINIMAL_BUILD
 				k8s_api = new string();
 				mesos_api = new string();
+#endif // MINIMAL_BUILD
 				break;
 			case 's':
 				snaplen = atoi(optarg);
@@ -508,6 +551,22 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 						is_interactive = true;
 						output_type = sinsp_table::OT_JSON;
 					}
+					else if(optname == "large-environment")
+					{
+						inspector->set_large_envs(true);
+					}
+#ifdef HAS_CAPTURE
+#ifndef MINIMAL_BUILD
+					else if(optname == "cri")
+					{
+						cri_socket_path = optarg;
+					}
+					else if(optname == "cri-timeout")
+					{
+						inspector->set_cri_timeout(sinsp_numparser::parsed64(optarg));
+					}
+#endif // MINIMAL_BUILD
+#endif
 					else if(optname == "logfile")
 					{
 						inspector->set_log_file(optarg);
@@ -546,6 +605,13 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 			}
 		}
+
+#ifdef HAS_CAPTURE
+		if(!cri_socket_path.empty())
+		{
+			inspector->set_cri_socket_path(cri_socket_path);
+		}
+#endif
 
 		string filter;
 
@@ -788,11 +854,12 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				{
 					inspector->open("");
 				}
-				catch(sinsp_exception e)
+				catch(const sinsp_exception& e)
 				{
 					open_success = false;
 				}
 
+#ifndef _WIN32
 				//
 				// Starting the live capture failed, try to load the driver with
 				// modprobe.
@@ -821,13 +888,14 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 
 					inspector->open("");
 				}
-#else
+#endif // _WIN32
+#else // HAS_CAPTURE
 				//
 				// Starting live capture
 				// If this fails on Windows and OSX, don't try with any driver
 				//
 				inspector->open("");
-#endif
+#endif // HAS_CAPTURE
 
 				//
 				// Enable gathering the CPU from the kernel module
@@ -856,6 +924,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				inspector->enable_page_faults();
 			}
 
+#ifndef MINIMAL_BUILD
 			//
 			// run k8s, if required
 			//
@@ -921,6 +990,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					printf("{\"progress\": 0},\n");
 				}
 			}
+#endif // MINIMAL_BUILD
 
 			//
 			// Start the capture loop
@@ -941,15 +1011,15 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			inspector->close();
 		}
 	}
-	catch(sinsp_capture_interrupt_exception&)
+	catch(const sinsp_capture_interrupt_exception&)
 	{
 	}
-	catch(sinsp_exception& e)
+	catch(const scap_open_exception& e)
 	{
 		errorstr = e.what();
 		res.m_res = e.scap_rc();
 	}
-	catch(std::exception& e)
+	catch(const std::exception& e)
 	{
 		errorstr = e.what();
 		res.m_res = EXIT_FAILURE;

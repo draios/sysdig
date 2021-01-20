@@ -21,6 +21,7 @@ limitations under the License.
 // Public definitions for the scap library
 ////////////////////////////////////////////////////////////////////////////
 #pragma once
+#include "sinsp.h"
 
 class sinsp_fd_listener;
 
@@ -102,6 +103,7 @@ private:
 	void parse_pipe_exit(sinsp_evt* evt);
 	void parse_socketpair_exit(sinsp_evt* evt);
 	void parse_socket_exit(sinsp_evt* evt);
+	void parse_connect_enter(sinsp_evt* evt);
 	void parse_connect_exit(sinsp_evt* evt);
 	void parse_accept_exit(sinsp_evt* evt);
 	void parse_close_enter(sinsp_evt* evt);
@@ -142,8 +144,11 @@ private:
 #endif
 	void parse_chroot_exit(sinsp_evt *evt);
 	void parse_setsid_exit(sinsp_evt *evt);
+	void parse_getsockopt_exit(sinsp_evt *evt);
 
+	inline void fill_client_socket_info(sinsp_evt* evt, uint8_t* packed_data);
 	inline void add_socket(sinsp_evt* evt, int64_t fd, uint32_t domain, uint32_t type, uint32_t protocol);
+	inline void infer_sendto_fdinfo(sinsp_evt *evt);
 	inline void add_pipe(sinsp_evt *evt, int64_t tid, int64_t fd, uint64_t ino);
 	// Return false if the update didn't happen (for example because the tuple is NULL)
 	bool update_fd(sinsp_evt *evt, sinsp_evt_param* parinfo);
@@ -170,6 +175,8 @@ private:
 	uint8_t m_fake_userevt_storage[4096];
 	scap_evt* m_fake_userevt;
 	string m_tracer_error_string;
+
+	bool m_track_connection_status = false;
 
 	// FD listener callback
 	sinsp_fd_listener* m_fd_listener;

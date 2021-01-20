@@ -21,7 +21,7 @@ limitations under the License.
 //
 // kubernetes state abstraction
 //
-
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #include "k8s_component.h"
@@ -353,6 +353,8 @@ private:
 
 	static const std::string m_docker_prefix; // "docker://"
 	static const std::string m_rkt_prefix; // "rkt://"
+	static const std::string m_containerd_prefix; // "containerd://"
+	static const std::string m_crio_prefix; // "cri-o://"
 	static const unsigned    m_id_length; // portion of the ID to be cached (=12)
 
 #ifndef HAS_ANALYZER
@@ -659,3 +661,5 @@ inline int k8s_state_t::get_capture_version() const
 {
 	return m_capture_version;
 }
+
+#endif // MINIMAL_BUILD

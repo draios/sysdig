@@ -33,17 +33,19 @@ struct iovec {
 #endif
 
 #include <functional>
+#include <memory>
+#include <set>
+#include "fdinfo.h"
+#include "internal_metrics.h"
 
 class sinsp_delays_info;
 class sinsp_threadtable_listener;
-class thread_analyzer_info;
 class sinsp_tracerparser;
 class blprogram;
 
 typedef struct erase_fd_params
 {
 	bool m_remove_from_table;
-	sinsp* m_inspector;
 	int64_t m_fd;
 	sinsp_threadinfo* m_tinfo;
 	sinsp_fdinfo_t* m_fdinfo;
@@ -68,55 +70,53 @@ typedef struct erase_fd_params
 class SINSP_PUBLIC sinsp_threadinfo
 {
 public:
-	sinsp_threadinfo();
-	sinsp_threadinfo(sinsp *inspector);
-	~sinsp_threadinfo();
+	sinsp_threadinfo(sinsp *inspector = nullptr);
+	virtual ~sinsp_threadinfo();
 
 	/*!
 	  \brief Return the name of the process containing this thread, e.g. "top".
 	*/
-	string get_comm();
+	std::string get_comm() const;
 
 	/*!
 	  \brief Return the name of the process containing this thread from argv[0], e.g. "/bin/top".
 	*/
-	string get_exe();
+	std::string get_exe() const;
 
 	/*!
 	  \brief Return the full executable path of the process containing this thread, e.g. "/bin/top".
 	*/
-	string get_exepath();
+	std::string get_exepath() const;
 
 	/*!
 	  \brief Return the working directory of the process containing this thread.
 	*/
-	string get_cwd();
+	std::string get_cwd();
 
 	/*!
 	  \brief Return the values of all environment variables for the process
 	  containing this thread.
 	*/
-	const vector<string>& get_env();
+	const std::vector<std::string>& get_env();
 
 	/*!
 	  \brief Return the value of the specified environment variable for the process
 	  containing this thread. Returns empty string if variable is not found.
 	*/
-	string get_env(const string& name);
+	std::string get_env(const std::string& name);
 
 	/*!
 	  \brief Return true if this is a process' main thread.
 	*/
 	inline bool is_main_thread() const
 	{
-		return m_tid == m_pid;
+		return (m_tid == m_pid) || m_flags & PPM_CL_IS_MAIN_THREAD;
 	}
 
 	/*!
 	  \brief Get the main thread of the process containing this thread.
 	*/
-#ifndef _WIN32
-	inline sinsp_threadinfo* get_main_thread()
+	inline sinsp_threadinfo* get_main_thread() const
 	{
 		auto main_thread = m_main_thread.lock();
 		if(!main_thread)
@@ -124,7 +124,7 @@ public:
 			//
 			// Is this a child thread?
 			//
-			if(m_pid == m_tid)
+			if((m_pid == m_tid) || m_flags & PPM_CL_IS_MAIN_THREAD)
 			{
 				//
 				// No, this is either a single thread process or the root thread of a
@@ -133,7 +133,7 @@ public:
 				//       invoked for a threadinfo that is in the stack. Caching the this pointer
 				//       would cause future mess.
 				//
-				return this;
+				return const_cast<sinsp_threadinfo*>(this);
 			}
 			else
 			{
@@ -152,9 +152,6 @@ public:
 
 		return &*main_thread;
 	}
-#else
-	sinsp_threadinfo* get_main_thread();
-#endif
 
 	/*!
 	  \brief Get the process that launched this thread's process.
@@ -215,12 +212,17 @@ public:
 	/*!
 	  \brief Return the number of open FDs for this thread.
 	*/
-	uint64_t get_fd_opencount();
+	uint64_t get_fd_opencount() const;
 
 	/*!
 	  \brief Return the maximum number of FDs this thread can open.
 	*/
 	uint64_t get_fd_limit();
+
+	/*!
+	  \brief Return the cgroup name for a specific subsystem
+	 */
+	 const std::string& get_cgroup(const std::string& subsys) const;
 
 	//
 	// Walk up the parent process hierarchy, calling the provided
@@ -230,6 +232,19 @@ public:
 	typedef std::function<bool (sinsp_threadinfo *)> visitor_func_t;
 	void traverse_parent_state(visitor_func_t &visitor);
 
+	static void populate_cmdline(std::string &cmdline, sinsp_threadinfo *tinfo);
+
+	// Return true if this thread is a part of a healthcheck,
+	// readiness probe, or liveness probe.
+	bool is_health_probe();
+
+	/*!
+	  \brief Translate a directory's file descriptor into its path
+	  \param dir_fd  A file descriptor for a directory
+	  \return  A path (or "" if failure)
+	 */
+	std::string get_path_for_dir_fd(int64_t dir_fd);
+
 	//
 	// Core state
 	//
@@ -237,13 +252,13 @@ public:
 	int64_t m_pid; ///< The id of the process containing this thread. In single thread threads, this is equal to tid.
 	int64_t m_ptid; ///< The id of the process that started this thread.
 	int64_t m_sid; ///< The session id of the process containing this thread.
-	string m_comm; ///< Command name (e.g. "top")
-	string m_exe; ///< argv[0] (e.g. "sshd: user@pts/4")
-	string m_exepath; ///< full executable path
-	vector<string> m_args; ///< Command line arguments (e.g. "-d1")
-	vector<string> m_env; ///< Environment variables
-	vector<pair<string, string>> m_cgroups; ///< subsystem-cgroup pairs
-	string m_container_id; ///< heuristic-based container id
+	std::string m_comm; ///< Command name (e.g. "top")
+	std::string m_exe; ///< argv[0] (e.g. "sshd: user@pts/4")
+	std::string m_exepath; ///< full executable path
+	std::vector<std::string> m_args; ///< Command line arguments (e.g. "-d1")
+	std::vector<std::string> m_env; ///< Environment variables
+	std::vector<std::pair<std::string, std::string>> m_cgroups; ///< subsystem-cgroup pairs
+	std::string m_container_id; ///< heuristic-based container id
 	uint32_t m_flags; ///< The thread flags. See the PPM_CL_* declarations in ppm_events_public.h.
 	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open
 	uint32_t m_uid; ///< user id
@@ -257,11 +272,29 @@ public:
 	int64_t m_vtid;  ///< The virtual id of this thread.
 	int64_t m_vpid; ///< The virtual id of the process containing this thread. In single thread threads, this is equal to vtid.
 	int64_t m_vpgid; // The virtual process group id, as seen from its pid namespace
-	string m_root;
-	size_t m_program_hash;
-	size_t m_program_hash_falco;
+	std::string m_root;
+	size_t m_program_hash; ///< Unique hash of the current program
+	size_t m_program_hash_scripts;  ///< Unique hash of the current program, including arguments for scripting programs (like python or ruby)
 	int32_t m_tty;
 	int32_t m_loginuid; ///< loginuid (auid)
+
+	// In some cases, a threadinfo has a category that identifies
+	// why it was run. Descriptions:
+	// CAT_NONE: no specific category
+	// CAT_CONTAINER: a process run in a container and *not* any
+	//                of the following more specific categories.
+	// CAT_HEALTHCHECK: part of a container healthcheck
+	// CAT_LIVENESS_PROBE: part of a k8s liveness probe
+	// CAT_READINESS_PROBE: part of a k8s readiness probe
+	enum command_category {
+		CAT_NONE = 0,
+		CAT_CONTAINER,
+		CAT_HEALTHCHECK,
+		CAT_LIVENESS_PROBE,
+		CAT_READINESS_PROBE
+	};
+
+	command_category m_category;
 
 	//
 	// State for multi-event processing
@@ -276,8 +309,6 @@ public:
 	// Parser for the user events. Public so that filter fields can access it
 	//
 	sinsp_tracerparser* m_tracer_parser;
-
-	thread_analyzer_info* m_ainfo;
 
 	size_t args_len() const;
 	size_t env_len() const;
@@ -305,6 +336,51 @@ public:
 	//
 	sinsp *m_inspector;
 
+public: // types required for use in sets
+	struct hasher {
+		size_t operator()(sinsp_threadinfo* tinfo) const
+		{
+			return tinfo->get_main_thread()->m_program_hash;
+		}
+	};
+
+	struct comparer {
+		size_t operator()(sinsp_threadinfo* lhs, sinsp_threadinfo* rhs) const
+		{
+			return lhs->get_main_thread()->m_program_hash == rhs->get_main_thread()->m_program_hash;
+		}
+	};
+
+protected:
+	inline sinsp_fdtable* get_fd_table()
+	{
+		if(!(m_flags & PPM_CL_CLONE_FILES))
+		{
+			return &m_fdtable;;
+		}
+		else
+		{
+			sinsp_threadinfo* root = get_main_thread();
+			return (root == nullptr) ? nullptr : &(root->m_fdtable);
+		}
+	}
+
+#ifndef _WIN32
+	inline const sinsp_fdtable* get_fd_table() const
+	{
+		if(!(m_flags & PPM_CL_CLONE_FILES))
+		{
+			return &m_fdtable;;
+		}
+		else
+		{
+			sinsp_threadinfo* root = get_main_thread();
+			return (root == nullptr) ? nullptr : &(root->m_fdtable);
+		}
+	}
+#endif
+
+public:
 VISIBILITY_PRIVATE
 	void init();
 	// return true if, based on the current inspector filter, this thread should be kept
@@ -313,25 +389,6 @@ VISIBILITY_PRIVATE
 	sinsp_fdinfo_t* add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo);
 	void add_fd_from_scap(scap_fdinfo *fdinfo, OUT sinsp_fdinfo_t *res);
 	void remove_fd(int64_t fd);
-	inline sinsp_fdtable* get_fd_table()
-	{
-		sinsp_threadinfo* root;
-
-		if(!(m_flags & PPM_CL_CLONE_FILES))
-		{
-			root = this;
-		}
-		else
-		{
-			root = get_main_thread();
-			if(NULL == root)
-			{
-				return NULL;
-			}
-		}
-
-		return &(root->m_fdtable);
-	}
 	void set_cwd(const char *cwd, uint32_t cwdlen);
 	sinsp_threadinfo* get_cwd_root();
 	void set_args(const char* args, size_t len);
@@ -352,14 +409,14 @@ VISIBILITY_PRIVATE
 	}
 	void allocate_private_state();
 	void compute_program_hash();
-	shared_ptr<sinsp_threadinfo> lookup_thread();
+	std::shared_ptr<sinsp_threadinfo> lookup_thread() const;
 
-	size_t strvec_len(const vector<string> &strs) const;
-	void strvec_to_iovec(const vector<string> &strs,
+	size_t strvec_len(const std::vector<std::string> &strs) const;
+	void strvec_to_iovec(const std::vector<std::string> &strs,
 			     struct iovec **iov, int *iovcnt,
 			     std::string &rem) const;
 
-	void add_to_iovec(const string &str,
+	void add_to_iovec(const std::string &str,
 			  const bool include_trailing_null,
 			  struct iovec &iov,
 			  uint32_t &alen,
@@ -376,10 +433,10 @@ VISIBILITY_PRIVATE
 	// parent thread info
 	//
 	sinsp_fdtable m_fdtable; // The fd table of this thread
-	string m_cwd; // current working directory
-	weak_ptr<sinsp_threadinfo> m_main_thread;
+	std::string m_cwd; // current working directory
+	mutable std::weak_ptr<sinsp_threadinfo> m_main_thread;
 	uint8_t* m_lastevent_data; // Used by some event parsers to store the last enter event
-	vector<void*> m_private_state;
+	std::vector<void*> m_private_state;
 
 	uint16_t m_lastevent_type;
 	uint16_t m_lastevent_cpuid;
@@ -394,7 +451,6 @@ VISIBILITY_PRIVATE
 	friend class sinsp_evt;
 	friend class sinsp_thread_manager;
 	friend class sinsp_transaction_table;
-	friend class thread_analyzer_info;
 	friend class sinsp_tracerparser;
 	friend class lua_cbacks;
 	friend class sinsp_baseliner;
@@ -405,6 +461,7 @@ VISIBILITY_PRIVATE
 class threadinfo_map_t
 {
 public:
+	typedef std::function<bool(const sinsp_threadinfo&)> const_visitor_t;
 	typedef std::function<bool(sinsp_threadinfo&)> visitor_t;
 	typedef std::shared_ptr<sinsp_threadinfo> ptr_t;
 
@@ -443,6 +500,18 @@ public:
 		m_threads.clear();
 	}
 
+	bool const_loop(const_visitor_t callback) const
+	{
+		for (const auto& it : m_threads)
+		{
+			if (!callback(*it.second.get()))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
 	bool loop(visitor_t callback)
 	{
 		for (auto& it : m_threads)
@@ -461,7 +530,7 @@ public:
 	}
 
 protected:
-	unordered_map<int64_t, ptr_t> m_threads;
+	std::unordered_map<int64_t, ptr_t> m_threads;
 };
 
 
@@ -486,7 +555,7 @@ public:
 	}
 
 private:
-	vector<uint32_t> m_memory_sizes;
+	std::vector<uint32_t> m_memory_sizes;
 
 	friend class sinsp_threadinfo;
 };
@@ -501,7 +570,7 @@ public:
 	void clear();
 
 	void set_listener(sinsp_threadtable_listener* listener);
-	void add_thread(sinsp_threadinfo* threadinfo, bool from_scap_proctable);
+	bool add_thread(sinsp_threadinfo *threadinfo, bool from_scap_proctable);
 	void remove_thread(int64_t tid, bool force);
 	// Returns true if the table is actually scanned
 	// NOTE: this is implemented in sinsp.cpp so we can inline it from there
@@ -525,12 +594,12 @@ public:
 		return &m_threadtable;
 	}
 
-	set<uint16_t> m_server_ports;
+	std::set<uint16_t> m_server_ports;
 
 private:
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
-	void free_dump_fdinfos(vector<scap_fdinfo*>* fdinfos_to_free);
+	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);
 	void thread_to_scap(sinsp_threadinfo& tinfo, scap_threadinfo* sctinfo);
 
 	sinsp* m_inspector;

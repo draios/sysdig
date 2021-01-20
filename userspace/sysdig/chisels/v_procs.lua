@@ -49,6 +49,12 @@ view_info =
 			colsize = 7,
 		},
 		{
+			name = "PPID",
+			description = "Process Parent PID.",
+			field = "proc.ppid",
+			colsize = 7,
+		},
+		{
 			tags = {"containers"},
 			name = "VPID",
 			field = "proc.vpid",
@@ -58,7 +64,7 @@ view_info =
 		{
 			name = "CPU",
 			field = "thread.cpu",
-			description = "Amount of CPU used by the proccess.",
+			description = "Amount of CPU used by the process.",
 			aggregation = "AVG",
 			groupby_aggregation = "SUM",
 			colsize = 8,

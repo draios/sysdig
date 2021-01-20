@@ -20,7 +20,9 @@ limitations under the License.
 #ifndef _WIN32
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
+#include <unistd.h>
 #endif
+#include <stdio.h>
 #include <algorithm>
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -40,19 +42,11 @@ static void copy_ipv6_address(uint32_t* dest, uint32_t* src)
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_threadinfo implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_threadinfo::sinsp_threadinfo() :
-	m_fdtable(NULL)
-{
-	m_inspector = NULL;
-	m_tracer_parser = NULL;
-	init();
-}
-
-sinsp_threadinfo::sinsp_threadinfo(sinsp *inspector) :
+sinsp_threadinfo::sinsp_threadinfo(sinsp* inspector) :
+	m_tracer_parser(NULL),
+	m_inspector(inspector),
 	m_fdtable(inspector)
 {
-	m_inspector = inspector;
-	m_tracer_parser = NULL;
 	init();
 }
 
@@ -84,12 +78,12 @@ void sinsp_threadinfo::init()
 	m_last_latency_entertime = 0;
 	m_latency = 0;
 #endif
-	m_ainfo = NULL;
 	m_program_hash = 0;
-	m_program_hash_falco = 0;
+	m_program_hash_scripts = 0;
 	m_lastevent_data = NULL;
 	m_parent_loop_detected = false;
 	m_tty = 0;
+	m_category = CAT_NONE;
 	m_blprogram = NULL;
 	m_loginuid = 0;
 }
@@ -170,9 +164,9 @@ void sinsp_threadinfo::compute_program_hash()
 	auto rem_len = MAX_PROG_HASH_LEN - (m_exe.size() + m_container_id.size());
 
 	//
-	// By default, the falco hash is just exe+container
+	// By default, the scripts hash is just exe+container
 	//
-	m_program_hash_falco = curr_hash;
+	m_program_hash_scripts = curr_hash;
 
 	//
 	// The program hash includes the arguments as well
@@ -193,7 +187,7 @@ void sinsp_threadinfo::compute_program_hash()
 
 	//
 	// For some specific processes (essentially the scripting languages)
-	// we include the arguments in the falco hash as well
+	// we include the arguments in the scripts hash as well
 	//
 	if(m_comm.size() == 4)
 	{
@@ -202,14 +196,14 @@ void sinsp_threadinfo::compute_program_hash()
 		if(ncomm == STR_AS_NUM_JAVA || ncomm == STR_AS_NUM_RUBY ||
 			ncomm == STR_AS_NUM_PERL || ncomm == STR_AS_NUM_NODE)
 		{
-			m_program_hash_falco = m_program_hash;
+			m_program_hash_scripts = m_program_hash;
 		}
 	}
 	else if(m_comm.size() >= 6)
 	{
 		if(m_comm.substr(0, 6) == "python")
 		{
-			m_program_hash_falco = m_program_hash;
+			m_program_hash_scripts = m_program_hash;
 		}
 	}
 }
@@ -324,6 +318,8 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 	case SCAP_FD_FILE_V2:
 		newfdi->m_openflags = fdi->info.regularinfo.open_flags;
 		newfdi->m_name = fdi->info.regularinfo.fname;
+		newfdi->m_dev = fdi->info.regularinfo.dev;
+		newfdi->m_mount_id = fdi->info.regularinfo.mount_id;
 
 		if(newfdi->m_name == USER_EVT_DEVICE_NAME)
 		{
@@ -409,6 +405,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_flags |= pi->flags;
 	m_flags |= PPM_CL_ACTIVE; // Assume that all the threads coming from /proc are real, active threads
 	m_fdtable.clear();
+	m_fdtable.m_tid = m_tid;
 	m_fdlimit = pi->fdlimit;
 	m_uid = pi->uid;
 	m_gid = pi->gid;
@@ -423,6 +420,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_clone_ts = pi->clone_ts;
 	m_tty = pi->tty;
 	m_loginuid = pi->loginuid;
+	m_category = CAT_NONE;
 
 	set_cgroups(pi->cgroups, pi->cgroups_len);
 	m_root = pi->root;
@@ -490,17 +488,17 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	}
 }
 
-string sinsp_threadinfo::get_comm()
+std::string sinsp_threadinfo::get_comm() const
 {
 	return m_comm;
 }
 
-string sinsp_threadinfo::get_exe()
+std::string sinsp_threadinfo::get_exe() const
 {
 	return m_exe;
 }
 
-string sinsp_threadinfo::get_exepath()
+std::string sinsp_threadinfo::get_exepath() const
 {
 	return m_exepath;
 }
@@ -519,7 +517,7 @@ void sinsp_threadinfo::set_args(const char* args, size_t len)
 
 void sinsp_threadinfo::set_env(const char* env, size_t len)
 {
-	if (len == SCAP_MAX_ENV_SIZE && m_inspector->is_live())
+	if (len == SCAP_MAX_ENV_SIZE && m_inspector->large_envs_enabled())
 	{
 		// the environment is possibly truncated, try to read from /proc
 		// this may fail for short-lived processes
@@ -789,7 +787,8 @@ void sinsp_threadinfo::set_cwd(const char* cwd, uint32_t cwdlen)
 			(char*)tinfo->m_cwd.c_str(),
 			(uint32_t)tinfo->m_cwd.size(),
 			cwd,
-			cwdlen);
+			cwdlen,
+			m_inspector->m_is_windows);
 
 		tinfo->m_cwd = tpath;
 
@@ -880,7 +879,7 @@ double sinsp_threadinfo::get_fd_usage_pct_d()
 	}
 }
 
-uint64_t sinsp_threadinfo::get_fd_opencount()
+uint64_t sinsp_threadinfo::get_fd_opencount() const
 {
 	return get_main_thread()->m_fdtable.size();
 }
@@ -888,6 +887,21 @@ uint64_t sinsp_threadinfo::get_fd_opencount()
 uint64_t sinsp_threadinfo::get_fd_limit()
 {
 	return get_main_thread()->m_fdlimit;
+}
+
+const std::string& sinsp_threadinfo::get_cgroup(const std::string& subsys) const
+{
+	static const std::string notfound = "/";
+
+	for(const auto& it : m_cgroups)
+	{
+		if(it.first == subsys)
+		{
+			return it.second;
+		}
+	}
+
+	return notfound;
 }
 
 void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
@@ -901,7 +915,8 @@ void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
 	// Move fast to its parent
 	fast = (fast ? fast->get_parent_thread() : fast);
 
-	while(slow)
+	// The slow pointer must be valid and not have a tid of -1.
+	while(slow && slow->m_tid != -1)
 	{
 		if(!visitor(slow))
 		{
@@ -916,15 +931,20 @@ void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
 		for (uint32_t i = 0; i < 2; i++) {
 			fast = (fast ? fast->get_parent_thread() : fast);
 
-			// If not at the end but fast == slow, there's a loop
-			// in the thread state.
-			if(slow && (slow == fast))
+			// If not at the end but fast == slow or if
+			// slow points to itself, there's a loop in
+			// the thread state.
+			if(slow && (slow == fast ||
+				    slow->m_tid == slow->m_ptid))
 			{
 				// Note we only log a loop once for a given main thread, to avoid flooding logs.
 				if(!m_parent_loop_detected)
 				{
 					g_logger.log(string("Loop in parent thread state detected for pid ") +
-						     std::to_string(m_pid), sinsp_logger::SEV_WARNING);
+						     std::to_string(m_pid) +
+						     ". stopped at tid= " + std::to_string(slow->m_tid) +
+						     " ptid=" + std::to_string(slow->m_ptid),
+						     sinsp_logger::SEV_WARNING);
 					m_parent_loop_detected = true;
 				}
 				return;
@@ -933,53 +953,72 @@ void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
 	}
 }
 
-shared_ptr<sinsp_threadinfo> sinsp_threadinfo::lookup_thread()
+void sinsp_threadinfo::populate_cmdline(string &cmdline, sinsp_threadinfo *tinfo)
 {
-	return m_inspector->get_thread_ref(m_pid, true, true);
-}
+	cmdline = tinfo->get_comm();
 
-//
-// Note: this is duplicated here because visual studio has trouble inlining
-//       the method.
-//
-#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
-sinsp_threadinfo* sinsp_threadinfo::get_main_thread()
-{
-	auto main_thread = m_main_thread.lock();
-	if (!main_thread)
+	uint32_t j;
+	uint32_t nargs = (uint32_t)tinfo->m_args.size();
+
+	for(j = 0; j < nargs; j++)
 	{
-		//
-		// Is this a child thread?
-		//
-		if (m_pid == m_tid)
-		{
-			//
-			// No, this is either a single thread process or the root thread of a
-			// multithread process.
-			// Note: we don't set m_main_thread because there are cases in which this is
-			//       invoked for a threadinfo that is in the stack. Caching the this pointer
-			//       would cause future mess.
-			//
-			return this;
-		}
-		else
-		{
-			//
-			// Yes, this is a child thread. Find the process root thread.
-			//
-			auto ptinfo = lookup_thread();
-			if (!ptinfo)
-			{
-				return NULL;
-			}
-			m_main_thread = ptinfo;
-			return &*ptinfo;
-		}
+		cmdline += " " + tinfo->m_args[j];
 	}
-
-	return &*main_thread;
 }
+
+bool sinsp_threadinfo::is_health_probe()
+{
+	return (m_category == sinsp_threadinfo::CAT_HEALTHCHECK ||
+		m_category == sinsp_threadinfo::CAT_LIVENESS_PROBE ||
+	        m_category == sinsp_threadinfo::CAT_READINESS_PROBE);
+}
+
+string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd)
+{
+	sinsp_fdinfo_t* dir_fdinfo = get_fd(dir_fd);
+	if (!dir_fdinfo || dir_fdinfo->m_name.empty())
+	{
+#ifndef WIN32 // we will have to implement this for Windows
+#ifdef HAS_CAPTURE
+		// Sad day; we don't have the directory in the tinfo's fd cache.
+		// Must manually look it up so we can resolve filenames correctly.
+		char proc_path[PATH_MAX];
+		char dirfd_path[PATH_MAX];
+		int ret;
+		snprintf(proc_path,
+		         sizeof(proc_path),
+		         "%s/proc/%lld/fd/%lld",
+		         scap_get_host_root(),
+		         (long long)m_pid,
+		         (long long)dir_fd);
+
+		ret = readlink(proc_path, dirfd_path, sizeof(dirfd_path) - 1);
+		if (ret < 0)
+		{
+			g_logger.log("Unable to determine path for file descriptor.",
+			             sinsp_logger::SEV_INFO);
+			return "";
+		}
+		dirfd_path[ret] = '\0';
+		std::string rel_path_base = dirfd_path;
+		sanitize_string(rel_path_base);
+		rel_path_base.append("/");
+		g_logger.log(std::string("Translating to ") + rel_path_base);
+		return rel_path_base;
+#else
+		g_logger.log("Can't translate working directory outside of live capture.",
+		             sinsp_logger::SEV_INFO);
+		return "";
 #endif
+#endif // WIN32
+	}
+	return dir_fdinfo->m_name;
+}
+
+shared_ptr<sinsp_threadinfo> sinsp_threadinfo::lookup_thread() const
+{
+	return m_inspector->get_thread_ref(m_pid, true, true, true);
+}
 
 size_t sinsp_threadinfo::args_len() const
 {
@@ -1151,6 +1190,8 @@ void sinsp_threadinfo::fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src)
 	case SCAP_FD_FILE_V2:
 		dst->info.regularinfo.open_flags = src->m_openflags;
 		strncpy(dst->info.regularinfo.fname, src->m_name.c_str(), SCAP_MAX_PATH_SIZE);
+		dst->info.regularinfo.dev = src->m_dev;
+		dst->info.regularinfo.mount_id = src->m_mount_id;
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:
@@ -1224,7 +1265,7 @@ void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* thr
 	}
 }
 
-void sinsp_thread_manager::add_thread(sinsp_threadinfo* threadinfo, bool from_scap_proctable)
+bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_scap_proctable)
 {
 #ifdef GATHER_INTERNAL_STATS
 	m_added_threads->increment();
@@ -1238,8 +1279,14 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo* threadinfo, bool from_sc
 #endif
 		)
 	{
+		// rate limit messages to avoid spamming the logs
+		if (m_n_drops % m_inspector->m_max_thread_table_size == 0)
+		{
+			g_logger.format(sinsp_logger::SEV_INFO, "Thread table full, dropping tid %lu (pid %lu, comm \"%s\")",
+				threadinfo->m_tid, threadinfo->m_pid, threadinfo->m_comm.c_str());
+		}
 		m_n_drops++;
-		return;
+		return false;
 	}
 
 	if(!from_scap_proctable)
@@ -1255,6 +1302,7 @@ void sinsp_thread_manager::add_thread(sinsp_threadinfo* threadinfo, bool from_sc
 	{
 		m_listener->on_thread_created(threadinfo);
 	}
+	return true;
 }
 
 void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
@@ -1305,14 +1353,13 @@ void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 		//
 		// If this is the main thread of a process, erase all the FDs that the process owns
 		//
-		if(tinfo->m_pid == tinfo->m_tid)
+		if((tinfo->m_pid == tinfo->m_tid) || tinfo->m_flags & PPM_CL_IS_MAIN_THREAD)
 		{
 			unordered_map<int64_t, sinsp_fdinfo_t>* fdtable = &(tinfo->get_fd_table()->m_table);
 			unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 
 			erase_fd_params eparams;
 			eparams.m_remove_from_table = false;
-			eparams.m_inspector = m_inspector;
 			eparams.m_tinfo = tinfo;
 			eparams.m_ts = m_inspector->m_lastevent_ts;
 

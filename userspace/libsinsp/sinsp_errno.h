@@ -158,3 +158,6 @@ limitations under the License.
 #define SE_EJUKEBOX        528     /* Request initiated, but will not complete before timeout */
 #define SE_EIOCBQUEUED     529     /* iocb queued, will get completion event */
 #define SE_EIOCBRETRY      530     /* iocb queued, will trigger a retry */
+
+// note: any new error here will need to have a mapping
+// in utils.cpp under sinsp_utils::errno_to_str

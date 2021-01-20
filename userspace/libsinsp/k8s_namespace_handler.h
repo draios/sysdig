@@ -19,7 +19,7 @@ limitations under the License.
 //
 // k8s_namespace_handler.h
 //
-
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #include "json/json.h"
@@ -32,7 +32,7 @@ class k8s_namespace_handler : public k8s_handler
 {
 public:
 	k8s_namespace_handler(k8s_state_t& state
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 		,ptr_t dependency_handler
 		,collector_ptr_t collector = nullptr
 		,std::string url = ""
@@ -52,3 +52,5 @@ private:
 
 	bool handle_component(const Json::Value& json, const msg_data* data = 0);
 };
+
+#endif // MINIMAL_BUILD

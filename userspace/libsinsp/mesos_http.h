@@ -19,10 +19,10 @@ limitations under the License.
 //
 // mesos_http.h
 //
-
+#ifndef MINIMAL_BUILD
 #pragma once
 
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 
 #include "curl/curl.h"
 #include "uri.h"
@@ -263,3 +263,4 @@ public:
 };
 
 #endif // HAS_CAPTURE
+#endif // MINIMAL_BUILD

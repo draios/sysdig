@@ -9,9 +9,46 @@ or GPL2.txt for full copies of the license.
 #ifndef __FILLERS_H
 #define __FILLERS_H
 
+/*
+ * https://chromium.googlesource.com/chromiumos/third_party/kernel/+/096925a44076ba5c52faa84d255a847130ff341e%5E%21/#F2
+ * This commit diverged the ChromiumOS kernel from stock in the area of audit
+ * information, which this probe accesses.
+ *
+ * If running on a patched version of COS, enable this #define to get the
+ * probe to build.
+ */
+//#define COS_73_WORKAROUND
+
 #include "../ppm_flag_helpers.h"
+#include "../ppm_version.h"
 
 #include <linux/tty.h>
+#include <linux/audit.h>
+
+
+/*
+ * Linux 5.6 kernels no longer include the old 32-bit timeval
+ * structures. But the syscalls (might) still use them.
+ */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+#include <linux/time64.h>
+struct compat_timespec {
+	int32_t tv_sec;
+	int32_t tv_nsec;
+};
+
+struct timespec {
+	int32_t tv_sec;
+	int32_t tv_nsec;
+};
+
+struct timeval {
+	int32_t tv_sec;
+	int32_t tv_usec;
+};
+#else
+#define timeval64 timeval
+#endif
 
 #define FILLER_RAW(x)							\
 static __always_inline int __bpf_##x(struct filler_data *data);		\
@@ -123,6 +160,8 @@ FILLER(sys_open_x, true)
 	unsigned int flags;
 	unsigned int mode;
 	unsigned long val;
+	unsigned long dev;
+	unsigned long ino;
 	long retval;
 	int res;
 
@@ -157,7 +196,16 @@ FILLER(sys_open_x, true)
 	mode = bpf_syscall_get_argument(data, 2);
 	mode = open_modes_to_scap(val, mode);
 	res = bpf_val_to_ring(data, mode);
+	if (res != PPM_SUCCESS)
+		return res;
 
+	/*
+	 * Device
+	 */
+	if (retval < 0 || !bpf_get_fd_dev_ino(retval, &dev, &ino))
+		dev = 0;
+
+	res = bpf_val_to_ring(data, dev);
 	return res;
 }
 
@@ -332,7 +380,7 @@ FILLER(sys_poll_x, true)
 	return res;
 }
 
-#define MAX_IOVCNT 8
+#define MAX_IOVCNT 32
 
 static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 						       const struct iovec __user *iovsrc,
@@ -515,7 +563,7 @@ FILLER(sys_writev_pwritev_x, true)
 }
 
 static __always_inline int timespec_parse(struct filler_data *data,
-					  unsigned long val)
+                                          unsigned long val)
 {
 	u64 longtime;
 	struct timespec ts;
@@ -899,6 +947,265 @@ FILLER(sys_socketpair_x, true)
 	return res;
 }
 
+static int __always_inline parse_sockopt(struct filler_data *data, int level, int optname, void *optval, int optlen)
+{
+	union {
+		uint32_t val32;
+		uint64_t val64;
+		struct timeval tv;
+	} u;
+
+	if (level == SOL_SOCKET) {
+		switch (optname) {
+#ifdef SO_ERROR
+			case SO_ERROR:
+				if (bpf_probe_read(&u.val32, sizeof(u.val32), optval))
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+				return bpf_val_to_ring_dyn(data, -u.val32, PT_ERRNO, PPM_SOCKOPT_IDX_ERRNO);
+#endif
+
+#ifdef SO_RCVTIMEO
+			case SO_RCVTIMEO:
+#endif
+#ifdef SO_SNDTIMEO
+			case SO_SNDTIMEO:
+#endif
+				if (bpf_probe_read(&u.tv, sizeof(u.tv), optval))
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+				return bpf_val_to_ring_dyn(data, u.tv.tv_sec * 1000000000 + u.tv.tv_usec * 1000, PT_RELTIME, PPM_SOCKOPT_IDX_TIMEVAL);
+
+#ifdef SO_COOKIE
+			case SO_COOKIE:
+				if (bpf_probe_read(&u.val64, sizeof(u.val64), optval))
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+				return bpf_val_to_ring_dyn(data, u.val64, PT_UINT64, PPM_SOCKOPT_IDX_UINT64);
+#endif
+
+#ifdef SO_DEBUG
+			case SO_DEBUG:
+#endif
+#ifdef SO_REUSEADDR
+			case SO_REUSEADDR:
+#endif
+#ifdef SO_TYPE
+			case SO_TYPE:
+#endif
+#ifdef SO_DONTROUTE
+			case SO_DONTROUTE:
+#endif
+#ifdef SO_BROADCAST
+			case SO_BROADCAST:
+#endif
+#ifdef SO_SNDBUF
+			case SO_SNDBUF:
+#endif
+#ifdef SO_RCVBUF
+			case SO_RCVBUF:
+#endif
+#ifdef SO_SNDBUFFORCE
+			case SO_SNDBUFFORCE:
+#endif
+#ifdef SO_RCVBUFFORCE
+			case SO_RCVBUFFORCE:
+#endif
+#ifdef SO_KEEPALIVE
+			case SO_KEEPALIVE:
+#endif
+#ifdef SO_OOBINLINE
+			case SO_OOBINLINE:
+#endif
+#ifdef SO_NO_CHECK
+			case SO_NO_CHECK:
+#endif
+#ifdef SO_PRIORITY
+			case SO_PRIORITY:
+#endif
+#ifdef SO_BSDCOMPAT
+			case SO_BSDCOMPAT:
+#endif
+#ifdef SO_REUSEPORT
+			case SO_REUSEPORT:
+#endif
+#ifdef SO_PASSCRED
+			case SO_PASSCRED:
+#endif
+#ifdef SO_RCVLOWAT
+			case SO_RCVLOWAT:
+#endif
+#ifdef SO_SNDLOWAT
+			case SO_SNDLOWAT:
+#endif
+#ifdef SO_SECURITY_AUTHENTICATION
+			case SO_SECURITY_AUTHENTICATION:
+#endif
+#ifdef SO_SECURITY_ENCRYPTION_TRANSPORT
+			case SO_SECURITY_ENCRYPTION_TRANSPORT:
+#endif
+#ifdef SO_SECURITY_ENCRYPTION_NETWORK
+			case SO_SECURITY_ENCRYPTION_NETWORK:
+#endif
+#ifdef SO_BINDTODEVICE
+			case SO_BINDTODEVICE:
+#endif
+#ifdef SO_DETACH_FILTER
+			case SO_DETACH_FILTER:
+#endif
+#ifdef SO_TIMESTAMP
+			case SO_TIMESTAMP:
+#endif
+#ifdef SO_ACCEPTCONN
+			case SO_ACCEPTCONN:
+#endif
+#ifdef SO_PEERSEC
+			case SO_PEERSEC:
+#endif
+#ifdef SO_PASSSEC
+			case SO_PASSSEC:
+#endif
+#ifdef SO_TIMESTAMPNS
+			case SO_TIMESTAMPNS:
+#endif
+#ifdef SO_MARK
+			case SO_MARK:
+#endif
+#ifdef SO_TIMESTAMPING
+			case SO_TIMESTAMPING:
+#endif
+#ifdef SO_PROTOCOL
+			case SO_PROTOCOL:
+#endif
+#ifdef SO_DOMAIN
+			case SO_DOMAIN:
+#endif
+#ifdef SO_RXQ_OVFL
+			case SO_RXQ_OVFL:
+#endif
+#ifdef SO_WIFI_STATUS
+			case SO_WIFI_STATUS:
+#endif
+#ifdef SO_PEEK_OFF
+			case SO_PEEK_OFF:
+#endif
+#ifdef SO_NOFCS
+			case SO_NOFCS:
+#endif
+#ifdef SO_LOCK_FILTER
+			case SO_LOCK_FILTER:
+#endif
+#ifdef SO_SELECT_ERR_QUEUE
+			case SO_SELECT_ERR_QUEUE:
+#endif
+#ifdef SO_BUSY_POLL
+			case SO_BUSY_POLL:
+#endif
+#ifdef SO_MAX_PACING_RATE
+			case SO_MAX_PACING_RATE:
+#endif
+#ifdef SO_BPF_EXTENSIONS
+			case SO_BPF_EXTENSIONS:
+#endif
+#ifdef SO_INCOMING_CPU
+			case SO_INCOMING_CPU:
+#endif
+				if (bpf_probe_read(&u.val32, sizeof(u.val32), optval))
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+				return bpf_val_to_ring_dyn(data, u.val32, PT_UINT32, PPM_SOCKOPT_IDX_UINT32);
+
+			default:
+				return __bpf_val_to_ring(data, (unsigned long)optval, optlen, PT_BYTEBUF, PPM_SOCKOPT_IDX_UNKNOWN, false);
+		}
+	} else {
+		return __bpf_val_to_ring(data, (unsigned long)optval, optlen, PT_BYTEBUF, PPM_SOCKOPT_IDX_UNKNOWN, false);
+	}
+}
+
+FILLER(sys_setsockopt_x, true)
+{
+	int res;
+	unsigned long retval, fd, level, optname, optval, optlen;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+
+	/* retval */
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* fd */
+	fd = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring_type(data, fd, PT_FD);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* level */
+	level = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring_type(data, sockopt_level_to_scap(level), PT_FLAGS8);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* optname */
+	optname = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring_type(data, sockopt_optname_to_scap(level, optname), PT_FLAGS8);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* optval */
+	optval = bpf_syscall_get_argument(data, 3);
+	optlen = bpf_syscall_get_argument(data, 4);
+	res = parse_sockopt(data, level, optname, (void*)optval, optlen);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* optlen */
+	res = bpf_val_to_ring_type(data, optlen, PT_UINT32);
+	return res;
+}
+
+FILLER(sys_getsockopt_x, true)
+{
+	int res;
+	unsigned long retval, fd, level, optname, optval, optlen_p, optlen;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+
+	/* retval */
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* fd */
+	fd = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring_type(data, fd, PT_FD);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* level */
+	level = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring_type(data, sockopt_level_to_scap(level), PT_FLAGS8);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* optname */
+	optname = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring_type(data, sockopt_optname_to_scap(level, optname), PT_FLAGS8);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* optval */
+	optval = bpf_syscall_get_argument(data, 3);
+	optlen_p = bpf_syscall_get_argument(data, 4);
+	if (bpf_probe_read(&optlen, sizeof(optlen), (void*)optlen_p))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	res = parse_sockopt(data, level, optname, (void*)optval, optlen);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* optlen */
+	res = bpf_val_to_ring_type(data, optlen, PT_UINT32);
+	return res;
+}
+
 static __always_inline int f_sys_send_e_common(struct filler_data *data, int fd)
 {
 	unsigned long val;
@@ -1084,7 +1391,9 @@ static __always_inline int bpf_ppm_get_tty(struct task_struct *task)
 
 static __always_inline struct pid *bpf_task_pid(struct task_struct *task)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
+#if (PPM_RHEL_RELEASE_CODE > 0 && PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 0))
+	return _READ(task->thread_pid);
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
 	return _READ(task->pids[PIDTYPE_PID].pid);
 #else
 	return _READ(task->thread_pid);
@@ -1121,7 +1430,7 @@ static __always_inline pid_t bpf_pid_nr_ns(struct pid *pid,
 	return nr;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
+#if ((PPM_RHEL_RELEASE_CODE > 0 && PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 0))) || LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
 static __always_inline struct pid **bpf_task_pid_ptr(struct task_struct *task,
 						     enum pid_type type)
 {
@@ -1140,7 +1449,9 @@ static __always_inline pid_t bpf_task_pid_nr_ns(struct task_struct *task,
 	if (!ns)
 		ns = bpf_task_active_pid_ns(task);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
+#if (PPM_RHEL_RELEASE_CODE > 0 && PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 0))
+	nr = bpf_pid_nr_ns(_READ(*bpf_task_pid_ptr(task, type)), ns);
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
 	if (type != PIDTYPE_PID) {
 		if (type == __PIDTYPE_TGID)
 			type = PIDTYPE_PID;
@@ -1163,7 +1474,9 @@ static __always_inline pid_t bpf_task_pid_vnr(struct task_struct *task)
 
 static __always_inline pid_t bpf_task_tgid_vnr(struct task_struct *task)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
+#if (PPM_RHEL_RELEASE_CODE > 0 && PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 0))
+	return bpf_task_pid_nr_ns(task, PIDTYPE_TGID, NULL);
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
 	return bpf_task_pid_nr_ns(task, __PIDTYPE_TGID, NULL);
 #else
 	return bpf_task_pid_nr_ns(task, PIDTYPE_TGID, NULL);
@@ -1197,7 +1510,7 @@ static __always_inline int __bpf_append_cgroup(struct css_set *cgroups,
 	int res = bpf_probe_read_str(&buf[off & SCRATCH_SIZE_HALF],
 				     SCRATCH_SIZE_HALF,
 				     subsys_name);
-	if (res < 0)
+	if (res == -EFAULT)
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	off += res - 1;
@@ -1321,7 +1634,7 @@ static __always_inline int bpf_accumulate_argv_or_env(struct filler_data *data,
 			return PPM_FAILURE_BUFFER_FULL;
 
 		len = bpf_probe_read_str(&data->buf[off & SCRATCH_SIZE_HALF], SCRATCH_SIZE_HALF, arg);
-		if (len < 0)
+		if (len == -EFAULT)
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		*args_len += len;
@@ -1423,7 +1736,7 @@ FILLER(proc_startupdate, true)
 						SCRATCH_SIZE_HALF,
 						&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]);
 
-		if (exe_len < 0)
+		if (exe_len == -EFAULT)
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		/*
@@ -1615,6 +1928,8 @@ FILLER(proc_startupdate_3, true)
 		kgid_t egid;
 		pid_t vtid;
 		pid_t vpid;
+		struct pid_namespace *pidns = bpf_task_active_pid_ns(task);
+		int pidns_level = _READ(pidns->level);
 
 		/*
 		 * flags
@@ -1625,6 +1940,18 @@ FILLER(proc_startupdate_3, true)
 			flags = 0;
 
 		flags = clone_flags_to_scap(flags);
+
+		if(pidns_level != 0) {
+			flags |= PPM_CL_CHILD_IN_PIDNS;
+		} else {
+			struct nsproxy *nsproxy = _READ(task->nsproxy);
+			if(nsproxy) {
+				struct pid_namespace *pid_ns_for_children = _READ(nsproxy->pid_ns_for_children);
+				if(pid_ns_for_children != pidns) {
+					flags |= PPM_CL_CHILD_IN_PIDNS;
+				}
+			}
+		}
 
 		res = bpf_val_to_ring_type(data, flags, PT_FLAGS32);
 		if (res != PPM_SUCCESS)
@@ -1744,7 +2071,19 @@ FILLER(proc_startupdate_3, true)
 		 * loginuid
 		 */
 		/* TODO: implement user namespace support */
+#ifdef COS_73_WORKAROUND
+		{
+			struct audit_task_info* audit = _READ(task->audit);
+			if (audit) {
+				loginuid = _READ(audit->loginuid);
+			} else {
+				loginuid = INVALID_UID;
+			}
+		}
+#else
 		loginuid = _READ(task->loginuid);
+#endif
+
 		res = bpf_val_to_ring_type(data, loginuid.val, PT_INT32);
 		if (res != PPM_SUCCESS)
 			return res;
@@ -1895,6 +2234,8 @@ FILLER(sys_generic, true)
 
 FILLER(sys_openat_x, true)
 {
+	unsigned long dev;
+	unsigned long ino;
 	unsigned long flags;
 	unsigned long val;
 	unsigned long mode;
@@ -1941,7 +2282,16 @@ FILLER(sys_openat_x, true)
 	mode = bpf_syscall_get_argument(data, 3);
 	mode = open_modes_to_scap(val, mode);
 	res = bpf_val_to_ring(data, mode);
+	if (res != PPM_SUCCESS)
+		return res;
 
+	/*
+	 * Device
+	 */
+	if (retval < 0 || !bpf_get_fd_dev_ino(retval, &dev, &ino))
+		dev = 0;
+
+	res = bpf_val_to_ring(data, dev);
 	return res;
 }
 
@@ -2580,9 +2930,51 @@ FILLER(sys_sendmsg_x, true)
 	return res;
 }
 
+FILLER(sys_creat_x, true)
+{
+	unsigned long dev;
+	unsigned long ino;
+	unsigned long val;
+	unsigned long mode;
+	long retval;
+	int res;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * name
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * mode
+	 */
+	mode = bpf_syscall_get_argument(data, 1);
+	mode = open_modes_to_scap(O_CREAT, mode);
+	res = bpf_val_to_ring(data, mode);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * Device
+	 */
+	if (retval < 0 || !bpf_get_fd_dev_ino(retval, &dev, &ino))
+		dev = 0;
+
+	res = bpf_val_to_ring(data, dev);
+	return res;
+}
+
 FILLER(sys_pipe_x, true)
 {
 	unsigned long ino;
+	unsigned long dev;
 	unsigned long val;
 	long retval;
 	int fds[2];
@@ -2611,7 +3003,7 @@ FILLER(sys_pipe_x, true)
 	if (res != PPM_SUCCESS)
 		return res;
 
-	if (!bpf_get_ino_fd(fds[0], &ino))
+	if (!bpf_get_fd_dev_ino(fds[0], &dev, &ino))
 		ino = 0;
 
 	res = bpf_val_to_ring(data, ino);
@@ -2945,6 +3337,64 @@ FILLER(sys_renameat_x, true)
 	return res;
 }
 
+FILLER(sys_renameat2_x, true)
+{
+	unsigned long val;
+	long retval;
+	int res;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * olddirfd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * oldpath
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * newdirfd
+	 */
+	val = bpf_syscall_get_argument(data, 2);
+
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * newpath
+	 */
+	val = bpf_syscall_get_argument(data, 3);
+	res = bpf_val_to_ring(data, val);
+
+	/*
+	 * flags
+	 */
+	val = bpf_syscall_get_argument(data, 4);
+	res = bpf_val_to_ring(data, val);
+
+	return res;
+}
+
 FILLER(sys_symlinkat_x, true)
 {
 	unsigned long val;
@@ -3158,6 +3608,15 @@ FILLER(sys_pagefault_e, false)
 	return res;
 }
 
+static __always_inline int siginfo_not_a_pointer(struct siginfo* info)
+{
+#ifdef SEND_SIG_FORCED
+	return info == SEND_SIG_NOINFO || info == SEND_SIG_PRIV || SEND_SIG_FORCED;
+#else
+	return info == (struct siginfo*)SEND_SIG_NOINFO || info == (struct siginfo*)SEND_SIG_PRIV;
+#endif
+}
+
 FILLER(sys_signaldeliver_e, false)
 {
 	struct signal_deliver_args *ctx;
@@ -3168,12 +3627,15 @@ FILLER(sys_signaldeliver_e, false)
 	ctx = (struct signal_deliver_args *)data->ctx;
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 	struct siginfo *info = (struct siginfo *)ctx->info;
-
 	sig = ctx->sig;
-	if (sig == SIGKILL) {
+
+	if (siginfo_not_a_pointer(info)) {
+		info = NULL;
+		spid = 0;
+	} else if (sig == SIGKILL) {
 		spid = _READ(info->_sifields._kill._pid);
 	} else if (sig == SIGTERM || sig == SIGHUP || sig == SIGINT ||
-		   sig == SIGTSTP || sig == SIGQUIT) {
+	           sig == SIGTSTP || sig == SIGQUIT) {
 		int si_code = _READ(info->si_code);
 
 		if (si_code == SI_USER ||
@@ -3615,8 +4077,8 @@ FILLER(sys_ptrace_x, true)
 			return res;
 
 		res = bpf_val_to_ring_dyn(data, 0, PT_UINT64, 0);
-		if (res != PPM_SUCCESS)
-			return res;
+
+		return res;
 	}
 
 	val = bpf_syscall_get_argument(data, 0);
@@ -3857,6 +4319,103 @@ FILLER(sys_autofill, true)
 		if (res != PPM_SUCCESS)
 			return res;
 	}
+
+	return res;
+}
+
+FILLER(sys_fchmodat_x, true)
+{
+	unsigned long val;
+	int res;
+	long retval;
+	unsigned int mode;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * dirfd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * filename
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * mode
+	 */
+	mode = bpf_syscall_get_argument(data, 2);
+	mode = chmod_mode_to_scap(mode);
+	res = bpf_val_to_ring(data, mode);
+
+	return res;
+}
+
+FILLER(sys_chmod_x, true)
+{
+	unsigned long val;
+	int res;
+	long retval;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * filename
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * mode
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
+
+	return res;
+}
+
+FILLER(sys_fchmod_x, true)
+{
+	unsigned long val;
+	int res;
+	long retval;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * fd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * mode
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
 
 	return res;
 }

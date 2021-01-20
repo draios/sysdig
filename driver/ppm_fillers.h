@@ -41,6 +41,8 @@ or GPL2.txt for full copies of the license.
 	FN(proc_startupdate_2)			\
 	FN(proc_startupdate_3)			\
 	FN(sys_socketpair_x)			\
+	FN(sys_setsockopt_x)			\
+	FN(sys_getsockopt_x)			\
 	FN(sys_connect_x)			\
 	FN(sys_accept4_e)			\
 	FN(sys_accept_x)			\
@@ -54,6 +56,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_recvmsg_x)			\
 	FN(sys_recvmsg_x_2)			\
 	FN(sys_shutdown_e)			\
+	FN(sys_creat_x)				\
 	FN(sys_pipe_x)				\
 	FN(sys_eventfd_e)			\
 	FN(sys_futex_e)				\
@@ -82,6 +85,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_mmap_e)				\
 	FN(sys_brk_munmap_mmap_x)		\
 	FN(sys_renameat_x)			\
+	FN(sys_renameat2_x)			\
 	FN(sys_symlinkat_x)			\
 	FN(sys_procexit_e)			\
 	FN(sys_sendfile_e)			\
@@ -105,6 +109,9 @@ or GPL2.txt for full copies of the license.
 	FN(sys_socket_x)			\
 	FN(sys_bpf_x)				\
 	FN(sys_unlinkat_x)			\
+	FN(sys_fchmodat_x)			\
+	FN(sys_chmod_x)				\
+	FN(sys_fchmod_x)			\
 	FN(sys_mkdirat_x)			\
 	FN(sys_openat_x)			\
 	FN(sys_linkat_x)			\

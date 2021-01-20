@@ -18,6 +18,9 @@ limitations under the License.
 */
 
 #pragma once
+#include "sinsp_pd_callback_type.h"
+#include <unordered_map>
+#include <vector>
 
 #ifdef _WIN32
 #define CANCELED_FD_NUMBER INT64_MAX
@@ -62,8 +65,8 @@ typedef union _sinsp_sockinfo
 class fd_callbacks_info
 {
 public:
-	vector<sinsp_protodecoder*> m_write_callbacks;
-	vector<sinsp_protodecoder*> m_read_callbacks;
+	std::vector<sinsp_protodecoder*> m_write_callbacks;
+	std::vector<sinsp_protodecoder*> m_read_callbacks;
 };
 
 /*!
@@ -86,9 +89,9 @@ public:
 
 	~sinsp_fdinfo()
 	{
-		if(m_callbaks != NULL)
+		if(m_callbacks != NULL)
 		{
-			delete m_callbaks;
+			delete m_callbacks;
 		}
 
 		if(m_usrstate != NULL)
@@ -104,7 +107,7 @@ public:
 	}
 
 	void reset();
-	string* tostring();
+	std::string* tostring();
 
 	inline void copy(const sinsp_fdinfo &other, bool free_state)
 	{
@@ -114,13 +117,15 @@ public:
 		m_name = other.m_name;
 		m_oldname = other.m_oldname;
 		m_flags = other.m_flags;
+		m_dev = other.m_dev;
+		m_mount_id = other.m_mount_id;
 		m_ino = other.m_ino;
 		
 		if(free_state)
 		{
-			if(m_callbaks != NULL)
+			if(m_callbacks != NULL)
 			{
-				delete m_callbaks;
+				delete m_callbacks;
 			}
 
 			if(m_usrstate != NULL)
@@ -129,14 +134,14 @@ public:
 			}
 		}
 
-		if(other.m_callbaks != NULL)
+		if(other.m_callbacks != NULL)
 		{
-			m_callbaks = new fd_callbacks_info();
-			*m_callbaks = *other.m_callbaks;
+			m_callbacks = new fd_callbacks_info();
+			*m_callbacks = *other.m_callbacks;
 		}
 		else
 		{
-			m_callbaks = NULL;
+			m_callbacks = NULL;
 		}
 
 		if(other.m_usrstate != NULL)
@@ -166,7 +171,7 @@ public:
 	/*!
 	  \brief Return the fd name, after removing unprintable or invalid characters from it.
 	*/
-	string tostring_clean();
+	std::string tostring_clean();
 
 	/*!
 	  \brief Returns true if this is a unix socket.
@@ -248,6 +253,23 @@ public:
 		}
 	}
 
+	uint32_t get_device() const
+	{
+		return m_dev;
+	}
+
+	// see new_encode_dev in include/linux/kdev_t.h
+	uint32_t get_device_major() const
+	{
+		return (m_dev & 0xfff00) >> 8;
+	}
+
+	// see new_encode_dev in include/linux/kdev_t.h
+	uint32_t get_device_minor() const
+	{
+		return (m_dev & 0xff) | ((m_dev >> 12) & 0xfff00);
+	}
+
 	/*!
 	  \brief If this is a socket, returns the IP protocol. Otherwise, return SCAP_FD_UNKNOWN.
 	*/
@@ -292,6 +314,16 @@ public:
 		return (m_flags & FLAGS_SOCKET_CONNECTED) == FLAGS_SOCKET_CONNECTED;
 	}
 
+	inline bool is_socket_pending()
+	{
+		return (m_flags & FLAGS_CONNECTION_PENDING) == FLAGS_CONNECTION_PENDING;
+	}
+
+	inline bool is_socket_failed()
+	{
+		return (m_flags & FLAGS_CONNECTION_FAILED) == FLAGS_CONNECTION_FAILED;
+	}
+
 	inline bool is_cloned()
 	{
 		return (m_flags & FLAGS_IS_CLONED) == FLAGS_IS_CLONED;
@@ -306,12 +338,12 @@ public:
 	*/
 	sinsp_sockinfo m_sockinfo;
 
-	string m_name; ///< Human readable rendering of this FD. For files, this is the full file name. For sockets, this is the tuple. And so on.
-	string m_oldname; // The name of this fd at the beginning of event parsing. Used to detect name changes that result from parsing an event.
+	std::string m_name; ///< Human readable rendering of this FD. For files, this is the full file name. For sockets, this is the tuple. And so on.
+	std::string m_oldname; // The name of this fd at the beginning of event parsing. Used to detect name changes that result from parsing an event.
 
 	inline bool has_decoder_callbacks()
 	{
-		return (m_callbaks != NULL);
+		return (m_callbacks != NULL);
 	}
 
 VISIBILITY_PRIVATE
@@ -342,15 +374,27 @@ private:
 		FLAGS_IN_BASELINE_OTHER = (1 << 12),
 		FLAGS_SOCKET_CONNECTED = (1 << 13),
 		FLAGS_IS_CLONED = (1 << 14),
+		FLAGS_CONNECTION_PENDING = (1 << 15),
+		FLAGS_CONNECTION_FAILED = (1 << 16),
 	};
 
 	void add_filename(const char* fullpath);
 
-	inline bool is_transaction()
+public:
+	inline bool is_transaction() const
 	{
 		return (m_usrstate != NULL); 
 	}
 
+	T* get_usrstate()
+	{
+		return m_usrstate;
+	}
+
+
+	
+
+private:
 	inline void set_role_server()
 	{
 		m_flags |= FLAGS_ROLE_SERVER;
@@ -425,7 +469,20 @@ private:
 
 	inline void set_socket_connected()
 	{
+		m_flags &= ~(FLAGS_CONNECTION_PENDING | FLAGS_CONNECTION_FAILED);
 		m_flags |= FLAGS_SOCKET_CONNECTED;
+	}
+
+	inline void set_socket_pending()
+	{
+		m_flags &= ~(FLAGS_SOCKET_CONNECTED | FLAGS_CONNECTION_FAILED);
+		m_flags |= FLAGS_CONNECTION_PENDING;
+	}
+
+	inline void set_socket_failed()
+	{
+		m_flags &= ~(FLAGS_SOCKET_CONNECTED | FLAGS_CONNECTION_PENDING);
+		m_flags |= FLAGS_CONNECTION_FAILED;
 	}
 
 	inline void set_is_cloned()
@@ -435,22 +492,23 @@ private:
 
 	T* m_usrstate;
 	uint32_t m_flags;
+	uint32_t m_dev;
+	uint32_t m_mount_id;
 	uint64_t m_ino;
 
-	fd_callbacks_info* m_callbaks;
+	fd_callbacks_info* m_callbacks;
 
 	friend class sinsp;
 	friend class sinsp_parser;
 	friend class sinsp_threadinfo;
 	friend class sinsp_analyzer;
-	friend class thread_analyzer_info;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_fdtable;
 	friend class sinsp_filter_check_fd;
 	friend class sinsp_filter_check_event;
 	friend class lua_cbacks;
-	friend class sinsp_proto_detector;
 	friend class sinsp_baseliner;
+	friend class protocol_manager;
 };
 
 /*@}*/
@@ -465,7 +523,7 @@ public:
 
 	inline sinsp_fdinfo_t* find(int64_t fd)
 	{
-		unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
+		std::unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 
 		//
 		// Try looking up in our simple cache
@@ -497,6 +555,7 @@ public:
 	#endif
 			m_last_accessed_fd = fd;
 			m_last_accessed_fdinfo = &(fdit->second);
+			lookup_device(&(fdit->second), fd);
 			return &(fdit->second);
 		}
 	}
@@ -510,11 +569,15 @@ public:
 	void reset_cache();
 
 	sinsp* m_inspector;
-	unordered_map<int64_t, sinsp_fdinfo_t> m_table;
+	std::unordered_map<int64_t, sinsp_fdinfo_t> m_table;
 
 	//
 	// Simple fd cache
 	//
 	int64_t m_last_accessed_fd;
 	sinsp_fdinfo_t *m_last_accessed_fdinfo;
+	uint64_t m_tid;
+
+private:
+	void lookup_device(sinsp_fdinfo_t* fdi, uint64_t fd);
 };

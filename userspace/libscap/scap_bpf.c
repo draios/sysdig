@@ -26,7 +26,9 @@ limitations under the License.
 #include <sys/socket.h>
 #include <sys/syscall.h>
 #include <sys/utsname.h>
+#ifndef MINIMAL_BUILD
 #include <gelf.h>
+#endif // MINIMAL_BUILD
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
@@ -36,7 +38,7 @@ limitations under the License.
 #include "scap.h"
 #include "scap-int.h"
 #include "scap_bpf.h"
-#include "../../driver/driver_config.h"
+#include "driver_config.h"
 #include "../../driver/bpf/types.h"
 #include "compat/misc.h"
 #include "compat/bpf.h"
@@ -65,6 +67,18 @@ static const char *g_filler_names[PPM_FILLER_MAX] = {
 	FILLER_LIST_MAPPER(FILLER_NAME_FN)
 };
 #undef FILLER_NAME_FN
+
+static int sys_bpf(enum bpf_cmd cmd, union bpf_attr *attr, unsigned int size)
+{
+	return syscall(__NR_bpf, cmd, attr, size);
+}
+
+static int sys_perf_event_open(struct perf_event_attr *attr,
+			       pid_t pid, int cpu, int group_fd,
+			       unsigned long flags)
+{
+	return syscall(__NR_perf_event_open, attr, pid, cpu, group_fd, flags);
+}
 
 static int32_t lookup_filler_id(const char *filler_name)
 {
@@ -169,6 +183,7 @@ static int bpf_raw_tracepoint_open(const char *name, int prog_fd)
 	return sys_bpf(BPF_RAW_TRACEPOINT_OPEN, &attr, sizeof(attr));
 }
 
+#ifndef MINIMAL_BUILD
 static int32_t get_elf_section(Elf *elf, int i, GElf_Ehdr *ehdr, char **shname, GElf_Shdr *shdr, Elf_Data **data)
 {
 	Elf_Scn *scn = elf_getscn(elf, i);
@@ -273,6 +288,7 @@ static int32_t load_elf_maps_section(scap_t *handle, struct bpf_map_data *maps,
 	free(sym);
 	return SCAP_SUCCESS;
 }
+#endif // MINIMAL_BUILD
 
 static int32_t load_maps(scap_t *handle, struct bpf_map_data *maps, int nr_maps)
 {
@@ -311,6 +327,7 @@ static int32_t load_maps(scap_t *handle, struct bpf_map_data *maps, int nr_maps)
 	return SCAP_SUCCESS;
 }
 
+#ifndef MINIMAL_BUILD
 static int32_t parse_relocations(scap_t *handle, Elf_Data *data, Elf_Data *symbols,
 				 GElf_Shdr *shdr, struct bpf_insn *insn,
 				 struct bpf_map_data *maps, int nr_maps)
@@ -364,6 +381,7 @@ static int32_t parse_relocations(scap_t *handle, Elf_Data *data, Elf_Data *symbo
 
 	return SCAP_SUCCESS;
 }
+#endif // MINIMAL_BUILD
 
 static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_insn *prog, int size)
 {
@@ -515,6 +533,7 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 	return SCAP_SUCCESS;
 }
 
+#ifndef MINIMAL_BUILD
 static int32_t load_bpf_file(scap_t *handle, const char *path)
 {
 	int j;
@@ -551,7 +570,7 @@ static int32_t load_bpf_file(scap_t *handle, const char *path)
 		return SCAP_FAILURE;
 	}
 
-	Elf *elf = elf_begin(program_fd, ELF_C_READ, NULL);
+	Elf *elf = elf_begin(program_fd, ELF_C_READ_MMAP_PRIVATE, NULL);
 	if(!elf)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't read ELF format");
@@ -666,6 +685,7 @@ cleanup:
 	close(program_fd);
 	return res;
 }
+#endif // MINIMAL_BUILD
 
 static void *perf_event_mmap(scap_t *handle, int fd)
 {
@@ -681,17 +701,17 @@ static void *perf_event_mmap(scap_t *handle, int fd)
 	void *tmp = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	if(tmp == MAP_FAILED)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (1)");
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (1): %s", scap_strerror(handle, errno));
+		return MAP_FAILED;
 	}
 
 	// Map the second copy to allow us to handle the wrap case normally
 	void *p1 = mmap(tmp + ring_size, ring_size + header_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
 	if(p1 == MAP_FAILED)
 	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (2): %s", scap_strerror(handle, errno));
 		munmap(tmp, total_size);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (2)");
-		return NULL;
+		return MAP_FAILED;
 	}
 
 	ASSERT(p1 == tmp + ring_size);
@@ -700,9 +720,9 @@ static void *perf_event_mmap(scap_t *handle, int fd)
 	void *p2 = mmap(tmp, ring_size + header_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
 	if(p2 == MAP_FAILED)
 	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (3): %s", scap_strerror(handle, errno));
 		munmap(tmp, total_size);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (3)");
-		return NULL;
+		return MAP_FAILED;
 	}
 
 	ASSERT(p2 == tmp);
@@ -881,6 +901,50 @@ int32_t scap_bpf_set_snaplen(scap_t* handle, uint32_t snaplen)
 	return SCAP_SUCCESS;
 }
 
+int32_t scap_bpf_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, uint16_t range_end)
+{
+	struct sysdig_bpf_settings settings;
+	int k = 0;
+
+	if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SYSDIG_SETTINGS_MAP], &k, &settings) != 0)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SYSDIG_SETTINGS_MAP bpf_map_lookup_elem < 0");
+		return SCAP_FAILURE;
+	}
+
+	settings.fullcapture_port_range_start = range_start;
+	settings.fullcapture_port_range_end = range_end;
+	if(bpf_map_update_elem(handle->m_bpf_map_fds[SYSDIG_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SYSDIG_SETTINGS_MAP bpf_map_update_elem < 0");
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+}
+
+int32_t scap_bpf_set_statsd_port(scap_t* const handle, const uint16_t port)
+{
+	struct sysdig_bpf_settings settings = {};
+	int k = 0;
+
+	if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SYSDIG_SETTINGS_MAP], &k, &settings) != 0)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SYSDIG_SETTINGS_MAP bpf_map_lookup_elem < 0");
+		return SCAP_FAILURE;
+	}
+
+	settings.statsd_port = port;
+
+	if(bpf_map_update_elem(handle->m_bpf_map_fds[SYSDIG_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SYSDIG_SETTINGS_MAP bpf_map_update_elem < 0");
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+}
+
 int32_t scap_bpf_disable_dynamic_snaplen(scap_t* handle)
 {
 	struct sysdig_bpf_settings settings;
@@ -1045,10 +1109,11 @@ int32_t scap_bpf_close(scap_t *handle)
 			munmap(handle->m_devs[j].m_buffer, total_size);
 #endif
 			ASSERT(ret == 0);
-			if(handle->m_devs[j].m_fd > 0)
-			{
-				close(handle->m_devs[j].m_fd);
-			}
+		}
+
+		if(handle->m_devs[j].m_fd > 0)
+		{
+			close(handle->m_devs[j].m_fd);
 		}
 	}
 
@@ -1199,6 +1264,10 @@ static int32_t set_default_settings(scap_t *handle)
 	settings.page_faults = false;
 	settings.dropping_mode = false;
 	settings.is_dropping = false;
+	settings.tracers_enabled = false;
+	settings.fullcapture_port_range_start = 0;
+	settings.fullcapture_port_range_end = 0;
+	settings.statsd_port = 8125;
 
 	int k = 0;
 	if(bpf_map_update_elem(handle->m_bpf_map_fds[SYSDIG_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
@@ -1212,6 +1281,10 @@ static int32_t set_default_settings(scap_t *handle)
 
 int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 {
+#ifdef MINIMAL_BUILD
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+#else
 	int online_cpu;
 	int j;
 
@@ -1328,7 +1401,7 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 		// Map the ring buffer
 		//
 		handle->m_devs[online_cpu].m_buffer = perf_event_mmap(handle, pmu_fd);
-		if(!handle->m_devs[online_cpu].m_buffer)
+		if(handle->m_devs[online_cpu].m_buffer == MAP_FAILED)
 		{
 			return SCAP_FAILURE;
 		}
@@ -1348,6 +1421,7 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 	}
 
 	return SCAP_SUCCESS;
+#endif // MINIMAL_BUILD
 }
 
 struct ppm_proclist_info *scap_bpf_get_threadlist(scap_t *handle)

@@ -115,7 +115,7 @@ int tracer_writer::get_fd()
 						"Unable to open %s for writing tracers: %s",
 						m_file, strerror(errno));
 			}
-		});
+	}, sinsp_utils::get_current_time_ns());
 
 	return m_fd;
 }

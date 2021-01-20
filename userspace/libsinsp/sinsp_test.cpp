@@ -19,7 +19,6 @@ limitations under the License.
 
 #include <gtest.h>
 #include "sinsp.h"
-#include "../../driver/ppm_events_public.h"
 
 TEST(inspector,get_proc_by_invalid_tid)
 {

@@ -58,9 +58,16 @@ struct iovec;
 //
 // Core types
 //
+#ifndef __APPLE__
+#include <time.h>
+#endif
 #include "uthash.h"
 #include "../common/sysdig_types.h"
 #include "../../driver/ppm_events_public.h"
+#ifdef _WIN32
+#include <time.h>
+#define MAP_FAILED (void*)-1
+#endif
 
 //
 // Return types
@@ -199,6 +206,8 @@ typedef struct scap_fdinfo
 		{
 			uint32_t open_flags; ///< Flags associated with the file
 			char fname[SCAP_MAX_PATH_SIZE]; ///< Name associated to this file
+			uint32_t mount_id; ///< The id of the vfs mount the file is in until we find dev major:minor
+			uint32_t dev; ///< Major/minor number of the device containing this file
 		} regularinfo; ///< Information specific to regular files
 		char fname[SCAP_MAX_PATH_SIZE];  ///< The name for file system FDs
 	}info;
@@ -246,6 +255,15 @@ typedef struct scap_threadinfo
 	UT_hash_handle hh; ///< makes this structure hashable
 }scap_threadinfo;
 
+/*!
+  \brief Mount information
+*/
+typedef struct {
+	uint64_t mount_id; ///< mount id from /proc/self/mountinfo
+	uint32_t dev; ///< device number
+	UT_hash_handle hh; ///< makes this structure hashable
+} scap_mountinfo;
+
 typedef void (*proc_entry_callback)(void* context,
 									scap_t* handle,
 									int64_t tid,
@@ -256,9 +274,24 @@ typedef void (*proc_entry_callback)(void* context,
   \brief Arguments for scap_open
 */
 typedef enum {
+	/*!
+	 * Default value that mostly exists so that sinsp can have a valid value
+	 * before it is initialized.
+	 */
+	SCAP_MODE_NONE = 0,
+	/*!
+	 * Read system call data from a capture file.
+	 */
 	SCAP_MODE_CAPTURE,
+	/*!
+	 * Read system call data from the underlying operating system.
+	 */
 	SCAP_MODE_LIVE,
-	SCAP_MODE_NODRIVER
+	/*!
+	 * Do not read system call data. If next is called, a dummy event is
+	 * returned.
+	 */
+	SCAP_MODE_NODRIVER,
 } scap_mode_t;
 
 typedef struct scap_open_args
@@ -275,11 +308,12 @@ typedef struct scap_open_args
 	                                                         // events should be returned, with a trailing NULL value.
 	                                                         // You can provide additional comm
 	                                                         // values via scap_suppress_events_comm().
+	bool udig; ///< If true, UDIG will be used for event capture. Otherwise, the kernel driver will be used.
 }scap_open_args;
 
 
 //
-// The follwing stuff is byte aligned because we save it to disk.
+// The following stuff is byte aligned because we save it to disk.
 //
 #if defined _MSC_VER
 #pragma pack(push)
@@ -496,6 +530,34 @@ struct ppm_syscall_desc {
 #define IN
 #define OUT
 
+//
+// udig stuff
+//
+#define UDIG_RING_SM_FNAME "udig_buf"
+#define UDIG_RING_DESCS_SM_FNAME "udig_descs"
+#define UDIG_RING_SIZE (8 * 1024 * 1024)
+
+#ifndef __APPLE__
+struct udig_ring_buffer_status {
+	volatile uint64_t m_buffer_lock;
+	volatile int m_initialized;
+	volatile int m_capturing_pid;
+	volatile int m_stopped;
+	volatile struct timespec m_last_print_time;
+	struct udig_consumer_t m_consumer;
+};
+#endif // __APPLE__
+
+typedef struct ppm_ring_buffer_info ppm_ring_buffer_info;
+
+int32_t udig_alloc_ring(void* ring_id, uint8_t** ring, uint32_t *ringsize, char *error);
+int32_t udig_alloc_ring_descriptors(void* ring_descs_id,
+	struct ppm_ring_buffer_info** ring_info,
+	struct udig_ring_buffer_status** ring_status,
+	char *error);
+void udig_free_ring(uint8_t* addr, uint32_t size);
+void udig_free_ring_descriptors(uint8_t* addr);
+
 ///////////////////////////////////////////////////////////////////////////////
 // API functions
 ///////////////////////////////////////////////////////////////////////////////
@@ -545,7 +607,7 @@ scap_t* scap_open_offline_fd(int fd, char *error, int32_t *rc);
 /*!
   \brief Advanced function to start a capture.
 
-  \param args a \ref scap_open_args structure containing the open paraneters.
+  \param args a \ref scap_open_args structure containing the open parameters.
   \param error Pointer to a buffer that will contain the error string in case the
     function fails. The buffer must have size SCAP_LASTERR_SIZE.
   \param rc Integer pointer that will contain the scap return code in case the
@@ -579,6 +641,11 @@ scap_os_platform scap_get_os_platform(scap_t* handle);
   \brief Return a string with the last error that happened on the given capture.
 */
 const char* scap_getlasterr(scap_t* handle);
+
+/*!
+ * \brief returns the maximum amount of memory used by any driver queue
+ */
+uint64_t scap_max_buf_used(scap_t* handle);
 
 /*!
   \brief Get the next event from the from the given capture instance
@@ -917,6 +984,8 @@ struct ppm_proclist_info* scap_get_threadlist(scap_t* handle);
 
 const char *scap_get_bpf_probe_from_env();
 
+bool scap_get_bpf_enabled(scap_t* handle);
+
 /*!
   \brief stop returning events for all subsequently spawned
   processes with the provided comm, as well as their children.
@@ -967,11 +1036,13 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid);
 
 struct scap_threadinfo *scap_proc_alloc(scap_t* handle);
 void scap_proc_free(scap_t* handle, struct scap_threadinfo* procinfo);
+void scap_dev_delete(scap_t* handle, scap_mountinfo* dev);
 int32_t scap_stop_dropping_mode(scap_t* handle);
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);
 int32_t scap_enable_dynamic_snaplen(scap_t* handle);
 int32_t scap_disable_dynamic_snaplen(scap_t* handle);
 void scap_proc_free_table(scap_t* handle);
+void scap_free_device_table(scap_t* handle);
 void scap_refresh_iflist(scap_t* handle);
 void scap_refresh_proc_table(scap_t* handle);
 void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh);
@@ -983,7 +1054,9 @@ uint64_t scap_get_unexpected_block_readsize(scap_t* handle);
 int32_t scap_proc_add(scap_t* handle, uint64_t tid, scap_threadinfo* tinfo);
 int32_t scap_fd_add(scap_t *handle, scap_threadinfo* tinfo, uint64_t fd, scap_fdinfo* fdinfo);
 scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_t targetbufsize);
+#ifdef USE_ZLIB
 int32_t compr(uint8_t* dest, uint64_t* destlen, const uint8_t* source, uint64_t sourcelen, int level);
+#endif
 uint8_t* scap_get_memorydumper_curpos(scap_dumper_t *d);
 int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_dumper_t *d);
 int32_t scap_write_proclist_header(scap_t *handle, scap_dumper_t *d, uint32_t totlen);
@@ -1001,12 +1074,23 @@ int32_t scap_write_proclist_entry_bufs(scap_t *handle, scap_dumper_t *d, struct 
 				       const char *cwd,
 				       const struct iovec *cgroups, int cgroupscnt,
 				       const char *root);
+
+// Turn on processing only a subset syscalls. This is only appliable when scap
+// is in LIVE mode.
 int32_t scap_enable_simpledriver_mode(scap_t* handle);
 int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret);
 #ifdef CYGWING_AGENT
 typedef struct wh_t wh_t;
 wh_t* scap_get_wmi_handle(scap_t* handle);
 #endif
+int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, uint16_t range_end);
+
+/**
+ * By default we have an expanded snaplen for the default statsd port. If the
+ * statsd port is non-standard, communicate that port value to the kernel to
+ * get the expanded snaplen for the correct port.
+ */
+int32_t scap_set_statsd_port(scap_t* handle, uint16_t port);
 
 #ifdef __cplusplus
 }

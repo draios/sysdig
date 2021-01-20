@@ -20,7 +20,6 @@ limitations under the License.
 #include <iostream>
 #include "sinsp.h"
 #include "sinsp_int.h"
-#include "../../driver/ppm_ringbuffer.h"
 #include "filter.h"
 #include "filterchecks.h"
 
@@ -112,6 +111,10 @@ void json_spy_renderer::process_event_spy(sinsp_evt* evt, int32_t next_res)
 		Json::Value line;
 		m_linecnt++;
 
+		uint64_t ts = evt->get_ts(); 
+		line["ta"] = to_string(ts);
+		line["td"] = to_string(ts - m_inspector->m_firstevent_ts);
+
 		ppm_event_flags eflags = evt->get_info_flags();
 		if(eflags & EF_READS_FROM_FD)
 		{
@@ -124,15 +127,20 @@ void json_spy_renderer::process_event_spy(sinsp_evt* evt, int32_t next_res)
 
 		line["v"] = argstr;
 		line["l"] = to_string(len);
+
 		string fdname = evt->get_fd_info()->m_name;
 		string tc;
 		tc.push_back(evt->get_fd_info()->get_typechar());
 		int64_t fdnum = evt->get_fd_num();
 
+		line["fd"] = to_string(fdnum);
+		line["ft"] = string(tc);
+
 		if(fdname != "")
 		{
 			sanitize_string(fdname);
 			line["f"] = to_string(fdnum) + "(<" + string(tc) + ">" + fdname + ")";
+			line["fn"] = fdname;
 		}
 		else
 		{
@@ -146,7 +154,7 @@ void json_spy_renderer::process_event_spy(sinsp_evt* evt, int32_t next_res)
 
 		if(!tinfo->m_container_id.empty())
 		{
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(container_info)
 			{
@@ -2283,7 +2291,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 					{
 						f = compiler.compile();
 					}
-					catch(sinsp_exception e)
+					catch(const sinsp_exception& e)
 					{
 						//
 						// Backup the cursor position

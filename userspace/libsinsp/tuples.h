@@ -38,7 +38,7 @@ typedef union _ipv4tuple
 		uint16_t m_dport; ///< Destination (i.e. server) port.
 		uint8_t m_l4proto; ///< Layer 4 protocol (e.g. TCP, UDP...).
 	}m_fields;
-	uint8_t m_all[13]; ///< The fields as a raw array ob bytes. Used for hasing.
+	uint8_t m_all[13]; ///< The fields as a raw array ob bytes. Used for hashing.
 }ipv4tuple;
 
 /*!
@@ -76,7 +76,7 @@ typedef union _ipv6tuple
 		uint16_t m_dport; ///< destination (i.e. server) port.
 		uint8_t m_l4proto; ///< Layer 4 protocol (e.g. TCP, UDP...)
 	} m_fields;
-	uint8_t m_all[37]; ///< The fields as a raw array ob bytes. Used for hasing.
+	uint8_t m_all[37]; ///< The fields as a raw array ob bytes. Used for hashing.
 } ipv6tuple;
 
 /*!
@@ -109,7 +109,7 @@ typedef union _unix_tuple
 		uint64_t m_source;  ///< source OS pointer.
 		uint64_t m_dest;  ///< destination OS pointer.
 	} m_fields;
-	uint8_t m_all[16]; ///< The fields as a raw array ob bytes. Used for hasing.
+	uint8_t m_all[16]; ///< The fields as a raw array ob bytes. Used for hashing.
 } unix_tuple;
 
 /*@}*/

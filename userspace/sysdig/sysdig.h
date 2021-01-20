@@ -20,19 +20,16 @@ limitations under the License.
 #pragma once
 
 #include <config_sysdig.h>
-#ifdef HAS_CAPTURE
-#include "../../driver/driver_config.h"
-#endif // HAS_CAPTURE
-
 //
 // ASSERT implementation
 //
+#ifndef ASSERT
 #ifdef _DEBUG
 #define ASSERT(X) assert(X)
 #else // _DEBUG
 #define ASSERT(X)
 #endif // _DEBUG
-
+#endif // ASSERT
 //
 // Capture results
 //
@@ -91,17 +88,3 @@ struct summary_table_entry_rsort_comparer
 		return first.m_ncalls > second.m_ncalls;
 	}
 };
-
-//
-// Printer functions
-//
-void list_fields(bool verbose, bool markdown);
-void list_events(sinsp* inspector);
-
-#ifdef HAS_CHISELS
-void print_chisel_info(chisel_desc* cd);
-void list_chisels(vector<chisel_desc>* chlist, bool verbose);
-#endif
-
-
-

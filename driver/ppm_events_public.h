@@ -23,8 +23,7 @@ or GPL2.txt for full copies of the license.
 /*
  * Macros for packing in different build environments
  */
-
-#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
+#if !defined(CYGWING_AGENT) && (defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32))
 #define _packed __pragma(pack(push, 1)); __pragma(pack(pop))
 #else
 #define _packed __attribute__((packed))
@@ -99,6 +98,7 @@ or GPL2.txt for full copies of the license.
 #define PPM_O_DIRECTORY (1 << 10)
 #define PPM_O_LARGEFILE (1 << 11)
 #define PPM_O_CLOEXEC	(1 << 12)
+#define PPM_O_TMPFILE	(1 << 13)
 
 /*
  * File modes
@@ -164,6 +164,10 @@ or GPL2.txt for full copies of the license.
 #define PPM_CL_CLONE_STOPPED (1 << 26)
 #define PPM_CL_CLONE_VFORK (1 << 27)
 #define PPM_CL_CLONE_NEWCGROUP (1 << 28)
+#define PPM_CL_CHILD_IN_PIDNS (1<<29)			/* true if the thread created by clone() is *not*
+									in the init pid namespace */
+#define PPM_CL_IS_MAIN_THREAD (1 << 30)	/* libsinsp-specific flag. Set if this is the main thread */
+										/* in envs where main thread tid != pid.*/
 
 /*
  * Futex Operations
@@ -325,6 +329,82 @@ or GPL2.txt for full copies of the license.
 #define PPM_FCNTL_F_OFD_GETLK 30
 #define PPM_FCNTL_F_OFD_SETLK 31
 #define PPM_FCNTL_F_OFD_SETLKW 32
+
+/*
+ * getsockopt/setsockopt levels
+ */
+#define PPM_SOCKOPT_LEVEL_UNKNOWN 0
+#define PPM_SOCKOPT_LEVEL_SOL_SOCKET 1
+#define PPM_SOCKOPT_LEVEL_SOL_TCP 2
+
+/*
+ * getsockopt/setsockopt options
+ * SOL_SOCKET only currently
+ */
+#define PPM_SOCKOPT_UNKNOWN	0
+#define PPM_SOCKOPT_SO_DEBUG	1
+#define PPM_SOCKOPT_SO_REUSEADDR	2
+#define PPM_SOCKOPT_SO_TYPE		3
+#define PPM_SOCKOPT_SO_ERROR	4
+#define PPM_SOCKOPT_SO_DONTROUTE	5
+#define PPM_SOCKOPT_SO_BROADCAST	6
+#define PPM_SOCKOPT_SO_SNDBUF	7
+#define PPM_SOCKOPT_SO_RCVBUF	8
+#define PPM_SOCKOPT_SO_SNDBUFFORCE	32
+#define PPM_SOCKOPT_SO_RCVBUFFORCE	33
+#define PPM_SOCKOPT_SO_KEEPALIVE	9
+#define PPM_SOCKOPT_SO_OOBINLINE	10
+#define PPM_SOCKOPT_SO_NO_CHECK	11
+#define PPM_SOCKOPT_SO_PRIORITY	12
+#define PPM_SOCKOPT_SO_LINGER	13
+#define PPM_SOCKOPT_SO_BSDCOMPAT	14
+#define PPM_SOCKOPT_SO_REUSEPORT	15
+#define PPM_SOCKOPT_SO_PASSCRED	16
+#define PPM_SOCKOPT_SO_PEERCRED	17
+#define PPM_SOCKOPT_SO_RCVLOWAT	18
+#define PPM_SOCKOPT_SO_SNDLOWAT	19
+#define PPM_SOCKOPT_SO_RCVTIMEO	20
+#define PPM_SOCKOPT_SO_SNDTIMEO	21
+#define PPM_SOCKOPT_SO_SECURITY_AUTHENTICATION		22
+#define PPM_SOCKOPT_SO_SECURITY_ENCRYPTION_TRANSPORT	23
+#define PPM_SOCKOPT_SO_SECURITY_ENCRYPTION_NETWORK		24
+#define PPM_SOCKOPT_SO_BINDTODEVICE	25
+#define PPM_SOCKOPT_SO_ATTACH_FILTER	26
+#define PPM_SOCKOPT_SO_DETACH_FILTER	27
+#define PPM_SOCKOPT_SO_PEERNAME		28
+#define PPM_SOCKOPT_SO_TIMESTAMP		29
+#define PPM_SOCKOPT_SO_ACCEPTCONN		30
+#define PPM_SOCKOPT_SO_PEERSEC		31
+#define PPM_SOCKOPT_SO_PASSSEC		34
+#define PPM_SOCKOPT_SO_TIMESTAMPNS		35
+#define PPM_SOCKOPT_SO_MARK			36
+#define PPM_SOCKOPT_SO_TIMESTAMPING		37
+#define PPM_SOCKOPT_SO_PROTOCOL		38
+#define PPM_SOCKOPT_SO_DOMAIN		39
+#define PPM_SOCKOPT_SO_RXQ_OVFL             40
+#define PPM_SOCKOPT_SO_WIFI_STATUS		41
+#define PPM_SOCKOPT_SO_PEEK_OFF		42
+#define PPM_SOCKOPT_SO_NOFCS		43
+#define PPM_SOCKOPT_SO_LOCK_FILTER		44
+#define PPM_SOCKOPT_SO_SELECT_ERR_QUEUE	45
+#define PPM_SOCKOPT_SO_BUSY_POLL		46
+#define PPM_SOCKOPT_SO_MAX_PACING_RATE	47
+#define PPM_SOCKOPT_SO_BPF_EXTENSIONS	48
+#define PPM_SOCKOPT_SO_INCOMING_CPU		49
+#define PPM_SOCKOPT_SO_ATTACH_BPF		50
+#define PPM_SOCKOPT_SO_PEERGROUPS		51
+#define PPM_SOCKOPT_SO_MEMINFO		52
+#define PPM_SOCKOPT_SO_COOKIE		53
+
+/*
+ * getsockopt/setsockopt dynamic params
+ */
+#define PPM_SOCKOPT_IDX_UNKNOWN 0
+#define PPM_SOCKOPT_IDX_ERRNO 1
+#define PPM_SOCKOPT_IDX_UINT32 2
+#define PPM_SOCKOPT_IDX_UINT64 3
+#define PPM_SOCKOPT_IDX_TIMEVAL 4
+#define PPM_SOCKOPT_IDX_MAX 5
 
  /*
  * ptrace requests
@@ -506,6 +586,14 @@ or GPL2.txt for full copies of the license.
 #define PPM_PF_SUPERVISOR_FAULT		(1 << 5)
 #define PPM_PF_RESERVED_PAGE		(1 << 6)
 #define PPM_PF_INSTRUCTION_FETCH	(1 << 7)
+
+
+/*
+ * Rename flags
+ */
+#define PPM_RENAME_NOREPLACE	(1 << 0)	/* Don't overwrite target */
+#define PPM_RENAME_EXCHANGE		(1 << 1)	/* Exchange source and dest */
+#define PPM_RENAME_WHITEOUT		(1 << 2)	/* Whiteout source */
 
 /*
  * fchmodat flags
@@ -882,7 +970,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_FCHMOD_X = 323,
 	PPME_SYSCALL_FCHMODAT_E = 324,
 	PPME_SYSCALL_FCHMODAT_X = 325,
-	PPM_EVENT_MAX = 326
+	PPME_SYSCALL_RENAMEAT2_E = 326,
+	PPME_SYSCALL_RENAMEAT2_X = 327,
+	PPM_EVENT_MAX = 328
 };
 /*@}*/
 
@@ -1210,7 +1300,8 @@ enum ppm_syscall_code {
 	PPM_SC_SIGALTSTACK = 317,
 	PPM_SC_GETRANDOM = 318,
 	PPM_SC_FADVISE64 = 319,
-	PPM_SC_MAX = 320,
+	PPM_SC_RENAMEAT2 = 320,
+	PPM_SC_MAX = 321,
 };
 
 /*
@@ -1251,7 +1342,7 @@ enum ppm_event_flags {
 	EF_WAITS = (1 << 7), /* This event reads data from an FD. */
 	EF_SKIPPARSERESET = (1 << 8), /* This event shouldn't pollute the parser lastevent state tracker. */
 	EF_OLD_VERSION = (1 << 9), /* This event is kept for backward compatibility */
-	EF_DROP_FALCO = (1 << 10) /* This event should not be passed up to Falco */
+	EF_DROP_SIMPLE_CONS = (1 << 10) /* This event can be skipped by consumers that privilege low overhead to full event capture */
 };
 
 /*
@@ -1300,7 +1391,9 @@ enum ppm_param_type {
 	PT_IPV6NET = 39, /* An IPv6 network. */
 	PT_IPADDR = 40,  /* Either an IPv4 or IPv6 address. The length indicates which one it is. */
 	PT_IPNET = 41,  /* Either an IPv4 or IPv6 network. The length indicates which one it is. */
-	PT_MAX = 42 /* array size */
+	PT_MODE = 42, /* a 32 bit bitmask to represent file modes. */
+	PT_FSRELPATH = 43, /* A path relative to a dirfd. */
+	PT_MAX = 44 /* array size */
 };
 
 enum ppm_print_format {
@@ -1321,6 +1414,8 @@ struct ppm_name_value {
 	uint32_t value;
 };
 
+#define DIRFD_PARAM(_param_num) ((void*)_param_num)
+
 /*!
   \brief Event parameter information.
 */
@@ -1329,7 +1424,8 @@ struct ppm_param_info {
 	enum ppm_param_type type; /**< Parameter type, e.g. 'uint16', 'string'... */
 	enum ppm_print_format fmt; /**< If this is a numeric parameter, this flag specifies if it should be rendered as decimal or hex. */
 	const void *info; /**< If this is a flags parameter, it points to an array of ppm_name_value,
-			       else if this is a dynamic parameter it points to an array of ppm_param_info */
+						   if this is a FSRELPATH parameter, it references the related dirfd,
+					   else if this is a dynamic parameter it points to an array of ppm_param_info */
 	uint8_t ninfo; /**< Number of entry in the info array. */
 } _packed;
 
@@ -1397,6 +1493,8 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_ENABLE_PAGE_FAULTS _IO(PPM_IOCTL_MAGIC, 19)
 #define PPM_IOCTL_GET_N_TRACEPOINT_HIT _IO(PPM_IOCTL_MAGIC, 20)
 #define PPM_IOCTL_GET_PROBE_VERSION _IO(PPM_IOCTL_MAGIC, 21)
+#define PPM_IOCTL_SET_FULLCAPTURE_PORT_RANGE _IO(PPM_IOCTL_MAGIC, 22)
+#define PPM_IOCTL_SET_STATSD_PORT _IO(PPM_IOCTL_MAGIC, 23)
 #endif // CYGWING_AGENT
 
 extern const struct ppm_name_value socket_families[];
@@ -1411,6 +1509,8 @@ extern const struct ppm_name_value umount_flags[];
 extern const struct ppm_name_value shutdown_how[];
 extern const struct ppm_name_value rlimit_resources[];
 extern const struct ppm_name_value fcntl_commands[];
+extern const struct ppm_name_value sockopt_levels[];
+extern const struct ppm_name_value sockopt_options[];
 extern const struct ppm_name_value ptrace_requests[];
 extern const struct ppm_name_value prot_flags[];
 extern const struct ppm_name_value mmap_flags[];
@@ -1427,7 +1527,10 @@ extern const struct ppm_name_value pf_flags[];
 extern const struct ppm_name_value unlinkat_flags[];
 extern const struct ppm_name_value linkat_flags[];
 extern const struct ppm_name_value chown_flags[];
+extern const struct ppm_name_value chmod_mode[];
+extern const struct ppm_name_value renameat2_flags[];
 
+extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
 extern const struct ppm_param_info bpf_dynamic_param[];
 
@@ -1461,6 +1564,7 @@ enum syscall_flags {
 	UF_NEVER_DROP = (1 << 1),
 	UF_ALWAYS_DROP = (1 << 2),
 	UF_SIMPLEDRIVER_KEEP = (1 << 3),
+	UF_ATOMIC = (1 << 4), ///< The handler should not block (interrupt context)
 };
 
 struct syscall_evt_pair {
@@ -1532,5 +1636,28 @@ struct ppm_event_entry {
 
 #define RW_SNAPLEN 80
 #define RW_MAX_SNAPLEN PPM_MAX_ARG_SIZE
+#define RW_MAX_FULLCAPTURE_PORT_SNAPLEN 16000
+
+/*
+ * Udig stuff
+ */
+struct udig_consumer_t {
+	uint32_t snaplen;
+	uint32_t sampling_ratio;
+	bool do_dynamic_snaplen;
+	uint32_t sampling_interval;
+	int is_dropping;
+	int dropping_mode;
+	volatile int need_to_insert_drop_e;
+	volatile int need_to_insert_drop_x;
+	uint16_t fullcapture_port_range_start;
+	uint16_t fullcapture_port_range_end;
+	uint16_t statsd_port;
+};
+#ifdef UDIG
+typedef struct udig_consumer_t ppm_consumer_t;
+#else
+typedef struct ppm_consumer_t ppm_consumer_t;
+#endif /* UDIG */
 
 #endif /* EVENTS_PUBLIC_H_ */

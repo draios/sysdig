@@ -24,15 +24,16 @@ limitations under the License.
 #endif
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "scap-int.h"
 
 ///////////////////////////////////////////////////////////////////////////////
-// sinsp_fdinfo inomlementation
+// sinsp_fdinfo implementation
 ///////////////////////////////////////////////////////////////////////////////
 template<> sinsp_fdinfo_t::sinsp_fdinfo()
 {
 	m_type = SCAP_FD_UNINITIALIZED;
 	m_flags = FLAGS_NONE;
-	m_callbaks = NULL;
+	m_callbacks = NULL;
 	m_usrstate = NULL;
 }
 
@@ -40,8 +41,8 @@ template<> void sinsp_fdinfo_t::reset()
 {
 	m_type = SCAP_FD_UNINITIALIZED;
 	m_flags = FLAGS_NONE;
-	delete(m_callbaks);
-	m_callbaks = NULL;
+	delete(m_callbacks);
+	m_callbacks = NULL;
 	m_usrstate = NULL;
 }
 
@@ -233,18 +234,18 @@ template<> scap_l4_proto sinsp_fdinfo_t::get_l4proto()
 
 template<> void sinsp_fdinfo_t::register_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec)
 {
-	if(this->m_callbaks == NULL)
+	if(this->m_callbacks == NULL)
 	{
-		m_callbaks = new fd_callbacks_info();
+		m_callbacks = new fd_callbacks_info();
 	}
 
 	switch(etype)
 	{
 	case CT_READ:
-		m_callbaks->m_read_callbacks.push_back(dec);
+		m_callbacks->m_read_callbacks.push_back(dec);
 		break;
 	case CT_WRITE:
-		m_callbaks->m_write_callbacks.push_back(dec);
+		m_callbacks->m_write_callbacks.push_back(dec);
 		break;
 	default:
 		ASSERT(false);
@@ -258,7 +259,7 @@ template<> void sinsp_fdinfo_t::unregister_event_callback(sinsp_pd_callback_type
 {
 	vector<sinsp_protodecoder*>::iterator it;
 
-	if(m_callbaks == NULL)
+	if(m_callbacks == NULL)
 	{
 		ASSERT(false);
 		return;
@@ -267,22 +268,22 @@ template<> void sinsp_fdinfo_t::unregister_event_callback(sinsp_pd_callback_type
 	switch(etype)
 	{
 	case CT_READ:
-		for(it = m_callbaks->m_read_callbacks.begin(); it != m_callbaks->m_read_callbacks.end(); ++it)
+		for(it = m_callbacks->m_read_callbacks.begin(); it != m_callbacks->m_read_callbacks.end(); ++it)
 		{
 			if(*it == dec)
 			{
-				m_callbaks->m_read_callbacks.erase(it);
+				m_callbacks->m_read_callbacks.erase(it);
 				return;
 			}
 		}
 
 		break;
 	case CT_WRITE:
-		for(it = m_callbaks->m_write_callbacks.begin(); it != m_callbaks->m_write_callbacks.end(); ++it)
+		for(it = m_callbacks->m_write_callbacks.begin(); it != m_callbacks->m_write_callbacks.end(); ++it)
 		{
 			if(*it == dec)
 			{
-				m_callbaks->m_write_callbacks.erase(it);
+				m_callbacks->m_write_callbacks.erase(it);
 				return;
 			}
 		}
@@ -422,4 +423,24 @@ size_t sinsp_fdtable::size()
 void sinsp_fdtable::reset_cache()
 {
 	m_last_accessed_fd = -1;
+}
+
+void sinsp_fdtable::lookup_device(sinsp_fdinfo_t* fdi, uint64_t fd)
+{
+#ifdef HAS_CAPTURE
+#ifndef WIN32
+	if(m_inspector->is_capture())
+	{
+		return;
+	}
+
+	if(fdi->is_file() && fdi->m_dev == 0 && fdi->m_mount_id != 0)
+	{
+		char procdir[SCAP_MAX_PATH_SIZE];
+		snprintf(procdir, sizeof(procdir), "%s/proc/%ld/", scap_get_host_root(), m_tid);
+		fdi->m_dev = scap_get_device_by_mount_id(m_inspector->m_h, procdir, fdi->m_mount_id);
+		fdi->m_mount_id = 0; // don't try again
+	}
+#endif // WIN32
+#endif // HAS_CAPTURE
 }

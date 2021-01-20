@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2018 Draios Inc dba Sysdig.
+Copyright (C) 2013-2020 Sysdig Inc.
 
 This file is part of sysdig.
 
@@ -30,7 +30,15 @@ limitations under the License.
 
 #include <sinsp.h>
 #include "chisel.h"
+#include "scap_open_exception.h"
+#include "sinsp_capture_interrupt_exception.h"
+#ifdef HAS_CAPTURE
+#ifndef WIN32
+#include "driver_config.h"
+#endif // WIN32
+#endif // HAS_CAPTURE
 #include "sysdig.h"
+#include "fields_info.h"
 #include "utils.h"
 
 #ifdef _WIN32
@@ -92,6 +100,15 @@ static void usage()
 "                    starting at 0 and continuing upward. The units of file_size\n"
 "                    are millions of bytes (10^6, not 2^20). Use the -W flag to\n"
 "                    determine how many files will be saved to disk.\n"
+#ifdef HAS_CAPTURE
+#ifndef MINIMAL_BUILD
+" --cri <path>       Path to CRI socket for container metadata\n"
+"                    Use the specified socket to fetch data from a CRI-compatible runtime\n"
+"\n"
+" --cri-timeout <timeout_ms>\n"
+"                    Wait at most <timeout_ms> milliseconds for response from CRI\n"
+#endif // MINIMAL_BUILD
+#endif // HAS_CAPTURE
 " -d, --displayflt   Make the given filter a display one\n"
 "                    Setting this option causes the events to be filtered\n"
 "                    after being parsed by the state system. Events are\n"
@@ -145,6 +162,7 @@ static void usage()
 #endif
 " -j, --json         Emit output as json, data buffer encoding will depend from the\n"
 "                    print format selected.\n"
+#ifndef MINIMAL_BUILD
 " -k <url>, --k8s-api=<url>\n"
 "                    Enable Kubernetes support by connecting to the API server\n"
 "                    specified as argument. E.g. \"http://admin:password@127.0.0.1:8080\".\n"
@@ -162,10 +180,17 @@ static void usage()
 "                    Note that the format of this command-line option prohibits use of files whose names contain\n"
 "                    ':' or '#' characters in the file name.\n"
 "                    Option can also be provided via the environment variable SYSDIG_K8S_API_CERT.\n"
+#endif // MINIMAL_BUILD
 " -L, --list-events  List the events that the engine supports\n"
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
 "                    field.\n"
+" --large-environment\n"
+"                    Support environments larger than 4KiB\n"
+"                    When the environment is larger than 4KiB, load the whole\n"
+"                    environment from /proc instead of truncating to the first 4KiB\n"
+"                    This may fail for short-lived processes and in that case\n"
+"                    the truncated environment is used instead.\n"
 " --list-markdown    like -l, but produces markdown output\n"
 " -m <url[,marathon_url]>, --mesos-api=<url[,marathon_url]>\n"
 "                    Enable Mesos support by connecting to the API server\n"
@@ -495,7 +520,7 @@ void handle_end_of_file(bool print_progress, sinsp_evt_formatter* formatter = NU
 
 	//
 	// Reached the end of a trace file.
-	// If we are reporting prgress, this is 100%
+	// If we are reporting progress, this is 100%
 	//
 	if(print_progress)
 	{
@@ -755,20 +780,25 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	uint32_t snaplen = 0;
 	int long_index = 0;
 	int32_t n_filterargs = 0;
-	int cflag = 0;
 	bool jflag = false;
 	bool unbuf_flag = false;
 	bool filter_proclist_flag = false;
 	string cname;
 	vector<summary_table_entry> summary_table;
+#ifndef MINIMAL_BUILD
 	string* k8s_api = 0;
 	string* k8s_api_cert = 0;
 	string* mesos_api = 0;
+#endif // MINIMAL_BUILD
 	bool force_tracers_capture = false;
 	bool page_faults = false;
 	bool bpf = false;
 	string bpf_probe;
 	std::set<std::string> suppress_comms;
+#ifdef HAS_CAPTURE
+	string cri_socket_path;
+#endif
+	bool udig = false;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -783,7 +813,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"bpf", optional_argument, 0, 'B' },
 #ifdef HAS_CHISELS
 		{"chisel", required_argument, 0, 'c' },
-		{"list-chisels", no_argument, &cflag, 1 },
+		{"list-chisels", no_argument, 0, 0 },
+#endif
+#ifdef HAS_CAPTURE
+		{"cri", required_argument, 0, 0 },
+		{"cri-timeout", required_argument, 0, 0 },
 #endif
 		{"displayflt", no_argument, 0, 'd' },
 		{"debug", no_argument, 0, 'D'},
@@ -798,12 +832,17 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #endif
 		{"file-size", required_argument, 0, 'C' },
 		{"json", no_argument, 0, 'j' },
+#ifndef MINIMAL_BUILD
 		{"k8s-api", required_argument, 0, 'k'},
 		{"k8s-api-cert", required_argument, 0, 'K' },
+#endif // MINIMAL_BUILD
+		{"large-environment", no_argument, 0, 0 },
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
 		{"list-markdown", no_argument, 0, 0 },
+#ifndef MINIMAL_BUILD
 		{"mesos-api", required_argument, 0, 'm'},
+#endif // MINIMAL_BUILD
 		{"numevents", required_argument, 0, 'n' },
 		{"page-faults", no_argument, 0, 0 },
 		{"progress", required_argument, 0, 'P' },
@@ -814,6 +853,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"snaplen", required_argument, 0, 's' },
 		{"summary", no_argument, 0, 'S' },
 		{"suppress-comm", required_argument, 0, 'U' },
+		{"udig", required_argument, 0, 'u' },
 		{"timetype", required_argument, 0, 't' },
 		{"force-tracers-capture", required_argument, 0, 'T'},
 		{"unbuffered", no_argument, 0, 0 },
@@ -846,7 +886,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "C:"
                                         "dDEe:F"
                                         "G:"
-                                        "hi:jk:K:lLm:M:n:Pp:qRr:Ss:t:TU:v"
+                                        "hi:jk:K:lLm:M:n:Pp:qRr:Ss:t:TU:uv"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
@@ -881,33 +921,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				break;
 			}
-			case 0:
-				if(cflag != 1 && cflag != 2)
-				{
-					break;
-				}
-
-				if(cflag == 2)
-				{
-					cname = optarg;
-				}
 #ifdef HAS_CHISELS
 			case 'c':
 				{
-					if(cflag == 0)
-					{
-						string ostr(optarg);
-
-						if(ostr.size() >= 1)
-						{
-							if(ostr == "l")
-							{
-								cflag = 1;
-							}
-						}
-					}
-
-					if(cflag == 1)
+					string chisel = optarg;
+					if(chisel == "l")
 					{
 						vector<chisel_desc> chlist;
 						sinsp_chisel::get_chisel_list(&chlist);
@@ -916,7 +934,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
 
-					sinsp_chisel* ch = new sinsp_chisel(inspector, optarg);
+					sinsp_chisel* ch = new sinsp_chisel(inspector, chisel);
 					parse_chisel_args(ch, inspector, optind, argc, argv, &n_filterargs);
 					g_chisels.push_back(ch);
 				}
@@ -997,12 +1015,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				//
 				jflag = true;
 				break;
+#ifndef MINIMAL_BUILD
 			case 'k':
 				k8s_api = new string(optarg);
 				break;
 			case 'K':
 				k8s_api_cert = new string(optarg);
 				break;
+#endif // MINIMAL_BUILD
 			case 'h':
 				usage();
 				delete inspector;
@@ -1014,9 +1034,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				list_events(inspector);
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
+#ifndef MINIMAL_BUILD
 			case 'm':
 				mesos_api = new string(optarg);
 				break;
+#endif // MINIMAL_BUILD
 			case 'M':
 				duration_to_tot = atoi(optarg);
 				if(duration_to_tot <= 0)
@@ -1098,8 +1120,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			case 'r':
 				infiles.push_back(optarg);
+#ifndef MINIMAL_BUILD
 				k8s_api = new string();
 				mesos_api = new string();
+#endif // MINIMAL_BUILD
 				break;
 			case 'S':
 				for(uint32_t j = 0; j < PPM_EVENT_MAX; j++)
@@ -1135,9 +1159,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			case 'T':
 				force_tracers_capture = true;
 				break;
-
 			case 'U':
 				suppress_comms.insert(string(optarg));
+				break;
+			case 'u':
+				udig = true;
 				break;
 			case 'v':
 				verbose = true;
@@ -1181,6 +1207,54 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			case 'z':
 				compress = true;
 				break;
+			case 0:
+				{
+					string optname = string(long_options[long_index].name);
+					if (long_options[long_index].flag != 0) {
+						break;
+					}
+					if (optname == "version") {
+						printf("sysdig version %s\n", SYSDIG_VERSION);
+						delete inspector;
+						return sysdig_init_res(EXIT_SUCCESS);
+					}
+					else if (optname == "list-chisels") {
+						vector<chisel_desc> chlist;
+						sinsp_chisel::get_chisel_list(&chlist);
+						list_chisels(&chlist, true);
+						delete inspector;
+						return sysdig_init_res(EXIT_SUCCESS);
+					}
+#ifdef HAS_CAPTURE
+					else if (optname == "cri") {
+						cri_socket_path = optarg;
+					}
+					else if (optname == "cri-timeout") {
+						inspector->set_cri_timeout(sinsp_numparser::parsed64(optarg));
+					}
+#endif
+					else if (optname == "unbuffered") {
+						unbuf_flag = true;
+					}
+
+					else if (optname == "filter-proclist") {
+						filter_proclist_flag = true;
+					}
+
+					else if (optname == "large-environment") {
+						inspector->set_large_envs(true);
+					}
+
+					else if (optname == "list-markdown") {
+						list_flds = true;
+						list_flds_markdown = true;
+					}
+
+					else if (optname == "page-faults") {
+						page_faults = true;
+					}
+				}
+				break;
             // getopt_long : '?' for an ambiguous match or an extraneous parameter
 			case '?':
 				delete inspector;
@@ -1189,35 +1263,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			default:
 				break;
 			}
-
-			if(string(long_options[long_index].name) == "version")
-			{
-				printf("sysdig version %s\n", SYSDIG_VERSION);
-				delete inspector;
-				return sysdig_init_res(EXIT_SUCCESS);
-			}
-
-			if(string(long_options[long_index].name) == "unbuffered")
-			{
-				unbuf_flag = true;
-			}
-
-			if(string(long_options[long_index].name) == "filter-proclist")
-			{
-				filter_proclist_flag = true;
-			}
-
-			if(string(long_options[long_index].name) == "list-markdown")
-			{
-				list_flds = true;
-				list_flds_markdown = true;
-			}
-
-			if(string(long_options[long_index].name) == "page-faults")
-			{
-				page_faults = true;
-			}
 		}
+
+#ifdef HAS_CAPTURE
+		if(!cri_socket_path.empty())
+		{
+			inspector->set_cri_socket_path(cri_socket_path);
+		}
+#endif
 
 		if(!bpf)
 		{
@@ -1424,15 +1477,23 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					goto exit;
 				}
 
-				try
+				if(udig)
 				{
-					inspector->open("");
+					inspector->open_udig();
 				}
-				catch(sinsp_exception e)
+				else
 				{
-					open_success = false;
+					try
+					{
+						inspector->open("");
+					}
+					catch(const sinsp_exception& e)
+					{
+						open_success = false;
+					}
 				}
-
+				
+#ifndef _WIN32
 				//
 				// Starting the live capture failed, try to load the driver with
 				// modprobe.
@@ -1461,18 +1522,22 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 					inspector->open("");
 				}
-#else
+#endif // _WIN32
+#else // HAS_CAPTURE
 				//
 				// Starting live capture
 				// If this fails on Windows and OSX, don't try with any driver
 				//
 				inspector->open("");
-#endif
+#endif // HAS_CAPTURE
 
 				//
 				// Enable gathering the CPU from the kernel module
 				//
-				inspector->set_get_procs_cpu_from_driver(true);
+				if(!udig)
+				{
+					inspector->set_get_procs_cpu_from_driver(true);
+				}
 			}
 
 			//
@@ -1509,6 +1574,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			//
 			chisels_on_capture_start();
 
+#ifndef MINIMAL_BUILD
 			//
 			// run k8s, if required
 			//
@@ -1565,7 +1631,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			}
 			delete mesos_api;
 			mesos_api = 0;
-
+#endif
 			cinfo = do_inspect(inspector,
 				cnt,
 				uint64_t(duration_to_tot*ONE_SECOND_IN_NS),
@@ -1601,15 +1667,21 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			inspector->close();
 		}
 	}
-	catch(sinsp_capture_interrupt_exception&)
+	catch(const sinsp_capture_interrupt_exception&)
 	{
 		handle_end_of_file(print_progress);
 	}
-	catch(sinsp_exception& e)
+	catch(const scap_open_exception& e)
 	{
 		cerr << e.what() << endl;
 		handle_end_of_file(print_progress);
 		res.m_res = e.scap_rc();
+	}
+	catch (const std::runtime_error& e) 
+	{
+		cerr << e.what() << endl;
+		handle_end_of_file(print_progress);
+		res.m_res = EXIT_FAILURE;
 	}
 	catch(...)
 	{

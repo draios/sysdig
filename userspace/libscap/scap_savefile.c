@@ -18,7 +18,10 @@ limitations under the License.
 */
 
 
-#ifndef _WIN32
+#include <stdio.h>
+#include <stdlib.h>
+
+#ifndef WIN32
 #include <unistd.h>
 #include <sys/uio.h>
 #else
@@ -27,9 +30,6 @@ struct iovec {
 	size_t iov_len;     /* Number of bytes to transfer */
 };
 #endif
-
-#include <stdio.h>
-#include <stdlib.h>
 
 #include "scap.h"
 #include "scap-int.h"
@@ -84,6 +84,7 @@ int scap_dump_writev(scap_dumper_t *d, const struct iovec *iov, int iovcnt)
 	return totlen;
 }
 
+#ifdef USE_ZLIB
 int32_t compr(uint8_t* dest, uint64_t* destlen, const uint8_t* source, uint64_t sourcelen, int level)
 {
 	uLongf dl = compressBound(sourcelen);
@@ -104,13 +105,14 @@ int32_t compr(uint8_t* dest, uint64_t* destlen, const uint8_t* source, uint64_t 
 		return SCAP_FAILURE;
 	}
 }
+#endif
 
 uint8_t* scap_get_memorydumper_curpos(scap_dumper_t *d)
 {
 	return d->m_targetbufcurpos;
 }
 
-#ifndef _WIN32
+#ifndef WIN32
 static inline uint32_t scap_normalize_block_len(uint32_t blocklen)
 #else
 static uint32_t scap_normalize_block_len(uint32_t blocklen)
@@ -816,7 +818,7 @@ int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fname)
 	// so we don't lose information about processes created in the interval
 	// between opening the handle and starting the dump
 	//
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && !defined(WIN32)
 	if(handle->m_file == NULL && handle->refresh_proc_table_when_saving)
 	{
 		proc_entry_callback tcb = handle->m_proc_callback;
@@ -825,7 +827,7 @@ int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fname)
 		scap_proc_free_table(handle);
 		char filename[SCAP_MAX_PATH_SIZE];
 		snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-		if(scap_proc_scan_proc_dir(handle, filename, -1, -1, NULL, handle->m_lasterr, true) != SCAP_SUCCESS)
+		if(scap_proc_scan_proc_dir(handle, filename, handle->m_lasterr) != SCAP_SUCCESS)
 		{
 			handle->m_proc_callback = tcb;
 			return SCAP_FAILURE;
@@ -943,7 +945,7 @@ scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mod
 
 	if(fname[0] == '-' && fname[1] == '\0')
 	{
-#ifndef	_WIN32
+#ifndef	WIN32
 		fd = dup(STDOUT_FILENO);
 #else
 		fd = 1;
@@ -961,7 +963,7 @@ scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mod
 
 	if(f == NULL)
 	{
-#ifndef	_WIN32
+#ifndef	WIN32
 		if(fd != -1)
 		{
 			close(fd);
@@ -1028,7 +1030,7 @@ scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_
 	//
 	// Disable proc parsing since it would be too heavy when saving to memory.
 	// Before doing that, backup handle->refresh_proc_table_when_saving so we can
-	// restore whatever the current seetting is as soon as we're done.
+	// restore whatever the current setting is as soon as we're done.
 	//
 	bool tmp_refresh_proc_table_when_saving = handle->refresh_proc_table_when_saving;
 	handle->refresh_proc_table_when_saving = false;
@@ -2632,7 +2634,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 			break;
 		default:
 			//
-			// Unknwon block type. Skip the block.
+			// Unknown block type. Skip the block.
 			//
 			toread = bh.block_total_length - sizeof(block_header) - 4;
 			fseekres = (int)gzseek(f, (long)toread, SEEK_CUR);
@@ -2714,7 +2716,11 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 		if(readsize != sizeof(bh))
 		{
 			int err_no = 0;
+#ifdef WIN32
+			const char* err_str = "read error";
+#else
 			const char* err_str = gzerror(f, &err_no);
+#endif
 			if(err_no)
 			{
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading file: %s, ernum=%d", err_str, err_no);

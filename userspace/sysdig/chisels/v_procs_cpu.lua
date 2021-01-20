@@ -60,7 +60,7 @@ view_info =
 		{
 			name = "TOT",
 			field = "thread.cpu",
-			description = "Total amount of CPU used by the proccess (user + system).",
+			description = "Total amount of CPU used by the process (user + system).",
 			aggregation = "AVG",
 			groupby_aggregation = "SUM",
 			colsize = 8,
@@ -69,7 +69,7 @@ view_info =
 		{
 			name = "USER",
 			field = "thread.cpu.user",
-			description = "Amount of user CPU used by the proccess.",
+			description = "Amount of user CPU used by the process.",
 			aggregation = "AVG",
 			groupby_aggregation = "SUM",
 			colsize = 8,
@@ -77,7 +77,7 @@ view_info =
 		{
 			name = "SYS",
 			field = "thread.cpu.system",
-			description = "Amount of system CPU used by the proccess.",
+			description = "Amount of system CPU used by the process.",
 			aggregation = "AVG",
 			groupby_aggregation = "SUM",
 			colsize = 8,
@@ -85,7 +85,7 @@ view_info =
 		{
 			name = "SYSCALLS",
 			field = "evt.count",
-			description = "Number of system calls per second made by the proccess.",
+			description = "Number of system calls per second made by the process.",
 			aggregation = "TIME_AVG",
 			groupby_aggregation = "SUM",
 			colsize = 9,

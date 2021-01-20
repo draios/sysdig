@@ -22,7 +22,7 @@ This file contains a bunch of functions that are helpful in multiple scripts
 ]]--
 
 --[[
-Serialize the content of a table into a tring
+Serialize the content of a table into a string
 ]]--
 function st(val, name, skipnewlines, depth)
 	skipnewlines = skipnewlines or false
@@ -80,6 +80,17 @@ function split(s, delimiter)
 		table.insert(result, match)
 	end
 	return result
+end
+
+--[[
+Substring matching.
+]]--
+function starts_with(str, prefix)
+	return prefix == "" or str:sub(1, #prefix) == prefix
+end
+
+function ends_with(str, suffix)
+	return suffix == "" or str:sub(-#suffix) == suffix
 end
 
 --[[

@@ -18,7 +18,7 @@
 
 # Prior to doing anything, we make sure that we aren't trying to
 # run cmake in-tree. (see Issue 71: https://github.com/draios/sysdig/issues/71)
-if(EXISTS CMakeLists.txt)
+if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/CMakeLists.txt)
 	message(FATAL_ERROR
 		"Looks like you are trying to run cmake from the base sysdig source directory.\n"
 		"** RUNNING CMAKE FROM THE BASE SYSDIG DIRECTORY WILL NOT WORK **\n"
@@ -37,6 +37,13 @@ cmake_minimum_required(VERSION 2.8.2)
 
 project(sysdig)
 
+option(MINIMAL_BUILD "Produce a minimal sysdig binary with only the essential features (no eBPF probe driver, no kubernetes, no mesos, no marathon and no container metadata)" OFF)
+option(MUSL_OPTIMIZED_BUILD "Enable if you want a musl optimized build" OFF)
+
+# Add path for custom CMake modules.
+list(APPEND CMAKE_MODULE_PATH
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
+
 if(NOT DEFINED SYSDIG_VERSION)
 	set(SYSDIG_VERSION "0.1.1dev")
 endif()
@@ -54,12 +61,28 @@ set(PACKAGE_NAME "sysdig")
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
 add_definitions(-DK8S_DISABLE_THREAD)
 
+option(BUILD_WARNINGS_AS_ERRORS "Enable building with -Wextra -Werror flags")
+
+if(MINIMAL_BUILD)
+  set(MINIMAL_BUILD_FLAGS "-DMINIMAL_BUILD")
+endif()
+
+if(MUSL_OPTIMIZED_BUILD)
+	set(SYSDIG_MUSL_FLAGS "-static -Os")
+endif()
+
 if(NOT WIN32)
 
 	set(SYSDIG_DEBUG_FLAGS "-D_DEBUG")
+	set(CMAKE_COMMON_FLAGS "-Wall -ggdb ${MINIMAL_BUILD_FLAGS} ${SYSDIG_MUSL_FLAGS}")
 
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -ggdb")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -ggdb --std=c++0x")
+	if(BUILD_WARNINGS_AS_ERRORS)
+		set(CMAKE_SUPPRESSED_WARNINGS "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare -Wno-type-limits -Wno-implicit-fallthrough -Wno-format-truncation")
+		set(CMAKE_COMMON_FLAGS "${CMAKE_COMMON_FLAGS} -Wextra -Werror ${CMAKE_SUPPRESSED_WARNINGS}")
+	endif()
+
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_COMMON_FLAGS}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_COMMON_FLAGS} -std=c++0x")
 
 	set(CMAKE_C_FLAGS_DEBUG "${SYSDIG_DEBUG_FLAGS}")
 	set(CMAKE_CXX_FLAGS_DEBUG "${SYSDIG_DEBUG_FLAGS}")
@@ -98,8 +121,9 @@ if(NOT WIN32)
 	endif()
 
 else()
+	set(MINIMAL_BUILD ON)
 
-	set(SYSDIG_FLAGS_WIN "-D_CRT_SECURE_NO_WARNINGS -DWIN32 /EHsc /W3 /Zi")
+	set(SYSDIG_FLAGS_WIN "-D_CRT_SECURE_NO_WARNINGS -DWIN32 -DMINIMAL_BUILD /EHsc /W3 /Zi")
 	set(SYSDIG_FLAGS_WIN_DEBUG "/MTd /Od")
 	set(SYSDIG_FLAGS_WIN_RELEASE "/MT")
 
@@ -112,6 +136,8 @@ else()
 	set(CMAKE_C_FLAGS_RELEASE "${SYSDIG_FLAGS_WIN_RELEASE}")
 	set(CMAKE_CXX_FLAGS_RELEASE "${SYSDIG_FLAGS_WIN_RELEASE}")
 
+	add_definitions(-DHAS_CAPTURE)
+	
 endif()
 
 if(APPLE)
@@ -148,6 +174,27 @@ else()
 	set(LUAJIT_INCLUDE "${LUAJIT_SRC}")
 	if(NOT WIN32)
 		set(LUAJIT_LIB "${LUAJIT_SRC}/libluajit.a")
+ 		if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "ppc64le")
+		ExternalProject_Add(luajit
+			GIT_REPOSITORY "https://github.com/moonjit/moonjit"
+			GIT_TAG "2.1.2"
+			PATCH_COMMAND sed -i "s/luaL_reg/luaL_Reg/g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/chisel.cpp && sed -i "s/luaL_reg/luaL_Reg/g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/lua_parser.cpp && sed -i "s/luaL_getn/lua_objlen /g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/lua_parser_api.cpp
+			CONFIGURE_COMMAND ""
+			BUILD_COMMAND ${CMD_MAKE}
+			BUILD_IN_SOURCE 1
+			BUILD_BYPRODUCTS ${LUAJIT_LIB}
+			INSTALL_COMMAND "")
+		elseif("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "s390x")
+                ExternalProject_Add(luajit
+                        GIT_REPOSITORY "https://github.com/linux-on-ibm-z/LuaJIT.git"
+                        GIT_TAG "v2.1"
+                        PATCH_COMMAND sed -i "s/luaL_reg/luaL_Reg/g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/chisel.cpp && sed -i "s/luaL_reg/luaL_Reg/g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/lua_parser.cpp && sed -i "s/luaL_getn/lua_objlen /g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/lua_parser_api.cpp
+                        CONFIGURE_COMMAND ""
+                        BUILD_COMMAND ${CMD_MAKE}
+                        BUILD_IN_SOURCE 1
+                        BUILD_BYPRODUCTS ${LUAJIT_LIB}
+                        INSTALL_COMMAND "")
+		else()
 		ExternalProject_Add(luajit
 			URL "http://download.draios.com/dependencies/LuaJIT-2.0.3.tar.gz"
 			URL_MD5 "f14e9104be513913810cd59c8c658dc0"
@@ -156,6 +203,7 @@ else()
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${LUAJIT_LIB}
 			INSTALL_COMMAND "")
+		endif()
 	else()
 		set(LUAJIT_LIB "${LUAJIT_SRC}/lua51.lib")
 		ExternalProject_Add(luajit
@@ -195,51 +243,53 @@ endif()
 #
 option(USE_BUNDLED_ZLIB "Enable building of the bundled zlib" ${USE_BUNDLED_DEPS})
 
-if(NOT USE_BUNDLED_ZLIB)
-	find_path(ZLIB_INCLUDE zlib.h PATH_SUFFIXES zlib)
-	find_library(ZLIB_LIB NAMES z)
-	if(ZLIB_INCLUDE AND ZLIB_LIB)
-		message(STATUS "Found zlib: include: ${ZLIB_INCLUDE}, lib: ${ZLIB_LIB}")
+if(WIN32 OR NOT MINIMAL_BUILD)
+	if(NOT USE_BUNDLED_ZLIB)
+		find_path(ZLIB_INCLUDE zlib.h PATH_SUFFIXES zlib)
+		find_library(ZLIB_LIB NAMES z)
+		if(ZLIB_INCLUDE AND ZLIB_LIB)
+			message(STATUS "Found zlib: include: ${ZLIB_INCLUDE}, lib: ${ZLIB_LIB}")
+		else()
+			message(FATAL_ERROR "Couldn't find system zlib")
+		endif()
 	else()
-		message(FATAL_ERROR "Couldn't find system zlib")
+		set(ZLIB_SRC "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib")
+		message(STATUS "Using bundled zlib in '${ZLIB_SRC}'")
+		set(ZLIB_INCLUDE "${ZLIB_SRC}")
+		if(NOT WIN32)
+			set(ZLIB_LIB "${ZLIB_SRC}/libz.a")
+			ExternalProject_Add(zlib
+				URL "http://download.draios.com/dependencies/zlib-1.2.11.tar.gz"
+				URL_MD5 "1c9f62f0778697a09d36121ead88e08e"
+				CONFIGURE_COMMAND "./configure"
+				BUILD_COMMAND ${CMD_MAKE}
+				BUILD_IN_SOURCE 1
+				BUILD_BYPRODUCTS ${ZLIB_LIB}
+				INSTALL_COMMAND "")
+		else()
+			set(ZLIB_LIB "${ZLIB_SRC}/zdll.lib")
+			ExternalProject_Add(zlib
+				URL "http://download.draios.com/dependencies/zlib-1.2.11.tar.gz"
+				URL_MD5 "1c9f62f0778697a09d36121ead88e08e"
+				CONFIGURE_COMMAND ""
+				BUILD_COMMAND nmake -f win32/Makefile.msc
+				BUILD_IN_SOURCE 1
+				BUILD_BYPRODUCTS ${ZLIB_LIB}
+				INSTALL_COMMAND "")
+		endif()
 	endif()
-else()
-	set(ZLIB_SRC "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib")
-	message(STATUS "Using bundled zlib in '${ZLIB_SRC}'")
-	set(ZLIB_INCLUDE "${ZLIB_SRC}")
-	if(NOT WIN32)
-		set(ZLIB_LIB "${ZLIB_SRC}/libz.a")
-		ExternalProject_Add(zlib
-			URL "http://download.draios.com/dependencies/zlib-1.2.11.tar.gz"
-			URL_MD5 "1c9f62f0778697a09d36121ead88e08e"
-			CONFIGURE_COMMAND "./configure"
-			BUILD_COMMAND ${CMD_MAKE}
-			BUILD_IN_SOURCE 1
-			BUILD_BYPRODUCTS ${ZLIB_LIB}
-			INSTALL_COMMAND "")
-	else()
-		set(ZLIB_LIB "${ZLIB_SRC}/zdll.lib")
-		ExternalProject_Add(zlib
-			URL "http://download.draios.com/dependencies/zlib-1.2.11.tar.gz"
-			URL_MD5 "1c9f62f0778697a09d36121ead88e08e"
-			CONFIGURE_COMMAND ""
-			BUILD_COMMAND nmake -f win32/Makefile.msc
-			BUILD_IN_SOURCE 1
-			BUILD_BYPRODUCTS ${ZLIB_LIB}
-			INSTALL_COMMAND "")
-	endif()
-endif()
+endif() # MINIMAL_BUILD
 
 #
 # Intel tbb
 #
-if(NOT WIN32 AND NOT APPLE)
+if(NOT WIN32)
 	option(USE_BUNDLED_TBB "Enable building of the bundled tbb" ${USE_BUNDLED_DEPS})
 	if(NOT USE_BUNDLED_TBB)
-		find_path(TBB_INCLUDE tbb.h PATH_SUFFIXES tbb)
+		find_path(TBB_INCLUDE_DIR tbb.h PATH_SUFFIXES tbb)
 		find_library(TBB_LIB NAMES tbb)
-		if(TBB_INCLUDE AND TBB_LIB)
-			message(STATUS "Found tbb: include: ${TBB_INCLUDE}, lib: ${TBB_LIB}")
+		if(TBB_INCLUDE_DIR AND TBB_LIB)
+			message(STATUS "Found tbb: include: ${TBB_INCLUDE_DIR}, lib: ${TBB_LIB}")
 		else()
 			message(FATAL_ERROR "Couldn't find system tbb")
 		endif()
@@ -248,7 +298,7 @@ if(NOT WIN32 AND NOT APPLE)
 
 		message(STATUS "Using bundled tbb in '${TBB_SRC}'")
 
-		set(TBB_INCLUDE "${TBB_SRC}/include/")
+		set(TBB_INCLUDE_DIR "${TBB_SRC}/include/")
 		set(TBB_LIB "${TBB_SRC}/build/lib_release/libtbb.a")
 		ExternalProject_Add(tbb
 			URL "http://s3.amazonaws.com/download.draios.com/dependencies/tbb-2018_U5.tar.gz"
@@ -266,6 +316,7 @@ endif()
 #
 if(NOT WIN32 AND NOT APPLE)
 	option(USE_BUNDLED_JQ "Enable building of the bundled jq" ${USE_BUNDLED_DEPS})
+
 	if(NOT USE_BUNDLED_JQ)
 		find_path(JQ_INCLUDE jq.h PATH_SUFFIXES jq)
 		find_library(JQ_LIB NAMES jq)
@@ -277,17 +328,21 @@ if(NOT WIN32 AND NOT APPLE)
 	else()
 		set(JQ_SRC "${PROJECT_BINARY_DIR}/jq-prefix/src/jq")
 		message(STATUS "Using bundled jq in '${JQ_SRC}'")
-		set(JQ_INCLUDE "${JQ_SRC}")
-		set(JQ_LIB "${JQ_SRC}/.libs/libjq.a")
-		ExternalProject_Add(jq
-		URL "http://download.draios.com/dependencies/jq-1.5.tar.gz"
-		URL_MD5 "0933532b086bd8b6a41c1b162b1731f9"
-		CONFIGURE_COMMAND ./configure --disable-maintainer-mode --enable-all-static --disable-dependency-tracking
-		BUILD_COMMAND ${CMD_MAKE} LDFLAGS=-all-static
-		BUILD_IN_SOURCE 1
-		BUILD_BYPRODUCTS ${JQ_LIB}
-		PATCH_COMMAND wget -O jq-1.5-fix-tokenadd.patch https://github.com/stedolan/jq/commit/8eb1367ca44e772963e704a700ef72ae2e12babd.patch && patch -i jq-1.5-fix-tokenadd.patch
-		INSTALL_COMMAND "")
+		set(JQ_INCLUDE "${JQ_SRC}/target/include")
+		set(JQ_INSTALL_DIR "${JQ_SRC}/target")
+		set(JQ_LIB "${JQ_INSTALL_DIR}/lib/libjq.a")
+		set(ONIGURUMA_LIB "${JQ_INSTALL_DIR}/lib/libonig.a")
+		message(STATUS "Bundled jq: include: ${JQ_INCLUDE}, lib: ${JQ_LIB}")
+
+		ExternalProject_Add(
+			jq
+			URL "http://download.draios.com/dependencies/jq-1.6.tar.gz"
+			URL_HASH "SHA256=787518068c35e244334cc79b8e56b60dbab352dff175b7f04a94f662b540bfd9"
+			CONFIGURE_COMMAND ./configure --disable-maintainer-mode --enable-all-static --disable-dependency-tracking --with-oniguruma=builtin --prefix=${JQ_INSTALL_DIR}
+			BUILD_COMMAND ${CMD_MAKE} LDFLAGS=-all-static
+			BUILD_IN_SOURCE 1
+			BUILD_BYPRODUCTS ${JQ_LIB} ${ONIGURUMA_LIB}
+			INSTALL_COMMAND ${CMD_MAKE} install)
 	endif()
 endif()
 
@@ -347,7 +402,9 @@ if(NOT WIN32 AND NOT APPLE)
 			BUILD_BYPRODUCTS ${B64_LIB}
 			INSTALL_COMMAND "")
 	endif()
+endif()
 
+if(NOT WIN32 AND NOT MINIMAL_BUILD)
 	#
 	# OpenSSL
 	#
@@ -401,18 +458,194 @@ if(NOT WIN32 AND NOT APPLE)
 			DEPENDS openssl
 			URL "http://download.draios.com/dependencies/curl-7.61.0.tar.bz2"
 			URL_MD5 "31d0a9f48dc796a7db351898a1e5058a"
-			CONFIGURE_COMMAND ./configure ${CURL_SSL_OPTION} --disable-threaded-resolver --disable-shared --enable-optimize --disable-curldebug --disable-rt --enable-http --disable-ftp --disable-file --disable-ldap --disable-ldaps --disable-rtsp --disable-telnet --disable-tftp --disable-pop3 --disable-imap --disable-smb --disable-smtp --disable-gopher --disable-sspi --disable-ntlm-wb --disable-tls-srp --without-winssl --without-darwinssl --without-polarssl --without-cyassl --without-nss --without-axtls --without-ca-path --without-ca-bundle --without-libmetalink --without-librtmp --without-winidn --without-libidn --without-nghttp2 --without-libssh2
+			CONFIGURE_COMMAND ./configure ${CURL_SSL_OPTION} --disable-threaded-resolver --disable-shared --enable-optimize --disable-curldebug --disable-rt --enable-http --disable-ftp --disable-file --disable-ldap --disable-ldaps --disable-rtsp --disable-telnet --disable-tftp --disable-pop3 --disable-imap --disable-smb --disable-smtp --disable-gopher --disable-sspi --disable-ntlm-wb --disable-tls-srp --without-winssl --without-darwinssl --without-polarssl --without-cyassl --without-nss --without-axtls --without-ca-path --without-ca-bundle --without-libmetalink --without-librtmp --without-winidn --without-libidn --without-libidn2 --without-nghttp2 --without-libssh2  --without-libpsl
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${CURL_LIBRARIES}
 			INSTALL_COMMAND "")
 	endif()
-endif() # NOT WIN32 AND NOT APPLE
+endif() # NOT WIN32 AND NOT MINIMAL_BUILD
+
+if(NOT MINIMAL_BUILD)
+	option(USE_BUNDLED_CARES "Enable building of the bundled c-ares" ${USE_BUNDLED_DEPS})
+	if(NOT USE_BUNDLED_CARES)
+		find_path(CARES_INCLUDE NAMES cares/ares.h ares.h)
+		find_library(CARES_LIB NAMES cares)
+		if(CARES_INCLUDE AND CARES_LIB)
+			message(STATUS "Found c-ares: include: ${CARES_INCLUDE}, lib: ${CARES_LIB}")
+		else()
+			message(FATAL_ERROR "Couldn't find system c-ares")
+		endif()
+	else()
+		set(CARES_SRC "${PROJECT_BINARY_DIR}/c-ares-prefix/src/c-ares")
+		message(STATUS "Using bundled c-ares in '${CARES_SRC}'")
+		set(CARES_INCLUDE "${CARES_SRC}/target/include")
+		set(CARES_LIB "${CARES_SRC}/target/lib/libcares.a")
+		ExternalProject_Add(c-ares
+		URL "http://download.sysdig.com/dependencies/c-ares-1.13.0.tar.gz"
+		URL_MD5 "d2e010b43537794d8bedfb562ae6bba2"
+		CONFIGURE_COMMAND ./configure --prefix=${CARES_SRC}/target
+		BUILD_COMMAND ${CMD_MAKE}
+		BUILD_IN_SOURCE 1
+		BUILD_BYPRODUCTS ${CARES_INCLUDE} ${CARES_LIB}
+		INSTALL_COMMAND ${CMD_MAKE} install)
+	endif()
+endif() # NOT MINIMAL_BUILD
+
+if(NOT WIN32 AND NOT APPLE)
+	if(NOT MINIMAL_BUILD)
+		option(USE_BUNDLED_PROTOBUF "Enable building of the bundled protobuf" ${USE_BUNDLED_DEPS})
+		if(NOT USE_BUNDLED_PROTOBUF)
+			find_program(PROTOC NAMES protoc)
+			find_path(PROTOBUF_INCLUDE NAMES google/protobuf/message.h)
+			find_library(PROTOBUF_LIB NAMES protobuf)
+			if(PROTOC AND PROTOBUF_INCLUDE AND PROTOBUF_LIB)
+				message(STATUS "Found protobuf: compiler: ${PROTOC}, include: ${PROTOBUF_INCLUDE}, lib: ${PROTOBUF_LIB}")
+			else()
+				message(FATAL_ERROR "Couldn't find system protobuf")
+			endif()
+		else()
+			set(PROTOBUF_SRC "${PROJECT_BINARY_DIR}/protobuf-prefix/src/protobuf")
+			message(STATUS "Using bundled protobuf in '${PROTOBUF_SRC}'")
+			set(PROTOC "${PROTOBUF_SRC}/target/bin/protoc")
+			set(PROTOBUF_INCLUDE "${PROTOBUF_SRC}/target/include")
+			set(PROTOBUF_LIB "${PROTOBUF_SRC}/target/lib/libprotobuf.a")
+			if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "s390x")
+							ExternalProject_Add(protobuf
+							DEPENDS openssl zlib
+							URL "http://download.sysdig.com/dependencies/protobuf-cpp-3.5.0.tar.gz"
+							URL_MD5 "e4ba8284a407712168593e79e6555eb2"
+							PATCH_COMMAND wget http://download.sysdig.com/dependencies/protobuf-3.5.0-s390x.patch && patch -p1 -i protobuf-3.5.0-s390x.patch
+							# TODO what if using system zlib?
+							CONFIGURE_COMMAND /usr/bin/env CPPFLAGS=-I${ZLIB_INCLUDE} LDFLAGS=-L${ZLIB_SRC} ./configure --with-zlib --prefix=${PROTOBUF_SRC}/target
+							COMMAND aclocal && automake
+							BUILD_COMMAND ${CMD_MAKE}
+							BUILD_IN_SOURCE 1
+							BUILD_BYPRODUCTS ${PROTOC} ${PROTOBUF_INCLUDE} ${PROTOBUF_LIB}
+							INSTALL_COMMAND make install)
+					else()
+							ExternalProject_Add(protobuf
+							DEPENDS openssl zlib
+							URL "http://download.sysdig.com/dependencies/protobuf-cpp-3.5.0.tar.gz"
+							URL_MD5 "e4ba8284a407712168593e79e6555eb2"
+							# TODO what if using system zlib?
+							CONFIGURE_COMMAND /usr/bin/env CPPFLAGS=-I${ZLIB_INCLUDE} LDFLAGS=-L${ZLIB_SRC} ./configure --with-zlib --prefix=${PROTOBUF_SRC}/target
+							BUILD_COMMAND ${CMD_MAKE}
+							BUILD_IN_SOURCE 1
+							BUILD_BYPRODUCTS ${PROTOC} ${PROTOBUF_INCLUDE} ${PROTOBUF_LIB}
+							INSTALL_COMMAND make install)
+					endif()
+		endif()
+
+
+		option(USE_BUNDLED_GRPC "Enable building of the bundled grpc" ${USE_BUNDLED_DEPS})
+		if(NOT USE_BUNDLED_GRPC)
+			find_path(GRPCXX_INCLUDE NAMES grpc++/grpc++.h)
+			if(GRPCXX_INCLUDE)
+				set(GRPC_INCLUDE ${GRPCXX_INCLUDE})
+			else()
+				find_path(GRPCPP_INCLUDE NAMES grpcpp/grpcpp.h)
+				set(GRPC_INCLUDE ${GRPCPP_INCLUDE})
+				add_definitions(-DGRPC_INCLUDE_IS_GRPCPP=1)
+			endif()
+			find_library(GRPC_LIB NAMES grpc_unsecure)
+			find_library(GRPCPP_LIB NAMES grpc++_unsecure)
+			if(GRPC_INCLUDE AND GRPC_LIB AND GRPCPP_LIB)
+				message(STATUS "Found grpc: include: ${GRPC_INCLUDE}, C lib: ${GRPC_LIB}, C++ lib: ${GRPCPP_LIB}")
+			else()
+				message(FATAL_ERROR "Couldn't find system grpc")
+			endif()
+			find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin)
+			if(NOT GRPC_CPP_PLUGIN)
+				message(FATAL_ERROR "System grpc_cpp_plugin not found")
+			endif()
+		else()
+			find_package(PkgConfig)
+			if(NOT PKG_CONFIG_FOUND)
+				message(FATAL_ERROR "pkg-config binary not found")
+			endif()
+			message(STATUS "Found pkg-config executable: ${PKG_CONFIG_EXECUTABLE}")
+			set(GRPC_SRC "${PROJECT_BINARY_DIR}/grpc-prefix/src/grpc")
+			message(STATUS "Using bundled grpc in '${GRPC_SRC}'")
+			set(GRPC_INCLUDE "${GRPC_SRC}/include")
+			set(GRPC_LIB "${GRPC_SRC}/libs/opt/libgrpc_unsecure.a")
+			set(GRPCPP_LIB "${GRPC_SRC}/libs/opt/libgrpc++_unsecure.a")
+			set(GRPC_CPP_PLUGIN "${GRPC_SRC}/bins/opt/grpc_cpp_plugin")
+
+			get_filename_component(PROTOC_DIR ${PROTOC} PATH)
+
+			ExternalProject_Add(grpc
+			DEPENDS protobuf zlib c-ares
+			URL "http://download.draios.com/dependencies/grpc-1.8.1.tar.gz"
+			URL_MD5 "2fc42c182a0ed1b48ad77397f76bb3bc"
+			CONFIGURE_COMMAND ""
+			# TODO what if using system openssl, protobuf or cares?
+			BUILD_COMMAND CFLAGS=-Wno-implicit-fallthrough HAS_SYSTEM_ZLIB=false LDFLAGS=-static PATH=${PROTOC_DIR}:$ENV{PATH} PKG_CONFIG_PATH=${OPENSSL_BUNDLE_DIR}:${PROTOBUF_SRC}:${CARES_SRC} PKG_CONFIG=${PKG_CONFIG_EXECUTABLE} make grpc_cpp_plugin static_cxx static_c
+			BUILD_IN_SOURCE 1
+			BUILD_BYPRODUCTS ${GRPC_LIB} ${GRPCPP_LIB}
+			# TODO s390x support
+			# TODO what if using system zlib
+			PATCH_COMMAND rm -rf third_party/zlib && ln -s ${ZLIB_SRC} third_party/zlib && wget https://download.sysdig.com/dependencies/grpc-1.8.1-Makefile.patch && patch < grpc-1.8.1-Makefile.patch
+			INSTALL_COMMAND "")
+		endif()
+	endif() # NOT WIN32 AND NOT APPLE
+endif() # MINIMAL_BUILD
+
+option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
+if(CREATE_TEST_TARGETS AND NOT WIN32)
+	option(USE_BUNDLED_GTEST "Enable building of the bundled gtest" ${USE_BUNDLED_DEPS})
+	if(NOT USE_BUNDLED_GTEST)
+		find_path(GTEST_INCLUDE_DIR PATH_SUFFIXES gtest NAMES gtest.h)
+		find_library(GTEST_LIB NAMES gtest)
+		find_library(GTEST_MAIN_LIB NAMES gtest_main)
+		if(GTEST_INCLUDE_DIR AND GTEST_LIB AND GTEST_MAIN_LIB)
+			message(STATUS "Found gtest: include: ${GTEST_INCLUDE_DIR}, lib: ${GTEST_LIB}, main lib: ${GTEST_MAIN_LIB}")
+		else()
+			message(FATAL_ERROR "Couldn't find system gtest")
+		endif()
+	else()
+		# https://github.com/google/googletest/tree/master/googletest#incorporating-into-an-existing-cmake-project
+		# Download and unpack googletest at configure time
+		configure_file(CMakeListsGtestInclude.cmake googletest-download/CMakeLists.txt)
+		execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+			RESULT_VARIABLE result
+			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+		if(result)
+			message(FATAL_ERROR "CMake step for googletest failed: ${result}")
+		endif()
+		execute_process(COMMAND ${CMAKE_COMMAND} --build .
+			RESULT_VARIABLE result
+			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+		if(result)
+			message(FATAL_ERROR "Build step for googletest failed: ${result}")
+		endif()
+
+		# Add googletest directly to our build. This defines
+		# the gtest and gtest_main targets.
+		add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
+		                 ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
+		                 EXCLUDE_FROM_ALL)
+
+		set(GTEST_INCLUDE_DIR "${gtest_SOURCE_DIR}/include/gtest")
+		set(GTEST_MAIN_LIB "gtest_main")
+	endif()
+endif() # NOT WIN32
 
 add_subdirectory(userspace/sysdig)
 add_subdirectory(userspace/libscap)
 add_subdirectory(userspace/libsinsp)
-#add_subdirectory(userspace/falcobl)
+
+if(CREATE_TEST_TARGETS AND NOT WIN32)
+		# Add unit test directories
+		add_subdirectory(userspace/libsinsp/test)
+
+		# Add command to run all unit tests at once via the make system.
+		# This is preferred vs using ctest's add_test because it will build
+		# the code and output to stdout.
+		add_custom_target(run-unit-tests
+			COMMAND ${CMAKE_MAKE_PROGRAM} run-unit-test-libsinsp
+		)
+endif()
 
 set(CPACK_PACKAGE_NAME "${PACKAGE_NAME}")
 set(CPACK_PACKAGE_VENDOR "Sysdig Inc.")
@@ -427,12 +660,12 @@ set(CPACK_GENERATOR DEB RPM TGZ)
 
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Sysdig <support@sysdig.com>")
 set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
-set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "http://www.sysdig.org")
+set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "http://www.sysdig.com")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "dkms (>= 2.1.0.0)")
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_BINARY_DIR}/scripts/debian/postinst;${CMAKE_BINARY_DIR}/scripts/debian/prerm")
 
 set(CPACK_RPM_PACKAGE_LICENSE "Apache v2.0")
-set(CPACK_RPM_PACKAGE_URL "http://www.sysdig.org")
+set(CPACK_RPM_PACKAGE_URL "http://www.sysdig.com")
 set(CPACK_RPM_PACKAGE_REQUIRES "dkms, gcc, make, kernel-devel, perl")
 set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/scripts/rpm/postinstall")
 set(CPACK_RPM_PRE_UNINSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/scripts/rpm/preuninstall")

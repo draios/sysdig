@@ -38,6 +38,8 @@ int32_t scap_bpf_start_capture(scap_t *handle);
 int32_t scap_bpf_stop_capture(scap_t *handle);
 int32_t scap_bpf_close(scap_t *handle);
 int32_t scap_bpf_set_snaplen(scap_t* handle, uint32_t snaplen);
+int32_t scap_bpf_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, uint16_t range_end);
+int32_t scap_bpf_set_statsd_port(scap_t* handle, uint16_t port);
 int32_t scap_bpf_enable_dynamic_snaplen(scap_t* handle);
 int32_t scap_bpf_disable_dynamic_snaplen(scap_t* handle);
 int32_t scap_bpf_enable_page_faults(scap_t* handle);
@@ -66,7 +68,9 @@ static inline void scap_bpf_get_buf_pointers(char *buf, uint64_t *phead, uint64_
 	*phead = header->data_head;
 	*ptail = header->data_tail;
 
+	// clang-format off
 	asm volatile("" ::: "memory");
+	// clang-format on
 
 	begin = *ptail % header->data_size;
 	end = *phead % header->data_size;
@@ -153,6 +157,23 @@ static inline int32_t scap_bpf_advance_to_evt(scap_t *handle, uint16_t cpuid, bo
 	return SCAP_SUCCESS;
 }
 
+static inline void scap_bpf_advance_tail(scap_t *handle, uint32_t cpuid)
+{
+	struct perf_event_mmap_page *header;
+	struct scap_device *dev;
+
+	dev = &handle->m_devs[cpuid];
+	header = (struct perf_event_mmap_page *)dev->m_buffer;
+
+	// clang-format off
+	asm volatile("" ::: "memory");
+	// clang-format on
+
+	ASSERT(dev->m_lastreadsize > 0);
+	header->data_tail += dev->m_lastreadsize;
+	dev->m_lastreadsize = 0;
+}
+
 static inline int32_t scap_bpf_readbuf(scap_t *handle, uint32_t cpuid, char **buf, uint32_t *len)
 {
 	struct perf_event_mmap_page *header;
@@ -165,9 +186,7 @@ static inline int32_t scap_bpf_readbuf(scap_t *handle, uint32_t cpuid, char **bu
 	dev = &handle->m_devs[cpuid];
 	header = (struct perf_event_mmap_page *) dev->m_buffer;
 
-	asm volatile("" ::: "memory");
-	header->data_tail += dev->m_lastreadsize;
-
+	ASSERT(dev->m_lastreadsize == 0);
 	scap_bpf_get_buf_pointers((char *) header, &head, &tail, &read_size);
 
 	dev->m_lastreadsize = read_size;

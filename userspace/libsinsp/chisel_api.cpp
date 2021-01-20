@@ -96,6 +96,7 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, ppm_par
 			return 1;
 		case PT_FLAGS32:
 		case PT_UINT32:
+		case PT_MODE:
 		case PT_UID:
 		case PT_GID:
 			lua_pushnumber(ls, *(uint32_t*)rawval);
@@ -110,6 +111,7 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, ppm_par
 			return 1;
 		case PT_CHARBUF:
 		case PT_FSPATH:
+		case PT_FSRELPATH:
 			lua_pushlstring(ls, (char*)rawval, len);
 			return 1;
 		case PT_BYTEBUF:
@@ -385,7 +387,7 @@ int lua_cbacks::set_global_filter(lua_State *ls)
 	{
 		ch->m_inspector->set_filter(filter);
 	}
-	catch(sinsp_exception& e)
+	catch(const sinsp_exception& e)
 	{
 		string err = "invalid filter in chisel " + ch->m_filename + ": " + e.what();
 		fprintf(stderr, "%s\n", err.c_str());
@@ -411,7 +413,7 @@ int lua_cbacks::set_filter(lua_State *ls)
 	{
 		ch->m_lua_cinfo->set_filter(filter);
 	}
-	catch(sinsp_exception& e)
+	catch(const sinsp_exception& e)
 	{
 		string err = "invalid filter in chisel " + ch->m_filename + ": " + e.what();
 		fprintf(stderr, "%s\n", err.c_str());
@@ -736,7 +738,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 				compiler = new sinsp_filter_compiler(ch->m_inspector, filterstr, true);
 				filter = compiler->compile();
 			}
-			catch(sinsp_exception& e)
+			catch(const sinsp_exception& e)
 			{
 				string err = "invalid filter argument for get_thread_table in chisel " + ch->m_filename + ": " + e.what();
 				fprintf(stderr, "%s\n", err.c_str());
@@ -919,7 +921,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 		//
 		lua_pushstring(ls, "fdtable");
 		lua_newtable(ls);
-		
+
 		if(include_fds)
 		{
 			for(fdit = fdtable->m_table.begin(); fdit != fdtable->m_table.end(); ++fdit)
@@ -1122,6 +1124,7 @@ int lua_cbacks::get_thread_table_barebone_nofds(lua_State *ls)
 
 int lua_cbacks::get_container_table(lua_State *ls)
 {
+#ifndef _WIN32
 	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 	uint32_t j;
 	sinsp_evt tevt;
@@ -1141,9 +1144,7 @@ int lua_cbacks::get_container_table(lua_State *ls)
 	//
 	// Retrieve the container list
 	//
-	const unordered_map<string, sinsp_container_info>* ctable  = ch->m_inspector->m_container_manager.get_containers();
-
-	ASSERT(ctable != NULL);
+	const sinsp_container_manager::map_ptr_t ctable = ch->m_inspector->m_container_manager.get_containers();
 
 	lua_newtable(ls);
 
@@ -1155,35 +1156,51 @@ int lua_cbacks::get_container_table(lua_State *ls)
 	{
 		lua_newtable(ls);
 		lua_pushliteral(ls, "id");
-		lua_pushstring(ls, it->second.m_id.c_str());
+		lua_pushstring(ls, it->second->m_id.c_str());
 		lua_settable(ls, -3);
 		lua_pushliteral(ls, "name");
-		lua_pushstring(ls, it->second.m_name.c_str());
+		lua_pushstring(ls, it->second->m_name.c_str());
 		lua_settable(ls, -3);
 		lua_pushliteral(ls, "image");
-		lua_pushstring(ls, it->second.m_image.c_str());
+		lua_pushstring(ls, it->second->m_image.c_str());
 		lua_settable(ls, -3);
 
 		lua_pushliteral(ls, "type");
-		if(it->second.m_type == CT_DOCKER)
+		if(it->second->m_type == CT_DOCKER)
 		{
 			lua_pushstring(ls, "docker");
 		}
-		else if(it->second.m_type == CT_LXC)
+		else if(it->second->m_type == CT_LXC)
 		{
 			lua_pushstring(ls, "lxc");
 		}
-		else if(it->second.m_type == CT_LIBVIRT_LXC)
+		else if(it->second->m_type == CT_LIBVIRT_LXC)
 		{
 			lua_pushstring(ls, "libvirt_lxc");
 		}
-		else if(it->second.m_type == CT_MESOS)
+		else if(it->second->m_type == CT_MESOS)
 		{
 			lua_pushstring(ls, "mesos");
 		}
-		else if(it->second.m_type == CT_RKT)
+		else if(it->second->m_type == CT_RKT)
 		{
 			lua_pushstring(ls, "rkt");
+		}
+		else if(it->second->m_type == CT_CRI)
+		{
+			lua_pushstring(ls, "cri");
+		}
+		else if(it->second->m_type == CT_CONTAINERD)
+		{
+			lua_pushstring(ls, "containerd");
+		}
+		else if(it->second->m_type == CT_CRIO)
+		{
+			lua_pushstring(ls, "cri-o");
+		}
+		else if(it->second->m_type == CT_BPM)
+		{
+			lua_pushstring(ls, "bpm");
 		}
 		else
 		{
@@ -1198,6 +1215,7 @@ int lua_cbacks::get_container_table(lua_State *ls)
 		lua_rawseti(ls,-2, (uint32_t)++j);
 	}
 
+#endif
 	return 1;
 }
 
@@ -1564,7 +1582,10 @@ int lua_cbacks::push_metric(lua_State *ls)
 		throw sinsp_exception("chisel error");
 	}
 
-	inspector->m_analyzer->add_chisel_metric(&metric);
+	if (inspector->m_external_event_processor)
+	{
+		inspector->m_external_event_processor->add_chisel_metric(&metric);
+	}
 
 	return 0;
 }

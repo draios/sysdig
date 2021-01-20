@@ -32,12 +32,14 @@ $(obj)/probe.o: $(src)/probe.c \
 		$(src)/types.h
 	$(CLANG) $(LINUXINCLUDE) \
 		$(KBUILD_CPPFLAGS) \
+		$(KBUILD_EXTRA_CPPFLAGS) \
 		$(DEBUG) \
 		-D__KERNEL__ \
 		-D__BPF_TRACING__ \
 		-Wno-gnu-variable-sized-type-not-at-end \
 		-Wno-address-of-packed-member \
 		-fno-jump-tables \
+		-fno-stack-protector \
 		-Wno-tautological-compare \
 		-O2 -g -emit-llvm -c $< -o $(patsubst %.o,%.ll,$@)
 	$(LLC) -march=bpf -filetype=obj -o $@ $(patsubst %.o,%.ll,$@)

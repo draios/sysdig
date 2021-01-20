@@ -300,17 +300,17 @@ sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector, const string& fmt)
 
 void sinsp_evt_formatter::set_format(const string& fmt)
 {
-	throw sinsp_exception("sinsp_evt_formatter unvavailable because it was not compiled in the library");
+	throw sinsp_exception("sinsp_evt_formatter unavailable because it was not compiled in the library");
 }
 
 bool sinsp_evt_formatter::resolve_tokens(sinsp_evt *evt, map<string,string>& values)
 {
-	throw sinsp_exception("sinsp_evt_formatter unvavailable because it was not compiled in the library");
+	throw sinsp_exception("sinsp_evt_formatter unavailable because it was not compiled in the library");
 }
 
 bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 {
-	throw sinsp_exception("sinsp_evt_formatter unvavailable because it was not compiled in the library");
+	throw sinsp_exception("sinsp_evt_formatter unavailable because it was not compiled in the library");
 }
 #endif // HAS_FILTERING
 

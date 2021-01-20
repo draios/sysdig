@@ -38,7 +38,7 @@ typedef struct lua_State lua_State;
 typedef struct chiseldir_info
 {
 	bool m_need_to_resolve;
-	char m_dir[1024];
+	std::string m_dir;
 }chiseldir_info;
 
 class chiselarg_desc
@@ -153,7 +153,7 @@ private:
 	uint64_t m_lua_last_interval_sample_time;
 	uint64_t m_lua_last_interval_ts;
 	vector<sinsp_filter_check*> m_allocated_fltchecks;
-	char m_lua_fld_storage[16384];
+	char m_lua_fld_storage[PPM_MAX_ARG_SIZE];
 	chiselinfo* m_lua_cinfo;
 	string m_new_chisel_to_exec;
 	int m_udp_socket;

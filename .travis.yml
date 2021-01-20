@@ -16,12 +16,54 @@
 # limitations under the License.
 #
 language: c
-os:
-    - linux
-    - osx
-env:
-    - BUILD_TYPE=Debug
-    - BUILD_TYPE=Release
+
+matrix:
+  include:
+    - env:
+        - BUILD_TYPE=Debug
+        - MINIMAL_BUILD=Off
+      os: linux
+    - env:
+        - BUILD_TYPE=Release
+        - MINIMAL_BUILD=Off
+      os: linux
+    - env:
+        - BUILD_TYPE=Debug
+        - MINIMAL_BUILD=Off
+      os: osx
+    - env:
+        - BUILD_TYPE=Release
+        - MINIMAL_BUILD=Off
+      os: osx
+    - env:
+        - BUILD_TYPE=Debug
+        - MINIMAL_BUILD=Off
+      os: linux
+      arch: ppc64le
+      dist: bionic
+    - env:
+        - BUILD_TYPE=Release
+        - MINIMAL_BUILD=Off
+      os: linux
+      arch: ppc64le
+      dist: bionic
+    - env:
+        - BUILD_TYPE=Debug
+        - MINIMAL_BUILD=Off
+      os: linux
+      arch: s390x
+      dist: bionic
+    - env:
+      - BUILD_TYPE=Release
+      - MINIMAL_BUILD=Off
+      os: linux
+      arch: s390x
+      dist: bionic
+    - env:
+      - BUILD_TYPE=Debug
+      - MINIMAL_BUILD=On
+      os: linux
+
 sudo: required
 services:
     - docker
@@ -33,10 +75,3 @@ before_script:
     - export KERNELDIR=/lib/modules/$(uname -r)/build
 script:
     - .travis-scripts/${TRAVIS_OS_NAME}/build.sh
-notifications:
-  webhooks:
-    urls:
-      - https://webhooks.gitter.im/e/fdbc2356fb0ea2f15033
-    on_success: change
-    on_failure: always
-    on_start: never

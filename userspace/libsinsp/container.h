@@ -20,230 +20,117 @@ limitations under the License.
 #pragma once
 
 #include <functional>
+#include <memory>
+#include <unordered_map>
 
-#if !defined(_WIN32) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
+#include "scap.h"
+
+#include "event.h"
+#include "container_info.h"
+
+#if !defined(_WIN32) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE) && !defined(MINIMAL_BUILD)
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <curl/multi.h>
 #endif
 
-enum sinsp_container_type
-{
-	CT_DOCKER = 0,
-	CT_LXC = 1,
-	CT_LIBVIRT_LXC = 2,
-	CT_MESOS = 3,
-	CT_RKT = 4,
-	CT_CUSTOM = 5
-};
+#include "container_engine/container_cache_interface.h"
+#include "container_engine/container_engine_base.h"
+#include "container_engine/sinsp_container_type.h"
+#include "mutex.h"
 
-enum sinsp_docker_response
-{
-	RESP_OK = 0,
-	RESP_BAD_REQUEST = 1,
-	RESP_ERROR = 2
-};
-
-class sinsp_container_info
+class sinsp_container_manager :
+	public libsinsp::container_engine::container_cache_interface
 {
 public:
+	using map_ptr_t = libsinsp::ConstMutexGuard<std::unordered_map<std::string, sinsp_container_info::ptr_t>>;
 
-	class container_port_mapping
-	{
-	public:
-		container_port_mapping():
-			m_host_ip(0),
-			m_host_port(0),
-			m_container_port(0)
-		{
-		}
-		uint32_t m_host_ip;
-		uint16_t m_host_port;
-		uint16_t m_container_port;
-	};
+	/**
+	 * Due to how the container manager is architected, it makes it difficult
+	 * to dynamically select which engines we want to be valid. As such, we unfortunately
+	 * need to indicate at construction time which we want, with the only possible options
+	 * right now being "static" or not. I'm sure we will find time in the future to do this
+	 * in a more general way. 2020/11/24
+	 */
+	sinsp_container_manager(sinsp* inspector,
+	                        bool static_container = false,
+	                        const std::string static_id = "",
+	                        const std::string static_name = "",
+	                        const std::string static_image = "");
 
-	class container_mount_info
-	{
-	public:
-		container_mount_info():
-			m_source(""),
-			m_dest(""),
-			m_mode(""),
-			m_rdwr(false),
-			m_propagation("")
-		{
-		}
-
-		container_mount_info(const Json::Value &source, const Json::Value &dest,
-				     const Json::Value &mode, const Json::Value &rw,
-				     const Json::Value &propagation)
-		{
-			get_string_value(source, m_source);
-			get_string_value(dest, m_dest);
-			get_string_value(mode, m_mode);
-			get_string_value(propagation, m_propagation);
-
-			if(!rw.isNull() && rw.isBool())
-			{
-				m_rdwr = rw.asBool();
-			}
-		}
-
-		std::string to_string() const
-		{
-			return m_source + ":" +
-				m_dest + ":" +
-				m_mode + ":" +
-				(m_rdwr ? "true" : "false") + ":" +
-				m_propagation;
-		}
-
-		inline void get_string_value(const Json::Value &val, std::string &result)
-		{
-			if(!val.isNull() && val.isString())
-			{
-				result = val.asString();
-			}
-		}
-
-		std::string m_source;
-		std::string m_dest;
-		std::string m_mode;
-		bool m_rdwr;
-		std::string m_propagation;
-	};
-
-	sinsp_container_info():
-		m_container_ip(0),
-		m_privileged(false),
-		m_memory_limit(0),
-		m_swap_limit(0),
-		m_cpu_shares(1024),
-		m_cpu_quota(0),
-		m_cpu_period(100000)
-#ifdef HAS_ANALYZER
-		,m_metadata_deadline(0)
-#endif
-	{
-	}
-
-	static void parse_json_mounts(const Json::Value &mnt_obj, vector<container_mount_info> &mounts);
-
-	const vector<string>& get_env() const { return m_env; }
-
-	const container_mount_info *mount_by_idx(uint32_t idx) const;
-	const container_mount_info *mount_by_source(std::string &source) const;
-	const container_mount_info *mount_by_dest(std::string &dest) const;
-
-	string m_id;
-	sinsp_container_type m_type;
-	string m_name;
-	string m_image;
-	string m_imageid;
-	string m_imagerepo;
-	string m_imagetag;
-	string m_imagedigest;
-	uint32_t m_container_ip;
-	bool m_privileged;
-	vector<container_mount_info> m_mounts;
-	vector<container_port_mapping> m_port_mappings;
-	map<string, string> m_labels;
-	vector<string> m_env;
-	string m_mesos_task_id;
-	int64_t m_memory_limit;
-	int64_t m_swap_limit;
-	int64_t m_cpu_shares;
-	int64_t m_cpu_quota;
-	int64_t m_cpu_period;
-#ifdef HAS_ANALYZER
-	string m_sysdig_agent_conf;
-	uint64_t m_metadata_deadline;
-#endif
-};
-
-class sinsp_container_manager;
-
-typedef std::function<bool(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info)> sinsp_container_engine;
-
-class sinsp_container_engine_docker
-{
-public:
-	sinsp_container_engine_docker();
-
-	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
-	static void cleanup();
-	static void set_query_image_info(bool query_image_info);
-protected:
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-	static size_t curl_write_callback(const char* ptr, size_t size, size_t nmemb, string* json);
-#endif
-	sinsp_docker_response get_docker(const sinsp_container_manager* manager, const string& url, string &json);
-	bool parse_docker(sinsp_container_manager* manager, sinsp_container_info *container, sinsp_threadinfo* tinfo);
-
-	string m_unix_socket_path;
-	string m_api_version;
-	static bool m_query_image_info;
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
-	static CURLM *m_curlm;
-	static CURL *m_curl;
-#endif
-};
-
-#ifndef CYGWING_AGENT
-class sinsp_container_engine_lxc
-{
-public:
-	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
-};
-
-class sinsp_container_engine_libvirt_lxc
-{
-public:
-	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
-protected:
-	bool match(sinsp_threadinfo* tinfo, sinsp_container_info* container_info);
-};
-
-class sinsp_container_engine_mesos
-{
-public:
-	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
-	static bool set_mesos_task_id(sinsp_container_info* container, sinsp_threadinfo* tinfo);
-protected:
-	bool match(sinsp_threadinfo* tinfo, sinsp_container_info* container_info);
-	static string get_env_mesos_task_id(sinsp_threadinfo* tinfo);
-};
-
-class sinsp_container_engine_rkt
-{
-public:
-	bool resolve(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
-protected:
-	bool match(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, sinsp_container_info* container_info, string& rkt_podid, string& rkt_appname, bool query_os_for_missing_info);
-	bool parse_rkt(sinsp_container_info* container, const string& podid, const string& appname);
-};
-
-#endif
-
-class sinsp_container_manager
-{
-public:
-	sinsp_container_manager(sinsp* inspector);
 	virtual ~sinsp_container_manager();
 
-	const unordered_map<string, sinsp_container_info>* get_containers();
+	/**
+	 * @brief Get the whole container map (read-only)
+	 * @return the map of container_id -> shared_ptr<container_info>
+	 */
+	map_ptr_t get_containers() const;
 	bool remove_inactive_containers();
-	void add_container(const sinsp_container_info& container_info, sinsp_threadinfo *thread);
-	sinsp_container_info * get_container(const string &id);
-	void notify_new_container(const sinsp_container_info& container_info);
-	template<typename E> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
-	template<typename E1, typename E2, typename... Args> bool resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
+
+	/**
+	 * @brief Add/update a container in the manager map, executing on_new_container callbacks
+	 *
+	 * @param container_info shared_ptr owning the container_info to add/update
+	 * @param thread a thread in the container, only passed to callbacks
+	 */
+	void add_container(const sinsp_container_info::ptr_t& container_info, sinsp_threadinfo *thread) override;
+
+	/**
+	 * @brief Update a container by replacing its entry with a new one
+	 *
+	 * Does not call on_new_container callbacks
+	 *
+	 * @param container_info shared_ptr owning the updated container_info
+	 */
+	void replace_container(const sinsp_container_info::ptr_t& container_info) override;
+
+	/**
+	 * @brief Get a container_info by container id
+	 * @param id the id of the container to look up
+	 * @return a const pointer to the container_info
+	 *
+	 * Note: you cannot modify the returned object in any way, to update
+	 * the container, get a new shared_ptr<sinsp_container_info> and pass it
+	 * to replace_container()
+	 */
+	sinsp_container_info::ptr_t get_container(const std::string &id) const override;
+
+	/**
+	 * @brief Generate container JSON event from a new container
+	 * @param container_info reference to the new sinsp_container_info
+	 *
+	 * Note: this is unrelated to on_new_container callbacks even though
+	 * both happen during container creation
+	 */
+	void notify_new_container(const sinsp_container_info& container_info) override;
+
+	/**
+	 * @brief Detect container engine for a thread
+	 * @param tinfo the thread to do container detection for
+	 * @param query_os_for_missing_info should we consult external data sources?
+	 * 		if true, we're working with a live capture and should
+	 * 		query the OS (external files, daemons etc.); if false,
+	 * 		we're reading a scap file so only rely on the thread info itself
+	 * @return true if we have successfully determined the container engine,
+	 * 		false otherwise
+	 *
+	 * Note: a return value of false doesn't mean that container detection failed,
+	 * it may still be happening in the background asynchronously
+	 */
 	bool resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
 	void dump_containers(scap_dumper_t* dumper);
-	string get_container_name(sinsp_threadinfo* tinfo);
+	std::string get_container_name(sinsp_threadinfo* tinfo) const;
 
-	bool container_exists(const string& container_id) const {
-		return m_containers.find(container_id) != m_containers.end();
+	// Set tinfo's m_category based on the container context.  It
+	// will *not* change any category to NONE, so a threadinfo
+	// that initially has a category will retain its category
+	// across execs e.g. "sh -c /bin/true" execing /bin/true.
+	void identify_category(sinsp_threadinfo *tinfo);
+
+	bool container_exists(const std::string& container_id) const override{
+		auto containers = m_containers.lock();
+		return containers->find(container_id) != containers->end() ||
+			m_lookups.find(container_id) != m_lookups.end();
 	}
 
 	typedef std::function<void(const sinsp_container_info&, sinsp_threadinfo *)> new_container_cb;
@@ -251,32 +138,86 @@ public:
 	void subscribe_on_new_container(new_container_cb callback);
 	void subscribe_on_remove_container(remove_container_cb callback);
 
+	void create_engines();
+
+	/**
+	 * Update the container_info associated with the given type and container_id
+	 * to include the size of the container layer. This is not filled in the
+	 * initial request because it can easily take seconds.
+	 */
+	void update_container_with_size(sinsp_container_type type,
+					const std::string& container_id);
 	void cleanup();
 
+	void set_docker_socket_path(std::string socket_path);
 	void set_query_docker_image_info(bool query_image_info);
+	void set_cri_extra_queries(bool extra_queries);
+	void set_cri_socket_path(const std::string& path);
+	void set_cri_timeout(int64_t timeout_ms);
+	void set_cri_async(bool async);
+	void set_cri_delay(uint64_t delay_ms);
+	void set_container_labels_max_len(uint32_t max_label_len);
+	sinsp* get_inspector() { return m_inspector; }
+
+	/**
+	 * \brief set the status of an async container metadata lookup
+	 * @param container_id the container id we're looking up
+	 * @param ctype the container engine that is doing the lookup
+	 * @param state the state of the lookup
+	 *
+	 * Container engines that do not do any lookups in external services need not
+	 * bother with this. Otherwise, the engine needs to maintain the current
+	 * state of the lookup via this method and call should_lookup() before
+	 * starting a new lookup.
+	 */
+	void set_lookup_status(const std::string& container_id, sinsp_container_type ctype, sinsp_container_lookup_state state) override
+	{
+		m_lookups[container_id][ctype] = state;
+	}
+
+	/**
+	 * \brief do we want to start a new lookup for container metadata?
+	 * @param container_id the container id we want to look up
+	 * @param ctype the container engine that is doing the lookup
+	 * @return true if there's no lookup in progress and we're free to start
+	 * a new one, false otherwise
+	 *
+	 * This method effectively checks if m_lookups[container_id][ctype]
+	 * exists, without creating unnecessary map entries along the way.
+	 */
+	bool should_lookup(const std::string& container_id, sinsp_container_type ctype) override
+	{
+		auto container_lookups = m_lookups.find(container_id);
+		if(container_lookups == m_lookups.end())
+		{
+			return true;
+		}
+		auto engine_lookup = container_lookups->second.find(ctype);
+		return engine_lookup == container_lookups->second.end();
+	}
 private:
-	string container_to_json(const sinsp_container_info& container_info);
-	bool container_to_sinsp_event(const string& json, sinsp_evt* evt);
-	string get_docker_env(const Json::Value &env_vars, const string &mti);
+	std::string container_to_json(const sinsp_container_info& container_info);
+	bool container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::shared_ptr<sinsp_threadinfo> tinfo);
+	std::string get_docker_env(const Json::Value &env_vars, const std::string &mti);
+
+	std::list<std::shared_ptr<libsinsp::container_engine::container_engine_base>> m_container_engines;
+	std::map<sinsp_container_type, std::shared_ptr<libsinsp::container_engine::container_engine_base>> m_container_engine_by_type;
 
 	sinsp* m_inspector;
-	unordered_map<string, sinsp_container_info> m_containers;
+	libsinsp::Mutex<std::unordered_map<std::string, std::shared_ptr<const sinsp_container_info>>> m_containers;
+	std::unordered_map<std::string, std::unordered_map<sinsp_container_type, sinsp_container_lookup_state>> m_lookups;
 	uint64_t m_last_flush_time_ns;
-	list<new_container_cb> m_new_callbacks;
-	list<remove_container_cb> m_remove_callbacks;
+	std::list<new_container_cb> m_new_callbacks;
+	std::list<remove_container_cb> m_remove_callbacks;
+
+	// indicates whether we should use only the static container engine, or the other engines.
+	// if true, we expect to have the subsequent bits of metadata as well. If this bool is false,
+	// then the values of those metadata are undefined
+	bool m_static_container;
+	std::string m_static_id;
+	std::string m_static_name;
+	std::string m_static_image;
+
+	friend class test_helper;
 };
 
-template<typename E> bool sinsp_container_manager::resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
-{
-	E engine;
-	return engine.resolve(this, tinfo, query_os_for_missing_info);
-}
-
-template<typename E1, typename E2, typename... Args> bool sinsp_container_manager::resolve_container_impl(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
-{
-	if (resolve_container_impl<E1>(tinfo, query_os_for_missing_info))
-	{
-		return true;
-	}
-	return resolve_container_impl<E2, Args...>(tinfo, query_os_for_missing_info);
-}

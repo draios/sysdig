@@ -83,7 +83,7 @@ function on_event()
 		-- The -pc or -pcontainer options was supplied on the cmd line
 		if  print_container then
 
-			-- Conatiner will print out as blue
+			-- Container will print out as blue
 			if containername ~= "host" then
 				color = terminal.blue
 			end

@@ -27,7 +27,7 @@ limitations under the License.
 extern "C" {
 #endif
 
-#ifdef CYGWING_AGENT
+#if CYGWING_AGENT || _WIN32
 typedef struct wh_t wh_t;
 #endif
 
@@ -37,7 +37,7 @@ typedef struct wh_t wh_t;
 #include <crtdbg.h>
 #endif
 #include <assert.h>
-#ifdef USE_ZLIB
+#if defined(USE_ZLIB) && !defined(UDIG)
 #include <zlib.h>
 #else
 #define	gzFile FILE*
@@ -48,14 +48,21 @@ typedef struct wh_t wh_t;
 #define gzoffset ftell
 #define gzwrite(F, B, S) fwrite(B, 1, S, F)
 #define gzread(F, B, S) fread(B, 1, S, F)
+#define gztell(F) ftell(F)
+#define gzerror(F, E) ({*E = ferror(F); "error reading file descriptor";})
 #define gzseek fseek
 #endif
 
 //
 // Read buffer timeout constants
 //
-#define BUFFER_EMPTY_WAIT_TIME_MS 30
-#define MAX_N_CONSECUTIVE_WAITS 4
+#ifdef _WIN32
+#define BUFFER_EMPTY_WAIT_TIME_US_START 1000
+#else
+#define BUFFER_EMPTY_WAIT_TIME_US_START 500
+#endif
+#define BUFFER_EMPTY_WAIT_TIME_US_MAX (30 * 1000)
+#define BUFFER_EMPTY_THRESHOLD_B 20000
 
 //
 // Process flags
@@ -74,7 +81,9 @@ typedef struct wh_t wh_t;
 typedef struct scap_device
 {
 	int m_fd;
+	int m_bufinfo_fd; // used by udig
 	char* m_buffer;
+	uint32_t m_buffer_size; // used by udig
 	uint32_t m_lastreadsize;
 	char* m_sn_next_event; // Pointer to the next event available for scap_next
 	uint32_t m_sn_len; // Number of bytes available in the buffer pointed by m_sn_next_event
@@ -84,6 +93,7 @@ typedef struct scap_device
 		struct
 		{
 			struct ppm_ring_buffer_info* m_bufinfo;
+			struct udig_ring_buffer_status* m_bufstatus; // used by udig
 		};
 		// Anonymous struct with bpf stuff
 		struct
@@ -122,12 +132,13 @@ struct scap
 	char m_strerror_buf[SCAP_LASTERR_SIZE];
 
 	scap_threadinfo* m_proclist;
+	scap_mountinfo* m_dev_list;
 	scap_threadinfo m_fake_kernel_proc;
 	uint64_t m_evtcnt;
 	scap_addrlist* m_addrlist;
 	scap_machine_info m_machine_info;
 	scap_userlist* m_userlist;
-	uint32_t m_n_consecutive_waits;
+	uint64_t m_buffer_empty_wait_time_us;
 	proc_entry_callback m_proc_callback;
 	void* m_proc_callback_context;
 	struct ppm_proclist_info* m_driver_procinfo;
@@ -136,10 +147,14 @@ struct scap
 	uint64_t m_unexpected_block_readsize;
 	uint32_t m_ncpus;
 	// Abstraction layer for windows
-#ifdef CYGWING_AGENT
+#if CYGWING_AGENT || _WIN32
 	wh_t* m_whh;
+	void* m_win_buf_handle;
+	void* m_win_descs_handle;
 #endif
 	bool m_bpf;
+	bool m_udig;
+	bool m_udig_capturing;
 	// Anonymous struct with bpf stuff
 	struct
 	{
@@ -197,8 +212,10 @@ struct scap_ns_socket_list
 
 // Read the full event buffer for the given processor
 int32_t scap_readbuf(scap_t* handle, uint32_t proc, OUT char** buf, OUT uint32_t* len);
+// Read a single thread info from /proc
+int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, struct scap_threadinfo** pi, char *error, bool scan_sockets);
 // Scan a directory containing process information
-int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, int parenttid, int tid_to_scan, struct scap_threadinfo** pi, char *error, bool scan_sockets);
+int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, char *error);
 // Remove an entry from the process list by parsing a PPME_PROC_EXIT event
 // void scap_proc_schedule_removal(scap_t* handle, scap_evt* e);
 // Remove the process that was scheduled for deletion for this handle
@@ -248,6 +265,8 @@ int32_t scap_fd_scan_fd_dir(scap_t* handle, char * procdir, scap_threadinfo* pi,
 int32_t scap_fd_read_ipv4_sockets_from_proc_fs(scap_t* handle, const char * dir, int l4proto, scap_fdinfo ** sockets);
 // read all sockets and add them to the socket table hashed by their ino
 int32_t scap_fd_read_sockets(scap_t* handle, char* procdir, struct scap_ns_socket_list* sockets, char *error);
+// get the device major/minor number for the requested_mount_id, looking in procdir/mountinfo if needed
+uint32_t scap_get_device_by_mount_id(scap_t *handle, const char *procdir, unsigned long requested_mount_id);
 // prints procs details for a give tid
 void scap_proc_print_proc_by_tid(scap_t* handle, uint64_t tid);
 // Allocate and return the list of interfaces on this system
@@ -258,6 +277,10 @@ void scap_free_iflist(scap_addrlist* ifhandle);
 int32_t scap_create_userlist(scap_t* handle);
 // Free a previously allocated list of users
 void scap_free_userlist(scap_userlist* uhandle);
+// Allocate a file descriptor
+int32_t scap_fd_allocate_fdinfo(scap_t *handle, scap_fdinfo **fdi, int64_t fd, scap_fd_type type);
+// Free a file descriptor
+void scap_fd_free_fdinfo(scap_fdinfo **fdi);
 
 int32_t scap_fd_post_process_unix_sockets(scap_t* handle, scap_fdinfo* sockets);
 
@@ -334,6 +357,7 @@ const char *scap_strerror(scap_t *handle, int errnum);
 #define MAX(X,Y) ((X) > (Y)? (X):(Y))
 #endif
 
+
 //
 // Driver proc info table sizes
 //
@@ -346,6 +370,17 @@ extern const struct ppm_event_info g_event_info[];
 extern const struct ppm_syscall_desc g_syscall_info_table[];
 extern const struct ppm_event_entry g_ppm_events[];
 extern bool validate_info_table_size();
+
+//
+// udig stuff
+//
+int32_t udig_begin_capture(scap_t* handle, char *error);
+void udig_start_capture(scap_t* handle);
+void udig_stop_capture(scap_t* handle);
+void udig_end_capture(scap_t* handle);
+uint32_t udig_set_snaplen(scap_t* handle, uint32_t snaplen);
+int32_t udig_stop_dropping_mode(scap_t* handle);
+int32_t udig_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);
 
 #ifdef __cplusplus
 }

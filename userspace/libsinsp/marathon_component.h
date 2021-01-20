@@ -22,7 +22,7 @@ limitations under the License.
 // marathon components (groups, apps, tasks)
 // abstraction
 //
-
+#ifndef MINIMAL_BUILD
 #pragma once
 
 #include "json/json.h"
@@ -258,3 +258,4 @@ inline const mesos_pair_list& marathon_app::get_labels() const
 	return m_labels;
 }
 
+#endif // MINIMAL_BUILD

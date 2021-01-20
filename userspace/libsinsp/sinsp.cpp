@@ -28,6 +28,7 @@ limitations under the License.
 #include <sys/time.h>
 #endif // _WIN32
 
+#include "scap_open_exception.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "sinsp_auth.h"
@@ -39,9 +40,16 @@ limitations under the License.
 #include "dns_manager.h"
 
 #ifndef CYGWING_AGENT
+#ifndef MINIMAL_BUILD
 #include "k8s_api_handler.h"
+#endif // MINIMAL_BUILD
 #ifdef HAS_CAPTURE
+#ifndef MINIMAL_BUILD
 #include <curl/curl.h>
+#endif // MINIMAL_BUILD
+#ifndef WIN32
+#include <mntent.h>
+#endif // WIN32
 #endif
 #endif
 
@@ -61,11 +69,14 @@ void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_thr
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp::sinsp() :
+sinsp::sinsp(bool static_container, const std::string static_id, const std::string static_name, const std::string static_image) :
+	m_external_event_processor(),
 	m_evt(this),
-	m_container_manager(this)
+	m_lastevent_ts(0),
+	m_container_manager(this, static_container, static_id, static_name, static_image),
+	m_suppressed_comms()
 {
-#if !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
+#if !defined(MINIMAL_BUILD) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	// used by mesos and container_manager
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 #endif
@@ -85,9 +96,6 @@ sinsp::sinsp() :
 	m_inactive_container_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_cycle_writer = NULL;
 	m_write_cycling = false;
-#ifdef HAS_ANALYZER
-	m_analyzer = NULL;
-#endif
 
 #ifdef HAS_FILTERING
 	m_filter = NULL;
@@ -101,10 +109,12 @@ sinsp::sinsp() :
 #endif
 	m_n_proc_lookups = 0;
 	m_n_proc_lookups_duration_ns = 0;
+	m_n_main_thread_lookups = 0;
 	m_snaplen = DEFAULT_SNAPLEN;
 	m_buffer_format = sinsp_evt::PF_NORMAL;
 	m_input_fd = 0;
 	m_bpf = false;
+	m_udig = false;
 	m_isdebug_enabled = false;
 	m_isfatfile_enabled = false;
 	m_isinternal_events_enabled = false;
@@ -114,11 +124,6 @@ sinsp::sinsp() :
 	m_filesize = -1;
 	m_track_tracers_state = false;
 	m_import_users = true;
-	m_meta_evt_buf = new char[SP_EVT_BUF_SIZE];
-	m_meta_evt.m_pevt = (scap_evt*) m_meta_evt_buf;
-	m_meta_evt_pending = false;
-	m_meta_skipped_evt_res = 0;
-	m_meta_skipped_evt = NULL;
 	m_next_flush_time_ns = 0;
 	m_last_procrequest_tod = 0;
 	m_get_procs_cpu_from_driver = false;
@@ -126,6 +131,9 @@ sinsp::sinsp() :
 	m_file_start_offset = 0;
 	m_flush_memory_dump = false;
 	m_next_stats_print_time_ns = 0;
+	m_large_envs_enabled = false;
+	m_increased_snaplen_port_range = DEFAULT_INCREASE_SNAPLEN_PORT_RANGE;
+	m_statsd_port = -1;
 
 	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
 	m_print_container_data = false;
@@ -154,7 +162,7 @@ sinsp::sinsp() :
 	m_meinfo.m_n_procinfo_evts = 0;
 	m_meta_event_callback = NULL;
 	m_meta_event_callback_data = NULL;
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	m_k8s_client = NULL;
 	m_k8s_last_watch_time_ns = 0;
 
@@ -164,7 +172,7 @@ sinsp::sinsp() :
 
 	m_mesos_client = NULL;
 	m_mesos_last_watch_time_ns = 0;
-#endif
+#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 	m_filter_proc_table_when_saving = false;
 }
@@ -196,12 +204,6 @@ sinsp::~sinsp()
 		m_cycle_writer = NULL;
 	}
 
-	if(m_meta_evt_buf)
-	{
-		delete[] m_meta_evt_buf;
-		m_meta_evt_buf = NULL;
-	}
-
 	if(m_meinfo.m_piscapevt)
 	{
 		delete[] m_meinfo.m_piscapevt;
@@ -209,7 +211,7 @@ sinsp::~sinsp()
 
 	m_container_manager.cleanup();
 
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	delete m_k8s_client;
 	delete m_k8s_api_server;
 	delete m_k8s_api_cert;
@@ -239,7 +241,7 @@ void sinsp::filter_proc_table_when_saving(bool filter)
 
 void sinsp::enable_tracers_capture()
 {
-#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT)
+#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT) && ! defined(_WIN32)
 	if(!m_is_tracers_capture_enabled)
 	{
 		if(is_live() && m_h != NULL)
@@ -257,7 +259,7 @@ void sinsp::enable_tracers_capture()
 
 void sinsp::enable_page_faults()
 {
-#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT)
+#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT) && ! defined(_WIN32)
 	if(is_live() && m_h != NULL)
 	{
 		if(scap_enable_page_faults(m_h) != SCAP_SUCCESS)
@@ -283,6 +285,13 @@ void sinsp::init()
 		ASSERT(false);
 		m_num_cpus = 0;
 	}
+
+	//
+	// XXX
+	// This will need to be integrated in the machine info
+	//
+	scap_os_platform platform = scap_get_os_platform(m_h);
+	m_is_windows = (platform == SCAP_PFORM_WINDOWS_I386 || platform == SCAP_PFORM_WINDOWS_X64);
 
 	//
 	// Attach the protocol decoders
@@ -317,6 +326,7 @@ void sinsp::init()
 	m_fds_to_remove->clear();
 	m_n_proc_lookups = 0;
 	m_n_proc_lookups_duration_ns = 0;
+	m_n_main_thread_lookups = 0;
 
 	//
 	// Return the tracers to the pool and clear the tracers list
@@ -364,6 +374,11 @@ void sinsp::init()
 			}
 		}
 
+		if (m_external_event_processor)
+		{
+			m_external_event_processor->on_capture_start();
+		}
+
 		//
 		// Rewind, reset the event count, and consume the exact number of events
 		//
@@ -395,22 +410,35 @@ void sinsp::init()
 	//
 	m_thread_manager->fix_sockets_coming_from_proc();
 
-#ifdef HAS_ANALYZER
-	//
-	// Notify the analyzer that we're starting
-	//
-	if(m_analyzer)
+	if (m_external_event_processor)
 	{
-		m_analyzer->on_capture_start();
+		m_external_event_processor->on_capture_start();
 	}
-#endif
-
 	//
 	// If m_snaplen was modified, we set snaplen now
 	//
 	if(m_snaplen != DEFAULT_SNAPLEN)
 	{
 		set_snaplen(m_snaplen);
+	}
+
+	//
+	// If the port range for increased snaplen was modified, set it now
+	//
+#ifndef _WIN32
+	if(increased_snaplen_port_range_set())
+	{
+		set_fullcapture_port_range(m_increased_snaplen_port_range.range_start,
+		                           m_increased_snaplen_port_range.range_end);
+	}
+#endif
+
+	//
+	// If the statsd port was modified, push it to the kernel now.
+	//
+	if(m_statsd_port != -1)
+	{
+		set_statsd_port(m_statsd_port);
 	}
 
 #if defined(HAS_CAPTURE)
@@ -429,7 +457,7 @@ void sinsp::set_import_users(bool import_users)
 	m_import_users = import_users;
 }
 
-void sinsp::open(uint32_t timeout_ms)
+void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 {
 	char error[SCAP_LASTERR_SIZE];
 
@@ -443,12 +471,13 @@ void sinsp::open(uint32_t timeout_ms)
 	//
 	// Start the capture
 	//
-	m_mode = SCAP_MODE_LIVE;
+	m_mode = mode;
 	scap_open_args oargs;
-	oargs.mode = SCAP_MODE_LIVE;
+	oargs.mode = mode;
 	oargs.fname = NULL;
 	oargs.proc_callback = NULL;
 	oargs.proc_callback_context = NULL;
+	oargs.udig = m_udig;
 
 	if(!m_filter_proc_table_when_saving)
 	{
@@ -475,12 +504,23 @@ void sinsp::open(uint32_t timeout_ms)
 
 	if(m_h == NULL)
 	{
-		throw sinsp_exception(error, scap_rc);
+		throw scap_open_exception(error, scap_rc);
 	}
 
 	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
 
 	init();
+}
+
+void sinsp::open(uint32_t timeout_ms)
+{
+	open_live_common(timeout_ms, SCAP_MODE_LIVE);
+}
+
+void sinsp::open_udig(uint32_t timeout_ms)
+{
+	m_udig = true;
+	open_live_common(timeout_ms, SCAP_MODE_LIVE);
 }
 
 void sinsp::open_nodriver()
@@ -515,7 +555,7 @@ void sinsp::open_nodriver()
 
 	if(m_h == NULL)
 	{
-		throw sinsp_exception(error, scap_rc);
+		throw scap_open_exception(error, scap_rc);
 	}
 
 	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
@@ -555,10 +595,12 @@ int64_t sinsp::get_file_size(const std::string& fname, char *error)
 
 void sinsp::set_simpledriver_mode()
 {
+#ifndef _WIN32
 	if(scap_enable_simpledriver_mode(m_h) != SCAP_SUCCESS)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
 	}
+#endif
 }
 
 unsigned sinsp::m_num_possible_cpus = 0;
@@ -654,7 +696,7 @@ void sinsp::open_int()
 
 	if(m_h == NULL)
 	{
-		throw sinsp_exception(error, scap_rc);
+		throw scap_open_exception(error, scap_rc);
 	}
 
 	if(m_input_fd != 0)
@@ -675,9 +717,9 @@ void sinsp::open_int()
 	init();
 }
 
-void sinsp::open(string filename)
+void sinsp::open(const std::string &filename)
 {
-	if(filename == "")
+	if(filename.empty())
 	{
 		open();
 		return;
@@ -815,19 +857,23 @@ void sinsp::on_new_entry_from_proc(void* context,
 	//
 	if(fdinfo == NULL)
 	{
-		sinsp_threadinfo* newti = new sinsp_threadinfo(this);
+		bool thread_added = false;
+		sinsp_threadinfo* newti = build_threadinfo();
 		newti->init(tinfo);
 		if(is_nodriver())
 		{
 			auto sinsp_tinfo = find_thread(tid, true);
 			if(sinsp_tinfo == nullptr || newti->m_clone_ts > sinsp_tinfo->m_clone_ts)
 			{
-				m_thread_manager->add_thread(newti, true);
+				thread_added = m_thread_manager->add_thread(newti, true);
 			}
 		}
 		else
 		{
-			m_thread_manager->add_thread(newti, true);
+			thread_added = m_thread_manager->add_thread(newti, true);
+		}
+		if (!thread_added) {
+			delete newti;
 		}
 	}
 	else
@@ -836,14 +882,17 @@ void sinsp::on_new_entry_from_proc(void* context,
 
 		if(!sinsp_tinfo)
 		{
-			sinsp_threadinfo* newti = new sinsp_threadinfo(this);
+			sinsp_threadinfo* newti = build_threadinfo();
 			newti->init(tinfo);
 
-			m_thread_manager->add_thread(newti, true);
+			if (!m_thread_manager->add_thread(newti, true)) {
+				ASSERT(false);
+				delete newti;
+				return;
+			}
 
 			sinsp_tinfo = find_thread(tid, true);
-			if(!sinsp_tinfo)
-			{
+			if (!sinsp_tinfo) {
 				ASSERT(false);
 				return;
 			}
@@ -876,7 +925,7 @@ void sinsp::import_thread_table()
 	//
 	HASH_ITER(hh, table, pi, tpi)
 	{
-		sinsp_threadinfo* newti = new sinsp_threadinfo(this);
+		sinsp_threadinfo* newti = build_threadinfo();
 		newti->init(pi);
 		m_thread_manager->add_thread(newti, true);
 	}
@@ -920,7 +969,7 @@ void sinsp::import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo)
 
 void sinsp::refresh_ifaddr_list()
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(!is_capture())
 	{
 		ASSERT(m_network_interfaces);
@@ -977,10 +1026,6 @@ void schedule_next_threadinfo_evt(sinsp* _this, void* data)
 
 			_this->add_meta_event(&mei->m_pievt);
 		}
-		else if(mei->m_cur_procinfo_evt == (int32_t)mei->m_n_procinfo_evts)
-		{
-			_this->add_meta_event(mei->m_next_evt);
-		}
 
 		break;
 	}
@@ -1012,6 +1057,18 @@ void sinsp::restart_capture_at_filepos(uint64_t filepos)
 	}
 }
 
+uint64_t sinsp::max_buf_used()
+{
+	if(m_h)
+	{
+		return scap_max_buf_used(m_h);
+	}
+	else
+	{
+		return 0;
+	}
+}
+
 int32_t sinsp::next(OUT sinsp_evt **puevt)
 {
 	sinsp_evt* evt;
@@ -1031,12 +1088,13 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			m_meta_event_callback(this, m_meta_event_callback_data);
 		}
 	}
-	else if (m_meta_evt_pending && m_meta_skipped_evt != NULL)
+#ifndef _WIN32
+	else if (m_pending_container_evts.try_pop(m_container_evt))
 	{
-		res = m_meta_skipped_evt_res;
-		evt = m_meta_skipped_evt;
-		m_meta_evt_pending = false;
+		res = SCAP_SUCCESS;
+		evt = m_container_evt.get();
 	}
+#endif
 	else
 	{
 		evt = &m_evt;
@@ -1064,23 +1122,19 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		{
 			if(res == SCAP_TIMEOUT)
 			{
-	#ifdef HAS_ANALYZER
-				if(m_analyzer)
+				if (m_external_event_processor)
 				{
-					m_analyzer->process_event(NULL, sinsp_analyzer::DF_TIMEOUT);
+					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_TIMEOUT);
 				}
-	#endif
 				*puevt = NULL;
 				return res;
 			}
 			else if(res == SCAP_EOF)
 			{
-	#ifdef HAS_ANALYZER
-				if(m_analyzer)
+				if (m_external_event_processor)
 				{
-					m_analyzer->process_event(NULL, sinsp_analyzer::DF_EOF);
+					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_EOF);
 				}
-	#endif
 			}
 			else if(res == SCAP_UNEXPECTED_BLOCK)
 			{
@@ -1108,7 +1162,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	// If required, retrieve the processes cpu from the kernel
 	//
-	if(m_get_procs_cpu_from_driver && is_live())
+	if(m_get_procs_cpu_from_driver && is_live() && !m_udig)
 	{
 		if(ts > m_next_flush_time_ns)
 		{
@@ -1137,7 +1191,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 						m_meinfo.m_cur_procinfo_evt = -1;
 
 						m_meinfo.m_piscapevt->ts = m_next_flush_time_ns - (ONE_SECOND_IN_NS + 1);
-						m_meinfo.m_next_evt = &m_evt;
 						add_meta_event_callback(&schedule_next_threadinfo_evt, &m_meinfo);
 						schedule_next_threadinfo_evt(this, &m_meinfo);
 					}
@@ -1159,7 +1212,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 #ifndef HAS_ANALYZER
 	//
-	// Deleayed removal of threads from the thread table, so that
+	// Delayed removal of threads from the thread table, so that
 	// things like exit() or close() can be parsed.
 	// We only do this if the analyzer is not enabled, because the analyzer
 	// needs the process at the end of the sample and will take care of deleting
@@ -1205,17 +1258,19 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		m_thread_manager->remove_inactive_threads();
 		m_container_manager.remove_inactive_containers();
 
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 		update_k8s_state();
 
 		if(m_mesos_client)
 		{
 			update_mesos_state();
 		}
+#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	}
 #endif // HAS_ANALYZER
 
 	//
-	// Deleayed removal of the fd, so that
+	// Delayed removal of the fd, so that
 	// things like exit() or close() can be parsed.
 	//
 	uint32_t nfdr = (uint32_t)m_fds_to_remove->size();
@@ -1249,10 +1304,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	sd = should_drop(evt, &m_isdropping, &sw);
 #endif
 
-	// No meta event is pending unless it's set in process_event
-	// below.
-	m_meta_evt_pending = false;
-
 	//
 	// Run the state engine
 	//
@@ -1270,24 +1321,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 #else
 	m_parser->process_event(evt);
 #endif
-
-	// A side-effect of parsing this event may have generated a
-	// meta event. For example, parsing an execve or clone into a
-	// new cgroup may have created a container event.
-	//
-	// We want that meta event to be returned/written to files
-	// *before* the original system event. So save the system
-	// event so it can be returned/written in the next call to
-	// sinsp::next() and make the meta event the current event.
-
-	if(m_meta_evt_pending)
-	{
-		m_meta_evt.m_evtnum = evt->m_evtnum;
-		m_meta_skipped_evt = evt;
-		m_meta_skipped_evt_res = res;
-		res = SCAP_SUCCESS;
-		evt = &m_meta_evt;
-	}
 
 	//
 	// If needed, dump the event to file
@@ -1354,30 +1387,10 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	// Run the analysis engine
 	//
-#ifdef HAS_ANALYZER
-	if(m_analyzer)
+	if (m_external_event_processor)
 	{
-#ifdef SIMULATE_DROP_MODE
-		if(!sd || m_isdropping || sw)
-		{
-			if(m_isdropping)
-			{
-				m_analyzer->process_event(evt, sinsp_analyzer::DF_FORCE_FLUSH);
-			}
-			else if(sw)
-			{
-				m_analyzer->process_event(evt, sinsp_analyzer::DF_FORCE_FLUSH_BUT_DONT_EMIT);
-			}
-			else
-			{
-				m_analyzer->process_event(evt, sinsp_analyzer::DF_FORCE_NOFLUSH);
-			}
-		}
-#else // SIMULATE_DROP_MODE
-		m_analyzer->process_event(evt, sinsp_analyzer::DF_NONE);
-#endif // SIMULATE_DROP_MODE
+		m_external_event_processor->process_event(evt, libsinsp::EVENT_RETURN_NONE);
 	}
-#endif
 
 	// Clean parse related event data after analyzer did its parsing too
 	m_parser->event_cleanup(evt);
@@ -1424,7 +1437,7 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, boo
 	return &*get_thread_ref(tid, query_os_if_not_found, lookup_only);
 }
 
-threadinfo_map_t::ptr_t sinsp::get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only)
+threadinfo_map_t::ptr_t sinsp::get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only, bool main_thread)
 {
 	auto sinsp_proc = find_thread(tid, lookup_only);
 
@@ -1446,9 +1459,14 @@ threadinfo_map_t::ptr_t sinsp::get_thread_ref(int64_t tid, bool query_os_if_not_
 		}
 
 		scap_threadinfo* scap_proc = NULL;
-		sinsp_threadinfo* newti = new sinsp_threadinfo(this);
+		sinsp_threadinfo* newti = build_threadinfo();
 
 		m_n_proc_lookups++;
+
+		if(main_thread)
+		{
+			m_n_main_thread_lookups++;
+		}
 
 		if(m_n_proc_lookups == m_max_n_proc_lookups)
 		{
@@ -1533,9 +1551,9 @@ sinsp_threadinfo* sinsp::get_thread(int64_t tid)
 	return get_thread(tid, false, true);
 }
 
-void sinsp::add_thread(const sinsp_threadinfo* ptinfo)
+bool sinsp::add_thread(const sinsp_threadinfo *ptinfo)
 {
-	m_thread_manager->add_thread((sinsp_threadinfo*)ptinfo, false);
+	return m_thread_manager->add_thread((sinsp_threadinfo*)ptinfo, false);
 }
 
 void sinsp::remove_thread(int64_t tid, bool force)
@@ -1583,9 +1601,44 @@ void sinsp::add_suppressed_comms(scap_open_args &oargs)
 	oargs.suppressed_comms[i++] = NULL;
 }
 
+void sinsp::set_docker_socket_path(std::string socket_path)
+{
+	m_container_manager.set_docker_socket_path(std::move(socket_path));
+}
+
 void sinsp::set_query_docker_image_info(bool query_image_info)
 {
 	m_container_manager.set_query_docker_image_info(query_image_info);
+}
+
+void sinsp::set_cri_extra_queries(bool extra_queries)
+{
+	m_container_manager.set_cri_extra_queries(extra_queries);
+}
+
+void sinsp::set_cri_socket_path(const std::string& path)
+{
+	m_container_manager.set_cri_socket_path(path);
+}
+
+void sinsp::set_cri_timeout(int64_t timeout_ms)
+{
+	m_container_manager.set_cri_timeout(timeout_ms);
+}
+
+void sinsp::set_cri_async(bool async)
+{
+	m_container_manager.set_cri_async(async);
+}
+
+void sinsp::set_cri_delay(uint64_t delay_ms)
+{
+	m_container_manager.set_cri_delay(delay_ms);
+}
+
+void sinsp::set_container_labels_max_len(uint32_t max_label_len)
+{
+	m_container_manager.set_container_labels_max_len(max_label_len);
 }
 
 void sinsp::set_snaplen(uint32_t snaplen)
@@ -1594,13 +1647,59 @@ void sinsp::set_snaplen(uint32_t snaplen)
 	// If set_snaplen is called before opening of the inspector,
 	// we register the value to be set after its initialization.
 	//
-	if (m_h == NULL)
+	if(m_h == NULL)
 	{
 		m_snaplen = snaplen;
 		return;
 	}
 
 	if(is_live() && scap_set_snaplen(m_h, snaplen) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+}
+
+void sinsp::set_fullcapture_port_range(uint16_t range_start, uint16_t range_end)
+{
+	//
+	// If set_fullcapture_port_range is called before opening of the inspector,
+	// we register the value to be set after its initialization.
+	//
+	if(m_h == NULL)
+	{
+		m_increased_snaplen_port_range = {range_start, range_end};
+		return;
+	}
+
+	if(!is_live())
+	{
+		throw sinsp_exception("set_fullcapture_port_range called on a trace file");
+	}
+
+	if(scap_set_fullcapture_port_range(m_h, range_start, range_end) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+}
+
+void sinsp::set_statsd_port(const uint16_t port)
+{
+	//
+	// If this method is called before opening of the inspector,
+	// we register the value to be set after its initialization.
+	//
+	if(m_h == NULL)
+	{
+		m_statsd_port = port;
+		return;
+	}
+
+	if(!is_live())
+	{
+		throw sinsp_exception("set_statsd_port called on a trace file");
+	}
+
+	if(scap_set_statsd_port(m_h, port) != SCAP_SUCCESS)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
 	}
@@ -1622,6 +1721,7 @@ void sinsp::start_capture()
 	}
 }
 
+#ifndef _WIN32
 void sinsp::stop_dropping_mode()
 {
 	if(m_mode == SCAP_MODE_LIVE)
@@ -1647,6 +1747,7 @@ void sinsp::start_dropping_mode(uint32_t sampling_ratio)
 		}
 	}
 }
+#endif // _WIN32
 
 #ifdef HAS_FILTERING
 void sinsp::set_filter(sinsp_filter* filter)
@@ -1767,7 +1868,7 @@ uint32_t sinsp::reserve_thread_memory(uint32_t size)
 	return m_thread_privatestate_manager.reserve(size);
 }
 
-void sinsp::get_capture_stats(scap_stats* stats)
+void sinsp::get_capture_stats(scap_stats* stats) const
 {
 	if(scap_get_stats(m_h, stats) != SCAP_SUCCESS)
 	{
@@ -1865,7 +1966,7 @@ void sinsp::add_chisel_dir(string dirname, bool front_add)
 
 	chiseldir_info ncdi;
 
-	strcpy(ncdi.m_dir, dirname.c_str());
+	ncdi.m_dir = std::move(dirname);
 	ncdi.m_need_to_resolve = false;
 
 	if(front_add)
@@ -1892,6 +1993,11 @@ void sinsp::set_drop_event_flags(ppm_event_flags flags)
 sinsp_evt::param_fmt sinsp::get_buffer_format()
 {
 	return m_buffer_format;
+}
+
+void sinsp::set_large_envs(bool enable)
+{
+	m_large_envs_enabled = enable;
 }
 
 void sinsp::set_debug_mode(bool enable_debug)
@@ -1998,7 +2104,7 @@ bool sinsp::remove_inactive_threads()
 	return m_thread_manager->remove_inactive_threads();
 }
 
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 void sinsp::init_mesos_client(string* api_server, bool verbose)
 {
 	m_verbose_json = verbose;
@@ -2223,7 +2329,7 @@ void sinsp::k8s_discover_ext()
 			}
 		}
 	}
-	catch(std::exception& ex)
+	catch(const std::exception& ex)
 	{
 		g_logger.log(std::string("K8s API extensions handler error: ").append(ex.what()),
 					 sinsp_logger::SEV_ERROR);
@@ -2296,7 +2402,7 @@ void sinsp::update_k8s_state()
 			}
 		}
 	}
-	catch(std::exception& e)
+	catch(const std::exception& e)
 	{
 		g_logger.log(std::string("Error fetching K8s data: ").append(e.what()), sinsp_logger::SEV_ERROR);
 		throw;
@@ -2327,7 +2433,7 @@ bool sinsp::get_mesos_data()
 			last_mesos_refresh = now;
 		}
 	}
-	catch(std::exception& ex)
+	catch(const std::exception& ex)
 	{
 		g_logger.log(std::string("Mesos exception: ") + ex.what(), sinsp_logger::SEV_ERROR);
 		delete m_mesos_client;
@@ -2369,6 +2475,20 @@ void sinsp::set_bpf_probe(const string& bpf_probe)
 {
 	m_bpf = true;
 	m_bpf_probe = bpf_probe;
+}
+
+bool sinsp::is_bpf_enabled()
+{
+	// At the inspector level, bpf can be explicitly enabled via
+	// sinsp::set_bpf_probe, but what's most important is whether
+	// it's enabled at the libscap level, which can also be done
+	// via the environment.
+	if(m_h)
+	{
+		return scap_get_bpf_enabled(m_h);
+	}
+
+	return false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2445,4 +2565,63 @@ bool sinsp_thread_manager::remove_inactive_threads()
 	}
 
 	return res;
+}
+
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
+std::shared_ptr<std::string> sinsp::lookup_cgroup_dir(const string& subsys)
+{
+	shared_ptr<string> cgroup_dir;
+	static std::unordered_map<std::string, std::shared_ptr<std::string>> cgroup_dir_cache;
+
+	const auto& it = cgroup_dir_cache.find(subsys);
+	if(it != cgroup_dir_cache.end())
+	{
+		return it->second;
+	}
+
+	// Look for mount point of cgroup filesystem
+	// It should be already mounted on the host or by
+	// our docker-entrypoint.sh script
+	if(strcmp(scap_get_host_root(), "") != 0)
+	{
+		// We are inside our container, so we should use the directory
+		// mounted by it
+		auto cgroup = std::string(scap_get_host_root()) + "/cgroup/" + subsys;
+		cgroup_dir = std::make_shared<std::string>(cgroup);
+	}
+	else
+	{
+		struct mntent mntent_buf = {};
+		char mntent_string_buf[4096];
+		FILE* fp = setmntent("/proc/mounts", "r");
+		struct mntent* entry = getmntent_r(fp, &mntent_buf,
+			mntent_string_buf, sizeof(mntent_string_buf));
+		while(entry != nullptr)
+		{
+			if(strcmp(entry->mnt_type, "cgroup") == 0 &&
+			   hasmntopt(entry, subsys.c_str()) != NULL)
+			{
+				cgroup_dir = std::make_shared<std::string>(entry->mnt_dir);
+				break;
+			}
+			entry = getmntent(fp);
+		}
+		endmntent(fp);
+	}
+	if(!cgroup_dir)
+	{
+		return std::make_shared<std::string>();
+	}
+	else
+	{
+		cgroup_dir_cache[subsys] = cgroup_dir;
+		return cgroup_dir;
+	}
+}
+#endif
+
+sinsp_threadinfo*
+libsinsp::event_processor::build_threadinfo(sinsp* inspector)
+{
+	return new sinsp_threadinfo(inspector);
 }

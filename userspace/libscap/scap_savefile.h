@@ -49,9 +49,9 @@ typedef struct _block_header
 // is not able anymore to read older captures
 #define CURRENT_MAJOR_VERSION	1
 // Minor version of the file format supported by this library.
-// Must be increased every time we change the capture format
-// (e.g. most of the changes in the event table, like adding
-// a syscall)
+// We used to bump it every time the event table was updated, but
+// after adding {retro,forward} captures compatibility support
+// this is not required anymore.
 #define CURRENT_MINOR_VERSION	2
 
 typedef struct _section_header_block
@@ -66,7 +66,7 @@ typedef struct _section_header_block
 // Starting from scap version 1.2, block versions will no longer be changed.
 // New block fields must be appended and, instead of using the version, the
 // lengths of the sub blocks will be used to differentiate between versions.
-// For more infomation, look at the comments inside the various scap_read_*
+// For more information, look at the comments inside the various scap_read_*
 // functions.
 
 ///////////////////////////////////////////////////////////////////////////////

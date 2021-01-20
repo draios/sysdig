@@ -22,12 +22,14 @@ limitations under the License.
 #include <json/json.h>
 #include "filter_value.h"
 #include "prefix_search.h"
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 #include "k8s.h"
 #include "mesos.h"
 #endif
 
 #ifdef HAS_FILTERING
+#include "gen_filter.h"
+
 class sinsp_filter_check_reference;
 
 bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
@@ -37,7 +39,6 @@ bool flt_compare_ipv6net(cmpop op, ipv6addr *operand1, ipv6addr* operand2);
 
 char* flt_to_string(uint8_t* rawval, filtercheck_field_info* finfo);
 int32_t gmt2local(time_t t);
-void ts_to_string(uint64_t ts, OUT string* res, bool full, bool ns);
 
 class operand_info
 {
@@ -48,12 +49,27 @@ public:
 	string m_description;
 };
 
+class check_extraction_cache_entry
+{
+public:
+	uint64_t m_evtnum = UINT64_MAX;
+	uint8_t* m_res;
+};
+
+class check_eval_cache_entry
+{
+public:
+	uint64_t m_evtnum = UINT64_MAX;
+	bool m_res;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // The filter check interface
 // NOTE: in order to add a new type of filter check, you need to add a class for
 //       it and then add it to new_filter_check_from_name.
 ///////////////////////////////////////////////////////////////////////////////
-class sinsp_filter_check
+
+class sinsp_filter_check : public gen_event_filter_check
 {
 public:
 	sinsp_filter_check();
@@ -104,7 +120,14 @@ public:
 	// Extract the field from the event. In sanitize_strings is true, any
 	// string values are sanitized to remove nonprintable characters.
 	//
+	uint8_t* extract(gen_event *evt, OUT uint32_t* len, bool sanitize_strings = true);
 	virtual uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true) = 0;
+
+	//
+	// Wrapper for extract() that implements caching to speed up multiple extractions of the same value,
+	// which are common in Falco.
+	//
+	uint8_t* extract_cached(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
 	//
 	// Extract the field as json from the event (by default, fall
@@ -118,6 +141,7 @@ public:
 	//
 	// Compare the field with the constant value obtained from parse_filter_value()
 	//
+	bool compare(gen_event *evt);
 	virtual bool compare(sinsp_evt *evt);
 
 	//
@@ -131,18 +155,12 @@ public:
 	//
 	virtual Json::Value tojson(sinsp_evt* evt);
 
-	//
-	// Configure numeric id to be set on events that match this filter
-	//
-	void set_check_id(int32_t id);
-	virtual int32_t get_check_id();
-
 	sinsp* m_inspector;
 	bool m_needs_state_tracking = false;
-	boolop m_boolop;
-	cmpop m_cmpop;
 	sinsp_field_aggregation m_aggregation;
 	sinsp_field_aggregation m_merge_aggregation;
+	check_eval_cache_entry* m_eval_cache_entry = NULL;
+	check_extraction_cache_entry* m_extraction_cache_entry = NULL;
 
 protected:
 	bool flt_compare(cmpop op, ppm_param_type type, void* operand1, uint32_t op1_len = 0, uint32_t op2_len = 0);
@@ -176,9 +194,10 @@ protected:
 
 private:
 	void set_inspector(sinsp* inspector);
-	int32_t m_check_id = 0;
 
 friend class sinsp_filter_check_list;
+friend class sinsp_filter_optimizer;
+friend class chk_compare_helper;
 };
 
 //
@@ -197,50 +216,6 @@ public:
 
 private:
 	vector<sinsp_filter_check*> m_check_list;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// Filter expression class
-// A filter expression contains multiple filters connected by boolean expressions,
-// e.g. "check or check", "check and check and check", "not check"
-///////////////////////////////////////////////////////////////////////////////
-class sinsp_filter_expression : public sinsp_filter_check
-{
-public:
-	sinsp_filter_expression();
-	~sinsp_filter_expression();
-	sinsp_filter_check* allocate_new();
-	void add_check(sinsp_filter_check* chk);
-	// does nothing for sinsp_filter_expression
-	void parse(string expr);
-	bool compare(sinsp_evt *evt);
-
-	//
-	// The following methods are part of the filter check interface but are irrelevant
-	// for this class, because they are used only for the leaves of the filtering tree.
-	//
-	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
-	{
-		ASSERT(false);
-		return 0;
-	}
-
-	const filtercheck_field_info* get_field_info()
-	{
-		ASSERT(false);
-		return NULL;
-	}
-
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true)
-	{
-		ASSERT(false);
-		return NULL;
-	}
-
-	int32_t get_check_id();
-
-	sinsp_filter_expression* m_parent;
-	vector<sinsp_filter_check*> m_checks;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -292,7 +267,10 @@ public:
 		TYPE_CLIENTIP_NAME = 34,
 		TYPE_SERVERIP_NAME = 35,
 		TYPE_LIP_NAME = 36,
-		TYPE_RIP_NAME = 37
+		TYPE_RIP_NAME = 37,
+		TYPE_DEV = 38,
+		TYPE_DEV_MAJOR = 39,
+		TYPE_DEV_MINOR = 40,
 	};
 
 	enum fd_type
@@ -387,6 +365,9 @@ public:
 		TYPE_EXEPATH = 43,
 		TYPE_NAMETID = 44,
 		TYPE_VPGID = 45,
+		TYPE_IS_CONTAINER_HEALTHCHECK = 46,
+		TYPE_IS_CONTAINER_LIVENESS_PROBE = 47,
+		TYPE_IS_CONTAINER_READINESS_PROBE = 48,
 	};
 
 	sinsp_filter_check_thread();
@@ -425,69 +406,71 @@ public:
 		TYPE_NUMBER = 0,
 		TYPE_TIME = 1,
 		TYPE_TIME_S = 2,
-		TYPE_DATETIME = 3,
-		TYPE_RAWTS = 4,
-		TYPE_RAWTS_S = 5,
-		TYPE_RAWTS_NS = 6,
-		TYPE_RELTS = 7,
-		TYPE_RELTS_S = 8,
-		TYPE_RELTS_NS = 9,
-		TYPE_LATENCY = 10,
-		TYPE_LATENCY_S = 11,
-		TYPE_LATENCY_NS = 12,
-		TYPE_LATENCY_QUANTIZED = 13,
-		TYPE_LATENCY_HUMAN = 14,
-		TYPE_DELTA = 15,
-		TYPE_DELTA_S = 16,
-		TYPE_DELTA_NS = 17,
-		TYPE_RUNTIME_TIME_OUTPUT_FORMAT = 18,
-		TYPE_DIR = 19,
-		TYPE_TYPE = 20,
-		TYPE_TYPE_IS = 21,
-		TYPE_SYSCALL_TYPE = 22,
-		TYPE_CATEGORY = 23,
-		TYPE_CPU = 24,
-		TYPE_ARGS = 25,
-		TYPE_ARGSTR = 26,
-		TYPE_ARGRAW = 27,
-		TYPE_INFO = 28,
-		TYPE_BUFFER = 29,
-		TYPE_BUFLEN = 30,
-		TYPE_RESSTR = 31,
-		TYPE_RESRAW = 32,
-		TYPE_FAILED = 33,
-		TYPE_ISIO = 34,
-		TYPE_ISIO_READ = 35,
-		TYPE_ISIO_WRITE = 36,
-		TYPE_IODIR = 37,
-		TYPE_ISWAIT = 38,
-		TYPE_WAIT_LATENCY = 39,
-		TYPE_ISSYSLOG = 40,
-		TYPE_COUNT = 41,
-		TYPE_COUNT_ERROR = 42,
-		TYPE_COUNT_ERROR_FILE = 43,
-		TYPE_COUNT_ERROR_NET = 44,
-		TYPE_COUNT_ERROR_MEMORY = 45,
-		TYPE_COUNT_ERROR_OTHER = 46,
-		TYPE_COUNT_EXIT = 47,
-		TYPE_COUNT_PROCINFO = 48,
-		TYPE_COUNT_THREADINFO = 49,
-		TYPE_AROUND = 50,
-		TYPE_ABSPATH = 51,
-		TYPE_BUFLEN_IN = 52,
-		TYPE_BUFLEN_OUT = 53,
-		TYPE_BUFLEN_FILE = 54,
-		TYPE_BUFLEN_FILE_IN = 55,
-		TYPE_BUFLEN_FILE_OUT = 56,
-		TYPE_BUFLEN_NET = 57,
-		TYPE_BUFLEN_NET_IN = 58,
-		TYPE_BUFLEN_NET_OUT = 59,
-		TYPE_ISOPEN_READ = 60,
-		TYPE_ISOPEN_WRITE = 61,
-		TYPE_INFRA_DOCKER_NAME = 62,
-		TYPE_INFRA_DOCKER_CONTAINER_ID = 63,
-		TYPE_INFRA_DOCKER_CONTAINER_NAME = 64,
-		TYPE_INFRA_DOCKER_CONTAINER_IMAGE = 65
+		TYPE_TIME_ISO8601 = 3,
+		TYPE_DATETIME = 4,
+		TYPE_RAWTS = 5,
+		TYPE_RAWTS_S = 6,
+		TYPE_RAWTS_NS = 7,
+		TYPE_RELTS = 8,
+		TYPE_RELTS_S = 9,
+		TYPE_RELTS_NS = 10,
+		TYPE_LATENCY = 11,
+		TYPE_LATENCY_S = 12,
+		TYPE_LATENCY_NS = 13,
+		TYPE_LATENCY_QUANTIZED = 14,
+		TYPE_LATENCY_HUMAN = 15,
+		TYPE_DELTA = 16,
+		TYPE_DELTA_S = 17,
+		TYPE_DELTA_NS = 18,
+		TYPE_RUNTIME_TIME_OUTPUT_FORMAT = 19,
+		TYPE_DIR = 20,
+		TYPE_TYPE = 21,
+		TYPE_TYPE_IS = 22,
+		TYPE_SYSCALL_TYPE = 23,
+		TYPE_CATEGORY = 24,
+		TYPE_CPU = 25,
+		TYPE_ARGS = 26,
+		TYPE_ARGSTR = 27,
+		TYPE_ARGRAW = 28,
+		TYPE_INFO = 29,
+		TYPE_BUFFER = 30,
+		TYPE_BUFLEN = 31,
+		TYPE_RESSTR = 32,
+		TYPE_RESRAW = 33,
+		TYPE_FAILED = 34,
+		TYPE_ISIO = 35,
+		TYPE_ISIO_READ = 36,
+		TYPE_ISIO_WRITE = 37,
+		TYPE_IODIR = 38,
+		TYPE_ISWAIT = 39,
+		TYPE_WAIT_LATENCY = 40,
+		TYPE_ISSYSLOG = 41,
+		TYPE_COUNT = 42,
+		TYPE_COUNT_ERROR = 43,
+		TYPE_COUNT_ERROR_FILE = 44,
+		TYPE_COUNT_ERROR_NET = 45,
+		TYPE_COUNT_ERROR_MEMORY = 46,
+		TYPE_COUNT_ERROR_OTHER = 47,
+		TYPE_COUNT_EXIT = 48,
+		TYPE_COUNT_PROCINFO = 49,
+		TYPE_COUNT_THREADINFO = 50,
+		TYPE_AROUND = 51,
+		TYPE_ABSPATH = 52,
+		TYPE_BUFLEN_IN = 53,
+		TYPE_BUFLEN_OUT = 54,
+		TYPE_BUFLEN_FILE = 55,
+		TYPE_BUFLEN_FILE_IN = 56,
+		TYPE_BUFLEN_FILE_OUT = 57,
+		TYPE_BUFLEN_NET = 58,
+		TYPE_BUFLEN_NET_IN = 59,
+		TYPE_BUFLEN_NET_OUT = 60,
+		TYPE_ISOPEN_READ = 61,
+		TYPE_ISOPEN_WRITE = 62,
+		TYPE_INFRA_DOCKER_NAME = 63,
+		TYPE_INFRA_DOCKER_CONTAINER_ID = 64,
+		TYPE_INFRA_DOCKER_CONTAINER_NAME = 65,
+		TYPE_INFRA_DOCKER_CONTAINER_IMAGE = 66,
+		TYPE_ISOPEN_EXEC = 67,
 	};
 
 	sinsp_filter_check_event();
@@ -771,6 +754,9 @@ public:
 		TYPE_CONTAINER_IMAGE_REPOSITORY,
 		TYPE_CONTAINER_IMAGE_TAG,
 		TYPE_CONTAINER_IMAGE_DIGEST,
+		TYPE_CONTAINER_HEALTHCHECK,
+		TYPE_CONTAINER_LIVENESS_PROBE,
+		TYPE_CONTAINER_READINESS_PROBE,
 	};
 
 	sinsp_filter_check_container();
@@ -873,7 +859,7 @@ private:
 	char m_addrbuff[100];
 };
 
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 class sinsp_filter_check_k8s : public sinsp_filter_check
 {
@@ -926,9 +912,6 @@ private:
 	string m_tstr;
 };
 
-#endif // CYGWING_AGENT
-
-#ifndef CYGWING_AGENT
 class sinsp_filter_check_mesos : public sinsp_filter_check
 {
 public:
@@ -966,6 +949,7 @@ private:
 	string m_argname;
 	string m_tstr;
 };
-#endif // CYGWING_AGENT
+
+#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 #endif // HAS_FILTERING

@@ -18,11 +18,12 @@
 include_directories("${JSONCPP_INCLUDE}")
 
 if(NOT WIN32)
-    if(NOT APPLE)
-        include_directories("${CURL_INCLUDE_DIR}")
-    endif()
+	include_directories("${TBB_INCLUDE_DIR}")
+	if(NOT MINIMAL_BUILD)
+		include_directories("${CURL_INCLUDE_DIR}")
+	endif() # MINIMAL_BUILD
 	include_directories("${CURSES_INCLUDE_DIR}")
-endif()
+endif() # NOT WIN32
 
 include_directories("${PROJECT_SOURCE_DIR}/common")
 include_directories("${PROJECT_SOURCE_DIR}/userspace/libscap")
@@ -32,20 +33,16 @@ include_directories(.)
 
 if(NOT WIN32)
 	set(SOURCE_FILES
-		fields_info.cpp
 		sysdig.cpp)
 
 	set(SOURCE_FILES_CSYSDIG
-		fields_info.cpp
 		csysdig.cpp)
 else()
 	set(SOURCE_FILES
-		fields_info.cpp
 		sysdig.cpp
 		win32/getopt.c)
 
 	set(SOURCE_FILES_CSYSDIG
-		fields_info.cpp
 		csysdig.cpp
 		win32/getopt.c)
 endif()
@@ -54,7 +51,7 @@ add_executable(sysdig ${SOURCE_FILES})
 add_executable(csysdig ${SOURCE_FILES_CSYSDIG})
 
 if(NOT WIN32)
-
+	include_directories(${PROJECT_BINARY_DIR}/driver/src)
 	target_link_libraries(sysdig
 		sinsp)
 
@@ -88,9 +85,9 @@ else()
 	target_link_libraries(csysdig
 		sinsp)
 
-	target_link_libraries(sysdig odbc32.lib odbccp32.lib)
+	target_link_libraries(sysdig odbc32.lib odbccp32.lib Netapi32.lib Iphlpapi.lib)
 
-	target_link_libraries(csysdig odbc32.lib odbccp32.lib)
+	target_link_libraries(csysdig odbc32.lib odbccp32.lib Netapi32.lib Iphlpapi.lib)
 
 	add_custom_command(TARGET sysdig POST_BUILD
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different

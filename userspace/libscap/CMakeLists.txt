@@ -16,7 +16,9 @@
 # limitations under the License.
 #
 include_directories("${PROJECT_SOURCE_DIR}/common")
+if(NOT MINIMAL_BUILD)
 include_directories("${ZLIB_INCLUDE}")
+endif()
 if(CYGWIN)
 include_directories("${WIN_HAL_INCLUDE}")
 endif()
@@ -34,14 +36,22 @@ list(APPEND targetfiles
 	../../driver/event_table.c
 	../../driver/flags_table.c)
 
+if(NOT APPLE)
+	list(APPEND targetfiles
+		scap_udig.c)
+endif()
+
+
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	list(APPEND targetfiles
 		scap_bpf.c
 		../../driver/syscall_table.c
 		../../driver/fillers_table.c)
+
+    include_directories(${PROJECT_BINARY_DIR}/driver/src)
 endif()
 
-if(CYGWIN)
+if(CYGWIN OR WIN32)
 	list(APPEND targetfiles
 		windows_hal.c)
 endif()
@@ -49,7 +59,7 @@ endif()
 add_library(scap STATIC
 	${targetfiles})
 
-if(USE_BUNDLED_ZLIB)
+if(USE_BUNDLED_ZLIB AND NOT MINIMAL_BUILD)
 	add_dependencies(scap zlib)
 endif()
 
@@ -69,8 +79,10 @@ elseif (CYGWIN)
 		${WIN_HAL_LIB}/dragent_win_hal.lib)
 endif()
 
+if(NOT MINIMAL_BUILD)
 target_link_libraries(scap
 	"${ZLIB_LIB}")
+endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
@@ -79,4 +91,6 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
         add_subdirectory(examples/01-open)
         add_subdirectory(examples/02-validatebuffer)
     endif()
+
+	include(FindMakedev)
 endif()

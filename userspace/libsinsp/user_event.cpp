@@ -20,6 +20,7 @@ limitations under the License.
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "user_event.h"
+#include "user_event_logger.h"
 
 //
 // event_scope
@@ -391,38 +392,28 @@ sinsp_user_event& sinsp_user_event::operator=(sinsp_user_event&& other)
 	return *this;
 }
 
-std::string sinsp_user_event::to_string(uint64_t timestamp,
-										std::string&& name,
-										std::string&& description,
-										event_scope&& scope,
-										tag_map_t&& tags,
-										uint32_t sev)
+std::string sinsp_user_event::to_string()
 {
-	const std::string from("\"");
-	const std::string to("\\\"");
-
 	std::ostringstream ostr;
-	ostr << "timestamp: " << timestamp << '\n' <<
-			"name: \"" << replace_in_place(name, from, to) << "\"\n"
-			"description: \"" << replace_in_place(description, from, to) << "\"\n"
-			"scope: \"" << replace_in_place(scope.get_ref(), from, to) << "\"\n";
+	ostr << "timestamp: " << m_epoch_time_s << '\n' <<
+			"name: " << m_name << "\n"
+			"description: " << m_description << "\"\n"
+			"scope: " << m_scope << "\"\n";
 
-	if(sev != UNKNOWN_SEVERITY)
+	if(m_severity != UNKNOWN_SEVERITY)
 	{
-		ostr << "priority: " << sev << '\n';
+		ostr << "priority: " << m_severity << '\n';
 	}
 
-	if(tags.size())
+	if(m_tags.size())
 	{
 		ostr << "tags:";
-		for(auto& tag : tags)
+		for(auto& tag : m_tags)
 		{
-			ostr << "\n  \"" << replace(tag.first, from, to) << "\": \""
-				<< replace_in_place(tag.second, from, to) << '"';
+			ostr << "\n  " << tag.first << ": " << tag.second;
 		}
 	}
 	ostr << std::flush;
-	g_logger.log(ostr.str(), sinsp_logger::SEV_DEBUG);
 	return ostr.str();
 }
 
@@ -438,9 +429,17 @@ void sinsp_user_event::emit_event_overflow(const std::string& component,
 	std::string scope;
 	if(machine_id.length())
 	{
-		scope.append("host.mac=").append(machine_id);
+		scope.append("host.mac='").append(machine_id).append("'");
 	}
 	tag_map_t tags{{"source", source}};
-	g_logger.log(sinsp_user_event::to_string(get_epoch_utc_seconds_now(), std::move(event_name),
-				 description.str(), std::move(scope), std::move(tags)), sinsp_logger::SEV_EVT_WARNING);
+
+	auto evt = sinsp_user_event(
+		get_epoch_utc_seconds_now(),
+		std::move(event_name),
+		description.str(),
+		std::move(scope),
+		std::move(tags),
+		user_event_logger::SEV_EVT_WARNING);
+
+	user_event_logger::log(evt, user_event_logger::SEV_EVT_WARNING);
 }

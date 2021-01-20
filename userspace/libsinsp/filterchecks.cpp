@@ -91,46 +91,6 @@ int32_t gmt2local(time_t t)
 	return dt;
 }
 
-void ts_to_string(uint64_t ts, OUT string* res, bool date, bool ns)
-{
-	struct tm *tm;
-	time_t Time;
-	uint64_t sec = ts / ONE_SECOND_IN_NS;
-	uint64_t nsec = ts % ONE_SECOND_IN_NS;
-	int32_t thiszone = gmt2local(0);
-	int32_t s = (sec + thiszone) % 86400;
-	int32_t bufsize = 0;
-	char buf[256];
-
-	if(date)
-	{
-		Time = (sec + thiszone) - s;
-		tm = gmtime (&Time);
-		if(!tm)
-		{
-			bufsize = sprintf(buf, "<date error> ");
-		}
-		else
-		{
-			bufsize = sprintf(buf, "%04d-%02d-%02d ",
-				   tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday);
-		}
-	}
-
-	if(ns)
-	{
-		sprintf(buf + bufsize, "%02d:%02d:%02d.%09u",
-				s / 3600, (s % 3600) / 60, s % 60, (unsigned)nsec);
-	}
-	else
-	{
-		sprintf(buf + bufsize, "%02d:%02d:%02d",
-				s / 3600, (s % 3600) / 60, s % 60);
-	}
-
-	*res = buf;
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_fd implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -174,6 +134,9 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.sip.name", "Domain name associated with the server IP address."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.lip.name", "Domain name associated with the local IP address."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.rip.name", "Domain name associated with the remote IP address."},
+	{PT_INT32, EPF_NONE, PF_HEX, "fd.dev", "device number (major/minor) containing the referenced file"},
+	{PT_INT32, EPF_NONE, PF_DEC, "fd.dev.major", "major device number containing the referenced file"},
+	{PT_INT32, EPF_NONE, PF_DEC, "fd.dev.minor", "minor device number containing the referenced file"},
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -279,7 +242,8 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 				sdir.c_str(),
 				(uint32_t)sdir.length(),
 				name,
-				namelen);
+				namelen,
+				m_inspector->m_is_windows);
 
 			m_tstr = fullpath;
 			if(sanitize_strings)
@@ -757,7 +721,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			{
 				is_local = m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo);
 			}
-		        else
+			else
 			{
 				is_local = m_inspector->get_ifaddr_list()->is_ipv6addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, m_tinfo);
 			}
@@ -1276,6 +1240,10 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 		break;
 	case TYPE_UID:
 		{
+			if(evt->get_type() == PPME_CONTAINER_JSON_E)
+			{
+				return NULL;
+			}
 			ASSERT(m_tinfo != NULL);
 
 			m_tstr = to_string(m_tinfo->m_tid) + to_string(m_tinfo->m_lastevent_fd);
@@ -1302,6 +1270,42 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			}
 
 			m_tbool = evt->fdinfo_name_changed();
+
+			RETURN_EXTRACT_VAR(m_tbool);
+		}
+		break;
+	case TYPE_DEV:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			m_tbool = m_fdinfo->get_device();
+
+			RETURN_EXTRACT_VAR(m_tbool);
+		}
+		break;
+	case TYPE_DEV_MAJOR:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			m_tbool = m_fdinfo->get_device_major();
+
+			RETURN_EXTRACT_VAR(m_tbool);
+		}
+		break;
+	case TYPE_DEV_MINOR:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			m_tbool = m_fdinfo->get_device_minor();
 
 			RETURN_EXTRACT_VAR(m_tbool);
 		}
@@ -1849,6 +1853,9 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exepath", "The full executable path of the process."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "thread.nametid", "this field chains the process name and tid of a thread and can be used as a specific identifier of a thread for a specific execve."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.vpgid", "the process group id of the process generating the event, as seen from its current PID namespace."},
+	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_container_healthcheck", "true if this process is running as a part of the container's health check."},
+	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_container_liveness_probe", "true if this process is running as a part of the container's liveness probe."},
+	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_container_readiness_probe", "true if this process is running as a part of the container's readiness probe."},
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -2085,23 +2092,6 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, OUT uint3
 	return NULL;
 }
 
-static void populate_cmdline(string &cmdline, sinsp_threadinfo *tinfo)
-{
-	cmdline = tinfo->get_comm() + " ";
-
-	uint32_t j;
-	uint32_t nargs = (uint32_t)tinfo->m_args.size();
-
-	for(j = 0; j < nargs; j++)
-	{
-		cmdline += tinfo->m_args[j];
-		if(j < nargs -1)
-		{
-			cmdline += ' ';
-		}
-	}
-}
-
 uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	*len = 0;
@@ -2220,7 +2210,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_CMDLINE:
 		{
-			populate_cmdline(m_tstr, tinfo);
+			sinsp_threadinfo::populate_cmdline(m_tstr, tinfo);
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_EXELINE:
@@ -2338,7 +2328,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 
 			if(ptinfo != NULL)
 			{
-				populate_cmdline(m_tstr, ptinfo);
+				sinsp_threadinfo::populate_cmdline(m_tstr, ptinfo);
 				RETURN_EXTRACT_STRING(m_tstr);
 			}
 			else
@@ -2654,6 +2644,15 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_NAMETID:
 		m_tstr = tinfo->get_comm() + to_string(evt->get_tid());
 		RETURN_EXTRACT_STRING(m_tstr);
+	case TYPE_IS_CONTAINER_HEALTHCHECK:
+		m_tbool = (tinfo->m_category == sinsp_threadinfo::CAT_HEALTHCHECK);
+		RETURN_EXTRACT_VAR(m_tbool);
+	case TYPE_IS_CONTAINER_LIVENESS_PROBE:
+		m_tbool = (tinfo->m_category == sinsp_threadinfo::CAT_LIVENESS_PROBE);
+		RETURN_EXTRACT_VAR(m_tbool);
+	case TYPE_IS_CONTAINER_READINESS_PROBE:
+		m_tbool = (tinfo->m_category == sinsp_threadinfo::CAT_READINESS_PROBE);
+		RETURN_EXTRACT_VAR(m_tbool);
 	default:
 		ASSERT(false);
 		return NULL;
@@ -2794,6 +2793,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT64, EPF_NONE, PF_ID, "evt.num", "event number."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.time", "event timestamp as a time string that includes the nanosecond part."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.time.s", "event timestamp as a time string with no nanoseconds."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.time.iso8601", "event timestamp in ISO 8601 format, including nanoseconds and time zone offset (in UTC)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.datetime", "event timestamp as a time string that includes the date."},
 	{PT_ABSTIME, EPF_NONE, PF_DEC, "evt.rawtime", "absolute event timestamp, i.e. nanoseconds from epoch."},
 	{PT_ABSTIME, EPF_NONE, PF_DEC, "evt.rawtime.s", "integer part of the event timestamp (e.g. seconds since epoch)."},
@@ -2857,6 +2857,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.id", "for docker infrastructure events, the id of the impacted container."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.name", "for docker infrastructure events, the name of the impacted container."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.image", "for docker infrastructure events, the image name of the impacted container."},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_exec", "'true' for open/openat or creat events where a file is created with execute permissions"},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -3032,7 +3033,7 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 		string(val, 0, sizeof("evt.latency.human") - 1) == "evt.latency.human")
 	{
 		//
-		// These fields need to store the previuos event type in the thread state
+		// These fields need to store the previous event type in the thread state
 		//
 		if(alloc_state)
 		{
@@ -3179,7 +3180,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 	uint16_t etype = evt->get_type();
 
 	const char *dirfdarg = NULL, *patharg = NULL;
-	if(etype == PPME_SYSCALL_RENAMEAT_X)
+	if(etype == PPME_SYSCALL_RENAMEAT_X || etype == PPME_SYSCALL_RENAMEAT2_X)
 	{
 		if(m_argid == 0 || m_argid == 1)
 		{
@@ -3224,6 +3225,11 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 	{
 		dirfdarg = "dirfd";
 		patharg = "path";
+	}
+	else if(etype == PPME_SYSCALL_FCHMODAT_X)
+	{
+		dirfdarg = "dirfd";
+		patharg = "filename";
 	}
 
 	if(!dirfdarg || !patharg)
@@ -3298,7 +3304,8 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 	}
 
 	char fullname[SCAP_MAX_PATH_SIZE];
-	sinsp_utils::concatenate_paths(fullname, SCAP_MAX_PATH_SIZE, sdir.c_str(), (uint32_t)sdir.length(), path, pathlen);
+	sinsp_utils::concatenate_paths(fullname, SCAP_MAX_PATH_SIZE, sdir.c_str(), 
+		(uint32_t)sdir.length(), path, pathlen, m_inspector->m_is_windows);
 
 	m_strstorage = fullname;
 
@@ -3334,6 +3341,7 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	{
 	case TYPE_TIME:
 	case TYPE_TIME_S:
+	case TYPE_TIME_ISO8601:
 	case TYPE_DATETIME:
 	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
 		return (Json::Value::Int64)evt->get_ts();
@@ -3415,14 +3423,17 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		}
 		else
 		{
-			ts_to_string(evt->get_ts(), &m_strstorage, false, true);
+			sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, false, true);
 		}
 		RETURN_EXTRACT_STRING(m_strstorage);
 	case TYPE_TIME_S:
-		ts_to_string(evt->get_ts(), &m_strstorage, false, false);
+		sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, false, false);
+		RETURN_EXTRACT_STRING(m_strstorage);
+	case TYPE_TIME_ISO8601:
+		sinsp_utils::ts_to_iso_8601(evt->get_ts(), &m_strstorage);
 		RETURN_EXTRACT_STRING(m_strstorage);
 	case TYPE_DATETIME:
-		ts_to_string(evt->get_ts(), &m_strstorage, true, true);
+		sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, true, true);
 		RETURN_EXTRACT_STRING(m_strstorage);
 	case TYPE_RAWTS:
 		RETURN_EXTRACT_VAR(evt->m_pevt->ts);
@@ -3574,7 +3585,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			switch(m_inspector->m_output_time_flag)
 			{
 				case 'h':
-					ts_to_string(evt->get_ts(), &m_strstorage, false, true);
+					sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, false, true);
 					RETURN_EXTRACT_STRING(m_strstorage);
 
 				case 'a':
@@ -3828,10 +3839,10 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
 
-			if(fdinfo != NULL && fdinfo->m_callbaks != NULL)
+			if(fdinfo != NULL && fdinfo->m_callbacks != NULL)
 			{
 				char* il;
-				vector<sinsp_protodecoder*>* cbacks = &(fdinfo->m_callbaks->m_write_callbacks);
+				vector<sinsp_protodecoder*>* cbacks = &(fdinfo->m_callbacks->m_write_callbacks);
 
 				for(auto it = cbacks->begin(); it != cbacks->end(); ++it)
 				{
@@ -4378,17 +4389,19 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		break;
 	case TYPE_ISOPEN_READ:
 	case TYPE_ISOPEN_WRITE:
+	case TYPE_ISOPEN_EXEC:
 		{
 			uint16_t etype = evt->get_type();
 
 			m_u32val = 0;
+			sinsp_evt_param *parinfo;
+			// If any of the exec bits is on, we consider this an open+exec
+			uint32_t is_exec_mask = (PPM_S_IXUSR | PPM_S_IXGRP | PPM_S_IXOTH);
 
 			if(etype == PPME_SYSCALL_OPEN_X ||
 			   etype == PPME_SYSCALL_OPENAT_E ||
 			   etype == PPME_SYSCALL_OPENAT_2_X)
 			{
-				sinsp_evt_param *parinfo;
-
 				// For both OPEN_X and OPENAT_E,
 				// flags is the 3rd argument.
 				parinfo = evt->get_param(etype == PPME_SYSCALL_OPENAT_2_X ? 3 : 2);
@@ -4409,6 +4422,21 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				{
 					m_u32val = 1;
 				}
+				
+				if(m_field_id == TYPE_ISOPEN_EXEC && (flags & (PPM_O_TMPFILE | PPM_O_CREAT)))
+				{
+					parinfo = evt->get_param(etype == PPME_SYSCALL_OPENAT_2_X ? 4 : 3);
+					ASSERT(parinfo->m_len == sizeof(uint32_t));
+					uint32_t mode_bits = *(uint32_t *)parinfo->m_val;
+					m_u32val = (mode_bits & is_exec_mask)? 1 : 0;
+				}
+			}
+			else if ((m_field_id == TYPE_ISOPEN_EXEC) && (etype == PPME_SYSCALL_CREAT_X))
+			{
+				parinfo = evt->get_param(2);
+				ASSERT(parinfo->m_len == sizeof(uint32_t));
+				uint32_t mode_bits = *(uint32_t *)parinfo->m_val;
+				m_u32val = (mode_bits & is_exec_mask)? 1 : 0;
 			}
 
 			RETURN_EXTRACT_VAR(m_u32val);
@@ -4447,12 +4475,16 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 							vector<string> subelements = sinsp_split(e, ':');
 							ASSERT(subelements.size() == 2);
 							m_strstorage = trim(subelements[1]);
+							if(m_strstorage.length() > 12)
+							{
+								m_strstorage = m_strstorage.substr(0, 12);
+							}
 							RETURN_EXTRACT_STRING(m_strstorage);
 						}
 					}
 					else if(m_field_id == TYPE_INFRA_DOCKER_CONTAINER_NAME)
 					{
-						if(e.substr(0, sizeof("Name") - 1) == "Name")
+						if(e.substr(0, sizeof("name") - 1) == "name")
 						{
 							vector<string> subelements = sinsp_split(e, ':');
 							ASSERT(subelements.size() == 2);
@@ -4466,7 +4498,17 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 						{
 							vector<string> subelements = sinsp_split(e, ':');
 							ASSERT(subelements.size() == 2);
-							m_strstorage = trim(subelements[1]);
+							m_strstorage = subelements[1];
+
+							if(m_strstorage.find("@") != string::npos)
+							{
+								m_strstorage = m_strstorage.substr(0, m_strstorage.find("@"));
+							}
+							else if(m_strstorage.find("sha256") != string::npos)
+							{
+								m_strstorage = e.substr(e.find(":") + 1);
+							}
+							m_strstorage = trim(m_strstorage);
 							RETURN_EXTRACT_STRING(m_strstorage);
 						}
 					}
@@ -4563,7 +4605,7 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, boo
 {
 	*len = 0;
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
-	scap_userinfo* uinfo;
+	scap_userinfo* uinfo = nullptr;
 
 	if(tinfo == NULL)
 	{
@@ -5039,7 +5081,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		RETURN_EXTRACT_VAR(eparser->m_id);
 	case TYPE_TIME:
 		{
-			ts_to_string(evt->get_ts(), &m_strstorage, false, true);
+			sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, false, true);
 			RETURN_EXTRACT_STRING(m_strstorage);
 		}
 	case TYPE_NTAGS:
@@ -5952,7 +5994,10 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "container.mount.propagation", "the mount propagation value, specified by number (e.g. container.mount.propagation[0]) or mount source (container.mount.propagation[/usr/local]). The pathname can be a glob."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.repository", "the container image repository (e.g. sysdig/sysdig)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.tag", "the container image tag (e.g. stable, latest)."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.digest", "the container image registry digest (e.g. sha256:d977378f890d445c15e51795296e4e5062f109ce6da83e0a355fc4ad8699d27)."}
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.digest", "the container image registry digest (e.g. sha256:d977378f890d445c15e51795296e4e5062f109ce6da83e0a355fc4ad8699d27)."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.healthcheck", "The container's health check. Will be the null value (\"N/A\") if no healthcheck configured, \"NONE\" if configured but explicitly not created, and the healthcheck command line otherwise"},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.liveness_probe", "The container's liveness probe. Will be the null value (\"N/A\") if no liveness probe configured, the liveness probe command line otherwise"},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.readiness_probe", "The container's readiness probe. Will be the null value (\"N/A\") if no readiness probe configured, the readiness probe command line otherwise"}
 };
 
 sinsp_filter_check_container::sinsp_filter_check_container()
@@ -5986,7 +6031,8 @@ int32_t sinsp_filter_check_container::extract_arg(const string &val, size_t base
 	try
 	{
 		m_argid = sinsp_numparser::parsed32(numstr);
-	} catch (sinsp_exception &e)
+	}
+	catch (const sinsp_exception& e)
 	{
 		if(strstr(e.what(), "is not a valid number") == NULL)
 		{
@@ -6086,7 +6132,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
@@ -6109,7 +6155,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
@@ -6135,7 +6181,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
@@ -6177,7 +6223,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
@@ -6197,8 +6243,20 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			case sinsp_container_type::CT_MESOS:
 				m_tstr = "mesos";
 				break;
+			case sinsp_container_type::CT_CRI:
+				m_tstr = "cri";
+				break;
+			case sinsp_container_type::CT_CONTAINERD:
+				m_tstr = "containerd";
+				break;
+			case sinsp_container_type::CT_CRIO:
+				m_tstr = "cri-o";
+				break;
 			case sinsp_container_type::CT_RKT:
 				m_tstr = "rkt";
+				break;
+			case sinsp_container_type::CT_BPM:
+				m_tstr = "bpm";
 				break;
 			default:
 				ASSERT(false);
@@ -6213,7 +6271,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
@@ -6223,7 +6281,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			// Only return a true/false value for
 			// container types where we really know the
 			// privileged status.
-			if (container_info->m_type != sinsp_container_type::CT_DOCKER)
+			if (!is_docker_compatible(container_info->m_type))
 			{
 				return NULL;
 			}
@@ -6240,7 +6298,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
@@ -6275,7 +6333,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		else
 		{
 
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
@@ -6318,7 +6376,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		else
 		{
 
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
@@ -6370,6 +6428,49 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
+	case TYPE_CONTAINER_HEALTHCHECK:
+	case TYPE_CONTAINER_LIVENESS_PROBE:
+	case TYPE_CONTAINER_READINESS_PROBE:
+		if(tinfo->m_container_id.empty())
+		{
+			return NULL;
+		}
+		else
+		{
+			const sinsp_container_info::ptr_t container_info =
+				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			if(!container_info)
+			{
+				return NULL;
+			}
+
+			for(auto &probe : container_info->m_health_probes)
+			{
+				if((m_field_id == TYPE_CONTAINER_HEALTHCHECK &&
+				    probe.m_probe_type == sinsp_container_info::container_health_probe::PT_HEALTHCHECK) ||
+				   (m_field_id == TYPE_CONTAINER_LIVENESS_PROBE &&
+				    probe.m_probe_type == sinsp_container_info::container_health_probe::PT_LIVENESS_PROBE) ||
+				   (m_field_id == TYPE_CONTAINER_READINESS_PROBE &&
+				    probe.m_probe_type == sinsp_container_info::container_health_probe::PT_READINESS_PROBE))
+				{
+					m_tstr = probe.m_health_probe_exe;
+
+					for(auto &arg : probe.m_health_probe_args)
+					{
+						m_tstr += " ";
+						m_tstr += arg;
+					}
+
+					RETURN_EXTRACT_STRING(m_tstr);
+				}
+			}
+
+			// If here, then the container didn't have any
+			// health probe matching the filtercheck
+			// field.
+			m_tstr = "NONE";
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
 
 	default:
 		ASSERT(false);
@@ -6998,7 +7099,7 @@ uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	}
 }
 
-#ifndef CYGWING_AGENT
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_k8s implementation
@@ -7584,12 +7685,12 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 	return NULL;
 }
 
-#endif // CYGWING_AGENT
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_mesos implementation
 ///////////////////////////////////////////////////////////////////////////////
-#ifndef CYGWING_AGENT
+
 const filtercheck_field_info sinsp_filter_check_mesos_fields[] =
 {
 	{PT_CHARBUF, EPF_NONE, PF_NA, "mesos.task.name", "Mesos task name."},
@@ -7687,7 +7788,7 @@ mesos_task::ptr_t sinsp_filter_check_mesos::find_task_for_thread(const sinsp_thr
 
 		if(m_inspector && m_inspector->m_mesos_client)
 		{
-			const sinsp_container_info *container_info =
+			const sinsp_container_info::ptr_t container_info =
 				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info || container_info->m_mesos_task_id.empty())
 			{
@@ -7893,6 +7994,6 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 	return NULL;
 }
-#endif // CYGWING_AGENT
+#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 #endif // HAS_FILTERING

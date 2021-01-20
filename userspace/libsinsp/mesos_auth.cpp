@@ -56,7 +56,7 @@ string mesos_auth::get_token()
 
 void mesos_auth::authenticate()
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 
 	try
 	{
@@ -98,7 +98,7 @@ void mesos_auth::authenticate()
 		}
 		time(&m_last_token_refresh_s);
 	}
-	catch(std::exception& e)
+	catch(const std::exception& e)
 	{
 		std::string errstr = "Could not fetch authentication token via " +
 			m_auth_uri.to_string() + ": " +
@@ -113,7 +113,7 @@ void mesos_auth::authenticate()
 
 void mesos_auth::refresh_token()
 {
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(!m_dcos_enterprise_credentials.first.empty())
 	{
 		time_t now; time(&now);

@@ -22,7 +22,7 @@ limitations under the License.
 #include <limits.h>
 #include <stdlib.h>
 #include <sys/time.h>
-#ifndef CYGWING_AGENT
+#ifdef __GLIBC__
 #include <execinfo.h>
 #endif
 #include <unistd.h>
@@ -31,6 +31,7 @@ limitations under the License.
 #include <strings.h>
 #include <sys/ioctl.h>
 #include <fnmatch.h>
+#include <string>
 #else
 #pragma comment(lib, "Ws2_32.lib")
 #include <WinSock2.h>
@@ -50,7 +51,7 @@ limitations under the License.
 #include "chisel.h"
 #include "protodecoder.h"
 #include "uri.h"
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(MINIMAL_BUILD)
 #include "curl/curl.h"
 #endif
 
@@ -71,19 +72,29 @@ const chiseldir_info g_chisel_dirs_array[] =
 #endif
 
 #ifndef _WIN32
-char* realpath_ex(const char *path, char *buff)
+static std::string realpath_ex(const std::string& path)
 {
 	char *home;
+	char* resolved;
 
-	if(*path=='~' && (home = getenv("HOME")))
+	if(!path.empty() && path[0]=='~' && (home = getenv("HOME")))
 	{
-		char s[PATH_MAX];
-		return realpath(strcat(strcpy(s, home), path+1), buff);
-		}
+		std::string expanded_home = home;
+		expanded_home += path.c_str()+1;
+		resolved = realpath(expanded_home.c_str(), nullptr);
+	}
 	else
 	{
-		return realpath(path, buff);
+		resolved = realpath(path.c_str(), nullptr);
 	}
+
+	if (!resolved)
+	{
+		return "";
+	}
+	std::string ret = resolved;
+	free(resolved);
+	return resolved;
 }
 #endif
 
@@ -133,20 +144,17 @@ sinsp_initializer::sinsp_initializer()
 		if(g_chisel_dirs_array[j].m_need_to_resolve)
 		{
 #ifndef _WIN32
-			char resolved_path[PATH_MAX];
-
-			if(realpath_ex(g_chisel_dirs_array[j].m_dir, resolved_path) != NULL)
+			std::string resolved_path = realpath_ex(g_chisel_dirs_array[j].m_dir);
+			if(!resolved_path.empty())
 			{
-				string resolved_path_str(resolved_path);
-
-				if(resolved_path_str[resolved_path_str.size() -1] != '/')
+				if(resolved_path[resolved_path.size() - 1] != '/')
 				{
-					resolved_path_str += "/";
+					resolved_path += '/';
 				}
 
 				chiseldir_info cdi;
 				cdi.m_need_to_resolve = false;
-				sprintf(cdi.m_dir, "%s", resolved_path_str.c_str());
+				cdi.m_dir = std::move(resolved_path);
 				g_chisel_dirs->push_back(cdi);
 			}
 #else
@@ -186,7 +194,6 @@ sinsp_initializer::~sinsp_initializer()
 
 //
 // errno to string conversion.
-// Only the first 40 error codes are currently implemented
 //
 const char* sinsp_utils::errno_to_str(int32_t code)
 {
@@ -272,44 +279,202 @@ const char* sinsp_utils::errno_to_str(int32_t code)
 		return "ENOTEMPTY";
 	case SE_ELOOP:
 		return "ELOOP";
-	case SE_ERESTARTSYS:
-		return "ERESTARTSYS";
-	case SE_ENETUNREACH:
-		return "ENETUNREACH";
-	case SE_EINPROGRESS:
-		return "EINPROGRESS";
-	case SE_ETIMEDOUT:
-		return "ETIMEDOUT";
-	case SE_ECONNRESET:
-		return "ECONNRESET";
-	case SE_ECONNREFUSED:
-		return "ECONNREFUSED";
-	case SE_ERESTARTNOHAND:
-		return "ERESTARTNOHAND";
-	case SE_EADDRNOTAVAIL:
-		return "EADDRNOTAVAIL";
-	case SE_ENOTCONN:
-		return "ENOTCONN";
-	case SE_ENETDOWN:
-		return "ENETDOWN";
-	case SE_EOPNOTSUPP:
-		return "EOPNOTSUPP";
+	case SE_ENOMSG:
+		return "ENOMSG";
+	case SE_EIDRM:
+		return "EIDRM";
+	case SE_ECHRNG:
+		return "ECHRNG";
+	case SE_EL2NSYNC:
+		return "EL2NSYNC";
+	case SE_EL3HLT:
+		return "EL3HLT";
+	case SE_EL3RST:
+		return "EL3RST";
+	case SE_ELNRNG:
+		return "ELNRNG";
+	case SE_EUNATCH:
+		return "EUNATCH";
+	case SE_ENOCSI:
+		return "ENOCSI";
+	case SE_EL2HLT:
+		return "EL2HLT";
+	case SE_EBADE:
+		return "EBADE";
+	case SE_EBADR:
+		return "EBADR";
+	case SE_EXFULL:
+		return "EXFULL";
+	case SE_ENOANO:
+		return "ENOANO";
+	case SE_EBADRQC:
+		return "EBADRQC";
+	case SE_EBADSLT:
+		return "EBADSLT";
+	case SE_EBFONT:
+		return "EBFONT";
+	case SE_ENOSTR:
+		return "ENOSTR";
+	case SE_ENODATA:
+		return "ENODATA";
+	case SE_ETIME:
+		return "ETIME";
+	case SE_ENOSR:
+		return "ENOSR";
+	case SE_ENONET:
+		return "ENONET";
+	case SE_ENOPKG:
+		return "ENOPKG";
+	case SE_EREMOTE:
+		return "EREMOTE";
+	case SE_ENOLINK:
+		return "ENOLINK";
+	case SE_EADV:
+		return "EADV";
+	case SE_ESRMNT:
+		return "ESRMNT";
+	case SE_ECOMM:
+		return "ECOMM";
+	case SE_EPROTO:
+		return "EPROTO";
+	case SE_EMULTIHOP:
+		return "EMULTIHOP";
+	case SE_EDOTDOT:
+		return "EDOTDOT";
+	case SE_EBADMSG:
+		return "EBADMSG";
+	case SE_EOVERFLOW:
+		return "EOVERFLOW";
+	case SE_ENOTUNIQ:
+		return "ENOTUNIQ";
+	case SE_EBADFD:
+		return "EBADFD";
+	case SE_EREMCHG:
+		return "EREMCHG";
+	case SE_ELIBACC:
+		return "ELIBACC";
+	case SE_ELIBBAD:
+		return "ELIBBAD";
+	case SE_ELIBSCN:
+		return "ELIBSCN";
+	case SE_ELIBMAX:
+		return "ELIBMAX";
+	case SE_ELIBEXEC:
+		return "ELIBEXEC";
+	case SE_EILSEQ:
+		return "EILSEQ";
+	case SE_ERESTART:
+		return "ERESTART";
+	case SE_ESTRPIPE:
+		return "ESTRPIPE";
+	case SE_EUSERS:
+		return "EUSERS";
 	case SE_ENOTSOCK:
 		return "ENOTSOCK";
-	case SE_ERESTART_RESTARTBLOCK:
-		return "ERESTART_RESTARTBLOCK";
-	case SE_EADDRINUSE:
-		return "EADDRINUSE";
+	case SE_EDESTADDRREQ:
+		return "EDESTADDRREQ";
+	case SE_EMSGSIZE:
+		return "EMSGSIZE";
 	case SE_EPROTOTYPE:
 		return "EPROTOTYPE";
-	case SE_EALREADY:
-		return "EALREADY";
-	case SE_ENOMEDIUM:
-		return "ENOMEDIUM";
-	case SE_ECANCELED:
-		return "ECANCELED";
+	case SE_ENOPROTOOPT:
+		return "ENOPROTOOPT";
 	case SE_EPROTONOSUPPORT:
 		return "EPROTONOSUPPORT";
+	case SE_ESOCKTNOSUPPORT:
+		return "ESOCKTNOSUPPORT";
+	case SE_EOPNOTSUPP:
+		return "EOPNOTSUPP";
+	case SE_EPFNOSUPPORT:
+		return "EPFNOSUPPORT";
+	case SE_EAFNOSUPPORT:
+		return "EAFNOSUPPORT";
+	case SE_EADDRINUSE:
+		return "EADDRINUSE";
+	case SE_EADDRNOTAVAIL:
+		return "EADDRNOTAVAIL";
+	case SE_ENETDOWN:
+		return "ENETDOWN";
+	case SE_ENETUNREACH:
+		return "ENETUNREACH";
+	case SE_ENETRESET:
+		return "ENETRESET";
+	case SE_ECONNABORTED:
+		return "ECONNABORTED";
+	case SE_ECONNRESET:
+		return "ECONNRESET";
+	case SE_ENOBUFS:
+		return "ENOBUFS";
+	case SE_EISCONN:
+		return "EISCONN";
+	case SE_ENOTCONN:
+		return "ENOTCONN";
+	case SE_ESHUTDOWN:
+		return "ESHUTDOWN";
+	case SE_ETOOMANYREFS:
+		return "ETOOMANYREFS";
+	case SE_ETIMEDOUT:
+		return "ETIMEDOUT";
+	case SE_ECONNREFUSED:
+		return "ECONNREFUSED";
+	case SE_EHOSTDOWN:
+		return "EHOSTDOWN";
+	case SE_EHOSTUNREACH:
+		return "EHOSTUNREACH";
+	case SE_EALREADY:
+		return "EALREADY";
+	case SE_EINPROGRESS:
+		return "EINPROGRESS";
+	case SE_ESTALE:
+		return "ESTALE";
+	case SE_EUCLEAN:
+		return "EUCLEAN";
+	case SE_ENOTNAM:
+		return "ENOTNAM";
+	case SE_ENAVAIL:
+		return "ENAVAIL";
+	case SE_EISNAM:
+		return "EISNAM";
+	case SE_EREMOTEIO:
+		return "EREMOTEIO";
+	case SE_EDQUOT:
+		return "EDQUOT";
+	case SE_ENOMEDIUM:
+		return "ENOMEDIUM";
+	case SE_EMEDIUMTYPE:
+		return "EMEDIUMTYPE";
+	case SE_ECANCELED:
+		return "ECANCELED";
+	case SE_ERESTARTSYS:
+		return "ERESTARTSYS";
+	case SE_ERESTARTNOINTR:
+		return "ERESTARTNOINTR";
+	case SE_ERESTARTNOHAND:
+		return "ERESTARTNOHAND";
+	case SE_ENOIOCTLCMD:
+		return "ENOIOCTLCMD";
+	case SE_ERESTART_RESTARTBLOCK:
+		return "ERESTART_RESTARTBLOCK";
+	case SE_EBADHANDLE:
+		return "EBADHANDLE";
+	case SE_ENOTSYNC:
+		return "ENOTSYNC";
+	case SE_EBADCOOKIE:
+		return "EBADCOOKIE";
+	case SE_ENOTSUPP:
+		return "ENOTSUPP";
+	case SE_ETOOSMALL:
+		return "ETOOSMALL";
+	case SE_ESERVERFAULT:
+		return "ESERVERFAULT";
+	case SE_EBADTYPE:
+		return "EBADTYPE";
+	case SE_EJUKEBOX:
+		return "EJUKEBOX";
+	case SE_EIOCBQUEUED:
+		return "EIOCBQUEUED";
+	case SE_EIOCBRETRY:
+		return "EIOCBRETRY";
 	default:
 		ASSERT(false);
 		return "";
@@ -552,7 +717,7 @@ void rewind_to_parent_path(char* targetbase, char** tc, const char** pc, uint32_
 //                following parent directories
 //  - path: the path to copy
 //
-void copy_and_sanitize_path(char* target, char* targetbase, const char* path)
+void copy_and_sanitize_path(char* target, char* targetbase, const char* path, char separator)
 {
 	char* tc = target;
 	const char* pc = path;
@@ -565,9 +730,9 @@ void copy_and_sanitize_path(char* target, char* targetbase, const char* path)
 			*tc = 0;
 
 			//
-			// If the path ends with a '/', remove it, as the OS does.
+			// If the path ends with a separator, remove it, as the OS does.
 			//
-			if((tc > (targetbase + 1)) && (*(tc - 1) == '/'))
+			if((tc > (targetbase + 1)) && (*(tc - 1) == separator))
 			{
 				*(tc - 1) = 0;
 			}
@@ -586,10 +751,10 @@ void copy_and_sanitize_path(char* target, char* targetbase, const char* path)
 		}
 		else
 		{
-			if(*pc == '.' && *(pc + 1) == '.' && *(pc + 2) == '/')
+			if(*pc == '.' && *(pc + 1) == '.' && *(pc + 2) == separator)
 			{
 				//
-				// '../', rewind to the previous '/'
+				// '../', rewind to the previous separator
 				//
 				rewind_to_parent_path(targetbase, &tc, &pc, 3);
 
@@ -597,7 +762,7 @@ void copy_and_sanitize_path(char* target, char* targetbase, const char* path)
 			else if(*pc == '.' && *(pc + 1) == '.')
 			{
 				//
-				// '..', with no '/'.
+				// '..', with no separator.
 				// This is valid if we are at the end of the string, and in that case we rewind.
 				// Otherwise it shouldn't happen and we leave the string intact
 				//
@@ -613,7 +778,7 @@ void copy_and_sanitize_path(char* target, char* targetbase, const char* path)
 					tc += 2;
 				}
 			}
-			else if(*pc == '.' && *(pc + 1) == '/')
+			else if(*pc == '.' && *(pc + 1) == separator)
 			{
 				//
 				// './', just skip it
@@ -623,7 +788,7 @@ void copy_and_sanitize_path(char* target, char* targetbase, const char* path)
 			else if(*pc == '.')
 			{
 				//
-				// '.', with no '/'.
+				// '.', with no separator.
 				// This is valid if we are at the end of the string, and in that case we rewind.
 				// Otherwise it shouldn't happen and we leave the string intact
 				//
@@ -638,12 +803,12 @@ void copy_and_sanitize_path(char* target, char* targetbase, const char* path)
 					pc++;
 				}
 			}
-			else if(*pc == '/')
+			else if(*pc == separator)
 			{
 				//
-				// '/', if the last char is already a '/', skip it
+				// separator, if the last char is already a separator, skip it
 				//
-				if(tc > targetbase && *(tc - 1) == '/')
+				if(tc > targetbase && *(tc - 1) == separator)
 				{
 					pc++;
 				}
@@ -675,7 +840,8 @@ bool sinsp_utils::concatenate_paths(char* target,
 									const char* path1,
 									uint32_t len1,
 									const char* path2,
-									uint32_t len2)
+									uint32_t len2,
+									bool windows_paths)
 {
 	if(targetlen < (len1 + len2 + 1))
 	{
@@ -683,17 +849,35 @@ bool sinsp_utils::concatenate_paths(char* target,
 		return false;
 	}
 
-	if(len2 != 0 && path2[0] != '/')
+	if(windows_paths)
 	{
-		memcpy(target, path1, len1);
-		copy_and_sanitize_path(target + len1, target, path2);
-		return true;
+		if(len2 != 0 && path2[0] != '\\' && path2[1] != ':')
+		{
+			memcpy(target, path1, len1);
+			copy_and_sanitize_path(target + len1, target, path2, '\\');
+			return true;
+		}
+		else
+		{
+			target[0] = 0;
+			copy_and_sanitize_path(target, target, path2, '\\');
+			return false;
+		}
 	}
 	else
 	{
-		target[0] = 0;
-		copy_and_sanitize_path(target, target, path2);
-		return false;
+		if(len2 != 0 && path2[0] != '/')
+		{
+			memcpy(target, path1, len1);
+			copy_and_sanitize_path(target + len1, target, path2, '/');
+			return true;
+		}
+		else
+		{
+			target[0] = 0;
+			copy_and_sanitize_path(target, target, path2, '/');
+			return false;
+		}
 	}
 }
 
@@ -772,6 +956,7 @@ bool sinsp_utils::glob_match(const char *pattern, const char *string)
 
 #ifndef CYGWING_AGENT
 #ifndef _WIN32
+#ifdef __GLIBC__
 void sinsp_utils::bt(void)
 {
 	static const char start[] = "BACKTRACE ------------";
@@ -793,6 +978,7 @@ void sinsp_utils::bt(void)
 
 	free(bt_syms);
 }
+#endif // __GLIBC__
 #endif // _WIN32
 #endif // CYGWING_AGENT
 
@@ -906,9 +1092,108 @@ const char* sinsp_utils::event_name_by_id(uint16_t id)
 	return g_infotables.m_event_info[id].name;
 }
 
+void sinsp_utils::ts_to_string(uint64_t ts, OUT string* res, bool date, bool ns)
+{
+	struct tm *tm;
+	time_t Time;
+	uint64_t sec = ts / ONE_SECOND_IN_NS;
+	uint64_t nsec = ts % ONE_SECOND_IN_NS;
+	int32_t thiszone = gmt2local(0);
+	int32_t s = (sec + thiszone) % 86400;
+	int32_t bufsize = 0;
+	char buf[256];
+
+	if(date)
+	{
+		Time = (sec + thiszone) - s;
+		tm = gmtime (&Time);
+		if(!tm)
+		{
+			bufsize = sprintf(buf, "<date error> ");
+		}
+		else
+		{
+			bufsize = sprintf(buf, "%04d-%02d-%02d ",
+				   tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday);
+		}
+	}
+
+	if(ns)
+	{
+		sprintf(buf + bufsize, "%02d:%02d:%02d.%09u",
+				s / 3600, (s % 3600) / 60, s % 60, (unsigned)nsec);
+	}
+	else
+	{
+		sprintf(buf + bufsize, "%02d:%02d:%02d",
+				s / 3600, (s % 3600) / 60, s % 60);
+	}
+
+	*res = buf;
+}
+
+#define TS_STR_FMT "YYYY-MM-DDTHH:MM:SS-0000"
+void sinsp_utils::ts_to_iso_8601(uint64_t ts, OUT string* res)
+{
+	static const char *fmt = TS_STR_FMT;
+	char buf[sizeof(TS_STR_FMT)];
+	uint64_t ns = ts % ONE_SECOND_IN_NS;
+	time_t sec = ts / ONE_SECOND_IN_NS;
+
+	if(strftime(buf, sizeof(buf), "%FT%T", gmtime(&sec)) == 0)
+	{
+		*res = fmt;
+		return;
+	}
+
+	*res = buf;
+	if(sprintf(buf, ".%09u", (unsigned) ns) < 0)
+	{
+		*res = fmt;
+		return;
+	}
+	*res += buf;
+	if(strftime(buf, sizeof(buf), "%z", gmtime(&sec)) == 0)
+	{
+		*res = fmt;
+		return;
+	}
+	*res += buf;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Time utility functions.
 ///////////////////////////////////////////////////////////////////////////////
+
+bool sinsp_utils::parse_iso_8601_utc_string(const std::string& time_str, uint64_t &ns)
+{
+#ifndef _WIN32
+	char *rem;
+
+	struct tm tm_time = {0};
+	rem = strptime(time_str.c_str(), "%Y-%m-%dT%H:%M:", &tm_time);
+	if(rem == NULL || *rem == '\0')
+	{
+		return false;
+	}
+	tm_time.tm_isdst = -1; // strptime does not set this, signal timegm to determine DST
+	ns = timegm(&tm_time) * ONE_SECOND_IN_NS;
+
+	// Handle the possibly fractional seconds now. Also verify
+	// that the string ends with Z.
+	double fractional_secs;
+	if(sscanf(rem, "%lfZ", &fractional_secs) != 1)
+	{
+		return false;
+	}
+
+	ns += (fractional_secs * ONE_SECOND_IN_NS);
+
+	return true;
+#else
+	throw sinsp_exception("parse_iso_8601_utc_string() not implemented on Windows");
+#endif
+}
 
 time_t get_epoch_utc_seconds(const std::string& time_str, const std::string& fmt)
 {
@@ -1183,6 +1468,8 @@ const char* param_type_to_string(ppm_param_type pt)
 		return "FLAGS16";
 	case PT_FLAGS32:
 		return "FLAGS32";
+	case PT_MODE:
+		return "MODE";
 	case PT_UID:
 		return "UID";
 	case PT_GID:
@@ -1197,6 +1484,8 @@ const char* param_type_to_string(ppm_param_type pt)
 		return "CHARBUFARRAY";
 	case PT_CHARBUF_PAIR_ARRAY:
 		return "CHARBUF_PAIR_ARRAY";
+	case PT_FSRELPATH:
+		return "FSRELPATH";
 	default:
 		ASSERT(false);
 		return "<NA>";

@@ -52,6 +52,7 @@ using namespace std;
 #include "parsers.h"
 #include "ifinfo.h"
 #include "internal_metrics.h"
+#include "sinsp_public.h"
 
 #ifndef MIN
 #define MIN(X,Y) ((X) < (Y)? (X):(Y))
@@ -59,31 +60,11 @@ using namespace std;
 #endif
 
 //
-// ASSERT implementation
-//
-#ifdef _DEBUG
-#ifdef ASSERT_TO_LOG
-#define ASSERT(X) \
-	if(!(X)) \
-	{ \
-		g_logger.format(sinsp_logger::SEV_ERROR, "ASSERTION %s at %s:%d", #X , __FILE__, __LINE__); \
-		assert(X); \
-	} 
-#else
-#define ASSERT(X) assert(X)
-#endif // ASSERT_TO_LOG
-#else // _DEBUG
-#define ASSERT(X)
-#endif // _DEBUG
-
-//
 // Public export macro
 //
 #ifdef _WIN32
-#define SINSP_PUBLIC __declspec(dllexport)
 #define BRK(X) {if(evt != NULL && evt->get_num() == X)__debugbreak();}
 #else
-#define SINSP_PUBLIC
 #define BRK(X)
 #endif
 
@@ -139,4 +120,5 @@ public:
 	virtual void on_clone(sinsp_evt* evt, sinsp_threadinfo* newtinfo) = 0;
 	virtual void on_bind(sinsp_evt* evt) = 0;
 	virtual bool on_resolve_container(sinsp_container_manager* manager, sinsp_threadinfo* tinfo, bool query_os_for_missing_info) = 0;
+	virtual void on_socket_status_changed(sinsp_evt *evt) = 0;
 };

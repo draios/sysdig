@@ -16,7 +16,7 @@ DESCRIPTION
 sysdig is a tool for system troubleshooting, analysis and exploration. It can be used to capture, filter and decode system calls and other OS events. 
 sysdig can be both used to inspect live systems, or to generate trace files that can be analyzed at a later stage.
 
-sysdig includes a powerul filtering language, has customizable output, and can be extended through Lua scripts, called chisels.
+sysdig includes a powerful filtering language, has customizable output, and can be extended through Lua scripts, called chisels.
 
 **Output format**
 
