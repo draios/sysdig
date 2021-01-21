@@ -37,13 +37,13 @@ view_info =
 			is_key = true
 		},
 		{
-			name = "USERNAME",
+			name = "USER NAME",
 			description = "Name of the user or service.",
 			field = "ct.user",
-			colsize = 32,
+			colsize = 48,
 		},
 		{
-			name = "COUNT",
+			name = "EVT COUNT",
 			field = "evt.count",
 			description = "The number of events the user has generated.",
 			colsize = 12,

@@ -37,13 +37,13 @@ view_info =
 			is_key = true
 		},
 		{
-			name = "USERNAME",
+			name = "CLIENT IP",
 			description = "The client IP address.",
 			field = "ct.srcip",
 			colsize = 32,
 		},
 		{
-			name = "COUNT",
+			name = "EVT COUNT",
 			field = "evt.count",
 			description = "The number of events the generated from the IP address.",
 			colsize = 12,
