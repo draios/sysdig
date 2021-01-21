@@ -43,7 +43,7 @@ view_info =
 			colsize = 32,
 		},
 		{
-			name = "COUNT",
+			name = "EVT COUNT",
 			field = "evt.count",
 			description = "The number of times the event has been generated.",
 			colsize = 12,

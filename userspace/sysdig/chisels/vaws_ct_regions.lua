@@ -37,13 +37,13 @@ view_info =
 			is_key = true
 		},
 		{
-			name = "USERNAME",
+			name = "REGION",
 			description = "The AWS region generating the events.",
 			field = "ct.region",
 			colsize = 32,
 		},
 		{
-			name = "COUNT",
+			name = "EVT COUNT",
 			field = "evt.count",
 			description = "The number of events the region has generated.",
 			colsize = 12,

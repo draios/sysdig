@@ -37,7 +37,7 @@ view_info =
 			is_key = true
 		},
 		{
-			name = "COUNT",
+			name = "EVT COUNT",
 			field = "evt.count",
 			description = "The number of events the user agent has generated.",
 			colsize = 12,
@@ -45,7 +45,7 @@ view_info =
 			is_sorting = true,
 		},
 		{
-			name = "USERNAME",
+			name = "AGENT",
 			description = "The user agent generating activity.",
 			field = "ct.useragent",
 			colsize = 640,

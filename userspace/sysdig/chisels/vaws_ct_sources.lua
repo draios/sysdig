@@ -43,7 +43,7 @@ view_info =
 			colsize = 32,
 		},
 		{
-			name = "COUNT",
+			name = "EVT COUNT",
 			field = "evt.count",
 			description = "The number of events the service has generated.",
 			colsize = 12,
