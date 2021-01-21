@@ -28,7 +28,7 @@ const PLUGIN_ID uint32 = 2
 const PLUGIN_NAME string = "cloudtrail"
 const PLUGIN_DESCRIPTION = "reads cloudtrail JSON data saved to file in the directory specified in the settings"
 
-const S3_DOWNLOAD_CONCURRENCY = 256
+const S3_DOWNLOAD_CONCURRENCY = 128
 const VERBOSE bool = false
 const NEXT_BUF_LEN uint32 = 65535
 const OUT_BUF_LEN uint32 = 4096
@@ -204,6 +204,9 @@ const FIELD_ID_S3_URI uint32 = 9
 const FIELD_ID_S3_BYTES uint32 = 10
 const FIELD_ID_S3_BYTES_IN uint32 = 11
 const FIELD_ID_S3_BYTES_OUT uint32 = 12
+const FIELD_ID_S3_CNT_GET uint32 = 13
+const FIELD_ID_S3_CNT_PUT uint32 = 14
+const FIELD_ID_S3_CNT_OTHER uint32 = 15
 
 //export plugin_get_fields
 func plugin_get_fields() *C.char {
@@ -222,6 +225,9 @@ func plugin_get_fields() *C.char {
 		{Type: "uint64", Name: "s3.bytes", Desc: "the size of an s3 download or upload, in bytes."},
 		{Type: "uint64", Name: "s3.bytes.in", Desc: "the size of an s3 upload, in bytes."},
 		{Type: "uint64", Name: "s3.bytes.out", Desc: "the size of an s3 download, in bytes."},
+		{Type: "uint64", Name: "s3.cnt.get", Desc: "the number of get operations. This field is 1 for GetObject events, 0 otherwise."},
+		{Type: "uint64", Name: "s3.cnt.put", Desc: "the number of put operations. This field is 1 for PutObject events, 0 otherwise."},
+		{Type: "uint64", Name: "s3.cnt.other", Desc: "the number of non I/O operations. This field is 0 for GetObject and PutObject events, 1 for all the other events."},
 	}
 
 	b, err := json.Marshal(&flds)
@@ -570,7 +576,7 @@ func getUser(jdata map[string]interface{}) string {
 		}
 	}
 
-	return ""
+	return "<NA>"
 }
 
 //export plugin_event_to_string
@@ -584,11 +590,7 @@ func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
 		gLastError = err.Error()
 		line = "<invalid JSON: " + err.Error() + ">"
 	} else {
-		var user string = getUser(jdata)
-		if user == "" {
-			user = "<NAZ>"
-		}
-
+		user := getUser(jdata)
 		src := fmt.Sprintf("%s", jdata["eventSource"])
 
 		if len(src) > len(".amazonaws.com") {
@@ -648,14 +650,7 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 	case FIELD_ID_CLOUDTRAIL_NAME:
 		line = fmt.Sprintf("%s", jdata["eventName"])
 	case FIELD_ID_CLOUDTRAIL_USER:
-		if jdata["userIdentity"] == nil {
-			return nil
-		}
-		re := jdata["userIdentity"].(map[string]interface{})
-		if re["userName"] == nil {
-			return nil
-		}
-		line = fmt.Sprintf("%s", re["userName"])
+		line = getUser(jdata)
 	case FIELD_ID_CLOUDTRAIL_REGION:
 		line = fmt.Sprintf("%s", jdata["awsRegion"])
 	case FIELD_ID_CLOUDTRAIL_SRCIP:
@@ -737,36 +732,52 @@ func plugin_extract_u64(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 		if jdata["additionalEventData"] == nil {
 			return 0
 		}
-		var tot uint64 = 0
+		var tot float64 = 0
 		in := jdata["additionalEventData"].(map[string]interface{})["bytesTransferredIn"]
 		if in != nil {
-			tot = tot + in.(uint64)
+			tot = tot + in.(float64)
 		}
 		out := jdata["additionalEventData"].(map[string]interface{})["bytesTransferredOut"]
 		if out != nil {
-			tot = tot + out.(uint64)
+			tot = tot + out.(float64)
 		}
-		return tot
+		return uint64(tot)
 	case FIELD_ID_S3_BYTES_IN:
 		if jdata["additionalEventData"] == nil {
 			return 0
 		}
-		var tot uint64 = 0
+		var tot float64 = 0
 		in := jdata["additionalEventData"].(map[string]interface{})["bytesTransferredIn"]
 		if in != nil {
-			tot = tot + in.(uint64)
+			tot = tot + in.(float64)
 		}
-		return tot
+		return uint64(tot)
 	case FIELD_ID_S3_BYTES_OUT:
 		if jdata["additionalEventData"] == nil {
 			return 0
 		}
-		var tot uint64 = 0
+		var tot float64 = 0
 		in := jdata["additionalEventData"].(map[string]interface{})["bytesTransferredOut"]
 		if in != nil {
-			tot = tot + in.(uint64)
+			tot = tot + in.(float64)
 		}
-		return tot
+		return uint64(tot)
+	case FIELD_ID_S3_CNT_GET:
+		if jdata["eventName"] == "GetObject" {
+			return 1
+		}
+		return 0
+	case FIELD_ID_S3_CNT_PUT:
+		if jdata["eventName"] == "PutObject" {
+			return 1
+		}
+		return 0
+	case FIELD_ID_S3_CNT_OTHER:
+		ename := jdata["eventName"]
+		if ename == "GetObject" || ename == "PutObject" {
+			return 0
+		}
+		return 1
 	default:
 		return 0
 	}
