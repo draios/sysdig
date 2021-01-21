@@ -206,6 +206,8 @@ public:
 	MEVENT m_last_mevent;
 
 private:
+	inline void process_event_spy_syscall(sinsp_evt* evt, int32_t next_res);
+	inline void process_event_spy_plugin(sinsp_evt* evt, int32_t next_res);
 	inline void process_event_spy(sinsp_evt* evt, int32_t next_res);
 	inline void process_event_dig(sinsp_evt* evt, int32_t next_res);
 

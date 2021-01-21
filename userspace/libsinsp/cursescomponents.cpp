@@ -880,7 +880,7 @@ void curses_textbox::print_no_data()
 	refresh();
 }
 
-void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
+void curses_textbox::process_event_spy_syscall(sinsp_evt* evt, int32_t next_res)
 {
 	int64_t len;
 	const char* argstr = m_text_renderer->process_event_spy(evt, &len);
@@ -953,6 +953,38 @@ void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 
 	m_ctext->printf("\n");
 	m_ctext->printf("\n");
+}
+
+void curses_textbox::process_event_spy_plugin(sinsp_evt* evt, int32_t next_res)
+{
+	char* parinfo = evt->get_param(1)->m_val;
+
+	Json::Value root;
+	if(Json::Reader().parse(parinfo, root) == false)
+	{
+	}
+	Json::StyledWriter writer;
+	string prettyjson = writer.write(root);
+
+	wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_READ]);
+	m_ctext->printf("------ Event size: %dB\n", prettyjson.size());
+
+	wattrset(m_win, m_parent->m_colors[sinsp_cursesui::SPY_WRITE]);
+	m_ctext->printf("%s", prettyjson.c_str());
+
+	m_ctext->printf("\n");
+}
+
+void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
+{
+	if(evt->get_type() == PPME_PLUGINEVENT_E)
+	{
+		process_event_spy_plugin(evt, next_res);
+	}
+	else
+	{
+		process_event_spy_syscall(evt, next_res);
+	}
 
 	n_prints++;
 
