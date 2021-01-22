@@ -191,27 +191,31 @@ func plugin_get_description() *C.char {
 	return C.CString(PLUGIN_DESCRIPTION)
 }
 
-const FIELD_ID_CLOUDTRAIL_SRC uint32 = 0
-const FIELD_ID_CLOUDTRAIL_NAME uint32 = 1
-const FIELD_ID_CLOUDTRAIL_USER uint32 = 2
-const FIELD_ID_CLOUDTRAIL_REGION uint32 = 3
-const FIELD_ID_CLOUDTRAIL_SRCIP uint32 = 4
-const FIELD_ID_CLOUDTRAIL_USERAGENT uint32 = 5
-const FIELD_ID_S3_BUCKET uint32 = 6
-const FIELD_ID_S3_KEY uint32 = 7
-const FIELD_ID_S3_HOST uint32 = 8
-const FIELD_ID_S3_URI uint32 = 9
-const FIELD_ID_S3_BYTES uint32 = 10
-const FIELD_ID_S3_BYTES_IN uint32 = 11
-const FIELD_ID_S3_BYTES_OUT uint32 = 12
-const FIELD_ID_S3_CNT_GET uint32 = 13
-const FIELD_ID_S3_CNT_PUT uint32 = 14
-const FIELD_ID_S3_CNT_OTHER uint32 = 15
+const FIELD_ID_CLOUDTRAIL_ID uint32 = 0
+const FIELD_ID_CLOUDTRAIL_TIME uint32 = 1
+const FIELD_ID_CLOUDTRAIL_SRC uint32 = 2
+const FIELD_ID_CLOUDTRAIL_NAME uint32 = 3
+const FIELD_ID_CLOUDTRAIL_USER uint32 = 4
+const FIELD_ID_CLOUDTRAIL_REGION uint32 = 5
+const FIELD_ID_CLOUDTRAIL_SRCIP uint32 = 6
+const FIELD_ID_CLOUDTRAIL_USERAGENT uint32 = 7
+const FIELD_ID_S3_BUCKET uint32 = 8
+const FIELD_ID_S3_KEY uint32 = 9
+const FIELD_ID_S3_HOST uint32 = 10
+const FIELD_ID_S3_URI uint32 = 11
+const FIELD_ID_S3_BYTES uint32 = 12
+const FIELD_ID_S3_BYTES_IN uint32 = 13
+const FIELD_ID_S3_BYTES_OUT uint32 = 14
+const FIELD_ID_S3_CNT_GET uint32 = 15
+const FIELD_ID_S3_CNT_PUT uint32 = 16
+const FIELD_ID_S3_CNT_OTHER uint32 = 17
 
 //export plugin_get_fields
 func plugin_get_fields() *C.char {
 	log.Printf("[%s] plugin_get_fields\n", PLUGIN_NAME)
 	flds := []getFieldsEntry{
+		{Type: "string", Name: "ct.id", Desc: "the unique ID of the cloudtrail event (eventID in the json)."},
+		{Type: "string", Name: "ct.time", Desc: "the timestamp of the cloudtrail event (eventTime in the json)."},
 		{Type: "string", Name: "ct.src", Desc: "the source of the cloudtrail event (eventSource in the json, without the '.amazonaws.com' trailer)."},
 		{Type: "string", Name: "ct.name", Desc: "the name of the cloudtrail event (eventName in the json)."},
 		{Type: "string", Name: "ct.user", Desc: "the user of the cloudtrail event (userIdentity.userName in the json)."},
@@ -638,6 +642,10 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 	}
 
 	switch id {
+	case FIELD_ID_CLOUDTRAIL_ID:
+		line = fmt.Sprintf("%s", jdata["eventID"])
+	case FIELD_ID_CLOUDTRAIL_TIME:
+		line = fmt.Sprintf("%s", jdata["eventTime"])
 	case FIELD_ID_CLOUDTRAIL_SRC:
 		line = fmt.Sprintf("%s", jdata["eventSource"])
 

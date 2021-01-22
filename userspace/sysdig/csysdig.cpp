@@ -59,6 +59,7 @@ limitations under the License.
 #define MOUSE_CAPABLE_TERM "xterm-1003"
 #define MOUSE_CAPABLE_TERM_COMPAT "xterm-1002"
 
+bool g_is_aws = false;
 static bool g_terminate = false;
 static void usage();
 
@@ -345,10 +346,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 
 #ifndef _WIN32
 	sinsp_table::output_type output_type = sinsp_table::OT_CURSES;
-	bool is_aws = sinsp_utils::endswith(argv[0], "csysdig-aws");
+	g_is_aws = sinsp_utils::endswith(argv[0], "csysdig-aws");
 #else
 	sinsp_table::output_type output_type = sinsp_table::OT_JSON;
-	bool is_aws = sinsp_utils::endswith(argv[0], "csysdig-aws.exe");
+	g_is_aws = sinsp_utils::endswith(argv[0], "csysdig-aws.exe");
 #endif
 #ifndef MINIMAL_BUILD
 	string* k8s_api = 0;
@@ -814,7 +815,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					is_view_aws = true;
 				}
 
-				if(is_aws != is_view_aws)
+				if(g_is_aws != is_view_aws)
 				{
 					continue;
 				}
