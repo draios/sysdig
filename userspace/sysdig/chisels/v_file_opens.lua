@@ -26,7 +26,7 @@ view_info =
 	tags = {"Default"},
 	view_type = "list",
 	applies_to = {"", "container.id", "proc.pid", "thread.nametid", "proc.name", "thread.tid", "fd.sport", "fd.sproto", "fd.name", "fd.containername", "fd.directory", "fd.containerdirectory", "evt.res", "k8s.pod.id", "k8s.rc.id", "k8s.rs.id", "k8s.svc.id", "k8s.ns.id", "marathon.app.id", "marathon.group.name", "mesos.task.id", "mesos.framework.name"},
-	filter = "evt.type=open and evt.dir=<",
+	filter = "(evt.type=open or evt.type=openat) and evt.dir=<",
 	columns = 
 	{
 		{
