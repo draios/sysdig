@@ -28,7 +28,7 @@ const PLUGIN_ID uint32 = 2
 const PLUGIN_NAME string = "cloudtrail"
 const PLUGIN_DESCRIPTION = "reads cloudtrail JSON data saved to file in the directory specified in the settings"
 
-const S3_DOWNLOAD_CONCURRENCY = 128
+const S3_DOWNLOAD_CONCURRENCY = 256
 const VERBOSE bool = false
 const NEXT_BUF_LEN uint32 = 65535
 const OUT_BUF_LEN uint32 = 4096
@@ -209,6 +209,7 @@ const FIELD_ID_S3_BYTES_OUT uint32 = 14
 const FIELD_ID_S3_CNT_GET uint32 = 15
 const FIELD_ID_S3_CNT_PUT uint32 = 16
 const FIELD_ID_S3_CNT_OTHER uint32 = 17
+const FIELD_ID_EC2_NAME uint32 = 18
 
 //export plugin_get_fields
 func plugin_get_fields() *C.char {
@@ -232,6 +233,7 @@ func plugin_get_fields() *C.char {
 		{Type: "uint64", Name: "s3.cnt.get", Desc: "the number of get operations. This field is 1 for GetObject events, 0 otherwise."},
 		{Type: "uint64", Name: "s3.cnt.put", Desc: "the number of put operations. This field is 1 for PutObject events, 0 otherwise."},
 		{Type: "uint64", Name: "s3.cnt.other", Desc: "the number of non I/O operations. This field is 0 for GetObject and PutObject events, 1 for all the other events."},
+		{Type: "string", Name: "ec2.name", Desc: "the name of the ec2 instances, typically stored in the instance tags."},
 	}
 
 	b, err := json.Marshal(&flds)
@@ -705,8 +707,43 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 			return nil
 		}
 		line = fmt.Sprintf("s3://%s/%s", sbucket, skey)
+	case FIELD_ID_EC2_NAME:
+		var iname string = ""
+		if jdata["requestParameters"] == nil {
+			return nil
+		}
+		tss := jdata["requestParameters"].(map[string]interface{})["tagSpecificationSet"]
+		if tss == nil {
+			return nil
+		}
+		items := tss.(map[string]interface{})["items"]
+		if items == nil {
+			return nil
+		}
+		for _, item := range items.([]interface{}) {
+			if item.(map[string]interface{})["resourceType"] != "instance" {
+				continue
+			}
+			tags := item.(map[string]interface{})["tags"]
+			if tags == nil {
+				continue
+			}
+			for _, tag := range tags.([]interface{}) {
+				key := tag.(map[string]interface{})["key"]
+				if key == "Name" {
+					iname = fmt.Sprintf("%s", tag.(map[string]interface{})["value"])
+					break
+				}
+			}
+		}
+
+		if iname == "" {
+			return nil
+		}
+
+		line = iname
 	default:
-		line = "<NA>"
+		return nil
 	}
 
 	line += "\x00"
