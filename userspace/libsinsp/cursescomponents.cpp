@@ -46,6 +46,7 @@ limitations under the License.
 #include "utils.h"
 
 extern bool g_filterchecks_force_raw_times;
+extern bool g_is_aws;
 
 ///////////////////////////////////////////////////////////////////////////////
 // spy_text_renderer implementation
@@ -103,7 +104,14 @@ spy_text_renderer::spy_text_renderer(sinsp* inspector,
 			}
 			else
 			{
-				m_formatter = new sinsp_evt_formatter(m_inspector, DEFAULT_OUTPUT_STR);
+				if(g_is_aws)
+				{
+					m_formatter = new sinsp_evt_formatter(m_inspector, "*%evt.num %evt.datetime.s %evt.plugininfo");
+				}
+				else
+				{
+					m_formatter = new sinsp_evt_formatter(m_inspector, DEFAULT_OUTPUT_STR);
+				}
 			}
 		}
 	}

@@ -585,140 +585,85 @@ func getUser(jdata map[string]interface{}) string {
 	return "<NA>"
 }
 
-//export plugin_event_to_string
-func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
-	//	log.Printf("[%s] plugin_event_to_string\n", PLUGIN_NAME)
-	var line string
-	var jdata map[string]interface{}
-
-	err := json.Unmarshal([]byte(C.GoString(data)), &jdata)
-	if err != nil {
-		gLastError = err.Error()
-		line = "<invalid JSON: " + err.Error() + ">"
-	} else {
-		user := getUser(jdata)
-		src := fmt.Sprintf("%s", jdata["eventSource"])
-
-		if len(src) > len(".amazonaws.com") {
-			srctrailer := src[len(src)-len(".amazonaws.com"):]
-			if srctrailer == ".amazonaws.com" {
-				src = src[0 : len(src)-len(".amazonaws.com")]
-			}
-		}
-
-		line = fmt.Sprintf("[cloudtrail] src:%s name:%s user:%s reg:%s",
-			src,
-			jdata["eventName"],
-			user,
-			jdata["awsRegion"])
-	}
-
-	//
-	// NULL-terminate the json data string, so that C will like it
-	//
-	line += "\x00"
-
-	//
-	// Copy the the line into the event buffer
-	//
-	copy(gCtx.outBuf[:], line)
-
-	return (*C.char)(gCtx.outBufRaw)
-}
-
-//export plugin_extract_str
-func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, datalen uint32) *C.char {
-	var line string
-	var jdata map[string]interface{}
-
-	//
-	// Decode the json
-	//
-	err := json.Unmarshal([]byte(C.GoString(data)), &jdata)
-	if err != nil {
-		//
-		// Not a json file. We return nil to indicate that the field is not
-		// present.
-		//
-		return nil
-	}
+func getfieldStr(jdata map[string]interface{}, id uint32) (bool, string) {
+	var res string
 
 	switch id {
 	case FIELD_ID_CLOUDTRAIL_ID:
-		line = fmt.Sprintf("%s", jdata["eventID"])
+		res = fmt.Sprintf("%s", jdata["eventID"])
 	case FIELD_ID_CLOUDTRAIL_TIME:
-		line = fmt.Sprintf("%s", jdata["eventTime"])
+		res = fmt.Sprintf("%s", jdata["eventTime"])
 	case FIELD_ID_CLOUDTRAIL_SRC:
-		line = fmt.Sprintf("%s", jdata["eventSource"])
+		res = fmt.Sprintf("%s", jdata["eventSource"])
 
-		if len(line) > len(".amazonaws.com") {
-			srctrailer := line[len(line)-len(".amazonaws.com"):]
+		if len(res) > len(".amazonaws.com") {
+			srctrailer := res[len(res)-len(".amazonaws.com"):]
 			if srctrailer == ".amazonaws.com" {
-				line = line[0 : len(line)-len(".amazonaws.com")]
+				res = res[0 : len(res)-len(".amazonaws.com")]
 			}
 		}
 	case FIELD_ID_CLOUDTRAIL_NAME:
-		line = fmt.Sprintf("%s", jdata["eventName"])
+		res = fmt.Sprintf("%s", jdata["eventName"])
 	case FIELD_ID_CLOUDTRAIL_USER:
-		line = getUser(jdata)
+		res = getUser(jdata)
 	case FIELD_ID_CLOUDTRAIL_REGION:
-		line = fmt.Sprintf("%s", jdata["awsRegion"])
+		res = fmt.Sprintf("%s", jdata["awsRegion"])
 	case FIELD_ID_CLOUDTRAIL_SRCIP:
-		line = fmt.Sprintf("%s", jdata["sourceIPAddress"])
+		res = fmt.Sprintf("%s", jdata["sourceIPAddress"])
 	case FIELD_ID_CLOUDTRAIL_USERAGENT:
-		line = fmt.Sprintf("%s", jdata["userAgent"])
+		res = fmt.Sprintf("%s", jdata["userAgent"])
 	case FIELD_ID_S3_BUCKET:
 		if jdata["requestParameters"] == nil {
-			return nil
+			return false, ""
 		}
 		bn := jdata["requestParameters"].(map[string]interface{})["bucketName"]
 		if bn == nil {
-			return nil
+			return false, ""
 		}
-		line = fmt.Sprintf("%s", bn)
+		res = fmt.Sprintf("%s", bn)
 	case FIELD_ID_S3_KEY:
 		if jdata["requestParameters"] == nil {
-			return nil
+			return false, ""
 		}
 		bn := jdata["requestParameters"].(map[string]interface{})["key"]
 		if bn == nil {
-			return nil
+			return false, ""
 		}
-		line = fmt.Sprintf("%s", bn)
+		res = fmt.Sprintf("%s", bn)
 	case FIELD_ID_S3_HOST:
 		if jdata["requestParameters"] == nil {
-			return nil
+			return false, ""
 		}
 		bn := jdata["requestParameters"].(map[string]interface{})["Host"]
 		if bn == nil {
-			return nil
+			return false, ""
 		}
-		line = fmt.Sprintf("%s", bn)
+		res = fmt.Sprintf("%s", bn)
 	case FIELD_ID_S3_URI:
 		if jdata["requestParameters"] == nil {
-			return nil
+			return false, ""
 		}
 		sbucket := jdata["requestParameters"].(map[string]interface{})["bucketName"]
 		if sbucket == nil {
-			return nil
+			return false, ""
 		}
 		skey := jdata["requestParameters"].(map[string]interface{})["key"]
 		if skey == nil {
-			return nil
+			return false, ""
 		}
-		line = fmt.Sprintf("s3://%s/%s", sbucket, skey)
+		res = fmt.Sprintf("s3://%s/%s", sbucket, skey)
 	case FIELD_ID_EC2_NAME:
 		var iname string = ""
 		if jdata["requestParameters"] == nil {
-			return nil
+			return false, ""
 		}
 		tss := jdata["requestParameters"].(map[string]interface{})["tagSpecificationSet"]
 		if tss == nil {
-			return nil
+			return false, ""
 		}
 		items := tss.(map[string]interface{})["items"]
 		if items == nil {
-			return nil
+			return false, ""
 		}
 		for _, item := range items.([]interface{}) {
 			if item.(map[string]interface{})["resourceType"] != "instance" {
@@ -738,20 +683,143 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 		}
 
 		if iname == "" {
-			return nil
+			return false, ""
 		}
 
-		line = iname
+		res = iname
 	default:
-		return nil
+		return false, ""
 	}
 
+	return true, res
+}
+
+//export plugin_event_to_string
+func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
+	//	log.Printf("[%s] plugin_event_to_string\n", PLUGIN_NAME)
+	var line string
+	var info string
+	var jdata map[string]interface{}
+	var present bool
+	var evtname string
+	var src string
+	var user string
+
+	err := json.Unmarshal([]byte(C.GoString(data)), &jdata)
+	if err != nil {
+		gLastError = err.Error()
+		line = "<invalid JSON: " + err.Error() + ">"
+		goto event_to_string_end
+	}
+
+	present, evtname = getfieldStr(jdata, FIELD_ID_CLOUDTRAIL_NAME)
+	if !present {
+		line = "<invalid cloudtrail event: eventName field missing>"
+		goto event_to_string_end
+	}
+
+	switch evtname {
+	case "GetObject", "PutObject":
+		present, uri := getfieldStr(jdata, FIELD_ID_S3_URI)
+		if present {
+			info = fmt.Sprintf("%s", uri)
+		} else {
+			info = "<URI missing>"
+		}
+
+	case "PutBucketPublicAccessBlock":
+		info = ""
+		if jdata["requestParameters"] != nil {
+			abc := jdata["requestParameters"].(map[string]interface{})["PublicAccessBlockConfiguration"]
+			if abc != nil {
+				BlockPublicAcls := abc.(map[string]interface{})["BlockPublicAcls"]
+				if BlockPublicAcls != nil {
+					info += fmt.Sprintf("BlockPublicAcls:%v ", BlockPublicAcls)
+				}
+				BlockPublicPolicy := abc.(map[string]interface{})["BlockPublicPolicy"]
+				if BlockPublicPolicy != nil {
+					info += fmt.Sprintf("BlockPublicPolicy:%v ", BlockPublicPolicy)
+				}
+				IgnorePublicAcls := abc.(map[string]interface{})["IgnorePublicAcls"]
+				if IgnorePublicAcls != nil {
+					info += fmt.Sprintf("IgnorePublicAcls:%v ", IgnorePublicAcls)
+				}
+				RestrictPublicBuckets := abc.(map[string]interface{})["RestrictPublicBuckets"]
+				if RestrictPublicBuckets != nil {
+					info += fmt.Sprintf("RestrictPublicBuckets:%v ", RestrictPublicBuckets)
+				}
+			}
+		}
+	default:
+		info = ""
+	}
+
+	src = fmt.Sprintf("%s", jdata["eventSource"])
+
+	if len(src) > len(".amazonaws.com") {
+		srctrailer := src[len(src)-len(".amazonaws.com"):]
+		if srctrailer == ".amazonaws.com" {
+			src = src[0 : len(src)-len(".amazonaws.com")]
+		}
+	}
+
+	user = getUser(jdata)
+	if user != "" {
+		user = " " + user
+	}
+
+	line = fmt.Sprintf("%s%s %s %s %s",
+		jdata["awsRegion"],
+		user,
+		src,
+		jdata["eventName"],
+		info,
+	)
+
+event_to_string_end:
+	//
+	// NULL-terminate the json data string, so that C will like it
+	//
 	line += "\x00"
 
 	//
 	// Copy the the line into the event buffer
 	//
 	copy(gCtx.outBuf[:], line)
+
+	return (*C.char)(gCtx.outBufRaw)
+}
+
+//export plugin_extract_str
+func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, datalen uint32) *C.char {
+	var res string
+	var jdata map[string]interface{}
+
+	//
+	// Decode the json
+	//
+	err := json.Unmarshal([]byte(C.GoString(data)), &jdata)
+	if err != nil {
+		//
+		// Not a json file. We return nil to indicate that the field is not
+		// present.
+		//
+		return nil
+	}
+
+	present, val := getfieldStr(jdata, id)
+	if !present {
+		return nil
+	} else {
+		res = val
+	}
+
+	res += "\x00"
+
+	//
+	// Copy the the result into the event buffer
+	//
+	copy(gCtx.outBuf[:], res)
 
 	return (*C.char)(gCtx.outBufRaw)
 }

@@ -878,7 +878,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	};
 
 	output_format = "*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
-	output_format_plugin = "*%evt.num %evt.outputtime %evt.plugininfo";
+	output_format_plugin = "*%evt.num %evt.datetime.s %evt.plugininfo";
 
 	try
 	{
