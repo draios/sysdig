@@ -954,11 +954,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	if (isatty(STDIN_FILENO))
 	{
 		output_format = "*%evt.num %evt.outputtime %evt.cpu \e[01;32m%proc.name\e[00m (\e[01;36m%proc.pid\e[00m.%thread.tid) %evt.dir \e[01;34m%evt.type\e[00m %evt.info";
-		output_format_plugin = "*%evt.num %evt.outputtime [%evt.pluginname] %evt.plugininfo";
+		output_format_plugin = "*%evt.num %evt.datetime.s [%evt.pluginname] %evt.plugininfo";
 	} else
 	{
 		output_format = "*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
-		output_format_plugin = "*%evt.num %evt.outputtime [%evt.pluginname] %evt.plugininfo";
+		output_format_plugin = "*%evt.num %evt.datetime.s [%evt.pluginname] %evt.plugininfo";
 	}
 
 	try
