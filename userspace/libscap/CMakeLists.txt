@@ -23,6 +23,8 @@ if(CYGWIN)
 include_directories("${WIN_HAL_INCLUDE}")
 endif()
 
+include(libbpf)
+
 list(APPEND targetfiles
 	scap.c
 	scap_event.c
