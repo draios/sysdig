@@ -1960,6 +1960,33 @@ bool sinsp_cursesui::drilldown(string field, string val,
 	filtercheck_field_info* info, bool dont_restart)
 {
 	uint32_t j = 0;
+	bool should_spy = false;
+	bool is_spy_dig;
+
+	if(m_views.at(m_selected_view)->m_drilldown_target == "echo")
+	{
+		should_spy = true;
+		is_spy_dig = false;
+	}
+
+	if(m_views.at(m_selected_view)->m_drilldown_target == "spy")
+	{
+		should_spy = true;
+		is_spy_dig = true;
+	}
+
+	if(should_spy)
+	{
+		auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct, false);
+		if(res.first != NULL)
+		{
+			spy_selection(get_selected_view()->get_key()->get_filter_field(m_view_depth), 
+				res.second.c_str(),
+				get_selected_view()->get_key(),
+				is_spy_dig);
+			return true;
+		}
+	}
 
 	for(j = 0; j < m_views.size(); ++j)
 	{
