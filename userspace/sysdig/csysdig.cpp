@@ -53,6 +53,8 @@ limitations under the License.
 #include <term.h>
 #endif
 
+bool g_is_aws = false;
+
 #include "cursescomponents.h"
 #include "cursestable.h"
 #include "cursesui.h"
@@ -62,7 +64,6 @@ limitations under the License.
 #define MOUSE_CAPABLE_TERM "xterm-1003"
 #define MOUSE_CAPABLE_TERM_COMPAT "xterm-1002"
 
-bool g_is_aws = false;
 static bool g_terminate = false;
 static void usage();
 

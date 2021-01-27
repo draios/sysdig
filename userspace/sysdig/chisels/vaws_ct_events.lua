@@ -27,7 +27,7 @@ view_info =
 	view_type = "table",
 	applies_to = {"", "ct.user", "ct.src", "ct.useragent", "ct.region", "ct.srcip", "s3.uri", "s3.bucket"},
 	is_root = false,
-	drilldown_target = "threads",
+	drilldown_target = "ct_events_list",
 	use_defaults = false,
 	columns = 
 	{
