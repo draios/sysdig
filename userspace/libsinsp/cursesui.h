@@ -500,7 +500,17 @@ public:
 				//
 				if(!m_inspector->is_live() && !m_offline_replay)
 				{
-					if(evtnum - m_last_progress_evt > 30000)
+					uint64_t progress_interval;
+					if(g_is_aws)
+					{
+						progress_interval = 3000;
+					}
+					else
+					{
+						progress_interval = 30000;
+					}
+
+					if(evtnum - m_last_progress_evt > progress_interval)
 					{
 						print_progress(m_inspector->get_read_progress());
 						m_last_progress_evt = evtnum;

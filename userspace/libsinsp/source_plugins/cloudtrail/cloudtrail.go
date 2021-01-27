@@ -199,17 +199,18 @@ const FIELD_ID_CLOUDTRAIL_USER uint32 = 4
 const FIELD_ID_CLOUDTRAIL_REGION uint32 = 5
 const FIELD_ID_CLOUDTRAIL_SRCIP uint32 = 6
 const FIELD_ID_CLOUDTRAIL_USERAGENT uint32 = 7
-const FIELD_ID_S3_BUCKET uint32 = 8
-const FIELD_ID_S3_KEY uint32 = 9
-const FIELD_ID_S3_HOST uint32 = 10
-const FIELD_ID_S3_URI uint32 = 11
-const FIELD_ID_S3_BYTES uint32 = 12
-const FIELD_ID_S3_BYTES_IN uint32 = 13
-const FIELD_ID_S3_BYTES_OUT uint32 = 14
-const FIELD_ID_S3_CNT_GET uint32 = 15
-const FIELD_ID_S3_CNT_PUT uint32 = 16
-const FIELD_ID_S3_CNT_OTHER uint32 = 17
-const FIELD_ID_EC2_NAME uint32 = 18
+const FIELD_ID_CLOUDTRAIL_INFO uint32 = 8
+const FIELD_ID_S3_BUCKET uint32 = 9
+const FIELD_ID_S3_KEY uint32 = 10
+const FIELD_ID_S3_HOST uint32 = 11
+const FIELD_ID_S3_URI uint32 = 12
+const FIELD_ID_S3_BYTES uint32 = 13
+const FIELD_ID_S3_BYTES_IN uint32 = 14
+const FIELD_ID_S3_BYTES_OUT uint32 = 15
+const FIELD_ID_S3_CNT_GET uint32 = 16
+const FIELD_ID_S3_CNT_PUT uint32 = 17
+const FIELD_ID_S3_CNT_OTHER uint32 = 18
+const FIELD_ID_EC2_NAME uint32 = 19
 
 //export plugin_get_fields
 func plugin_get_fields() *C.char {
@@ -223,6 +224,7 @@ func plugin_get_fields() *C.char {
 		{Type: "string", Name: "ct.region", Desc: "the region of the cloudtrail event (awsRegion in the json)."},
 		{Type: "string", Name: "ct.srcip", Desc: "the IP address generating the event (sourceIPAddress in the json)."},
 		{Type: "string", Name: "ct.useragent", Desc: "the user agent generating the event (userAgent in the json)."},
+		{Type: "string", Name: "ct.info", Desc: "summary information about the event. This varies depending on the event type and, for some events, it contains event-specific details."},
 		{Type: "string", Name: "s3.bucket", Desc: "the bucket name for s3 events."},
 		{Type: "string", Name: "s3.key", Desc: "the key name for s3 events."},
 		{Type: "string", Name: "s3.host", Desc: "the host name for s3 events."},
@@ -585,6 +587,55 @@ func getUser(jdata map[string]interface{}) string {
 	return "<NA>"
 }
 
+func getEvtInfo(jdata map[string]interface{}) string {
+	var present bool
+	var evtname string
+	var info string
+
+	present, evtname = getfieldStr(jdata, FIELD_ID_CLOUDTRAIL_NAME)
+	if !present {
+		return "<invalid cloudtrail event: eventName field missing>"
+	}
+
+	switch evtname {
+	case "GetObject", "PutObject":
+		present, uri := getfieldStr(jdata, FIELD_ID_S3_URI)
+		if present {
+			info = fmt.Sprintf("%s", uri)
+		} else {
+			info = "<URI missing>"
+		}
+
+	case "PutBucketPublicAccessBlock":
+		info = ""
+		if jdata["requestParameters"] != nil {
+			abc := jdata["requestParameters"].(map[string]interface{})["PublicAccessBlockConfiguration"]
+			if abc != nil {
+				BlockPublicAcls := abc.(map[string]interface{})["BlockPublicAcls"]
+				if BlockPublicAcls != nil {
+					info += fmt.Sprintf("BlockPublicAcls:%v ", BlockPublicAcls)
+				}
+				BlockPublicPolicy := abc.(map[string]interface{})["BlockPublicPolicy"]
+				if BlockPublicPolicy != nil {
+					info += fmt.Sprintf("BlockPublicPolicy:%v ", BlockPublicPolicy)
+				}
+				IgnorePublicAcls := abc.(map[string]interface{})["IgnorePublicAcls"]
+				if IgnorePublicAcls != nil {
+					info += fmt.Sprintf("IgnorePublicAcls:%v ", IgnorePublicAcls)
+				}
+				RestrictPublicBuckets := abc.(map[string]interface{})["RestrictPublicBuckets"]
+				if RestrictPublicBuckets != nil {
+					info += fmt.Sprintf("RestrictPublicBuckets:%v ", RestrictPublicBuckets)
+				}
+			}
+		}
+	default:
+		info = ""
+	}
+
+	return info
+}
+
 func getfieldStr(jdata map[string]interface{}, id uint32) (bool, string) {
 	var res string
 
@@ -612,6 +663,8 @@ func getfieldStr(jdata map[string]interface{}, id uint32) (bool, string) {
 		res = fmt.Sprintf("%s", jdata["sourceIPAddress"])
 	case FIELD_ID_CLOUDTRAIL_USERAGENT:
 		res = fmt.Sprintf("%s", jdata["userAgent"])
+	case FIELD_ID_CLOUDTRAIL_INFO:
+		res = getEvtInfo(jdata)
 	case FIELD_ID_S3_BUCKET:
 		if jdata["requestParameters"] == nil {
 			return false, ""
@@ -698,10 +751,7 @@ func getfieldStr(jdata map[string]interface{}, id uint32) (bool, string) {
 func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
 	//	log.Printf("[%s] plugin_event_to_string\n", PLUGIN_NAME)
 	var line string
-	var info string
 	var jdata map[string]interface{}
-	var present bool
-	var evtname string
 	var src string
 	var user string
 
@@ -709,74 +759,32 @@ func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
 	if err != nil {
 		gLastError = err.Error()
 		line = "<invalid JSON: " + err.Error() + ">"
-		goto event_to_string_end
-	}
+	} else {
+		src = fmt.Sprintf("%s", jdata["eventSource"])
 
-	present, evtname = getfieldStr(jdata, FIELD_ID_CLOUDTRAIL_NAME)
-	if !present {
-		line = "<invalid cloudtrail event: eventName field missing>"
-		goto event_to_string_end
-	}
-
-	switch evtname {
-	case "GetObject", "PutObject":
-		present, uri := getfieldStr(jdata, FIELD_ID_S3_URI)
-		if present {
-			info = fmt.Sprintf("%s", uri)
-		} else {
-			info = "<URI missing>"
-		}
-
-	case "PutBucketPublicAccessBlock":
-		info = ""
-		if jdata["requestParameters"] != nil {
-			abc := jdata["requestParameters"].(map[string]interface{})["PublicAccessBlockConfiguration"]
-			if abc != nil {
-				BlockPublicAcls := abc.(map[string]interface{})["BlockPublicAcls"]
-				if BlockPublicAcls != nil {
-					info += fmt.Sprintf("BlockPublicAcls:%v ", BlockPublicAcls)
-				}
-				BlockPublicPolicy := abc.(map[string]interface{})["BlockPublicPolicy"]
-				if BlockPublicPolicy != nil {
-					info += fmt.Sprintf("BlockPublicPolicy:%v ", BlockPublicPolicy)
-				}
-				IgnorePublicAcls := abc.(map[string]interface{})["IgnorePublicAcls"]
-				if IgnorePublicAcls != nil {
-					info += fmt.Sprintf("IgnorePublicAcls:%v ", IgnorePublicAcls)
-				}
-				RestrictPublicBuckets := abc.(map[string]interface{})["RestrictPublicBuckets"]
-				if RestrictPublicBuckets != nil {
-					info += fmt.Sprintf("RestrictPublicBuckets:%v ", RestrictPublicBuckets)
-				}
+		if len(src) > len(".amazonaws.com") {
+			srctrailer := src[len(src)-len(".amazonaws.com"):]
+			if srctrailer == ".amazonaws.com" {
+				src = src[0 : len(src)-len(".amazonaws.com")]
 			}
 		}
-	default:
-		info = ""
-	}
 
-	src = fmt.Sprintf("%s", jdata["eventSource"])
-
-	if len(src) > len(".amazonaws.com") {
-		srctrailer := src[len(src)-len(".amazonaws.com"):]
-		if srctrailer == ".amazonaws.com" {
-			src = src[0 : len(src)-len(".amazonaws.com")]
+		user = getUser(jdata)
+		if user != "" {
+			user = " " + user
 		}
+
+		info := getEvtInfo(jdata)
+
+		line = fmt.Sprintf("%s%s %s %s %s",
+			jdata["awsRegion"],
+			user,
+			src,
+			jdata["eventName"],
+			info,
+		)
 	}
 
-	user = getUser(jdata)
-	if user != "" {
-		user = " " + user
-	}
-
-	line = fmt.Sprintf("%s%s %s %s %s",
-		jdata["awsRegion"],
-		user,
-		src,
-		jdata["eventName"],
-		info,
-	)
-
-event_to_string_end:
 	//
 	// NULL-terminate the json data string, so that C will like it
 	//

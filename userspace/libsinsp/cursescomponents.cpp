@@ -17,6 +17,8 @@ limitations under the License.
 
 */
 
+extern bool g_is_aws;
+
 #include <stdlib.h>
 #include <signal.h>
 #include <string.h>
@@ -46,7 +48,6 @@ limitations under the License.
 #include "utils.h"
 
 extern bool g_filterchecks_force_raw_times;
-extern bool g_is_aws;
 
 ///////////////////////////////////////////////////////////////////////////////
 // spy_text_renderer implementation

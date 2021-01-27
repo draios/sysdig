@@ -25,6 +25,8 @@ limitations under the License.
 
 #ifdef CSYSDIG
 
+extern bool g_is_aws;
+
 #ifndef _WIN32
 #include <curses.h>
 #else

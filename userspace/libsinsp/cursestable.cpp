@@ -17,6 +17,8 @@ limitations under the License.
 
 */
 
+extern bool g_is_aws;
+
 #include <stdlib.h>
 #include <signal.h>
 #include <string.h>
