@@ -28,7 +28,7 @@ const PLUGIN_ID uint32 = 2
 const PLUGIN_NAME string = "cloudtrail"
 const PLUGIN_DESCRIPTION = "reads cloudtrail JSON data saved to file in the directory specified in the settings"
 
-const S3_DOWNLOAD_CONCURRENCY = 128
+const S3_DOWNLOAD_CONCURRENCY = 64
 const VERBOSE bool = false
 const NEXT_BUF_LEN uint32 = 65535
 const OUT_BUF_LEN uint32 = 4096

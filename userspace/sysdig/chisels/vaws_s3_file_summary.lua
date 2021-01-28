@@ -28,7 +28,7 @@ view_info =
 	filter = "ct.src=s3",
 	applies_to = {"", "ct.name", "ct.user", "ct.region", "ct.src", "ct.useragent", "ct.srcip", "s3.bucket"},
 	is_root = false,
-	drilldown_target = "ct_sources",
+	drilldown_target = "echo",
 	use_defaults = false,
 	columns = 
 	{

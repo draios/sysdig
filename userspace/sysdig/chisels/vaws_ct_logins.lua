@@ -40,7 +40,7 @@ view_info =
 		{
 			name = "TIME",
 			description = "The login time.",
-			field = "ct.time",
+			field = "evt.datetime.s",
 			colsize = 22,
 			is_sorting = true,
 		},

@@ -39,7 +39,7 @@ view_info =
 		{
 			name = "TIME",
 			description = "The login time.",
-			field = "ct.time",
+			field = "evt.datetime.s",
 			colsize = 22,
 			is_sorting = true,
 		},
@@ -47,7 +47,7 @@ view_info =
 			name = "EVENT NAME",
 			description = "The type of event.",
 			field = "ct.name",
-			colsize = 16,
+			colsize = 30,
 		},
 		{
 			name = "USER NAME",
