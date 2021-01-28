@@ -476,12 +476,32 @@ public:
 		uint64_t ts = evt->get_ts();
 		if(!m_inspector->is_live())
 		{
-			if(m_1st_evt_ts == 0)
+			if(g_is_aws)
 			{
-				m_1st_evt_ts = ts;	
-			}
+				//
+				// Cloudtrail events are not store in chronological order, therefore
+				// we can't assume that the first event has the lowest timestamp and
+				// the last one has the highest timestamp.
+				//
+				if(ts < m_1st_evt_ts)
+				{
+					m_1st_evt_ts = ts;	
+				}
 
-			m_last_evt_ts = ts;	
+				if(ts > m_last_evt_ts)
+				{
+					m_last_evt_ts = ts;	
+				}
+			}
+			else
+			{
+				if(m_1st_evt_ts == 0)
+				{
+					m_1st_evt_ts = ts;	
+				}
+
+				m_last_evt_ts = ts;
+			}
 		}
 
 		//

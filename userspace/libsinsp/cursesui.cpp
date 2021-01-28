@@ -261,7 +261,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_search_nomatch = false;
 	m_chart = NULL;
 	m_n_evts_in_file = 0;
-	m_1st_evt_ts = 0;
+	m_1st_evt_ts = g_is_aws?ULLONG_MAX:0;
 	m_last_evt_ts = 0;
 	m_evt_ts_delta = 0;
 	m_timedelta_formatter = new sinsp_filter_check_reference();

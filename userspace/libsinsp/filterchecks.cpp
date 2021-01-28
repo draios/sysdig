@@ -6638,7 +6638,21 @@ char* sinsp_filter_check_reference::format_bytes(double val, uint32_t str_len, b
 
 char* sinsp_filter_check_reference::format_time(uint64_t val, uint32_t str_len)
 {
-	if(val >= ONE_SECOND_IN_NS)
+	if(val >= 3600 * ONE_SECOND_IN_NS)
+	{
+		snprintf(m_getpropertystr_storage,
+					sizeof(m_getpropertystr_storage),
+					"%.2u:%.2u:%.2u", (unsigned int)(val / (3600 * ONE_SECOND_IN_NS)), 
+					(unsigned int)((val / (60 * ONE_SECOND_IN_NS)) % 60 ), 
+					(unsigned int)((val / ONE_SECOND_IN_NS) % 60));
+	}
+	else if(val >= 60 * ONE_SECOND_IN_NS)
+	{
+		snprintf(m_getpropertystr_storage,
+					sizeof(m_getpropertystr_storage),
+					"%u:%u", (unsigned int)(val / (60 * ONE_SECOND_IN_NS)), (unsigned int)((val / ONE_SECOND_IN_NS) % 60));
+	}
+	else if(val >= ONE_SECOND_IN_NS)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
