@@ -11,7 +11,7 @@ or GPL2.txt for full copies of the license.
 
 #ifdef __KERNEL__
 
-#define __bpf_section(NAME) __attribute__((section(NAME), used))
+#define SEC(NAME) __attribute__((section(NAME), used))
 
 #ifndef __always_inline
 #define __always_inline inline __attribute__((always_inline))
@@ -171,15 +171,6 @@ struct perf_event_sample {
 
 #endif /* __KERNEL__ */
 
-struct bpf_map_def {
-	unsigned int type;
-	unsigned int key_size;
-	unsigned int value_size;
-	unsigned int max_entries;
-	unsigned int map_flags;
-	unsigned int inner_map_idx;
-	unsigned int numa_node;
-};
 
 enum sysdig_map_types {
 	SYSDIG_PERF_MAP = 0,

@@ -22,7 +22,6 @@ clean:
 	@rm -f *~
 
 $(obj)/probe.o: $(src)/probe.c \
-		$(src)/bpf_helpers.h \
 		$(src)/filler_helpers.h \
 		$(src)/fillers.h \
 		$(src)/maps.h \
@@ -34,6 +33,7 @@ $(obj)/probe.o: $(src)/probe.c \
 		$(KBUILD_CPPFLAGS) \
 		$(KBUILD_EXTRA_CPPFLAGS) \
 		$(DEBUG) \
+		$(LIBBPF_INCLUDE) \
 		-D__KERNEL__ \
 		-D__BPF_TRACING__ \
 		-Wno-gnu-variable-sized-type-not-at-end \

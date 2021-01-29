@@ -9,12 +9,13 @@ or GPL2.txt for full copies of the license.
 #include "quirks.h"
 
 #include <generated/utsrelease.h>
+#include <bpf/bpf_helpers.h>
 #include <uapi/linux/bpf.h>
 #include <linux/sched.h>
 
 #include "../driver_config.h"
 #include "../ppm_events_public.h"
-#include "bpf_helpers.h"
+
 #include "types.h"
 #include "maps.h"
 #include "plumbing_helpers.h"
@@ -24,11 +25,11 @@ or GPL2.txt for full copies of the license.
 
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 #define BPF_PROBE(prefix, event, type)			\
-__bpf_section(TP_NAME #event)				\
+SEC(TP_NAME #event)				\
 int bpf_##event(struct type *ctx)
 #else
 #define BPF_PROBE(prefix, event, type)			\
-__bpf_section(TP_NAME prefix #event)			\
+SEC(TP_NAME prefix #event)			\
 int bpf_##event(struct type *ctx)
 #endif
 
@@ -213,7 +214,7 @@ BPF_PROBE("signal/", signal_deliver, signal_deliver_args)
 }
 
 #ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
-__bpf_section(TP_NAME "sched/sched_process_fork")
+SEC(TP_NAME "sched/sched_process_fork")
 int bpf_sched_process_fork(struct sched_process_fork_args *ctx)
 {
 	struct sysdig_bpf_settings *settings;
@@ -240,6 +241,6 @@ int bpf_sched_process_fork(struct sched_process_fork_args *ctx)
 }
 #endif
 
-char kernel_ver[] __bpf_section("kernel_version") = UTS_RELEASE;
+char kernel_ver[] SEC("kernel_version") = UTS_RELEASE;
 
-char probe_ver[] __bpf_section("probe_version") = PROBE_VERSION;
+char probe_ver[] SEC("probe_version") = PROBE_VERSION;
