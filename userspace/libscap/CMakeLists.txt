@@ -23,8 +23,6 @@ if(CYGWIN)
 include_directories("${WIN_HAL_INCLUDE}")
 endif()
 
-include(libbpf)
-
 list(APPEND targetfiles
 	scap.c
 	scap_event.c
@@ -51,6 +49,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 		../../driver/fillers_table.c)
 
     include_directories(${PROJECT_BINARY_DIR}/driver/src)
+		include_directories("${LIBBPF_INCLUDE}")
 endif()
 
 if(CYGWIN OR WIN32)
@@ -87,6 +86,8 @@ target_link_libraries(scap
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+		target_link_libraries(scap "${LIBBPF_LIB}")
+
     option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
 
     if (BUILD_LIBSCAP_EXAMPLES)
