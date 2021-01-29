@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -89,6 +90,8 @@ type pluginContext struct {
 	curFileNum         uint32
 	evtJsonList        []interface{}
 	evtJsonListPos     int
+	jdata              map[string]interface{} // Unmarshaled json for the last processed event
+	jdata_evtnum       uint64                 // The event number jdata refers to. Used to know when we can skip the unmarshaling.
 	s3                 s3State
 }
 
@@ -117,6 +120,7 @@ func plugin_init(config *C.char, rc *int32) *C.char {
 		outBufLen:      int(OUT_BUF_LEN),
 		curFileNum:     0,
 		evtJsonListPos: 0,
+		jdata_evtnum:   math.MaxUint64,
 	}
 
 	gCtx.s3.lastDownloadedFileNum = 0
@@ -552,9 +556,9 @@ func plugin_next(plgState *C.char, openState *C.char, data **C.char, datalen *ui
 	return SCAP_SUCCESS
 }
 
-func getUser(jdata map[string]interface{}) string {
-	if jdata["userIdentity"] != nil {
-		ui := jdata["userIdentity"].(map[string]interface{})
+func getUser(jdata *map[string]interface{}) string {
+	if (*jdata)["userIdentity"] != nil {
+		ui := (*jdata)["userIdentity"].(map[string]interface{})
 		utype := ui["type"]
 
 		switch utype {
@@ -587,7 +591,7 @@ func getUser(jdata map[string]interface{}) string {
 	return "<NA>"
 }
 
-func getEvtInfo(jdata map[string]interface{}) string {
+func getEvtInfo(jdata *map[string]interface{}) string {
 	var present bool
 	var evtname string
 	var info string
@@ -608,8 +612,8 @@ func getEvtInfo(jdata map[string]interface{}) string {
 
 	case "PutBucketPublicAccessBlock":
 		info = ""
-		if jdata["requestParameters"] != nil {
-			abc := jdata["requestParameters"].(map[string]interface{})["PublicAccessBlockConfiguration"]
+		if (*jdata)["requestParameters"] != nil {
+			abc := (*jdata)["requestParameters"].(map[string]interface{})["PublicAccessBlockConfiguration"]
 			if abc != nil {
 				BlockPublicAcls := abc.(map[string]interface{})["BlockPublicAcls"]
 				if BlockPublicAcls != nil {
@@ -636,16 +640,16 @@ func getEvtInfo(jdata map[string]interface{}) string {
 	return info
 }
 
-func getfieldStr(jdata map[string]interface{}, id uint32) (bool, string) {
+func getfieldStr(jdata *map[string]interface{}, id uint32) (bool, string) {
 	var res string
 
 	switch id {
 	case FIELD_ID_CLOUDTRAIL_ID:
-		res = fmt.Sprintf("%s", jdata["eventID"])
+		res = fmt.Sprintf("%s", (*jdata)["eventID"])
 	case FIELD_ID_CLOUDTRAIL_TIME:
-		res = fmt.Sprintf("%s", jdata["eventTime"])
+		res = fmt.Sprintf("%s", (*jdata)["eventTime"])
 	case FIELD_ID_CLOUDTRAIL_SRC:
-		res = fmt.Sprintf("%s", jdata["eventSource"])
+		res = fmt.Sprintf("%s", (*jdata)["eventSource"])
 
 		if len(res) > len(".amazonaws.com") {
 			srctrailer := res[len(res)-len(".amazonaws.com"):]
@@ -654,63 +658,63 @@ func getfieldStr(jdata map[string]interface{}, id uint32) (bool, string) {
 			}
 		}
 	case FIELD_ID_CLOUDTRAIL_NAME:
-		res = fmt.Sprintf("%s", jdata["eventName"])
+		res = fmt.Sprintf("%s", (*jdata)["eventName"])
 	case FIELD_ID_CLOUDTRAIL_USER:
 		res = getUser(jdata)
 	case FIELD_ID_CLOUDTRAIL_REGION:
-		res = fmt.Sprintf("%s", jdata["awsRegion"])
+		res = fmt.Sprintf("%s", (*jdata)["awsRegion"])
 	case FIELD_ID_CLOUDTRAIL_SRCIP:
-		res = fmt.Sprintf("%s", jdata["sourceIPAddress"])
+		res = fmt.Sprintf("%s", (*jdata)["sourceIPAddress"])
 	case FIELD_ID_CLOUDTRAIL_USERAGENT:
-		res = fmt.Sprintf("%s", jdata["userAgent"])
+		res = fmt.Sprintf("%s", (*jdata)["userAgent"])
 	case FIELD_ID_CLOUDTRAIL_INFO:
 		res = getEvtInfo(jdata)
 	case FIELD_ID_S3_BUCKET:
-		if jdata["requestParameters"] == nil {
+		if (*jdata)["requestParameters"] == nil {
 			return false, ""
 		}
-		bn := jdata["requestParameters"].(map[string]interface{})["bucketName"]
+		bn := (*jdata)["requestParameters"].(map[string]interface{})["bucketName"]
 		if bn == nil {
 			return false, ""
 		}
 		res = fmt.Sprintf("%s", bn)
 	case FIELD_ID_S3_KEY:
-		if jdata["requestParameters"] == nil {
+		if (*jdata)["requestParameters"] == nil {
 			return false, ""
 		}
-		bn := jdata["requestParameters"].(map[string]interface{})["key"]
+		bn := (*jdata)["requestParameters"].(map[string]interface{})["key"]
 		if bn == nil {
 			return false, ""
 		}
 		res = fmt.Sprintf("%s", bn)
 	case FIELD_ID_S3_HOST:
-		if jdata["requestParameters"] == nil {
+		if (*jdata)["requestParameters"] == nil {
 			return false, ""
 		}
-		bn := jdata["requestParameters"].(map[string]interface{})["Host"]
+		bn := (*jdata)["requestParameters"].(map[string]interface{})["Host"]
 		if bn == nil {
 			return false, ""
 		}
 		res = fmt.Sprintf("%s", bn)
 	case FIELD_ID_S3_URI:
-		if jdata["requestParameters"] == nil {
+		if (*jdata)["requestParameters"] == nil {
 			return false, ""
 		}
-		sbucket := jdata["requestParameters"].(map[string]interface{})["bucketName"]
+		sbucket := (*jdata)["requestParameters"].(map[string]interface{})["bucketName"]
 		if sbucket == nil {
 			return false, ""
 		}
-		skey := jdata["requestParameters"].(map[string]interface{})["key"]
+		skey := (*jdata)["requestParameters"].(map[string]interface{})["key"]
 		if skey == nil {
 			return false, ""
 		}
 		res = fmt.Sprintf("s3://%s/%s", sbucket, skey)
 	case FIELD_ID_EC2_NAME:
 		var iname string = ""
-		if jdata["requestParameters"] == nil {
+		if (*jdata)["requestParameters"] == nil {
 			return false, ""
 		}
-		tss := jdata["requestParameters"].(map[string]interface{})["tagSpecificationSet"]
+		tss := (*jdata)["requestParameters"].(map[string]interface{})["tagSpecificationSet"]
 		if tss == nil {
 			return false, ""
 		}
@@ -769,12 +773,12 @@ func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
 			}
 		}
 
-		user = getUser(jdata)
+		user = getUser(&jdata)
 		if user != "" {
 			user = " " + user
 		}
 
-		info := getEvtInfo(jdata)
+		info := getEvtInfo(&jdata)
 
 		line = fmt.Sprintf("%s%s %s %s %s",
 			jdata["awsRegion"],
@@ -801,19 +805,24 @@ func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
 //export plugin_extract_str
 func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, datalen uint32) *C.char {
 	var res string
-	var jdata map[string]interface{}
+	var jdata *map[string]interface{}
 
 	//
-	// Decode the json
+	// Decode the json, but only if we haven't done it yet for this event
 	//
-	err := json.Unmarshal([]byte(C.GoString(data)), &jdata)
-	if err != nil {
-		//
-		// Not a json file. We return nil to indicate that the field is not
-		// present.
-		//
-		return nil
+	if evtnum != gCtx.jdata_evtnum {
+		err := json.Unmarshal([]byte(C.GoString(data)), &gCtx.jdata)
+		if err != nil {
+			//
+			// Not a json file. We return nil to indicate that the field is not
+			// present.
+			//
+			return nil
+		}
+		gCtx.jdata_evtnum = evtnum
 	}
+
+	jdata = &gCtx.jdata
 
 	present, val := getfieldStr(jdata, id)
 	if !present {
@@ -834,67 +843,71 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 
 //export plugin_extract_u64
 func plugin_extract_u64(evtnum uint64, id uint32, arg *C.char, data *C.char, datalen uint32) uint64 {
-	var jdata map[string]interface{}
+	var jdata *map[string]interface{}
 
 	//
-	// Decode the json
+	// Decode the json, but only if we haven't done it yet for this event
 	//
-	err := json.Unmarshal([]byte(C.GoString(data)), &jdata)
-	if err != nil {
-		//
-		// Not a json file. We return nil to indicate that the field is not
-		// present.
-		//
-		return 0
+	if evtnum != gCtx.jdata_evtnum {
+		err := json.Unmarshal([]byte(C.GoString(data)), &gCtx.jdata)
+		if err != nil {
+			//
+			// Not a json file. We return nil to indicate that the field is not
+			// present.
+			//
+			return 0
+		}
+		gCtx.jdata_evtnum = evtnum
 	}
+	jdata = &gCtx.jdata
 
 	switch id {
 	case FIELD_ID_S3_BYTES:
-		if jdata["additionalEventData"] == nil {
+		if (*jdata)["additionalEventData"] == nil {
 			return 0
 		}
 		var tot float64 = 0
-		in := jdata["additionalEventData"].(map[string]interface{})["bytesTransferredIn"]
+		in := (*jdata)["additionalEventData"].(map[string]interface{})["bytesTransferredIn"]
 		if in != nil {
 			tot = tot + in.(float64)
 		}
-		out := jdata["additionalEventData"].(map[string]interface{})["bytesTransferredOut"]
+		out := (*jdata)["additionalEventData"].(map[string]interface{})["bytesTransferredOut"]
 		if out != nil {
 			tot = tot + out.(float64)
 		}
 		return uint64(tot)
 	case FIELD_ID_S3_BYTES_IN:
-		if jdata["additionalEventData"] == nil {
+		if (*jdata)["additionalEventData"] == nil {
 			return 0
 		}
 		var tot float64 = 0
-		in := jdata["additionalEventData"].(map[string]interface{})["bytesTransferredIn"]
+		in := (*jdata)["additionalEventData"].(map[string]interface{})["bytesTransferredIn"]
 		if in != nil {
 			tot = tot + in.(float64)
 		}
 		return uint64(tot)
 	case FIELD_ID_S3_BYTES_OUT:
-		if jdata["additionalEventData"] == nil {
+		if (*jdata)["additionalEventData"] == nil {
 			return 0
 		}
 		var tot float64 = 0
-		in := jdata["additionalEventData"].(map[string]interface{})["bytesTransferredOut"]
+		in := (*jdata)["additionalEventData"].(map[string]interface{})["bytesTransferredOut"]
 		if in != nil {
 			tot = tot + in.(float64)
 		}
 		return uint64(tot)
 	case FIELD_ID_S3_CNT_GET:
-		if jdata["eventName"] == "GetObject" {
+		if (*jdata)["eventName"] == "GetObject" {
 			return 1
 		}
 		return 0
 	case FIELD_ID_S3_CNT_PUT:
-		if jdata["eventName"] == "PutObject" {
+		if (*jdata)["eventName"] == "PutObject" {
 			return 1
 		}
 		return 0
 	case FIELD_ID_S3_CNT_OTHER:
-		ename := jdata["eventName"]
+		ename := (*jdata)["eventName"]
 		if ename == "GetObject" || ename == "PutObject" {
 			return 0
 		}
