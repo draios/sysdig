@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/valyala/fastjson"
 )
 
 const PLUGIN_ID uint32 = 2
@@ -90,8 +91,9 @@ type pluginContext struct {
 	curFileNum         uint32
 	evtJsonList        []interface{}
 	evtJsonListPos     int
-	jdata              map[string]interface{} // Unmarshaled json for the last processed event
-	jdata_evtnum       uint64                 // The event number jdata refers to. Used to know when we can skip the unmarshaling.
+	jparser            fastjson.Parser
+	jdata              *fastjson.Value
+	jdataEvtnum        uint64 // The event number jdata refers to. Used to know when we can skip the unmarshaling.
 	s3                 s3State
 }
 
@@ -120,7 +122,7 @@ func plugin_init(config *C.char, rc *int32) *C.char {
 		outBufLen:      int(OUT_BUF_LEN),
 		curFileNum:     0,
 		evtJsonListPos: 0,
-		jdata_evtnum:   math.MaxUint64,
+		jdataEvtnum:    math.MaxUint64,
 	}
 
 	gCtx.s3.lastDownloadedFileNum = 0
@@ -556,27 +558,26 @@ func plugin_next(plgState *C.char, openState *C.char, data **C.char, datalen *ui
 	return SCAP_SUCCESS
 }
 
-func getUser(jdata *map[string]interface{}) string {
-	if (*jdata)["userIdentity"] != nil {
-		ui := (*jdata)["userIdentity"].(map[string]interface{})
-		utype := ui["type"]
+func getUser(jdata *fastjson.Value) string {
+	jutype := jdata.GetStringBytes("userIdentity", "type")
+	if jutype != nil {
+		utype := string(jutype)
 
 		switch utype {
 		case "Root", "IAMUser":
-			if ui["userName"] != nil {
-				return fmt.Sprintf("%s", ui["userName"])
+			jun := jdata.GetStringBytes("userIdentity", "userName")
+			if jun != nil {
+				return string(jun)
 			}
 		case "AWSService":
-			if ui["invokedBy"] != nil {
-				return fmt.Sprintf("%s", ui["invokedBy"])
+			jun := jdata.GetStringBytes("userIdentity", "invokedBy")
+			if jun != nil {
+				return string(jun)
 			}
 		case "AssumedRole":
-			if ui["sessionContext"] != nil {
-				if ui["sessionContext"].(map[string]interface{})["sessionIssuer"] != nil {
-					if ui["sessionContext"].(map[string]interface{})["sessionIssuer"].(map[string]interface{})["userName"] != nil {
-						return fmt.Sprintf("%s", ui["sessionContext"].(map[string]interface{})["sessionIssuer"].(map[string]interface{})["userName"])
-					}
-				}
+			jun := jdata.GetStringBytes("sessionContext", "sessionIssuer", "userName")
+			if jun != nil {
+				return string(jun)
 			}
 			return "AssumedRole"
 		case "AWSAccount":
@@ -591,7 +592,7 @@ func getUser(jdata *map[string]interface{}) string {
 	return "<NA>"
 }
 
-func getEvtInfo(jdata *map[string]interface{}) string {
+func getEvtInfo(jdata *fastjson.Value) string {
 	var present bool
 	var evtname string
 	var info string
@@ -612,26 +613,14 @@ func getEvtInfo(jdata *map[string]interface{}) string {
 
 	case "PutBucketPublicAccessBlock":
 		info = ""
-		if (*jdata)["requestParameters"] != nil {
-			abc := (*jdata)["requestParameters"].(map[string]interface{})["PublicAccessBlockConfiguration"]
-			if abc != nil {
-				BlockPublicAcls := abc.(map[string]interface{})["BlockPublicAcls"]
-				if BlockPublicAcls != nil {
-					info += fmt.Sprintf("BlockPublicAcls:%v ", BlockPublicAcls)
-				}
-				BlockPublicPolicy := abc.(map[string]interface{})["BlockPublicPolicy"]
-				if BlockPublicPolicy != nil {
-					info += fmt.Sprintf("BlockPublicPolicy:%v ", BlockPublicPolicy)
-				}
-				IgnorePublicAcls := abc.(map[string]interface{})["IgnorePublicAcls"]
-				if IgnorePublicAcls != nil {
-					info += fmt.Sprintf("IgnorePublicAcls:%v ", IgnorePublicAcls)
-				}
-				RestrictPublicBuckets := abc.(map[string]interface{})["RestrictPublicBuckets"]
-				if RestrictPublicBuckets != nil {
-					info += fmt.Sprintf("RestrictPublicBuckets:%v ", RestrictPublicBuckets)
-				}
-			}
+		jpac := jdata.GetObject("requestParameters", "PublicAccessBlockConfiguration")
+		if jpac != nil {
+			info += fmt.Sprintf("BlockPublicAcls:%v BlockPublicPolicy:%v IgnorePublicAcls:%v RestrictPublicBuckets:%v ",
+				jdata.GetBool("BlockPublicAcls"),
+				jdata.GetBool("BlockPublicPolicy"),
+				jdata.GetBool("IgnorePublicAcls"),
+				jdata.GetBool("RestrictPublicBuckets"),
+			)
 		}
 	default:
 		info = ""
@@ -640,16 +629,16 @@ func getEvtInfo(jdata *map[string]interface{}) string {
 	return info
 }
 
-func getfieldStr(jdata *map[string]interface{}, id uint32) (bool, string) {
+func getfieldStr(jdata *fastjson.Value, id uint32) (bool, string) {
 	var res string
 
 	switch id {
 	case FIELD_ID_CLOUDTRAIL_ID:
-		res = fmt.Sprintf("%s", (*jdata)["eventID"])
+		res = string(jdata.GetStringBytes("eventID"))
 	case FIELD_ID_CLOUDTRAIL_TIME:
-		res = fmt.Sprintf("%s", (*jdata)["eventTime"])
+		res = string(jdata.GetStringBytes("eventTime"))
 	case FIELD_ID_CLOUDTRAIL_SRC:
-		res = fmt.Sprintf("%s", (*jdata)["eventSource"])
+		res = string(jdata.GetStringBytes("eventSource"))
 
 		if len(res) > len(".amazonaws.com") {
 			srctrailer := res[len(res)-len(".amazonaws.com"):]
@@ -658,82 +647,60 @@ func getfieldStr(jdata *map[string]interface{}, id uint32) (bool, string) {
 			}
 		}
 	case FIELD_ID_CLOUDTRAIL_NAME:
-		res = fmt.Sprintf("%s", (*jdata)["eventName"])
+		res = string(jdata.GetStringBytes("eventName"))
 	case FIELD_ID_CLOUDTRAIL_USER:
 		res = getUser(jdata)
 	case FIELD_ID_CLOUDTRAIL_REGION:
-		res = fmt.Sprintf("%s", (*jdata)["awsRegion"])
+		res = string(jdata.GetStringBytes("awsRegion"))
 	case FIELD_ID_CLOUDTRAIL_SRCIP:
-		res = fmt.Sprintf("%s", (*jdata)["sourceIPAddress"])
+		res = string(jdata.GetStringBytes("sourceIPAddress"))
 	case FIELD_ID_CLOUDTRAIL_USERAGENT:
-		res = fmt.Sprintf("%s", (*jdata)["userAgent"])
+		res = string(jdata.GetStringBytes("userAgent"))
 	case FIELD_ID_CLOUDTRAIL_INFO:
 		res = getEvtInfo(jdata)
 	case FIELD_ID_S3_BUCKET:
-		if (*jdata)["requestParameters"] == nil {
+		val := jdata.GetStringBytes("requestParameters", "bucketName")
+		if val == nil {
 			return false, ""
 		}
-		bn := (*jdata)["requestParameters"].(map[string]interface{})["bucketName"]
-		if bn == nil {
-			return false, ""
-		}
-		res = fmt.Sprintf("%s", bn)
+		res = string(val)
 	case FIELD_ID_S3_KEY:
-		if (*jdata)["requestParameters"] == nil {
+		val := jdata.GetStringBytes("requestParameters", "key")
+		if val == nil {
 			return false, ""
 		}
-		bn := (*jdata)["requestParameters"].(map[string]interface{})["key"]
-		if bn == nil {
-			return false, ""
-		}
-		res = fmt.Sprintf("%s", bn)
+		res = string(val)
 	case FIELD_ID_S3_HOST:
-		if (*jdata)["requestParameters"] == nil {
+		val := jdata.GetStringBytes("requestParameters", "Host")
+		if val == nil {
 			return false, ""
 		}
-		bn := (*jdata)["requestParameters"].(map[string]interface{})["Host"]
-		if bn == nil {
-			return false, ""
-		}
-		res = fmt.Sprintf("%s", bn)
+		res = string(val)
 	case FIELD_ID_S3_URI:
-		if (*jdata)["requestParameters"] == nil {
-			return false, ""
-		}
-		sbucket := (*jdata)["requestParameters"].(map[string]interface{})["bucketName"]
+		sbucket := jdata.GetStringBytes("requestParameters", "bucketName")
 		if sbucket == nil {
 			return false, ""
 		}
-		skey := (*jdata)["requestParameters"].(map[string]interface{})["key"]
+		skey := jdata.GetStringBytes("requestParameters", "key")
 		if skey == nil {
 			return false, ""
 		}
 		res = fmt.Sprintf("s3://%s/%s", sbucket, skey)
 	case FIELD_ID_EC2_NAME:
 		var iname string = ""
-		if (*jdata)["requestParameters"] == nil {
+		jilist := jdata.GetArray("requestParameters", "tagSpecificationSet", "items")
+		if jilist == nil {
 			return false, ""
 		}
-		tss := (*jdata)["requestParameters"].(map[string]interface{})["tagSpecificationSet"]
-		if tss == nil {
-			return false, ""
-		}
-		items := tss.(map[string]interface{})["items"]
-		if items == nil {
-			return false, ""
-		}
-		for _, item := range items.([]interface{}) {
-			if item.(map[string]interface{})["resourceType"] != "instance" {
+		for _, item := range jilist {
+			if string(item.GetStringBytes("resourceType")) != "instance" {
 				continue
 			}
-			tags := item.(map[string]interface{})["tags"]
-			if tags == nil {
-				continue
-			}
-			for _, tag := range tags.([]interface{}) {
-				key := tag.(map[string]interface{})["key"]
+			tlist := item.GetArray("tags")
+			for _, tag := range tlist {
+				key := string(tag.GetStringBytes("key"))
 				if key == "Name" {
-					iname = fmt.Sprintf("%s", tag.(map[string]interface{})["value"])
+					iname = string(tag.GetStringBytes("value"))
 					break
 				}
 			}
@@ -742,7 +709,6 @@ func getfieldStr(jdata *map[string]interface{}, id uint32) (bool, string) {
 		if iname == "" {
 			return false, ""
 		}
-
 		res = iname
 	default:
 		return false, ""
@@ -755,16 +721,16 @@ func getfieldStr(jdata *map[string]interface{}, id uint32) (bool, string) {
 func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
 	//	log.Printf("[%s] plugin_event_to_string\n", PLUGIN_NAME)
 	var line string
-	var jdata map[string]interface{}
 	var src string
 	var user string
+	var err error
 
-	err := json.Unmarshal([]byte(C.GoString(data)), &jdata)
+	gCtx.jdata, err = gCtx.jparser.Parse(C.GoString(data))
 	if err != nil {
 		gLastError = err.Error()
 		line = "<invalid JSON: " + err.Error() + ">"
 	} else {
-		src = fmt.Sprintf("%s", jdata["eventSource"])
+		src = string(gCtx.jdata.GetStringBytes("eventSource"))
 
 		if len(src) > len(".amazonaws.com") {
 			srctrailer := src[len(src)-len(".amazonaws.com"):]
@@ -773,18 +739,18 @@ func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
 			}
 		}
 
-		user = getUser(&jdata)
+		user = getUser(gCtx.jdata)
 		if user != "" {
 			user = " " + user
 		}
 
-		info := getEvtInfo(&jdata)
+		info := getEvtInfo(gCtx.jdata)
 
 		line = fmt.Sprintf("%s%s %s %s %s",
-			jdata["awsRegion"],
+			gCtx.jdata.GetStringBytes("awsRegion"),
 			user,
 			src,
-			jdata["eventName"],
+			gCtx.jdata.GetStringBytes("eventName"),
 			info,
 		)
 	}
@@ -805,13 +771,13 @@ func plugin_event_to_string(data *C.char, datalen uint32) *C.char {
 //export plugin_extract_str
 func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, datalen uint32) *C.char {
 	var res string
-	var jdata *map[string]interface{}
+	var err error
 
 	//
 	// Decode the json, but only if we haven't done it yet for this event
 	//
-	if evtnum != gCtx.jdata_evtnum {
-		err := json.Unmarshal([]byte(C.GoString(data)), &gCtx.jdata)
+	if evtnum != gCtx.jdataEvtnum {
+		gCtx.jdata, err = gCtx.jparser.Parse(C.GoString(data))
 		if err != nil {
 			//
 			// Not a json file. We return nil to indicate that the field is not
@@ -819,12 +785,10 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 			//
 			return nil
 		}
-		gCtx.jdata_evtnum = evtnum
+		gCtx.jdataEvtnum = evtnum
 	}
 
-	jdata = &gCtx.jdata
-
-	present, val := getfieldStr(jdata, id)
+	present, val := getfieldStr(gCtx.jdata, id)
 	if !present {
 		return nil
 	} else {
@@ -843,78 +807,79 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 
 //export plugin_extract_u64
 func plugin_extract_u64(evtnum uint64, id uint32, arg *C.char, data *C.char, datalen uint32) uint64 {
-	var jdata *map[string]interface{}
+	return 0
+	// var jdata *map[string]interface{}
 
-	//
-	// Decode the json, but only if we haven't done it yet for this event
-	//
-	if evtnum != gCtx.jdata_evtnum {
-		err := json.Unmarshal([]byte(C.GoString(data)), &gCtx.jdata)
-		if err != nil {
-			//
-			// Not a json file. We return nil to indicate that the field is not
-			// present.
-			//
-			return 0
-		}
-		gCtx.jdata_evtnum = evtnum
-	}
-	jdata = &gCtx.jdata
+	// //
+	// // Decode the json, but only if we haven't done it yet for this event
+	// //
+	// if evtnum != gCtx.jdataEvtnum {
+	// 	err := json.Unmarshal([]byte(C.GoString(data)), &gCtx.jdata)
+	// 	if err != nil {
+	// 		//
+	// 		// Not a json file. We return nil to indicate that the field is not
+	// 		// present.
+	// 		//
+	// 		return 0
+	// 	}
+	// 	gCtx.jdataEvtnum = evtnum
+	// }
+	// jdata = &gCtx.jdata
 
-	switch id {
-	case FIELD_ID_S3_BYTES:
-		if (*jdata)["additionalEventData"] == nil {
-			return 0
-		}
-		var tot float64 = 0
-		in := (*jdata)["additionalEventData"].(map[string]interface{})["bytesTransferredIn"]
-		if in != nil {
-			tot = tot + in.(float64)
-		}
-		out := (*jdata)["additionalEventData"].(map[string]interface{})["bytesTransferredOut"]
-		if out != nil {
-			tot = tot + out.(float64)
-		}
-		return uint64(tot)
-	case FIELD_ID_S3_BYTES_IN:
-		if (*jdata)["additionalEventData"] == nil {
-			return 0
-		}
-		var tot float64 = 0
-		in := (*jdata)["additionalEventData"].(map[string]interface{})["bytesTransferredIn"]
-		if in != nil {
-			tot = tot + in.(float64)
-		}
-		return uint64(tot)
-	case FIELD_ID_S3_BYTES_OUT:
-		if (*jdata)["additionalEventData"] == nil {
-			return 0
-		}
-		var tot float64 = 0
-		in := (*jdata)["additionalEventData"].(map[string]interface{})["bytesTransferredOut"]
-		if in != nil {
-			tot = tot + in.(float64)
-		}
-		return uint64(tot)
-	case FIELD_ID_S3_CNT_GET:
-		if (*jdata)["eventName"] == "GetObject" {
-			return 1
-		}
-		return 0
-	case FIELD_ID_S3_CNT_PUT:
-		if (*jdata)["eventName"] == "PutObject" {
-			return 1
-		}
-		return 0
-	case FIELD_ID_S3_CNT_OTHER:
-		ename := (*jdata)["eventName"]
-		if ename == "GetObject" || ename == "PutObject" {
-			return 0
-		}
-		return 1
-	default:
-		return 0
-	}
+	// switch id {
+	// case FIELD_ID_S3_BYTES:
+	// 	if (*jdata)["additionalEventData"] == nil {
+	// 		return 0
+	// 	}
+	// 	var tot float64 = 0
+	// 	in := (*jdata)["additionalEventData"].(map[string]interface{})["bytesTransferredIn"]
+	// 	if in != nil {
+	// 		tot = tot + in.(float64)
+	// 	}
+	// 	out := (*jdata)["additionalEventData"].(map[string]interface{})["bytesTransferredOut"]
+	// 	if out != nil {
+	// 		tot = tot + out.(float64)
+	// 	}
+	// 	return uint64(tot)
+	// case FIELD_ID_S3_BYTES_IN:
+	// 	if (*jdata)["additionalEventData"] == nil {
+	// 		return 0
+	// 	}
+	// 	var tot float64 = 0
+	// 	in := (*jdata)["additionalEventData"].(map[string]interface{})["bytesTransferredIn"]
+	// 	if in != nil {
+	// 		tot = tot + in.(float64)
+	// 	}
+	// 	return uint64(tot)
+	// case FIELD_ID_S3_BYTES_OUT:
+	// 	if (*jdata)["additionalEventData"] == nil {
+	// 		return 0
+	// 	}
+	// 	var tot float64 = 0
+	// 	in := (*jdata)["additionalEventData"].(map[string]interface{})["bytesTransferredOut"]
+	// 	if in != nil {
+	// 		tot = tot + in.(float64)
+	// 	}
+	// 	return uint64(tot)
+	// case FIELD_ID_S3_CNT_GET:
+	// 	if (*jdata)["eventName"] == "GetObject" {
+	// 		return 1
+	// 	}
+	// 	return 0
+	// case FIELD_ID_S3_CNT_PUT:
+	// 	if (*jdata)["eventName"] == "PutObject" {
+	// 		return 1
+	// 	}
+	// 	return 0
+	// case FIELD_ID_S3_CNT_OTHER:
+	// 	ename := (*jdata)["eventName"]
+	// 	if ename == "GetObject" || ename == "PutObject" {
+	// 		return 0
+	// 	}
+	// 	return 1
+	// default:
+	// 	return 0
+	// }
 }
 
 func main() {
