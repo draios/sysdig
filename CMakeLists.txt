@@ -71,6 +71,7 @@ if(MUSL_OPTIMIZED_BUILD)
 	set(SYSDIG_MUSL_FLAGS "-static -Os")
 endif()
 
+include(ExternalProject)
 if(NOT WIN32)
 
 	set(SYSDIG_DEBUG_FLAGS "-D_DEBUG")
@@ -108,6 +109,7 @@ if(NOT WIN32)
 			set(PROBE_DEVICE_NAME "sysdig")
 		endif()
 
+		include(libbpf)
 		add_subdirectory(driver)
 		add_definitions(-DHAS_CAPTURE)
 	endif()
