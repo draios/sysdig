@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -105,8 +106,19 @@ func plugin_get_type() uint32 {
 	return TYPE_SOURCE_PLUGIN
 }
 
+func receiver(rc *int32) {
+	for true {
+		atomic.CompareAndSwapInt32(rc,
+			1, // old
+			2) // new
+	}
+}
+
 //export plugin_init
 func plugin_init(config *C.char, rc *int32) *C.char {
+	go receiver(rc)
+	return nil
+
 	if !VERBOSE {
 		log.SetOutput(ioutil.Discard)
 	}

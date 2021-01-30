@@ -1977,6 +1977,7 @@ bool sinsp_cursesui::drilldown(string field, string val,
 		is_spy_dig = true;
 	}
 
+#ifndef NOCURSESUI
 	if(should_spy)
 	{
 		auto res = m_datatable->get_row_key_name_and_val(m_viz->m_selct, false);
@@ -1989,6 +1990,7 @@ bool sinsp_cursesui::drilldown(string field, string val,
 			return true;
 		}
 	}
+#endif
 
 	for(j = 0; j < m_views.size(); ++j)
 	{

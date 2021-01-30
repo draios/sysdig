@@ -207,7 +207,7 @@ sinsp_plugin::~sinsp_plugin()
 
 void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
 {
-	int init_res;
+	int32_t init_res = SCAP_FAILURE;
 
 	ASSERT(m_inspector != NULL);
 	ASSERT(plugin_info != NULL);
@@ -246,6 +246,24 @@ void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
 	if(m_source_info.init != NULL)
 	{
 		m_source_info.state = m_source_info.init(config, &init_res);
+
+printf("berlone\n");
+fflush(stdout);
+for(int j = 0; j < 100000000; j++)
+{
+	bool consumer_done = false;
+
+	while(consumer_done == false)
+	{
+#ifdef _WIN32
+		LONG xr = InterlockedCompareExchange((volatile LONG*)&init_res, 1, 2);
+		consumer_done = (xr == 2);
+#else
+		consumer_done = __sync_bool_compare_and_swap(&((*ring_status)->m_initialized), 0, 1);
+#endif
+	}
+}
+exit(0);
 		if(init_res != SCAP_SUCCESS)
 		{
 			throw sinsp_exception(m_source_info.get_last_error());
