@@ -116,8 +116,7 @@ func receiver(rc *int32) {
 
 //export plugin_init
 func plugin_init(config *C.char, rc *int32) *C.char {
-	go receiver(rc)
-	return nil
+	//	go receiver(rc)
 
 	if !VERBOSE {
 		log.SetOutput(ioutil.Discard)
@@ -819,79 +818,69 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 
 //export plugin_extract_u64
 func plugin_extract_u64(evtnum uint64, id uint32, arg *C.char, data *C.char, datalen uint32) uint64 {
-	return 0
-	// var jdata *map[string]interface{}
+	var err error
 
-	// //
-	// // Decode the json, but only if we haven't done it yet for this event
-	// //
-	// if evtnum != gCtx.jdataEvtnum {
-	// 	err := json.Unmarshal([]byte(C.GoString(data)), &gCtx.jdata)
-	// 	if err != nil {
-	// 		//
-	// 		// Not a json file. We return nil to indicate that the field is not
-	// 		// present.
-	// 		//
-	// 		return 0
-	// 	}
-	// 	gCtx.jdataEvtnum = evtnum
-	// }
-	// jdata = &gCtx.jdata
+	//
+	// Decode the json, but only if we haven't done it yet for this event
+	//
+	if evtnum != gCtx.jdataEvtnum {
+		gCtx.jdata, err = gCtx.jparser.Parse(C.GoString(data))
+		if err != nil {
+			//
+			// Not a json file. We return nil to indicate that the field is not
+			// present.
+			//
+			return 0
+		}
+		gCtx.jdataEvtnum = evtnum
+	}
 
-	// switch id {
-	// case FIELD_ID_S3_BYTES:
-	// 	if (*jdata)["additionalEventData"] == nil {
-	// 		return 0
-	// 	}
-	// 	var tot float64 = 0
-	// 	in := (*jdata)["additionalEventData"].(map[string]interface{})["bytesTransferredIn"]
-	// 	if in != nil {
-	// 		tot = tot + in.(float64)
-	// 	}
-	// 	out := (*jdata)["additionalEventData"].(map[string]interface{})["bytesTransferredOut"]
-	// 	if out != nil {
-	// 		tot = tot + out.(float64)
-	// 	}
-	// 	return uint64(tot)
-	// case FIELD_ID_S3_BYTES_IN:
-	// 	if (*jdata)["additionalEventData"] == nil {
-	// 		return 0
-	// 	}
-	// 	var tot float64 = 0
-	// 	in := (*jdata)["additionalEventData"].(map[string]interface{})["bytesTransferredIn"]
-	// 	if in != nil {
-	// 		tot = tot + in.(float64)
-	// 	}
-	// 	return uint64(tot)
-	// case FIELD_ID_S3_BYTES_OUT:
-	// 	if (*jdata)["additionalEventData"] == nil {
-	// 		return 0
-	// 	}
-	// 	var tot float64 = 0
-	// 	in := (*jdata)["additionalEventData"].(map[string]interface{})["bytesTransferredOut"]
-	// 	if in != nil {
-	// 		tot = tot + in.(float64)
-	// 	}
-	// 	return uint64(tot)
-	// case FIELD_ID_S3_CNT_GET:
-	// 	if (*jdata)["eventName"] == "GetObject" {
-	// 		return 1
-	// 	}
-	// 	return 0
-	// case FIELD_ID_S3_CNT_PUT:
-	// 	if (*jdata)["eventName"] == "PutObject" {
-	// 		return 1
-	// 	}
-	// 	return 0
-	// case FIELD_ID_S3_CNT_OTHER:
-	// 	ename := (*jdata)["eventName"]
-	// 	if ename == "GetObject" || ename == "PutObject" {
-	// 		return 0
-	// 	}
-	// 	return 1
-	// default:
-	// 	return 0
-	// }
+	switch id {
+	case FIELD_ID_S3_BYTES:
+		var tot uint64 = 0
+		in := gCtx.jdata.Get("additionalEventData", "bytesTransferredIn")
+		if in != nil {
+			tot = tot + in.GetUint64()
+		}
+		out := gCtx.jdata.Get("additionalEventData", "bytesTransferredOut")
+		if out != nil {
+			tot = tot + out.GetUint64()
+		}
+		return tot
+	case FIELD_ID_S3_BYTES_IN:
+		var tot uint64 = 0
+		in := gCtx.jdata.Get("additionalEventData", "bytesTransferredIn")
+		if in != nil {
+			fmt.Printf("1> %v\n", evtnum)
+			tot = tot + in.GetUint64()
+		}
+		return tot
+	case FIELD_ID_S3_BYTES_OUT:
+		var tot uint64 = 0
+		out := gCtx.jdata.Get("additionalEventData", "bytesTransferredOut")
+		if out != nil {
+			tot = tot + out.GetUint64()
+		}
+		return tot
+	case FIELD_ID_S3_CNT_GET:
+		if string(gCtx.jdata.GetStringBytes("eventName")) == "GetObject" {
+			return 1
+		}
+		return 0
+	case FIELD_ID_S3_CNT_PUT:
+		if string(gCtx.jdata.GetStringBytes("eventName")) == "PutObject" {
+			return 1
+		}
+		return 0
+	case FIELD_ID_S3_CNT_OTHER:
+		ename := string(gCtx.jdata.GetStringBytes("eventName"))
+		if ename == "GetObject" || ename == "PutObject" {
+			return 0
+		}
+		return 1
+	default:
+		return 0
+	}
 }
 
 func main() {
