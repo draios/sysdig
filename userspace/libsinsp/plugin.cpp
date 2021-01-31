@@ -154,10 +154,18 @@ public:
 				throw sinsp_exception(string("plugin ") + m_source_info->get_name() + "is missing the extract_u64 export");
 			}
 
+			uint32_t present;
 			m_u64_res = m_source_info->extract_u64(evt->get_num(), 
 				m_field_id, m_arg, 
 				(uint8_t*)parinfo->m_val, 
-				parinfo->m_len);
+				parinfo->m_len,
+				&present);
+
+			if(present == 0)
+			{
+				return NULL;
+			}
+
 			return (uint8_t*)&m_u64_res;
 		}
 		default:

@@ -817,8 +817,9 @@ func plugin_extract_str(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 }
 
 //export plugin_extract_u64
-func plugin_extract_u64(evtnum uint64, id uint32, arg *C.char, data *C.char, datalen uint32) uint64 {
+func plugin_extract_u64(evtnum uint64, id uint32, arg *C.char, data *C.char, datalen uint32, field_present *uint32) uint64 {
 	var err error
+	*field_present = 0
 
 	//
 	// Decode the json, but only if we haven't done it yet for this event
@@ -835,6 +836,7 @@ func plugin_extract_u64(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 		gCtx.jdataEvtnum = evtnum
 	}
 
+
 	switch id {
 	case FIELD_ID_S3_BYTES:
 		var tot uint64 = 0
@@ -846,14 +848,15 @@ func plugin_extract_u64(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 		if out != nil {
 			tot = tot + out.GetUint64()
 		}
+		*field_present = 1
 		return tot
 	case FIELD_ID_S3_BYTES_IN:
 		var tot uint64 = 0
 		in := gCtx.jdata.Get("additionalEventData", "bytesTransferredIn")
 		if in != nil {
-			fmt.Printf("1> %v\n", evtnum)
 			tot = tot + in.GetUint64()
 		}
+		*field_present = 1
 		return tot
 	case FIELD_ID_S3_BYTES_OUT:
 		var tot uint64 = 0
@@ -861,20 +864,24 @@ func plugin_extract_u64(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 		if out != nil {
 			tot = tot + out.GetUint64()
 		}
+		*field_present = 1
 		return tot
 	case FIELD_ID_S3_CNT_GET:
 		if string(gCtx.jdata.GetStringBytes("eventName")) == "GetObject" {
+			*field_present = 1
 			return 1
 		}
 		return 0
 	case FIELD_ID_S3_CNT_PUT:
 		if string(gCtx.jdata.GetStringBytes("eventName")) == "PutObject" {
+			*field_present = 1
 			return 1
 		}
 		return 0
 	case FIELD_ID_S3_CNT_OTHER:
 		ename := string(gCtx.jdata.GetStringBytes("eventName"))
 		if ename == "GetObject" || ename == "PutObject" {
+			*field_present = 1
 			return 0
 		}
 		return 1
