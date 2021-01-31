@@ -453,7 +453,6 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	consumer->fullcapture_port_range_end = 0;
 	consumer->statsd_port = PPM_PORT_STATSD;
 	bitmap_fill(g_events_mask, PPM_EVENT_MAX); /* Enable all syscall to be passed to userspace */
-	reset_ring_buffer(ring);
 	ring->open = true;
 
 	if (!g_tracepoint_registered) {
