@@ -39,7 +39,6 @@ struct iovec {
 #include "internal_metrics.h"
 
 class sinsp_delays_info;
-class sinsp_threadtable_listener;
 class sinsp_tracerparser;
 class blprogram;
 
@@ -569,7 +568,6 @@ public:
 	sinsp_thread_manager(sinsp* inspector);
 	void clear();
 
-	void set_listener(sinsp_threadtable_listener* listener);
 	bool add_thread(sinsp_threadinfo *threadinfo, bool from_scap_proctable);
 	void remove_thread(int64_t tid, bool force);
 	// Returns true if the table is actually scanned
@@ -579,6 +577,37 @@ public:
 	void reset_child_dependencies();
 	void create_child_dependencies();
 	void recreate_child_dependencies();
+
+	/*!
+      \brief Look up a thread given its tid and return its information,
+       and optionally go dig into proc if the thread is not in the thread table.
+
+      \param tid the ID of the thread. In case of multi-thread processes,
+       this corresponds to the PID.
+      \param query_os_if_not_found if true, the library will search for this
+       thread's information in proc, use the result to create a new thread
+       entry, and return the new entry.
+
+      \return the \ref sinsp_threadinfo object containing full thread information
+       and state.
+
+      \note if you are interested in a process' information, just give this
+      function with the PID of the process.
+
+      @throws a sinsp_exception containing the error string is thrown in case
+       of failure.
+    */
+
+	threadinfo_map_t::ptr_t get_thread_ref(int64_t tid, bool query_os_if_not_found = false, bool lookup_only = true, bool main_thread=false);
+
+	//
+    // Note: lookup_only should be used when the query for the thread is made
+    //       not as a consequence of an event for that thread arriving, but
+    //       just for lookup reason. In that case, m_lastaccess_ts is not updated
+    //       and m_last_tinfo is not set.
+    //
+    threadinfo_map_t::ptr_t find_thread(int64_t tid, bool lookup_only);
+
 
 	void dump_threads_to_file(scap_dumper_t* dumper);
 
@@ -596,6 +625,15 @@ public:
 
 	std::set<uint16_t> m_server_ports;
 
+	void set_max_thread_table_size(uint32_t value);
+
+	int32_t get_m_n_proc_lookups() const { return m_n_proc_lookups; }
+	int32_t get_m_n_main_thread_lookups() const { return m_n_main_thread_lookups; }
+	uint64_t get_m_n_proc_lookups_duration_ns() const { return m_n_proc_lookups_duration_ns; }
+	void reset_thread_counters() { m_n_proc_lookups = 0; m_n_main_thread_lookups = 0; m_n_proc_lookups_duration_ns = 0; }
+
+	void set_m_max_n_proc_lookups(int32_t val) { m_max_n_proc_lookups = val; }
+	void set_m_max_n_proc_socket_lookups(int32_t val) { m_max_n_proc_socket_lookups = val; }
 private:
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
@@ -608,8 +646,13 @@ private:
 	std::weak_ptr<sinsp_threadinfo> m_last_tinfo;
 	uint64_t m_last_flush_time_ns;
 	uint32_t m_n_drops;
+	uint32_t m_max_thread_table_size;
+	int32_t m_n_proc_lookups = 0;
+	uint64_t m_n_proc_lookups_duration_ns = 0;
+	int32_t m_n_main_thread_lookups = 0;
+	int32_t m_max_n_proc_lookups = -1;
+    int32_t m_max_n_proc_socket_lookups = -1;
 
-	sinsp_threadtable_listener* m_listener;
 
 	INTERNAL_COUNTER(m_failed_lookups);
 	INTERNAL_COUNTER(m_cached_lookups);

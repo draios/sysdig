@@ -567,7 +567,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	{
 		if(etype == PPME_PROCINFO_E)
 		{
-			evt->m_tinfo = m_inspector->get_thread(evt->m_pevt->tid, false, false);
+			evt->m_tinfo = &*m_inspector->get_thread_ref(evt->m_pevt->tid, false, false);
 		}
 		else
 		{
@@ -612,7 +612,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	}
 	else
 	{
-		evt->m_tinfo = m_inspector->get_thread(evt->m_pevt->tid, query_os, false);
+		evt->m_tinfo = &*m_inspector->get_thread_ref(evt->m_pevt->tid, query_os, false);
 	}
 
 	if(etype == PPME_SCHEDSWITCH_6_E)
@@ -1099,7 +1099,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	//
 	// Lookup the thread that called clone() so we can copy its information
 	//
-	sinsp_threadinfo* ptinfo = m_inspector->get_thread(tid, true, true);
+	sinsp_threadinfo* ptinfo = &*m_inspector->get_thread_ref(tid, true, true);
 	if(NULL == ptinfo)
 	{
 		//
@@ -1118,7 +1118,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	//
 	// See if the child is already there
 	//
-	sinsp_threadinfo* child = m_inspector->get_thread(childtid, false, true);
+	sinsp_threadinfo* child = &*m_inspector->get_thread_ref(childtid, false, true);
 	if(NULL != child)
 	{
 		//
@@ -1192,7 +1192,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		m_inspector->remove_thread(tid, true);
 		tid_collision = true;
 
-		ptinfo = m_inspector->get_thread(tid,
+		ptinfo = &*m_inspector->get_thread_ref(tid,
 			true, true);
 
 		if(ptinfo == NULL)
@@ -4332,7 +4332,7 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt *evt)
 					tid = evt->get_tid();
 				}
 
-				sinsp_threadinfo* ptinfo = m_inspector->get_thread(tid, true, true);
+				sinsp_threadinfo* ptinfo = &*m_inspector->get_thread_ref(tid, true, true);
 				if(ptinfo == NULL)
 				{
 					ASSERT(false);
