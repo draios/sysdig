@@ -89,7 +89,8 @@ public:
 		np->set_name(m_info.m_name);
 		np->m_id = m_id;
 		np->m_type = m_type;
-		np->m_source_info = m_source_info;
+		np->m_psource_info = m_psource_info;
+		np->m_pasync_extractor_info = m_pasync_extractor_info;
 
 		return (sinsp_filter_check*)np;
 	}
@@ -128,15 +129,54 @@ public:
 		{
 		case PT_CHARBUF:
 		{
-			if(m_source_info->extract_str == NULL)
+			if(m_psource_info->extract_str == NULL)
 			{
-				throw sinsp_exception(string("plugin ") + m_source_info->get_name() + "is missing the extract_str export");
+				throw sinsp_exception(string("plugin ") + m_psource_info->get_name() + "is missing the extract_str export");
 			}
 
-			char* pret = m_source_info->extract_str(evt->get_num(), 
-				m_field_id, m_arg, 
-				(uint8_t*)parinfo->m_val, 
-				parinfo->m_len);
+			char* pret;
+			if(m_pasync_extractor_info == NULL)
+			{
+				pret = m_psource_info->extract_str(evt->get_num(),
+					m_field_id,
+					m_arg,
+					(uint8_t*)parinfo->m_val,
+					parinfo->m_len);
+			}
+			else
+			{
+ 				bool worker_ready = false;
+ 				bool worker_done = false;
+				volatile int32_t* lock = &(m_pasync_extractor_info->lock);
+				m_pasync_extractor_info->id = m_field_id;
+				m_pasync_extractor_info->arg = m_arg;
+				m_pasync_extractor_info->data = (uint8_t*)parinfo->m_val;
+				m_pasync_extractor_info->datalen= parinfo->m_len;
+
+				while(*lock != 2);
+
+ 				while(worker_ready == false)
+ 				{
+				#ifdef _WIN32
+ 					LONG xr = InterlockedCompareExchange((volatile LONG*)lock, 2, 1);
+ 					worker_ready = (xr == 1);
+				#else
+ 					worker_ready = __sync_bool_compare_and_swap(lock, 1, 2);
+				#endif
+ 				}
+
+ 				while(worker_done == false)
+ 				{
+				#ifdef _WIN32
+ 					LONG xr = InterlockedCompareExchange((volatile LONG*)lock, 1, 2);
+ 					worker_done = (xr == 2);
+				#else
+ 					worker_done = __sync_bool_compare_and_swap(lock, 2, 1);
+				#endif
+ 				}
+
+			}
+
 			if(pret != NULL)
 			{
 				*len = strlen(pret);
@@ -149,13 +189,13 @@ public:
 		}
 		case PT_UINT64:
 		{
-			if(m_source_info->extract_u64 == NULL)
+			if(m_psource_info->extract_u64 == NULL)
 			{
-				throw sinsp_exception(string("plugin ") + m_source_info->get_name() + "is missing the extract_u64 export");
+				throw sinsp_exception(string("plugin ") + m_psource_info->get_name() + "is missing the extract_u64 export");
 			}
 
 			uint32_t present;
-			m_u64_res = m_source_info->extract_u64(evt->get_num(), 
+			m_u64_res = m_psource_info->extract_u64(evt->get_num(), 
 				m_field_id, m_arg, 
 				(uint8_t*)parinfo->m_val, 
 				parinfo->m_len,
@@ -192,9 +232,10 @@ public:
 	uint32_t m_id;
 	string m_argstr;
 	char* m_arg = NULL;
-	ss_plugin_info* m_source_info;
 	ss_plugin_type m_type;
 	uint64_t m_u64_res;
+	ss_plugin_info* m_psource_info;
+	async_extractor_info* m_pasync_extractor_info = NULL;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -254,24 +295,6 @@ void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
 	if(m_source_info.init != NULL)
 	{
 		m_source_info.state = m_source_info.init(config, &init_res);
-
-// printf("berlone\n");
-// fflush(stdout);
-// for(int j = 0; j < 100000000; j++)
-// {
-// 	bool consumer_done = false;
-
-// 	while(consumer_done == false)
-// 	{
-// #ifdef _WIN32
-// 		LONG xr = InterlockedCompareExchange((volatile LONG*)&init_res, 1, 2);
-// 		consumer_done = (xr == 2);
-// #else
-// 		consumer_done = __sync_bool_compare_and_swap(&init_res, 2, 1);
-// #endif
-// 	}
-// }
-// exit(0);
 		if(init_res != SCAP_SUCCESS)
 		{
 			throw sinsp_exception(m_source_info.get_last_error());
@@ -360,13 +383,40 @@ void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
 			m_fields.push_back(tf);
 		}
 
+		//
+		// If the plugin exports an async_extractor (for performance reasons),
+		// configure and initialize it here
+		//
+		if(m_source_info.register_async_extractor)
+		{
+			//
+			// 3 means: "no events received yet"
+			//
+			m_async_extractor_info.lock = 3;
+			if(m_source_info.register_async_extractor(&m_async_extractor_info) != SCAP_SUCCESS)
+			{
+				throw sinsp_exception(string("error in plugin ") + m_source_info.get_name() + ": " + m_source_info.get_last_error());
+			}
+		}
+
+		//
+		// Create and register the filter check associated to this plugin
+		//
 		m_filtercheck = new sinsp_filter_check_plugin();
 		m_filtercheck->set_name(m_source_info.get_name() + string(" (plugin)"));
 		m_filtercheck->set_fields((filtercheck_field_info*)&m_fields[0], 
 			m_fields.size());
 		m_filtercheck->m_id = m_id;
 		m_filtercheck->m_type = m_type;
-		m_filtercheck->m_source_info = &m_source_info;
+		m_filtercheck->m_psource_info = &m_source_info;
+		if(m_source_info.register_async_extractor)
+		{
+			m_filtercheck->m_pasync_extractor_info = &m_async_extractor_info;
+		}
+		else
+		{
+			m_filtercheck->m_pasync_extractor_info = NULL;
+		}
 
 		g_filterlist.add_filter_check(m_filtercheck);
 	}
@@ -471,6 +521,7 @@ bool sinsp_plugin::create_dynlib_source(string libname, OUT ss_plugin_info* info
 	*(void**)(&(info->event_to_string)) = getsym(handle, "plugin_event_to_string");
 	*(void**)(&(info->extract_str)) = getsym(handle, "plugin_extract_str");
 	*(void**)(&(info->extract_u64)) = getsym(handle, "plugin_extract_u64");
+	*(void**)(&(info->register_async_extractor)) = getsym(handle, "plugin_register_async_extractor");
 
 	return true;
 }

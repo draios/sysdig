@@ -2,6 +2,18 @@ package main
 
 /*
 #include <stdlib.h>
+#include <stdint.h>
+
+typedef struct async_extractor_info
+{
+	int32_t lock;
+	uint64_t evtnum;
+	uint32_t id;
+	char* arg;
+	uint8_t* data;
+	uint32_t datalen;
+	uint32_t* field_present;
+} async_extractor_info;
 */
 import "C"
 import (
@@ -106,18 +118,8 @@ func plugin_get_type() uint32 {
 	return TYPE_SOURCE_PLUGIN
 }
 
-func receiver(rc *int32) {
-	for true {
-		atomic.CompareAndSwapInt32(rc,
-			1, // old
-			2) // new
-	}
-}
-
 //export plugin_init
 func plugin_init(config *C.char, rc *int32) *C.char {
-	//	go receiver(rc)
-
 	if !VERBOSE {
 		log.SetOutput(ioutil.Discard)
 	}
@@ -836,7 +838,6 @@ func plugin_extract_u64(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 		gCtx.jdataEvtnum = evtnum
 	}
 
-
 	switch id {
 	case FIELD_ID_S3_BYTES:
 		var tot uint64 = 0
@@ -889,6 +890,26 @@ func plugin_extract_u64(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 		return 0
 	}
 }
+
+func async_extractor_worker(info *C.async_extractor_info) {
+	var glock *int32 = (*int32)(&(info.lock))
+	for true {
+		if atomic.CompareAndSwapInt32(glock,
+			1,   // old
+			2) { // new
+			//
+			//
+			//
+			fmt.Printf("E\n")
+		}
+	}
+}
+
+//export plugin_register_async_extractor
+// func plugin_register_async_extractor(info *C.async_extractor_info) int32 {
+// 	go async_extractor_worker(info)
+// 	return SCAP_SUCCESS
+// }
 
 func main() {
 }

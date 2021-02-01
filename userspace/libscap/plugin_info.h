@@ -32,6 +32,17 @@ typedef enum ss_plugin_type
 	TYPE_EXTRACTOR_PLUGIN = 2
 }ss_plugin_type;
 
+typedef struct async_extractor_info
+{
+	int32_t lock;
+	uint64_t evtnum;
+	uint32_t id;
+	char* arg;
+	uint8_t* data;
+	uint32_t datalen;
+	uint32_t field_present;
+} async_extractor_info;
+
 //
 // This is the opaque pointer to the state of a source plugin.
 // It points to any data that might be needed plugin-wise. It is 
@@ -171,6 +182,10 @@ typedef struct
 	//
 	char* (*extract_str)(uint64_t evtnum, uint32_t id, char* arg, uint8_t* data, uint32_t datalen);
 	uint64_t (*extract_u64)(uint64_t evtnum, uint32_t id, char* arg, uint8_t* data, uint32_t datalen, uint32_t* field_present);
+	//
+	//
+	//
+	int32_t (*register_async_extractor)(async_extractor_info* info);
 
 	//
 	// The following members are PRIVATE for the engine and should not be touched.

@@ -52,4 +52,6 @@ private:
 	vector<filtercheck_field_info> m_fields;
 	sinsp_filter_check_plugin* m_filtercheck = NULL;
 	ss_plugin_type m_type;
+	uint32_t m_plugin_field_present;
+	async_extractor_info m_async_extractor_info;
 };
