@@ -601,7 +601,7 @@ static int32_t load_bpf_file(scap_t *handle, const char *path)
 			symbols = data;
 		}
 		else if(strcmp(shname, "kernel_version") == 0) {
-			if(strcmp(osname.release, data->d_buf))
+			if(strcmp(osname.release, data->d_buf) && strcmp(data->d_buf, "btf"))
 			{
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "BPF probe is compiled for %s, but running version is %s",
 					 (char *) data->d_buf, osname.release);

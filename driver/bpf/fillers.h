@@ -20,7 +20,9 @@ or GPL2.txt for full copies of the license.
 //#define COS_73_WORKAROUND
 
 #include "../ppm_flag_helpers.h"
+#ifndef __SYSDIG_BTF_BUILD__
 #include "../ppm_version.h"
+
 
 #include <linux/tty.h>
 #include <linux/audit.h>
@@ -30,6 +32,7 @@ or GPL2.txt for full copies of the license.
  * Linux 5.6 kernels no longer include the old 32-bit timeval
  * structures. But the syscalls (might) still use them.
  */
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
 #include <linux/time64.h>
 struct compat_timespec {
@@ -49,6 +52,14 @@ struct timeval {
 #else
 #define timeval64 timeval
 #endif
+
+#else
+#include "vmlinux.h"
+#define compat_timespec __kernel_old_timespec
+#define timespec __kernel_old_timespec
+#define timeval __kernel_old_timeval
+
+#endif // __SYSDIG_BTF_BUILD__
 
 #define FILLER_RAW(x)							\
 static __always_inline int __bpf_##x(struct filler_data *data);		\
@@ -79,7 +90,7 @@ static __always_inline int bpf_##x(void *ctx)				\
 		data.state->tail_ctx.prev_res = res;			\
 									\
 	bpf_tail_call(ctx, &tail_map, PPM_FILLER_terminate_filler);	\
-	bpf_printk("Can't tail call terminate filler\n");		\
+	sysdig_bpf_printk("Can't tail call terminate filler\n");		\
 	return 0;							\
 }									\
 									\
@@ -97,19 +108,19 @@ FILLER_RAW(terminate_filler)
 	case PPM_SUCCESS:
 		break;
 	case PPM_FAILURE_BUFFER_FULL:
-		bpf_printk("PPM_FAILURE_BUFFER_FULL event=%d curarg=%d\n",
+		sysdig_bpf_printk("PPM_FAILURE_BUFFER_FULL event=%d curarg=%d\n",
 			   state->tail_ctx.evt_type,
 			   state->tail_ctx.curarg);
 		++state->n_drops_buffer;
 		break;
 	case PPM_FAILURE_INVALID_USER_MEMORY:
-		bpf_printk("PPM_FAILURE_INVALID_USER_MEMORY event=%d curarg=%d\n",
+		sysdig_bpf_printk("PPM_FAILURE_INVALID_USER_MEMORY event=%d curarg=%d\n",
 			   state->tail_ctx.evt_type,
 			   state->tail_ctx.curarg);
 		++state->n_drops_pf;
 		break;
 	case PPM_FAILURE_BUG:
-		bpf_printk("PPM_FAILURE_BUG event=%d curarg=%d\n",
+		sysdig_bpf_printk("PPM_FAILURE_BUG event=%d curarg=%d\n",
 			   state->tail_ctx.evt_type,
 			   state->tail_ctx.curarg);
 		++state->n_drops_bug;
@@ -117,7 +128,7 @@ FILLER_RAW(terminate_filler)
 	case PPM_SKIP_EVENT:
 		break;
 	default:
-		bpf_printk("Unknown filler res=%d event=%d curarg=%d\n",
+		sysdig_bpf_printk("Unknown filler res=%d event=%d curarg=%d\n",
 			   state->tail_ctx.prev_res,
 			   state->tail_ctx.evt_type,
 			   state->tail_ctx.curarg);
@@ -1394,6 +1405,9 @@ static __always_inline int bpf_ppm_get_tty(struct task_struct *task)
 
 static __always_inline struct pid *bpf_task_pid(struct task_struct *task)
 {
+#ifdef __SYSDIG_BTF_BUILD__
+return _READ(task->thread_pid);
+#else
 #if (PPM_RHEL_RELEASE_CODE > 0 && PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 0))
 	return _READ(task->thread_pid);
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
@@ -1401,14 +1415,16 @@ static __always_inline struct pid *bpf_task_pid(struct task_struct *task)
 #else
 	return _READ(task->thread_pid);
 #endif
+#endif // __SYSDIG_BTF_BUILD__
 }
 
 static __always_inline struct pid_namespace *bpf_ns_of_pid(struct pid *pid)
 {
 	struct pid_namespace *ns = NULL;
-
+	int number;
 	if (pid)
-		ns = _READ(pid->numbers[_READ(pid->level)].ns);
+		number = _READ(pid->level);
+		ns = _READ(pid->numbers[number].ns);
 	return ns;
 }
 
@@ -1433,6 +1449,7 @@ static __always_inline pid_t bpf_pid_nr_ns(struct pid *pid,
 	return nr;
 }
 
+#ifdef PPM_RHEL_RELEASE_VERSION
 #if ((PPM_RHEL_RELEASE_CODE > 0 && PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 0))) || LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
 static __always_inline struct pid **bpf_task_pid_ptr(struct task_struct *task,
 						     enum pid_type type)
@@ -1442,6 +1459,18 @@ static __always_inline struct pid **bpf_task_pid_ptr(struct task_struct *task,
 		&_READ(task->signal)->pids[type];
 }
 #endif
+#endif
+
+#ifdef __SYSDIG_BTF_BUILD__
+static __always_inline struct pid **bpf_task_pid_ptr(struct task_struct *task,
+						     enum pid_type type)
+{
+	return (type == PIDTYPE_PID) ?
+		&task->thread_pid :
+		&_READ(task->signal)->pids[type];
+}
+#endif
+
 
 static __always_inline pid_t bpf_task_pid_nr_ns(struct task_struct *task,
 						enum pid_type type,
@@ -1452,6 +1481,9 @@ static __always_inline pid_t bpf_task_pid_nr_ns(struct task_struct *task,
 	if (!ns)
 		ns = bpf_task_active_pid_ns(task);
 
+#ifdef __SYSDIG_BTF_BUILD__
+	nr = bpf_pid_nr_ns(_READ(*bpf_task_pid_ptr(task, type)), ns);
+#else
 #if (PPM_RHEL_RELEASE_CODE > 0 && PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 0))
 	nr = bpf_pid_nr_ns(_READ(*bpf_task_pid_ptr(task, type)), ns);
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
@@ -1466,6 +1498,7 @@ static __always_inline pid_t bpf_task_pid_nr_ns(struct task_struct *task,
 #else
 	nr = bpf_pid_nr_ns(_READ(*bpf_task_pid_ptr(task, type)), ns);
 #endif
+#endif // __SYSDIG_BTF_BUILD__
 
 	return nr;
 }
@@ -1477,6 +1510,10 @@ static __always_inline pid_t bpf_task_pid_vnr(struct task_struct *task)
 
 static __always_inline pid_t bpf_task_tgid_vnr(struct task_struct *task)
 {
+#ifdef __SYSDIG_BTF_BUILD__
+return bpf_task_pid_nr_ns(task, PIDTYPE_TGID, NULL);
+#else
+
 #if (PPM_RHEL_RELEASE_CODE > 0 && PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 0))
 	return bpf_task_pid_nr_ns(task, PIDTYPE_TGID, NULL);
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
@@ -1484,6 +1521,8 @@ static __always_inline pid_t bpf_task_tgid_vnr(struct task_struct *task)
 #else
 	return bpf_task_pid_nr_ns(task, PIDTYPE_TGID, NULL);
 #endif
+
+#endif // __SYSDIG_BTF_BUILD__
 }
 
 static __always_inline pid_t bpf_task_pgrp_vnr(struct task_struct *task)
@@ -1877,7 +1916,7 @@ FILLER(proc_startupdate, true)
 		return res;
 
 	bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_proc_startupdate_2);
-	bpf_printk("Can't tail call f_proc_startupdate_2 filler\n");
+	sysdig_bpf_printk("Can't tail call f_proc_startupdate_2 filler\n");
 	return PPM_FAILURE_BUG;
 }
 
@@ -1901,7 +1940,7 @@ FILLER(proc_startupdate_2, true)
 		return res;
 
 	bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_proc_startupdate_3);
-	bpf_printk("Can't tail call f_proc_startupdate_3 filler\n");
+	sysdig_bpf_printk("Can't tail call f_proc_startupdate_3 filler\n");
 	return PPM_FAILURE_BUG;
 }
 
@@ -2211,12 +2250,12 @@ FILLER(sys_generic, true)
 	native_id = bpf_syscall_get_nr(data->ctx);
 	sysdig_id = bpf_map_lookup_elem(&syscall_code_routing_table, &native_id);
 	if (!sysdig_id) {
-		bpf_printk("no routing for syscall %d\n", native_id);
+		sysdig_bpf_printk("no routing for syscall %d\n", native_id);
 		return PPM_FAILURE_BUG;
 	}
 
 	if (*sysdig_id == PPM_SC_UNKNOWN)
-		bpf_printk("no syscall for id %d\n", native_id);
+		sysdig_bpf_printk("no syscall for id %d\n", native_id);
 
 	/*
 	 * id
@@ -2762,7 +2801,7 @@ FILLER(sys_recvmsg_x, true)
 		return res;
 
 	bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_sys_recvmsg_x_2);
-	bpf_printk("Can't tail call f_sys_recvmsg_x_2 filler\n");
+	sysdig_bpf_printk("Can't tail call f_sys_recvmsg_x_2 filler\n");
 	return PPM_FAILURE_BUG;
 }
 
@@ -3440,7 +3479,7 @@ FILLER(sys_symlinkat_x, true)
 
 FILLER(sys_sysdigevent_e, false)
 {
-	bpf_printk("f_sys_sysdigevent_e should never be called\n");
+	sysdig_bpf_printk("f_sys_sysdigevent_e should never be called\n");
 	return PPM_FAILURE_BUG;
 }
 

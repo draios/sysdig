@@ -46,7 +46,7 @@ static __always_inline int push_evt_frame(void *ctx,
 					  struct filler_data *data)
 {
 	if (data->state->tail_ctx.curarg != data->evt->nparams) {
-		bpf_printk("corrupted filler for event type %d (added %u args, should have added %u)\n",
+		sysdig_bpf_printk("corrupted filler for event type %d (added %u args, should have added %u)\n",
 			   data->state->tail_ctx.evt_type,
 			   data->state->tail_ctx.curarg,
 			   data->evt->nparams);
@@ -87,9 +87,9 @@ static __always_inline int push_evt_frame(void *ctx,
 			return PPM_FAILURE_BUG;
 
 		state->hotplug_cpu = bpf_get_smp_processor_id();
-		bpf_printk("detected hotplug event, cpu=%d\n", state->hotplug_cpu);
+		sysdig_bpf_printk("detected hotplug event, cpu=%d\n", state->hotplug_cpu);
 	} else if (res) {
-		bpf_printk("bpf_perf_event_output failed, res=%d\n", res);
+		sysdig_bpf_printk("bpf_perf_event_output failed, res=%d\n", res);
 		return PPM_FAILURE_BUG;
 	}
 

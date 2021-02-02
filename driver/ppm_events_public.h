@@ -14,11 +14,13 @@ or GPL2.txt for full copies of the license.
 #include <sys/ioccom.h>
 #endif
 
+#ifndef __SYSDIG_BTF_BUILD__
 #ifdef __KERNEL__
 #include <linux/types.h>
 #else
 #include "../userspace/common/sysdig_types.h"
 #endif
+#endif // __SYSDIG_BTF_BUILD__
 
 /*
  * Macros for packing in different build environments

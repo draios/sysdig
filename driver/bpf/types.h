@@ -11,6 +11,8 @@ or GPL2.txt for full copies of the license.
 
 #ifdef __KERNEL__
 
+#include "kernel_flags.h"
+
 #define SEC(NAME) __attribute__((section(NAME), used))
 
 #ifndef __always_inline
@@ -144,17 +146,20 @@ struct filler_data {
 	int fd;
 };
 
+#ifndef __SYSDIG_BTF_BUILD__
 struct perf_event_header {
 	__u32 type;
 	__u16 misc;
 	__u16 size;
 };
+#endif
 
 struct perf_event_sample {
 	struct perf_event_header header;
 	__u32 size;
 	char data[];
 };
+
 
 /*
  * Unfortunately the entire perf event length must fit in u16

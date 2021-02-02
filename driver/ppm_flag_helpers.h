@@ -10,9 +10,11 @@ or GPL2.txt for full copies of the license.
 #ifndef PPM_FLAG_HELPERS_H_
 #define PPM_FLAG_HELPERS_H_
 #ifndef UDIG
+#ifndef __SYSDIG_BTF_BUILD__
 #include <linux/mman.h>
 #include <linux/futex.h>
 #include <linux/ptrace.h>
+#endif
 #include "ppm.h"
 #endif
 #ifdef WDIG

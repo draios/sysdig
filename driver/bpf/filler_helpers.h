@@ -9,6 +9,7 @@ or GPL2.txt for full copies of the license.
 #ifndef __SYSDIGBPF_HELPERS_H
 #define __SYSDIGBPF_HELPERS_H
 
+#ifndef __SYSDIG_BTF_BUILD__
 #include <net/compat.h>
 #include <net/sock.h>
 #include <net/inet_sock.h>
@@ -16,6 +17,7 @@ or GPL2.txt for full copies of the license.
 #include <linux/in.h>
 #include <linux/fdtable.h>
 #include <linux/net.h>
+#endif
 
 #include "../ppm_flag_helpers.h"
 
@@ -810,7 +812,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
 		if (!data->curarg_already_on_frame) {
-			bpf_printk("expected arg already on frame: evt_type %d, curarg %d, type %d\n",
+			sysdig_bpf_printk("expected arg already on frame: evt_type %d, curarg %d, type %d\n",
 				   data->state->tail_ctx.evt_type,
 				   data->state->tail_ctx.curarg, type);
 			return PPM_FAILURE_BUG;
@@ -865,7 +867,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 		len = sizeof(s64);
 		break;
 	default: {
-		bpf_printk("unhandled type in bpf_val_to_ring: evt_type %d, curarg %d, type %d\n",
+		sysdig_bpf_printk("unhandled type in bpf_val_to_ring: evt_type %d, curarg %d, type %d\n",
 			   data->state->tail_ctx.evt_type,
 			   data->state->tail_ctx.curarg, type);
 		return PPM_FAILURE_BUG;
@@ -890,7 +892,7 @@ static __always_inline int bpf_val_to_ring(struct filler_data *data,
 	const struct ppm_param_info *param_info;
 
 	if (data->state->tail_ctx.curarg >= PPM_MAX_EVENT_PARAMS) {
-		bpf_printk("invalid curarg: %d\n", data->state->tail_ctx.curarg);
+		sysdig_bpf_printk("invalid curarg: %d\n", data->state->tail_ctx.curarg);
 		return PPM_FAILURE_BUG;
 	}
 
@@ -906,7 +908,7 @@ static __always_inline int bpf_val_to_ring_len(struct filler_data *data,
 	const struct ppm_param_info *param_info;
 
 	if (data->state->tail_ctx.curarg >= PPM_MAX_EVENT_PARAMS) {
-		bpf_printk("invalid curarg: %d\n", data->state->tail_ctx.curarg);
+		sysdig_bpf_printk("invalid curarg: %d\n", data->state->tail_ctx.curarg);
 		return PPM_FAILURE_BUG;
 	}
 

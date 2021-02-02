@@ -24,7 +24,9 @@ or GPL2.txt for full copies of the license.
 #define ASSERT(expr)
 #endif
 
+#ifndef __SYSDIG_BTF_BUILD__
 #include <linux/time.h>
+#endif
 
 /*
  * Global defines

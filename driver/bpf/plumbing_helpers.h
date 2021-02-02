@@ -9,26 +9,39 @@ or GPL2.txt for full copies of the license.
 #ifndef __PLUMBING_HELPERS_H
 #define __PLUMBING_HELPERS_H
 
+#include <bpf/bpf_helpers.h>
+#include <bpf/bpf_core_read.h>
+#ifndef __SYSDIG_BTF_BUILD__
 #include <linux/ptrace.h>
 #include <linux/version.h>
 #include <linux/fdtable.h>
+#else
+#include "vmlinux.h"
+#endif
 
 #include "types.h"
 
+#ifndef __SYSDIG_BTF_BUILD__
 #define _READ(P) ({ typeof(P) _val;				\
 		    memset(&_val, 0, sizeof(_val));		\
 		    bpf_probe_read(&_val, sizeof(_val), &P);	\
 		    _val;					\
 		 })
+#else
+#define _READ(P) ({ typeof(P) _val;				\
+		    bpf_core_read(&_val, sizeof(_val), &P);	\
+		    _val;					\
+		 })
+#endif
 
 #ifdef BPF_DEBUG
-#define bpf_printk(fmt, ...)					\
+#define sysdig_bpf_printk(fmt, ...)					\
 	do {							\
 		char s[] = fmt;					\
 		bpf_trace_printk(s, sizeof(s), ##__VA_ARGS__);	\
 	} while (0)
 #else
-#define bpf_printk(fmt, ...)
+#define sysdig_bpf_printk(fmt, ...)
 #endif
 
 #ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
@@ -38,7 +51,7 @@ static __always_inline int __stash_args(unsigned long long id,
 	int ret = bpf_map_update_elem(&stash_map, &id, args, BPF_ANY);
 
 	if (ret)
-		bpf_printk("error stashing arguments for %d:%d\n", id, ret);
+		sysdig_bpf_printk("error stashing arguments for %d:%d\n", id, ret);
 
 	return ret;
 }
@@ -178,7 +191,7 @@ static __always_inline char *get_frame_scratch_area(unsigned int cpu)
 
 	scratchp = bpf_map_lookup_elem(&frame_scratch_map, &cpu);
 	if (!scratchp)
-		bpf_printk("frame scratch NULL\n");
+		sysdig_bpf_printk("frame scratch NULL\n");
 
 	return scratchp;
 }
@@ -189,7 +202,7 @@ static __always_inline char *get_tmp_scratch_area(unsigned int cpu)
 
 	scratchp = bpf_map_lookup_elem(&tmp_scratch_map, &cpu);
 	if (!scratchp)
-		bpf_printk("tmp scratch NULL\n");
+		sysdig_bpf_printk("tmp scratch NULL\n");
 
 	return scratchp;
 }
@@ -200,7 +213,7 @@ static __always_inline const struct syscall_evt_pair *get_syscall_info(int id)
 			bpf_map_lookup_elem(&syscall_table, &id);
 
 	if (!p)
-		bpf_printk("no syscall_info for %d\n", id);
+		sysdig_bpf_printk("no syscall_info for %d\n", id);
 
 	return p;
 }
@@ -211,7 +224,7 @@ static __always_inline const struct ppm_event_info *get_event_info(enum ppm_even
 		bpf_map_lookup_elem(&event_info_table, &event_type);
 
 	if (!e)
-		bpf_printk("no event info for %d\n", event_type);
+		sysdig_bpf_printk("no event info for %d\n", event_type);
 
 	return e;
 }
@@ -222,7 +235,7 @@ static __always_inline const struct ppm_event_entry *get_event_filler_info(enum 
 
 	e = bpf_map_lookup_elem(&fillers_table, &event_type);
 	if (!e)
-		bpf_printk("no filler info for %d\n", event_type);
+		sysdig_bpf_printk("no filler info for %d\n", event_type);
 
 	return e;
 }
@@ -234,7 +247,7 @@ static __always_inline struct sysdig_bpf_settings *get_bpf_settings(void)
 
 	settings = bpf_map_lookup_elem(&settings_map, &id);
 	if (!settings)
-		bpf_printk("settings NULL\n");
+		sysdig_bpf_printk("settings NULL\n");
 
 	return settings;
 }
@@ -245,7 +258,7 @@ static __always_inline struct sysdig_bpf_per_cpu_state *get_local_state(unsigned
 
 	state = bpf_map_lookup_elem(&local_state_map, &cpu);
 	if (!state)
-		bpf_printk("state NULL\n");
+		sysdig_bpf_printk("state NULL\n");
 
 	return state;
 }
@@ -253,7 +266,7 @@ static __always_inline struct sysdig_bpf_per_cpu_state *get_local_state(unsigned
 static __always_inline bool acquire_local_state(struct sysdig_bpf_per_cpu_state *state)
 {
 	if (state->in_use) {
-		bpf_printk("acquire_local_state: already in use\n");
+		sysdig_bpf_printk("acquire_local_state: already in use\n");
 		return false;
 	}
 
@@ -264,7 +277,7 @@ static __always_inline bool acquire_local_state(struct sysdig_bpf_per_cpu_state 
 static __always_inline bool release_local_state(struct sysdig_bpf_per_cpu_state *state)
 {
 	if (!state->in_use) {
-		bpf_printk("release_local_state: already not in use\n");
+		sysdig_bpf_printk("release_local_state: already not in use\n");
 		return false;
 	}
 
@@ -473,7 +486,7 @@ static __always_inline void call_filler(void *ctx,
 		goto cleanup;
 
 	bpf_tail_call(ctx, &tail_map, filler_info->filler_id);
-	bpf_printk("Can't tail call filler evt=%d, filler=%d\n",
+	sysdig_bpf_printk("Can't tail call filler evt=%d, filler=%d\n",
 		   state->tail_ctx.evt_type,
 		   filler_info->filler_id);
 

@@ -6,12 +6,17 @@ This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
 
 */
-#include "quirks.h"
 
+#ifndef __SYSDIG_BTF_BUILD__
+#include "quirks.h"
 #include <generated/utsrelease.h>
-#include <bpf/bpf_helpers.h>
 #include <uapi/linux/bpf.h>
 #include <linux/sched.h>
+#else
+#include "vmlinux.h"
+#endif
+
+#include <bpf/bpf_helpers.h>
 
 #include "../driver_config.h"
 #include "../ppm_events_public.h"
