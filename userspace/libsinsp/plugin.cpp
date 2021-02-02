@@ -160,7 +160,11 @@ public:
  					__sync_bool_compare_and_swap(lock, 3, 1);
 				#endif
 
-				while(*lock != 3);
+				do
+				{
+					// todo(leogr): needs to be profiled
+					std::this_thread::yield();
+				} while (*lock != 3);
 				pret = m_pasync_extractor_info->res;
  			//	while(worker_done == false)
  			//	{
