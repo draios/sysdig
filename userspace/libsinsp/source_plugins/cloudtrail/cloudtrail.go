@@ -6,13 +6,14 @@ package main
 
 typedef struct async_extractor_info
 {
-	int32_t lock;
+	volatile int32_t lock;
 	uint64_t evtnum;
 	uint32_t id;
 	char* arg;
-	uint8_t* data;
+	char* data;
 	uint32_t datalen;
-	uint32_t* field_present;
+	uint32_t field_present;
+	char* res;
 } async_extractor_info;
 */
 import "C"
@@ -894,22 +895,33 @@ func plugin_extract_u64(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 func async_extractor_worker(info *C.async_extractor_info) {
 	var glock *int32 = (*int32)(&(info.lock))
 	for true {
+		//time.Sleep(3 * time.Microsecond)
+
 		if atomic.CompareAndSwapInt32(glock,
 			1,   // old
 			2) { // new
 			//
 			//
 			//
-			fmt.Printf("E\n")
+			(*info).res = plugin_extract_str(uint64(info.evtnum), uint32(info.id), info.arg, info.data, uint32(info.datalen))
+			//time.Sleep(3 * time.Second)
+
+			for true {
+				if atomic.CompareAndSwapInt32(glock,
+					2,   // old
+					3) { // new
+					break
+				}
+			}
 		}
 	}
 }
 
 //export plugin_register_async_extractor
-// func plugin_register_async_extractor(info *C.async_extractor_info) int32 {
-// 	go async_extractor_worker(info)
-// 	return SCAP_SUCCESS
-// }
+func plugin_register_async_extractor(info *C.async_extractor_info) int32 {
+	go async_extractor_worker(info)
+	return SCAP_SUCCESS
+}
 
 func main() {
 }

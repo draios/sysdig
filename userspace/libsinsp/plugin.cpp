@@ -148,32 +148,29 @@ public:
  				bool worker_ready = false;
  				bool worker_done = false;
 				volatile int32_t* lock = &(m_pasync_extractor_info->lock);
+				m_pasync_extractor_info->evtnum = evt->get_num();
 				m_pasync_extractor_info->id = m_field_id;
 				m_pasync_extractor_info->arg = m_arg;
-				m_pasync_extractor_info->data = (uint8_t*)parinfo->m_val;
+				m_pasync_extractor_info->data = parinfo->m_val;
 				m_pasync_extractor_info->datalen= parinfo->m_len;
 
-				while(*lock != 2);
-
- 				while(worker_ready == false)
- 				{
 				#ifdef _WIN32
- 					LONG xr = InterlockedCompareExchange((volatile LONG*)lock, 2, 1);
- 					worker_ready = (xr == 1);
+ 					InterlockedCompareExchange((volatile LONG*)lock, 1, 3);
 				#else
- 					worker_ready = __sync_bool_compare_and_swap(lock, 1, 2);
+ 					__sync_bool_compare_and_swap(lock, 3, 1);
 				#endif
- 				}
 
- 				while(worker_done == false)
- 				{
-				#ifdef _WIN32
- 					LONG xr = InterlockedCompareExchange((volatile LONG*)lock, 1, 2);
- 					worker_done = (xr == 2);
-				#else
- 					worker_done = __sync_bool_compare_and_swap(lock, 2, 1);
-				#endif
- 				}
+				while(*lock != 3);
+				pret = m_pasync_extractor_info->res;
+ 			//	while(worker_done == false)
+ 			//	{
+				//#ifdef _WIN32
+ 			//		LONG xr = InterlockedCompareExchange((volatile LONG*)lock, 1, 2);
+ 			//		worker_done = (xr == 2);
+				//#else
+ 			//		worker_done = __sync_bool_compare_and_swap(lock, 2, 1);
+				//#endif
+ 			//	}
 
 			}
 
@@ -390,7 +387,7 @@ void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
 		if(m_source_info.register_async_extractor)
 		{
 			//
-			// 3 means: "no events received yet"
+			// 2 means: "worker done"
 			//
 			m_async_extractor_info.lock = 3;
 			if(m_source_info.register_async_extractor(&m_async_extractor_info) != SCAP_SUCCESS)

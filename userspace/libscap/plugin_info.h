@@ -34,13 +34,14 @@ typedef enum ss_plugin_type
 
 typedef struct async_extractor_info
 {
-	int32_t lock;
+	volatile int32_t lock;
 	uint64_t evtnum;
 	uint32_t id;
 	char* arg;
-	uint8_t* data;
+	char* data;
 	uint32_t datalen;
 	uint32_t field_present;
+	char* res;
 } async_extractor_info;
 
 //
