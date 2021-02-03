@@ -22,17 +22,17 @@ or GPL2.txt for full copies of the license.
 #include "types.h"
 
 #ifndef __SYSDIG_BTF_BUILD__
-#define _READ(P) ({ typeof(P) _val;				\
-		    memset(&_val, 0, sizeof(_val));		\
-		    bpf_probe_read(&_val, sizeof(_val), &P);	\
-		    _val;					\
-		 })
+#define sysdig_bpf_probe_read(a, b, c) bpf_probe_read(a, b, c)
+#define sysdig_bpf_probe_read_str(a, b, c) bpf_probe_read_str(a, b, c)
 #else
+#define sysdig_bpf_probe_read(a, b, c) bpf_core_read(a, b, c)
+#define sysdig_bpf_probe_read_str(a, b, c) bpf_core_read_str(a, b, c)
+#endif
+
 #define _READ(P) ({ typeof(P) _val;				\
-		    bpf_core_read(&_val, sizeof(_val), &P);	\
+		    sysdig_bpf_probe_read(&_val, sizeof(_val), &P);	\
 		    _val;					\
 		 })
-#endif
 
 #ifdef BPF_DEBUG
 #define sysdig_bpf_printk(fmt, ...)					\

@@ -303,11 +303,11 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
 	val = bpf_syscall_get_argument(data, 0);
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 	if (read_size)
-		if (bpf_probe_read(fds,
+		if (sysdig_bpf_probe_read(fds,
 				   ((read_size - 1) & SCRATCH_SIZE_MAX) + 1,
 				   (void *)val))
 #else
-	if (bpf_probe_read(fds, read_size & SCRATCH_SIZE_MAX, (void *)val))
+	if (sysdig_bpf_probe_read(fds, read_size & SCRATCH_SIZE_MAX, (void *)val))
 #endif
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
@@ -416,11 +416,11 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 	if (copylen)
-		if (bpf_probe_read((void *)iov,
+		if (sysdig_bpf_probe_read((void *)iov,
 				   ((copylen - 1) & SCRATCH_SIZE_MAX) + 1,
 				   (void *)iovsrc))
 #else
-	if (bpf_probe_read((void *)iov,
+	if (sysdig_bpf_probe_read((void *)iov,
 			   copylen & SCRATCH_SIZE_MAX,
 			   (void *)iovsrc))
 #endif
@@ -470,11 +470,11 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 				if (to_read)
-					if (bpf_probe_read(&data->buf[off & SCRATCH_SIZE_HALF],
+					if (sysdig_bpf_probe_read(&data->buf[off & SCRATCH_SIZE_HALF],
 							   ((to_read - 1) & SCRATCH_SIZE_HALF) + 1,
 							   iov[j].iov_base))
 #else
-				if (bpf_probe_read(&data->buf[off & SCRATCH_SIZE_HALF],
+				if (sysdig_bpf_probe_read(&data->buf[off & SCRATCH_SIZE_HALF],
 						   to_read & SCRATCH_SIZE_HALF,
 						   iov[j].iov_base))
 #endif
@@ -582,7 +582,7 @@ static __always_inline int timespec_parse(struct filler_data *data,
 	u64 longtime;
 	struct timespec ts;
 
-	if (bpf_probe_read(&ts, sizeof(ts), (void *)val))
+	if (sysdig_bpf_probe_read(&ts, sizeof(ts), (void *)val))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	longtime = ((u64)ts.tv_sec) * 1000000000 + ts.tv_nsec;
@@ -636,7 +636,7 @@ static __always_inline unsigned long bpf_get_mm_counter(struct mm_struct *mm,
 {
 	long val;
 
-	bpf_probe_read(&val, sizeof(val), &mm->rss_stat.count[member]);
+	sysdig_bpf_probe_read(&val, sizeof(val), &mm->rss_stat.count[member]);
 	if (val < 0)
 		val = 0;
 
@@ -667,7 +667,7 @@ FILLER(sys_brk_munmap_mmap_x, true)
 
 	task = (struct task_struct *)bpf_get_current_task();
 	mm = NULL;
-	bpf_probe_read(&mm, sizeof(mm), &task->mm);
+	sysdig_bpf_probe_read(&mm, sizeof(mm), &task->mm);
 
 	retval = bpf_syscall_get_retval(data->ctx);
 	res = bpf_val_to_ring_type(data, retval, PT_UINT64);
@@ -833,7 +833,7 @@ FILLER(sys_getrlimit_setrlrimit_x, true)
 		struct rlimit rl;
 
 		val = bpf_syscall_get_argument(data, 1);
-		if (bpf_probe_read(&rl, sizeof(rl), (void *)val))
+		if (sysdig_bpf_probe_read(&rl, sizeof(rl), (void *)val))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		cur = rl.rlim_cur;
@@ -933,7 +933,7 @@ FILLER(sys_socketpair_x, true)
 
 	if (retval >= 0) {
 		val = bpf_syscall_get_argument(data, 3);
-		if (bpf_probe_read(fds, 2 * sizeof(int), (void *)val))
+		if (sysdig_bpf_probe_read(fds, 2 * sizeof(int), (void *)val))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		struct socket *sock = bpf_sockfd_lookup(data, fds[0]);
@@ -973,7 +973,7 @@ static int __always_inline parse_sockopt(struct filler_data *data, int level, in
 		switch (optname) {
 #ifdef SO_ERROR
 			case SO_ERROR:
-				if (bpf_probe_read(&u.val32, sizeof(u.val32), optval))
+				if (sysdig_bpf_probe_read(&u.val32, sizeof(u.val32), optval))
 					return PPM_FAILURE_INVALID_USER_MEMORY;
 				return bpf_val_to_ring_dyn(data, -u.val32, PT_ERRNO, PPM_SOCKOPT_IDX_ERRNO);
 #endif
@@ -984,13 +984,13 @@ static int __always_inline parse_sockopt(struct filler_data *data, int level, in
 #ifdef SO_SNDTIMEO
 			case SO_SNDTIMEO:
 #endif
-				if (bpf_probe_read(&u.tv, sizeof(u.tv), optval))
+				if (sysdig_bpf_probe_read(&u.tv, sizeof(u.tv), optval))
 					return PPM_FAILURE_INVALID_USER_MEMORY;
 				return bpf_val_to_ring_dyn(data, u.tv.tv_sec * 1000000000 + u.tv.tv_usec * 1000, PT_RELTIME, PPM_SOCKOPT_IDX_TIMEVAL);
 
 #ifdef SO_COOKIE
 			case SO_COOKIE:
-				if (bpf_probe_read(&u.val64, sizeof(u.val64), optval))
+				if (sysdig_bpf_probe_read(&u.val64, sizeof(u.val64), optval))
 					return PPM_FAILURE_INVALID_USER_MEMORY;
 				return bpf_val_to_ring_dyn(data, u.val64, PT_UINT64, PPM_SOCKOPT_IDX_UINT64);
 #endif
@@ -1121,7 +1121,7 @@ static int __always_inline parse_sockopt(struct filler_data *data, int level, in
 #ifdef SO_INCOMING_CPU
 			case SO_INCOMING_CPU:
 #endif
-				if (bpf_probe_read(&u.val32, sizeof(u.val32), optval))
+				if (sysdig_bpf_probe_read(&u.val32, sizeof(u.val32), optval))
 					return PPM_FAILURE_INVALID_USER_MEMORY;
 				return bpf_val_to_ring_dyn(data, u.val32, PT_UINT32, PPM_SOCKOPT_IDX_UINT32);
 
@@ -1208,7 +1208,7 @@ FILLER(sys_getsockopt_x, true)
 	/* optval */
 	optval = bpf_syscall_get_argument(data, 3);
 	optlen_p = bpf_syscall_get_argument(data, 4);
-	if (bpf_probe_read(&optlen, sizeof(optlen), (void*)optlen_p))
+	if (sysdig_bpf_probe_read(&optlen, sizeof(optlen), (void*)optlen_p))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	res = parse_sockopt(data, level, optname, (void*)optval, optlen);
@@ -1549,7 +1549,7 @@ static __always_inline int __bpf_append_cgroup(struct css_set *cgroups,
 	if (off > SCRATCH_SIZE_HALF)
 		return PPM_FAILURE_BUFFER_FULL;
 
-	int res = bpf_probe_read_str(&buf[off & SCRATCH_SIZE_HALF],
+	int res = sysdig_bpf_probe_read_str(&buf[off & SCRATCH_SIZE_HALF],
 				     SCRATCH_SIZE_HALF,
 				     subsys_name);
 	if (res == -EFAULT)
@@ -1589,7 +1589,7 @@ static __always_inline int __bpf_append_cgroup(struct css_set *cgroups,
 			if (off > SCRATCH_SIZE_HALF)
 				return PPM_FAILURE_BUFFER_FULL;
 
-			res = bpf_probe_read_str(&buf[off & SCRATCH_SIZE_HALF],
+			res = sysdig_bpf_probe_read_str(&buf[off & SCRATCH_SIZE_HALF],
 						 SCRATCH_SIZE_HALF,
 						 cgroup_path[k]);
 			if (res > 1)
@@ -1675,7 +1675,7 @@ static __always_inline int bpf_accumulate_argv_or_env(struct filler_data *data,
 		if (off > SCRATCH_SIZE_HALF)
 			return PPM_FAILURE_BUFFER_FULL;
 
-		len = bpf_probe_read_str(&data->buf[off & SCRATCH_SIZE_HALF], SCRATCH_SIZE_HALF, arg);
+		len = sysdig_bpf_probe_read_str(&data->buf[off & SCRATCH_SIZE_HALF], SCRATCH_SIZE_HALF, arg);
 		if (len == -EFAULT)
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
@@ -1745,11 +1745,11 @@ FILLER(proc_startupdate, true)
 				args_len = ARGS_ENV_SIZE_MAX;
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
-			if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+			if (sysdig_bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 						((args_len - 1) & SCRATCH_SIZE_HALF) + 1,
 						(void *)arg_start))
 #else
-			if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+			if (sysdig_bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 						args_len & SCRATCH_SIZE_HALF,
 						(void *)arg_start))
 #endif
@@ -1774,7 +1774,7 @@ FILLER(proc_startupdate, true)
 	if (args_len) {
 		int exe_len;
 
-		exe_len = bpf_probe_read_str(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+		exe_len = sysdig_bpf_probe_read_str(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 						SCRATCH_SIZE_HALF,
 						&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]);
 
@@ -2064,11 +2064,11 @@ FILLER(proc_startupdate_3, true)
 					env_len = ARGS_ENV_SIZE_MAX;
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
-				if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+				if (sysdig_bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 						   ((env_len - 1) & SCRATCH_SIZE_HALF) + 1,
 						   (void *)env_start))
 #else
-				if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+				if (sysdig_bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 						   env_len & SCRATCH_SIZE_HALF,
 						   (void *)env_start))
 #endif
@@ -2451,7 +2451,7 @@ FILLER(sys_prlimit_x, true)
 	 */
 	if (retval >= 0) {
 		val = bpf_syscall_get_argument(data, 2);
-		if (bpf_probe_read(&rl, sizeof(rl), (void *)val)) {
+		if (sysdig_bpf_probe_read(&rl, sizeof(rl), (void *)val)) {
 			newcur = -1;
 			newmax = -1;
 		} else {
@@ -2464,7 +2464,7 @@ FILLER(sys_prlimit_x, true)
 	}
 
 	val = bpf_syscall_get_argument(data, 3);
-	if (bpf_probe_read(&rl, sizeof(rl), (void *)val)) {
+	if (sysdig_bpf_probe_read(&rl, sizeof(rl), (void *)val)) {
 		oldcur = -1;
 		oldmax = -1;
 	} else {
@@ -2707,7 +2707,7 @@ FILLER(sys_recvfrom_x, true)
 		val = bpf_syscall_get_argument(data, 5);
 
 		if (usrsockaddr && val != 0) {
-			if (bpf_probe_read(&addrlen, sizeof(addrlen),
+			if (sysdig_bpf_probe_read(&addrlen, sizeof(addrlen),
 					   (void *)val))
 				return PPM_FAILURE_INVALID_USER_MEMORY;
 
@@ -2787,7 +2787,7 @@ FILLER(sys_recvmsg_x, true)
 	 * Retrieve the message header
 	 */
 	val = bpf_syscall_get_argument(data, 1);
-	if (bpf_probe_read(&mh, sizeof(mh), (void *)val))
+	if (sysdig_bpf_probe_read(&mh, sizeof(mh), (void *)val))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	/*
@@ -2826,7 +2826,7 @@ FILLER(sys_recvmsg_x_2, true)
 		 * Retrieve the message header
 		 */
 		val = bpf_syscall_get_argument(data, 1);
-		if (bpf_probe_read(&mh, sizeof(mh), (void *)val))
+		if (sysdig_bpf_probe_read(&mh, sizeof(mh), (void *)val))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		/*
@@ -2891,7 +2891,7 @@ FILLER(sys_sendmsg_e, true)
 	 * Retrieve the message header
 	 */
 	val = bpf_syscall_get_argument(data, 1);
-	if (bpf_probe_read(&mh, sizeof(mh), (void *)val))
+	if (sysdig_bpf_probe_read(&mh, sizeof(mh), (void *)val))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	/*
@@ -2960,7 +2960,7 @@ FILLER(sys_sendmsg_x, true)
 	 * data
 	 */
 	val = bpf_syscall_get_argument(data, 1);
-	if (bpf_probe_read(&mh, sizeof(mh), (void *)val))
+	if (sysdig_bpf_probe_read(&mh, sizeof(mh), (void *)val))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	iov = (const struct iovec *)mh.msg_iov;
@@ -3034,7 +3034,7 @@ FILLER(sys_pipe_x, true)
 	 * fds
 	 */
 	val = bpf_syscall_get_argument(data, 0);
-	if (bpf_probe_read(fds, sizeof(fds), (void *)val))
+	if (sysdig_bpf_probe_read(fds, sizeof(fds), (void *)val))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	res = bpf_val_to_ring(data, fds[0]);
@@ -3194,7 +3194,7 @@ FILLER(sys_ppoll_e, true)
 	 */
 	val = bpf_syscall_get_argument(data, 3);
 	if (val != (unsigned long)NULL)
-		if (bpf_probe_read(&val, sizeof(val), (void *)val))
+		if (sysdig_bpf_probe_read(&val, sizeof(val), (void *)val))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	res = bpf_val_to_ring_type(data, val, PT_SIGSET);
@@ -3240,7 +3240,7 @@ FILLER(sys_semop_x, true)
 			struct sembuf sops = {0, 0, 0};
 
 			if (nsops--)
-				if (bpf_probe_read(&sops, sizeof(sops),
+				if (sysdig_bpf_probe_read(&sops, sizeof(sops),
 						   (void *)&ptr[j]))
 					return PPM_FAILURE_INVALID_USER_MEMORY;
 
@@ -3826,7 +3826,7 @@ FILLER(sys_quotactl_x, true)
 	 * dqblk fields if present
 	 */
 	if (cmd == PPM_Q_GETQUOTA || cmd == PPM_Q_SETQUOTA) {
-		if (bpf_probe_read(&dqblk, sizeof(dqblk),
+		if (sysdig_bpf_probe_read(&dqblk, sizeof(dqblk),
 				   (void *)val))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
@@ -3898,7 +3898,7 @@ FILLER(sys_quotactl_x, true)
 	 * dqinfo fields if present
 	 */
 	if (cmd == PPM_Q_GETINFO || cmd == PPM_Q_SETINFO) {
-		if (bpf_probe_read(&dqinfo, sizeof(dqinfo),
+		if (sysdig_bpf_probe_read(&dqinfo, sizeof(dqinfo),
 				   (void *)val))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
@@ -3937,7 +3937,7 @@ FILLER(sys_quotactl_x, true)
 	if (cmd == PPM_Q_GETFMT) {
 		u32 tmp;
 
-		if (bpf_probe_read(&tmp, sizeof(tmp), (void *)val))
+		if (sysdig_bpf_probe_read(&tmp, sizeof(tmp), (void *)val))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 		quota_fmt_out = quotactl_fmt_to_scap(tmp);
 	}
@@ -4071,7 +4071,7 @@ static __always_inline int bpf_parse_ptrace_data(struct filler_data *data, u16 r
 	case PPM_PTRACE_PEEKUSR:
 		idx = PPM_PTRACE_IDX_UINT64;
 		type = PT_UINT64;
-		if (bpf_probe_read(&dst, sizeof(long), (void *)val))
+		if (sysdig_bpf_probe_read(&dst, sizeof(long), (void *)val))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		break;

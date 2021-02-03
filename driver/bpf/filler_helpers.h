@@ -199,9 +199,9 @@ static __always_inline bool bpf_getsockname(struct socket *sock,
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 			if (len > 0)
-				bpf_probe_read(sunaddr, ((len - 1) & 0xff) + 1, addr->name);
+				sysdig_bpf_probe_read(sunaddr, ((len - 1) & 0xff) + 1, addr->name);
 #else
-			bpf_probe_read(sunaddr, len, addr->name);
+			sysdig_bpf_probe_read(sunaddr, len, addr->name);
 #endif
 		}
 
@@ -224,9 +224,9 @@ static __always_inline int bpf_addr_to_kernel(void *uaddr, int ulen,
 		return 0;
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
-	if (bpf_probe_read(kaddr, ((ulen - 1) & 0xff) + 1, uaddr))
+	if (sysdig_bpf_probe_read(kaddr, ((ulen - 1) & 0xff) + 1, uaddr))
 #else
-	if (bpf_probe_read(kaddr, ulen & 0xff, uaddr))
+	if (sysdig_bpf_probe_read(kaddr, ulen & 0xff, uaddr))
 #endif
 		return -EFAULT;
 
@@ -307,7 +307,7 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 		int addrlen;
 
 		val = bpf_syscall_get_argument(data, 1);
-		if (bpf_probe_read(&mh, sizeof(mh), (void *)val)) {
+		if (sysdig_bpf_probe_read(&mh, sizeof(mh), (void *)val)) {
 			usrsockaddr = NULL;
 			addrlen = 0;
 		} else {
@@ -488,7 +488,7 @@ static __always_inline u16 bpf_pack_addr(struct filler_data *data,
 
 		data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
 
-		res = bpf_probe_read_str(&data->buf[(data->state->tail_ctx.curoff + 1) & SCRATCH_SIZE_HALF],
+		res = sysdig_bpf_probe_read_str(&data->buf[(data->state->tail_ctx.curoff + 1) & SCRATCH_SIZE_HALF],
 					 UNIX_PATH_MAX,
 					 usrsockaddr_un->sun_path);
 
@@ -698,7 +698,7 @@ static __always_inline long bpf_fd_to_socktuple(struct filler_data *data,
 				us_name = usrsockaddr_un->sun_path;
 		}
 
-		int res = bpf_probe_read_str(&data->buf[(data->state->tail_ctx.curoff + 1 + 8 + 8) & SCRATCH_SIZE_HALF],
+		int res = sysdig_bpf_probe_read_str(&data->buf[(data->state->tail_ctx.curoff + 1 + 8 + 8) & SCRATCH_SIZE_HALF],
 					     UNIX_PATH_MAX,
 					     us_name);
 
@@ -741,7 +741,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 		if (!data->curarg_already_on_frame) {
 			int res;
 
-			res = bpf_probe_read_str(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+			res = sysdig_bpf_probe_read_str(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 						 PPM_MAX_ARG_SIZE,
 						 (const void *)val);
 			if (res == -EFAULT)
@@ -768,11 +768,11 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 					if (read_size)
-						if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+						if (sysdig_bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 								   ((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
 								   (void *)val))
 #else
-					if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+					if (sysdig_bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 							   read_size & SCRATCH_SIZE_HALF,
 							   (void *)val))
 #endif
@@ -793,11 +793,11 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 				if (read_size)
-					if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+					if (sysdig_bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 							   ((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
 							   (void *)val))
 #else
-				if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+				if (sysdig_bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 						   read_size & SCRATCH_SIZE_HALF,
 						   (void *)val))
 #endif
