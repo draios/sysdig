@@ -13,6 +13,8 @@
 
 #define NULL ((void *)0)
 
+#define BPF_SUPPORTS_RAW_TRACEPOINTS
+
 /* We make all the kernel flags specific for a given target architecture,
 in this way we avoid incompatibilities even if some architecture might share values */
 #ifdef __TARGET_ARCH_X86__

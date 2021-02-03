@@ -35,9 +35,9 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     set(LIBBPF_LIB "${LIBBPF_BUILD_DIR}/root/usr/lib64/libbpf.a")
     ExternalProject_Add(
       libbpf
-      URL "https://github.com/libbpf/libbpf/archive/v0.3.tar.gz"
+      URL "https://github.com/libbpf/libbpf/archive/a199b854156ccac574eb031d464d8fd1a5523ce2.tar.gz"
       URL_HASH
-        "SHA256=c168d84a75b541f753ceb49015d9eb886e3fb5cca87cdd9aabce7e10ad3a1efc"
+        "SHA256=9519fb0df06db85484ce934adf7a4b0ea9363c9496a2b427acdd03a0a9d9348d"
       CONFIGURE_COMMAND mkdir -p build root
       BUILD_COMMAND BUILD_STATIC_ONLY=y OBJDIR=${LIBBPF_BUILD_DIR}/build DESTDIR=${LIBBPF_BUILD_DIR}/root make -C ${LIBBPF_SRC}/libbpf/src install
       INSTALL_COMMAND "")

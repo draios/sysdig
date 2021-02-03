@@ -27,7 +27,6 @@ or GPL2.txt for full copies of the license.
 #include <linux/tty.h>
 #include <linux/audit.h>
 
-
 /*
  * Linux 5.6 kernels no longer include the old 32-bit timeval
  * structures. But the syscalls (might) still use them.
@@ -465,17 +464,18 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 				else
 					to_read = remaining;
 
-				if (to_read > SCRATCH_SIZE_HALF)
-					to_read = SCRATCH_SIZE_HALF;
-
+				if (to_read >= SCRATCH_SIZE_HALF)
+					to_read = SCRATCH_SIZE_HALF - 1;
+                                fix_var_compat(off);
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 				if (to_read)
 					if (sysdig_bpf_probe_read(&data->buf[off & SCRATCH_SIZE_HALF],
 							   ((to_read - 1) & SCRATCH_SIZE_HALF) + 1,
 							   iov[j].iov_base))
 #else
+
 				if (sysdig_bpf_probe_read(&data->buf[off & SCRATCH_SIZE_HALF],
-						   to_read & SCRATCH_SIZE_HALF,
+                                                   to_read & SCRATCH_SIZE_HALF,
 						   iov[j].iov_base))
 #endif
 					return PPM_FAILURE_INVALID_USER_MEMORY;
@@ -675,7 +675,7 @@ FILLER(sys_brk_munmap_mmap_x, true)
 		return res;
 
 	if (mm) {
-		total_vm = _READ(mm->total_vm);
+		total_vm = _SYSDIG_READ(mm, total_vm);
 		total_vm <<= (PAGE_SHIFT - 10);
 		total_rss = bpf_get_mm_rss(mm) << (PAGE_SHIFT - 10);
 		swap = bpf_get_mm_swap(mm) << (PAGE_SHIFT - 10);
@@ -939,8 +939,8 @@ FILLER(sys_socketpair_x, true)
 		struct socket *sock = bpf_sockfd_lookup(data, fds[0]);
 
 		if (sock) {
-			us = (struct unix_sock *)_READ(sock->sk);
-			speer = _READ(us->peer);
+			us = (struct unix_sock *)_SYSDIG_READ(sock, sk);
+			speer = _SYSDIG_READ(us, peer);
 		}
 	}
 	/* fd1 */
@@ -1381,22 +1381,22 @@ static __always_inline int bpf_ppm_get_tty(struct task_struct *task)
 	int index;
 	int tty_nr = 0;
 
-	sig = _READ(task->signal);
+	sig = _SYSDIG_READ(task, signal);
 	if (!sig)
 		return 0;
 
-	tty = _READ(sig->tty);
+	tty = _SYSDIG_READ(sig, tty);
 	if (!tty)
 		return 0;
 
-	index = _READ(tty->index);
+	index = _SYSDIG_READ(tty, index);
 
-	driver = _READ(tty->driver);
+	driver = _SYSDIG_READ(tty, driver);
 	if (!driver)
 		return 0;
 
-	major = _READ(driver->major);
-	minor_start = _READ(driver->minor_start);
+	major = _SYSDIG_READ(driver, major);
+	minor_start = _SYSDIG_READ(driver, minor_start);
 
 	tty_nr = new_encode_dev(MKDEV(major, minor_start) + index);
 
@@ -1406,14 +1406,14 @@ static __always_inline int bpf_ppm_get_tty(struct task_struct *task)
 static __always_inline struct pid *bpf_task_pid(struct task_struct *task)
 {
 #ifdef __SYSDIG_BTF_BUILD__
-return _READ(task->thread_pid);
+return _SYSDIG_READ(task, thread_pid);
 #else
 #if (PPM_RHEL_RELEASE_CODE > 0 && PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 0))
-	return _READ(task->thread_pid);
+	return _SYSDIG_READ(task, thread_pid);
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
-	return _READ(task->pids[PIDTYPE_PID].pid);
+	return _SYSDIG_READ(task, pids[PIDTYPE_PID].pid);
 #else
-	return _READ(task->thread_pid);
+	return _SYSDIG_READ(task, thread_pid);
 #endif
 #endif // __SYSDIG_BTF_BUILD__
 }
@@ -1423,8 +1423,8 @@ static __always_inline struct pid_namespace *bpf_ns_of_pid(struct pid *pid)
 	struct pid_namespace *ns = NULL;
 	int number;
 	if (pid)
-		number = _READ(pid->level);
-		ns = _READ(pid->numbers[number].ns);
+		number = _SYSDIG_READ(pid, level);
+		ns = _SYSDIG_READ(pid, numbers[number].ns);
 	return ns;
 }
 
@@ -1440,11 +1440,11 @@ static __always_inline pid_t bpf_pid_nr_ns(struct pid *pid,
 	struct upid *upid;
 	pid_t nr = 0;
 
-	ns_level = _READ(ns->level);
-	if (pid && ns_level <= _READ(pid->level)) {
+	ns_level = _SYSDIG_READ(ns, level);
+	if (pid && ns_level <= _SYSDIG_READ(pid, level)) {
 		upid = &pid->numbers[ns_level];
-		if (_READ(upid->ns) == ns)
-			nr = _READ(upid->nr);
+		if (_SYSDIG_READ(upid, ns) == ns)
+			nr = _SYSDIG_READ(upid, nr);
 	}
 	return nr;
 }
@@ -1456,7 +1456,7 @@ static __always_inline struct pid **bpf_task_pid_ptr(struct task_struct *task,
 {
 	return (type == PIDTYPE_PID) ?
 		&task->thread_pid :
-		&_READ(task->signal)->pids[type];
+		&_SYSDIG_READ(task, signal)->pids[type];
 }
 #endif
 #endif
@@ -1467,7 +1467,7 @@ static __always_inline struct pid **bpf_task_pid_ptr(struct task_struct *task,
 {
 	return (type == PIDTYPE_PID) ?
 		&task->thread_pid :
-		&_READ(task->signal)->pids[type];
+		&_SYSDIG_READ(task, signal)->pids[type];
 }
 #endif
 
@@ -1491,10 +1491,10 @@ static __always_inline pid_t bpf_task_pid_nr_ns(struct task_struct *task,
 		if (type == __PIDTYPE_TGID)
 			type = PIDTYPE_PID;
 
-		task = _READ(task->group_leader);
+		task = _SYSDIG_READ(task, group_leader);
 	}
 
-	nr = bpf_pid_nr_ns(_READ(task->pids[type].pid), ns);
+	nr = bpf_pid_nr_ns(_SYSDIG_READ(task, pids[type].pid), ns);
 #else
 	nr = bpf_pid_nr_ns(_READ(*bpf_task_pid_ptr(task, type)), ns);
 #endif
@@ -1537,11 +1537,11 @@ static __always_inline int __bpf_append_cgroup(struct css_set *cgroups,
 					       char *buf,
 					       int *len)
 {
-	struct cgroup_subsys_state *css = _READ(cgroups->subsys[subsys_id]);
-	struct cgroup_subsys *ss = _READ(css->ss);
-	char *subsys_name = (char *)_READ(ss->name);
-	struct cgroup *cgroup = _READ(css->cgroup);
-	struct kernfs_node *kn = _READ(cgroup->kn);
+	struct cgroup_subsys_state *css = _SYSDIG_READ(cgroups, subsys[subsys_id]);
+	struct cgroup_subsys *ss = _SYSDIG_READ(css, ss);
+	char *subsys_name = (char *)_SYSDIG_READ(ss, name);
+	struct cgroup *cgroup = _SYSDIG_READ(css, cgroup);
+	struct kernfs_node *kn = _SYSDIG_READ(cgroup, kn);
 	char *cgroup_path[MAX_CGROUP_PATHS];
 	bool prev_empty = false;
 	int off = *len;
@@ -1566,8 +1566,8 @@ static __always_inline int __bpf_append_cgroup(struct css_set *cgroups,
 	#pragma unroll MAX_CGROUP_PATHS
 	for (int k = 0; k < MAX_CGROUP_PATHS; ++k) {
 		if (kn) {
-			cgroup_path[k] = (char *)_READ(kn->name);
-			kn = _READ(kn->parent);
+			cgroup_path[k] = (char *)_SYSDIG_READ(kn, name);
+			kn = _SYSDIG_READ(kn, parent);
 		} else {
 			cgroup_path[k] = NULL;
 		}
@@ -1615,7 +1615,7 @@ static __always_inline int bpf_append_cgroup(struct task_struct *task,
 					     char *buf,
 					     int *len)
 {
-	struct css_set *cgroups = _READ(task->cgroups);
+	struct css_set *cgroups = _SYSDIG_READ(task, cgroups);
 	int res;
 
 #if IS_ENABLED(CONFIG_CPUSETS)
@@ -1720,7 +1720,7 @@ FILLER(proc_startupdate, true)
 		return res;
 
 	task = (struct task_struct *)bpf_get_current_task();
-	mm = _READ(task->mm);
+	mm = _SYSDIG_READ(task, mm);
 	if (!mm)
 		return PPM_FAILURE_BUG;
 
@@ -1733,11 +1733,11 @@ FILLER(proc_startupdate, true)
 		unsigned long arg_start;
 		unsigned long arg_end;
 
-		arg_end = _READ(mm->arg_end);
+		arg_end = _SYSDIG_READ(mm, arg_end);
 		if (!arg_end)
 			return PPM_FAILURE_BUG;
 
-		arg_start = _READ(mm->arg_start);
+		arg_start = _SYSDIG_READ(mm, arg_start);
 		args_len = arg_end - arg_start;
 
 		if (args_len) {
@@ -1774,7 +1774,8 @@ FILLER(proc_startupdate, true)
 	if (args_len) {
 		int exe_len;
 
-		exe_len = sysdig_bpf_probe_read_str(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+                // todo(fntlnz): this is probably broken with core
+		exe_len = bpf_core_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 						SCRATCH_SIZE_HALF,
 						&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]);
 
@@ -1815,7 +1816,7 @@ FILLER(proc_startupdate, true)
 	/*
 	 * tid
 	 */
-	pid = _READ(task->pid);
+	pid = _SYSDIG_READ(task, pid);
 
 	res = bpf_val_to_ring_type(data, pid, PT_PID);
 	if (res != PPM_SUCCESS)
@@ -1824,7 +1825,7 @@ FILLER(proc_startupdate, true)
 	/*
 	 * pid
 	 */
-	tgid = _READ(task->tgid);
+	tgid = _SYSDIG_READ(task, tgid);
 
 	res = bpf_val_to_ring_type(data, tgid, PT_PID);
 	if (res != PPM_SUCCESS)
@@ -1833,8 +1834,8 @@ FILLER(proc_startupdate, true)
 	/*
 	 * ptid
 	 */
-	real_parent = _READ(task->real_parent);
-	pid_t ptid = _READ(real_parent->pid);
+	real_parent = _SYSDIG_READ(task, real_parent);
+	pid_t ptid = _SYSDIG_READ(real_parent, pid);
 
 	res = bpf_val_to_ring_type(data, ptid, PT_PID);
 	if (res != PPM_SUCCESS)
@@ -1851,8 +1852,8 @@ FILLER(proc_startupdate, true)
 	/*
 	 * fdlimit
 	 */
-	signal = _READ(task->signal);
-	fdlimit = _READ(signal->rlim[RLIMIT_NOFILE].rlim_cur);
+	signal = _SYSDIG_READ(task, signal);
+	fdlimit = _SYSDIG_READ(signal, rlim[RLIMIT_NOFILE].rlim_cur);
 
 	res = bpf_val_to_ring_type(data, fdlimit, PT_UINT64);
 	if (res != PPM_SUCCESS)
@@ -1861,7 +1862,7 @@ FILLER(proc_startupdate, true)
 	/*
 	 * pgft_maj
 	 */
-	maj_flt = _READ(task->maj_flt);
+	maj_flt = _SYSDIG_READ(task, maj_flt);
 
 	res = bpf_val_to_ring_type(data, maj_flt, PT_UINT64);
 	if (res != PPM_SUCCESS)
@@ -1870,7 +1871,7 @@ FILLER(proc_startupdate, true)
 	/*
 	 * pgft_min
 	 */
-	min_flt = _READ(task->min_flt);
+	min_flt = _SYSDIG_READ(task, min_flt);
 
 	res = bpf_val_to_ring_type(data, min_flt, PT_UINT64);
 	if (res != PPM_SUCCESS)
@@ -1881,7 +1882,7 @@ FILLER(proc_startupdate, true)
 	swap = 0;
 
 	if (mm) {
-		total_vm = _READ(mm->total_vm);
+		total_vm = _SYSDIG_READ(mm, total_vm);
 		total_vm <<= (PAGE_SHIFT - 10);
 		total_rss = bpf_get_mm_rss(mm) << (PAGE_SHIFT - 10);
 		swap = bpf_get_mm_swap(mm) << (PAGE_SHIFT - 10);
@@ -1954,7 +1955,7 @@ FILLER(proc_startupdate_3, true)
 	retval = bpf_syscall_get_retval(data->ctx);
 
 	task = (struct task_struct *)bpf_get_current_task();
-	mm = _READ(task->mm);
+	mm = _SYSDIG_READ(task, mm);
 	if (!mm)
 		return PPM_FAILURE_BUG;
 
@@ -1971,7 +1972,7 @@ FILLER(proc_startupdate_3, true)
 		pid_t vtid;
 		pid_t vpid;
 		struct pid_namespace *pidns = bpf_task_active_pid_ns(task);
-		int pidns_level = _READ(pidns->level);
+		int pidns_level = _SYSDIG_READ(pidns, level);
 
 		/*
 		 * flags
@@ -1986,9 +1987,9 @@ FILLER(proc_startupdate_3, true)
 		if(pidns_level != 0) {
 			flags |= PPM_CL_CHILD_IN_PIDNS;
 		} else {
-			struct nsproxy *nsproxy = _READ(task->nsproxy);
+			struct nsproxy *nsproxy = _SYSDIG_READ(task, nsproxy);
 			if(nsproxy) {
-				struct pid_namespace *pid_ns_for_children = _READ(nsproxy->pid_ns_for_children);
+				struct pid_namespace *pid_ns_for_children = _SYSDIG_READ(nsproxy, pid_ns_for_children);
 				if(pid_ns_for_children != pidns) {
 					flags |= PPM_CL_CHILD_IN_PIDNS;
 				}
@@ -2005,9 +2006,9 @@ FILLER(proc_startupdate_3, true)
 		 * Fix this at some point, maybe with a custom BPF
 		 * helper.
 		 */
-		cred = (struct cred *)_READ(task->cred);
+		cred = (struct cred *)_SYSDIG_READ(task, cred);
 
-		euid = _READ(cred->euid);
+		euid = _SYSDIG_READ(cred, euid);
 
 		/*
 		 * uid
@@ -2016,7 +2017,7 @@ FILLER(proc_startupdate_3, true)
 		if (res != PPM_SUCCESS)
 			return res;
 
-		egid = _READ(cred->egid);
+		egid = _SYSDIG_READ(cred, egid);
 
 		/*
 		 * gid
@@ -2054,8 +2055,8 @@ FILLER(proc_startupdate_3, true)
 			/*
 			 * Already checked for mm validity
 			 */
-			unsigned long env_end = _READ(mm->env_end);
-			unsigned long env_start = _READ(mm->env_start);
+			unsigned long env_end = _SYSDIG_READ(mm, env_end);
+			unsigned long env_start = _SYSDIG_READ(mm, env_start);
 
 			env_len = env_end - env_start;
 
@@ -2115,15 +2116,15 @@ FILLER(proc_startupdate_3, true)
 		/* TODO: implement user namespace support */
 #ifdef COS_73_WORKAROUND
 		{
-			struct audit_task_info* audit = _READ(task->audit);
+			struct audit_task_info* audit = _SYSDIG_READ(task, audit);
 			if (audit) {
-				loginuid = _READ(audit->loginuid);
+				loginuid = _SYSDIG_READ(audit, loginuid);
 			} else {
 				loginuid = INVALID_UID;
 			}
 		}
 #else
-		loginuid = _READ(task->loginuid);
+		loginuid = _SYSDIG_READ(task, loginuid);
 #endif
 
 		res = bpf_val_to_ring_type(data, loginuid.val, PT_INT32);
@@ -2183,11 +2184,11 @@ FILLER(sys_accept_x, true)
 
 	sock = bpf_sockfd_lookup(data, fd);
 	if (sock) {
-		struct sock *sk = _READ(sock->sk);
+		struct sock *sk = _SYSDIG_READ(sock, sk);
 
 		if (sk) {
-			ack_backlog = _READ(sk->sk_ack_backlog);
-			max_ack_backlog = _READ(sk->sk_max_ack_backlog);
+			ack_backlog = _SYSDIG_READ(sk, sk_ack_backlog);
+			max_ack_backlog = _SYSDIG_READ(sk, sk_max_ack_backlog);
 
 			if (max_ack_backlog)
 				queuepct = (unsigned long)ack_backlog * 100 / max_ack_backlog;
@@ -3276,7 +3277,7 @@ FILLER(sys_socket_x, true)
 		struct file *file = bpf_fget(retval);
 
 		if (file) {
-			const struct file_operations *f_op = _READ(file->f_op);
+			const struct file_operations *f_op = _SYSDIG_READ(file, f_op);
 
 			data->settings->socket_file_ops = (void *)f_op;
 		}
@@ -3521,7 +3522,7 @@ FILLER(sys_procexit_e, false)
 
 	task = (struct task_struct *)bpf_get_current_task();
 
-	exit_code = _READ(task->exit_code);
+	exit_code = _SYSDIG_READ(task, exit_code);
 
 	res = bpf_val_to_ring(data, exit_code);
 	if (res != PPM_SUCCESS)
@@ -3550,7 +3551,7 @@ FILLER(sched_switch_e, false)
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 	struct task_struct *next_task = (struct task_struct *)ctx->next;
 
-	next_pid = _READ(next_task->pid);
+	next_pid = _SYSDIG_READ(next_task, pid);
 #else
 	next_pid = ctx->next_pid;
 #endif
@@ -3567,7 +3568,7 @@ FILLER(sched_switch_e, false)
 	/*
 	 * pgft_maj
 	 */
-	maj_flt = _READ(task->maj_flt);
+	maj_flt = _SYSDIG_READ(task, maj_flt);
 	res = bpf_val_to_ring_type(data, maj_flt, PT_UINT64);
 	if (res != PPM_SUCCESS)
 		return res;
@@ -3575,7 +3576,7 @@ FILLER(sched_switch_e, false)
 	/*
 	 * pgft_min
 	 */
-	min_flt = _READ(task->min_flt);
+	min_flt = _SYSDIG_READ(task, min_flt);
 	res = bpf_val_to_ring_type(data, min_flt, PT_UINT64);
 	if (res != PPM_SUCCESS)
 		return res;
@@ -3584,9 +3585,9 @@ FILLER(sched_switch_e, false)
 	total_rss = 0;
 	swap = 0;
 
-	mm = _READ(task->mm);
+	mm = _SYSDIG_READ(task, mm);
 	if (mm) {
-		total_vm = _READ(mm->total_vm);
+		total_vm = _SYSDIG_READ(mm, total_vm);
 		total_vm <<= (PAGE_SHIFT - 10);
 		total_rss = bpf_get_mm_rss(mm) << (PAGE_SHIFT - 10);
 		swap = bpf_get_mm_swap(mm) << (PAGE_SHIFT - 10);
@@ -3628,7 +3629,7 @@ FILLER(sys_pagefault_e, false)
 	struct pt_regs *regs = (struct pt_regs *)ctx->regs;
 
 	address = ctx->address;
-	ip = _READ(regs->ip);
+	ip = _SYSDIG_READ(regs, ip);
 	error_code = ctx->error_code;
 #else
 	address = ctx->address;
@@ -3675,20 +3676,20 @@ FILLER(sys_signaldeliver_e, false)
 		info = NULL;
 		spid = 0;
 	} else if (sig == SIGKILL) {
-		spid = _READ(info->_sifields._kill._pid);
+		spid = _SYSDIG_READ(info, _sifields._kill._pid);
 	} else if (sig == SIGTERM || sig == SIGHUP || sig == SIGINT ||
 	           sig == SIGTSTP || sig == SIGQUIT) {
-		int si_code = _READ(info->si_code);
+		int si_code = _SYSDIG_READ(info, si_code);
 
 		if (si_code == SI_USER ||
 		    si_code == SI_QUEUE ||
 		    si_code <= 0) {
-			spid = _READ(info->si_pid);
+			spid = _SYSDIG_READ(info, si_pid);
 		}
 	} else if (sig == SIGCHLD) {
-		spid = _READ(info->_sifields._sigchld._pid);
+		spid = _SYSDIG_READ(info, _sifields._sigchld._pid);
 	} else if (sig >= SIGRTMIN && sig <= SIGRTMAX) {
-		spid = _READ(info->_sifields._rt._pid);
+		spid = _SYSDIG_READ(info, _sifields._rt._pid);
 	}
 #else
 	sig = ctx->sig;

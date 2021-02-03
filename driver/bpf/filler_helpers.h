@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2013-2018 Draios Inc. dba Sysdig.
+Copyright (c) 2013-2021 Draios Inc. dba Sysdig.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
@@ -39,19 +39,19 @@ static __always_inline struct file *bpf_fget(int fd)
 	if (!task)
 		return NULL;
 
-	files = _READ(task->files);
+	files = _SYSDIG_READ(task, files);
 	if (!files)
 		return NULL;
 
-	fdt = _READ(files->fdt);
+	fdt = _SYSDIG_READ(files, fdt);
 	if (!fdt)
 		return NULL;
 
-	max_fds = _READ(fdt->max_fds);
+	max_fds = _SYSDIG_READ(fdt, max_fds);
 	if (fd >= max_fds)
 		return NULL;
 
-	fds = _READ(fdt->fd);
+	fds = _SYSDIG_READ(fdt, fd);
 	fil = _READ(fds[fd]);
 
 	return fil;
@@ -71,11 +71,11 @@ static __always_inline struct socket *bpf_sockfd_lookup(struct filler_data *data
 	if (!file)
 		return NULL;
 
-	fop = _READ(file->f_op);
+	fop = _SYSDIG_READ(file, f_op);
 	if (fop != data->settings->socket_file_ops)
 		return NULL;
 
-	sock = _READ(file->private_data);
+	sock = _SYSDIG_READ(file, private_data);
 	return sock;
 }
 
@@ -98,18 +98,18 @@ static __always_inline bool bpf_get_fd_dev_ino(int fd, unsigned long *dev, unsig
 	if (!file)
 		return false;
 
-	inode = _READ(file->f_inode);
+	inode = _SYSDIG_READ(file, f_inode);
 	if (!inode)
 		return false;
 
-	sb = _READ(inode->i_sb);
+	sb = _SYSDIG_READ(inode, i_sb);
 	if (!sb)
 		return false;
 
-	kdev = _READ(sb->s_dev);
+	kdev = _SYSDIG_READ(sb, s_dev);
 	*dev = bpf_encode_dev(kdev);
 
-	*ino = _READ(inode->i_ino);
+	*ino = _SYSDIG_READ(inode, i_ino);
 
 	return true;
 }
@@ -128,11 +128,11 @@ static __always_inline bool bpf_getsockname(struct socket *sock,
 	struct sock *sk;
 	sa_family_t family;
 
-	sk = _READ(sock->sk);
+	sk = _SYSDIG_READ(sock, sk);
 	if (!sk)
 		return false;
 
-	family = _READ(sk->sk_family);
+	family = _SYSDIG_READ(sk, sk_family);
 
 	switch (family) {
 	case AF_INET:
@@ -142,14 +142,14 @@ static __always_inline bool bpf_getsockname(struct socket *sock,
 
 		sin->sin_family = AF_INET;
 		if (peer) {
-			sin->sin_port = _READ(inet->inet_dport);
-			sin->sin_addr.s_addr = _READ(inet->inet_daddr);
+			sin->sin_port = _SYSDIG_READ(inet, inet_dport);
+			sin->sin_addr.s_addr = _SYSDIG_READ(inet, inet_daddr);
 		} else {
-			u32 addr = _READ(inet->inet_rcv_saddr);
+			u32 addr = _SYSDIG_READ(inet, inet_rcv_saddr);
 
 			if (!addr)
-				addr = _READ(inet->inet_saddr);
-			sin->sin_port = _READ(inet->inet_sport);
+				addr = _SYSDIG_READ(inet, inet_saddr);
+			sin->sin_port = _SYSDIG_READ(inet, inet_sport);
 			sin->sin_addr.s_addr = addr;
 		}
 
@@ -162,17 +162,17 @@ static __always_inline bool bpf_getsockname(struct socket *sock,
 		struct ipv6_pinfo {
 			struct in6_addr saddr;
 		};
-		struct ipv6_pinfo *np = (struct ipv6_pinfo *)_READ(inet->pinet6);
+		struct ipv6_pinfo *np = (struct ipv6_pinfo *)_SYSDIG_READ(inet, pinet6);
 
 		sin->sin6_family = AF_INET6;
 		if (peer) {
-			sin->sin6_port = _READ(inet->inet_dport);
-			sin->sin6_addr = _READ(sk->sk_v6_daddr);
+			sin->sin6_port = _SYSDIG_READ(inet, inet_dport);
+			sin->sin6_addr = _SYSDIG_READ(sk, sk_v6_daddr);
 		} else {
-			sin->sin6_addr = _READ(sk->sk_v6_rcv_saddr);
+			sin->sin6_addr = _SYSDIG_READ(sk, sk_v6_rcv_saddr);
 			if (bpf_ipv6_addr_any(&sin->sin6_addr))
-				sin->sin6_addr = _READ(np->saddr);
-			sin->sin6_port = _READ(inet->inet_sport);
+				sin->sin6_addr = _SYSDIG_READ(np, saddr);
+			sin->sin6_port = _SYSDIG_READ(inet, inet_sport);
 		}
 
 		break;
@@ -184,24 +184,25 @@ static __always_inline bool bpf_getsockname(struct socket *sock,
 		struct unix_address *addr;
 
 		if (peer)
-			sk = _READ(((struct unix_sock *)sk)->peer);
+			sk = _SYSDIG_READ(((struct unix_sock *)sk), peer);
 
 		u = (struct unix_sock *)sk;
-		addr = _READ(u->addr);
+		addr = _SYSDIG_READ(u, addr);
 		if (!addr) {
 			sunaddr->sun_family = AF_UNIX;
 			sunaddr->sun_path[0] = 0;
 		} else {
-			unsigned int len = _READ(addr->len);
+			unsigned int len = _SYSDIG_READ(addr, len);
 
 			if (len > sizeof(struct sockaddr_storage))
 				len = sizeof(struct sockaddr_storage);
-
+                        struct sockaddr_un *sunsrc = _SYSDIG_READ(addr, name);
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 			if (len > 0)
-				sysdig_bpf_probe_read(sunaddr, ((len - 1) & 0xff) + 1, addr->name);
+				sysdig_bpf_probe_read(sunaddr, ((len - 1) & 0xff) + 1, sunsrc);
 #else
-			sysdig_bpf_probe_read(sunaddr, len, addr->name);
+
+                        sysdig_bpf_probe_read(sunaddr, len, sunsrc);
 #endif
 		}
 
@@ -217,8 +218,7 @@ static __always_inline bool bpf_getsockname(struct socket *sock,
 static __always_inline int bpf_addr_to_kernel(void *uaddr, int ulen,
 					      struct sockaddr *kaddr)
 {
-	if (ulen < 0 || ulen > sizeof(struct sockaddr_storage))
-		return -EINVAL;
+        fix_var_compat(ulen);
 
 	if (ulen == 0)
 		return 0;
@@ -256,11 +256,11 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 		if (!fil)
 			return res;
 
-		f_inode = _READ(fil->f_inode);
+		f_inode = _SYSDIG_READ(fil, f_inode);
 		if (!f_inode)
 			return res;
 
-		i_rdev = _READ(f_inode->i_rdev);
+		i_rdev = _SYSDIG_READ(f_inode, i_rdev);
 		if (i_rdev == PPM_NULL_RDEV)
 			return RW_SNAPLEN_EVENT;
 	}
@@ -325,11 +325,11 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 		return res;
 	}
 
-	sk = _READ(sock->sk);
+	sk = _SYSDIG_READ(sock, sk);
 	if (!sk)
 		return res;
 
-	sa_family_t family = _READ(sk->sk_family);
+	sa_family_t family = _SYSDIG_READ(sk, sk_family);
 
 	if (family == AF_INET) {
 		sport = ntohs(((struct sockaddr_in *)sock_address)->sin_port);
@@ -488,7 +488,7 @@ static __always_inline u16 bpf_pack_addr(struct filler_data *data,
 
 		data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
 
-		res = sysdig_bpf_probe_read_str(&data->buf[(data->state->tail_ctx.curoff + 1) & SCRATCH_SIZE_HALF],
+		res = sysdig_bpf_probe_read(&data->buf[(data->state->tail_ctx.curoff + 1) & SCRATCH_SIZE_HALF],
 					 UNIX_PATH_MAX,
 					 usrsockaddr_un->sun_path);
 
@@ -528,11 +528,11 @@ static __always_inline long bpf_fd_to_socktuple(struct filler_data *data,
 	if (!bpf_getsockname(sock, sock_address, 0))
 		return 0;
 
-	sk = _READ(sock->sk);
+	sk = _SYSDIG_READ(sock, sk);
 	if (!sk)
 		return 0;
 
-	family = _READ(sk->sk_family);
+	family = _SYSDIG_READ(sk, sk_family);
 
 	switch (family) {
 	case AF_INET:
@@ -652,7 +652,7 @@ static __always_inline long bpf_fd_to_socktuple(struct filler_data *data,
 		 * Retrieve the addresses
 		 */
 		struct unix_sock *us = (struct unix_sock *)sk;
-		struct sock *speer = _READ(us->peer);
+		struct sock *speer = _SYSDIG_READ(us, peer);
 		char *us_name;
 
 		data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
@@ -741,6 +741,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 		if (!data->curarg_already_on_frame) {
 			int res;
 
+
 			res = sysdig_bpf_probe_read_str(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 						 PPM_MAX_ARG_SIZE,
 						 (const void *)val);
@@ -797,7 +798,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 							   ((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
 							   (void *)val))
 #else
-				if (sysdig_bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+				if (bpf_core_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 						   read_size & SCRATCH_SIZE_HALF,
 						   (void *)val))
 #endif
@@ -943,13 +944,13 @@ static __always_inline bool bpf_in_ia32_syscall()
 	task = (struct task_struct *)bpf_get_current_task();
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 18)
-	status = _READ(task->thread.status);
+	status = _SYSDIG_READ(task, thread.status);
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
-	status = _READ(task->thread_info.status);
+	status = _SYSDIG_READ(task, thread_info.status);
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 2)
-	status = _READ(task->thread.status);
+	status = _SYSDIG_READ(task, thread.status);
 #else
-	status = _READ(task->thread_info.status);
+	status = _SYSDIG_READ(task, thread_info.status);
 #endif
 
 	return status & TS_COMPAT;

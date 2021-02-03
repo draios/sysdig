@@ -21,15 +21,23 @@ or GPL2.txt for full copies of the license.
 
 #include "types.h"
 
-#ifndef __SYSDIG_BTF_BUILD__
-#define sysdig_bpf_probe_read(a, b, c) bpf_probe_read(a, b, c)
-#define sysdig_bpf_probe_read_str(a, b, c) bpf_probe_read_str(a, b, c)
-#else
+#ifdef __SYSDIG_BTF_BUILD__
+#define _SYSDIG_READ BPF_CORE_READ
 #define sysdig_bpf_probe_read(a, b, c) bpf_core_read(a, b, c)
 #define sysdig_bpf_probe_read_str(a, b, c) bpf_core_read_str(a, b, c)
-#endif
+#else
+#define _SYSDIG_READ BPF_PROBE_READ
+#define sysdig_bpf_probe_read(a, b, c) bpf_probe_read(a, b, c)
+#define sysdig_bpf_probe_read_str(a, b, c) bpf_probe_read_str(a, b, c)
+#endif // __SYSDIG_BTF_BUILD__
+
+// fix_var_compat is a workaround for Clang < 12
+// to allow compatibility between map pointer and scalars
+// when doing operations on values coming from bpf_probe_read and bpf_core_read
+#define fix_var_compat(var) asm volatile("" : "=r"(var) : "0"(var))
 
 #define _READ(P) ({ typeof(P) _val;				\
+		    memset(&_val, 0, sizeof(_val));		\
 		    sysdig_bpf_probe_read(&_val, sizeof(_val), &P);	\
 		    _val;					\
 		 })
@@ -109,7 +117,7 @@ static __always_inline long bpf_syscall_get_nr(void *ctx)
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 	struct pt_regs *regs = (struct pt_regs *)args->regs;
 
-	id = _READ(regs->orig_ax);
+	id = _SYSDIG_READ(regs, orig_ax);
 #else
 	id = args->id;
 #endif
@@ -143,22 +151,22 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 
 	switch (idx) {
 	case 0:
-		arg = _READ(regs->di);
+		arg = _SYSDIG_READ(regs, di);
 		break;
 	case 1:
-		arg = _READ(regs->si);
+		arg = _SYSDIG_READ(regs, si);
 		break;
 	case 2:
-		arg = _READ(regs->dx);
+		arg = _SYSDIG_READ(regs, dx);
 		break;
 	case 3:
-		arg = _READ(regs->r10);
+		arg = _SYSDIG_READ(regs, r10);
 		break;
 	case 4:
-		arg = _READ(regs->r8);
+		arg = _SYSDIG_READ(regs, r8);
 		break;
 	case 5:
-		arg = _READ(regs->r9);
+		arg = _SYSDIG_READ(regs, r9);
 		break;
 	default:
 		arg = 0;
@@ -374,19 +382,19 @@ static __always_inline bool drop_event(void *ctx,
 		if (!task)
 			break;
 
-		files = _READ(task->files);
+		files = _SYSDIG_READ(task, files);
 		if (!files)
 			break;
 
-		fdt = _READ(files->fdt);
+		fdt = _SYSDIG_READ(files, fdt);
 		if (!fdt)
 			break;
 
-		max_fds = _READ(fdt->max_fds);
+		max_fds = _SYSDIG_READ(fdt, max_fds);
 		if (close_fd >= max_fds)
 			return true;
 
-		open_fds = _READ(fdt->open_fds);
+		open_fds = _SYSDIG_READ(fdt, open_fds);
 		if (!open_fds)
 			break;
 

@@ -134,7 +134,7 @@ BPF_PROBE("sched/", sched_process_exit, sched_process_exit_args)
 
 	task = (struct task_struct *)bpf_get_current_task();
 
-	flags = _READ(task->flags);
+        flags = _SYSDIG_READ(task, flags);
 	if (flags & PF_KTHREAD)
 		return 0;
 
