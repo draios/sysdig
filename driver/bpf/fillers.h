@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2013-2018 Draios Inc. dba Sysdig.
+Copyright (c) 2013-2021 Sysdig Inc.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
@@ -466,7 +466,7 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 
 				if (to_read >= SCRATCH_SIZE_HALF)
 					to_read = SCRATCH_SIZE_HALF - 1;
-                                fix_var_compat(off);
+				fix_var_compat(off);
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 				if (to_read)
 					if (sysdig_bpf_probe_read(&data->buf[off & SCRATCH_SIZE_HALF],
@@ -1774,9 +1774,9 @@ FILLER(proc_startupdate, true)
 	if (args_len) {
 		int exe_len;
 
-                // todo(fntlnz): this is probably broken with core
-                // if you try to replace sysdig_bpf_probe_read with bpf_probe_read
-                // it will work but break the inlining for co-re
+		// todo(fntlnz): this is probably broken with core
+		// if you try to replace sysdig_bpf_probe_read with bpf_probe_read
+		// it will work but break the inlining for co-re
 		exe_len = sysdig_bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 						SCRATCH_SIZE_HALF,
 						&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]);

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2013-2021 Draios Inc. dba Sysdig.
+Copyright (c) 2013-2021 Sysdig Inc.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
@@ -198,16 +198,16 @@ static __always_inline bool bpf_getsockname(struct socket *sock,
 				len = sizeof(struct sockaddr_storage);
 
 #ifdef __SYSDIG_BTF_CORE_BUILD
-                        struct sockaddr_un *sunsrc = _SYSDIG_READ(addr, name);
+			struct sockaddr_un *sunsrc = _SYSDIG_READ(addr, name);
 #else
-                        struct sockaddr_un *sunsrc = addr->name;
+			struct sockaddr_un *sunsrc = addr->name;
 #endif
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 			if (len > 0)
 				sysdig_bpf_probe_read(sunaddr, ((len - 1) & 0xff) + 1, sunsrc);
 #else
 
-                        sysdig_bpf_probe_read(sunaddr, len, sunsrc);
+			sysdig_bpf_probe_read(sunaddr, len, sunsrc);
 #endif
 		}
 
@@ -223,7 +223,7 @@ static __always_inline bool bpf_getsockname(struct socket *sock,
 static __always_inline int bpf_addr_to_kernel(void *uaddr, int ulen,
 					      struct sockaddr *kaddr)
 {
-        fix_var_compat(ulen);
+	fix_var_compat(ulen);
 
 	if (ulen == 0)
 		return 0;

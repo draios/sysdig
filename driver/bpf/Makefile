@@ -9,8 +9,9 @@ always += probe.o
 
 LLC ?= llc
 CLANG ?= clang
+LLVM_STRIP ?= llvm-strip
 
-# BPFTOOL ?= bpftool
+BPFTOOL ?= bpftool
 
 KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 
@@ -24,6 +25,25 @@ clean:
 	@rm -f *~
 	# rm -f btf-probe.h
 
+# Get Clang's default includes on this system. We'll explicitly add these dirs
+# to the includes list when compiling with `-target bpf` because otherwise some
+# architecture-specific dirs will be "missing" on some architectures/distros -
+# headers such as asm/types.h, asm/byteorder.h, asm/socket.h, asm/sockios.h,
+# sys/cdefs.h etc. might be missing.
+#
+# Use '-idirafter': Don't interfere with include mechanics except where the
+# build would have failed anyways.
+# This approach comes from libbpf-bootstrap
+# https://github.com/libbpf/libbpf-bootstrap/blob/eb6709ae72f37e7af89b8527c3f8923b1721a6d5/src/Makefile#L14
+CLANG_BPF_SYS_INCLUDES = $(shell $(CLANG) -v -E - </dev/null 2>&1 \
+	| sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-idirafter \1|p }')
+
+# compiles a bpf probe called probe.o
+# using libbpf for the helpers and the kernel headers
+# for all the other macro definitions
+# - requires the kernel headers
+# - compatible with 4.x kernels and newer
+# - requires clang >= 7
 $(obj)/probe.o: $(src)/probe.c \
 		$(src)/filler_helpers.h \
 		$(src)/fillers.h \
@@ -47,20 +67,13 @@ $(obj)/probe.o: $(src)/probe.c \
 		-O2 -g -emit-llvm -c $< -o $(patsubst %.o,%.ll,$@)
 	$(LLC) -march=bpf -filetype=obj -o $@ $(patsubst %.o,%.ll,$@)
 
-
-# Get Clang's default includes on this system. We'll explicitly add these dirs
-# to the includes list when compiling with `-target bpf` because otherwise some
-# architecture-specific dirs will be "missing" on some architectures/distros -
-# headers such as asm/types.h, asm/byteorder.h, asm/socket.h, asm/sockios.h,
-# sys/cdefs.h etc. might be missing.
-#
-# Use '-idirafter': Don't interfere with include mechanics except where the
-# build would have failed anyways.
-# This approach comes from libbpf-bootstrap
-# https://github.com/libbpf/libbpf-bootstrap/blob/eb6709ae72f37e7af89b8527c3f8923b1721a6d5/src/Makefile#L14
-CLANG_BPF_SYS_INCLUDES = $(shell $(CLANG) -v -E - </dev/null 2>&1 \
-	| sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-idirafter \1|p }')
-
+# compiles a bpf probe called btf-probe.o
+# using libbpf for the helpers and a vmlinux.h
+# generated with bpftool from /sys/kernel/btf/vmlinux
+# - the probe contains BTF type information
+# - DOES NOT require the kernel headers.
+# - requires a kernel compiled with CONFIG_DEBUG_INFO_BTF
+# - requires clang >= 10.0.0
 btf-probe.o: probe.c \
 		filler_helpers.h \
 		fillers.h \
@@ -80,7 +93,16 @@ btf-probe.o: probe.c \
 		-D__BPF_TRACING__ \
 		-D__TARGET_ARCH_X86__ \
 		-O2 -target bpf -g  -c $< -o $@
+	$(LLVM_STRIP) -g $@
 
+# compiles a bpf probe called btf-core-probe.o
+# using libbpf for the helpers and a vmlinux.h
+# generated with bpftool from /sys/kernel/btf/vmlinux
+# - the probe contains BTF type information
+# - the probe uses CO-RE to access internal kernel data structures and supports fields relocation
+# - DOES NOT require the kernel headers.
+# - requires a kernel compiled with CONFIG_DEBUG_INFO_BTF
+# - requires clang >= 10.0.0
 btf-core-probe.o: probe.c \
 		filler_helpers.h \
 		fillers.h \
@@ -101,7 +123,10 @@ btf-core-probe.o: probe.c \
 		-D__BPF_TRACING__ \
 		-D__TARGET_ARCH_X86__ \
 		-O2 -target bpf -g  -c $< -o $@
+	$(LLVM_STRIP) -g $@
 
+vmlinux.h:
+	$(BPFTOOL) btf dump file /sys/kernel/btf/vmlinux format c > $@
 
 # btf-probe.h: btf-probe.o
 # 	$(BPFTOOL) gen skeleton $(patsubst %.h,%.o,$@) > $@

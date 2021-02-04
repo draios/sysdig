@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2013-2021 Draios Inc dba Sysdig.
+# Copyright (C) 2013-2021 Sysdig Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -15,19 +15,19 @@
 #
 
 option(USE_BUNDLED_LIBBPF "Enable building of the bundled libbpf"
-       ${USE_BUNDLED_DEPS})
+  ${USE_BUNDLED_DEPS})
 
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-  if(NOT USE_BUNDLED_LIBBPF)
+if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+  if (NOT USE_BUNDLED_LIBBPF)
     find_path(LIBBPF_INCLUDE bpf/libbpf.h)
     find_library(LIBBPF_LIB NAMES bpf)
-    if(LIBBPF_INCLUDE AND LIBBPF_LIB)
+    if (LIBBPF_INCLUDE AND LIBBPF_LIB)
       message(
         STATUS "Found libbpf: include: ${LIBBPF_INCLUDE}, lib: ${LIBBPF_LIB}")
-    else()
+    else ()
       message(FATAL_ERROR "Couldn't find system libbpf")
-    endif()
-  else()
+    endif ()
+  else ()
 
     set(LIBBPF_SRC "${CMAKE_CURRENT_BINARY_DIR}/libbpf-prefix/src")
     set(LIBBPF_BUILD_DIR "${LIBBPF_SRC}/libbpf-build")
@@ -37,11 +37,11 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
       libbpf
       URL "https://github.com/libbpf/libbpf/archive/a199b854156ccac574eb031d464d8fd1a5523ce2.tar.gz"
       URL_HASH
-        "SHA256=9519fb0df06db85484ce934adf7a4b0ea9363c9496a2b427acdd03a0a9d9348d"
+      "SHA256=9519fb0df06db85484ce934adf7a4b0ea9363c9496a2b427acdd03a0a9d9348d"
       CONFIGURE_COMMAND mkdir -p build root
       BUILD_COMMAND BUILD_STATIC_ONLY=y OBJDIR=${LIBBPF_BUILD_DIR}/build DESTDIR=${LIBBPF_BUILD_DIR}/root make -C ${LIBBPF_SRC}/libbpf/src install
       INSTALL_COMMAND "")
 
     message(STATUS "Using bundled libbpf: include'${LIBBPF_INCLUDE}', lib: ${LIBBPF_LIB}")
-  endif()
-endif()
+  endif ()
+endif ()

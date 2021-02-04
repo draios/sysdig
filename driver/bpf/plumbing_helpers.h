@@ -34,20 +34,24 @@ or GPL2.txt for full copies of the license.
 // fix_var_compat is a workaround for Clang < 12
 // to allow compatibility between map pointer and scalars
 // when doing operations on values coming from bpf_probe_read and bpf_core_read
-#define fix_var_compat(var) asm volatile("" : "=r"(var) : "0"(var))
+#define fix_var_compat(var) asm volatile(""          \
+					 : "=r"(var) \
+					 : "0"(var))
 
-#define _READ(P) ({ typeof(P) _val;				\
-		    memset(&_val, 0, sizeof(_val));		\
-		    sysdig_bpf_probe_read(&_val, sizeof(_val), &P);	\
-		    _val;					\
-		 })
+#define _READ(P) ({                                     \
+	typeof(P) _val;                                 \
+	memset(&_val, 0, sizeof(_val));                 \
+	sysdig_bpf_probe_read(&_val, sizeof(_val), &P); \
+	_val;                                           \
+})
 
 #ifdef BPF_DEBUG
-#define sysdig_bpf_printk(fmt, ...)					\
-	do {							\
-		char s[] = fmt;					\
-		bpf_trace_printk(s, sizeof(s), ##__VA_ARGS__);	\
-	} while (0)
+#define sysdig_bpf_printk(fmt, ...)                            \
+	do                                                     \
+	{                                                      \
+		char s[] = fmt;                                \
+		bpf_trace_printk(s, sizeof(s), ##__VA_ARGS__); \
+	} while(0)
 #else
 #define sysdig_bpf_printk(fmt, ...)
 #endif
