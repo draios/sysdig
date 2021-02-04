@@ -803,7 +803,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 							   ((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
 							   (void *)val))
 #else
-				if (bpf_core_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+				if (sysdig_bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 						   read_size & SCRATCH_SIZE_HALF,
 						   (void *)val))
 #endif
