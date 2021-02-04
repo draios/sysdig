@@ -81,6 +81,27 @@ btf-probe.o: probe.c \
 		-D__TARGET_ARCH_X86__ \
 		-O2 -target bpf -g  -c $< -o $@
 
+btf-core-probe.o: probe.c \
+		filler_helpers.h \
+		fillers.h \
+		maps.h \
+		plumbing_helpers.h \
+		quirks.h \
+		ring_helpers.h \
+		types.h \
+		kernel_flags.h \
+		vmlinux.h
+	$(CLANG) \
+		$(DEBUG) \
+		$(CLANG_BPF_SYS_INCLUDES) \
+		$(LIBBPF_INCLUDE) \
+		-D__KERNEL__ \
+		-D__SYSDIG_BTF_BUILD__ \
+		-D__SYSDIG_BTF_CORE_BUILD__ \
+		-D__BPF_TRACING__ \
+		-D__TARGET_ARCH_X86__ \
+		-O2 -target bpf -g  -c $< -o $@
+
 
 # btf-probe.h: btf-probe.o
 # 	$(BPFTOOL) gen skeleton $(patsubst %.h,%.o,$@) > $@

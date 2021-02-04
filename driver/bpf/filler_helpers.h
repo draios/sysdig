@@ -197,7 +197,7 @@ static __always_inline bool bpf_getsockname(struct socket *sock,
 			if (len > sizeof(struct sockaddr_storage))
 				len = sizeof(struct sockaddr_storage);
 
-#ifdef __SYSDIG_BTF_BUILD
+#ifdef __SYSDIG_BTF_CORE_BUILD
                         struct sockaddr_un *sunsrc = _SYSDIG_READ(addr, name);
 #else
                         struct sockaddr_un *sunsrc = addr->name;

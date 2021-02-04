@@ -21,7 +21,7 @@ or GPL2.txt for full copies of the license.
 
 #include "types.h"
 
-#ifdef __SYSDIG_BTF_BUILD__
+#ifdef __SYSDIG_BTF_CORE_BUILD__
 #define _SYSDIG_READ BPF_CORE_READ
 #define sysdig_bpf_probe_read(a, b, c) bpf_core_read(a, b, c)
 #define sysdig_bpf_probe_read_str(a, b, c) bpf_core_read_str(a, b, c)
@@ -29,7 +29,7 @@ or GPL2.txt for full copies of the license.
 #define _SYSDIG_READ BPF_PROBE_READ
 #define sysdig_bpf_probe_read(a, b, c) bpf_probe_read(a, b, c)
 #define sysdig_bpf_probe_read_str(a, b, c) bpf_probe_read_str(a, b, c)
-#endif // __SYSDIG_BTF_BUILD__
+#endif // __SYSDIG_BTF_CORE_BUILD__
 
 // fix_var_compat is a workaround for Clang < 12
 // to allow compatibility between map pointer and scalars

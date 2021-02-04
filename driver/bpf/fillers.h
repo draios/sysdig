@@ -1775,7 +1775,9 @@ FILLER(proc_startupdate, true)
 		int exe_len;
 
                 // todo(fntlnz): this is probably broken with core
-		exe_len = bpf_core_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+                // if you try to replace sysdig_bpf_probe_read with bpf_probe_read
+                // it will work but break the inlining for co-re
+		exe_len = sysdig_bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 						SCRATCH_SIZE_HALF,
 						&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]);
 
