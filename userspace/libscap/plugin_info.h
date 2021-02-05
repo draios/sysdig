@@ -32,7 +32,7 @@ typedef enum ss_plugin_type
 	TYPE_EXTRACTOR_PLUGIN = 2
 }ss_plugin_type;
 
-typedef void (*pfnWait)(void *waitCtx);
+typedef bool (*pfnWait)(void *waitCtx);
 
 typedef struct async_extractor_info
 {

@@ -78,7 +78,6 @@ class sinsp_async_extractor_ctx
 public:
 	sinsp_async_extractor_ctx()
 	{
-		// printf("sinsp_async_extractor_ctx %p\n", this);
 		m_lock = 0;
 	}
 
@@ -91,36 +90,53 @@ public:
 		//  - compare_exchange_strong performance seems to be better than compare_exchange_weak
 		//    the latter may work better on other architectures
 		int old_val = 3;
-		while (m_lock.compare_exchange_strong(old_val, 1))
+		while (!m_lock.compare_exchange_strong(old_val, 1))
 		{
 			old_val = 3;
 		}
-
-
-		// allow other threads to be scheduled before this starts spinning
-		// std::this_thread::yield();
+		// printf("notify 1 %p\n", this);
 
 		// await worker completition
 		while (m_lock != 3)
 			;
 	}
 
-	inline void wait()
+	inline bool wait()
 	{
 		// AutoProfiler p("wait");
 		m_lock = 3;
-		
-		
-		// std::this_thread::yield();
 
 		int old_val = 1;
-		while (m_lock.compare_exchange_strong(old_val, 2))
+		while (!m_lock.compare_exchange_strong(old_val, 2))
 		{
+			// shutdown
+			if (old_val == -1)
+			{
+				m_lock = -2;
+				return false;
+			}
 			old_val = 1;
 		}
+		// printf("wait fine %p\n", this);
+		return true;
+	}
+
+	inline void shutdown()
+	{
+		// send shutdown
+		int old_val = 3;
+		while (m_lock.compare_exchange_strong(old_val, -1))
+		{
+			old_val = 3;
+		}
+
+		// await shutdown
+		while (m_lock != -2)
+			;
 	}
 
 private:
+	bool m_shutdown;
 	std::atomic<int> m_lock;
 };
 
@@ -245,11 +261,11 @@ public:
 				m_pasync_extractor_info->data = parinfo->m_val;
 				m_pasync_extractor_info->datalen= parinfo->m_len;
 
-				auto *p = new AutoProfiler("extract (critical sec)");
+				// auto *p = new AutoProfiler("extract (critical sec)");
 
 				static_cast<sinsp_async_extractor_ctx *>(m_pasync_extractor_info->waitCtx)->notify();
 
-				delete p;
+				// delete p;
 
 				pret = m_pasync_extractor_info->res;
 			}
@@ -327,6 +343,10 @@ sinsp_plugin::~sinsp_plugin()
 {
 	if(m_source_info.destroy != NULL)
 	{
+		if (m_source_info.register_async_extractor)
+		{
+			static_cast<sinsp_async_extractor_ctx *>(m_async_extractor_info.waitCtx)->shutdown();
+		}
 		m_source_info.destroy(m_source_info.state);
 	}
 }
@@ -479,7 +499,7 @@ void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
 		{
 			m_async_extractor_info.waitCtx = new sinsp_async_extractor_ctx();
 			m_async_extractor_info.wait = [](void *waitCtx) {
-				static_cast<sinsp_async_extractor_ctx *>(waitCtx)->wait();
+				return static_cast<sinsp_async_extractor_ctx *>(waitCtx)->wait();
 			};
 
 			m_filtercheck->m_pasync_extractor_info = &m_async_extractor_info;
