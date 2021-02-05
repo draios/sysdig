@@ -27,6 +27,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -377,8 +378,7 @@ func plugin_open(plgState *C.char, params *C.char, rc *int32) *C.char {
 	log.Printf("[%s] plugin_open\n", PLUGIN_NAME)
 
 	input := C.GoString(params)
-
-	if input[:5] == "s3://" {
+	if len(input) >= 5 && input[:5] == "s3://" {
 		gCtx.isS3 = true
 		return openS3(plgState, params, rc)
 	} else {
@@ -895,8 +895,6 @@ func plugin_extract_u64(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 func async_extractor_worker(info *C.async_extractor_info) {
 	var glock *int32 = (*int32)(&(info.lock))
 	for true {
-		//time.Sleep(3 * time.Microsecond)
-
 		if atomic.CompareAndSwapInt32(glock,
 			1,   // old
 			2) { // new
@@ -904,15 +902,13 @@ func async_extractor_worker(info *C.async_extractor_info) {
 			//
 			//
 			(*info).res = plugin_extract_str(uint64(info.evtnum), uint32(info.id), info.arg, info.data, uint32(info.datalen))
-			//time.Sleep(3 * time.Second)
+			//(*info).res = nil
 
-			for true {
-				if atomic.CompareAndSwapInt32(glock,
-					2,   // old
-					3) { // new
-					break
-				}
-			}
+			atomic.CompareAndSwapInt32(glock,
+				2, // old
+				3) // new
+		} else {
+			runtime.Gosched()
 		}
 	}
 }
