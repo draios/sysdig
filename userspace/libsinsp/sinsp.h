@@ -433,23 +433,6 @@ public:
 	const scap_machine_info* get_machine_info();
 
 	/*!
-	  \brief Look up a thread given its tid and return its information.
-
-	  \param tid the ID of the thread. In case of multi-thread processes,
-	   this corresponds to the PID.
-
-	  \return the \ref sinsp_threadinfo object containing full thread information
-	   and state.
-
-	  \note if you are interested in a process' information, just give this
-	  function with the PID of the process.
-
-	  @throws a sinsp_exception containing the error string is thrown in case
-	   of failure.
-	*/
-	sinsp_threadinfo* get_thread(int64_t tid);
-
-	/*!
 	  \brief Look up a thread given its tid and return its information,
 	   and optionally go dig into proc if the thread is not in the thread table.
 
@@ -468,8 +451,7 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
-	sinsp_threadinfo* get_thread(int64_t tid, bool query_os_if_not_found, bool lookup_only);
-	threadinfo_map_t::ptr_t get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only, bool main_thread=false);
+	threadinfo_map_t::ptr_t get_thread_ref(int64_t tid, bool query_os_if_not_found = false, bool lookup_only = true, bool main_thread=false);
 
 	/*!
 	  \brief Return the table with all the machine users.
@@ -898,6 +880,8 @@ public:
 	void set_cri_delay(uint64_t delay_ms);
 	void set_container_labels_max_len(uint32_t max_label_len);
 
+	uint64_t get_lastevent_ts() const {return m_lastevent_ts; }
+
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
 	void set_mode(scap_mode_t value)
@@ -934,49 +918,9 @@ private:
 	//
 	inline threadinfo_map_t::ptr_t find_thread(int64_t tid, bool lookup_only)
 	{
-		threadinfo_map_t::ptr_t thr;
-		//
-		// Try looking up in our simple cache
-		//
-		if(tid == m_thread_manager->m_last_tid)
-		{
-			thr = m_thread_manager->m_last_tinfo.lock();
-			if (thr)
-			{
-	#ifdef GATHER_INTERNAL_STATS
-				m_thread_manager->m_cached_lookups->increment();
-	#endif
-				thr->m_lastaccess_ts = m_lastevent_ts;
-				return thr;
-			}
-		}
-
-		//
-		// Caching failed, do a real lookup
-		//
-		thr = m_thread_manager->m_threadtable.get_ref(tid);
-
-		if(thr)
-		{
-	#ifdef GATHER_INTERNAL_STATS
-			m_thread_manager->m_non_cached_lookups->increment();
-	#endif
-			if(!lookup_only)
-			{
-				m_thread_manager->m_last_tid = tid;
-				m_thread_manager->m_last_tinfo = thr;
-				thr->m_lastaccess_ts = m_lastevent_ts;
-			}
-			return thr;
-		}
-		else
-		{
-	#ifdef GATHER_INTERNAL_STATS
-			m_thread_manager->m_failed_lookups->increment();
-	#endif
-			return NULL;
-		}
+		return m_thread_manager->find_thread(tid, lookup_only);
 	}
+
 	// this is here for testing purposes only
 	sinsp_threadinfo* find_thread_test(int64_t tid, bool lookup_only);
 	bool remove_inactive_threads();
@@ -1110,11 +1054,6 @@ public:
 #ifdef GATHER_INTERNAL_STATS
 	sinsp_stats m_stats;
 #endif
-	int32_t m_n_proc_lookups;
-	uint64_t m_n_proc_lookups_duration_ns;
-	int32_t m_n_main_thread_lookups;
-	int32_t m_max_n_proc_lookups = -1;
-	int32_t m_max_n_proc_socket_lookups = -1;
 #ifdef HAS_ANALYZER
 	std::vector<uint64_t> m_tid_collisions;
 #endif
@@ -1138,7 +1077,6 @@ public:
 	//
 	// Some thread table limits
 	//
-	uint32_t m_max_thread_table_size;
 	uint32_t m_max_fdtable_size;
 	uint64_t m_thread_timeout_ns;
 	uint64_t m_inactive_thread_scan_time_ns;

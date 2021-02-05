@@ -89,7 +89,6 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 	m_network_interfaces = NULL;
 	m_parser = new sinsp_parser(this);
 	m_thread_manager = new sinsp_thread_manager(this);
-	m_max_thread_table_size = DEFAULT_THREAD_TABLE_SIZE;
 	m_max_fdtable_size = MAX_FD_TABLE_SIZE;
 	m_thread_timeout_ns = DEFAULT_THREAD_TIMEOUT_S * ONE_SECOND_IN_NS;
 	m_inactive_thread_scan_time_ns = DEFAULT_INACTIVE_THREAD_SCAN_TIME_S * ONE_SECOND_IN_NS;
@@ -107,9 +106,6 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 #ifdef SIMULATE_DROP_MODE
 	m_isdropping = false;
 #endif
-	m_n_proc_lookups = 0;
-	m_n_proc_lookups_duration_ns = 0;
-	m_n_main_thread_lookups = 0;
 	m_snaplen = DEFAULT_SNAPLEN;
 	m_buffer_format = sinsp_evt::PF_NORMAL;
 	m_input_fd = 0;
@@ -324,9 +320,6 @@ void sinsp::init()
 	m_firstevent_ts = 0;
 #endif
 	m_fds_to_remove->clear();
-	m_n_proc_lookups = 0;
-	m_n_proc_lookups_duration_ns = 0;
-	m_n_main_thread_lookups = 0;
 
 	//
 	// Return the tracers to the pool and clear the tracers list
@@ -1277,7 +1270,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 	if(nfdr != 0)
 	{
-		sinsp_threadinfo* ptinfo = get_thread(m_tid_of_fd_to_remove, true, true);
+		sinsp_threadinfo* ptinfo = &*get_thread_ref(m_tid_of_fd_to_remove, true, true);
 		if(!ptinfo)
 		{
 			ASSERT(false);
@@ -1431,124 +1424,9 @@ sinsp_threadinfo* sinsp::find_thread_test(int64_t tid, bool lookup_only)
 	return &*find_thread(tid, lookup_only);
 }
 
-sinsp_threadinfo* sinsp::get_thread(int64_t tid, bool query_os_if_not_found, bool lookup_only)
-{
-	// TODO: we pay the refcount manipulation price here
-	return &*get_thread_ref(tid, query_os_if_not_found, lookup_only);
-}
-
 threadinfo_map_t::ptr_t sinsp::get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only, bool main_thread)
 {
-	auto sinsp_proc = find_thread(tid, lookup_only);
-
-	if(!sinsp_proc && query_os_if_not_found &&
-	   (m_thread_manager->m_threadtable.size() < m_max_thread_table_size
-#if defined(HAS_CAPTURE)
-		   || tid == m_sysdig_pid
-#endif
-		))
-	{
-		// Certain code paths can lead to this point from scap_open() (incomplete example:
-		// scap_proc_scan_proc_dir() -> resolve_container() -> get_env()). Adding a
-		// defensive check here to protect both, callers of get_env and get_thread.
-		if (!m_h)
-		{
-			g_logger.format(sinsp_logger::SEV_INFO, "%s: Unable to complete for tid=%"
-							PRIu64 ": sinsp::scap_t* is uninitialized", __func__, tid);
-			return NULL;
-		}
-
-		scap_threadinfo* scap_proc = NULL;
-		sinsp_threadinfo* newti = build_threadinfo();
-
-		m_n_proc_lookups++;
-
-		if(main_thread)
-		{
-			m_n_main_thread_lookups++;
-		}
-
-		if(m_n_proc_lookups == m_max_n_proc_lookups)
-		{
-			g_logger.format(sinsp_logger::SEV_INFO, "Reached max process lookup number, duration=%" PRIu64 "ms",
-				m_n_proc_lookups_duration_ns / 1000000);
-		}
-
-		if(m_max_n_proc_lookups < 0 ||
-		   m_n_proc_lookups <= m_max_n_proc_lookups)
-		{
-#ifdef HAS_ANALYZER
-			tracer_emitter("sinsp_proc_lookup");
-#endif
-
-			bool scan_sockets = false;
-
-			if(m_max_n_proc_socket_lookups < 0 ||
-			   m_n_proc_lookups <= m_max_n_proc_socket_lookups)
-			{
-				scan_sockets = true;
-				if(m_n_proc_lookups == m_max_n_proc_socket_lookups)
-				{
-					g_logger.format(sinsp_logger::SEV_INFO, "Reached max socket lookup number, tid=%" PRIu64 ", duration=%" PRIu64 "ms",
-						tid, m_n_proc_lookups_duration_ns / 1000000);
-				}
-			}
-
-#ifdef HAS_ANALYZER
-			uint64_t ts = sinsp_utils::get_current_time_ns();
-#endif
-			scap_proc = scap_proc_get(m_h, tid, scan_sockets);
-#ifdef HAS_ANALYZER
-			m_n_proc_lookups_duration_ns += sinsp_utils::get_current_time_ns() - ts;
-#endif
-		}
-
-		if(scap_proc)
-		{
-			newti->init(scap_proc);
-			scap_proc_free(m_h, scap_proc);
-		}
-		else
-		{
-			//
-			// Add a fake entry to avoid a continuous lookup
-			//
-			newti->m_tid = tid;
-			newti->m_pid = tid;
-			newti->m_ptid = -1;
-			newti->m_comm = "<NA>";
-			newti->m_exe = "<NA>";
-			newti->m_uid = 0xffffffff;
-			newti->m_gid = 0xffffffff;
-			newti->m_nchilds = 0;
-			newti->m_loginuid = 0xffffffff;
-		}
-
-		//
-		// Since this thread is created out of thin air, we need to
-		// properly set its reference count, by scanning the table
-		//
-		m_thread_manager->m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
-			if(tinfo.m_pid == tid)
-			{
-				newti->m_nchilds++;
-			}
-			return true;
-		});
-
-		//
-		// Done. Add the new thread to the list.
-		//
-		m_thread_manager->add_thread(newti, false);
-		sinsp_proc = find_thread(tid, lookup_only);
-	}
-
-	return sinsp_proc;
-}
-
-sinsp_threadinfo* sinsp::get_thread(int64_t tid)
-{
-	return get_thread(tid, false, true);
+	return m_thread_manager->get_thread_ref(tid, query_os_if_not_found, lookup_only, main_thread);
 }
 
 bool sinsp::add_thread(const sinsp_threadinfo *ptinfo)
@@ -1878,8 +1756,7 @@ void sinsp::get_capture_stats(scap_stats* stats) const
 
 void sinsp::set_max_thread_table_size(uint32_t value)
 {
-	uint32_t max_size = uint32_t(MAX_THREAD_TABLE_SIZE);
-	m_max_thread_table_size = (value < max_size ? value : max_size);
+	m_thread_manager->set_max_thread_table_size(value);
 }
 
 #ifdef GATHER_INTERNAL_STATS
