@@ -88,12 +88,12 @@ endif()
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 		target_link_libraries(scap "${LIBBPF_LIB}")
 
-    option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
+		option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
 
-    if (BUILD_LIBSCAP_EXAMPLES)
-        add_subdirectory(examples/01-open)
-        add_subdirectory(examples/02-validatebuffer)
-    endif()
+		if (BUILD_LIBSCAP_EXAMPLES)
+			add_subdirectory(examples/01-open)
+			add_subdirectory(examples/02-validatebuffer)
+		endif ()
 
-	include(FindMakedev)
+		include(FindMakedev)
 endif()
