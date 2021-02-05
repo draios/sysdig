@@ -4,9 +4,10 @@ package main
 #include <stdlib.h>
 #include <stdint.h>
 
+typedef void (*pfnWait)(void *waitCtx);
+
 typedef struct async_extractor_info
 {
-	volatile int32_t lock;
 	uint64_t evtnum;
 	uint32_t id;
 	char* arg;
@@ -14,6 +15,8 @@ typedef struct async_extractor_info
 	uint32_t datalen;
 	uint32_t field_present;
 	char* res;
+	pfnWait wait;
+	void *waitCtx;
 } async_extractor_info;
 */
 import "C"
@@ -30,7 +33,6 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -39,6 +41,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/valyala/fastjson"
+	"github.com/leogr/libsinsp-plugin-sdk-go/pkg/sinsp"
 )
 
 const PLUGIN_ID uint32 = 2
@@ -892,30 +895,13 @@ func plugin_extract_u64(evtnum uint64, id uint32, arg *C.char, data *C.char, dat
 	}
 }
 
-func async_extractor_worker(info *C.async_extractor_info) {
-	var glock *int32 = (*int32)(&(info.lock))
-	for true {
-		if atomic.CompareAndSwapInt32(glock,
-			1,   // old
-			2) { // new
-			//
-			//
-			//
-			(*info).res = plugin_extract_str(uint64(info.evtnum), uint32(info.id), info.arg, info.data, uint32(info.datalen))
-			//(*info).res = nil
-
-			atomic.CompareAndSwapInt32(glock,
-				2, // old
-				3) // new
-		} else {
-			runtime.Gosched()
-		}
-	}
-}
-
 //export plugin_register_async_extractor
 func plugin_register_async_extractor(info *C.async_extractor_info) int32 {
-	go async_extractor_worker(info)
+	go func() {
+		for sinsp.Wait(unsafe.Pointer(info)) {
+			(*info).res = plugin_extract_str(uint64(info.evtnum), uint32(info.id), info.arg, info.data, uint32(info.datalen))
+		}
+	}()
 	return SCAP_SUCCESS
 }
 
