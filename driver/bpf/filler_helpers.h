@@ -739,6 +739,8 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 	if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
 		return PPM_FAILURE_BUFFER_FULL;
 
+	fix_var_compat(data->state->tail_ctx.curoff);
+
 	switch (type) {
 	case PT_CHARBUF:
 	case PT_FSPATH:

@@ -22,8 +22,6 @@ or GPL2.txt for full copies of the license.
 #include "../ppm_flag_helpers.h"
 #ifndef __SYSDIG_BTF_BUILD__
 #include "../ppm_version.h"
-
-
 #include <linux/tty.h>
 #include <linux/audit.h>
 
@@ -54,9 +52,11 @@ struct timeval {
 
 #else
 #include "vmlinux.h"
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
 #define compat_timespec __kernel_old_timespec
 #define timespec __kernel_old_timespec
 #define timeval __kernel_old_timeval
+#endif
 
 #endif // __SYSDIG_BTF_BUILD__
 
