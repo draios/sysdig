@@ -32,9 +32,10 @@ typedef enum ss_plugin_type
 	TYPE_EXTRACTOR_PLUGIN = 2
 }ss_plugin_type;
 
+typedef void (*pfnWait)(void *waitCtx);
+
 typedef struct async_extractor_info
 {
-	volatile int32_t lock;
 	uint64_t evtnum;
 	uint32_t id;
 	char* arg;
@@ -42,6 +43,8 @@ typedef struct async_extractor_info
 	uint32_t datalen;
 	uint32_t field_present;
 	char* res;
+	pfnWait wait;
+	void *waitCtx;
 } async_extractor_info;
 
 //

@@ -21,6 +21,7 @@ limitations under the License.
 #include <dlfcn.h>
 #include <inttypes.h>
 #endif
+#include <atomic>
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "filter.h"
@@ -29,6 +30,99 @@ limitations under the License.
 #include "plugin.h"
 
 #include <third-party/tinydir.h>
+
+static uint64_t s_sum;
+static uint64_t s_count;
+static uint64_t s_high;
+static uint64_t s_low;
+
+class AutoProfiler
+{
+public:
+	AutoProfiler(std::string name)
+		: m_name(std::move(name)),
+		  m_beg(std::chrono::high_resolution_clock::now())
+	{
+	}
+	~AutoProfiler()
+	{
+		auto end = std::chrono::high_resolution_clock::now();
+		auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(end - m_beg);
+		auto ns = dur.count();
+		s_sum += ns;
+		s_count++;
+		auto avg = s_sum / s_count;
+		if (ns < s_low || s_low == 0)
+		{
+			s_low = ns;
+		}
+		if (ns > s_high)
+		{
+			s_high = ns;
+		}
+		std::cout << m_name << " : " << dur.count() << " (avg=" << avg << ", low=" << s_low << ", high=" << s_high << ", count=" << s_count << ") nsec\n";
+		if (s_count >= (5 * 1000 * 1000))
+		{
+			std::cout << "Bench mark end (" << s_count << " rounds)\n";
+			std::exit(0);
+		}
+	}
+
+private:
+	std::string m_name;
+	std::chrono::time_point<std::chrono::high_resolution_clock> m_beg;
+};
+
+class sinsp_async_extractor_ctx
+{
+public:
+	sinsp_async_extractor_ctx()
+	{
+		// printf("sinsp_async_extractor_ctx %p\n", this);
+		m_lock = 0;
+	}
+
+	inline void notify()
+	{
+		// printf("notify %p\n", this);
+		// atomically acquire the worker iff its state == 3
+		// that allows (if needed) contentious callers to work nicely without performance loss.
+		// N.B.:
+		//  - compare_exchange_strong performance seems to be better than compare_exchange_weak
+		//    the latter may work better on other architectures
+		int old_val = 3;
+		while (m_lock.compare_exchange_strong(old_val, 1))
+		{
+			old_val = 3;
+		}
+
+
+		// allow other threads to be scheduled before this starts spinning
+		// std::this_thread::yield();
+
+		// await worker completition
+		while (m_lock != 3)
+			;
+	}
+
+	inline void wait()
+	{
+		// AutoProfiler p("wait");
+		m_lock = 3;
+		
+		
+		// std::this_thread::yield();
+
+		int old_val = 1;
+		while (m_lock.compare_exchange_strong(old_val, 2))
+		{
+			old_val = 1;
+		}
+	}
+
+private:
+	std::atomic<int> m_lock;
+};
 
 extern sinsp_filter_check_list g_filterlist;
 extern vector<chiseldir_info>* g_plugin_dirs;
@@ -145,37 +239,19 @@ public:
 			}
 			else
 			{
- 				bool worker_ready = false;
- 				bool worker_done = false;
-				volatile int32_t* lock = &(m_pasync_extractor_info->lock);
 				m_pasync_extractor_info->evtnum = evt->get_num();
 				m_pasync_extractor_info->id = m_field_id;
 				m_pasync_extractor_info->arg = m_arg;
 				m_pasync_extractor_info->data = parinfo->m_val;
 				m_pasync_extractor_info->datalen= parinfo->m_len;
 
-				#ifdef _WIN32
- 					InterlockedCompareExchange((volatile LONG*)lock, 1, 3);
-				#else
- 					__sync_bool_compare_and_swap(lock, 3, 1);
-				#endif
+				auto *p = new AutoProfiler("extract (critical sec)");
 
-				do
-				{
-					// todo(leogr): needs to be profiled
-					std::this_thread::yield();
-				} while (*lock != 3);
+				static_cast<sinsp_async_extractor_ctx *>(m_pasync_extractor_info->waitCtx)->notify();
+
+				delete p;
+
 				pret = m_pasync_extractor_info->res;
- 			//	while(worker_done == false)
- 			//	{
-				//#ifdef _WIN32
- 			//		LONG xr = InterlockedCompareExchange((volatile LONG*)lock, 1, 2);
- 			//		worker_done = (xr == 2);
-				//#else
- 			//		worker_done = __sync_bool_compare_and_swap(lock, 2, 1);
-				//#endif
- 			//	}
-
 			}
 
 			if(pret != NULL)
@@ -385,22 +461,6 @@ void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
 		}
 
 		//
-		// If the plugin exports an async_extractor (for performance reasons),
-		// configure and initialize it here
-		//
-		if(m_source_info.register_async_extractor)
-		{
-			//
-			// 2 means: "worker done"
-			//
-			m_async_extractor_info.lock = 3;
-			if(m_source_info.register_async_extractor(&m_async_extractor_info) != SCAP_SUCCESS)
-			{
-				throw sinsp_exception(string("error in plugin ") + m_source_info.get_name() + ": " + m_source_info.get_last_error());
-			}
-		}
-
-		//
 		// Create and register the filter check associated to this plugin
 		//
 		m_filtercheck = new sinsp_filter_check_plugin();
@@ -410,9 +470,23 @@ void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
 		m_filtercheck->m_id = m_id;
 		m_filtercheck->m_type = m_type;
 		m_filtercheck->m_psource_info = &m_source_info;
+
+		//
+		// If the plugin exports an async_extractor (for performance reasons),
+		// configure and initialize it here
+		//
 		if(m_source_info.register_async_extractor)
 		{
+			m_async_extractor_info.waitCtx = new sinsp_async_extractor_ctx();
+			m_async_extractor_info.wait = [](void *waitCtx) {
+				static_cast<sinsp_async_extractor_ctx *>(waitCtx)->wait();
+			};
+
 			m_filtercheck->m_pasync_extractor_info = &m_async_extractor_info;
+			if (m_source_info.register_async_extractor(&m_async_extractor_info) != SCAP_SUCCESS)
+			{
+				throw sinsp_exception(string("error in plugin ") + m_source_info.get_name() + ": " + m_source_info.get_last_error());
+			}
 		}
 		else
 		{
