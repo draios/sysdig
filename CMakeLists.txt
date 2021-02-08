@@ -98,7 +98,7 @@ if(NOT WIN32)
 		endif()
 
 		if(NOT DEFINED PROBE_VERSION)
-			set(PROBE_VERSION "${SYSDIG_VERSION}")
+			set(PROBE_VERSION "${FALCOSECURITY_LIBS_VERSION}")
 		endif()
 		if(NOT DEFINED PROBE_NAME)
 			set(PROBE_NAME "sysdig-probe")
@@ -108,7 +108,6 @@ if(NOT WIN32)
 			set(PROBE_DEVICE_NAME "sysdig")
 		endif()
 
-		add_subdirectory(driver)
 		add_definitions(-DHAS_CAPTURE)
 	endif()
 
@@ -631,21 +630,8 @@ if(CREATE_TEST_TARGETS AND NOT WIN32)
 	endif()
 endif() # NOT WIN32
 
+include(falcosecurity-libs)
 add_subdirectory(userspace/sysdig)
-add_subdirectory(userspace/libscap)
-add_subdirectory(userspace/libsinsp)
-
-if(CREATE_TEST_TARGETS AND NOT WIN32)
-		# Add unit test directories
-		add_subdirectory(userspace/libsinsp/test)
-
-		# Add command to run all unit tests at once via the make system.
-		# This is preferred vs using ctest's add_test because it will build
-		# the code and output to stdout.
-		add_custom_target(run-unit-tests
-			COMMAND ${CMAKE_MAKE_PROGRAM} run-unit-test-libsinsp
-		)
-endif()
 
 set(CPACK_PACKAGE_NAME "${PACKAGE_NAME}")
 set(CPACK_PACKAGE_VENDOR "Sysdig Inc.")
