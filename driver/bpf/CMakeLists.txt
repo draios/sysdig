@@ -25,6 +25,12 @@ if (BUILD_BPF)
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different btf-core-probe.o "${CMAKE_CURRENT_BINARY_DIR}"
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     VERBATIM)
+
+  if (USE_BUNDLED_LIBBPF)
+    add_dependencies(bpf libbpf)
+    add_dependencies(bpf-btf libbpf)
+    add_dependencies(bpf-btf-core libbpf)
+  endif ()
 endif ()
 
 install(FILES

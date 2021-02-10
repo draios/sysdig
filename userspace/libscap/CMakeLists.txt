@@ -64,6 +64,10 @@ if(USE_BUNDLED_ZLIB AND NOT MINIMAL_BUILD)
 	add_dependencies(scap zlib)
 endif()
 
+if(USE_BUNDLED_LIBBPF)
+	add_dependencies(scap libbpf)
+endif()
+
 if (CMAKE_SYSTEM_NAME MATCHES "SunOS")
 	target_link_libraries(scap
 		socket nsl)
