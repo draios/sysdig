@@ -45,3 +45,5 @@ install(FILES
   types.h
   DESTINATION "src/${PACKAGE_NAME}-${PROBE_VERSION}/bpf"
   COMPONENT agent-kmodule)
+
+add_subdirectory(test)

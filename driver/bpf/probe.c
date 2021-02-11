@@ -249,3 +249,5 @@ int bpf_sched_process_fork(struct sched_process_fork_args *ctx)
 char kernel_ver[] SEC("kernel_version") = UTS_RELEASE;
 
 char probe_ver[] SEC("probe_version") = PROBE_VERSION;
+
+char __license[] SEC("license") = "GPL";
