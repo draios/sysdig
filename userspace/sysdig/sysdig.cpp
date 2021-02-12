@@ -1821,6 +1821,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		handle_end_of_file(print_progress, reset_colors);
 		res.m_res = e.scap_rc();
 	}
+	catch(const sinsp_exception& e)
+	{
+		cerr << e.what() << endl;
+		handle_end_of_file(print_progress);
+		res.m_res = EXIT_FAILURE;
+	}
 	catch (const std::runtime_error& e)
 	{
 		cerr << e.what() << endl;
