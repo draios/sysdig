@@ -1516,16 +1516,7 @@ static int32_t scap_next_udig(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 			continue;
 		}
 
-		if(handle->m_bpf)
-		{
-#ifndef _WIN32
-			pe = scap_bpf_evt_from_perf_sample(dev->m_sn_next_event);
-#endif
-		}
-		else
-		{
-			pe = (scap_evt *) dev->m_sn_next_event;
-		}
+		pe = (scap_evt *) dev->m_sn_next_event;
 
 		//
 		// We want to consume the event with the lowest timestamp
@@ -1555,25 +1546,9 @@ static int32_t scap_next_udig(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 	if(*pcpuid != 65535)
 	{
 		struct scap_device *dev = &handle->m_devs[*pcpuid];
-
-		//
-		// Update the pointers.
-		//
-		if(handle->m_bpf)
-		{
-#ifndef _WIN32
-			scap_bpf_advance_to_evt(handle, *pcpuid, true,
-						dev->m_sn_next_event,
-						&dev->m_sn_next_event,
-						&dev->m_sn_len);
-#endif
-		}
-		else
-		{
-			ASSERT(dev->m_sn_len >= (*pevent)->len);
-			dev->m_sn_len -= (*pevent)->len;
-			dev->m_sn_next_event += (*pevent)->len;
-		}
+		ASSERT(dev->m_sn_len >= (*pevent)->len);
+		dev->m_sn_len -= (*pevent)->len;
+		dev->m_sn_next_event += (*pevent)->len;
 
 		return SCAP_SUCCESS;
 	}
