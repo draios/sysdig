@@ -103,6 +103,7 @@ if(NOT WIN32)
 		if(NOT DEFINED PROBE_NAME)
 			set(PROBE_NAME "sysdig-probe")
 		endif()
+		string(REGEX REPLACE "[,-]" "_" SYSFS_NAME ${PROBE_NAME})
 
 		if(NOT DEFINED PROBE_DEVICE_NAME)
 			set(PROBE_DEVICE_NAME "sysdig")

@@ -119,7 +119,7 @@ static uint32_t get_max_consumers()
 {
 #ifndef _WIN32
 	uint32_t max;
-	FILE *pfile = fopen("/sys/module/" PROBE_DEVICE_NAME "_probe/parameters/max_consumers", "r");
+	FILE *pfile = fopen("/sys/module/" SYSFS_NAME "/parameters/max_consumers", "r");
 	if(pfile != NULL)
 	{
 		int w = fscanf(pfile, "%"PRIu32, &max);
@@ -332,7 +332,16 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		//
 		// Allocate the device descriptors.
 		//
-		len = RING_BUF_SIZE * 2;
+
+		FILE * fp = fopen("/sys/module/" SYSFS_NAME "/parameters/ring_buf_size", "r");
+		if (fp == NULL){
+			snprintf(error, SCAP_LASTERR_SIZE, "Could not read module parameter ring_buf_size at '/sys/module/" SYSFS_NAME "/parameters/ring_buf_size'");
+			*rc = SCAP_FAILURE;
+			return NULL;
+		}
+		fscanf(fp, "%d", &ring_buf_size);
+
+		len = ring_buf_size * 2;
 
 		for(j = 0, all_scanned_devs = 0; j < handle->m_ndevs && all_scanned_devs < handle->m_ncpus; ++all_scanned_devs)
 		{
@@ -353,7 +362,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 				else if(errno == EBUSY)
 				{
 					uint32_t curr_max_consumers = get_max_consumers();
-					snprintf(error, SCAP_LASTERR_SIZE, "Too many sysdig instances attached to device %s. Current value for /sys/module/" PROBE_DEVICE_NAME "_probe/parameters/max_consumers is '%"PRIu32"'.", filename, curr_max_consumers);
+					snprintf(error, SCAP_LASTERR_SIZE, "Too many sysdig instances attached to device %s. Current value for /sys/module/" SYSFS_NAME "/parameters/max_consumers is '%"PRIu32"'.", filename, curr_max_consumers);
 				}
 				else
 				{
@@ -1068,7 +1077,7 @@ void scap_close(scap_t* handle)
 					if(handle->m_devs[j].m_buffer != MAP_FAILED)
 					{
 						munmap(handle->m_devs[j].m_bufinfo, sizeof(struct ppm_ring_buffer_info));
-						munmap(handle->m_devs[j].m_buffer, RING_BUF_SIZE * 2);
+						munmap(handle->m_devs[j].m_buffer, ring_buf_size * 2);
 						close(handle->m_devs[j].m_fd);
 					}
 				}
@@ -1193,7 +1202,7 @@ void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uin
 
 	if(*ptail > *phead)
 	{
-		*pread_size = RING_BUF_SIZE - *ptail + *phead;
+		*pread_size = ring_buf_size - *ptail + *phead;
 	}
 	else
 	{
@@ -1231,13 +1240,13 @@ static void scap_advance_tail(scap_t* handle, uint32_t cpuid)
 	__sync_synchronize();
 #endif
 
-	if(ttail < RING_BUF_SIZE)
+	if(ttail < ring_buf_size)
 	{
 		handle->m_devs[cpuid].m_bufinfo->tail = ttail;
 	}
 	else
 	{
-		handle->m_devs[cpuid].m_bufinfo->tail = ttail - RING_BUF_SIZE;
+		handle->m_devs[cpuid].m_bufinfo->tail = ttail - ring_buf_size;
 	}
 
 	handle->m_devs[cpuid].m_lastreadsize = 0;

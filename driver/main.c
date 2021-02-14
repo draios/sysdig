@@ -1170,15 +1170,15 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 		/*
 		 * Enforce ring buffer size
 		 */
-		if (RING_BUF_SIZE < 2 * PAGE_SIZE) {
-			pr_err("Ring buffer size too small (%ld bytes, must be at least %ld bytes\n",
-			       (long)RING_BUF_SIZE,
-			       (long)PAGE_SIZE);
+		if (ring_buf_size < 2 * PAGE_SIZE) {
+			pr_err("Ring buffer size too small (%ld bytes, must be at least %ld bytes)\n",
+			       (long)ring_buf_size,
+			       (long)PAGE_SIZE * 2);
 			ret = -EIO;
 			goto cleanup_mmap;
 		}
 
-		if (RING_BUF_SIZE / PAGE_SIZE * PAGE_SIZE != RING_BUF_SIZE) {
+		if (ring_buf_size / PAGE_SIZE * PAGE_SIZE != ring_buf_size) {
 			pr_err("Ring buffer size is not a multiple of the page size\n");
 			ret = -EIO;
 			goto cleanup_mmap;
@@ -1215,7 +1215,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 
 			ret = 0;
 			goto cleanup_mmap;
-		} else if (length == RING_BUF_SIZE * 2) {
+		} else if (length == ring_buf_size * 2) {
 			long mlength;
 
 			/*
@@ -1658,16 +1658,16 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	if (ttail > head)
 		freespace = ttail - head - 1;
 	else
-		freespace = RING_BUF_SIZE + ttail - head - 1;
+		freespace = ring_buf_size + ttail - head - 1;
 
-	usedspace = RING_BUF_SIZE - freespace - 1;
-	delta_from_end = RING_BUF_SIZE + (2 * PAGE_SIZE) - head - 1;
+	usedspace = ring_buf_size - freespace - 1;
+	delta_from_end = ring_buf_size + (2 * PAGE_SIZE) - head - 1;
 
-	ASSERT(freespace <= RING_BUF_SIZE);
-	ASSERT(usedspace <= RING_BUF_SIZE);
-	ASSERT(ttail <= RING_BUF_SIZE);
-	ASSERT(head <= RING_BUF_SIZE);
-	ASSERT(delta_from_end < RING_BUF_SIZE + (2 * PAGE_SIZE));
+	ASSERT(freespace <= ring_buf_size);
+	ASSERT(usedspace <= ring_buf_size);
+	ASSERT(ttail <= ring_buf_size);
+	ASSERT(head <= ring_buf_size);
+	ASSERT(delta_from_end < ring_buf_size + (2 * PAGE_SIZE));
 	ASSERT(delta_from_end > (2 * PAGE_SIZE) - 1);
 #ifdef _HAS_SOCKETCALL
 	/*
@@ -1828,20 +1828,20 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 
 		next = head + event_size;
 
-		if (unlikely(next >= RING_BUF_SIZE)) {
+		if (unlikely(next >= ring_buf_size)) {
 			/*
 			 * If something has been written in the cushion space at the end of
 			 * the buffer, copy it to the beginning and wrap the head around.
 			 * Note, we don't check that the copy fits because we assume that
 			 * filler_callback failed if the space was not enough.
 			 */
-			if (next > RING_BUF_SIZE) {
+			if (next > ring_buf_size) {
 				memcpy(ring->buffer,
-				ring->buffer + RING_BUF_SIZE,
-				next - RING_BUF_SIZE);
+				ring->buffer + ring_buf_size,
+				next - ring_buf_size);
 			}
 
-			next -= RING_BUF_SIZE;
+			next -= ring_buf_size;
 		}
 
 		/*
@@ -1874,7 +1874,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		vpr_info("consumer:%p CPU:%d, use:%d%%, ev:%llu, dr_buf:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 			   consumer->consumer_id,
 		       smp_processor_id(),
-		       (usedspace * 100) / RING_BUF_SIZE,
+		       (usedspace * 100) / ring_buf_size,
 		       ring_info->n_evts,
 		       ring_info->n_drops_buffer,
 		       ring_info->n_drops_pf,
@@ -2186,13 +2186,13 @@ static int init_ring_buffer(struct ppm_ring_buffer_context *ring)
 	 * Note how we allocate 2 additional pages: they are used as additional overflow space for
 	 * the event data generation functions, so that they always operate on a contiguous buffer.
 	 */
-	ring->buffer = vmalloc(RING_BUF_SIZE + 2 * PAGE_SIZE);
+	ring->buffer = vmalloc(ring_buf_size + 2 * PAGE_SIZE);
 	if (ring->buffer == NULL) {
 		pr_err("Error allocating ring memory\n");
 		goto init_ring_err;
 	}
 
-	for (j = 0; j < RING_BUF_SIZE + 2 * PAGE_SIZE; j++)
+	for (j = 0; j < ring_buf_size + 2 * PAGE_SIZE; j++)
 		ring->buffer[j] = 0;
 
 	/*
@@ -2210,7 +2210,7 @@ static int init_ring_buffer(struct ppm_ring_buffer_context *ring)
 	reset_ring_buffer(ring);
 	atomic_set(&ring->preempt_count, 0);
 
-	pr_info("CPU buffer initialized, size=%d\n", RING_BUF_SIZE);
+	pr_info("CPU buffer initialized, size=%d\n", ring_buf_size);
 
 	return 1;
 
@@ -2628,10 +2628,38 @@ void sysdig_exit(void)
 #endif
 }
 
+static int set_ring_buf_size(const char *val, const struct kernel_param *kp)
+{
+    int n = 0, ret;
+
+    ret = kstrtoint(val, 10, &n);
+    if (ret != 0)
+        return -EINVAL;
+    else if (n < 2 * PAGE_SIZE) {
+        pr_err("Ring buffer size too small (%ld bytes, must be at least %ld bytes)\n",
+                       (long)n,
+                       (long)PAGE_SIZE * 2);
+        return -EINVAL;
+    }
+    else if (n / PAGE_SIZE * PAGE_SIZE != n) {
+        pr_err("Ring buffer size is not a multiple of the page size\n");
+        return -EINVAL;
+    }
+
+    return param_set_int(val, kp);
+}
+
+static const struct kernel_param_ops ring_buf_size_param_ops = {
+	.set	= set_ring_buf_size,
+	.get	= param_get_int,
+};
+
 module_init(sysdig_init);
 module_exit(sysdig_exit);
 module_param(max_consumers, uint, 0444);
 MODULE_PARM_DESC(max_consumers, "Maximum number of consumers that can simultaneously open the devices");
+module_param_cb(ring_buf_size, &ring_buf_size_param_ops, &ring_buf_size, 0660);
+MODULE_PARM_DESC(ring_buf_size, "Size of the ring buffer containing syscall");
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 module_param(verbose, bool, 0444);
 #endif

@@ -17,3 +17,5 @@ or GPL2.txt for full copies of the license.
 #ifndef KBUILD_MODNAME
 #define KBUILD_MODNAME PROBE_NAME
 #endif
+
+#define SYSFS_NAME "${SYSFS_NAME}"
