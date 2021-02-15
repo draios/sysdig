@@ -11,15 +11,18 @@
 
 #include "ppm_fillers.h"
 #include "ppm_events_public.h"
+#include "../types.h"
 
 #define FILLER_NAME_FN(x) #x,
 static const char *g_fillers_names[PPM_FILLER_MAX] = {
 	FILLER_LIST_MAPPER(FILLER_NAME_FN)};
 #undef FILLER_NAME_FN
 
-// this comes from from fillers_table.c
+// drivers common external interface for syscall<->ppm interfacing/routing
 extern const struct ppm_event_entry g_ppm_events[];
-
+extern const struct syscall_evt_pair g_syscall_table[];
+extern const struct ppm_event_info g_event_info[];
+extern const enum ppm_syscall_code g_syscall_code_routing_table[];
 
 void set_rlimit_infinity(void)
 {
@@ -57,7 +60,11 @@ int main(int argc, char **argv)
 	struct bpf_object_load_attr load_attr = {};
 	struct bpf_map *perf_map;
 	struct bpf_map *tail_map;
-	struct bpf_map *event_info_map;
+	struct bpf_map *fillers_table_map;
+	struct bpf_map *settings_map;
+	struct bpf_map *event_table_map;
+	struct bpf_map *syscall_code_routing_table;
+	struct bpf_map *syscall_table;
 	char probe_path[256];
 
 	snprintf(probe_path, sizeof(probe_path), "%s", argv[1]);
@@ -95,8 +102,13 @@ int main(int argc, char **argv)
 
 	perf_map = bpf_object__find_map_by_name(obj, "perf_map");
 	tail_map = bpf_object__find_map_by_name(obj, "tail_map");
-	event_info_map = bpf_object__find_map_by_name(obj, "event_info_table");
+	fillers_table_map = bpf_object__find_map_by_name(obj, "fillers_table");
+	settings_map = bpf_object__find_map_by_name(obj, "settings_map");
+	event_table_map = bpf_object__find_map_by_name(obj, "event_info_table");
+	syscall_code_routing_table = bpf_object__find_map_by_name(obj, "syscall_code_routing_table");
+	syscall_table = bpf_object__find_map_by_name(obj, "syscall_table");
 
+	// load raw tracepoints and fillers
 	bpf_object__for_each_program(prog, obj)
 	{
 		const char *event_name = bpf_program__name(prog);
@@ -143,18 +155,71 @@ int main(int argc, char **argv)
 		}
 	}
 
-	// update the event table map
+	// update the fillers table map
 	for(int j = 0; j < PPM_EVENT_MAX; ++j)
 	{
 		const struct ppm_event_entry *e = &g_ppm_events[j];
-		int err = bpf_map_update_elem(bpf_map__fd(event_info_map), &j, e, BPF_ANY);
+		int err = bpf_map_update_elem(bpf_map__fd(fillers_table_map), &j, e, BPF_ANY);
 		if(err != 0)
 		{
-			fprintf(stderr, "ERROR could not update event info table map\n");
+			fprintf(stderr, "ERROR could not update fillers table map\n");
 			goto cleanup;
 		}
 	}
 
+	// update the event table map
+	for(int j = 0; j < PPM_EVENT_MAX; ++j)
+	{
+		const struct ppm_event_info *e = &g_event_info[j];
+		int err = bpf_map_update_elem(bpf_map__fd(event_table_map), &j, e, BPF_ANY);
+		if(err != 0)
+		{
+			fprintf(stderr, "ERROR could not update event table map\n");
+			goto cleanup;
+		}
+	}
+
+	// setup code routing table
+	for(int j = 0; j < SYSCALL_TABLE_SIZE; ++j)
+	{
+		long code = g_syscall_code_routing_table[j];
+		int err = bpf_map_update_elem(bpf_map__fd(syscall_code_routing_table), &j, &code, BPF_ANY);
+		if(err != 0)
+		{
+			fprintf(stderr, "ERROR could not update syscall_code_routing_table map\n");
+			goto cleanup;
+		}
+	}
+
+	// setup syscall table
+	for(int j = 0; j < SYSCALL_TABLE_SIZE; ++j)
+	{
+		const struct syscall_evt_pair *p = &g_syscall_table[j];
+		int err = bpf_map_update_elem(bpf_map__fd(syscall_table), &j, p, BPF_ANY);
+		if(err != 0)
+		{
+			fprintf(stderr, "ERROR could not update syscall table map\n");
+			goto cleanup;
+		}
+	}
+
+	// update settings
+	struct sysdig_bpf_settings settings;
+	int key = 0;
+	if(bpf_map_lookup_elem(bpf_map__fd(settings_map), &key, &settings) != 0)
+	{
+		fprintf(stderr, "ERROR could not retrieve the settings map\n");
+		goto cleanup;
+	}
+	settings.capture_enabled = true;
+
+	if(bpf_map_update_elem(bpf_map__fd(settings_map), &key, &settings, BPF_ANY) != 0)
+	{
+		fprintf(stderr, "ERROR could not update the settings map\n");
+		goto cleanup;
+	}
+
+	// create and read the perf buffer
 	struct perf_buffer_opts pb_opts = {};
 	pb_opts.sample_cb = bpf_handle_cb;
 	struct perf_buffer *pb;

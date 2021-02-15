@@ -8,7 +8,11 @@
 option(BUILD_BPF_TEST "Build the tests for the BPF driver on Linux" OFF)
 add_executable(test_fillers
   test_fillers.c
-  "${PROJECT_BINARY_DIR}/driver/src/fillers_table.c")
+  "${PROJECT_BINARY_DIR}/driver/src/fillers_table.c"
+  "${PROJECT_BINARY_DIR}/driver/src/syscall_table.c"
+  "${PROJECT_BINARY_DIR}/driver/src/event_table.c"
+  "${PROJECT_BINARY_DIR}/driver/src/flags_table.c"
+  "${PROJECT_BINARY_DIR}/driver/src/dynamic_params_table.c")
 add_dependencies(test_fillers libbpf zlib)
 target_include_directories(
   test_fillers
