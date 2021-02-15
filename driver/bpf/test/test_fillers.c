@@ -33,8 +33,13 @@ void set_rlimit_infinity(void)
 
 static void bpf_handle_cb(void *ctx, int cpu, void *data, __u32 size)
 {
-	// todo(fntlnz): load the specific filler tests and do the assertions here
-	fprintf(stdout, "filler call available\n");
+	struct ppm_evt_hdr *evt = data;
+	if(evt->type == PERF_RECORD_SAMPLE)
+	{
+		fprintf(stdout, "filler sample available %u\n", evt->ts);
+		// todo: extract filler arguments from here
+
+	}
 }
 
 static int32_t lookup_filler_id(const char *filler_name)
