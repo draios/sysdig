@@ -1,5 +1,4 @@
 /* SPDX-License-Identifier: GPL-2.0 */
-
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
 
@@ -9,6 +8,8 @@
 #include <sys/resource.h>
 #include <linux/perf_event.h>
 
+
+#include "perf_compat.h"
 #include "test_fillers.h"
 #include "test_fillers_defs.h"
 
@@ -34,7 +35,7 @@ static int32_t lookup_filler_id(const char *filler_name)
 	return -1;
 }
 
-int do_test_filler(char probe_path[256], void (*test_cb)(void *ctx, int cpu, void *data, __u32 size))
+int do_test_filler(char probe_path[256], void(*test_setup_cb)(void), perf_buffer_event_fn test_cb)
 {
 	struct bpf_program *prog;
 	struct bpf_map *map;
@@ -199,14 +200,24 @@ int do_test_filler(char probe_path[256], void (*test_cb)(void *ctx, int cpu, voi
 	}
 
 	// create and read the perf buffer
-	struct perf_buffer_opts pb_opts = {};
-	pb_opts.sample_cb = test_cb;
+	struct perf_buffer_raw_opts pb_opts = {};
+	struct perf_event_attr attr = { 0, };
+
+	attr.config = PERF_COUNT_SW_BPF_OUTPUT;
+	attr.type = PERF_TYPE_SOFTWARE;
+	attr.sample_type = PERF_SAMPLE_RAW;
+	attr.sample_period = 1;
+	attr.wakeup_events = 1;
+	pb_opts.attr = &attr;
+	pb_opts.ctx = NULL;
+	pb_opts.event_cb = test_cb;
+
 	struct perf_buffer *pb;
 
-	// todo(fntlnz): not sure about how many pages to access, check current code
-	pb = perf_buffer__new(bpf_map__fd(perf_map), 8, &pb_opts);
-	// todo(fntlnz): deal with threads and affinity here, also do timeouts
-	while((perf_buffer__poll(pb, -1)) >= 0)
+	pb = perf_buffer__new_raw(bpf_map__fd(perf_map), 8, &pb_opts);
+
+	test_setup_cb();
+	while((sysdig_perf_buffer__poll(pb, 250)) >= 0)
 	{
 	}
 
@@ -221,5 +232,5 @@ int main(int argc, char **argv)
 	char probe_path[256];
 	snprintf(probe_path, sizeof(probe_path), "%s", argv[1]);
 
-	do_test_filler(probe_path, &TEST_FILLER_FN(renameat2_example));
+	do_test_filler(probe_path, &TEST_FILLER_SETUP_FN(renameat2_example), &TEST_FILLER_FN(renameat2_example));
 }
