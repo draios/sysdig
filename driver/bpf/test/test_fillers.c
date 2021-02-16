@@ -34,11 +34,39 @@ void set_rlimit_infinity(void)
 static void bpf_handle_cb(void *ctx, int cpu, void *data, __u32 size)
 {
 	struct ppm_evt_hdr *evt = data;
-	if(evt->type == PERF_RECORD_SAMPLE)
-	{
-		fprintf(stdout, "filler sample available %u\n", evt->ts);
-		// todo: extract filler arguments from here
 
+	const struct ppm_event_info *info = &(g_event_info[evt->type]);
+
+	uint16_t *lens = (uint16_t *)((char *)evt + sizeof(struct ppm_evt_hdr));
+	char *valptr = (char *)lens + evt->nparams * sizeof(uint16_t);
+	for(int j = 0; j < evt->nparams; ++j)
+	{
+		const struct ppm_param_info *param_info = &(info->params[j]);
+
+		switch(param_info->type)
+		{
+		case PT_CHARBUF:
+		{
+			fprintf(stdout, " %s", valptr);
+		}
+		case PT_ERRNO:
+		{
+			int64_t val = *(int64_t *)valptr;
+			if(val < 0)
+			{
+				fprintf(stdout,
+					" errno: %" PRId64, val);
+			}
+		}
+		case PT_PID:
+		{
+			fprintf(stdout,
+				" pid: %" PRId64, *(int64_t *)valptr);
+		}
+		}
+
+		fprintf(stdout, "\n");
+		valptr += lens[j];
 	}
 }
 
