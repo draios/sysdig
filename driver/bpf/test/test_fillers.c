@@ -9,65 +9,14 @@
 #include <sys/resource.h>
 #include <linux/perf_event.h>
 
-#include "ppm_fillers.h"
-#include "ppm_events_public.h"
-#include "../types.h"
-
-#define FILLER_NAME_FN(x) #x,
-static const char *g_fillers_names[PPM_FILLER_MAX] = {
-	FILLER_LIST_MAPPER(FILLER_NAME_FN)};
-#undef FILLER_NAME_FN
-
-// drivers common external interface for syscall<->ppm interfacing/routing
-extern const struct ppm_event_entry g_ppm_events[];
-extern const struct syscall_evt_pair g_syscall_table[];
-extern const struct ppm_event_info g_event_info[];
-extern const enum ppm_syscall_code g_syscall_code_routing_table[];
+#include "test_fillers.h"
+#include "test_fillers_defs.h"
 
 void set_rlimit_infinity(void)
 {
 	struct rlimit rinf = {RLIM_INFINITY, RLIM_INFINITY};
 
 	setrlimit(RLIMIT_MEMLOCK, &rinf);
-}
-
-static void bpf_handle_cb(void *ctx, int cpu, void *data, __u32 size)
-{
-	struct ppm_evt_hdr *evt = data;
-
-	const struct ppm_event_info *info = &(g_event_info[evt->type]);
-
-	uint16_t *lens = (uint16_t *)((char *)evt + sizeof(struct ppm_evt_hdr));
-	char *valptr = (char *)lens + evt->nparams * sizeof(uint16_t);
-	for(int j = 0; j < evt->nparams; ++j)
-	{
-		const struct ppm_param_info *param_info = &(info->params[j]);
-
-		switch(param_info->type)
-		{
-		case PT_CHARBUF:
-		{
-			fprintf(stdout, " %s", valptr);
-		}
-		case PT_ERRNO:
-		{
-			int64_t val = *(int64_t *)valptr;
-			if(val < 0)
-			{
-				fprintf(stdout,
-					" errno: %" PRId64, val);
-			}
-		}
-		case PT_PID:
-		{
-			fprintf(stdout,
-				" pid: %" PRId64, *(int64_t *)valptr);
-		}
-		}
-
-		fprintf(stdout, "\n");
-		valptr += lens[j];
-	}
 }
 
 static int32_t lookup_filler_id(const char *filler_name)
@@ -85,7 +34,7 @@ static int32_t lookup_filler_id(const char *filler_name)
 	return -1;
 }
 
-int main(int argc, char **argv)
+int do_test_filler(char probe_path[256], void (*test_cb)(void *ctx, int cpu, void *data, __u32 size))
 {
 	struct bpf_program *prog;
 	struct bpf_map *map;
@@ -98,9 +47,6 @@ int main(int argc, char **argv)
 	struct bpf_map *event_table_map;
 	struct bpf_map *syscall_code_routing_table;
 	struct bpf_map *syscall_table;
-	char probe_path[256];
-
-	snprintf(probe_path, sizeof(probe_path), "%s", argv[1]);
 
 	obj = bpf_object__open(probe_path);
 	load_attr.obj = obj;
@@ -254,7 +200,7 @@ int main(int argc, char **argv)
 
 	// create and read the perf buffer
 	struct perf_buffer_opts pb_opts = {};
-	pb_opts.sample_cb = bpf_handle_cb;
+	pb_opts.sample_cb = test_cb;
 	struct perf_buffer *pb;
 
 	// todo(fntlnz): not sure about how many pages to access, check current code
@@ -268,4 +214,12 @@ int main(int argc, char **argv)
 cleanup:
 	bpf_object__close(obj);
 	return EXIT_FAILURE;
+}
+
+int main(int argc, char **argv)
+{
+	char probe_path[256];
+	snprintf(probe_path, sizeof(probe_path), "%s", argv[1]);
+
+	do_test_filler(probe_path, &TEST_FILLER_FN(renameat2_example));
 }
