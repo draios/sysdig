@@ -23,9 +23,7 @@ TEST_FILLER(
 	unsigned int flags = RENAME_NOREPLACE;
 	syscall(SYS_renameat2, src_fd, src_path, dest_fd, dest_path, flags); },
 	{
-		TEST_FILLER_GUARD_SYSCALL(renameat2)
-
-		// todo(fntlnz): check if eveny is PPME_IS_ENTER or not and provide an helper for that
+		TEST_FILLER_GUARD_SYSCALL_EXIT(renameat2)
 
 		uint16_t *lens = (uint16_t *)((char *)evt + sizeof(struct ppm_evt_hdr));
 		char *valptr = (char *)lens + evt->nparams * sizeof(uint16_t);
@@ -58,7 +56,7 @@ TEST_FILLER(
 			valptr += lens[j];
 		}
 
-		return LIBBPF_PERF_EVENT_CONT;
+		return LIBBPF_PERF_EVENT_DONE;
 	})
 
 #endif //__TEST_FILLERS_DEFS_H

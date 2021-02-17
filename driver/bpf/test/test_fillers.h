@@ -26,6 +26,20 @@ static const char *g_fillers_names[PPM_FILLER_MAX] = {
 		return LIBBPF_PERF_EVENT_CONT;    \
 	}
 
+#define TEST_FILLER_GUARD_SYSCALL_EXIT(x)      \
+	TEST_FILLER_GUARD_SYSCALL(x)           \
+	if(!PPME_IS_EXIT(evt->type))           \
+	{                                      \
+		return LIBBPF_PERF_EVENT_CONT; \
+	}
+
+#define TEST_FILLER_GUARD_SYSCALL_ENTER(x) \
+	TEST_FILLER_GUARD_SYSCALL(x)           \
+	if(!PPME_IS_ENTER(evt->type))           \
+	{                                      \
+		return LIBBPF_PERF_EVENT_CONT; \
+	}
+
 #define TEST_FILLER_GUARD(x)                           \
 	void *data = event;                            \
 	struct ppm_evt_hdr *evt;                       \
@@ -65,9 +79,10 @@ static const char *g_fillers_names[PPM_FILLER_MAX] = {
 #define TEST_FILLER_MAP_FN(FN) \
 	FN(renameat2_example)
 
-#define ASSERT_TRUE(a, b)                       \
-	if(a != b)                              \
-	{                                       \
-		return LIBBPF_PERF_EVENT_ERROR; \
+#define ASSERT_TRUE(a, b)                                       \
+	if(a != b)                                              \
+	{                                                       \
+		fprintf(stderr, "FAILURE: assertion failed\n"); \
+		return LIBBPF_PERF_EVENT_ERROR;                 \
 	}
 #endif // _TEST_FILLERS_H
