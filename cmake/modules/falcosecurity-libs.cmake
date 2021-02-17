@@ -19,15 +19,6 @@
 set(FALCOSECURITY_LIBS_CMAKE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/falcosecurity-libs-repo")
 set(FALCOSECURITY_LIBS_CMAKE_WORKING_DIR "${CMAKE_BINARY_DIR}/falcosecurity-libs-repo")
 
-# this needs to be here at the top
-if(USE_BUNDLED_DEPS)
-  # explicitly force this dependency to use the bundled OpenSSL
-  if(NOT MINIMAL_BUILD)
-    set(USE_BUNDLED_OPENSSL ON)
-  endif()
-  set(USE_BUNDLED_JQ ON)
-endif()
-
 file(MAKE_DIRECTORY ${FALCOSECURITY_LIBS_CMAKE_WORKING_DIR})
 
 # The falcosecurity/libs git reference (branch name, commit hash, or tag) To update falcosecurity/libs version for the next release, change the
@@ -62,22 +53,10 @@ add_subdirectory("${FALCOSECURITY_LIBS_SOURCE_DIR}/driver" "${PROJECT_BINARY_DIR
 # Add libscap directory
 add_definitions(-D_GNU_SOURCE)
 add_definitions(-DHAS_CAPTURE)
-add_definitions(-DNOCURSESUI)
-if(MUSL_OPTIMIZED_BUILD)
-  add_definitions(-DMUSL_OPTIMIZED)
-endif()
 add_subdirectory("${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libscap" "${PROJECT_BINARY_DIR}/userspace/libscap")
 
 # Add libsinsp directory
 add_subdirectory("${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libsinsp" "${PROJECT_BINARY_DIR}/userspace/libsinsp")
-add_dependencies(sinsp tbb b64 luajit)
 
 # explicitly disable the tests of this dependency
 set(CREATE_TEST_TARGETS OFF)
-
-if(USE_BUNDLED_DEPS)
-  add_dependencies(scap jq)
-  if(NOT MINIMAL_BUILD)
-    add_dependencies(scap curl grpc)
-  endif()
-endif()
