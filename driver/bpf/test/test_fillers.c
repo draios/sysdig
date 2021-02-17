@@ -8,7 +8,6 @@
 #include <sys/resource.h>
 #include <linux/perf_event.h>
 
-
 #include "perf_compat.h"
 #include "test_fillers.h"
 #include "test_fillers_defs.h"
@@ -35,7 +34,7 @@ static int32_t lookup_filler_id(const char *filler_name)
 	return -1;
 }
 
-int do_test_filler(char probe_path[256], void(*test_setup_cb)(void), perf_buffer_event_fn test_cb)
+int do_test_filler(char probe_path[256], void (*test_setup_cb)(void), perf_buffer_event_fn test_cb)
 {
 	struct bpf_program *prog;
 	struct bpf_map *map;
@@ -201,7 +200,9 @@ int do_test_filler(char probe_path[256], void(*test_setup_cb)(void), perf_buffer
 
 	// create and read the perf buffer
 	struct perf_buffer_raw_opts pb_opts = {};
-	struct perf_event_attr attr = { 0, };
+	struct perf_event_attr attr = {
+		0,
+	};
 
 	attr.config = PERF_COUNT_SW_BPF_OUTPUT;
 	attr.type = PERF_TYPE_SOFTWARE;
@@ -217,7 +218,7 @@ int do_test_filler(char probe_path[256], void(*test_setup_cb)(void), perf_buffer
 	pb = perf_buffer__new_raw(bpf_map__fd(perf_map), 8, &pb_opts);
 
 	test_setup_cb();
-	while((sysdig_perf_buffer__poll(pb, 250)) >= 0)
+	while((sysdig_perf_buffer__poll(pb, 250)) == LIBBPF_PERF_EVENT_CONT)
 	{
 	}
 
@@ -229,6 +230,11 @@ cleanup:
 
 int main(int argc, char **argv)
 {
+	if(argc != 2)
+	{
+		fprintf(stderr, "test_fillers\n------------\nusage:\n\ttest_fillers <probe-path>\n");
+		return EXIT_FAILURE;
+	}
 	char probe_path[256];
 	snprintf(probe_path, sizeof(probe_path), "%s", argv[1]);
 

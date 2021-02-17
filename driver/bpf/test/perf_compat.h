@@ -81,7 +81,7 @@ int sysdig_perf_buffer__poll(struct perf_buffer *pb, int timeout_ms)
 			return ret;
 		}
 	}
-	return LIBBPF_PERF_EVENT_ERROR;
+	return LIBBPF_PERF_EVENT_CONT;
 }
 
 #endif // __PERF_COMPAT_H
