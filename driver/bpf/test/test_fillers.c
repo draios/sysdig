@@ -36,6 +36,9 @@ static int32_t lookup_filler_id(const char *filler_name)
 
 int do_test_filler(char probe_path[256], void (*test_setup_cb)(void), perf_buffer_event_fn test_cb)
 {
+#ifndef BPF_TEST_DEBUG
+	libbpf_set_print(NULL);
+#endif
 	struct bpf_program *prog;
 	struct bpf_map *map;
 	struct bpf_object *obj;
@@ -53,7 +56,7 @@ int do_test_filler(char probe_path[256], void (*test_setup_cb)(void), perf_buffe
 
 	if(libbpf_get_error(obj))
 	{
-		fprintf(stderr, "error opening the bpf object\n");
+		debug_fprintf(stderr, "error opening the bpf object\n");
 		return EXIT_FAILURE;
 	}
 	uint32_t n_cpu = sysconf(_SC_NPROCESSORS_CONF);
@@ -70,7 +73,7 @@ int do_test_filler(char probe_path[256], void (*test_setup_cb)(void), perf_buffe
 		{
 			bpf_map__set_max_entries(map, n_cpu);
 		}
-		fprintf(stdout, "map found: %s\n", bpf_map__name(map));
+		debug_fprintf(stdout, "map found: %s\n", bpf_map__name(map));
 	}
 
 	if(bpf_object__load_xattr(&load_attr))
@@ -94,7 +97,7 @@ int do_test_filler(char probe_path[256], void (*test_setup_cb)(void), perf_buffe
 		const char *shname = bpf_program__section_name(prog);
 		int program_fd = bpf_program__fd(prog);
 
-		fprintf(stdout, "program: %s\n", shname);
+		debug_fprintf(stdout, "program: %s\n", shname);
 		struct bpf_link *link;
 
 		if(!bpf_program__is_raw_tracepoint(prog))

@@ -14,20 +14,22 @@
 #define TEST_FILLER_MAX_DEFS = 1;
 
 TEST_FILLER(
-	renameat2_example, {
-	int src_fd = open("/tmp", __O_PATH);
-	int dest_fd = open("/tmp", __O_PATH);
-	const char *src_path = "falco_test_filethatdoesnotexists";
-	const char *dest_path = "falco_test_filethatdoesnotexists_new";
-
-	unsigned int flags = RENAME_NOREPLACE;
-	syscall(SYS_renameat2, src_fd, src_path, dest_fd, dest_path, flags); },
+	renameat2_example,
 	{
-		TEST_FILLER_GUARD_SYSCALL_EXIT(renameat2)
+		int src_fd = open("/tmp", __O_PATH);
+		int dest_fd = open("/tmp", __O_PATH);
+		const char *src_path = "falco_test_filethatdoesnotexists";
+		const char *dest_path = "falco_test_filethatdoesnotexists_new";
+
+		unsigned int flags = RENAME_NOREPLACE;
+		syscall(SYS_renameat2, src_fd, src_path, dest_fd, dest_path, flags);
+	},
+	{
+		GUARD_SYSCALL_EXIT(renameat2)
 
 		uint16_t *lens = (uint16_t *)((char *)evt + sizeof(struct ppm_evt_hdr));
 		char *valptr = (char *)lens + evt->nparams * sizeof(uint16_t);
-		fprintf(stdout, "YOOO: %ld - NPARAMS: %d\n", evt->ts, evt->nparams);
+		ASSERT_TRUE(evt->nparams == 6)
 		for(int j = 0; j < evt->nparams; ++j)
 		{
 			const struct ppm_param_info *param_info = &(info->params[j]);
@@ -41,10 +43,7 @@ TEST_FILLER(
 			case PT_ERRNO:
 			{
 				int64_t val = *(int64_t *)valptr;
-				if(val < 0)
-				{
-					ASSERT_TRUE(val, -2);
-				}
+				ASSERT_TRUE(val == -1);
 			}
 			default:
 			{
