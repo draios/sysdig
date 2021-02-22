@@ -14,11 +14,6 @@ limitations under the License.
 
 SYSDIG SUBCOMPONENTS:
 
--The files in <driver/> and its subdirectories are used to compile the
- kernel module and may be injected into eBPF; these are dual licensed
- under the MIT license or the GNU General Public License 2. Copies of
- both licenses are available in the subdirectory.
-
 -The following files are under Apache 2.0:
 
           userspace/sysdig/chisels/fileslower.lua, Copyright (C) 2014 Brendan Gregg
