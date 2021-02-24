@@ -21,26 +21,32 @@ set(FALCOSECURITY_LIBS_CMAKE_WORKING_DIR "${CMAKE_BINARY_DIR}/falcosecurity-libs
 
 file(MAKE_DIRECTORY ${FALCOSECURITY_LIBS_CMAKE_WORKING_DIR})
 
-# The falcosecurity/libs git reference (branch name, commit hash, or tag) To update falcosecurity/libs version for the next release, change the
-# default below In case you want to test against another falcosecurity/libs version just pass the variable - ie., `cmake
-# -DFALCOSECURITY_LIBS_VERSION=dev ..`
-if(NOT FALCOSECURITY_LIBS_VERSION)
-  set(FALCOSECURITY_LIBS_VERSION "bf2bc1e2aa21e1ec65c77caf449de77d0487fb79")
-  set(FALCOSECURITY_LIBS_CHECKSUM "SHA256=3d1a56a322b6f5300ae4ce2cf82b03f30535cbe49f7b1943762596fa13be7050")
+if(FALCOSECURITY_LIBS_SOURCE_DIR)
+  set(FALCOSECURITY_LIBS_VERSION "local")
+  message(STATUS "Using local falcosecurity/libs in '${FALCOSECURITY_LIBS_SOURCE_DIR}'")
+else()
+  # The falcosecurity/libs git reference (branch name, commit hash, or tag) To update falcosecurity/libs version for the next release, change the
+  # default below In case you want to test against another falcosecurity/libs version just pass the variable - ie., `cmake
+  # -DFALCOSECURITY_LIBS_VERSION=dev ..`
+  if(NOT FALCOSECURITY_LIBS_VERSION)
+    set(FALCOSECURITY_LIBS_VERSION "bf2bc1e2aa21e1ec65c77caf449de77d0487fb79")
+    set(FALCOSECURITY_LIBS_CHECKSUM "SHA256=3d1a56a322b6f5300ae4ce2cf82b03f30535cbe49f7b1943762596fa13be7050")
+  endif()
+
+  # cd /path/to/build && cmake /path/to/source
+  execute_process(COMMAND "${CMAKE_COMMAND}" -DFALCOSECURITY_LIBS_VERSION=${FALCOSECURITY_LIBS_VERSION} -DFALCOSECURITY_LIBS_CHECKSUM=${FALCOSECURITY_LIBS_CHECKSUM}
+                          ${FALCOSECURITY_LIBS_CMAKE_SOURCE_DIR} WORKING_DIRECTORY ${FALCOSECURITY_LIBS_CMAKE_WORKING_DIR})
+
+  # todo(leodido, fntlnz) > use the following one when CMake version will be >= 3.13
+
+  # execute_process(COMMAND "${CMAKE_COMMAND}" -B ${FALCOSECURITY_LIBS_CMAKE_WORKING_DIR} WORKING_DIRECTORY
+  # "${FALCOSECURITY_LIBS_CMAKE_SOURCE_DIR}")
+
+  execute_process(COMMAND "${CMAKE_COMMAND}" --build . WORKING_DIRECTORY "${FALCOSECURITY_LIBS_CMAKE_WORKING_DIR}")
+  set(FALCOSECURITY_LIBS_SOURCE_DIR "${FALCOSECURITY_LIBS_CMAKE_WORKING_DIR}/falcosecurity-libs-prefix/src/falcosecurity-libs")
 endif()
+
 set(PROBE_VERSION "${FALCOSECURITY_LIBS_VERSION}")
-
-# cd /path/to/build && cmake /path/to/source
-execute_process(COMMAND "${CMAKE_COMMAND}" -DFALCOSECURITY_LIBS_VERSION=${FALCOSECURITY_LIBS_VERSION} -DFALCOSECURITY_LIBS_CHECKSUM=${FALCOSECURITY_LIBS_CHECKSUM}
-                        ${FALCOSECURITY_LIBS_CMAKE_SOURCE_DIR} WORKING_DIRECTORY ${FALCOSECURITY_LIBS_CMAKE_WORKING_DIR})
-
-# todo(leodido, fntlnz) > use the following one when CMake version will be >= 3.13
-
-# execute_process(COMMAND "${CMAKE_COMMAND}" -B ${FALCOSECURITY_LIBS_CMAKE_WORKING_DIR} WORKING_DIRECTORY
-# "${FALCOSECURITY_LIBS_CMAKE_SOURCE_DIR}")
-
-execute_process(COMMAND "${CMAKE_COMMAND}" --build . WORKING_DIRECTORY "${FALCOSECURITY_LIBS_CMAKE_WORKING_DIR}")
-set(FALCOSECURITY_LIBS_SOURCE_DIR "${FALCOSECURITY_LIBS_CMAKE_WORKING_DIR}/falcosecurity-libs-prefix/src/falcosecurity-libs")
 
 # jsoncpp
 set(JSONCPP_SRC "${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libsinsp/third-party/jsoncpp")
