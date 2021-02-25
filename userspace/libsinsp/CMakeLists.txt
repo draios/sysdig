@@ -231,6 +231,11 @@ if(NOT WIN32)
 		if(USE_BUNDLED_JQ)
 			target_link_libraries(sinsp
 			"${ONIGURUMA_LIB}")
+			add_dependencies(sinsp jq)
+		endif()
+
+		if(USE_BUNDLED_B64)
+			add_dependencies(sinsp b64)
 		endif()
 	endif() # NOT APPLE
 
