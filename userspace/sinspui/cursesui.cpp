@@ -38,7 +38,7 @@ limitations under the License.
 #include "ctext.h"
 #include "cursesui.h"
 
-extern int32_t g_csysdig_screen_w;
+extern int32_t g_screen_w;
 extern bool g_filterchecks_force_raw_times;
 
 #ifndef NOCURSESUI
@@ -407,7 +407,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 		// Get screen dimensions
 		//
 		getmaxyx(stdscr, m_screenh, m_screenw);
-		g_csysdig_screen_w = m_screenw;
+		g_screen_w = m_screenw;
 	}
 #endif
 }
