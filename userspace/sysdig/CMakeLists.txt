@@ -17,6 +17,10 @@
 #
 include_directories("${JSONCPP_INCLUDE}")
 
+if(NOT WIN32 AND NOT APPLE)
+	include_directories("${CURSES_INCLUDE_DIR}")
+endif()
+
 if(NOT WIN32)
 	include_directories("${TBB_INCLUDE_DIR}")
 	if(NOT MINIMAL_BUILD)
@@ -25,6 +29,8 @@ if(NOT WIN32)
 	include_directories("${CURSES_INCLUDE_DIR}")
 endif() # NOT WIN32
 
+include_directories("${PROJECT_BINARY_DIR}/userspace/sinspui")
+include_directories(../sinspui)
 include_directories("${PROJECT_BINARY_DIR}/userspace/sysdig")
 include_directories(.)
 
@@ -43,6 +49,13 @@ else()
 		csysdig.cpp
 		win32/getopt.c)
 endif()
+
+list(APPEND SOURCE_FILES_CSYSDIG
+	../sinspui/ctext.cpp
+	../sinspui/cursescomponents.cpp
+	../sinspui/cursesspectro.cpp
+	../sinspui/cursestable.cpp
+	../sinspui/cursesui.cpp)
 
 add_executable(sysdig ${SOURCE_FILES})
 add_executable(csysdig ${SOURCE_FILES_CSYSDIG})

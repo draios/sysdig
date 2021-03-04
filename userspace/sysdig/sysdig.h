@@ -19,6 +19,10 @@ limitations under the License.
 
 #pragma once
 
+#ifdef _WIN32
+#define NOCURSESUI
+#endif
+
 #include <config_sysdig.h>
 //
 // ASSERT implementation
