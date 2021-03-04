@@ -56,6 +56,7 @@ limitations under the License.
 #endif
 
 static bool g_terminate = false;
+static bool g_plugin_input = false;
 #ifdef HAS_CHISELS
 vector<sinsp_chisel*> g_chisels;
 #endif
@@ -67,7 +68,27 @@ static void usage();
 //
 static void signal_callback(int signal)
 {
-	g_terminate = true;
+	if(g_plugin_input)
+	{
+		//
+		// Input plugins can get stuck at any point.
+		// When we are using one, check again in few seconds and force a quit
+		// if we are stuck.
+		//
+		if(g_terminate == true)
+		{
+			exit(0);
+		}
+		else
+		{
+			g_terminate = true;
+			alarm(2);
+		}
+	}
+	else
+	{
+		g_terminate = true;
+	}
 }
 
 //
@@ -1100,6 +1121,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					{
 						inspector->set_input_plugin(inputname);
 					}
+
+					g_plugin_input = true;
 				}
 				break;
 #ifdef HAS_CHISELS
@@ -1509,6 +1532,13 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		if (output_format.find("\e") != std::string::npos)
 		{
 			reset_colors = true;
+		}
+
+		if(signal(SIGALRM, signal_callback) == SIG_ERR)
+		{
+			fprintf(stderr, "An error occurred while setting SIGALRM signal handler.\n");
+			res.m_res = EXIT_FAILURE;
+			goto exit;
 		}
 
 		//

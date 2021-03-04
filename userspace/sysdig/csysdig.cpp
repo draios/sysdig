@@ -65,6 +65,7 @@ bool g_is_aws = false;
 #define MOUSE_CAPABLE_TERM_COMPAT "xterm-1002"
 
 static bool g_terminate = false;
+static bool g_plugin_input = false;
 static void usage();
 
 //
@@ -72,7 +73,27 @@ static void usage();
 //
 static void signal_callback(int signal)
 {
-	g_terminate = true;
+	if(g_plugin_input)
+	{
+		//
+		// Input plugins can get stuck at any point.
+		// When we are using one, check again in few seconds and force a quit
+		// if we are stuck.
+		//
+		if(g_terminate == true)
+		{
+			exit(0);
+		}
+		else
+		{
+			g_terminate = true;
+			alarm(2);
+		}
+	}
+	else
+	{
+		g_terminate = true;
+	}
 }
 
 //
@@ -509,6 +530,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					{
 						inspector->set_input_plugin(inputname);
 					}
+
+					g_plugin_input = true;
 				}
 				break;
 #ifndef MINIMAL_BUILD
@@ -727,6 +750,13 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		if(signal(SIGTERM, signal_callback) == SIG_ERR)
 		{
 			fprintf(stderr, "An error occurred while setting SIGTERM signal handler.\n");
+			res.m_res = EXIT_FAILURE;
+			goto exit;
+		}
+
+		if(signal(SIGALRM, signal_callback) == SIG_ERR)
+		{
+			fprintf(stderr, "An error occurred while setting SIGALRM signal handler.\n");
 			res.m_res = EXIT_FAILURE;
 			goto exit;
 		}
