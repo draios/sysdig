@@ -40,8 +40,6 @@ License Terms
 ---
 The sysdig userspace programs and supporting code are licensed to you under the [Apache 2.0](./COPYING) open source license.
 
-The sysdig kernel module, which is in the `driver` subdirectory, is licensed to you under both the [MIT](https://github.com/draios/sysdig/blob/dev/driver/MIT.txt) and [GPLv2](https://github.com/draios/sysdig/blob/dev/driver/GPL2.txt) open source licenses.
-
 Contributor License Agreements
 ---
 ### Background

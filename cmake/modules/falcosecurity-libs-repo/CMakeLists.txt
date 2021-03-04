@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2019 Sysdig Inc.
+# Copyright (C) 2013-2021 Draios Inc dba Sysdig.
 #
 # This file is part of sysdig .
 #
@@ -16,28 +16,18 @@
 # limitations under the License.
 #
 
-include_directories("${GTEST_INCLUDE_DIR}")
-include_directories("${JSONCPP_INCLUDE}")
-include_directories("${TBB_INCLUDE_DIR}")
-if(NOT MINIMAL_BUILD)
-	include_directories("${CURL_INCLUDE_DIR}")
-endif() # MINIMAL_BUILD
+cmake_minimum_required(VERSION 3.5.1)
 
-include_directories("..")
-include_directories("../../libscap")
+project(falcosecurity-libs-repo NONE)
 
-add_executable(unit-test-libsinsp
-	cgroup_list_counter.ut.cpp
-	sinsp.ut.cpp
-)
+include(ExternalProject)
+message(STATUS "Driver version: ${FALCOSECURITY_LIBS_VERSION}")
 
-target_link_libraries(unit-test-libsinsp
-	"${GTEST_LIB}"
-	"${GTEST_MAIN_LIB}"
-	sinsp
-)
-
-add_custom_target(run-unit-test-libsinsp
-	DEPENDS unit-test-libsinsp
-	COMMAND unit-test-libsinsp
-)
+ExternalProject_Add(
+  falcosecurity-libs
+  URL "https://github.com/falcosecurity/libs/archive/${FALCOSECURITY_LIBS_VERSION}.tar.gz"
+  URL_HASH "${FALCOSECURITY_LIBS_CHECKSUM}"
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND ""
+  INSTALL_COMMAND ""
+  TEST_COMMAND "")
