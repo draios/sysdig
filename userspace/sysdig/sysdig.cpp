@@ -82,7 +82,9 @@ static void signal_callback(int signal)
 		else
 		{
 			g_terminate = true;
+#ifndef _WIN32
 			alarm(2);
+#endif
 		}
 	}
 	else
@@ -1534,12 +1536,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			reset_colors = true;
 		}
 
+#ifndef _WIN32
 		if(signal(SIGALRM, signal_callback) == SIG_ERR)
 		{
 			fprintf(stderr, "An error occurred while setting SIGALRM signal handler.\n");
 			res.m_res = EXIT_FAILURE;
 			goto exit;
 		}
+#endif
 
 		//
 		// Create the event formatter
