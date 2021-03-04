@@ -37,7 +37,6 @@ using namespace std;
 #include "filter.h"
 #include "filterchecks.h"
 
-#ifdef CSYSDIG
 #ifndef NOCURSESUI
 
 #include <curses.h>
@@ -890,4 +889,3 @@ void curses_table::follow_end()
 }
 
 #endif // NOCURSESUI
-#endif // CSYSDIG

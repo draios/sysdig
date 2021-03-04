@@ -38,7 +38,6 @@ public:
 	uint32_t m_id;
 };
 
-#ifdef CSYSDIG
 class sinsp_filter_check_reference;
 class curses_table;
 class sinsp_cursesui;
@@ -259,4 +258,3 @@ private:
 };
 
 #endif // NOCURSESUI
-#endif // CSYSDIG

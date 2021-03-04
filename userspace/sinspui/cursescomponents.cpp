@@ -38,7 +38,6 @@ using namespace std;
 #include "filter.h"
 #include "filterchecks.h"
 
-#ifdef CSYSDIG
 #include "table.h"
 #include "cursescomponents.h"
 #include "cursestable.h"
@@ -1993,4 +1992,3 @@ sysdig_table_action curses_mainhelp_page::handle_input(int ch)
 }
 
 #endif // NOCURSESUI
-#endif // CSYSDIG

@@ -17,7 +17,6 @@ limitations under the License.
 
 */
 
-#ifdef CSYSDIG
 #ifndef NOCURSESUI
 
 class colpalette_entry
@@ -135,4 +134,3 @@ private:
 };
 
 #endif // NOCURSESUI
-#endif // CSYSDIG

@@ -17,7 +17,6 @@ limitations under the License.
 
 */
 
-#ifdef CSYSDIG
 #ifndef NOCURSESUI
 
 class curses_table : 
@@ -92,4 +91,3 @@ private:
 };
 
 #endif // NOCURSESUI
-#endif // CSYSDIG

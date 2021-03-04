@@ -17,8 +17,6 @@ limitations under the License.
 
 */
 
-#ifdef CSYSDIG
-
 #ifndef _WIN32
 #include <unistd.h>
 #endif
@@ -812,4 +810,3 @@ private:
 	sinsp_evt::param_fmt m_json_spy_text_fmt;
 };
 
-#endif // CSYSDIG

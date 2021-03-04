@@ -38,7 +38,6 @@ using namespace std;
 #include "filter.h"
 #include "filterchecks.h"
 
-#ifdef CSYSDIG
 #ifndef NOCURSESUI
 
 #include <curses.h>
@@ -715,4 +714,3 @@ void curses_spectro::recreate_win(int h)
 }
 
 #endif // NOCURSESUI
-#endif // CSYSDIG

@@ -23,8 +23,6 @@ limitations under the License.
 #include "filter.h"
 #include "filterchecks.h"
 
-#ifdef CSYSDIG
-
 #ifndef _WIN32
 #include <curses.h>
 #else
@@ -3491,4 +3489,3 @@ bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, uint32_t rownu
 	return false;
 }
 
-#endif // CSYSDIG
