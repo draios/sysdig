@@ -66,6 +66,7 @@ target_include_directories(
 		"${FALCOSECURITY_LIBS_SOURCE_DIR}/common"
 		"${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libsinsp/third-party/jsoncpp"
 		"${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libscap"
+		"${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/chisel"
 		"${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libsinsp")
 
 target_include_directories(
@@ -74,6 +75,7 @@ target_include_directories(
 		"${FALCOSECURITY_LIBS_SOURCE_DIR}/common"
 		"${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libsinsp/third-party/jsoncpp"
 		"${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libscap"
+		"${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/chisel"
 		"${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libsinsp")
 
 if(NOT WIN32)
