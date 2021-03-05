@@ -29,7 +29,6 @@ limitations under the License.
 #include <algorithm>
 
 #include <sinsp.h>
-#include "chisel.h"
 #include "scap_open_exception.h"
 #include "sinsp_capture_interrupt_exception.h"
 #ifdef HAS_CAPTURE
@@ -38,6 +37,11 @@ limitations under the License.
 #endif // WIN32
 #endif // HAS_CAPTURE
 #include "sysdig.h"
+#ifdef HAS_CHISELS
+#include "chisel.h"
+#include "chisel_utils.h"
+#include "chisel_fields_info.h"
+#endif
 #include "fields_info.h"
 #include "utils.h"
 
@@ -354,7 +358,7 @@ static void add_chisel_dirs(sinsp* inspector)
 	//
 	// Add the default chisel directory statically configured by the build system
 	//
-	inspector->add_chisel_dir(SYSDIG_INSTALLATION_DIR CHISELS_INSTALLATION_DIR, false);
+	chisel_add_dir(SYSDIG_INSTALLATION_DIR CHISELS_INSTALLATION_DIR, false);
 
 	//
 	// Add the directories configured in the SYSDIG_CHISEL_DIR environment variable
@@ -367,7 +371,7 @@ static void add_chisel_dirs(sinsp* inspector)
 
 		for(uint32_t j = 0; j < user_cdirs.size(); j++)
 		{
-			inspector->add_chisel_dir(user_cdirs[j], true);
+			chisel_add_dir(user_cdirs[j], true);
 		}
 	}
 }
