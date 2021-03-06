@@ -138,12 +138,13 @@ static void usage()
 "                    better with terminals like putty. Try to use this flag if you experience\n"
 "                    terminal issues like the mouse not working.\n"
 " -h, --help         Print this page\n"
-" -I <inputname>, --input <inputname>\n"
-"                    capture events from the source with name inputname.\n"
-"                    The available event sources vary depending on which plugins have\n"
-"                    been installed and can be listed by using the -Il flag.\n"
-" -Il, --list-inputs\n"
-"                    lists the available event sources that can be used for capture.\n"
+// ***Capture from plugins is currently disabled in csysdig***
+// " -I <inputname>, --input <inputname>\n"
+// "                    capture events from the source with name inputname.\n"
+// "                    The available event sources vary depending on which plugins have\n"
+// "                    been installed and can be listed by using the -Il flag.\n"
+// " -Il, --list-inputs\n"
+// "                    lists the available event sources that can be used for capture.\n"
 #ifndef MINIMAL_BUILD
 " -k <url>, --k8s-api=<url>\n"
 "                    Enable Kubernetes support by connecting to the API server\n"
@@ -505,37 +506,43 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				usage();
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
+			//
+			// ***Capture from plugins is currently disabled in csysdig***
+			//
 			case 'I':
-				{
-					inputname = optarg;
-					if(inputname == "l")
-					{
-						sinsp_plugin::list_plugins(inspector);
-						delete inspector;
-						return sysdig_init_res(EXIT_SUCCESS);
-					}
+			{
+				throw sinsp_exception(string("Plugin capture not supported in ") + argv[0] + ".\nYou can create a capture file with sysdig and open it with the -r parameter.");
+			}
+			// 	{
+			// 		inputname = optarg;
+			// 		if(inputname == "l")
+			// 		{
+			// 			sinsp_plugin::list_plugins(inspector);
+			// 			delete inspector;
+			// 			return sysdig_init_res(EXIT_SUCCESS);
+			// 		}
 
-					has_src_plugin = true;
+			// 		has_src_plugin = true;
 
 
-					size_t cpos = inputname.find(':');
-					string pgname;
-					string pgpars;
-					if(cpos != string::npos)
-					{
-						pgname = inputname.substr(0, cpos);
-						pgpars = inputname.substr(cpos + 1);
-						inspector->set_input_plugin(pgname);
-						inspector->set_input_plugin_open_params(pgpars);
-					}
-					else
-					{
-						inspector->set_input_plugin(inputname);
-					}
+			// 		size_t cpos = inputname.find(':');
+			// 		string pgname;
+			// 		string pgpars;
+			// 		if(cpos != string::npos)
+			// 		{
+			// 			pgname = inputname.substr(0, cpos);
+			// 			pgpars = inputname.substr(cpos + 1);
+			// 			inspector->set_input_plugin(pgname);
+			// 			inspector->set_input_plugin_open_params(pgpars);
+			// 		}
+			// 		else
+			// 		{
+			// 			inspector->set_input_plugin(inputname);
+			// 		}
 
-					g_plugin_input = true;
-				}
-				break;
+			// 		g_plugin_input = true;
+			// 	}
+			// 	break;
 #ifndef MINIMAL_BUILD
 			case 'k':
 				k8s_api = new string(optarg);
