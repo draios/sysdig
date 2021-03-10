@@ -37,13 +37,20 @@ view_info =
 			is_key = true
 		},
 		{
+			name = "SERVICE",
+			description = "Service generating the event.",
+			field = "ct.src",
+			-- field = "jevt.value[/eventCategory]",
+			colsize = 24,
+		},
+		{
 			name = "EVT NAME",
 			description = "Name of the CloudTrail event.",
 			field = "ct.name",
 			colsize = 32,
 		},
 		{
-			name = "EVT COUNT",
+			name = "COUNT",
 			field = "evt.count",
 			description = "The number of times the event has been generated.",
 			colsize = 12,
