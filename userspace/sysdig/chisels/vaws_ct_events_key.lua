@@ -19,14 +19,15 @@ limitations under the License.
 
 view_info = 
 {
-	id = "ct_events",
-	name = "Event Types - All",
-	description = "Show the different CloudTrail event types (eventName in the json) and the number of times each of them occurs.",
+	id = "ct_events_key",
+	name = "Event Types - Key",
+	description = "Show the 'key' CloudTrail event types and the number of times each of them occurs.\nA key event is an event that changes the state of the infrastructure. Examples of 'key' actions: starting or stopping instances, creating resources, modifying configurations, etc.",
 	tips = {"Each AWS source has a unique set of events it can produce. You can learn more about what an event means in the CloudTrail User Guide (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-user-guide.html)"},
 	tags = {"csysdig-aws"},
 	view_type = "table",
 	applies_to = {"", "ct.user", "ct.src", "ct.useragent", "ct.region", "ct.srcip", "s3.uri", "s3.bucket"},
 	is_root = false,
+	filter = "ct.is_key=true",
 	drilldown_target = "ct_events_list",
 	use_defaults = false,
 	columns = 

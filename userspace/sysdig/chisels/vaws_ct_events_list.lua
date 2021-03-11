@@ -50,6 +50,12 @@ view_info =
 			colsize = 30,
 		},
 		{
+			name = "SERVICE",
+			description = "Service generating the event.",
+			field = "ct.src",
+			colsize = 24,
+		},
+		{
 			name = "USER NAME",
 			description = "Name of the user that generated the event.",
 			field = "ct.user",
