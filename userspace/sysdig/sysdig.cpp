@@ -1483,6 +1483,15 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		}
 
 		//
+		// If we are dumping events to file, enable progress printing so we can give
+		// feedback to the user
+		//
+		if(outfile != "")
+		{
+			print_progress = true;
+		}
+
+		//
 		// If -j was specified the event_buffer_format must be rewritten to account for it
 		//
 		if(jflag)
