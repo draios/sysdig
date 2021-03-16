@@ -105,7 +105,7 @@ OPTIONS
   Files will have the name specified by **-w** with a counter added starting at 0.
   
 **-cl**, **--list-chisels**
-  lists the available chisels. Looks for chisels in ./chisels, ~/.chisels and /usr/share/sysdig/chisels.
+  lists the available chisels. Sysdig looks for chisels in the following directories: ./chisels, ~/.chisels and /usr/share/sysdig/chisels.
   
 **-d**, **--displayflt**
   Make the given filter a display one. Setting this option causes the events to be filtered after being parsed by the state system. Events are normally filtered before being analyzed, which is more efficient, but can cause state (e.g. FD names) to be lost.
@@ -134,6 +134,11 @@ OPTIONS
 
 **-h**, **--help**
   Print this page
+
+**-I** _inputname_[:_inputargs_], **--input** _inputname_[:_inputargs_]
+  Capture events using the plugin with name inputname, passing to the plugin the inputargs string as parameters. The format of inputargs is controller by the plugin, refer to each plugin's documentation to learn about it. The event sources available for capture vary depending on which plugins have been installed. You can list the plugins that have been loaded by using the -Il flag.
+**-Il**, **--list-inputs**
+  List the loaded plugins. Sysdig looks for plugins in the following directories: ./plugins, ~/.plugins, /usr/share/sysdig/plugins.
 
 **-i _chiselname_**, **--chisel-info=**_chiselname_
   Get a longer description and the arguments associated with a chisel found in the -cl option list.
