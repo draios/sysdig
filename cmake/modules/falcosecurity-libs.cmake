@@ -48,12 +48,18 @@ endif()
 
 set(PROBE_VERSION "${FALCOSECURITY_LIBS_VERSION}")
 
+if(NOT LIBSCAP_DIR)
+  set(LIBSCAP_DIR "${FALCOSECURITY_LIBS_SOURCE_DIR}")
+endif()
+set(LIBSINSP_DIR "${FALCOSECURITY_LIBS_SOURCE_DIR}")
+
 # explicitly disable the tests of this dependency
 set(CREATE_TEST_TARGETS OFF CACHE BOOL "")
 
 set(WITH_CHISEL ON CACHE BOOL "")
 
-list(APPEND CMAKE_MODULE_PATH "${FALCOSECURITY_SOURCE_LIBS_DIR}/cmake/modules")
+list(APPEND CMAKE_MODULE_PATH "${LIBSCAP_DIR}/cmake/modules")
+list(APPEND CMAKE_MODULE_PATH "${LIBSINSP_DIR}/cmake/modules")
 
 include(libscap)
 include(libsinsp)

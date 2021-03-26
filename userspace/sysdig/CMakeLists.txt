@@ -58,20 +58,14 @@ add_executable(csysdig ${SOURCE_FILES_CSYSDIG})
 target_include_directories(
 	sysdig
 	PUBLIC
-		"${FALCOSECURITY_LIBS_SOURCE_DIR}/common"
-		"${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libsinsp/third-party/jsoncpp"
-		"${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libscap"
-		"${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/chisel"
-		"${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libsinsp")
+        "${LIBSCAP_INCLUDE_DIRS}"
+        "${LIBSINSP_INCLUDE_DIRS}")
 
 target_include_directories(
 	csysdig
 	PUBLIC
-		"${FALCOSECURITY_LIBS_SOURCE_DIR}/common"
-		"${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libsinsp/third-party/jsoncpp"
-		"${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libscap"
-		"${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/chisel"
-		"${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libsinsp")
+        "${LIBSCAP_INCLUDE_DIRS}"
+        "${LIBSINSP_INCLUDE_DIRS}")
 
 if(NOT WIN32)
 	include_directories(${PROJECT_BINARY_DIR}/driver/src)
