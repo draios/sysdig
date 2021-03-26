@@ -48,22 +48,12 @@ endif()
 
 set(PROBE_VERSION "${FALCOSECURITY_LIBS_VERSION}")
 
-# jsoncpp
-set(JSONCPP_SRC "${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libsinsp/third-party/jsoncpp")
-set(JSONCPP_INCLUDE "${JSONCPP_SRC}")
-set(JSONCPP_LIB_SRC "${JSONCPP_SRC}/jsoncpp.cpp")
-
-# Add driver directory
-add_subdirectory("${FALCOSECURITY_LIBS_SOURCE_DIR}/driver" "${PROJECT_BINARY_DIR}/driver")
-
-# Add libscap directory
-add_definitions(-D_GNU_SOURCE)
-add_definitions(-DHAS_CAPTURE)
-add_subdirectory("${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libscap" "${PROJECT_BINARY_DIR}/userspace/libscap")
-
-# Add libsinsp directory
-set(WITH_CHISEL ON)
-add_subdirectory("${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libsinsp" "${PROJECT_BINARY_DIR}/userspace/libsinsp")
-
 # explicitly disable the tests of this dependency
-set(CREATE_TEST_TARGETS OFF)
+set(CREATE_TEST_TARGETS OFF CACHE BOOL "")
+
+set(WITH_CHISEL ON CACHE BOOL "")
+
+list(APPEND CMAKE_MODULE_PATH "${FALCOSECURITY_SOURCE_LIBS_DIR}/cmake/modules")
+
+include(libscap)
+include(libsinsp)

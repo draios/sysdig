@@ -15,20 +15,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-include_directories("${JSONCPP_INCLUDE}")
-
-if(NOT WIN32 AND NOT APPLE)
-	include_directories("${CURSES_INCLUDE_DIR}")
-endif()
 
 if(NOT WIN32)
-	include_directories("${TBB_INCLUDE_DIR}")
-	if(NOT MINIMAL_BUILD)
-		include_directories("${CURL_INCLUDE_DIR}")
-	endif() # MINIMAL_BUILD
-	include_directories("${CURSES_INCLUDE_DIR}")
+	include(ncurses)
 endif() # NOT WIN32
 
+include(libscap)
+include(libsinsp)
+
+include_directories("${LIBSINSP_INCLUDE_DIRS}")
 include_directories("${PROJECT_BINARY_DIR}/userspace/sinspui")
 include_directories(../sinspui)
 include_directories("${PROJECT_BINARY_DIR}/userspace/sysdig")
