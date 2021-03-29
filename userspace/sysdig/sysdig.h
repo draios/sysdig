@@ -19,7 +19,22 @@ limitations under the License.
 
 #pragma once
 
+#ifdef _WIN32
+#define NOCURSESUI
+#endif
+
+//
+// Enables Lua chisel scripts support
+//
+#define HAS_CHISELS
+
+//
+// Relative path to chisels
+//
+#define CHISELS_INSTALLATION_DIR "/share/sysdig/chisels"
+
 #include <config_sysdig.h>
+
 //
 // ASSERT implementation
 //
