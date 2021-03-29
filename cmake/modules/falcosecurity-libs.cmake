@@ -29,8 +29,8 @@ else()
   # default below In case you want to test against another falcosecurity/libs version just pass the variable - ie., `cmake
   # -DFALCOSECURITY_LIBS_VERSION=dev ..`
   if(NOT FALCOSECURITY_LIBS_VERSION)
-    set(FALCOSECURITY_LIBS_VERSION "bf2bc1e2aa21e1ec65c77caf449de77d0487fb79")
-    set(FALCOSECURITY_LIBS_CHECKSUM "SHA256=3d1a56a322b6f5300ae4ce2cf82b03f30535cbe49f7b1943762596fa13be7050")
+    set(FALCOSECURITY_LIBS_VERSION "357c4bacd0b86e68456ac598598f2400ae221b26")
+    set(FALCOSECURITY_LIBS_CHECKSUM "SHA256=2587f90dfc9027dc52a10fa0d8527a267d841edb4dde745ac34bfd8d360a48fe")
   endif()
 
   # cd /path/to/build && cmake /path/to/source
@@ -62,6 +62,7 @@ add_definitions(-DHAS_CAPTURE)
 add_subdirectory("${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libscap" "${PROJECT_BINARY_DIR}/userspace/libscap")
 
 # Add libsinsp directory
+set(WITH_CHISEL ON)
 add_subdirectory("${FALCOSECURITY_LIBS_SOURCE_DIR}/userspace/libsinsp" "${PROJECT_BINARY_DIR}/userspace/libsinsp")
 
 # explicitly disable the tests of this dependency
