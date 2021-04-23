@@ -129,6 +129,6 @@ function on_capture_end()
 		end		
 
 		print("\nSaving events around " .. #entrylist .. " syslog entries to " .. dump_file_name)
-		sysdig.run_sysdig(args)
+		sysdig.run_app(args)
 	end
 end

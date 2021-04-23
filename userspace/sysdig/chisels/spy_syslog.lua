@@ -212,7 +212,7 @@ function on_capture_end()
 			end		
 
 			print("Writing events for " .. #entrylist .. " log entries")
-			sysdig.run_sysdig(args)
+			sysdig.run_app(args)
 		end
 	end
 end

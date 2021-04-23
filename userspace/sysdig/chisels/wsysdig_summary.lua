@@ -1438,7 +1438,7 @@ end
 -- Callback called by the engine at the end of the capture
 function on_capture_end(ts_s, ts_ns, delta)
 	if arg_file_duration == nil then
-		sysdig.run_sysdig('-r "' .. sysdig.get_evtsource_name() .. 
+		sysdig.run_app('-r "' .. sysdig.get_evtsource_name() .. 
 			'" -c wsysdig_summary ' .. arg_n_timeline_samples .. ',' .. delta .. ' ' ..
 			sysdig.get_filter())
 		return true
