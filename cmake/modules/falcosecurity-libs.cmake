@@ -56,7 +56,7 @@ set(LIBSINSP_DIR "${FALCOSECURITY_LIBS_SOURCE_DIR}")
 # explicitly disable the tests of this dependency
 set(CREATE_TEST_TARGETS OFF CACHE BOOL "")
 
-set(WITH_CHISEL ON CACHE BOOL "")
+set(WITH_CHISEL ON CACHE INTERNAL "" FORCE)
 
 list(APPEND CMAKE_MODULE_PATH "${LIBSCAP_DIR}/cmake/modules")
 list(APPEND CMAKE_MODULE_PATH "${LIBSINSP_DIR}/cmake/modules")
