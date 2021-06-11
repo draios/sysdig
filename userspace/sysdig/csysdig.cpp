@@ -43,6 +43,7 @@ limitations under the License.
 #include "table.h"
 #include "utils.h"
 #include "plugin.h"
+#include "plugin_utils.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -448,7 +449,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 #ifdef HAS_CHISELS
 		add_chisel_dirs(inspector);
 #endif
-		sinsp_plugin::register_source_plugins(inspector, SYSDIG_INSTALLATION_DIR);
+		add_plugin_dirs(SYSDIG_INSTALLATION_DIR);
+		register_plugins(inspector);
 
 		//
 		// Parse the args

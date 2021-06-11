@@ -45,7 +45,11 @@ else()
 		win32/getopt.c)
 endif()
 
+list(APPEND SOURCE_FILES
+	plugin_utils.cpp)
+
 list(APPEND SOURCE_FILES_CSYSDIG
+	plugin_utils.cpp
 	../sinspui/ctext.cpp
 	../sinspui/cursescomponents.cpp
 	../sinspui/cursesspectro.cpp
