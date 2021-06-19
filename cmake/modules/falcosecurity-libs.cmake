@@ -64,3 +64,8 @@ list(APPEND CMAKE_MODULE_PATH "${LIBSINSP_DIR}/cmake/modules")
 
 include(libscap)
 include(libsinsp)
+# Windows needs these to copy some dlls to the build directories
+if(WIN32)
+  include(luajit)
+  include(zlib)
+endif()
