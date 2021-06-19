@@ -31,7 +31,6 @@ limitations under the License.
 #include <queue>
 #include <vector>
 #include <set>
-using namespace std;
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -45,6 +44,7 @@ using namespace std;
 #include "cursesui.h"
 #include "utils.h"
 
+using namespace std;
 extern bool g_filterchecks_force_raw_times;
 
 ///////////////////////////////////////////////////////////////////////////////

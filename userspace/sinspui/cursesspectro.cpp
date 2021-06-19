@@ -32,7 +32,6 @@ limitations under the License.
 #include <queue>
 #include <vector>
 #include <set>
-using namespace std;
 
 #include "sinsp.h"
 #include "filter.h"
@@ -47,6 +46,8 @@ using namespace std;
 #include "cursestable.h"
 #include "cursesspectro.h"
 #include "cursesui.h"
+
+using namespace std;
 
 //
 // The color palette that we will use for the chart
