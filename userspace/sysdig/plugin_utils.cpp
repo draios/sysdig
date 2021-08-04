@@ -70,6 +70,8 @@ void add_plugin_dirs(string sysdig_installation_dir)
 
 void register_plugins(sinsp *inspector)
 {
+    bool avoid_async = false;
+
     for (vector<plugin_dir_info>::const_iterator it = g_plugin_dirs.begin();
          it != g_plugin_dirs.end(); ++it)
     {
@@ -96,7 +98,7 @@ void register_plugins(sinsp *inspector)
                 goto nextfile;
             }
 
-            sinsp_plugin::register_plugin(inspector, file.path, NULL);
+            sinsp_plugin::register_plugin(inspector, file.path, NULL, avoid_async);
 
         nextfile:
             tinydir_next(&dir);

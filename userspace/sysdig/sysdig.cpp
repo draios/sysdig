@@ -1156,7 +1156,28 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					inputname = optarg;
 					if(inputname == "l")
 					{
-						sinsp_plugin::list_plugins(inspector);
+						std::list<sinsp_plugin::info> infos = sinsp_plugin::plugin_infos(inspector);
+						std::ostringstream os;
+
+						for(auto &info : infos)
+						{
+							os << "Name: " << info.name << std::endl;
+							os << "Description: " << info.description << std::endl;
+							os << "Contact: " << info.contact << std::endl;
+							os << "Version: " << info.plugin_version.as_string() << std::endl;
+
+							if(info.type == TYPE_SOURCE_PLUGIN)
+							{
+								os << "Type: source plugin" << std::endl;
+								os << "ID: " << info.id << std::endl;
+							}
+							else
+							{
+								os << "Type: extractor plugin" << std::endl;
+							}
+						}
+
+						printf("%lu Plugins Loaded:\n\n%s\n", infos.size(), os.str().c_str());
 						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}

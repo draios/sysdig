@@ -30,8 +30,8 @@ else()
   # -DFALCOSECURITY_LIBS_VERSION=dev ..`
   if(NOT FALCOSECURITY_LIBS_VERSION)
     # todo(leogr): set correct version and checksum once https://github.com/falcosecurity/libs/pull/33 gets merged
-    set(FALCOSECURITY_LIBS_VERSION "new/plugin-system")
-    # set(FALCOSECURITY_LIBS_CHECKSUM "SHA256=")
+    set(FALCOSECURITY_LIBS_VERSION "new/plugin-system-api-additions")
+    # set(FALCOSECURITY_LIBS_CHECKSUM "SHA256=aa3d33761371947b51ed62280ceeb80ea47e7f80cc52f9fb5588ebcf397c6c2e")
   endif()
 
   # cd /path/to/build && cmake /path/to/source
