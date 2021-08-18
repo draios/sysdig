@@ -172,6 +172,9 @@ static void usage()
 "                    specified as argument. E.g. \"http://admin:password@127.0.0.1:8080\".\n"
 "                    The API server can also be specified via the environment variable\n"
 "                    SYSDIG_K8S_API.\n"
+" --node-name=<url>\n"
+"                    The node name is used as a filter when requesting metadata of pods\n"
+"                    to the API server; if empty, no filter is set\n"
 " -K <bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>], --k8s-api-cert=<bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>]\n"
 "                    Use the provided files names to authenticate user and (optionally) verify the K8S API\n"
 "                    server identity.\n"
@@ -791,6 +794,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	vector<summary_table_entry> summary_table;
 #ifndef MINIMAL_BUILD
 	string* k8s_api = 0;
+	string* node_name = 0;
 	string* k8s_api_cert = 0;
 	string* mesos_api = 0;
 #endif // MINIMAL_BUILD
@@ -838,6 +842,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"json", no_argument, 0, 'j' },
 #ifndef MINIMAL_BUILD
 		{"k8s-api", required_argument, 0, 'k'},
+		{"node-name", required_argument, 0, 'N'},
 		{"k8s-api-cert", required_argument, 0, 'K' },
 #endif // MINIMAL_BUILD
 		{"large-environment", no_argument, 0, 0 },
@@ -1022,6 +1027,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #ifndef MINIMAL_BUILD
 			case 'k':
 				k8s_api = new string(optarg);
+				break;
+			case 'N':
+				node_name = new string(optarg);
 				break;
 			case 'K':
 				k8s_api_cert = new string(optarg);
@@ -1591,7 +1599,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						k8s_api_cert = new string(k8s_cert_env);
 					}
 				}
-				inspector->init_k8s_client(k8s_api, k8s_api_cert, verbose);
+				inspector->init_k8s_client(k8s_api, k8s_api_cert, node_name, verbose);
 				k8s_api = 0;
 				k8s_api_cert = 0;
 			}
@@ -1607,7 +1615,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						}
 					}
 					k8s_api = new string(k8s_api_env);
-					inspector->init_k8s_client(k8s_api, k8s_api_cert, verbose);
+					inspector->init_k8s_client(k8s_api, k8s_api_cert, node_name, verbose);
 				}
 				else
 				{
