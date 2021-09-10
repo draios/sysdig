@@ -51,6 +51,7 @@ limitations under the License.
 #else
 #include <unistd.h>
 #include <getopt.h>
+#include <termios.h>
 #endif
 
 static bool g_terminate = false;
@@ -759,6 +760,37 @@ captureinfo do_inspect(sinsp* inspector,
 
 	return retval;
 }
+
+#ifndef _WIN32
+struct termios g_saved_term_attributes;
+
+void reset_tty_input_mode(void)
+{
+  tcsetattr(STDIN_FILENO, TCSANOW, &g_saved_term_attributes);
+}
+
+void disable_tty_echo() {
+	struct termios tattr;
+	char *name;
+
+	/* Make sure stdin is a terminal. */
+	if (!isatty (STDIN_FILENO))
+	{
+		return;
+	}
+
+	/* Save the terminal attributes so we can restore them later. */
+	tcgetattr(STDIN_FILENO, &g_saved_term_attributes);
+	atexit(reset_tty_input_mode);
+
+	/* Disable terminal echo */
+	tcgetattr(STDIN_FILENO, &tattr);
+	tattr.c_lflag &= ~(ICANON|ECHO); /* Clear ICANON and ECHO. */
+	tattr.c_cc[VMIN] = 1;
+	tattr.c_cc[VTIME] = 0;
+	tcsetattr(STDIN_FILENO, TCSAFLUSH, &tattr);
+}
+#endif
 
 //
 // ARGUMENT PARSING AND PROGRAM SETUP
@@ -1643,6 +1675,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			}
 			delete mesos_api;
 			mesos_api = 0;
+#endif
+#ifndef _WIN32
+			// Sysdig does not accept user input during the inspect loop
+			// If the user stops the program with Ctrl-C disabling input would prevent the echoed ^C
+			// from messing up the output and possibly the shell line after program termination.
+			disable_tty_echo();
 #endif
 			cinfo = do_inspect(inspector,
 				cnt,
