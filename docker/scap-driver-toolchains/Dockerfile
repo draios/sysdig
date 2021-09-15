@@ -1,23 +1,17 @@
-FROM debian:10.10 AS base
-# Debian 10.10 has been chosen as a toolchain builder base because it's fully supported and is based on lib versions that are
-# compatible with most stable base images in use as of September 2021.
-# If this changes and it becomes required to dynamically link toolchains to newer base libraries (libc/libm, libgmp...)
-# it should be enough to increment the debian version number.
+FROM registry.access.redhat.com/ubi8 AS base
 
-RUN apt-get update
-RUN apt-get install -y --no-install-recommends \
-	gcc \
-	g++ \
+RUN yum update \
+	&& yum install -y gcc \
+	gcc-c++ \
 	make \
 	cmake \
-	xz-utils \
+	xz \
 	curl \
-	ca-certificates \
-	python \
+	python3 \
 	gnupg \
-	libgmp10-dev \
-	libmpfr-dev \
-	libmpc-dev
+	diffutils \
+	wget \
+	bzip2
 
 RUN curl -O -L https://mirrors.ocf.berkeley.edu/gnu/gnu-keyring.gpg \
 	&& gpg -q --import gnu-keyring.gpg
@@ -43,18 +37,6 @@ RUN curl --remote-name-all -L https://github.com/dell/dkms/archive/refs/tags/v2.
  	&& make tarball \
  	&& make install DESTDIR=/opt/scap-driver-toolchains/dkms
 
-FROM base AS mpfr
-
-WORKDIR /src/mpfr
-
-RUN curl --remote-name-all -L https://ftp.gnu.org/gnu/mpfr/mpfr-4.1.0.tar.gz{,.sig} \
-	&& gpg --verify mpfr-4.1.0.tar.gz.sig \
-	&& tar --strip-components=1 -xf mpfr-4.1.0.tar.gz
-
-RUN ./configure --prefix /opt/scap-driver-toolchains/mpfr \
-	&& make \
-	&& make install-strip
-
 FROM base AS llvm-7
 
 WORKDIR /src/llvm/7
@@ -69,7 +51,7 @@ RUN curl --remote-name-all -L https://github.com/llvm/llvm-project/releases/down
 
 WORKDIR /src/llvm/7/build
 
-RUN cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX=/opt/scap-driver-toolchains/llvm-7 -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_CXX_FLAGS='-static-libstdc++ -static-libgcc' -G "Unix Makefiles" ../llvm-7.1.0.src \
+RUN cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX=/opt/scap-driver-toolchains/llvm-7 -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_CXX_FLAGS='-static-libgcc' -G "Unix Makefiles" ../llvm-7.1.0.src \
 	&& make \
 	&& make install/strip
 
@@ -79,7 +61,9 @@ WORKDIR /src/gcc/5
 
 RUN curl --remote-name-all -L https://ftp.gnu.org/gnu/gcc/gcc-5.5.0/gcc-5.5.0.tar.gz{,.sig} \
 	&& gpg --verify gcc-5.5.0.tar.gz.sig \
-	&& tar --strip-components=1 -xf gcc-5.5.0.tar.gz
+	&& tar --strip-components=1 -xf gcc-5.5.0.tar.gz \
+	&& ./contrib/download_prerequisites
+
 RUN ./configure --prefix=/opt/scap-driver-toolchains/gcc-5 --enable-languages=c --disable-libsanitizer --disable-multilib \
 	&& make \
 	&& make install-strip
@@ -90,7 +74,9 @@ WORKDIR /src/gcc/6
 
 RUN curl --remote-name-all -L https://ftp.gnu.org/gnu/gcc/gcc-6.5.0/gcc-6.5.0.tar.gz{,.sig} \
 	&& gpg --verify gcc-6.5.0.tar.gz.sig \
-	&& tar --strip-components=1 -xf gcc-6.5.0.tar.gz
+	&& tar --strip-components=1 -xf gcc-6.5.0.tar.gz \
+	&& ./contrib/download_prerequisites
+
 RUN ./configure --prefix=/opt/scap-driver-toolchains/gcc-6 --enable-languages=c --disable-libsanitizer --disable-multilib \
 	&& make \
 	&& make install-strip
@@ -101,7 +87,9 @@ WORKDIR /src/gcc/7
 
 RUN curl --remote-name-all -L https://ftp.gnu.org/gnu/gcc/gcc-7.5.0/gcc-7.5.0.tar.gz{,.sig} \
 	&& gpg --verify gcc-7.5.0.tar.gz.sig \
-	&& tar --strip-components=1 -xf gcc-7.5.0.tar.gz
+	&& tar --strip-components=1 -xf gcc-7.5.0.tar.gz \
+	&& ./contrib/download_prerequisites
+
 RUN ./configure --prefix=/opt/scap-driver-toolchains/gcc-7 --enable-languages=c --disable-libsanitizer --disable-multilib \
 	&& make \
 	&& make install-strip
@@ -112,7 +100,9 @@ WORKDIR /src/gcc/8
 
 RUN curl --remote-name-all -L https://ftp.gnu.org/gnu/gcc/gcc-8.5.0/gcc-8.5.0.tar.gz{,.sig} \
 	&& gpg --verify gcc-8.5.0.tar.gz.sig \
-	&& tar --strip-components=1 -xf gcc-8.5.0.tar.gz
+	&& tar --strip-components=1 -xf gcc-8.5.0.tar.gz \
+	&& ./contrib/download_prerequisites
+
 RUN ./configure --prefix=/opt/scap-driver-toolchains/gcc-8 --enable-languages=c --disable-multilib \
 	&& make \
 	&& make install-strip
@@ -123,7 +113,9 @@ WORKDIR /src/gcc/9
 
 RUN curl --remote-name-all -L https://ftp.gnu.org/gnu/gcc/gcc-9.4.0/gcc-9.4.0.tar.gz{,.sig} \
 	&& gpg --verify gcc-9.4.0.tar.gz.sig \
-	&& tar --strip-components=1 -xf gcc-9.4.0.tar.gz
+	&& tar --strip-components=1 -xf gcc-9.4.0.tar.gz \
+	&& ./contrib/download_prerequisites
+
 RUN ./configure --prefix=/opt/scap-driver-toolchains/gcc-9 --enable-languages=c --disable-multilib \
 	&& make \
 	&& make install-strip
@@ -134,25 +126,21 @@ WORKDIR /src/gcc/10
 
 RUN curl --remote-name-all -L https://ftp.gnu.org/gnu/gcc/gcc-10.3.0/gcc-10.3.0.tar.gz{,.sig} \
 	&& gpg --verify gcc-10.3.0.tar.gz.sig \
-	&& tar --strip-components=1 -xf gcc-10.3.0.tar.gz
+	&& tar --strip-components=1 -xf gcc-10.3.0.tar.gz \
+	&& ./contrib/download_prerequisites
+
 RUN ./configure --prefix=/opt/scap-driver-toolchains/gcc-10 --enable-languages=c --disable-multilib \
 	&& make \
 	&& make install-strip
 
-FROM debian:11
-
-RUN apt-get update \
-	&& apt-get install -y --no-install-recommends \
-	make \
-	libmpc3 \
-	libmpfr6
+FROM registry.access.redhat.com/ubi8
 
 COPY --from=tools /opt/scap-driver-toolchains/ /opt/scap-driver-toolchains/
 COPY --from=llvm-7 /opt/scap-driver-toolchains/ /opt/scap-driver-toolchains/
-COPY --from=mpfr /opt/scap-driver-toolchains/ /opt/scap-driver-toolchains/
 COPY --from=gcc-5 /opt/scap-driver-toolchains/ /opt/scap-driver-toolchains/
 COPY --from=gcc-6 /opt/scap-driver-toolchains/ /opt/scap-driver-toolchains/
 COPY --from=gcc-7 /opt/scap-driver-toolchains/ /opt/scap-driver-toolchains/
 COPY --from=gcc-8 /opt/scap-driver-toolchains/ /opt/scap-driver-toolchains/
 COPY --from=gcc-9 /opt/scap-driver-toolchains/ /opt/scap-driver-toolchains/
 COPY --from=gcc-10 /opt/scap-driver-toolchains/ /opt/scap-driver-toolchains/
+
