@@ -1,0 +1,15 @@
+name: build
+on:
+  - push
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v1.9
+        with:
+          cmake-version: '3.16.x' 
+      - name: TEST
+        run: cmake --version
