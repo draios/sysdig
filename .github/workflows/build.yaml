@@ -13,6 +13,8 @@ jobs:
           cmake-version: '3.16.x' 
       - name: Cmake build
         run: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DMINIMAL_BUILD=Off
+      - name: Install deps
+        run: sudo apt-get update && sudo apt-get install -y libelf-dev
       - name: Build
         run: |
           cd build
