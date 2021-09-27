@@ -514,7 +514,7 @@ static void chisels_do_timeout(sinsp_evt* ev)
 #endif
 }
 
-void handle_end_of_file(bool print_progress, sinsp_evt_formatter* formatter = NULL)
+void handle_end_of_file(bool print_progress, bool reset_colors = false, sinsp_evt_formatter* formatter = NULL)
 {
 	string line;
 
@@ -524,6 +524,10 @@ void handle_end_of_file(bool print_progress, sinsp_evt_formatter* formatter = NU
 	if(formatter != NULL && formatter->on_capture_end(&line))
 	{
 		cout << line << endl;
+	}
+
+	if(reset_colors) {
+		cout << "\e[00m";
 	}
 
 	//
@@ -588,6 +592,7 @@ captureinfo do_inspect(sinsp* inspector,
 	bool quiet,
 	bool json,
 	bool do_flush,
+	bool reset_colors,
 	bool print_progress,
 	sinsp_filter* display_filter,
 	vector<summary_table_entry> &summary_table,
@@ -616,7 +621,7 @@ captureinfo do_inspect(sinsp* inspector,
 			// End of capture, either because the user stopped it, or because
 			// we reached the event count specified with -n.
 			//
-			handle_end_of_file(print_progress, formatter);
+			handle_end_of_file(print_progress, reset_colors, formatter);
 			break;
 		}
 		res = inspector->next(&ev);
@@ -636,7 +641,7 @@ captureinfo do_inspect(sinsp* inspector,
 		}
 		else if(res == SCAP_EOF)
 		{
-			handle_end_of_file(print_progress, formatter);
+			handle_end_of_file(print_progress, reset_colors, formatter);
 			break;
 		}
 		else if(res != SCAP_SUCCESS)
@@ -645,7 +650,7 @@ captureinfo do_inspect(sinsp* inspector,
 			// Event read error.
 			// Notify the chisels that we're exiting, and then die with an error.
 			//
-			handle_end_of_file(print_progress, formatter);
+			handle_end_of_file(print_progress, reset_colors, formatter);
 			cerr << "res = " << res << endl;
 			throw sinsp_exception(inspector->getlasterr().c_str());
 		}
@@ -657,7 +662,7 @@ captureinfo do_inspect(sinsp* inspector,
 		{
 			if(ev->get_ts() - duration_start >= duration_to_tot_ns)
 			{
-				handle_end_of_file(print_progress, formatter);
+				handle_end_of_file(print_progress, reset_colors, formatter);
 				break;
 			}
 		}
@@ -766,7 +771,7 @@ struct termios g_saved_term_attributes;
 
 void reset_tty_input_mode(void)
 {
-  tcsetattr(STDIN_FILENO, TCSANOW, &g_saved_term_attributes);
+	tcsetattr(STDIN_FILENO, TCSANOW, &g_saved_term_attributes);
 }
 
 void disable_tty_echo() {
@@ -791,6 +796,32 @@ void disable_tty_echo() {
 	tcsetattr(STDIN_FILENO, TCSAFLUSH, &tattr);
 }
 #endif
+
+std::string escape_output_format(const std::string& s)
+{
+    std::stringstream  ss{""};
+
+    for(size_t i = 0; i < s.length(); i++)
+    {
+        if (s.at(i) == '\\')
+        {
+            switch(s.at(i + 1))
+            {
+                case 'n':  ss << "\n"; i++; break;
+				case 't':  ss << "\t"; i++; break;
+				case 'e':  ss << "\e"; i++; break;
+				case '\\': ss << "\\"; i++; break;
+                default:   ss << "\\";      break;
+            }
+        }
+        else
+        {
+            ss << s.at(i);
+        }
+    }
+
+    return ss.str();
+}
 
 //
 // ARGUMENT PARSING AND PROGRAM SETUP
@@ -821,6 +852,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	int32_t n_filterargs = 0;
 	bool jflag = false;
 	bool unbuf_flag = false;
+	bool reset_colors = false;
 	bool filter_proclist_flag = false;
 	string cname;
 	vector<summary_table_entry> summary_table;
@@ -908,7 +940,13 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{0, 0, 0, 0}
 	};
 
-	output_format = "*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
+	if (isatty(STDIN_FILENO))
+	{
+		output_format = "*%evt.num %evt.outputtime %evt.cpu \e[01;32m%proc.name\e[00m (\e[01;36m%proc.pid\e[00m.%thread.tid) %evt.dir \e[01;34m%evt.type\e[00m %evt.info";
+	} else
+	{
+		output_format = "*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
+	}
 
 	try
 	{
@@ -1426,6 +1464,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			goto exit;
 		}
 
+		output_format = escape_output_format(output_format);
+		if (output_format.find("\e") != std::string::npos)
+		{
+			reset_colors = true;
+		}
+
 		//
 		// Create the event formatter
 		//
@@ -1688,6 +1732,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				quiet,
 				jflag,
 				unbuf_flag,
+				reset_colors,
 				print_progress,
 				display_filter,
 				summary_table,
@@ -1719,23 +1764,23 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	}
 	catch(const sinsp_capture_interrupt_exception&)
 	{
-		handle_end_of_file(print_progress);
+		handle_end_of_file(print_progress, reset_colors);
 	}
 	catch(const scap_open_exception& e)
 	{
 		cerr << e.what() << endl;
-		handle_end_of_file(print_progress);
+		handle_end_of_file(print_progress, reset_colors);
 		res.m_res = e.scap_rc();
 	}
 	catch (const std::runtime_error& e) 
 	{
 		cerr << e.what() << endl;
-		handle_end_of_file(print_progress);
+		handle_end_of_file(print_progress, reset_colors);
 		res.m_res = EXIT_FAILURE;
 	}
 	catch(...)
 	{
-		handle_end_of_file(print_progress);
+		handle_end_of_file(print_progress, reset_colors);
 		res.m_res = EXIT_FAILURE;
 	}
 
