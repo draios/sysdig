@@ -1,0 +1,28 @@
+name: Build container
+on:
+  - workflow_dispatch
+jobs:
+  build-container:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Sysdig
+        uses: actions/checkout@v2
+      - name: Checkout libs
+        uses: actions/checkout@v2
+        with:
+          repository: lucklypse/libs
+          ref: fix/safer-strings-gcc-8
+          path: falcosecurity-libs
+      - name: Build Sysdig container
+        uses: docker/build-push-action@v2
+        with:
+          push: false
+          tags: sysdig-gha:latest
+          file: docker/sysdig/Dockerfile
+
+
+# ON PULL REQUEST
+# -> checkout, docker run builder ... cmake, build, test
+
+# ON RELEASE [ button ]
+# -> checkout, 
