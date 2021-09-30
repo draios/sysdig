@@ -9,7 +9,6 @@ shift
 
 # Build type can be "debug" or "release", fallbacks to "release" by default
 BUILD_TYPE=$(echo "$BUILD_TYPE" | tr "[:upper:]" "[:lower:]")
-DRAIOS_DEBUG_FLAGS=
 case "$BUILD_TYPE" in
 "debug")
     DRAIOS_DEBUG_FLAGS="-D_DEBUG -DNDEBUG"
@@ -41,7 +40,6 @@ case "$CMD" in
         -DBUILD_BPF="$BUILD_BPF"
         -DBUILD_WARNINGS_AS_ERRORS="$BUILD_WARNINGS_AS_ERRORS"
         -DSYSDIG_VERSION="$BUILD_VERSION"
-        -DDRAIOS_DEBUG_FLAGS="$DRAIOS_DEBUG_FLAGS"
         -DUSE_BUNDLED_DEPS=ON
     )
 
