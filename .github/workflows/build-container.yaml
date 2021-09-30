@@ -2,8 +2,26 @@ name: Build container
 on:
   - push
 jobs:
-  build-container:
+  builder:
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: mzuccala
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build builder container
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          tags: mzuccala/sysdig-builder:latest
+          context: docker/builder/
+
+  docker-image:
+    runs-on: ubuntu-latest
+    needs: builder
     steps:
       - name: Checkout Sysdig
         uses: actions/checkout@v2
@@ -13,16 +31,21 @@ jobs:
           repository: lucklypse/libs
           ref: fix/safer-strings-gcc-8
           path: falcosecurity-libs
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: mzuccala
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Build Sysdig container
         uses: docker/build-push-action@v2
         with:
-          push: false
-          tags: sysdig-gha:latest
+          context: .
+          push: true
+          tags: mzuccala/sysdig:latest
           file: docker/sysdig/Dockerfile
-
 
 # ON PULL REQUEST
 # -> checkout, docker run builder ... cmake, build, test
 
 # ON RELEASE [ button ]
-# -> checkout, 
+# -> checkout,

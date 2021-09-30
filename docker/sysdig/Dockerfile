@@ -1,4 +1,4 @@
-FROM lucagsd/sysdig-builder AS builder
+FROM mzuccala/sysdig-builder AS builder
 
 ARG BUILD_VERSION=0.1.1dev
 
