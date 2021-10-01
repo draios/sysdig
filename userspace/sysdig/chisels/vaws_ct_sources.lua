@@ -33,13 +33,13 @@ view_info =
 	{
 		{
 			name = "NA",
-			field = "ct.src",
+			field = "ct.shortsrc",
 			is_key = true
 		},
 		{
 			name = "SOURCE",
 			description = "Name of the CloudTrail source service.",
-			field = "ct.src",
+			field = "ct.shortsrc",
 			colsize = 32,
 		},
 		{

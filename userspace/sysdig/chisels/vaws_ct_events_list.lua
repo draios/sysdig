@@ -25,7 +25,7 @@ view_info =
 	tips = {"This view prints one event per line, including details like time, user and source IP. It's a good view to drill down into a selection and see the detailed activity."},
 	tags = {"csysdig-aws"},
 	view_type = "table",
-	applies_to = {"", "ct.name", "ct.src", "ct.useragent", "ct.region", "ct.srcip", "s3.uri", "s3.bucket"},
+	applies_to = {"", "ct.name", "ct.shortsrc", "ct.useragent", "ct.region", "ct.srcip", "s3.uri", "s3.bucket"},
 	is_root = false,
 	drilldown_target = "echo",
 	use_defaults = true,
@@ -52,7 +52,7 @@ view_info =
 		{
 			name = "SERVICE",
 			description = "Service generating the event.",
-			field = "ct.src",
+			field = "ct.shortsrc",
 			colsize = 24,
 		},
 		{

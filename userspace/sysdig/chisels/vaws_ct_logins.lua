@@ -25,7 +25,7 @@ view_info =
 	tips = {"Drill down into this view from the users view to see the logins of a specific user. Use the ECHO functionality ('e' key) to look at the details of a login event."},
 	tags = {"csysdig-aws"},
 	view_type = "table",
-	applies_to = {"", "ct.name", "ct.src", "ct.useragent", "ct.region", "ct.srcip"},
+	applies_to = {"", "ct.name", "ct.shortsrc", "ct.useragent", "ct.region", "ct.srcip"},
 	is_root = false,
 	filter = "ct.name = ConsoleLogin or ct.name = CheckMfa",
 	drilldown_target = "echo",

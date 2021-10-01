@@ -25,7 +25,7 @@ view_info =
 	tips = {"Each AWS source has a unique set of events it can produce. You can learn more about what an event means in the CloudTrail User Guide (https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-user-guide.html)"},
 	tags = {"csysdig-aws"},
 	view_type = "table",
-	applies_to = {"", "ct.user", "ct.src", "ct.useragent", "ct.region", "ct.srcip", "s3.uri", "s3.bucket"},
+	applies_to = {"", "ct.user", "ct.shortsrc", "ct.useragent", "ct.region", "ct.srcip", "s3.uri", "s3.bucket"},
 	is_root = false,
 	drilldown_target = "ct_events_list",
 	use_defaults = false,
@@ -45,7 +45,7 @@ view_info =
 		{
 			name = "SERVICE",
 			description = "Service generating the event.",
-			field = "ct.src",
+			field = "ct.shortsrc",
 			colsize = 24,
 		},
 		{

@@ -25,7 +25,7 @@ view_info =
 	tips = {"Each line in this view includes useful fields like the instance name (when present), its type, the start time, etc. For the full details, select an item and echo its JSON ('e' keyboard shortcut)."},
 	tags = {"csysdig-aws"},
 	view_type = "table",
-	applies_to = {"", "ct.name", "ct.src", "ct.useragent", "ct.region", "ct.srcip"},
+	applies_to = {"", "ct.name", "ct.shortsrc", "ct.useragent", "ct.region", "ct.srcip"},
 	is_root = false,
 	filter = "ct.name = RunInstances",
 	drilldown_target = "echo",
