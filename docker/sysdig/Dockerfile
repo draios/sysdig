@@ -1,4 +1,6 @@
-FROM mzuccala/sysdig-builder AS builder
+ARG BUILDER_IMAGE=sysdig/sysdig-builder
+
+FROM ${BUILDER_IMAGE} AS builder
 
 ARG BUILD_VERSION=0.1.1dev
 
