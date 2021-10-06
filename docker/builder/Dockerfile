@@ -33,7 +33,8 @@ RUN yum -y install \
     bzip2 \
     cmake \
     clang \
-    git
+    git \
+    file
 
 RUN gpg --batch --keyserver keyserver.ubuntu.com --recv-keys \
     12768A96795990107A0D2FDFFC57E3CCACD99A78
