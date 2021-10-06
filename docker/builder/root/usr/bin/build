@@ -49,6 +49,7 @@ case "$CMD" in
 
     CMAKE_ARGS+=("$SOURCE_DIR/sysdig")
 
+    echo "cmake ${CMAKE_ARGS[@]}"
     cmake "${CMAKE_ARGS[@]}"
     exit "$(printf '%d\n' $?)"
     ;;
