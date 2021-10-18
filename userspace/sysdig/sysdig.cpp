@@ -593,7 +593,7 @@ static void chisels_do_timeout(sinsp_evt* ev)
 #endif
 }
 
-void handle_end_of_file(sinsp* inspector, bool print_progress, bool reset_colors = false, sinsp_evt_formatter_with_plugin_support* formatter = NULL)
+void handle_end_of_file(sinsp* inspector, bool print_progress, bool reset_colors = false, sinsp_evt_formatter* formatter = NULL)
 {
 	string line;
 
@@ -685,7 +685,7 @@ captureinfo do_inspect(sinsp* inspector,
 	bool print_progress,
 	sinsp_filter* display_filter,
 	vector<summary_table_entry> &summary_table,
-	sinsp_evt_formatter_with_plugin_support* formatter)
+	sinsp_evt_formatter* formatter)
 {
 	captureinfo retval;
 	int32_t res;
@@ -1633,9 +1633,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		//
 		// Create the event formatter
 		//
-		sinsp_evt_formatter_with_plugin_support formatter(inspector,
-			output_format,
-			output_format_plugin);
+		sinsp_evt_formatter formatter(inspector,
+					      (g_plugin_input ? output_format_plugin : output_format));
 
 		//
 		// Set output buffers len
