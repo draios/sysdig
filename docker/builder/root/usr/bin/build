@@ -20,12 +20,13 @@ esac
 
 case "$CMD" in
 "cmake")
-    if [ ! -d "$SOURCE_DIR/sysdig" ]; then
-        echo "Missing sysdig source." >&2
+    if [ ! -f "$SOURCE_DIR/sysdig/README.md" ]; then
+        echo "Could not find sysdig source in $SOURCE_DIR/sysdig. ($SOURCE_DIR/sysdig/README.md not found!)" >&2
         exit 1
     fi
 
-    if [ -d "$SOURCE_DIR/libs" ]; then
+    if [ -f "$SOURCE_DIR/libs/README.md" ]; then
+        echo "Found falcosecurity libs source in $SOURCE_DIR/libs"
         FALCOSECURITY_LIBS_SOURCE_DIR="$SOURCE_DIR/libs"
     fi
 
@@ -49,6 +50,7 @@ case "$CMD" in
 
     CMAKE_ARGS+=("$SOURCE_DIR/sysdig")
 
+    echo "cmake ${CMAKE_ARGS[@]}"
     cmake "${CMAKE_ARGS[@]}"
     exit "$(printf '%d\n' $?)"
     ;;
