@@ -9,7 +9,7 @@
 *.o.d
 *.o.rc
 *.o.ur-safe
-build/
+/build/
 driver/Makefile
 driver/driver_config.h
 *.pyc
@@ -22,5 +22,5 @@ driver/driver_config.h
 *.ll
 .vscode
 .cache.mk
-build-*
+/build-*
 
