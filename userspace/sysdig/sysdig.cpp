@@ -776,10 +776,9 @@ void reset_tty_input_mode(void)
 
 void disable_tty_echo() {
 	struct termios tattr;
-	char *name;
 
 	/* Make sure stdin is a terminal. */
-	if (!isatty (STDIN_FILENO))
+	if (!isatty(STDIN_FILENO))
 	{
 		return;
 	}

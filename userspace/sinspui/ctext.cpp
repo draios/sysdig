@@ -40,7 +40,7 @@ ctext_config config_default;
 void search_copy(ctext_search *dst, ctext_search *src)
 {
 	// Because c++ makes life impossibly difficult.
-	memcpy(dst, src, sizeof(ctext_search) - sizeof(string));
+	memcpy(reinterpret_cast<void*>(dst), src, sizeof(ctext_search) - sizeof(string));
 	dst->_query = src->_query;
 }
 
