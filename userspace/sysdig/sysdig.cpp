@@ -193,6 +193,7 @@ static void usage()
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
 "                    field.\n"
+" --libs-version     Print the falcosecurity/libs version\n"
 " --large-environment\n"
 "                    Support environments larger than 4KiB\n"
 "                    When the environment is larger than 4KiB, load the whole\n"
@@ -913,6 +914,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
 		{"list-markdown", no_argument, 0, 0 },
+		{"libs-version", no_argument, 0, 0},
 #ifndef MINIMAL_BUILD
 		{"mesos-api", required_argument, 0, 'm'},
 #endif // MINIMAL_BUILD
@@ -1297,6 +1299,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 					if (optname == "version") {
 						printf("sysdig version %s\n", SYSDIG_VERSION);
+						delete inspector;
+						return sysdig_init_res(EXIT_SUCCESS);
+					}
+					else if (optname == "libs-version") {
+						printf("falcosecurity/libs version %s", FALCOSECURITY_LIBS_VERSION);
 						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
