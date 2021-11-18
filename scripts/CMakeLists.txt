@@ -18,6 +18,10 @@
 configure_file(debian/postinst.in debian/postinst)
 configure_file(debian/prerm.in debian/prerm)
 
+configure_file(rpm/postinstall.in rpm/postinstall)
+configure_file(rpm/postuninstall.in rpm/postuninstall)
+configure_file(rpm/preuninstall.in rpm/preuninstall)
+
 install(FILES completions/bash/sysdig
 	DESTINATION "${DIR_ETC}/bash_completion.d")
 
