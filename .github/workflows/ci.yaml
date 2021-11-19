@@ -1,0 +1,68 @@
+name: CI Build
+on: 
+  pull_request:
+    branches: [dev]
+
+jobs:
+  builder:
+    env:
+      REGISTRY: ghcr.io
+      BUILDER_IMAGE_BASE: ghcr.io/draios/sysdig-builder-pr
+      BUILDER_DEV: ghcr.io/draios/sysdig-builder:dev
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Sysdig
+        uses: actions/checkout@v2
+
+      - name: Check if builder is modified
+        id: builder-files
+        uses: tj-actions/changed-files@v10.1
+        with:
+          files: |
+            ^docker/builder
+
+      - name: Login to Github Packages
+        if: steps.builder-files.outputs.any_changed == 'true'
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Get new builder image tag
+        id: get-new-builder
+        if: steps.builder-files.outputs.any_changed == 'true'
+        run: |
+          echo "::set-output name=builder_image::${{ env.BUILDER_IMAGE_BASE }}:${{ github.event.pull_request.number }}"
+
+      - name: Build new builder
+        id: build-builder
+        if: steps.builder-files.outputs.any_changed == 'true'
+        uses: docker/build-push-action@v2
+        with:
+          context: docker/builder
+          tags: ${{ steps.get-new-builder.outputs.builder_image }}
+          push: true
+
+    outputs:
+      builder_image: ${{ (steps.builder-files.outputs.any_changed == 'true') && steps.get-new-builder.outputs.builder_image || env.BUILDER_DEV }}
+
+  build-sysdig-linux:
+    needs: builder
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.builder.outputs.builder_image }}
+    steps:
+      - name: Checkout Sysdig
+        uses: actions/checkout@v2
+        with:
+          path: sysdig
+      - name: Link paths
+        run: |
+          mkdir -p /source
+          ln -s "$GITHUB_WORKSPACE/sysdig" /source/sysdig
+      - name: Build
+        run: build cmake
+      - name: Build packages
+        run: build package
