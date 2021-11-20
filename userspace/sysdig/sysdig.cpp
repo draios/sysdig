@@ -44,6 +44,8 @@ limitations under the License.
 #endif
 #include "fields_info.h"
 #include "utils.h"
+#include "plugin.h"
+#include "plugin_utils.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -55,6 +57,7 @@ limitations under the License.
 #endif
 
 static bool g_terminate = false;
+static bool g_plugin_input = false;
 #ifdef HAS_CHISELS
 vector<sinsp_chisel*> g_chisels;
 #endif
@@ -66,7 +69,29 @@ static void usage();
 //
 static void signal_callback(int signal)
 {
-	g_terminate = true;
+	if(g_plugin_input)
+	{
+		//
+		// Input plugins can get stuck at any point.
+		// When we are using one, check again in few seconds and force a quit
+		// if we are stuck.
+		//
+		if(g_terminate == true)
+		{
+			exit(0);
+		}
+		else
+		{
+			g_terminate = true;
+#ifndef _WIN32
+			alarm(2);
+#endif
+		}
+	}
+	else
+	{
+		g_terminate = true;
+	}
 }
 
 //
@@ -88,14 +113,14 @@ static void usage()
 "                    Enable live capture using the specified BPF probe instead of the kernel module.\n"
 "                    The BPF probe can also be specified via the environment variable\n"
 "                    SYSDIG_BPF_PROBE. If <bpf_probe> is left empty, sysdig will\n"
-"                    try to load one from the sysdig-probe-loader script.\n"
+"                    try to load one from the sysdig-probe-loader script.\n" // TODO FIX THIS (sysdig-probe-loader)
 #ifdef HAS_CHISELS
 " -c <chiselname> <chiselargs>, --chisel <chiselname> <chiselargs>\n"
 "                    run the specified chisel. If the chisel require arguments,\n"
 "                    they must be specified in the command line after the name.\n"
 " -cl, --list-chisels\n"
-"                    lists the available chisels. Looks for chisels in\n"
-"                    ./chisels, ~/.chisels and /usr/share/sysdig/chisels.\n"
+"                    lists the available chisels. Sysdig looks for chisels in the\n"
+"                    following directories: ./chisels, ~/.chisels, /usr/share/sysdig/chisels.\n"
 #endif
 " -C <file_size>, --file-size=<file_size>\n"
 "                    Before writing an event, check whether the file is\n"
@@ -160,6 +185,17 @@ static void usage()
 "                    If no data format is specified, this can be used with -W flag to\n"
 "                    create a ring buffer of events.\n"
 " -h, --help         Print this page\n"
+" -I <inputname>[:<inputargs>], --input <inputname>[:<inputargs>]\n"
+"                    capture events using the plugin with name inputname, passing to the \n"
+"                    plugin the inputargs string as parameters.\n"
+"                    The format of inputargs is controller by the plugin, refer to each\n"
+"                    plugin's documentation to learn about it.\n"
+"                    The event sources available for capture vary depending on which \n"
+"                    plugins have been installed. You can list the plugins that have been \n"
+"                    loaded by using the -Il flag.\n"
+" -Il, --list-inputs\n"
+"                    lists the loaded plugins. Sysdig looks for plugins in the following \n"
+"                    directories: ./plugins, ~/.plugins, /usr/share/sysdig/plugins.\n"
 #ifdef HAS_CHISELS
 " -i <chiselname>, --chisel-info <chiselname>\n"
 "                    Get a longer description and the arguments associated with\n"
@@ -307,6 +343,49 @@ static void usage()
 " Print the name of the files opened by cat\n"
 "   $ sysdig -p\"%%evt.arg.name\" proc.name=cat and evt.type=open\n\n"
     );
+}
+
+double g_last_printed_progress_pct = 0;
+char g_prg_line_buf[512] = "";
+
+inline void clean_last_progress_line()
+{
+	uint32_t j;
+
+	for(j = 0; j < strlen(g_prg_line_buf); j++)
+	{
+		g_prg_line_buf[j] = ' ';
+	}
+	g_prg_line_buf[j] = 0;
+
+	fprintf(stderr, "\r%s", g_prg_line_buf);
+}
+
+inline void output_progress(sinsp* inspector, sinsp_evt* ev)
+{
+	if(ev == NULL || (ev->get_num() % 10000 == 0))
+	{
+		string ps;
+		double progress_pct = inspector->get_read_progress_with_str(&ps);
+
+		if(progress_pct - g_last_printed_progress_pct > 0.1)
+		{
+			clean_last_progress_line();
+			if(ps == "")
+			{
+				snprintf(g_prg_line_buf, sizeof(g_prg_line_buf), "%.2lf", progress_pct);
+			}
+			else
+			{
+				snprintf(g_prg_line_buf, sizeof(g_prg_line_buf), "%s", ps.c_str());
+			}
+
+			fprintf(stderr, "\r%s", g_prg_line_buf);
+			//fprintf(stderr, "%s\n", g_prg_line_buf);
+			fflush(stderr);
+			g_last_printed_progress_pct = progress_pct;
+		}
+	}
 }
 
 void print_summary_table(sinsp* inspector,
@@ -515,7 +594,7 @@ static void chisels_do_timeout(sinsp_evt* ev)
 #endif
 }
 
-void handle_end_of_file(bool print_progress, bool reset_colors = false, sinsp_evt_formatter* formatter = NULL)
+void handle_end_of_file(sinsp* inspector, bool print_progress, bool reset_colors = false, sinsp_evt_formatter* formatter = NULL)
 {
 	string line;
 
@@ -537,7 +616,17 @@ void handle_end_of_file(bool print_progress, bool reset_colors = false, sinsp_ev
 	//
 	if(print_progress)
 	{
-		fprintf(stderr, "100.00\n");
+		clean_last_progress_line();
+		if(inspector == NULL)
+		{
+			fprintf(stderr, "\r100.00\n");
+		}
+		else
+		{
+			output_progress(inspector, NULL);
+			fprintf(stderr, "\n");
+		}
+
 		fflush(stderr);
 	}
 
@@ -603,7 +692,6 @@ captureinfo do_inspect(sinsp* inspector,
 	int32_t res;
 	sinsp_evt* ev;
 	string line;
-	double last_printed_progress_pct = 0;
 	uint64_t duration_start = 0;
 
 	if(json)
@@ -622,7 +710,7 @@ captureinfo do_inspect(sinsp* inspector,
 			// End of capture, either because the user stopped it, or because
 			// we reached the event count specified with -n.
 			//
-			handle_end_of_file(print_progress, reset_colors, formatter);
+			handle_end_of_file(inspector, print_progress, reset_colors, formatter);
 			break;
 		}
 		res = inspector->next(&ev);
@@ -636,13 +724,18 @@ captureinfo do_inspect(sinsp* inspector,
 				// Give the chisels a chance to run their timeout logic.
 				//
 				chisels_do_timeout(ev);
+
+				if(print_progress)
+				{
+					output_progress(inspector, ev);
+				}
 			}
 
 			continue;
 		}
 		else if(res == SCAP_EOF)
 		{
-			handle_end_of_file(print_progress, reset_colors, formatter);
+			handle_end_of_file(inspector, print_progress, reset_colors, formatter);
 			break;
 		}
 		else if(res != SCAP_SUCCESS)
@@ -651,7 +744,7 @@ captureinfo do_inspect(sinsp* inspector,
 			// Event read error.
 			// Notify the chisels that we're exiting, and then die with an error.
 			//
-			handle_end_of_file(print_progress, reset_colors, formatter);
+			handle_end_of_file(inspector, print_progress, reset_colors, formatter);
 			cerr << "res = " << res << endl;
 			throw sinsp_exception(inspector->getlasterr().c_str());
 		}
@@ -663,7 +756,7 @@ captureinfo do_inspect(sinsp* inspector,
 		{
 			if(ev->get_ts() - duration_start >= duration_to_tot_ns)
 			{
-				handle_end_of_file(print_progress, reset_colors, formatter);
+				handle_end_of_file(inspector, print_progress, reset_colors, formatter);
 				break;
 			}
 		}
@@ -671,17 +764,7 @@ captureinfo do_inspect(sinsp* inspector,
 
 		if(print_progress)
 		{
-			if(ev->get_num() % 10000 == 0)
-			{
-				double progress_pct = inspector->get_read_progress();
-
-				if(progress_pct - last_printed_progress_pct > 0.1)
-				{
-					fprintf(stderr, "%.2lf\n", progress_pct);
-					fflush(stderr);
-					last_printed_progress_pct = progress_pct;
-				}
-			}
+			output_progress(inspector, ev);
 		}
 
 		//
@@ -847,6 +930,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	int duration_to_tot = 0;
 	captureinfo cinfo;
 	string output_format;
+	string output_format_plugin;
 	uint32_t snaplen = 0;
 	int long_index = 0;
 	int32_t n_filterargs = 0;
@@ -871,6 +955,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string cri_socket_path;
 #endif
 	bool udig = false;
+	string inputname;
+	bool has_src_plugin = false;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -899,6 +985,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"filter-proclist", no_argument, 0, 0 },
 		{"seconds", required_argument, 0, 'G' },
 		{"help", no_argument, 0, 'h' },
+		{"input", required_argument, 0, 'I' },
 #ifdef HAS_CHISELS
 		{"chisel-info", required_argument, 0, 'i' },
 #endif
@@ -944,9 +1031,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	if (isatty(STDIN_FILENO))
 	{
 		output_format = "*%evt.num %evt.outputtime %evt.cpu \e[01;32m%proc.name\e[00m (\e[01;36m%proc.pid\e[00m.%thread.tid) %evt.dir \e[01;34m%evt.type\e[00m %evt.info";
+		output_format_plugin = "*%evt.num %evt.datetime.s [%evt.pluginname] %evt.plugininfo";
 	} else
 	{
 		output_format = "*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
+		output_format_plugin = "*%evt.num %evt.datetime.s [%evt.pluginname] %evt.plugininfo";
 	}
 
 	try
@@ -957,6 +1046,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #ifdef HAS_CHISELS
 		add_chisel_dirs(inspector);
 #endif
+		add_plugin_dirs(SYSDIG_INSTALLATION_DIR);
+		register_plugins(inspector);
 
 		//
 		// Parse the args
@@ -966,7 +1057,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "C:"
                                         "dDEe:F"
                                         "G:"
-                                        "hi:jk:K:lLm:M:n:Pp:qRr:Ss:t:TU:uv"
+                                        "hI:i:jk:K:lLm:M:n:Pp:qRr:Ss:t:TU:uv"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
 		{
@@ -1061,7 +1152,58 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					goto exit;
 				}
 				break;
+			case 'I':
+				{
+					inputname = optarg;
+					if(inputname == "l")
+					{
+						std::list<sinsp_plugin::info> infos = sinsp_plugin::plugin_infos(inspector);
+						std::ostringstream os;
 
+						for(auto &info : infos)
+						{
+							os << "Name: " << info.name << std::endl;
+							os << "Description: " << info.description << std::endl;
+							os << "Contact: " << info.contact << std::endl;
+							os << "Version: " << info.plugin_version.as_string() << std::endl;
+
+							if(info.type == TYPE_SOURCE_PLUGIN)
+							{
+								os << "Type: source plugin" << std::endl;
+								os << "ID: " << info.id << std::endl;
+							}
+							else
+							{
+								os << "Type: extractor plugin" << std::endl;
+							}
+						}
+
+						printf("%lu Plugins Loaded:\n\n%s\n", infos.size(), os.str().c_str());
+						delete inspector;
+						return sysdig_init_res(EXIT_SUCCESS);
+					}
+
+					has_src_plugin = true;
+
+					size_t cpos = inputname.find(':');
+					string pgname;
+					string pgpars;
+					if(cpos != string::npos)
+					{
+						pgname = inputname.substr(0, cpos);
+						pgpars = inputname.substr(cpos + 1);
+						inspector->set_input_plugin(pgname);
+						inspector->set_input_plugin_open_params(pgpars);
+					}
+					else
+					{
+						inspector->set_input_plugin(inputname);
+					}
+
+					g_plugin_input = true;
+					//print_progress = true;
+				}
+				break;
 #ifdef HAS_CHISELS
 			// --chisel-info and -i
 			case 'i':
@@ -1085,7 +1227,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				break;
 #endif
-
 			case 'd':
 				is_filter_display = true;
 				break;
@@ -1192,6 +1333,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				else
 				{
 					output_format = optarg;
+					output_format_plugin = optarg;
 				}
 
 				break;
@@ -1343,7 +1485,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 				}
 				break;
-            // getopt_long : '?' for an ambiguous match or an extraneous parameter
+			// getopt_long : '?' for an ambiguous match or an extraneous parameter
 			case '?':
 				delete inspector;
 				return sysdig_init_res(EXIT_FAILURE);
@@ -1373,6 +1515,15 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		if(bpf)
 		{
 			inspector->set_bpf_probe(bpf_probe);
+		}
+
+		//
+		// If we are dumping events to file, enable progress printing so we can give
+		// feedback to the user
+		//
+		if(outfile != "" && (infiles.size() != 0 || g_plugin_input == true))
+		{
+			print_progress = true;
 		}
 
 		//
@@ -1476,10 +1627,20 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			reset_colors = true;
 		}
 
+#ifndef _WIN32
+		if(signal(SIGALRM, signal_callback) == SIG_ERR)
+		{
+			fprintf(stderr, "An error occurred while setting SIGALRM signal handler.\n");
+			res.m_res = EXIT_FAILURE;
+			goto exit;
+		}
+#endif
+
 		//
 		// Create the event formatter
 		//
-		sinsp_evt_formatter formatter(inspector, output_format);
+		sinsp_evt_formatter formatter(inspector,
+					      (g_plugin_input ? output_format_plugin : output_format));
 
 		//
 		// Set output buffers len
@@ -1564,7 +1725,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #if defined(HAS_CAPTURE)
 				bool open_success = true;
 
-				if(print_progress)
+				if(print_progress && !g_plugin_input)
 				{
 					fprintf(stderr, "the -P flag cannot be used with live captures.\n");
 					res.m_res = EXIT_FAILURE;
@@ -1577,46 +1738,52 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				else
 				{
-					try
+					if(has_src_plugin)
 					{
 						inspector->open("");
 					}
-					catch(const sinsp_exception& e)
-					{
-						open_success = false;
-					}
-				}
-				
-#ifndef _WIN32
-				//
-				// Starting the live capture failed, try to load the driver with
-				// modprobe.
-				//
-				if(!open_success)
-				{
-					open_success = true;
-
-					if(bpf)
-					{
-						if(bpf_probe.empty())
-						{
-							if(system("sysdig-probe-loader bpf"))
-							{
-								fprintf(stderr, "Unable to load the BPF probe\n");
-							}
-						}
-					}
 					else
 					{
-						if(system("modprobe " PROBE_NAME " > /dev/null 2> /dev/null"))
+						try
 						{
-							fprintf(stderr, "Unable to load the driver\n");
+							inspector->open("");
+						}
+						catch(const sinsp_exception& e)
+						{
+							open_success = false;
 						}
 					}
+#ifndef _WIN32
+					//
+					// Starting the live capture failed, try to load the driver with
+					// modprobe.
+					//
+					if(!open_success)
+					{
+						open_success = true;
 
-					inspector->open("");
-				}
+						if(bpf)
+						{
+							if(bpf_probe.empty())
+							{
+								if(system("sysdig-probe-loader bpf")) // TODO fix this (sysdig-probe-loader)
+								{
+									fprintf(stderr, "Unable to load the BPF probe\n");
+								}
+							}
+						}
+						else
+						{
+							if(system("modprobe " PROBE_NAME " > /dev/null 2> /dev/null"))
+							{
+								fprintf(stderr, "Unable to load the driver\n");
+							}
+						}
+
+						inspector->open("");
+					}
 #endif // _WIN32
+				}
 #else // HAS_CAPTURE
 				//
 				// Starting live capture
@@ -1770,23 +1937,29 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	}
 	catch(const sinsp_capture_interrupt_exception&)
 	{
-		handle_end_of_file(print_progress, reset_colors);
+		handle_end_of_file(NULL, print_progress, reset_colors);
 	}
 	catch(const scap_open_exception& e)
 	{
 		cerr << e.what() << endl;
-		handle_end_of_file(print_progress, reset_colors);
+		handle_end_of_file(NULL, print_progress, reset_colors);
 		res.m_res = e.scap_rc();
 	}
-	catch (const std::runtime_error& e) 
+	catch(const sinsp_exception& e)
 	{
 		cerr << e.what() << endl;
-		handle_end_of_file(print_progress, reset_colors);
+		handle_end_of_file(NULL, print_progress, reset_colors);
+		res.m_res = EXIT_FAILURE;
+	}
+	catch (const std::runtime_error& e)
+	{
+		cerr << e.what() << endl;
+		handle_end_of_file(NULL, print_progress, reset_colors);
 		res.m_res = EXIT_FAILURE;
 	}
 	catch(...)
 	{
-		handle_end_of_file(print_progress, reset_colors);
+		handle_end_of_file(NULL, print_progress, reset_colors);
 		res.m_res = EXIT_FAILURE;
 	}
 
