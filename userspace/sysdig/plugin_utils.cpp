@@ -106,3 +106,7 @@ void register_plugins(sinsp *inspector)
         tinydir_close(&dir);
     }
 }
+
+const std::vector<plugin_dir_info> get_plugin_dirs() {
+    return g_plugin_dirs;
+}
