@@ -1,0 +1,131 @@
+name: Create Sysdig draft/RC release
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  build-release-linux:
+    runs-on: ubuntu-latest
+    env:
+      BUILD_VERSION: ${{ github.ref_name }}
+    container:
+      image: ghcr.io/draios/sysdig-builder:dev
+    steps:
+      - name: Checkout Sysdig
+        uses: actions/checkout@v2
+        with:
+          path: sysdig
+      - name: Link paths
+        run: |
+          mkdir -p /source
+          ln -s "$GITHUB_WORKSPACE/sysdig" /source/sysdig
+      - name: Build
+        run: build cmake
+      - name: Build packages
+        run: build package
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: sysdig-release-${{ env.BUILD_VERSION }}
+          path: /build/release/sysdig-${{ env.BUILD_VERSION }}*
+
+  push-container-image:
+    runs-on: ubuntu-latest
+    env:
+      BUILD_VERSION: ${{ github.ref_name }}
+      REGISTRY: ghcr.io
+      SYSDIG_IMAGE_BASE: ghcr.io/draios/sysdig
+    steps:
+      - name: Checkout Sysdig
+        uses: actions/checkout@v2
+      - name: Login to Github Packages
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push container images
+        uses: docker/build-push-action@v2
+        with:
+          file: docker/sysdig/Dockerfile
+          context: .
+          tags: ${{ env.SYSDIG_IMAGE_BASE }}:${{ env.BUILD_VERSION }}-draft
+          push: true
+          build-args:
+            BUILD_VERSION=${{ env.BUILD_VERSION }}
+
+  sign-rpms:
+    runs-on: ubuntu-latest
+    needs: [build-release-linux]
+    env:
+      BUILD_VERSION: ${{ github.ref_name }}
+      KEY_ID: EC51E8C4
+    container:
+      image: centos:8 # ubi8 does not have rpmsign so we'll use CentOS
+    steps:
+      - name: Install deps
+        run: yum install -y rpm-sign
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: sysdig-release-${{ env.BUILD_VERSION }}
+      - name: Import private key
+        env:
+          PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        run: printenv PRIVATE_KEY | gpg --import -
+      - name: Sign RPMs 
+        run: rpm --define "_gpg_name ${{ env.KEY_ID }}" --addsign *.rpm
+      - name: Check signature
+        run: test "$(rpm -qpi *.rpm | awk '/Signature/' | grep -i none | wc -l)" -eq 0
+      - name: Upload Signed RPMs
+        uses: actions/upload-artifact@v2
+        with:
+          name: sysdig-release-${{ env.BUILD_VERSION }}
+          path: "*.rpm"
+
+  sign-debs:
+    runs-on: ubuntu-latest
+    needs: [build-release-linux]
+    env:
+      BUILD_VERSION: ${{ github.ref_name }}
+      KEY_ID: EC51E8C4
+    container:
+      image: debian:bullseye-slim
+    steps:
+      - name: Install deps
+        run: apt-get update && apt-get -y install dpkg-sig
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: sysdig-release-${{ env.BUILD_VERSION }}
+      - name: Import private key
+        env:
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+        run: printenv PRIVATE_KEY | gpg --import -
+      - name: Sign DEBs
+        run: dpkg-sig -k ${{ env.KEY_ID }} -s builder *.deb
+      - name: Check signature
+        run: dpkg-sig --verify *.deb
+      - name: Upload Signed DEBs
+        uses: actions/upload-artifact@v2
+        with:
+          name: sysdig-release-${{ env.BUILD_VERSION }}
+          path: "*.deb"
+
+  create-draft-release:
+    runs-on: ubuntu-latest
+    needs: [push-container-image, build-release-linux, sign-rpms, sign-debs]
+    env:
+      BUILD_VERSION: ${{ github.ref_name }}
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: sysdig-release-${{ env.BUILD_VERSION }}
+      - name: Create draft release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            sysdig-${{ env.BUILD_VERSION }}*
+          draft: true
