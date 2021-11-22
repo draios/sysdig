@@ -186,6 +186,7 @@ static void usage()
 "                    create a ring buffer of events.\n"
 " -h, --help         Print this page\n"
 " -I <inputname>[:<inputargs>], --input <inputname>[:<inputargs>]\n"
+"                    (PREVIEW feature, subject to change)\n"
 "                    capture events using the plugin with name inputname, passing to the \n"
 "                    plugin the inputargs string as parameters.\n"
 "                    The format of inputargs is controller by the plugin, refer to each\n"
@@ -193,9 +194,11 @@ static void usage()
 "                    The event sources available for capture vary depending on which \n"
 "                    plugins have been installed. You can list the plugins that have been \n"
 "                    loaded by using the -Il flag.\n"
-" -Il, --list-inputs\n"
-"                    lists the loaded plugins. Sysdig looks for plugins in the following \n"
-"                    directories: ./plugins, ~/.plugins, /usr/share/sysdig/plugins.\n"
+" -Il\n"
+"                    (PREVIEW feature, subject to change)\n"
+"                    lists the loaded plugins. Sysdig looks for plugins in the directories \n"
+"                    specified by ;-separated environment variable SYSDIG_PLUGIN_DIR and\n"
+"     				 in /usr/share/sysdig/plugins.\n"
 #ifdef HAS_CHISELS
 " -i <chiselname>, --chisel-info <chiselname>\n"
 "                    Get a longer description and the arguments associated with\n"
@@ -1158,27 +1161,32 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					if(inputname == "l")
 					{
 						std::list<sinsp_plugin::info> infos = sinsp_plugin::plugin_infos(inspector);
-						std::ostringstream os;
+						std::ostringstream os_dirs, os_info;
+
+						for(plugin_dir_info path : get_plugin_dirs()) {
+							os_dirs << path.m_dir << " ";
+						}
 
 						for(auto &info : infos)
 						{
-							os << "Name: " << info.name << std::endl;
-							os << "Description: " << info.description << std::endl;
-							os << "Contact: " << info.contact << std::endl;
-							os << "Version: " << info.plugin_version.as_string() << std::endl;
+							os_info << "Name: " << info.name << std::endl;
+							os_info << "Description: " << info.description << std::endl;
+							os_info << "Contact: " << info.contact << std::endl;
+							os_info << "Version: " << info.plugin_version.as_string() << std::endl;
 
 							if(info.type == TYPE_SOURCE_PLUGIN)
 							{
-								os << "Type: source plugin" << std::endl;
-								os << "ID: " << info.id << std::endl;
+								os_info << "Type: source plugin" << std::endl;
+								os_info << "ID: " << info.id << std::endl;
 							}
 							else
 							{
-								os << "Type: extractor plugin" << std::endl;
+								os_info << "Type: extractor plugin" << std::endl;
 							}
 						}
 
-						printf("%lu Plugins Loaded:\n\n%s\n", infos.size(), os.str().c_str());
+						printf("Plugin search paths are: %s\n", os_dirs.str().c_str());
+						printf("%lu Plugins Loaded:\n\n%s\n", infos.size(), os_info.str().c_str());
 						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
