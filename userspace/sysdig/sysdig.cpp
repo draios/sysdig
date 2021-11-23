@@ -941,7 +941,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{0, 0, 0, 0}
 	};
 
-	if (isatty(STDIN_FILENO))
+	if (isatty(fileno(stdout)))
 	{
 		output_format = "*%evt.num %evt.outputtime %evt.cpu \e[01;32m%proc.name\e[00m (\e[01;36m%proc.pid\e[00m.%thread.tid) %evt.dir \e[01;34m%evt.type\e[00m %evt.info";
 	} else
