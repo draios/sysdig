@@ -39,6 +39,7 @@ project(sysdig)
 
 option(MINIMAL_BUILD "Produce a minimal sysdig binary with only the essential features (no eBPF probe driver, no kubernetes, no mesos, no marathon and no container metadata)" OFF)
 option(MUSL_OPTIMIZED_BUILD "Enable if you want a musl optimized build" OFF)
+option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
 
 # Add path for custom CMake modules.
 list(APPEND CMAKE_MODULE_PATH
@@ -97,17 +98,12 @@ if(NOT WIN32)
 			set(KBUILD_FLAGS "${SYSDIG_FEATURE_FLAGS}")
 		endif()
 
-		if(NOT DEFINED PROBE_VERSION)
-			set(PROBE_VERSION "${FALCOSECURITY_LIBS_VERSION}")
-		endif()
-
 		set(SCAP_BPF_PROBE_ENV_VAR_NAME "SYSDIG_BPF_PROBE")
 		set(SCAP_HOST_ROOT_ENV_VAR_NAME "HOST_ROOT")
+		set(DRIVER_PACKAGE_NAME "scap")
 
 		add_definitions(-DHAS_CAPTURE)
 	endif()
-
-	add_subdirectory(scripts)
 
 	if(CMAKE_SYSTEM_NAME MATCHES "SunOS")
 		set(CMD_MAKE gmake)
@@ -139,8 +135,16 @@ if(APPLE)
 	set(CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000")
 endif()
 
-option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
 include(falcosecurity-libs)
+
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+	if(NOT DEFINED PROBE_VERSION)
+		set(PROBE_VERSION "${FALCOSECURITY_LIBS_VERSION}")
+	endif()
+
+	add_subdirectory(scripts)
+endif()
+
 add_subdirectory(userspace/sysdig)
 
 set(CPACK_PACKAGE_NAME "${PACKAGE_NAME}")
@@ -163,8 +167,8 @@ set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_BINARY_DIR}/scripts/debian/posti
 set(CPACK_RPM_PACKAGE_LICENSE "Apache v2.0")
 set(CPACK_RPM_PACKAGE_URL "http://www.sysdig.com")
 set(CPACK_RPM_PACKAGE_REQUIRES "dkms, gcc, make, kernel-devel, perl")
-set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/scripts/rpm/postinstall")
-set(CPACK_RPM_PRE_UNINSTALL_SCRIPT_FILE "${PROJECT_SOURCE_DIR}/scripts/rpm/preuninstall")
+set(CPACK_RPM_POST_INSTALL_SCRIPT_FILE "${CMAKE_BINARY_DIR}/scripts/rpm/postinstall")
+set(CPACK_RPM_PRE_UNINSTALL_SCRIPT_FILE "${CMAKE_BINARY_DIR}/scripts/rpm/preuninstall")
 set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION /usr/src /usr/share/man /usr/share/man/man8)
 
 include(CPack)
