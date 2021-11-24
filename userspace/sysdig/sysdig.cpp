@@ -384,7 +384,6 @@ inline void output_progress(sinsp* inspector, sinsp_evt* ev)
 			}
 
 			fprintf(stderr, "\r%s", g_prg_line_buf);
-			//fprintf(stderr, "%s\n", g_prg_line_buf);
 			fflush(stderr);
 			g_last_printed_progress_pct = progress_pct;
 		}

@@ -48,7 +48,7 @@ void add_plugin_dir(string dirname, bool front_add)
 void add_plugin_dirs(string sysdig_installation_dir)
 {
     //
-    // Add the default chisel directory statically configured by the build system
+    // Add the default plugin directory statically configured by the build system
     //
     add_plugin_dir(sysdig_installation_dir + PLUGINS_INSTALLATION_DIR, false);
 
