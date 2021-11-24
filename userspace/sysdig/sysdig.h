@@ -33,6 +33,11 @@ limitations under the License.
 //
 #define CHISELS_INSTALLATION_DIR "/share/sysdig/chisels"
 
+//
+// Relative path to plugins
+//
+#define PLUGINS_INSTALLATION_DIR "/share/sysdig/plugins"
+
 #include <config_sysdig.h>
 
 //
