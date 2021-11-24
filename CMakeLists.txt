@@ -64,6 +64,10 @@ add_definitions(-DK8S_DISABLE_THREAD)
 
 option(BUILD_WARNINGS_AS_ERRORS "Enable building with -Wextra -Werror flags")
 
+if(APPLE)
+	set(MINIMAL_BUILD ON)
+endif()
+
 if(MINIMAL_BUILD)
   set(MINIMAL_BUILD_FLAGS "-DMINIMAL_BUILD")
 endif()
