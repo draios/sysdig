@@ -17,4 +17,6 @@
 #
 
 mod_version="@PROBE_VERSION@"
-dkms remove -m sysdig -v $mod_version --all --rpm_safe_upgrade
+mod_name="@DRIVER_PACKAGE_NAME@"
+
+dkms remove -m $mod_name -v $mod_version --all --rpm_safe_upgrade
