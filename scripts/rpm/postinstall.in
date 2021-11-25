@@ -20,7 +20,7 @@ mod_version="@PROBE_VERSION@"
 mod_name="@DRIVER_PACKAGE_NAME@"
 
 dkms add -m $mod_name -v $mod_version --rpm_safe_upgrade
-if [ `uname -r | $mod_name -c "BOOT"` -eq 0 ] && [ -e /lib/modules/`uname -r`/build/include ]; then
+if [ `uname -r | grep -c "BOOT"` -eq 0 ] && [ -e /lib/modules/`uname -r`/build/include ]; then
 	dkms build -m $mod_name -v $mod_version
 	dkms install --force -m $mod_name -v $mod_version
 elif [ `uname -r | grep -c "BOOT"` -gt 0 ]; then
