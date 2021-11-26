@@ -1,0 +1,7 @@
+[draios]
+name=Draios
+baseurl=https://download.sysdig.com/_REPOSITORY_/rpm/$basearch
+enabled=1
+gpgcheck=1
+gpgkey=https://download.sysdig.com/DRAIOS-GPG-KEY.public
+#repo_gpgcheck=1
