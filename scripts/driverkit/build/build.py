@@ -135,12 +135,12 @@ def main():
             if s3:
                 if module_output is not None:
                     with open(module_output, 'rb') as fp:
-                        s3.upload_fileobj(fp, s3_bucket, module_s3key) # XXX TODO ACL for public read
+                        s3.upload_fileobj(fp, s3_bucket, module_s3key, ExtraArgs={'ACL':'public-read'})
                     delete_file(module_output)
 
                 if probe_output is not None:
                     with open(probe_output, 'rb') as fp:
-                        s3.upload_fileobj(fp, s3_bucket, probe_s3key) # XXX TODO ACL for public read
+                        s3.upload_fileobj(fp, s3_bucket, module_s3key, ExtraArgs={'ACL':'public-read'})
                     delete_file(probe_output)
 
         print(f"[*] Build {driverversion} complete. {success_count}/{count} built, {fail_count}/{count} failed, {skip_count}/{count} already built.")
