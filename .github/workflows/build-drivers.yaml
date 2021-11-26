@@ -5,7 +5,7 @@ on:
     paths: ['scripts/driverkit/**']
 
 jobs:
-  aws-test-job:
+  build-drivers:
     runs-on: ubuntu-latest
     env:
       S3_BUCKET: download.draios.com
@@ -51,6 +51,8 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: us-east-1
+          # This timeout is longer because the complete job may take at least 4 hours to complete
+          role-duration-seconds: 21600
 
       - name: Build drivers if not present
         working-directory: scripts/driverkit/build
