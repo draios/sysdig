@@ -146,6 +146,12 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 		set(PROBE_VERSION "${FALCOSECURITY_LIBS_VERSION}")
 	endif()
 
+	if(NOT DEFINED PROBE_NAME)
+		set(PROBE_NAME "scap")
+	endif()
+
+	set(DRIVERS_REPO "https://download.sysdig.com/scap-drivers")
+	
 	add_subdirectory(scripts)
 endif()
 

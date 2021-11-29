@@ -22,6 +22,8 @@ configure_file(rpm/postinstall.in rpm/postinstall)
 configure_file(rpm/postuninstall.in rpm/postuninstall)
 configure_file(rpm/preuninstall.in rpm/preuninstall)
 
+configure_file(scap-driver-loader.in scap-driver-loader @ONLY)
+
 install(FILES completions/bash/sysdig
 	DESTINATION "${DIR_ETC}/bash_completion.d")
 
@@ -31,5 +33,5 @@ install(FILES completions/zsh/_sysdig
 install(FILES completions/zsh/_sysdig
 	DESTINATION share/zsh/site-functions)
 
-install(PROGRAMS sysdig-probe-loader
+install(PROGRAMS "${CMAKE_BINARY_DIR}/scripts/scap-driver-loader"
 	DESTINATION bin)

@@ -88,7 +88,7 @@ static void usage()
 "                    Enable live capture using the specified BPF probe instead of the kernel module.\n"
 "                    The BPF probe can also be specified via the environment variable\n"
 "                    SYSDIG_BPF_PROBE. If <bpf_probe> is left empty, sysdig will\n"
-"                    try to load one from the sysdig-probe-loader script.\n"
+"                    try to load one from the scap-driver-loader script.\n"
 #ifdef HAS_CAPTURE
 " --cri <path>       Path to CRI socket for container metadata\n"
 "                    Use the specified socket to fetch data from a CRI-compatible runtime\n"
@@ -883,7 +883,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					{
 						if(bpf_probe.empty())
 						{
-							if(system("sysdig-probe-loader bpf"))
+							if(system("scap-driver-loader bpf"))
 							{
 								fprintf(stderr, "Unable to load the BPF probe\n");
 							}
