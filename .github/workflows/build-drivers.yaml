@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       S3_BUCKET: download.draios.com
-      S3_PREFIX: stable/sysdig-drivers
+      S3_PREFIX: scap-drivers
 
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
