@@ -26,6 +26,6 @@ do
 	ln -s $SYSDIG_HOST_ROOT/usr/src/$i /usr/src/$i
 done
 
-/usr/bin/scap-driver-loader
+/usr/bin/sysdig-probe-loader
 
 exec "$@"
