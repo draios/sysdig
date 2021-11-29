@@ -19,7 +19,8 @@ RUN yum -y install \
     kmod \
     gcc \
     clang \
-    llvm-toolset
+    llvm-toolset \
+    less
 
 RUN mkdir -p /tmp/dkms \
     && cd /tmp/dkms \
