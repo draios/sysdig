@@ -1,0 +1,59 @@
+name: Build Drivers with Driverkit
+on:
+  push:
+    branches: [dev]
+    paths: ['scripts/driverkit/**']
+
+jobs:
+  build-drivers:
+    runs-on: ubuntu-latest
+    env:
+      S3_BUCKET: download.draios.com
+      S3_PREFIX: scap-drivers
+
+    # These permissions are needed to interact with GitHub's OIDC Token endpoint.
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout Sysdig
+        uses: actions/checkout@v2
+
+      - name: Checkout Driverkit
+        uses: actions/checkout@v2
+        with:
+          repository: falcosecurity/driverkit
+          ref: ea976707ebead03fe743c42183b50a16eddd6564
+          path: driverkit-repo
+
+      - name: Build Driverkit
+        working-directory: driverkit-repo
+        run: |
+          GIT_COMMIT=$(git rev-parse HEAD)
+          LDFLAGS="-X github.com/falcosecurity/driverkit/pkg/version.buildTime=$(date +%s) -X github.com/falcosecurity/driverkit/pkg/version.gitCommit=${GIT_COMMIT} -X github.com/falcosecurity/driverkit/pkg/driverbuilder.builderBaseImage=falcosecurity/driverkit-builder:af65823"
+
+          CGO_ENABLED=1 go build -v -ldflags "$LDFLAGS" -tags 'sqlite_omit_load_extension linux' -o driverkit
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Setup poetry
+        uses: abatilo/actions-poetry@v2.0.0
+
+      - name: Install deps
+        working-directory: scripts/driverkit/build
+        run: poetry install
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@fcd8bb1e0a3c9d2a0687615ee31d34d8aea18a96
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+          # This timeout is longer because the complete job may take at least 4 hours to complete
+          role-duration-seconds: 21600
+
+      - name: Build drivers if not present
+        working-directory: scripts/driverkit/build
+        run: poetry run python build.py ../config --driverkit ../../../driverkit-repo/driverkit --s3-bucket ${{ env.S3_BUCKET }} --s3-prefix ${{ env.S3_PREFIX }}
