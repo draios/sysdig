@@ -45,6 +45,7 @@ insights_runner::insights_runner(sinsp* inspector)
 	add(insight_info("create bucket", "ct.name=CreateBucket", "attempts to create an s3 bucket", insight_info::SEV_MEDIUM, {"s3.bucket", "ct.user", "ct.region", "ct.error"}));
 	add(insight_info("delete bucket", "ct.name=DeleteBucket", "attempts to delete an s3 bucket", insight_info::SEV_MEDIUM, {"s3.bucket", "ct.user", "ct.region", "ct.error"}));
 	add(insight_info("change in bucket policy", "ct.name=PutBucketPolicy or ct.name=PutBucketPublicAccessBlock", "attempts to change the policy settings of an s3 bucket", insight_info::SEV_MEDIUM, {"s3.bucket", "ct.user", "ct.region", "ct.error"}));
+	add(insight_info("access potentially sensitive file on s3", "ct.shortsrc = s3 and ct.name = GetObject and s3.uri icontains key", "download request for a file with potentially interesting patterns", insight_info::SEV_MEDIUM, {"s3.bucket", "s3.uri", "ct.user", "ct.error"}));
 }
 
 void insights_runner::add(insight_info info)
