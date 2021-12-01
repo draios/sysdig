@@ -877,7 +877,7 @@ captureinfo do_inspect(sinsp* inspector,
 
 				std::string all_fields = plugin->dump_all_fields_json(ev);
 				if(json && irunner) {
-					cout << "{\"i\": " << insights_to_json(triggered_insights) << ", \"f\": " << all_fields << "}" << endl;
+					cout << "{\"ts\": " << ev->get_ts() << ", \"i\": " << insights_to_json(triggered_insights) << ", \"f\": " << all_fields << "}" << endl;
 					continue;
 				} else if (json) {
 					cout << all_fields << endl;
