@@ -64,3 +64,8 @@ vector<uint32_t>* insights_runner::run(sinsp_evt* evt)
 
     return &m_runres;
 }
+
+vector <insight_info>* insights_runner::list()
+{
+    return &m_infos;
+}

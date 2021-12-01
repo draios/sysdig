@@ -1052,6 +1052,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"help", no_argument, 0, 'h' },
 		{"input", required_argument, 0, 'I' },
         {"insights", no_argument, 0, 0 },
+        {"insights-list", no_argument, 0, 0 },
 #ifdef HAS_CHISELS
 		{"chisel-info", required_argument, 0, 'i' },
 #endif
@@ -1561,8 +1562,32 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 
 					else if (optname == "json-full") {
-						jflag = true;
-						plugin_full_output = true;
+                        jflag = true;
+                        plugin_full_output = true;
+                    }
+
+					else if(optname == "insights-list") {
+					    // Create an insight runner and ask it the list of insights
+					    insights_runner irunner(inspector);
+					    vector <insight_info>* ilist = irunner.list();
+
+                        printf("\n[");
+					    for(uint32_t j = 0; j < ilist->size(); j++)
+                        {
+                            insight_info* ii = &ilist->at(j);
+                            printf("\n{\"id\": %" PRIu32 ", \"name\":\"%s\", \"filter\":\"%s\", \"desc\":\"%s\"}",
+                                ii->m_id,
+                                ii->m_name.c_str(),
+                                ii->m_filter.c_str(),
+                                ii->m_desc.c_str());
+                            if(j < ilist->size() - 1)
+                            {
+                                printf(",");
+                            }
+                        }
+                        printf("\n]\n");
+
+                        exit(0);
 					}
 				}
 				break;

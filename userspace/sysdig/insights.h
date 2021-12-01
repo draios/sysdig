@@ -51,6 +51,7 @@ public:
     insights_runner(sinsp* inspector);
     void add(insight_info info);
     vector<uint32_t>* run(sinsp_evt* evt);
+    vector <insight_info>* list();
 
 private:
     vector <insight_info> m_infos;
