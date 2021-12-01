@@ -1574,51 +1574,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					else if(optname == "insights-list") {
 						// Create an insight runner and ask it the list of insights
 						insights_runner irunner(inspector);
-						vector <insight_info>* ilist = irunner.list();
-
-						printf("\n[");
-						for(uint32_t j = 0; j < ilist->size(); j++)
-						{
-							insight_info* ii = &ilist->at(j);
-							string sevstr = "";
-							if(ii->m_severity == insight_info::SEV_DEBUG)
-							{
-								sevstr = "DEBUG";
-							}
-							else if(ii->m_severity == insight_info::SEV_INFO)
-							{
-								sevstr = "INFO";
-							}
-							else if(ii->m_severity == insight_info::SEV_LOW)
-							{
-								sevstr = "LOW";
-							}
-							else if(ii->m_severity == insight_info::SEV_MEDIUM)
-							{
-								sevstr = "MEDIUM";
-							}
-							else if(ii->m_severity == insight_info::SEV_HIGH)
-							{
-								sevstr = "HIGH";
-							}
-							else
-							{
-								throw sinsp_exception("insight " + ii->m_name + " has an invalid severity");
-							}
-
-							printf("\n{\"id\": %" PRIu32 ", \"name\":\"%s\", \"filter\":\"%s\", \"description\":\"%s\", \"severity\":\"%s\"}",
-								ii->m_id,
-								ii->m_name.c_str(),
-								ii->m_filter.c_str(),
-								ii->m_desc.c_str(),
-								sevstr.c_str());
-							if(j < ilist->size() - 1)
-							{
-								printf(",");
-							}
-						}
-						printf("\n]\n");
-
+						irunner.print();
 						exit(0);
 					}
 				}

@@ -32,32 +32,38 @@ public:
 		SEV_HIGH = 4,
 	};
 
-    insight_info(string name, string filter, string desc, severity severity)
-    {
-        m_name = name;
-        m_filter = filter;
-        m_desc = desc;
-        m_severity = severity;
-    }
+	insight_info(string name,
+		string filter,
+		string desc,
+		severity severity,
+		vector<string> keys)
+	{
+		m_name = name;
+		m_filter = filter;
+		m_desc = desc;
+		m_severity = severity;
+		m_keys = keys;
+	}
 
-    uint32_t m_id;
-    string m_name;
-    string m_filter;
-    string m_desc;
-    severity m_severity;
+	uint32_t m_id;
+	string m_name;
+	string m_filter;
+	string m_desc;
+	severity m_severity;
+	vector<string> m_keys;
 };
 
 class insights_runner
 {
 public:
-    insights_runner(sinsp* inspector);
-    void add(insight_info info);
-    vector<uint32_t>* run(sinsp_evt* evt);
-    vector <insight_info>* list();
+	insights_runner(sinsp* inspector);
+	void add(insight_info info);
+	vector<uint32_t>* run(sinsp_evt* evt);
+	void print();
 
 private:
-    vector <insight_info> m_infos;
-    vector <sinsp_filter*> m_filters;
+	vector <insight_info> m_infos;
+	vector <sinsp_filter*> m_filters;
 	sinsp* m_inspector = NULL;
 	// This is used to return the result of run() without allocating a vector every
 	// time run is called.
