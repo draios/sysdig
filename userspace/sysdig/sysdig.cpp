@@ -876,13 +876,13 @@ captureinfo do_inspect(sinsp* inspector,
 				}
 
 				plugin_full_formatters[plugin_id]->tostring(ev, &line);
-//				if(json && irunner) {
-//					cout << "{\"i\": " << insights_to_json(triggered_insights) << ", \"f\": " << line << "}" << endl;
-//					continue;
-//				} else {
-//					cout << line << endl;
-//					continue;
-//				}
+				if(json && irunner) {
+					cout << "{\"i\": " << insights_to_json(triggered_insights) << ", \"f\": " << line << "}" << endl;
+					continue;
+				} else {
+					cout << line << endl;
+					continue;
+				}
 			}
 
 			if(!inspector->is_debug_enabled() &&
