@@ -207,6 +207,7 @@ static void usage()
 #endif
 " -j, --json         Emit output as json, data buffer encoding will depend from the\n"
 "                    print format selected.\n"
+" --json-full        Plugin json full format\n"
 #ifndef MINIMAL_BUILD
 " -k <url>, --k8s-api=<url>\n"
 "                    Enable Kubernetes support by connecting to the API server\n"
@@ -676,6 +677,35 @@ vector<string> split_nextrun_args(string na)
 	return res;
 }
 
+std::string plugin_full_formatter_string(sinsp_plugin *plugin)
+{
+	auto fields = plugin->fields();
+	std::ostringstream fm;
+	
+	fm << "*";
+
+	for (uint32_t i = 0; i < plugin->nfields(); i++) {
+		fm << "%" << fields[i].m_name << " ";
+	}
+
+	return fm.str();
+}
+
+std::string insights_to_json(std::vector<uint32_t> *insights)
+{
+	std::ostringstream o;
+	o << "[";
+	for (size_t i = 0; i < insights->size(); i++) {
+		o << insights->at(i);
+		if (i != insights->size() - 1) {
+			o << ",";
+		}
+	}
+	o << "]";
+
+	return o.str();
+}
+
 //
 // Event processing loop
 //
@@ -684,6 +714,7 @@ captureinfo do_inspect(sinsp* inspector,
 	uint64_t duration_to_tot_ns,
 	bool quiet,
 	bool json,
+	bool plugin_full_output,
 	bool do_flush,
 	bool reset_colors,
 	bool print_progress,
@@ -697,6 +728,8 @@ captureinfo do_inspect(sinsp* inspector,
 	sinsp_evt* ev;
 	string line;
 	uint64_t duration_start = 0;
+	std::map<uint32_t, std::unique_ptr<sinsp_evt_formatter>> plugin_full_formatters = {};
+	std::vector<uint32_t>* triggered_insights = nullptr;
 
 	if(json)
 	{
@@ -768,7 +801,7 @@ captureinfo do_inspect(sinsp* inspector,
 
         if(irunner != NULL)
         {
-            vector<uint32_t>* triggered_insights =  irunner->run(ev);
+            triggered_insights = irunner->run(ev);
         }
 
 		if(print_progress)
@@ -793,13 +826,12 @@ captureinfo do_inspect(sinsp* inspector,
 		else
 #endif
 		{
+			uint16_t etype = ev->get_type();
 			//
 			// If we're supposed to summarize, increase the count for this event
 			//
 			if(!summary_table.empty())
 			{
-				uint16_t etype = ev->get_type();
-
 				if(etype == PPME_GENERIC_E)
 				{
 					sinsp_evt_param *parinfo = ev->get_param(0);
@@ -825,6 +857,27 @@ captureinfo do_inspect(sinsp* inspector,
 			if(quiet)
 			{
 				continue;
+			}
+
+			if(plugin_full_output && (etype == PPME_PLUGINEVENT_E || etype == PPME_PLUGINEVENT_X)) {
+				sinsp_evt_param *parinfo = ev->get_param(0);
+				ASSERT(parinfo->m_len == sizeof(uint32_t));
+				uint16_t plugin_id = *(uint32_t *)parinfo->m_val;
+				
+				if (plugin_full_formatters.count(plugin_id) == 0) {
+					std::shared_ptr<sinsp_plugin> plugin = inspector->get_plugin_by_id(plugin_id);
+					std::string ffs = plugin_full_formatter_string(plugin.get());
+					plugin_full_formatters.emplace(plugin_id, new sinsp_evt_formatter(inspector, ffs));
+				}
+
+				plugin_full_formatters[plugin_id]->tostring(ev, &line);
+				if(json && irunner) {
+					cout << "{\"i\": " << insights_to_json(triggered_insights) << ", \"f\": " << line << "}" << endl;
+					continue;
+				} else {
+					cout << line << endl;
+					continue;
+				}
 			}
 
 			if(!inspector->is_debug_enabled() &&
@@ -944,6 +997,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	int long_index = 0;
 	int32_t n_filterargs = 0;
 	bool jflag = false;
+	bool plugin_full_output = false;
 	bool unbuf_flag = false;
 	bool reset_colors = false;
 	bool filter_proclist_flag = false;
@@ -1003,6 +1057,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #endif
 		{"file-size", required_argument, 0, 'C' },
 		{"json", no_argument, 0, 'j' },
+		{"json-full", no_argument, 0, 0 },
 #ifndef MINIMAL_BUILD
 		{"k8s-api", required_argument, 0, 'k'},
 		{"node-name", required_argument, 0, 'N'},
@@ -1504,6 +1559,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					else if(optname == "insights") {
 						generate_insights = true;
 					}
+
+					else if (optname == "json-full") {
+						jflag = true;
+						plugin_full_output = true;
+					}
 				}
 				break;
 			// getopt_long : '?' for an ambiguous match or an extraneous parameter
@@ -1930,6 +1990,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				uint64_t(duration_to_tot*ONE_SECOND_IN_NS),
 				quiet,
 				jflag,
+				plugin_full_output,
 				unbuf_flag,
 				reset_colors,
 				print_progress,
