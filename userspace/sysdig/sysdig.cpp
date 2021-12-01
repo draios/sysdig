@@ -685,6 +685,11 @@ std::string plugin_full_formatter_string(sinsp_plugin *plugin)
 	fm << "*";
 
 	for (uint32_t i = 0; i < plugin->nfields(); i++) {
+		if((fields[i].m_flags & filtercheck_field_flags::EPF_HIDDEN) != 0)
+		{
+			continue;
+		}
+
 		fm << "%" << fields[i].m_name << " ";
 	}
 
@@ -799,11 +804,6 @@ captureinfo do_inspect(sinsp* inspector,
 		}
 		retval.m_nevts++;
 
-        if(irunner != NULL)
-        {
-            triggered_insights = irunner->run(ev);
-        }
-
 		if(print_progress)
 		{
 			output_progress(inspector, ev);
@@ -859,11 +859,16 @@ captureinfo do_inspect(sinsp* inspector,
 				continue;
 			}
 
+			if(irunner != NULL)
+			{
+				triggered_insights = irunner->run(ev);
+			}
+
 			if(plugin_full_output && (etype == PPME_PLUGINEVENT_E || etype == PPME_PLUGINEVENT_X)) {
 				sinsp_evt_param *parinfo = ev->get_param(0);
 				ASSERT(parinfo->m_len == sizeof(uint32_t));
 				uint16_t plugin_id = *(uint32_t *)parinfo->m_val;
-				
+
 				if (plugin_full_formatters.count(plugin_id) == 0) {
 					std::shared_ptr<sinsp_plugin> plugin = inspector->get_plugin_by_id(plugin_id);
 					std::string ffs = plugin_full_formatter_string(plugin.get());
@@ -871,13 +876,13 @@ captureinfo do_inspect(sinsp* inspector,
 				}
 
 				plugin_full_formatters[plugin_id]->tostring(ev, &line);
-				if(json && irunner) {
-					cout << "{\"i\": " << insights_to_json(triggered_insights) << ", \"f\": " << line << "}" << endl;
-					continue;
-				} else {
-					cout << line << endl;
-					continue;
-				}
+//				if(json && irunner) {
+//					cout << "{\"i\": " << insights_to_json(triggered_insights) << ", \"f\": " << line << "}" << endl;
+//					continue;
+//				} else {
+//					cout << line << endl;
+//					continue;
+//				}
 			}
 
 			if(!inspector->is_debug_enabled() &&
@@ -1027,7 +1032,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	int rollover_mb = 0;
 	int file_limit = 0;
 	unsigned long event_limit = 0L;
-    insights_runner* irunner = NULL;
+	insights_runner* irunner = NULL;
 
 	static struct option long_options[] =
 	{
@@ -1562,32 +1567,32 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 
 					else if (optname == "json-full") {
-                        jflag = true;
-                        plugin_full_output = true;
-                    }
+						jflag = true;
+						plugin_full_output = true;
+					}
 
 					else if(optname == "insights-list") {
-					    // Create an insight runner and ask it the list of insights
-					    insights_runner irunner(inspector);
-					    vector <insight_info>* ilist = irunner.list();
+						// Create an insight runner and ask it the list of insights
+						insights_runner irunner(inspector);
+						vector <insight_info>* ilist = irunner.list();
 
-                        printf("\n[");
-					    for(uint32_t j = 0; j < ilist->size(); j++)
-                        {
-                            insight_info* ii = &ilist->at(j);
-                            printf("\n{\"id\": %" PRIu32 ", \"name\":\"%s\", \"filter\":\"%s\", \"desc\":\"%s\"}",
-                                ii->m_id,
-                                ii->m_name.c_str(),
-                                ii->m_filter.c_str(),
-                                ii->m_desc.c_str());
-                            if(j < ilist->size() - 1)
-                            {
-                                printf(",");
-                            }
-                        }
-                        printf("\n]\n");
+						printf("\n[");
+						for(uint32_t j = 0; j < ilist->size(); j++)
+						{
+							insight_info* ii = &ilist->at(j);
+							printf("\n{\"id\": %" PRIu32 ", \"name\":\"%s\", \"filter\":\"%s\", \"desc\":\"%s\"}",
+								ii->m_id,
+								ii->m_name.c_str(),
+								ii->m_filter.c_str(),
+								ii->m_desc.c_str());
+							if(j < ilist->size() - 1)
+							{
+								printf(",");
+							}
+						}
+						printf("\n]\n");
 
-                        exit(0);
+						exit(0);
 					}
 				}
 				break;
@@ -1928,10 +1933,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				inspector->enable_page_faults();
 			}
 
-            if(generate_insights)
-            {
-                irunner = new insights_runner(inspector);
-            }
+			if(generate_insights)
+			{
+				irunner = new insights_runner(inspector);
+			}
 
 			duration = ((double)clock()) / CLOCKS_PER_SEC;
 
