@@ -34,7 +34,9 @@ insights_runner::insights_runner(sinsp* inspector)
 	add(insight_info("Console Login", "ct.name = ConsoleLogin", "An user logged in to the console", insight_info::SEV_INFO));
 	add(insight_info("S3 bucket became public", "ct.name = PutBucketPublicAccessBlock and ct.info contains BlockPublicAcls=false and ct.info contains BlockPublicPolicy=false and ct.info contains IgnorePublicAcls=false and ct.info contains RestrictPublicBuckets=false", "all public blocks were removed from an s3 bucket", insight_info::SEV_HIGH));
 	add(insight_info("EC2 KeyPair operation", "ct.shortsrc = ec2 and ct.readonly = false and ct.name contains KeyPair", "Stored EC2 KeyPairs were modified", insight_info::SEV_INFO));
+	add(insight_info("CloudTrail log started", "ct.shortsrc = cloudtrail and ct.name = StartLogging", "CloudTrail log stopped", insight_info::SEV_INFO)); // missing fields in the event
 	add(insight_info("CloudTrail log stopped", "ct.shortsrc = cloudtrail and ct.name = StopLogging", "CloudTrail log stopped", insight_info::SEV_LOW)); // missing fields in the event
+	add(insight_info("CloudTrail logs stored in s3 accessed", "s3.uri contains /CloudTrail/ and ct.user.identitytype != AWSService", "access performed to stored cloudtrail logs (uploaded, downloaded, modified) from an entity outside AWS Services", insight_info::SEV_INFO));
 }
 
 void insights_runner::add(insight_info info)
