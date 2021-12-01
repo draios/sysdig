@@ -26,46 +26,46 @@ limitations under the License.
 
 insights_runner::insights_runner(sinsp* inspector)
 {
-    m_inspector = inspector;
-    add(insight_info("test s3", "ct.shortsrc=s3", "desc s3", insight_info::SEV_LOW));
-    add(insight_info("test ec2", "ct.shortsrc=ec2", "desc ec2", insight_info::SEV_HI));
-    add(insight_info("test evtnum", "evt.num=6", "desc evtnum", insight_info::SEV_MED));
+	m_inspector = inspector;
+	add(insight_info("EC2 instance run", "ct.name=RunInstances", "new EC2 instance started", insight_info::SEV_LOW));
+	add(insight_info("test ec2", "ct.shortsrc=ec2", "desc ec2", insight_info::SEV_HIGH));
+	add(insight_info("test evtnum", "evt.num=6", "desc evtnum", insight_info::SEV_MEDIUM));
 }
 
 void insights_runner::add(insight_info info)
 {
-    ASSERT(m_inspector != NULL);
+	ASSERT(m_inspector != NULL);
 	sinsp_filter_compiler compiler(m_inspector, info.m_filter);
-    try
-    {
-        sinsp_filter* filter = compiler.compile();
-        m_filters.push_back(filter);
-    }
-    catch(const sinsp_exception& e)
-    {
-        throw sinsp_exception(string("insights error: ") + e.what());
-    }
+	try
+	{
+		sinsp_filter* filter = compiler.compile();
+		m_filters.push_back(filter);
+	}
+	catch(const sinsp_exception& e)
+	{
+		throw sinsp_exception(string("insights error: ") + e.what());
+	}
 
-    info.m_id = m_infos.size();
-    m_infos.push_back(info);
+	info.m_id = m_infos.size();
+	m_infos.push_back(info);
 }
 
 vector<uint32_t>* insights_runner::run(sinsp_evt* evt)
 {
-    m_runres.clear();
+	m_runres.clear();
 
-    for(uint32_t j = 0; j < m_filters.size(); j++)
-    {
-        if(m_filters[j]->run(evt))
-        {
-            m_runres.push_back(j);
-        }
-    }
+	for(uint32_t j = 0; j < m_filters.size(); j++)
+	{
+		if(m_filters[j]->run(evt))
+		{
+			m_runres.push_back(j);
+		}
+	}
 
-    return &m_runres;
+	return &m_runres;
 }
 
 vector <insight_info>* insights_runner::list()
 {
-    return &m_infos;
+	return &m_infos;
 }

@@ -26,8 +26,8 @@ public:
 	enum severity
 	{
 		SEV_LOW = 0,
-		SEV_MED = 1,
-		SEV_HI = 2,
+		SEV_MEDIUM = 1,
+		SEV_HIGH = 2,
 	};
 
     insight_info(string name, string filter, string desc, severity severity)
