@@ -25,9 +25,11 @@ class insight_info
 public:
 	enum severity
 	{
-		SEV_LOW = 0,
-		SEV_MEDIUM = 1,
-		SEV_HIGH = 2,
+		SEV_DEBUG = 0,
+		SEV_INFO = 1,
+		SEV_LOW = 2,
+		SEV_MEDIUM = 3,
+		SEV_HIGH = 4,
 	};
 
     insight_info(string name, string filter, string desc, severity severity)

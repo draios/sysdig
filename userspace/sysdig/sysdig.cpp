@@ -1581,7 +1581,15 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						{
 							insight_info* ii = &ilist->at(j);
 							string sevstr = "";
-							if(ii->m_severity == insight_info::SEV_LOW)
+							if(ii->m_severity == insight_info::SEV_DEBUG)
+							{
+								sevstr = "DEBUG";
+							}
+							else if(ii->m_severity == insight_info::SEV_INFO)
+							{
+								sevstr = "INFO";
+							}
+							else if(ii->m_severity == insight_info::SEV_LOW)
 							{
 								sevstr = "LOW";
 							}

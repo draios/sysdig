@@ -28,8 +28,9 @@ insights_runner::insights_runner(sinsp* inspector)
 {
 	m_inspector = inspector;
 	add(insight_info("EC2 instance run", "ct.name=RunInstances", "new EC2 instance started", insight_info::SEV_LOW));
-	add(insight_info("test ec2", "ct.shortsrc=ec2", "desc ec2", insight_info::SEV_HIGH));
-	add(insight_info("test evtnum", "evt.num=6", "desc evtnum", insight_info::SEV_MEDIUM));
+	add(insight_info("infrastructure modifying events", "ct.readonly=false", "actions that modify the state of the AWS environment", insight_info::SEV_DEBUG));
+	add(insight_info("EC2 modifying events", "ct.shortsrc=ec2 and ct.readonly=false", "actions that modify the state of the state of the EC2 infrastructure", insight_info::SEV_INFO));
+	add(insight_info("s3 modifying events", "ct.shortsrc=s3 and ct.readonly=false", "actions that modify the state of the state of the s3 infrastructure", insight_info::SEV_INFO));
 }
 
 void insights_runner::add(insight_info info)
