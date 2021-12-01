@@ -112,7 +112,7 @@ void insights_runner::print()
 
 		string skeys = "[";
 		for(uint32_t k = 0; k < ii->m_keys.size(); k++) {
-			skeys += ii->m_keys[k];
+			skeys += "\"" + ii->m_keys[k] + "\"";
 			if(k < ii->m_keys.size() - 1)
 			{
 				skeys += ",";
@@ -120,7 +120,7 @@ void insights_runner::print()
 		}
 		skeys += "]";
 
-		printf("\n{\"id\": %" PRIu32 ", \"name\":\"%s\", \"filter\":\"%s\", \"description\":\"%s\", \"severity\":\"%s\", \"keys\":\"%s\"}",
+		printf("\n{\"id\": %" PRIu32 ", \"name\":\"%s\", \"filter\":\"%s\", \"description\":\"%s\", \"severity\":\"%s\", \"keys\":%s}",
 			ii->m_id,
 			ii->m_name.c_str(),
 			ii->m_filter.c_str(),
