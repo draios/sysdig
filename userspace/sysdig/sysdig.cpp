@@ -869,18 +869,18 @@ captureinfo do_inspect(sinsp* inspector,
 				ASSERT(parinfo->m_len == sizeof(uint32_t));
 				uint16_t plugin_id = *(uint32_t *)parinfo->m_val;
 
-				if (plugin_full_formatters.count(plugin_id) == 0) {
-					std::shared_ptr<sinsp_plugin> plugin = inspector->get_plugin_by_id(plugin_id);
-					std::string ffs = plugin_full_formatter_string(plugin.get());
-					plugin_full_formatters.emplace(plugin_id, new sinsp_evt_formatter(inspector, ffs));
+				std::shared_ptr<sinsp_plugin> plugin = inspector->get_plugin_by_id(plugin_id);
+				if (!plugin) {
+					cerr << "Plugin with ID " << plugin_id << " is missing! Run sysdig -Il to see if it is available." << endl;
+					continue;
 				}
 
-				plugin_full_formatters[plugin_id]->tostring(ev, &line);
+				std::string all_fields = plugin->dump_all_fields_json(ev);
 				if(json && irunner) {
-					cout << "{\"i\": " << insights_to_json(triggered_insights) << ", \"f\": " << line << "}" << endl;
+					cout << "{\"i\": " << insights_to_json(triggered_insights) << ", \"f\": " << all_fields << "}" << endl;
 					continue;
-				} else {
-					cout << line << endl;
+				} else if (json) {
+					cout << all_fields << endl;
 					continue;
 				}
 			}
