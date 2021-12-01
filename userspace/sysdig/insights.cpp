@@ -31,6 +31,8 @@ insights_runner::insights_runner(sinsp* inspector)
 	add(insight_info("infrastructure modifying events", "ct.readonly=false", "actions that modify the state of the AWS environment", insight_info::SEV_DEBUG));
 	add(insight_info("EC2 modifying events", "ct.shortsrc=ec2 and ct.readonly=false", "actions that modify the state of the state of the EC2 infrastructure", insight_info::SEV_INFO));
 	add(insight_info("s3 modifying events", "ct.shortsrc=s3 and ct.readonly=false", "actions that modify the state of the state of the s3 infrastructure", insight_info::SEV_INFO));
+	add(insight_info("Console Login", "ct.name = ConsoleLogin", "An user logged in to the console", insight_info::SEV_INFO));
+	add(insight_info("S3 bucket became public", "ct.name = PutBucketPublicAccessBlock and ct.info contains BlockPublicAcls=false and ct.info contains BlockPublicPolicy=false and ct.info contains IgnorePublicAcls=false and ct.info contains RestrictPublicBuckets=false", "all public blocks were removed from an s3 bucket", insight_info::SEV_HIGH));
 }
 
 void insights_runner::add(insight_info info)
