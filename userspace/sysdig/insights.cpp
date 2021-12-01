@@ -28,15 +28,21 @@ insights_runner::insights_runner(sinsp* inspector)
 {
 	m_inspector = inspector;
 	add(insight_info("EC2 instance run", "ct.name=RunInstances", "new EC2 instance started", insight_info::SEV_LOW));
-	add(insight_info("infrastructure modifying events", "ct.readonly=false", "actions that modify the state of the AWS environment", insight_info::SEV_DEBUG));
+	add(insight_info("infrastructure modifying event", "ct.readonly=false", "actions that modify the state of the AWS environment", insight_info::SEV_DEBUG));
 	add(insight_info("EC2 modifying events", "ct.shortsrc=ec2 and ct.readonly=false", "actions that modify the state of the state of the EC2 infrastructure", insight_info::SEV_INFO));
 	add(insight_info("s3 modifying events", "ct.shortsrc=s3 and ct.readonly=false", "actions that modify the state of the state of the s3 infrastructure", insight_info::SEV_INFO));
-	add(insight_info("Console Login", "ct.name = ConsoleLogin", "An user logged in to the console", insight_info::SEV_INFO));
+	add(insight_info("console login", "ct.name = ConsoleLogin", "An user logged in to the console", insight_info::SEV_INFO));
 	add(insight_info("S3 bucket became public", "ct.name = PutBucketPublicAccessBlock and ct.info contains BlockPublicAcls=false and ct.info contains BlockPublicPolicy=false and ct.info contains IgnorePublicAcls=false and ct.info contains RestrictPublicBuckets=false", "all public blocks were removed from an s3 bucket", insight_info::SEV_HIGH));
 	add(insight_info("EC2 KeyPair operation", "ct.shortsrc = ec2 and ct.readonly = false and ct.name contains KeyPair", "Stored EC2 KeyPairs were modified", insight_info::SEV_INFO));
 	add(insight_info("CloudTrail log started", "ct.shortsrc = cloudtrail and ct.name = StartLogging", "CloudTrail log stopped", insight_info::SEV_INFO)); // missing fields in the event
 	add(insight_info("CloudTrail log stopped", "ct.shortsrc = cloudtrail and ct.name = StopLogging", "CloudTrail log stopped", insight_info::SEV_LOW)); // missing fields in the event
 	add(insight_info("CloudTrail logs stored in s3 accessed", "s3.uri contains /CloudTrail/ and ct.user.identitytype != AWSService", "access performed to stored cloudtrail logs (uploaded, downloaded, modified) from an entity outside AWS Services", insight_info::SEV_INFO));
+	add(insight_info("list buckets", "ct.name=ListBuckets", "attempts to list the s3 buckets", insight_info::SEV_MEDIUM));
+	add(insight_info("failed event", "not ct.error exists", "cloudtrail commands that failed", insight_info::SEV_DEBUG));
+	add(insight_info("failed infrastructure modifying event", "not ct.error exists and ct.readonly=false", "actions that modify the state of the AWS environment but failed", insight_info::SEV_INFO));
+	add(insight_info("create bucket", "ct.name=CreateBucket", "attempts to create an s3 bucket", insight_info::SEV_MEDIUM));
+	add(insight_info("delete bucket", "ct.name=DeleteBucket", "attempts to delete an s3 bucket", insight_info::SEV_MEDIUM));
+	add(insight_info("change in bucket policy", "ct.name=PutBucketPolicy or ct.name=PutBucketPublicAccessBlock", "attempts to change the policy settings of an s3 bucket", insight_info::SEV_MEDIUM));
 }
 
 void insights_runner::add(insight_info info)
