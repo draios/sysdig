@@ -28,10 +28,12 @@ insights_runner::insights_runner(sinsp* inspector)
 {
 	m_inspector = inspector;
 	add(insight_info("EC2 instance run", "ct.name=RunInstances", "new EC2 instance started", insight_info::SEV_LOW, {"ct.user", "ct.region", "ct.srcip", "ct.error"}));
+	add(insight_info("EC2 instance run from suspicious country", "ct.name=RunInstances and ct.user.country!=us", "new EC2 instance started by a user in a suspicious country", insight_info::SEV_HIGH, {"ct.user", "ct.region", "ct.srcip", "ct.error"}));
 	add(insight_info("infrastructure modifying event", "ct.readonly=false", "actions that modify the state of the AWS environment", insight_info::SEV_DEBUG, {"ct.shortsrc", "ct.name", "ct.user", "ct.region" "ct.error"}));
 	add(insight_info("EC2 modifying events", "ct.shortsrc=ec2 and ct.readonly=false", "actions that modify the state of the state of the EC2 infrastructure", insight_info::SEV_INFO, {"ct.shortsrc", "ct.user", "ct.region" "ct.error"}));
 	add(insight_info("s3 modifying events", "ct.shortsrc=s3 and ct.readonly=false", "actions that modify the state of the state of the s3 infrastructure", insight_info::SEV_INFO, {"ct.shortsrc", "ct.user", "ct.region" "ct.error"}));
-	add(insight_info("console login", "ct.name = ConsoleLogin", "An user logged in to the console", insight_info::SEV_INFO, {"ct.user", "ct.region", "ct.srcip", "ct.error"}));
+	add(insight_info("console login", "ct.name = ConsoleLogin", "a user logged in to the console", insight_info::SEV_INFO, {"ct.user", "ct.region", "ct.srcip", "ct.error"}));
+	add(insight_info("console login from a suspicious country", "ct.name = ConsoleLogin and ct.user.country!=us", "a user logged in to the console from a suspicious country", insight_info::SEV_HIGH, {"ct.user", "ct.region", "ct.srcip", "ct.error"}));
 	add(insight_info("S3 bucket became public", "ct.name = PutBucketPublicAccessBlock and ct.info contains BlockPublicAcls=false and ct.info contains BlockPublicPolicy=false and ct.info contains IgnorePublicAcls=false and ct.info contains RestrictPublicBuckets=false", "all public blocks were removed from an s3 bucket", insight_info::SEV_HIGH, {"s3.bucket", "ct.user", "ct.region", "ct.srcip"}));
 	add(insight_info("EC2 KeyPair operation", "ct.shortsrc = ec2 and ct.readonly = false and ct.name contains KeyPair", "Stored EC2 KeyPairs were modified", insight_info::SEV_INFO, {"ct.user", "ct.srcip", "ct.error"}));
 	add(insight_info("CloudTrail log started", "ct.shortsrc = cloudtrail and ct.name = StartLogging", "CloudTrail log stopped", insight_info::SEV_INFO, {"ct.request.name", "ct.user", "ct.region", "ct.error"})); // missing fields in the event
