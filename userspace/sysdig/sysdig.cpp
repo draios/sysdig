@@ -46,6 +46,7 @@ limitations under the License.
 #include "utils.h"
 #include "plugin.h"
 #include "plugin_utils.h"
+#include "insights.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -688,7 +689,8 @@ captureinfo do_inspect(sinsp* inspector,
 	bool print_progress,
 	sinsp_filter* display_filter,
 	vector<summary_table_entry> &summary_table,
-	sinsp_evt_formatter* formatter)
+	sinsp_evt_formatter* formatter,
+	insights_runner* irunner)
 {
 	captureinfo retval;
 	int32_t res;
@@ -763,6 +765,11 @@ captureinfo do_inspect(sinsp* inspector,
 			}
 		}
 		retval.m_nevts++;
+
+        if(irunner != NULL)
+        {
+            vector<uint32_t>* triggered_insights =  irunner->run(ev);
+        }
 
 		if(print_progress)
 		{
@@ -950,6 +957,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #endif // MINIMAL_BUILD
 	bool force_tracers_capture = false;
 	bool page_faults = false;
+	bool generate_insights = false;
 	bool bpf = false;
 	string bpf_probe;
 	std::set<std::string> suppress_comms;
@@ -965,6 +973,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	int rollover_mb = 0;
 	int file_limit = 0;
 	unsigned long event_limit = 0L;
+    insights_runner* irunner = NULL;
 
 	static struct option long_options[] =
 	{
@@ -988,6 +997,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"seconds", required_argument, 0, 'G' },
 		{"help", no_argument, 0, 'h' },
 		{"input", required_argument, 0, 'I' },
+        {"insights", no_argument, 0, 0 },
 #ifdef HAS_CHISELS
 		{"chisel-info", required_argument, 0, 'i' },
 #endif
@@ -1490,6 +1500,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					else if (optname == "page-faults") {
 						page_faults = true;
 					}
+
+					else if(optname == "insights") {
+						generate_insights = true;
+					}
 				}
 				break;
 			// getopt_long : '?' for an ambiguous match or an extraneous parameter
@@ -1829,6 +1843,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				inspector->enable_page_faults();
 			}
 
+            if(generate_insights)
+            {
+                irunner = new insights_runner(inspector);
+            }
+
 			duration = ((double)clock()) / CLOCKS_PER_SEC;
 
 			if(outfile != "")
@@ -1916,7 +1935,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				print_progress,
 				display_filter,
 				summary_table,
-				&formatter);
+				&formatter,
+				irunner);
 
 			duration = ((double)clock()) / CLOCKS_PER_SEC - duration;
 

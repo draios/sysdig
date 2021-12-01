@@ -46,6 +46,7 @@ else()
 endif()
 
 list(APPEND SOURCE_FILES
+	insights.cpp
 	plugin_utils.cpp)
 
 list(APPEND SOURCE_FILES_CSYSDIG
