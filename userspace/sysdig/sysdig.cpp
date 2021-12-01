@@ -1073,6 +1073,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
 		{"list-markdown", no_argument, 0, 0 },
+		{"plugin-fields-json", no_argument, 0, 0 },
 		{"libs-version", no_argument, 0, 0},
 #ifndef MINIMAL_BUILD
 		{"mesos-api", required_argument, 0, 'm'},
@@ -1556,6 +1557,23 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					else if (optname == "list-markdown") {
 						list_flds = true;
 						list_flds_markdown = true;
+					}
+
+					else if (optname == "plugin-fields-json") {
+						cout << "[" << endl;
+						for(auto &p : inspector->get_plugins()) {
+							std::vector<std::pair<std::string, std::string> > field_displays = p->field_display_names();
+							for(size_t i = 0; i < field_displays.size(); i++) {
+								cout << "{\"name\": \"" << field_displays[i].first << "\", \"display\": \"" << field_displays[i].second << "\"}";
+								if (i < field_displays.size() - 1) {
+									cout << ",";
+								}
+								cout << endl;
+							}
+						}
+						cout << "]" << endl;
+
+						exit(0);
 					}
 
 					else if (optname == "page-faults") {
