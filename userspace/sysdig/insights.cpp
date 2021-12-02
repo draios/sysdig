@@ -27,25 +27,25 @@ limitations under the License.
 insights_runner::insights_runner(sinsp* inspector)
 {
 	m_inspector = inspector;
-	add(insight_info("EC2 instance run", "ct.name=RunInstances", "new EC2 instance started", insight_info::SEV_LOW, {"ct.user", "ct.region", "ct.srcip", "ct.error"}));
-	add(insight_info("EC2 instance run from suspicious country", "ct.name=RunInstances and ct.user.country!=us", "new EC2 instance started by a user in a suspicious country", insight_info::SEV_HIGH, {"ct.user", "ct.region", "ct.srcip", "ct.error"}));
-	add(insight_info("infrastructure modifying event", "ct.readonly=false", "actions that modify the state of the AWS environment", insight_info::SEV_DEBUG, {"ct.shortsrc", "ct.name", "ct.user", "ct.region" "ct.error"}));
-	add(insight_info("EC2 modifying events", "ct.shortsrc=ec2 and ct.readonly=false", "actions that modify the state of the state of the EC2 infrastructure", insight_info::SEV_INFO, {"ct.shortsrc", "ct.user", "ct.region" "ct.error"}));
-	add(insight_info("s3 modifying events", "ct.shortsrc=s3 and ct.readonly=false", "actions that modify the state of the state of the s3 infrastructure", insight_info::SEV_INFO, {"ct.shortsrc", "ct.user", "ct.region" "ct.error"}));
-	add(insight_info("console login", "ct.name = ConsoleLogin", "a user logged in to the console", insight_info::SEV_INFO, {"ct.user", "ct.region", "ct.srcip", "ct.error"}));
-	add(insight_info("console login from a suspicious country", "ct.name = ConsoleLogin and ct.user.country!=us", "a user logged in to the console from a suspicious country", insight_info::SEV_HIGH, {"ct.user", "ct.region", "ct.srcip", "ct.error"}));
+	add(insight_info("EC2 instance run", "ct.name=RunInstances", "new EC2 instance started", insight_info::SEV_LOW, {"ct.user", "ct.region", "ct.srcip", "ct.status"}));
+	add(insight_info("EC2 instance run from suspicious country", "ct.name=RunInstances and ct.user.country!=us", "new EC2 instance started by a user in a suspicious country", insight_info::SEV_HIGH, {"ct.user", "ct.region", "ct.srcip", "ct.status"}));
+	add(insight_info("infrastructure modifying event", "ct.readonly=false", "actions that modify the state of the AWS environment", insight_info::SEV_DEBUG, {"ct.shortsrc", "ct.name", "ct.user", "ct.region" "ct.status"}));
+	add(insight_info("EC2 modifying events", "ct.shortsrc=ec2 and ct.readonly=false", "actions that modify the state of the state of the EC2 infrastructure", insight_info::SEV_INFO, {"ct.shortsrc", "ct.user", "ct.region" "ct.status"}));
+	add(insight_info("s3 modifying events", "ct.shortsrc=s3 and ct.readonly=false", "actions that modify the state of the state of the s3 infrastructure", insight_info::SEV_INFO, {"ct.shortsrc", "ct.user", "ct.region" "ct.status"}));
+	add(insight_info("console login", "ct.name = ConsoleLogin", "a user logged in to the console", insight_info::SEV_INFO, {"ct.user", "ct.region", "ct.srcip", "ct.status"}));
+	add(insight_info("console login from a suspicious country", "ct.name = ConsoleLogin and ct.user.country!=us", "a user logged in to the console from a suspicious country", insight_info::SEV_HIGH, {"ct.user", "ct.region", "ct.srcip", "ct.status"}));
 	add(insight_info("S3 bucket became public", "ct.name = PutBucketPublicAccessBlock and ct.info contains BlockPublicAcls=false and ct.info contains BlockPublicPolicy=false and ct.info contains IgnorePublicAcls=false and ct.info contains RestrictPublicBuckets=false", "all public blocks were removed from an s3 bucket", insight_info::SEV_HIGH, {"s3.bucket", "ct.user", "ct.region", "ct.srcip"}));
-	add(insight_info("EC2 KeyPair operation", "ct.shortsrc = ec2 and ct.readonly = false and ct.name contains KeyPair", "Stored EC2 KeyPairs were modified", insight_info::SEV_INFO, {"ct.user", "ct.srcip", "ct.error"}));
-	add(insight_info("CloudTrail log started", "ct.shortsrc = cloudtrail and ct.name = StartLogging", "CloudTrail log stopped", insight_info::SEV_INFO, {"ct.request.name", "ct.user", "ct.region", "ct.error"}));
-	add(insight_info("CloudTrail log stopped", "ct.shortsrc = cloudtrail and ct.name = StopLogging", "CloudTrail log stopped", insight_info::SEV_LOW, {"ct.request.name", "ct.user", "ct.region", "ct.error"}));
-	add(insight_info("CloudTrail logs stored in s3 accessed", "s3.uri contains /CloudTrail/ and ct.user.identitytype != AWSService", "access performed to stored cloudtrail logs (uploaded, downloaded, modified) from an entity outside AWS Services", insight_info::SEV_INFO, {"s3.bucket", "ct.user", "ct.region", "ct.srcip", "ct.error"}));
-	add(insight_info("list buckets", "ct.name=ListBuckets", "attempts to list the s3 buckets", insight_info::SEV_MEDIUM, {"ct.user", "ct.region", "ct.srcip", "ct.error"}));
+	add(insight_info("EC2 KeyPair operation", "ct.shortsrc = ec2 and ct.readonly = false and ct.name contains KeyPair", "Stored EC2 KeyPairs were modified", insight_info::SEV_INFO, {"ct.user", "ct.srcip", "ct.status"}));
+	add(insight_info("CloudTrail log started", "ct.shortsrc = cloudtrail and ct.name = StartLogging", "CloudTrail log stopped", insight_info::SEV_INFO, {"ct.request.name", "ct.user", "ct.region", "ct.status"}));
+	add(insight_info("CloudTrail log stopped", "ct.shortsrc = cloudtrail and ct.name = StopLogging", "CloudTrail log stopped", insight_info::SEV_LOW, {"ct.request.name", "ct.user", "ct.region", "ct.status"}));
+	add(insight_info("CloudTrail logs stored in s3 accessed", "s3.uri contains /CloudTrail/ and ct.user.identitytype != AWSService", "access performed to stored cloudtrail logs (uploaded, downloaded, modified) from an entity outside AWS Services", insight_info::SEV_INFO, {"s3.bucket", "ct.user", "ct.region", "ct.srcip", "ct.status"}));
+	add(insight_info("list buckets", "ct.name=ListBuckets", "attempts to list the s3 buckets", insight_info::SEV_MEDIUM, {"ct.user", "ct.region", "ct.srcip", "ct.status"}));
 	add(insight_info("failed event", "not ct.error exists", "cloudtrail commands that failed", insight_info::SEV_DEBUG, {"ct.name", "ct.user", "ct.region", "ct.srcip"}));
 	add(insight_info("failed infrastructure modifying event", "not ct.error exists and ct.readonly=false", "actions that modify the state of the AWS environment but failed", insight_info::SEV_INFO, {"ct.name", "ct.user", "ct.region", "ct.srcip"}));
-	add(insight_info("create bucket", "ct.name=CreateBucket", "attempts to create an s3 bucket", insight_info::SEV_MEDIUM, {"s3.bucket", "ct.user", "ct.region", "ct.error"}));
-	add(insight_info("delete bucket", "ct.name=DeleteBucket", "attempts to delete an s3 bucket", insight_info::SEV_MEDIUM, {"s3.bucket", "ct.user", "ct.region", "ct.error"}));
-	add(insight_info("change in bucket policy", "ct.name=PutBucketPolicy or ct.name=PutBucketPublicAccessBlock", "attempts to change the policy settings of an s3 bucket", insight_info::SEV_MEDIUM, {"s3.bucket", "ct.user", "ct.region", "ct.error"}));
-	add(insight_info("access potentially sensitive file on s3", "ct.shortsrc = s3 and ct.name = GetObject and s3.uri icontains key", "download request for a file with potentially interesting patterns", insight_info::SEV_MEDIUM, {"s3.bucket", "s3.uri", "ct.user", "ct.error"}));
+	add(insight_info("create bucket", "ct.name=CreateBucket", "attempts to create an s3 bucket", insight_info::SEV_MEDIUM, {"s3.bucket", "ct.user", "ct.region", "ct.status"}));
+	add(insight_info("delete bucket", "ct.name=DeleteBucket", "attempts to delete an s3 bucket", insight_info::SEV_MEDIUM, {"s3.bucket", "ct.user", "ct.region", "ct.status"}));
+	add(insight_info("change in bucket policy", "ct.name=PutBucketPolicy or ct.name=PutBucketPublicAccessBlock", "attempts to change the policy settings of an s3 bucket", insight_info::SEV_MEDIUM, {"s3.bucket", "ct.user", "ct.region", "ct.status"}));
+	add(insight_info("access potentially sensitive file on s3", "ct.shortsrc = s3 and ct.name = GetObject and s3.uri icontains key", "download request for a file with potentially interesting patterns", insight_info::SEV_MEDIUM, {"s3.bucket", "s3.uri", "ct.user", "ct.status"}));
 }
 
 void insights_runner::add(insight_info info)
