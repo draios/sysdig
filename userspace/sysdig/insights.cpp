@@ -40,7 +40,7 @@ insights_runner::insights_runner(sinsp* inspector)
 	add(insight_info("CloudTrail log stopped", "ct.shortsrc = cloudtrail and ct.name = StopLogging", "CloudTrail log stopped", insight_info::SEV_LOW, {"ct.request.name", "ct.user", "ct.region", "ct.status"}));
 	add(insight_info("CloudTrail logs stored in s3 accessed", "s3.uri contains /CloudTrail/ and ct.user.identitytype != AWSService", "access performed to stored cloudtrail logs (uploaded, downloaded, modified) from an entity outside AWS Services", insight_info::SEV_INFO, {"s3.bucket", "ct.user", "ct.region", "ct.srcip", "ct.status"}));
 	add(insight_info("list buckets", "ct.name=ListBuckets", "attempts to list the s3 buckets", insight_info::SEV_MEDIUM, {"ct.user", "ct.region", "ct.srcip", "ct.status"}));
-	add(insight_info("failed event", "not ct.error exists", "cloudtrail commands that failed", insight_info::SEV_DEBUG, {"ct.name", "ct.user", "ct.region", "ct.srcip"}));
+	add(insight_info("failed event", "ct.error exists", "cloudtrail commands that failed", insight_info::SEV_DEBUG, {"ct.name", "ct.user", "ct.region", "ct.srcip"}));
 	add(insight_info("failed infrastructure modifying event", "not ct.error exists and ct.readonly=false", "actions that modify the state of the AWS environment but failed", insight_info::SEV_INFO, {"ct.name", "ct.user", "ct.region", "ct.srcip"}));
 	add(insight_info("create bucket", "ct.name=CreateBucket", "attempts to create an s3 bucket", insight_info::SEV_MEDIUM, {"s3.bucket", "ct.user", "ct.region", "ct.status"}));
 	add(insight_info("delete bucket", "ct.name=DeleteBucket", "attempts to delete an s3 bucket", insight_info::SEV_MEDIUM, {"s3.bucket", "ct.user", "ct.region", "ct.status"}));
