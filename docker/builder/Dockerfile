@@ -35,6 +35,8 @@ RUN source scl_source enable devtoolset-7 llvm-toolset-7 && \
     make install && \
     rm -rf /tmp/cmake-${CMAKE_VERSION}
 
+RUN echo "hello"
+
 COPY ./root /
 
 # DTS
