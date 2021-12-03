@@ -1,0 +1,5 @@
+kernelversion: 1
+kernelrelease: 2.6.32-696.3.2.el6.x86_64
+target: centos
+output:
+  module: output/de277bbc1e7a92edc84db9a925fb3e12c7b1cb07//sysdig_centos_2.6.32-696.3.2.el6.x86_64_1.ko
