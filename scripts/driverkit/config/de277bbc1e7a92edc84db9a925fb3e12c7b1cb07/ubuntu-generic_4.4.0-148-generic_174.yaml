@@ -1,0 +1,5 @@
+kernelversion: 174
+kernelrelease: 4.4.0-148-generic
+target: ubuntu-generic
+output:
+  module: output/de277bbc1e7a92edc84db9a925fb3e12c7b1cb07//sysdig_ubuntu-generic_4.4.0-148-generic_174.ko
