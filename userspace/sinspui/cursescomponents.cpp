@@ -875,7 +875,7 @@ void curses_textbox::print_no_data()
 	string wstr = "No Data For This Selection";
 	mvprintw(m_parent->m_screenh / 2,
 		m_parent->m_screenw / 2 - wstr.size() / 2,
-		wstr.c_str());
+		"%s", wstr.c_str());
 
 	refresh();
 }
@@ -1098,7 +1098,7 @@ void curses_textbox::render()
 		attrset(m_parent->m_colors[sinsp_cursesui::LARGE_NUMBER]);
 		mvprintw(0,
 			m_parent->m_screenw / 2 - wstr.size() / 2,
-			wstr.c_str());
+			"%s", wstr.c_str());
 	}
 
 	//

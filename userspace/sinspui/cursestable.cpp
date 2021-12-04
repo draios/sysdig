@@ -252,7 +252,7 @@ void curses_table::print_line_centered(string line, int32_t off)
 		mvwprintw(m_tblwin, 
 			m_parent->m_screenh / 2 + off,
 			m_parent->m_screenw / 2 - line.size() / 2, 
-			line.c_str());
+			"%s", line.c_str());
 	}
 	else
 	{
@@ -266,7 +266,7 @@ glogf("2, %d %s\n", spos, ss.c_str());
 			mvwprintw(m_tblwin, 
 				m_parent->m_screenh / 2 + off + j,
 				0,
-				ss.c_str());
+				"%s", ss.c_str());
 
 			spos += m_parent->m_screenw;
 			if(spos >= line.size())
@@ -325,8 +325,8 @@ void curses_table::print_error(string wstr)
 
 	mvwprintw(m_tblwin, 
 		m_parent->m_screenh / 2,
-		m_parent->m_screenw / 2 - wstr.size() / 2, 
-		wstr.c_str());	
+		m_parent->m_screenw / 2 - wstr.size() / 2,
+		"%s", wstr.c_str());
 }
 
 void curses_table::render(bool data_changed)

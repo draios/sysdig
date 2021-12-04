@@ -821,8 +821,8 @@ void sinsp_cursesui::render_header()
 		string wstr = "PAUSED";
 		attrset(m_colors[sinsp_cursesui::LARGE_NUMBER]);
 		mvprintw(0,
-			m_screenw / 2 - wstr.size() / 2, 
-			wstr.c_str());	
+			m_screenw / 2 - wstr.size() / 2,
+			"%s", wstr.c_str());
 	}
 
 	//
@@ -1120,7 +1120,7 @@ void sinsp_cursesui::render_filtersearch_main_menu()
 
 		m_cursor_pos = cursor_pos;
 
-		mvprintw(m_screenh - 1, m_cursor_pos, str->c_str());
+		mvprintw(m_screenh - 1, m_cursor_pos, "%s", str->c_str());
 
 		m_cursor_pos += str->size();
 	}
@@ -2185,8 +2185,8 @@ void sinsp_cursesui::print_progress(double progress)
 
 	string wstr = "Processing File";
 	mvprintw(m_screenh / 2,
-		m_screenw / 2 - wstr.size() / 2, 
-		wstr.c_str());	
+		m_screenw / 2 - wstr.size() / 2,
+		"%s", wstr.c_str());
 
 	//
 	// Using sprintf because to_string doesn't support setting the precision 
@@ -2195,8 +2195,8 @@ void sinsp_cursesui::print_progress(double progress)
 	sprintf(numbuf, "%.2lf", progress);
 	wstr = "Progress: " + string(numbuf);
 	mvprintw(m_screenh / 2 + 1,
-		m_screenw / 2 - wstr.size() / 2, 
-		wstr.c_str());
+		m_screenw / 2 - wstr.size() / 2,
+		"%s", wstr.c_str());
 
 	refresh();
 }
@@ -2304,8 +2304,8 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 
 						attrset(m_colors[sinsp_cursesui::FAILED_SEARCH]);
 						mvprintw(m_screenh / 2,
-							m_screenw / 2 - wstr.size() / 2, 
-							wstr.c_str());	
+							m_screenw / 2 - wstr.size() / 2,
+							"%s", wstr.c_str());
 
 						//
 						// Restore the cursor
@@ -2360,7 +2360,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 
 					mvprintw(m_screenh / 2,
 						m_screenw / 2 - wstr.size() / 2, 
-						wstr.c_str());
+						"%s", wstr.c_str());
 
 					render();
 				}
@@ -2433,7 +2433,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 
 				mvprintw(m_screenh / 2,
 					m_screenw / 2 - wstr.size() / 2, 
-					wstr.c_str());
+					"%s", wstr.c_str());
 
 				render();
 			}
