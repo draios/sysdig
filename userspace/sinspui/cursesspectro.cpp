@@ -223,8 +223,8 @@ void curses_spectro::print_error(string wstr)
 
 	mvwprintw(m_tblwin, 
 		m_parent->m_screenh / 2,
-		m_parent->m_screenw / 2 - wstr.size() / 2, 
-		wstr.c_str());	
+		m_parent->m_screenw / 2 - wstr.size() / 2,
+		"%s", wstr.c_str());
 }
 
 void curses_spectro::update_data(vector<sinsp_sample_row>* data, bool force_selection_change)
