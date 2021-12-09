@@ -1,0 +1,6 @@
+kernelversion: 23
+kernelrelease: 4.15.0-1023-aws
+target: ubuntu-aws
+output:
+  module: output/2160111cd088aea9ae2235d3385ecb0b1ab6623c/scap_ubuntu-aws_4.15.0-1023-aws_23.ko
+  probe: output/2160111cd088aea9ae2235d3385ecb0b1ab6623c/scap_ubuntu-aws_4.15.0-1023-aws_23.o

@@ -1,0 +1,6 @@
+kernelversion: 41
+kernelrelease: 4.15.0-38-generic
+target: ubuntu-generic
+output:
+  module: output/2160111cd088aea9ae2235d3385ecb0b1ab6623c/scap_ubuntu-generic_4.15.0-38-generic_41.ko
+  probe: output/2160111cd088aea9ae2235d3385ecb0b1ab6623c/scap_ubuntu-generic_4.15.0-38-generic_41.o

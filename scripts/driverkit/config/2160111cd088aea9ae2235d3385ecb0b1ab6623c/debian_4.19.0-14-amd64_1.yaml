@@ -1,0 +1,6 @@
+kernelversion: 1
+kernelrelease: 4.19.0-14-amd64
+target: debian
+output:
+  module: output/2160111cd088aea9ae2235d3385ecb0b1ab6623c/scap_debian_4.19.0-14-amd64_1.ko
+  probe: output/2160111cd088aea9ae2235d3385ecb0b1ab6623c/scap_debian_4.19.0-14-amd64_1.o
