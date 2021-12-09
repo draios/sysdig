@@ -133,6 +133,7 @@ def main():
 
             # upload to s3 and remove
             if s3:
+                print(f"[*] Attempting upload to s3 bucket {s3_bucket} with key {module_s3key}")
                 if module_output is not None:
                     with open(module_output, 'rb') as fp:
                         s3.upload_fileobj(fp, s3_bucket, module_s3key, ExtraArgs={'ACL':'public-read'})
