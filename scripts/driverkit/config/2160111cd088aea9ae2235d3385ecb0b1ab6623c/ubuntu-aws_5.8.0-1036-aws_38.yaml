@@ -1,0 +1,6 @@
+kernelversion: 38
+kernelrelease: 5.8.0-1036-aws
+target: ubuntu-aws
+output:
+  module: output/2160111cd088aea9ae2235d3385ecb0b1ab6623c/scap_ubuntu-aws_5.8.0-1036-aws_38.ko
+  probe: output/2160111cd088aea9ae2235d3385ecb0b1ab6623c/scap_ubuntu-aws_5.8.0-1036-aws_38.o
