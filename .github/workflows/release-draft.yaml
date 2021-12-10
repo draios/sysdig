@@ -72,7 +72,7 @@ jobs:
           name: sysdig-release-${{ env.BUILD_VERSION }}
       - name: Import private key
         env:
-          PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+          PRIVATE_KEY: ${{ secrets.SYSDIG_REPO_SIGNING_KEY }}
         run: printenv PRIVATE_KEY | gpg --import -
       - name: Sign RPMs 
         run: rpm --define "_gpg_name ${{ env.KEY_ID }}" --addsign *.rpm
@@ -101,7 +101,7 @@ jobs:
           name: sysdig-release-${{ env.BUILD_VERSION }}
       - name: Import private key
         env:
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PRIVATE_KEY: ${{ secrets.SYSDIG_REPO_SIGNING_KEY }}
         run: printenv PRIVATE_KEY | gpg --import -
       - name: Sign DEBs
         run: dpkg-sig -k ${{ env.KEY_ID }} -s builder *.deb
