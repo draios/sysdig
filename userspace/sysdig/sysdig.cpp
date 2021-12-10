@@ -113,7 +113,7 @@ static void usage()
 "                    Enable live capture using the specified BPF probe instead of the kernel module.\n"
 "                    The BPF probe can also be specified via the environment variable\n"
 "                    SYSDIG_BPF_PROBE. If <bpf_probe> is left empty, sysdig will\n"
-"                    try to load one from the sysdig-probe-loader script.\n" // TODO FIX THIS (sysdig-probe-loader)
+"                    try to load one from the scap-driver-loader script.\n"
 #ifdef HAS_CHISELS
 " -c <chiselname> <chiselargs>, --chisel <chiselname> <chiselargs>\n"
 "                    run the specified chisel. If the chisel require arguments,\n"
@@ -1773,7 +1773,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						{
 							if(bpf_probe.empty())
 							{
-								if(system("sysdig-probe-loader bpf")) // TODO fix this (sysdig-probe-loader)
+								if(system("scap-driver-loader bpf"))
 								{
 									fprintf(stderr, "Unable to load the BPF probe\n");
 								}
