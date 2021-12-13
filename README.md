@@ -1,21 +1,44 @@
 sysdig
 ======
 
-[![Build Status](https://travis-ci.com/draios/sysdig.png?branch=master)](https://travis-ci.com/draios/sysdig)
+<p align="center"><img src="https://raw.githubusercontent.com/draios/sysdig/dev/img/logo_large.png" width="360"></p>
+<p align="center"><b>Dig Deeper</b></p>
 
-# Welcome to **sysdig**!
+<hr>
 
 **Sysdig** is a universal system visibility tool with native support for containers:  
 `~$ sysdig`
 
 **Csysdig** is a simple, intuitive, and fully customizable curses UI for sysdig:  
 `~$ csysdig`
-  
+
+Getting Started
+---
+
+Run Sysdig in a container:
+
+```
+sudo docker run --rm -i -t --privileged --net=host \
+    -v /var/run/docker.sock:/host/var/run/docker.sock \
+    -v /dev:/host/dev \
+    -v /proc:/host/proc:ro \
+    -v /boot:/host/boot:ro \
+    -v /src:/src \
+    -v /lib/modules:/host/lib/modules:ro \
+    -v /usr:/host/usr:ro \
+    -v /etc:/host/etc:ro \
+    docker.io/sysdig/sysdig
+```
+
+And then run the `sysdig` or `csysdig` tool from the container shell!
+
+Or install the [latest release](https://github.com/draios/sysdig/releases/latest) with a `deb` or `rpm` package for your distribution.
+
 What does sysdig do and why should I use it?
 ---
 **Sysdig is a simple tool for deep system visibility, with native support for containers.**
 
-We built sysdig to give you _easy access_ to the actual behavior of your Linux systems and containers. Honestly, the best way to understand sysdig is to [try it](https://github.com/draios/sysdig/wiki/How-to-Install-Sysdig-for-Linux) - its super easy! Or here's a quick video introduction to csysdig, the simple, intuitive, and fully customizable curses-based UI for sysdig: https://www.youtube.com/watch?v=UJ4wVrbP-Q8
+The best way to understand sysdig is to [try it](https://github.com/draios/sysdig/wiki/How-to-Install-Sysdig-for-Linux) - its super easy! Or here's a quick video introduction to csysdig, the simple, intuitive, and fully customizable curses-based UI for sysdig: https://www.youtube.com/watch?v=UJ4wVrbP-Q8
 
 Far too often, system-level monitoring and troubleshooting still involves logging into a machine with SSH and using a plethora of dated tools with very inconsistent interfaces. And many of these classic Linux tools breakdown completely in containerized environments. Sysdig unites your Linux toolkit into a single, consistent, easy-to-use interface. And sysdig's unique architecture allows deep inspection into containers, right out of the box, without having to instrument the containers themselves in any way.
 
