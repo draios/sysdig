@@ -45,7 +45,11 @@ def main():
     ap.add_argument('--s3-prefix', help='S3 key prefix')
     ap.add_argument('--moduledrivername', default='scap', help='The module driver name')
     ap.add_argument('--moduledevicename', default='scap', help='The module device name')
+    ap.add_argument('--rebuild', action='store_true', help='Rebuild all drivers, including the ones already present on S3')
     args = ap.parse_args()
+
+    if args.rebuild:
+        print(f"[*] A full rebuild has been requested. This may take a while ...")
 
     config_dir = Path(args.config_dir)
     if not config_dir.exists():
@@ -104,11 +108,11 @@ def main():
                 probe_s3key = f"{s3_prefix}/{driverversion}/{probe_basename}"
 
             if s3:
-                need_module = (module_output is not None) and not s3_exists(s3, s3_bucket, module_s3key)
-                need_probe = (probe_output is not None) and not s3_exists(s3, s3_bucket, probe_s3key)
+                need_module = (module_output is not None) and (args.rebuild or not s3_exists(s3, s3_bucket, module_s3key))
+                need_probe = (probe_output is not None) and (args.rebuild or not s3_exists(s3, s3_bucket, probe_s3key))
             else:
-                need_module = (module_output is not None) and not os.path.exists(module_output)
-                need_probe = (probe_output is not None) and not os.path.exists(probe_output)
+                need_module = (module_output is not None) and (args.rebuild or not os.path.exists(module_output))
+                need_probe = (probe_output is not None) and (args.rebuild or not os.path.exists(probe_output))
 
             need_build = need_module or need_probe
             if not need_build:

@@ -3,6 +3,12 @@ on:
   push:
     branches: [dev]
     paths: ['scripts/driverkit/**']
+  workflow_dispatch:
+    inputs:
+      rebuild:
+        description: 'Set rebuild to "true" to perform a complete rebuild of all the probes, even if they were already present on S3'
+        required: true
+        default: 'false'
 
 jobs:
   build-drivers:
@@ -56,4 +62,8 @@ jobs:
 
       - name: Build drivers if not present
         working-directory: scripts/driverkit/build
-        run: poetry run python build.py ../config --driverkit ../../../driverkit-repo/driverkit --s3-bucket ${{ env.S3_BUCKET }} --s3-prefix ${{ env.S3_PREFIX }}
+        run: |
+          poetry run python build.py ../config \
+          --driverkit ../../../driverkit-repo/driverkit \
+          --s3-bucket ${{ env.S3_BUCKET }} --s3-prefix ${{ env.S3_PREFIX }} \
+          ${{ (github.event_name == 'workflow_dispatch') && (github.event.inputs.rebuild == 'true') && '--rebuild' || '' }}
