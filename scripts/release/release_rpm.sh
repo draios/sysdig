@@ -18,6 +18,9 @@ aws s3 sync s3://$S3_BUCKET/$REPOSITORY_NAME/rpm/$RPM_BASEARCH/ $REPOSITORY_DIR/
 cp $PACKAGES_DIR/*rpm $REPOSITORY_DIR/rpm/$RPM_BASEARCH
 createrepo $REPOSITORY_DIR/rpm/$RPM_BASEARCH
 
+# create repomd.xml.asc
+gpg --local-user $KEY_ID --batch --no-tty --yes --detach-sign --armor $REPOSITORY_DIR/rpm/$RPM_BASEARCH/repodata/repomd.xml
+
 cp $SCRIPTS_DIR/draios.repo $REPOSITORY_DIR/rpm
 sed -i s/_REPOSITORY_/$REPOSITORY_NAME/g $REPOSITORY_DIR/rpm/draios.repo
 
