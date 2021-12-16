@@ -1,0 +1,1 @@
+deb https://download.sysdig.com/_REPOSITORY_/deb stable-$(ARCH)/
