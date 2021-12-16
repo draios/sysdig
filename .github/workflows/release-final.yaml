@@ -45,6 +45,7 @@ jobs:
       PACKAGES_DIR: packages
       S3_BUCKET: download.draios.com
       RELEASE: ${{ github.event.release.name }}
+      KEY_ID: EC51E8C4
 
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
@@ -86,6 +87,11 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: us-east-1
+
+      - name: Import private key
+        env:
+          PRIVATE_KEY: ${{ secrets.SYSDIG_REPO_SIGNING_KEY }}
+        run: printenv PRIVATE_KEY | gpg --import -
 
       - name: Release RPMs
         env:
