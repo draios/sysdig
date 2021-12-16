@@ -7,7 +7,7 @@ jobs:
   push-final-images:
     runs-on: ubuntu-latest
     env:
-      SYSDIG_IMAGE_BASE: ghcr.io/sysdig/sysdig
+      SYSDIG_IMAGE_BASE: ghcr.io/draios/sysdig
       SYSDIG_DOCKERHUB_IMAGE_BASE: docker.io/sysdig/sysdig
       RELEASE: ${{ github.event.release.name }}
 
