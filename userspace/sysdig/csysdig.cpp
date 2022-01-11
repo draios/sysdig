@@ -1039,6 +1039,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 
 			if(output_type == sinsp_table::OT_JSON)
 			{
+				// The following line produces malformed json when using
+				// csysdig with the -j option. We are leaving it here,
+				// commented, in case it's needed for tools that consume
+				// csysdig's json like sysdig inspect.
 				//printf("]}\n");
 				//printf("%c", EOF);
 			}
