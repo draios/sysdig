@@ -42,6 +42,8 @@ limitations under the License.
 #include "fields_info.h"
 #include "table.h"
 #include "utils.h"
+#include "plugin.h"
+#include "plugin_utils.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -62,6 +64,7 @@ limitations under the License.
 #define MOUSE_CAPABLE_TERM_COMPAT "xterm-1002"
 
 static bool g_terminate = false;
+static bool g_plugin_input = false;
 static void usage();
 
 //
@@ -69,7 +72,29 @@ static void usage();
 //
 static void signal_callback(int signal)
 {
-	g_terminate = true;
+	if(g_plugin_input)
+	{
+		//
+		// Input plugins can get stuck at any point.
+		// When we are using one, check again in few seconds and force a quit
+		// if we are stuck.
+		//
+		if(g_terminate == true)
+		{
+			exit(0);
+		}
+		else
+		{
+			g_terminate = true;
+#ifndef _WIN32
+			alarm(2);
+#endif
+		}
+	}
+	else
+	{
+		g_terminate = true;
+	}
 }
 
 //
@@ -410,6 +435,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 #ifdef HAS_CHISELS
 		add_chisel_dirs(inspector);
 #endif
+		add_plugin_dirs(SYSDIG_INSTALLATION_DIR);
+		register_plugins(inspector);
 
 		//
 		// Parse the args
@@ -1012,7 +1039,11 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 
 			if(output_type == sinsp_table::OT_JSON)
 			{
-				printf("]}\n");
+				// The following line produces malformed json when using
+				// csysdig with the -j option. We are leaving it here,
+				// commented, in case it's needed for tools that consume
+				// csysdig's json like sysdig inspect.
+				//printf("]}\n");
 				//printf("%c", EOF);
 			}
 
