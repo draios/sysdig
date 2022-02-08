@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-mod_version="@PROBE_VERSION@"
+mod_version="@DRIVER_VERSION@"
 mod_name="@DRIVER_PACKAGE_NAME@"
 
 dkms remove -m $mod_name -v $mod_version --all --rpm_safe_upgrade

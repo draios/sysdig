@@ -142,12 +142,12 @@ endif()
 include(falcosecurity-libs)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	if(NOT DEFINED PROBE_VERSION)
-		set(PROBE_VERSION "${FALCOSECURITY_LIBS_VERSION}")
+	if(NOT DEFINED DRIVER_VERSION)
+		set(DRIVER_VERSION "${FALCOSECURITY_LIBS_VERSION}")
 	endif()
 
-	if(NOT DEFINED PROBE_NAME)
-		set(PROBE_NAME "scap")
+	if(NOT DEFINED DRIVER_NAME)
+		set(DRIVER_NAME "scap")
 	endif()
 
 	set(DRIVERS_REPO "https://download.sysdig.com/scap-drivers")

@@ -918,7 +918,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					}
 					else
 					{
-						if(system("modprobe " PROBE_NAME " > /dev/null 2> /dev/null"))
+						if(system("modprobe " DRIVER_NAME " > /dev/null 2> /dev/null"))
 						{
 							fprintf(stderr, "Unable to load the driver\n");
 						}
