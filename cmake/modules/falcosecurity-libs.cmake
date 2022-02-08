@@ -29,8 +29,8 @@ else()
   # default below In case you want to test against another falcosecurity/libs version just pass the variable - ie., `cmake
   # -DFALCOSECURITY_LIBS_VERSION=dev ..`
   if(NOT FALCOSECURITY_LIBS_VERSION)
-    set(FALCOSECURITY_LIBS_VERSION "7e832f61a05df68969697fd603594d65c4e14811")
-    set(FALCOSECURITY_LIBS_CHECKSUM "SHA256=1a81218425ec105e76a53a8baef0e734abf1b1739567c226e45c3d673f69014e")
+    set(FALCOSECURITY_LIBS_VERSION "cba4af082af684fdd8622f443f724891ff13b26f")
+    set(FALCOSECURITY_LIBS_CHECKSUM "SHA256=d93eff86763d5787e5e4f327f8234d7e8556001b3cf5512a97997db1a4e649a8")
   endif()
 
   # cd /path/to/build && cmake /path/to/source
@@ -46,7 +46,7 @@ else()
   set(FALCOSECURITY_LIBS_SOURCE_DIR "${FALCOSECURITY_LIBS_CMAKE_WORKING_DIR}/falcosecurity-libs-prefix/src/falcosecurity-libs")
 endif()
 
-set(PROBE_VERSION "${FALCOSECURITY_LIBS_VERSION}")
+set(DRIVER_VERSION "${FALCOSECURITY_LIBS_VERSION}")
 
 if(NOT LIBSCAP_DIR)
   set(LIBSCAP_DIR "${FALCOSECURITY_LIBS_SOURCE_DIR}")
