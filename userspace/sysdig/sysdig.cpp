@@ -688,7 +688,8 @@ captureinfo do_inspect(sinsp* inspector,
 	bool print_progress,
 	sinsp_filter* display_filter,
 	vector<summary_table_entry> &summary_table,
-	sinsp_evt_formatter* formatter)
+	sinsp_evt_formatter* syscall_evt_formatter,
+	sinsp_evt_formatter* plugin_evt_formatter)
 {
 	captureinfo retval;
 	int32_t res;
@@ -700,6 +701,10 @@ captureinfo do_inspect(sinsp* inspector,
 	{
 		do_flush = true;
 	}
+
+	// This changes between syscall_evt_formatter and
+	// plugin_evt_formatter based on the event type.
+	sinsp_evt_formatter *formatter = syscall_evt_formatter;
 
 	//
 	// Loop through the events
@@ -750,6 +755,8 @@ captureinfo do_inspect(sinsp* inspector,
 			cerr << "res = " << res << endl;
 			throw sinsp_exception(inspector->getlasterr().c_str());
 		}
+
+		formatter = (ev->get_type() == PPME_PLUGINEVENT_E ? plugin_evt_formatter : syscall_evt_formatter);
 
 		if (duration_start == 0)
 		{
@@ -1646,8 +1653,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		//
 		// Create the event formatter
 		//
-		sinsp_evt_formatter formatter(inspector,
-					      (g_plugin_input ? output_format_plugin : output_format));
+		sinsp_evt_formatter syscall_evt_formatter(inspector, output_format);
+
+		sinsp_evt_formatter plugin_evt_formatter(inspector, output_format_plugin);
 
 		//
 		// Set output buffers len
@@ -1916,7 +1924,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				print_progress,
 				display_filter,
 				summary_table,
-				&formatter);
+				&syscall_evt_formatter,
+				&plugin_evt_formatter);
 
 			duration = ((double)clock()) / CLOCKS_PER_SEC - duration;
 
