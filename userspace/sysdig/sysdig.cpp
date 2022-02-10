@@ -957,6 +957,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string cri_socket_path;
 #endif
 	bool udig = false;
+	bool gvisor = false;
 	string inputname;
 	bool has_src_plugin = false;
 
@@ -986,6 +987,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"fatfile", no_argument, 0, 'F'},
 		{"filter-proclist", no_argument, 0, 0 },
 		{"seconds", required_argument, 0, 'G' },
+		{"gvisor", no_argument, 0, 'g'},
 		{"help", no_argument, 0, 'h' },
 		{"input", required_argument, 0, 'I' },
 #ifdef HAS_CHISELS
@@ -1058,7 +1060,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "AbB::c:"
                                         "C:"
                                         "dDEe:F"
-                                        "G:"
+                                        "G:g"
                                         "hI:i:jk:K:lLm:M:n:Pp:qRr:Ss:t:TU:uv"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
@@ -1145,6 +1147,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				inspector->set_fatfile_dump_mode(true);
 				break;
 			// Number of seconds between roll-over
+			case 'g':
+				gvisor = true;
+				break;
 			case 'G':
 				duration_seconds = atoi(optarg);
 				if(duration_seconds <= 0)
@@ -1742,6 +1747,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				if(udig)
 				{
 					inspector->open_udig();
+				}
+				else if (gvisor)
+				{
+					inspector->open_gvisor();
 				}
 				else
 				{
