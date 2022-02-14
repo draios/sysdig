@@ -1039,8 +1039,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 	if (isatty(fileno(stdout)))
 	{
-		output_format = "*%evt.num %evt.outputtime %evt.cpu \e[01;32m%proc.name\e[00m (\e[01;36m%proc.pid\e[00m.%thread.tid) %evt.dir \e[01;34m%evt.type\e[00m %evt.info";
-		output_format_plugin = "*%evt.num %evt.datetime.s [%evt.pluginname] %evt.plugininfo";
+		output_format = R"(*%evt.num %evt.outputtime %evt.cpu \e[01;32m%proc.name\e[00m (\e[01;36m%proc.pid\e[00m.%thread.tid) %evt.dir \e[01;34m%evt.type\e[00m %evt.info)";
+		output_format_plugin = R"(*%evt.num %evt.datetime.s [\e[01;32m%evt.pluginname\e[00m] %evt.plugininfo)";
 	} else
 	{
 		output_format = "*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
@@ -1637,6 +1637,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 		output_format = escape_output_format(output_format);
 		if (output_format.find("\e") != std::string::npos)
+		{
+			reset_colors = true;
+		}
+
+		output_format_plugin = escape_output_format(output_format_plugin);
+		if (output_format_plugin.find("\e") != std::string::npos)
 		{
 			reset_colors = true;
 		}
