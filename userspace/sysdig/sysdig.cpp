@@ -191,10 +191,11 @@ static void usage()
 "                    plugin the initconf string as init parameters, and openparams as open parameters.\n"
 "                    The format of initconf and openparams is controller by the plugin, refer to each\n"
 "                    plugin's documentation to learn about it.\n"
+"                    See https://falco.org/docs/plugins/plugin-api-reference/#ss-plugin-t-plugin-init-const-char-config-int32-t-rc-required-yes\n"
+"                    and https://falco.org/docs/plugins/plugin-api-reference/#ss-instance-t-plugin-open-ss-plugin-t-s-const-char-params-int32-t-rc-required-yes for more infos.\n"
 "                    The event sources available for capture vary depending on which \n"
 "                    plugins have been installed. You can list the plugins that have been \n"
 "                    loaded by using the -Il flag.\n"
-"                    Example for dummy plugin: sysdig -I dummy:\"O{\\\"start\\\":1,\\\"maxEvents\\\":10}:I{\\\"jitter\\\":50}\"\n"
 " -Il\n"
 "                    (PREVIEW feature, subject to change)\n"
 "                    lists the loaded plugins. Sysdig looks for plugins in the directories \n"
@@ -346,6 +347,8 @@ static void usage()
 "   $ sysdig proc.name=cat and evt.type=open\n\n"
 " Print the name of the files opened by cat\n"
 "   $ sysdig -p\"%%evt.arg.name\" proc.name=cat and evt.type=open\n\n"
+" Load dummy plugin passing to it init config and open params\n"
+"   $ sysdig -I dummy:\"O{\\\"start\\\":1,\\\"maxEvents\\\":10}:I{\\\"jitter\\\":50}\"\n\n"
     );
 }
 
