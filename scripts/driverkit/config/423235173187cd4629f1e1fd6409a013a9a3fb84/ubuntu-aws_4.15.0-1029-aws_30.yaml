@@ -1,0 +1,6 @@
+kernelversion: 30
+kernelrelease: 4.15.0-1029-aws
+target: ubuntu-aws
+output:
+  module: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_ubuntu-aws_4.15.0-1029-aws_30.ko
+  probe: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_ubuntu-aws_4.15.0-1029-aws_30.o

@@ -1,0 +1,6 @@
+kernelversion: 141
+kernelrelease: 4.15.0-137-generic
+target: ubuntu-generic
+output:
+  module: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_ubuntu-generic_4.15.0-137-generic_141.ko
+  probe: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_ubuntu-generic_4.15.0-137-generic_141.o
