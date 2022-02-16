@@ -68,7 +68,7 @@ void add_plugin_dirs(string sysdig_installation_dir)
     }
 }
 
-void register_plugins(sinsp *inspector)
+void register_plugins(sinsp *inspector, const char *init_config)
 {
 
     for (vector<plugin_dir_info>::const_iterator it = g_plugin_dirs.begin();
@@ -97,7 +97,7 @@ void register_plugins(sinsp *inspector)
                 goto nextfile;
             }
 
-            sinsp_plugin::register_plugin(inspector, file.path, NULL);
+            sinsp_plugin::register_plugin(inspector, file.path, init_config);
 
         nextfile:
             tinydir_next(&dir);

@@ -185,15 +185,16 @@ static void usage()
 "                    If no data format is specified, this can be used with -W flag to\n"
 "                    create a ring buffer of events.\n"
 " -h, --help         Print this page\n"
-" -I <inputname>[:<inputargs>], --input <inputname>[:<inputargs>]\n"
+" -I <inputname>[:<inputargs>], --input <inputname>[:I<initconf>][:O<openparams>]\n"
 "                    (PREVIEW feature, subject to change)\n"
 "                    capture events using the plugin with name inputname, passing to the \n"
-"                    plugin the inputargs string as parameters.\n"
-"                    The format of inputargs is controller by the plugin, refer to each\n"
+"                    plugin the initconf string as init parameters, and openparams as open parameters.\n"
+"                    The format of initconf and openparams is controller by the plugin, refer to each\n"
 "                    plugin's documentation to learn about it.\n"
 "                    The event sources available for capture vary depending on which \n"
 "                    plugins have been installed. You can list the plugins that have been \n"
 "                    loaded by using the -Il flag.\n"
+"                    Example for dummy plugin: sysdig -I dummy:\"O{\\\"start\\\":1,\\\"maxEvents\\\":10}:I{\\\"jitter\\\":50}\"\n"
 " -Il\n"
 "                    (PREVIEW feature, subject to change)\n"
 "                    lists the loaded plugins. Sysdig looks for plugins in the directories \n"
@@ -1056,7 +1057,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		add_chisel_dirs(inspector);
 #endif
 		add_plugin_dirs(SYSDIG_INSTALLATION_DIR);
-		register_plugins(inspector);
 
 		//
 		// Parse the args
@@ -1166,6 +1166,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					inputname = optarg;
 					if(inputname == "l")
 					{
+						register_plugins(inspector);
 						std::list<sinsp_plugin::info> infos = sinsp_plugin::plugin_infos(inspector);
 						std::ostringstream os_dirs, os_info;
 
@@ -1200,19 +1201,35 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					has_src_plugin = true;
 
 					size_t cpos = inputname.find(':');
-					string pgname;
-					string pgpars;
+					string pgname = inputname.substr(0, cpos);
+					string initconf;
+					string openparams;
 					if(cpos != string::npos)
 					{
-						pgname = inputname.substr(0, cpos);
-						pgpars = inputname.substr(cpos + 1);
-						inspector->set_input_plugin(pgname);
-						inspector->set_input_plugin_open_params(pgpars);
+						string pgpars = inputname.substr(cpos + 1);
+						if(pgpars[0] == 'I') // input config first
+						{
+							cpos = pgpars.find(":O");
+							initconf = pgpars.substr(1, cpos - 1);
+							pgpars = pgpars.substr(cpos + 2);
+							if(cpos != string::npos)
+							{
+								openparams = pgpars;
+							}
+						} else if(pgpars[0] == 'O') // open params first
+						{
+							cpos = pgpars.find(":I");
+							openparams = pgpars.substr(1, cpos - 1);
+							pgpars = pgpars.substr(cpos + 2);
+							if(cpos != string::npos)
+							{
+								initconf = pgpars;
+							}
+						}
 					}
-					else
-					{
-						inspector->set_input_plugin(inputname);
-					}
+					register_plugins(inspector, initconf.c_str());
+					inspector->set_input_plugin(pgname);
+					inspector->set_input_plugin_open_params(openparams);
 
 					g_plugin_input = true;
 					//print_progress = true;
