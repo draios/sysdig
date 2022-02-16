@@ -1,0 +1,5 @@
+kernelversion: 48
+kernelrelease: 4.4.0-1039-aws
+target: ubuntu-aws
+output:
+  module: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_ubuntu-aws_4.4.0-1039-aws_48.ko

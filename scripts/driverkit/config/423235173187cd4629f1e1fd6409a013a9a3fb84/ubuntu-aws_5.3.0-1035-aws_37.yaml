@@ -1,0 +1,6 @@
+kernelversion: 37
+kernelrelease: 5.3.0-1035-aws
+target: ubuntu-aws
+output:
+  module: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_ubuntu-aws_5.3.0-1035-aws_37.ko
+  probe: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_ubuntu-aws_5.3.0-1035-aws_37.o

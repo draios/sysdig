@@ -1,0 +1,5 @@
+kernelversion: 57
+kernelrelease: 3.13.0-32-generic
+target: ubuntu-generic
+output:
+  module: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_ubuntu-generic_3.13.0-32-generic_57.ko

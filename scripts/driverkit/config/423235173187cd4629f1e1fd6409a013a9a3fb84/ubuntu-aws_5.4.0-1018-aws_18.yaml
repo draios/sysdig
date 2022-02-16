@@ -1,0 +1,6 @@
+kernelversion: 18
+kernelrelease: 5.4.0-1018-aws
+target: ubuntu-aws
+output:
+  module: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_ubuntu-aws_5.4.0-1018-aws_18.ko
+  probe: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_ubuntu-aws_5.4.0-1018-aws_18.o
