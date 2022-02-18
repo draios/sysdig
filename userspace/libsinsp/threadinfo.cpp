@@ -213,8 +213,7 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 	sinsp_fdinfo_t* newfdi = res;
 	newfdi->reset();
 	bool do_add = true;
-
-	newfdi->m_type = fdi->type;
+	
 	newfdi->m_openflags = 0;
 	newfdi->m_type = fdi->type;
 	newfdi->m_flags = sinsp_fdinfo_t::FLAGS_FROM_PROC;
