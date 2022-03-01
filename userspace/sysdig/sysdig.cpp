@@ -185,20 +185,26 @@ static void usage()
 "                    If no data format is specified, this can be used with -W flag to\n"
 "                    create a ring buffer of events.\n"
 " -h, --help         Print this page\n"
-" -I <inputname>[:<inputargs>], --input <inputname>[:I<initconf>][:O<openparams>]\n"
-"                    (PREVIEW feature, subject to change)\n"
-"                    capture events using the plugin with name inputname, passing to the \n"
-"                    plugin the initconf string as init parameters, and openparams as open parameters.\n"
-"                    The format of initconf and openparams is controller by the plugin, refer to each\n"
+" -H <pluginname>[:<initconfig>], --plugin <pluginname>[:<initconfig>]\n"
+"                    marks a plugin as loaded, eventually storing its init config.\n"
+"                    The format of initconf is controlled by the plugin, refer to each\n"
+"                    plugin's documentation to learn about it.\n"
+"                    Only loaded plugins can be actually registered (-I flag).\n"
+"                    A path can also be passed as pluginname.\n"
+" -I <inputname>[:<openparams>], --input <inputname>[:<openparams>]\n"
+"                    registers a previously loaded plugin.\n"
+"                    If the plugin is a source plugin, capture events using it, passing to the \n"
+"                    plugin the openparams string as open parameters.\n"
+"                    Only a single source plugin can be registered.\n"
+"                    The format of openparams is controlled by the plugin, refer to each\n"
 "                    plugin's documentation to learn about it.\n"
 "                    See https://falco.org/docs/plugins/plugin-api-reference/#ss-plugin-t-plugin-init-const-char-config-int32-t-rc-required-yes\n"
 "                    and https://falco.org/docs/plugins/plugin-api-reference/#ss-instance-t-plugin-open-ss-plugin-t-s-const-char-params-int32-t-rc-required-yes for more infos.\n"
 "                    The event sources available for capture vary depending on which \n"
-"                    plugins have been installed. You can list the plugins that have been \n"
-"                    loaded by using the -Il flag.\n"
+"                    plugins have been installed.\n"
 " -Il\n"
-"                    (PREVIEW feature, subject to change)\n"
-"                    lists the loaded plugins. Sysdig looks for plugins in the directories \n"
+"                    lists the loaded plugins. If no plugin has been marked as loaded,\n"
+"                    Sysdig looks for plugins in the directories \n"
 "                    specified by ;-separated environment variable SYSDIG_PLUGIN_DIR and\n"
 "     				 in /usr/share/sysdig/plugins.\n"
 #ifdef HAS_CHISELS
@@ -347,8 +353,8 @@ static void usage()
 "   $ sysdig proc.name=cat and evt.type=open\n\n"
 " Print the name of the files opened by cat\n"
 "   $ sysdig -p\"%%evt.arg.name\" proc.name=cat and evt.type=open\n\n"
-" Load dummy plugin passing to it init config and open params\n"
-"   $ sysdig -I dummy:\"O{\\\"start\\\":1,\\\"maxEvents\\\":10}:I{\\\"jitter\\\":50}\"\n\n"
+" Load and register dummy source plugin passing to it init config and open params\n"
+"   $ sysdig -H dummy:\"{\\\"jitter\\\":50}\" -I dummy:\"{\\\"start\\\":1,\\\"maxEvents\\\":10}\"\n\n"
     );
 }
 
@@ -558,10 +564,9 @@ static void parse_chisel_args(sinsp_chisel* ch, sinsp* inspector, int optind, in
 static void free_chisels()
 {
 #ifdef HAS_CHISELS
-	for(vector<sinsp_chisel*>::iterator it = g_chisels.begin();
-		it != g_chisels.end(); ++it)
+	for(auto & g_chisel : g_chisels)
 	{
-		delete *it;
+		delete g_chisel;
 	}
 
 	g_chisels.clear();
@@ -571,9 +576,9 @@ static void free_chisels()
 static void chisels_on_capture_start()
 {
 #ifdef HAS_CHISELS
-	for(uint32_t j = 0; j < g_chisels.size(); j++)
+	for(auto & g_chisel : g_chisels)
 	{
-		g_chisels[j]->on_capture_start();
+		g_chisel->on_capture_start();
 	}
 #endif
 }
@@ -581,10 +586,9 @@ static void chisels_on_capture_start()
 static void chisels_on_capture_end()
 {
 #ifdef HAS_CHISELS
-	for(vector<sinsp_chisel*>::iterator it = g_chisels.begin();
-		it != g_chisels.end(); ++it)
+	for(auto & g_chisel : g_chisels)
 	{
-		(*it)->on_capture_end();
+		g_chisel->on_capture_end();
 	}
 #endif
 }
@@ -919,6 +923,53 @@ std::string escape_output_format(const std::string& s)
     return ss.str();
 }
 
+static void list_plugins(sinsp *inspector)
+{
+	// This will either register any found plugin or
+	// only plugins marked with '-H'
+	register_plugins(inspector);
+	auto plugins = inspector->get_plugins();
+	std::ostringstream os_dirs, os_info;
+
+	for(const plugin_dir_info& path : get_plugin_dirs())
+	{
+		os_dirs << path.m_dir << " ";
+	}
+
+	for(auto &p : plugins)
+	{
+		os_info << "Name: " << p->name() << std::endl;
+		os_info << "Description: " << p->description() << std::endl;
+		os_info << "Contact: " << p->contact() << std::endl;
+		os_info << "Version: " << p->plugin_version().as_string() << std::endl;
+
+		// Print schema
+		ss_plugin_schema_type schema_type;
+		auto schema = p->get_init_schema(schema_type);
+		os_info << "Init Config Schema: " << schema << std::endl;
+
+		if(p->type() == TYPE_SOURCE_PLUGIN)
+		{
+			auto splugin = dynamic_cast<sinsp_source_plugin *>(p.get());
+			os_info << "Type: source plugin" << std::endl;
+			os_info << "ID: " << splugin->id() << std::endl;
+			os_info << "Suggested Open Params:" << std::endl;
+			for (auto &oparam : splugin->list_open_params())
+			{
+				os_info << oparam.value << ": " << oparam.desc << std::endl;
+			}
+		}
+		else
+		{
+			os_info << "Type: extractor plugin" << std::endl;
+		}
+		os_info << std::endl;
+	}
+
+	printf("Plugin search paths are: %s\n", os_dirs.str().c_str());
+	printf("%lu Plugins Loaded:\n\n%s\n", plugins.size(), os_info.str().c_str());
+}
+
 //
 // ARGUMENT PARSING AND PROGRAM SETUP
 //
@@ -968,7 +1019,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string cri_socket_path;
 #endif
 	bool udig = false;
-	string inputname;
 	bool has_src_plugin = false;
 
 	// These variables are for the cycle_writer engine
@@ -998,6 +1048,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"filter-proclist", no_argument, 0, 0 },
 		{"seconds", required_argument, 0, 'G' },
 		{"help", no_argument, 0, 'h' },
+		{"plugin", required_argument, 0, 'H' },
 		{"input", required_argument, 0, 'I' },
 #ifdef HAS_CHISELS
 		{"chisel-info", required_argument, 0, 'i' },
@@ -1069,9 +1120,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "C:"
                                         "dDEe:F"
                                         "G:"
-                                        "hI:i:jk:K:lLm:M:n:Pp:qRr:Ss:t:TU:uv"
+                                        "hH:I:i:jk:K:lLm:M:n:Pp:qRr:Ss:t:TU:uv"
                                         "W:"
-                                        "w:xXz", long_options, &long_index)) != -1)
+                                        "w:xXz:", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -1164,50 +1215,27 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					goto exit;
 				}
 				break;
+			case 'H':
+				{
+					string pluginname = optarg;
+					size_t cpos = pluginname.find(':');
+					string pgname = pluginname;
+					string pginitconf;
+					// Eventually extract init config from string
+					if(cpos != string::npos)
+					{
+						pgname = pluginname.substr(0, cpos);
+						pginitconf = pluginname.substr(cpos + 1);
+					}
+					load_plugin(pgname, pginitconf);
+					break;
+				}
 			case 'I':
 				{
-					inputname = optarg;
+					string inputname = optarg;
 					if(inputname == "l")
 					{
-						register_plugins(inspector);
-						auto plugins = inspector->get_plugins();
-						std::ostringstream os_dirs, os_info;
-
-						for(plugin_dir_info path : get_plugin_dirs()) {
-							os_dirs << path.m_dir << " ";
-						}
-
-						for(auto &p : plugins)
-						{
-							os_info << "Name: " << p->name() << std::endl;
-							os_info << "Description: " << p->description() << std::endl;
-							os_info << "Contact: " << p->contact() << std::endl;
-							os_info << "Version: " << p->plugin_version().as_string() << std::endl;
-
-							// Print schema
-							ss_plugin_schema_type schema_type;
-							auto schema = p->get_init_schema(schema_type);
-							os_info << "Init Config Schema: " << schema << std::endl;
-
-							if(p->type() == TYPE_SOURCE_PLUGIN)
-							{
-								sinsp_source_plugin *splugin = static_cast<sinsp_source_plugin *>(p.get());
-								os_info << "Type: source plugin" << std::endl;
-								os_info << "ID: " << splugin->id() << std::endl;
-								os_info << "Suggested Open Params:" << std::endl;
-								for (auto &oparam : splugin->list_open_params())
-								{
-									os_info << oparam.value << ": " << oparam.desc << std::endl;
-								}
-							}
-							else
-							{
-								os_info << "Type: extractor plugin" << std::endl;
-							}
-						}
-
-						printf("Plugin search paths are: %s\n", os_dirs.str().c_str());
-						printf("%lu Plugins Loaded:\n\n%s\n", plugins.size(), os_info.str().c_str());
+						list_plugins(inspector);
 						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
@@ -1215,38 +1243,26 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					has_src_plugin = true;
 
 					size_t cpos = inputname.find(':');
-					string pgname = inputname.substr(0, cpos);
-					string initconf;
-					string openparams;
+					string pgname = inputname;
+					string pgpars;
+					// Eventually extract open params from string
 					if(cpos != string::npos)
 					{
-						string pgpars = inputname.substr(cpos + 1);
-						if(pgpars[0] == 'I') // input config first
-						{
-							cpos = pgpars.find(":O");
-							initconf = pgpars.substr(1, cpos - 1);
-							pgpars = pgpars.substr(cpos + 2);
-							if(cpos != string::npos)
-							{
-								openparams = pgpars;
-							}
-						} else if(pgpars[0] == 'O') // open params first
-						{
-							cpos = pgpars.find(":I");
-							openparams = pgpars.substr(1, cpos - 1);
-							pgpars = pgpars.substr(cpos + 2);
-							if(cpos != string::npos)
-							{
-								initconf = pgpars;
-							}
-						}
+						pgname = inputname.substr(0, cpos);
+						pgpars = inputname.substr(cpos + 1);
 					}
-					register_plugins(inspector, initconf.c_str());
-					inspector->set_input_plugin(pgname);
-					inspector->set_input_plugin_open_params(openparams);
 
-					g_plugin_input = true;
-					//print_progress = true;
+					auto plugin = enable_plugin(inspector, pgname);
+					if (plugin->type() == TYPE_SOURCE_PLUGIN)
+					{
+						inspector->set_input_plugin(pgname);
+						inspector->set_input_plugin_open_params(pgpars);
+						g_plugin_input = true;
+						//print_progress = true;
+					} else if (cpos != string::npos)
+					{
+						throw sinsp_exception("plugin " + pgname + " is not a source plugin and no open params can be passed.");
+					}
 				}
 				break;
 #ifdef HAS_CHISELS

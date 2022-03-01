@@ -38,5 +38,7 @@ typedef struct plugin_dir_info
 
 void add_plugin_dir(string dirname, bool front_add);
 void add_plugin_dirs(string sysdig_installation_dir);
-void register_plugins(sinsp *inspector, const char *init_config = NULL);
+void register_plugins(sinsp *inspector);
 const std::vector<plugin_dir_info> get_plugin_dirs();
+void load_plugin(string& name, string& init_config);
+shared_ptr<sinsp_plugin> enable_plugin(sinsp *inspector, string& name);
