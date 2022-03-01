@@ -1170,24 +1170,35 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					if(inputname == "l")
 					{
 						register_plugins(inspector);
-						std::list<sinsp_plugin::info> infos = sinsp_plugin::plugin_infos(inspector);
+						auto plugins = inspector->get_plugins();
 						std::ostringstream os_dirs, os_info;
 
 						for(plugin_dir_info path : get_plugin_dirs()) {
 							os_dirs << path.m_dir << " ";
 						}
 
-						for(auto &info : infos)
+						for(auto &p : plugins)
 						{
-							os_info << "Name: " << info.name << std::endl;
-							os_info << "Description: " << info.description << std::endl;
-							os_info << "Contact: " << info.contact << std::endl;
-							os_info << "Version: " << info.plugin_version.as_string() << std::endl;
+							os_info << "Name: " << p->name() << std::endl;
+							os_info << "Description: " << p->description() << std::endl;
+							os_info << "Contact: " << p->contact() << std::endl;
+							os_info << "Version: " << p->plugin_version().as_string() << std::endl;
 
-							if(info.type == TYPE_SOURCE_PLUGIN)
+							// Print schema
+							ss_plugin_schema_type schema_type;
+							auto schema = p->get_init_schema(schema_type);
+							os_info << "Init Config Schema: " << schema << std::endl;
+
+							if(p->type() == TYPE_SOURCE_PLUGIN)
 							{
+								sinsp_source_plugin *splugin = static_cast<sinsp_source_plugin *>(p.get());
 								os_info << "Type: source plugin" << std::endl;
-								os_info << "ID: " << info.id << std::endl;
+								os_info << "ID: " << splugin->id() << std::endl;
+								os_info << "Suggested Open Params:" << std::endl;
+								for (auto &oparam : splugin->list_open_params())
+								{
+									os_info << oparam.value << ": " << oparam.desc << std::endl;
+								}
 							}
 							else
 							{
@@ -1196,7 +1207,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						}
 
 						printf("Plugin search paths are: %s\n", os_dirs.str().c_str());
-						printf("%lu Plugins Loaded:\n\n%s\n", infos.size(), os_info.str().c_str());
+						printf("%lu Plugins Loaded:\n\n%s\n", plugins.size(), os_info.str().c_str());
 						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
