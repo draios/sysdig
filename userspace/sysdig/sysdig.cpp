@@ -1255,7 +1255,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					auto plugin = enable_plugin(inspector, pgname);
 					if (plugin->type() == TYPE_SOURCE_PLUGIN)
 					{
-						inspector->set_input_plugin(pgname);
+						// Use plugin->name() here so that passing a filepath to
+						// -H and -I works fine.
+						// Otherwise, sinsp complains that the filepath plugin does not exist
+						// because it looks for the plugin name instead.
+						inspector->set_input_plugin(plugin->name());
 						inspector->set_input_plugin_open_params(pgpars);
 						g_plugin_input = true;
 						//print_progress = true;
