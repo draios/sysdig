@@ -32,7 +32,7 @@ struct PluginLoaded
 };
 
 vector<plugin_dir_info> g_plugin_dirs;
-map<string, shared_ptr<PluginLoaded>> g_loaded_plugins;
+map<string, PluginLoaded> g_loaded_plugins;
 
 void add_plugin_dir(string dirname, bool front_add)
 {
@@ -87,23 +87,22 @@ void register_plugins(sinsp *inspector)
 	{
 		for (const auto &pl : g_loaded_plugins)
 		{
-			sinsp_plugin::register_plugin(inspector, pl.second->path, pl.second->init_config.c_str());
+			sinsp_plugin::register_plugin(inspector, pl.second.path, pl.second.init_config.c_str());
 		}
-		g_loaded_plugins.clear();
 		return;
 	}
 
 	// Otherwise, register any available plugin
-    for (const auto & g_plugin_dir : g_plugin_dirs)
+    for (const auto & plugin_dir : g_plugin_dirs)
     {
-        if (string(g_plugin_dir.m_dir).empty())
+        if (string(plugin_dir.m_dir).empty())
         {
             continue;
         }
 
         tinydir_dir dir = {};
 
-        tinydir_open(&dir, g_plugin_dir.m_dir.c_str());
+        tinydir_open(&dir, plugin_dir.m_dir.c_str());
 
         while (dir.has_next)
         {
@@ -131,9 +130,10 @@ void register_plugins(sinsp *inspector)
 
 void load_plugin(string& name, string& init_config)
 {
+	// If it is a path, store it!
 	if (name.find('/') != string::npos)
 	{
-		g_loaded_plugins[name] = make_shared<PluginLoaded>(name, init_config);
+		g_loaded_plugins.emplace(name, PluginLoaded(name, init_config));
 		return;
 	}
 
@@ -141,16 +141,16 @@ void load_plugin(string& name, string& init_config)
 	string soname = "lib" + name + ".so";
 
 	bool found = false;
-	for (const auto & g_plugin_dir : g_plugin_dirs)
+	for (const auto & plugin_dir : g_plugin_dirs)
 	{
-		if (string(g_plugin_dir.m_dir).empty())
+		if (string(plugin_dir.m_dir).empty())
 		{
 			continue;
 		}
 
 		tinydir_dir dir = {};
 
-		tinydir_open(&dir, g_plugin_dir.m_dir.c_str());
+		tinydir_open(&dir, plugin_dir.m_dir.c_str());
 
 		while (dir.has_next)
 		{
@@ -163,7 +163,7 @@ void load_plugin(string& name, string& init_config)
 
 			if (fname == name || fname == soname)
 			{
-				g_loaded_plugins[name] = make_shared<PluginLoaded>(fpath, init_config);
+				g_loaded_plugins.emplace(name, PluginLoaded(fpath, init_config));
 				found = true;
 				break;
 			}
@@ -181,13 +181,12 @@ void load_plugin(string& name, string& init_config)
 
 shared_ptr<sinsp_plugin> enable_plugin(sinsp *inspector, string& name)
 {
-	if (g_loaded_plugins.find(name) == g_loaded_plugins.end())
+	auto itr = g_loaded_plugins.find(name);
+	if (itr == g_loaded_plugins.end())
 	{
 		throw sinsp_exception("plugin " + name + " not loaded. Use -H to load it.");
 	}
-	auto ploaded = g_loaded_plugins[name];
-	shared_ptr<sinsp_plugin> plugin = sinsp_plugin::register_plugin(inspector, ploaded->path, ploaded->init_config.c_str());
-	g_loaded_plugins.erase(name);
+	auto plugin = sinsp_plugin::register_plugin(inspector, itr->second.path, itr->second.init_config.c_str());
 	return plugin;
 }
 

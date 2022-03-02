@@ -186,7 +186,7 @@ static void usage()
 "                    create a ring buffer of events.\n"
 " -h, --help         Print this page\n"
 " -H <pluginname>[:<initconfig>], --plugin <pluginname>[:<initconfig>]\n"
-"                    marks a plugin as loaded, eventually storing its init config.\n"
+"                    marks a plugin as loaded, storing its init config if present.\n"
 "                    The format of initconf is controlled by the plugin, refer to each\n"
 "                    plugin's documentation to learn about it.\n"
 "                    Only loaded plugins can be actually registered (-I flag).\n"
@@ -1221,7 +1221,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					size_t cpos = pluginname.find(':');
 					string pgname = pluginname;
 					string pginitconf;
-					// Eventually extract init config from string
+					// Extract init config from string if present
 					if(cpos != string::npos)
 					{
 						pgname = pluginname.substr(0, cpos);
@@ -1245,7 +1245,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					size_t cpos = inputname.find(':');
 					string pgname = inputname;
 					string pgpars;
-					// Eventually extract open params from string
+					// Extract open params from string if present
 					if(cpos != string::npos)
 					{
 						pgname = inputname.substr(0, cpos);
