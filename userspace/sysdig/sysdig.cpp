@@ -186,16 +186,18 @@ static void usage()
 "                    create a ring buffer of events.\n"
 " -h, --help         Print this page\n"
 " -H <pluginname>[:<initconfig>], --plugin <pluginname>[:<initconfig>]\n"
-"                    marks a plugin as loaded, storing its init config if present.\n"
+"                    marks a plugin as selected, storing its init config if present.\n"
 "                    The format of initconf is controlled by the plugin, refer to each\n"
 "                    plugin's documentation to learn about it.\n"
-"                    Only loaded plugins can be actually registered (-I flag).\n"
 "                    A path can also be passed as pluginname.\n"
 " -I <inputname>[:<openparams>], --input <inputname>[:<openparams>]\n"
-"                    registers a previously loaded plugin.\n"
+"                    registers a previously selected plugin.\n"
 "                    If the plugin is a source plugin, capture events using it, passing to the \n"
 "                    plugin the openparams string as open parameters.\n"
 "                    Only a single source plugin can be registered.\n"
+"                    If no plugins were selected, registers any found plugin in the directories\n"
+"                    specified by ;-separated environment variable SYSDIG_PLUGIN_DIR and\n"
+"                    in /usr/share/sysdig/plugins; then use the provided one as input source.\n"
 "                    The format of openparams is controlled by the plugin, refer to each\n"
 "                    plugin's documentation to learn about it.\n"
 "                    See https://falco.org/docs/plugins/plugin-api-reference/#ss-plugin-t-plugin-init-const-char-config-int32-t-rc-required-yes\n"
@@ -353,8 +355,10 @@ static void usage()
 "   $ sysdig proc.name=cat and evt.type=open\n\n"
 " Print the name of the files opened by cat\n"
 "   $ sysdig -p\"%%evt.arg.name\" proc.name=cat and evt.type=open\n\n"
+" Register any found plugin and use dummy as input source passing to it open params\n"
+"   $ sysdig -I dummy:'{\"start\":1,\"maxEvents\":10}'\n\n"
 " Load and register dummy source plugin passing to it init config and open params\n"
-"   $ sysdig -H dummy:\"{\\\"jitter\\\":50}\" -I dummy:\"{\\\"start\\\":1,\\\"maxEvents\\\":10}\"\n\n"
+"   $ sysdig -H dummy:'{\"jitter\":50}' -I dummy:'{\"start\":1,\"maxEvents\":10}'\n\n"
     );
 }
 
@@ -1019,7 +1023,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string cri_socket_path;
 #endif
 	bool udig = false;
-	bool has_src_plugin = false;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -1227,7 +1230,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						pgname = pluginname.substr(0, cpos);
 						pginitconf = pluginname.substr(cpos + 1);
 					}
-					load_plugin(pgname, pginitconf);
+					select_plugin(pgname, pginitconf);
 					break;
 				}
 			case 'I':
@@ -1240,8 +1243,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
 
-					has_src_plugin = true;
-
 					size_t cpos = inputname.find(':');
 					string pgname = inputname;
 					string pgpars;
@@ -1252,18 +1253,35 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						pgpars = inputname.substr(cpos + 1);
 					}
 
-					auto plugin = enable_plugin(inspector, pgname);
-					if (plugin->type() == TYPE_SOURCE_PLUGIN)
+					shared_ptr<sinsp_plugin> plugin;
+					if (get_selected_plugins().empty())
 					{
+						// User did not select any plugin through '-H' flag.
+						// Fallback at registering any plugin found and mark
+						// this one as the input source plugin
+						register_plugins(inspector);
+					}
+					else
+					{
+						// This will throw an exception if pgname can't be found
+						// or it can't be registered.
+						plugin = enable_plugin(inspector, pgname);
 						// Use plugin->name() here so that passing a filepath to
 						// -H and -I works fine.
 						// Otherwise, sinsp complains that the filepath plugin does not exist
 						// because it looks for the plugin name instead.
-						inspector->set_input_plugin(plugin->name());
+						pgname = plugin->name();
+					}
+
+					// Plugin == nullptr means that selected plugins map was empty
+					if (plugin == nullptr || plugin->type() == TYPE_SOURCE_PLUGIN)
+					{
+						inspector->set_input_plugin(pgname);
 						inspector->set_input_plugin_open_params(pgpars);
 						g_plugin_input = true;
 						//print_progress = true;
-					} else if (cpos != string::npos)
+					}
+					else if (cpos != string::npos)
 					{
 						throw sinsp_exception("plugin " + pgname + " is not a source plugin and no open params can be passed.");
 					}
@@ -1810,7 +1828,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				else
 				{
-					if(has_src_plugin)
+					if(g_plugin_input)
 					{
 						inspector->open("");
 					}

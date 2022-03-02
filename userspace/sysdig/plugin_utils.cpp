@@ -23,16 +23,8 @@ limitations under the License.
 
 #include <utility>
 
-struct PluginLoaded
-{
-	PluginLoaded(string& path, string& init_conf) : path(path), init_config(init_conf)
-	{}
-	string path;
-	string init_config;
-};
-
 vector<plugin_dir_info> g_plugin_dirs;
-map<string, PluginLoaded> g_loaded_plugins;
+map<string, plugin_selected_info> g_selected_plugins;
 
 void add_plugin_dir(string dirname, bool front_add)
 {
@@ -83,9 +75,9 @@ void register_plugins(sinsp *inspector)
 {
 	// If any plugin was requested to be loaded,
 	// only register them
-	if (!g_loaded_plugins.empty())
+	if (!g_selected_plugins.empty())
 	{
-		for (const auto &pl : g_loaded_plugins)
+		for (const auto &pl : g_selected_plugins)
 		{
 			sinsp_plugin::register_plugin(inspector, pl.second.path, pl.second.init_config.c_str());
 		}
@@ -128,12 +120,12 @@ void register_plugins(sinsp *inspector)
     }
 }
 
-void load_plugin(string& name, string& init_config)
+void select_plugin(string& name, const string& init_config)
 {
 	// If it is a path, store it!
 	if (name.find('/') != string::npos)
 	{
-		g_loaded_plugins.emplace(name, PluginLoaded(name, init_config));
+		g_selected_plugins.emplace(name, plugin_selected_info{name, init_config});
 		return;
 	}
 
@@ -163,7 +155,7 @@ void load_plugin(string& name, string& init_config)
 
 			if (fname == name || fname == soname)
 			{
-				g_loaded_plugins.emplace(name, PluginLoaded(fpath, init_config));
+				g_selected_plugins.emplace(name, plugin_selected_info{fpath, init_config});
 				found = true;
 				break;
 			}
@@ -181,8 +173,8 @@ void load_plugin(string& name, string& init_config)
 
 shared_ptr<sinsp_plugin> enable_plugin(sinsp *inspector, string& name)
 {
-	auto itr = g_loaded_plugins.find(name);
-	if (itr == g_loaded_plugins.end())
+	auto itr = g_selected_plugins.find(name);
+	if (itr == g_selected_plugins.end())
 	{
 		throw sinsp_exception("plugin " + name + " not loaded. Use -H to load it.");
 	}
@@ -190,6 +182,12 @@ shared_ptr<sinsp_plugin> enable_plugin(sinsp *inspector, string& name)
 	return plugin;
 }
 
-const std::vector<plugin_dir_info> get_plugin_dirs() {
+map<std::string, plugin_selected_info> get_selected_plugins()
+{
+	return g_selected_plugins;
+}
+
+vector<plugin_dir_info> get_plugin_dirs()
+{
     return g_plugin_dirs;
 }
