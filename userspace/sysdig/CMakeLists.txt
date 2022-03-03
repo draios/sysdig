@@ -59,22 +59,33 @@ list(APPEND SOURCE_FILES_CSYSDIG
 add_executable(sysdig ${SOURCE_FILES})
 add_executable(csysdig ${SOURCE_FILES_CSYSDIG})
 
+if(USE_BUNDLED_DEPS)
+	add_dependencies(sysdig yaml-cpp njson)
+	add_dependencies(csysdig yaml-cpp njson)
+endif()
+
 target_include_directories(
 	sysdig
 	PUBLIC
         "${LIBSCAP_INCLUDE_DIRS}"
-        "${LIBSINSP_INCLUDE_DIRS}")
+        "${LIBSINSP_INCLUDE_DIRS}"
+		"${YAMLCPP_INCLUDE_DIR}"
+		"${NJSON_INCLUDE_DIR}")
 
 target_include_directories(
 	csysdig
 	PUBLIC
         "${LIBSCAP_INCLUDE_DIRS}"
-        "${LIBSINSP_INCLUDE_DIRS}")
+        "${LIBSINSP_INCLUDE_DIRS}"
+		"${YAMLCPP_INCLUDE_DIR}"
+		"${NJSON_INCLUDE_DIR}")
 
 if(NOT WIN32)
 	include_directories(${PROJECT_BINARY_DIR}/driver/src)
+
 	target_link_libraries(sysdig
-		sinsp)
+		sinsp
+		"${YAMLCPP_LIB}")
 
 	if(USE_BUNDLED_NCURSES)
 		add_dependencies(csysdig ncurses)
@@ -82,7 +93,8 @@ if(NOT WIN32)
 
 	target_link_libraries(csysdig
 		sinsp
-		"${CURSES_LIBRARIES}")
+		"${CURSES_LIBRARIES}"
+		"${YAMLCPP_LIB}")
 
 	add_subdirectory(man)
 
@@ -101,10 +113,12 @@ if(NOT WIN32)
 else()
 
 	target_link_libraries(sysdig
-		sinsp)
+		sinsp
+		"${YAMLCPP_LIB}")
 
 	target_link_libraries(csysdig
-		sinsp)
+		sinsp
+		"${YAMLCPP_LIB}")
 
 	target_link_libraries(sysdig odbc32.lib odbccp32.lib Netapi32.lib Iphlpapi.lib)
 

@@ -435,7 +435,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		add_chisel_dirs(inspector);
 #endif
 		add_plugin_dirs(SYSDIG_INSTALLATION_DIR);
-		register_plugins(inspector);
+		init_plugins(inspector);
 
 		//
 		// Parse the args

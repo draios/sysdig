@@ -24,7 +24,8 @@ limitations under the License.
 #include <utility>
 
 vector<plugin_dir_info> g_plugin_dirs;
-map<string, plugin_selected_info> g_selected_plugins;
+std::map<std::string, plugin_selected_init> g_selected_plugins_init;
+std::map<std::string, std::string> g_selected_plugins_enable;
 
 void add_plugin_dir(string dirname, bool front_add)
 {
@@ -71,20 +72,20 @@ void add_plugin_dirs(string sysdig_installation_dir)
     }
 }
 
-void register_plugins(sinsp *inspector)
+void init_plugins(sinsp *inspector)
 {
 	// If any plugin was requested to be loaded,
 	// only register them
-	if (!g_selected_plugins.empty())
+	if (!g_selected_plugins_init.empty())
 	{
-		for (const auto &pl : g_selected_plugins)
+		for (const auto &pl : g_selected_plugins_init)
 		{
 			sinsp_plugin::register_plugin(inspector, pl.second.path, pl.second.init_config.c_str());
 		}
 		return;
 	}
 
-	// Otherwise, register any available plugin
+	// Otherwise, register any available plugin and mark it as selected
     for (const auto & plugin_dir : g_plugin_dirs)
     {
         if (string(plugin_dir.m_dir).empty())
@@ -94,9 +95,7 @@ void register_plugins(sinsp *inspector)
 
         tinydir_dir dir = {};
 
-        tinydir_open(&dir, plugin_dir.m_dir.c_str());
-
-        while (dir.has_next)
+        for (tinydir_open(&dir, plugin_dir.m_dir.c_str()); dir.has_next; tinydir_next(&dir))
         {
             tinydir_file file;
             tinydir_readfile(&dir, &file);
@@ -107,25 +106,23 @@ void register_plugins(sinsp *inspector)
 
             if (fname == "." || fname == "..")
             {
-                goto nextfile;
+                continue;
             }
 
-            sinsp_plugin::register_plugin(inspector, file.path, NULL);
-
-        nextfile:
-            tinydir_next(&dir);
+            auto plugin = sinsp_plugin::register_plugin(inspector, file.path, NULL);
+            g_selected_plugins_init.emplace(plugin->name(), plugin_selected_init{file.path, ""});
         }
 
         tinydir_close(&dir);
     }
 }
 
-void select_plugin(string& name, const string& init_config)
+void select_plugin_init(string& name, const string& init_config)
 {
 	// If it is a path, store it!
 	if (name.find('/') != string::npos)
 	{
-		g_selected_plugins.emplace(name, plugin_selected_info{name, init_config});
+		g_selected_plugins_init.emplace(name, plugin_selected_init{name, init_config});
 		return;
 	}
 
@@ -155,7 +152,7 @@ void select_plugin(string& name, const string& init_config)
 
 			if (fname == name || fname == soname)
 			{
-				g_selected_plugins.emplace(name, plugin_selected_info{fpath, init_config});
+				g_selected_plugins_init.emplace(name, plugin_selected_init{fpath, init_config});
 				found = true;
 				break;
 			}
@@ -171,23 +168,127 @@ void select_plugin(string& name, const string& init_config)
 	}
 }
 
-shared_ptr<sinsp_plugin> enable_plugin(sinsp *inspector, string& name)
+void select_plugin_enable(string& name, const string& open_params)
 {
-	auto itr = g_selected_plugins.find(name);
-	if (itr == g_selected_plugins.end())
-	{
-		throw sinsp_exception("plugin " + name + " not loaded. Use -H to load it.");
-	}
-	auto plugin = sinsp_plugin::register_plugin(inspector, itr->second.path, itr->second.init_config.c_str());
-	return plugin;
+    g_selected_plugins_enable.emplace(name, open_params);
 }
 
-map<std::string, plugin_selected_info> get_selected_plugins()
+bool enable_source_plugin(sinsp *inspector)
 {
-	return g_selected_plugins;
+    bool source_plugin_enabled = false;
+    std::map<std::string, std::shared_ptr<sinsp_plugin>> plugins;
+    for(auto plugin : inspector->get_plugins())
+    {
+        plugins.emplace(plugin->name(), plugin);
+    }
+
+    for(const auto pginfo : g_selected_plugins_enable)
+    {
+        std::string name = pginfo.first;
+        std::string open_params = pginfo.second;
+
+	    auto itr = plugins.find(name);
+	    if (itr == plugins.end())
+        {
+            throw sinsp_exception("plugin " + name + " not loaded. Use -H to load it.");
+        }
+
+        auto plugin = itr->second;
+        if (plugin->type() == TYPE_SOURCE_PLUGIN)
+        {
+            if(source_plugin_enabled == true)
+            {
+                throw sinsp_exception("only one source plugin can be enabled at a time.");
+            }
+            inspector->set_input_plugin(name);
+            inspector->set_input_plugin_open_params(open_params);
+            source_plugin_enabled = true;
+        }
+    }
+
+    return source_plugin_enabled;
 }
 
 vector<plugin_dir_info> get_plugin_dirs()
 {
     return g_plugin_dirs;
+}
+
+void parse_plugin_configuration_file(const std::string config_filename)
+{
+    YAML::Node config;
+    std::string config_explanation = ". See https://falco.org/docs/plugins/#loading-plugins-in-falco for additional information.";
+    try {
+        config = YAML::LoadFile(config_filename);
+    } catch (exception &e)
+    {
+        throw sinsp_exception("could not read or find configuration file " + config_filename + ": " + e.what());
+    }
+
+    if(config.IsNull())
+    {
+        throw sinsp_exception("could not parse configuration file " + config_filename + ": configuration is empty");
+    }
+
+    auto plugins = config["plugins"];
+
+    if(!plugins)
+    {
+        throw sinsp_exception("could not find \"plugins\" entry in configuration file " + config_filename + config_explanation);
+    }
+
+    if(plugins.Type() != YAML::NodeType::Sequence)
+    {
+        throw sinsp_exception("\"plugins\" must be a list of objects" + config_explanation);
+    }
+
+    std::set<std::string> load_plugins;
+    bool filter_load_plugins = false;
+    if(config["load_plugins"].Type() == YAML::NodeType::Sequence)
+    {
+        filter_load_plugins = true;
+        for(auto plugin_to_load : config["load_plugins"])
+        {
+            load_plugins.emplace(plugin_to_load.as<std::string>());
+        }
+    }
+
+    for(auto plugin : plugins) {
+        if(!plugin["name"].IsScalar()) {
+            throw sinsp_exception("every plugin entry must have a name" + config_explanation);
+        }
+
+        if(!plugin["library_path"].IsScalar()) {
+            throw sinsp_exception("every plugin entry must have a library_path" + config_explanation);
+        }
+
+        std::string name = plugin["name"].as<std::string>();
+        std::string library_path = plugin["library_path"].as<std::string>();
+
+        std::string init_config = "";
+        std::string open_params = "";
+
+        if(plugin["init_config"].IsMap())
+        {
+            nlohmann::json json;
+            YAML::convert<nlohmann::json>::decode(plugin["init_config"], json);
+            init_config = json.dump();
+        }
+        else if(plugin["init_config"].IsScalar())
+        {
+            init_config = plugin["init_config"].as<std::string>();
+        }
+
+        if(plugin["open_params"]) {
+            open_params = plugin["open_params"].as<std::string>();
+        }
+
+        if(filter_load_plugins == false || load_plugins.find(name) != load_plugins.end())
+        {
+            select_plugin_init(library_path, init_config);
+            select_plugin_enable(name, open_params);
+        }
+    }
+
+    return;
 }

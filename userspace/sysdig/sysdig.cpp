@@ -260,6 +260,10 @@ static void usage()
 " -n <num>, --numevents=<num>\n"
 "                    Stop capturing after <num> events\n"
 " --page-faults      Capture user/kernel major/minor page faults\n"
+" --plugin-config-file\n"
+"                    Use the plugin configuration in a falco-compatible file.\n"
+"                    See the plugin section in https://falco.org/docs/configuration/ for\n"
+"                    additional information\n"
 " -P, --progress     Print progress on stderr while processing trace files\n"
 " -p <output_format>, --print=<output_format>\n"
 "                    Specify the format to be used when printing the events.\n"
@@ -931,7 +935,7 @@ static void list_plugins(sinsp *inspector)
 {
 	// This will either register any found plugin or
 	// only plugins marked with '-H'
-	register_plugins(inspector);
+	init_plugins(inspector);
 	auto plugins = inspector->get_plugins();
 	std::ostringstream os_dirs, os_info;
 
@@ -1073,6 +1077,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #endif // MINIMAL_BUILD
 		{"numevents", required_argument, 0, 'n' },
 		{"page-faults", no_argument, 0, 0 },
+		{"plugin-config-file", required_argument, 0, 0},
 		{"progress", required_argument, 0, 'P' },
 		{"print", required_argument, 0, 'p' },
 		{"quiet", no_argument, 0, 'q' },
@@ -1230,7 +1235,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						pgname = pluginname.substr(0, cpos);
 						pginitconf = pluginname.substr(cpos + 1);
 					}
-					select_plugin(pgname, pginitconf);
+					select_plugin_init(pgname, pginitconf);
 					break;
 				}
 			case 'I':
@@ -1253,38 +1258,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						pgpars = inputname.substr(cpos + 1);
 					}
 
-					shared_ptr<sinsp_plugin> plugin;
-					if (get_selected_plugins().empty())
-					{
-						// User did not select any plugin through '-H' flag.
-						// Fallback at registering any plugin found and mark
-						// this one as the input source plugin
-						register_plugins(inspector);
-					}
-					else
-					{
-						// This will throw an exception if pgname can't be found
-						// or it can't be registered.
-						plugin = enable_plugin(inspector, pgname);
-						// Use plugin->name() here so that passing a filepath to
-						// -H and -I works fine.
-						// Otherwise, sinsp complains that the filepath plugin does not exist
-						// because it looks for the plugin name instead.
-						pgname = plugin->name();
-					}
-
-					// Plugin == nullptr means that selected plugins map was empty
-					if (plugin == nullptr || plugin->type() == TYPE_SOURCE_PLUGIN)
-					{
-						inspector->set_input_plugin(pgname);
-						inspector->set_input_plugin_open_params(pgpars);
-						g_plugin_input = true;
-						//print_progress = true;
-					}
-					else if (cpos != string::npos)
-					{
-						throw sinsp_exception("plugin " + pgname + " is not a source plugin and no open params can be passed.");
-					}
+					select_plugin_enable(pgname, pgpars);
+					g_plugin_input = true;
 				}
 				break;
 #ifdef HAS_CHISELS
@@ -1563,6 +1538,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						list_flds_markdown = true;
 					}
 
+					else if(optname == "plugin-config-file") {
+						parse_plugin_configuration_file(optarg);
+						g_plugin_input = true;
+					}
+
 					else if (optname == "page-faults") {
 						page_faults = true;
 					}
@@ -1830,6 +1810,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				{
 					if(g_plugin_input)
 					{
+						init_plugins(inspector);
+						enable_source_plugin(inspector);
 						inspector->open("");
 					}
 					else

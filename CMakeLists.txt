@@ -140,6 +140,8 @@ if(APPLE)
 endif()
 
 include(falcosecurity-libs)
+include(yaml-cpp)
+include(nlohmann-json)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	if(NOT DEFINED DRIVER_VERSION)
