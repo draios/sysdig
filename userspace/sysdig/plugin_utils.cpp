@@ -21,7 +21,10 @@ limitations under the License.
 
 #include "plugin_utils.h"
 
+#include <utility>
+
 vector<plugin_dir_info> g_plugin_dirs;
+map<string, plugin_selected_info> g_selected_plugins;
 
 void add_plugin_dir(string dirname, bool front_add)
 {
@@ -68,20 +71,30 @@ void add_plugin_dirs(string sysdig_installation_dir)
     }
 }
 
-void register_plugins(sinsp *inspector, const char *init_config)
+void register_plugins(sinsp *inspector)
 {
+	// If any plugin was requested to be loaded,
+	// only register them
+	if (!g_selected_plugins.empty())
+	{
+		for (const auto &pl : g_selected_plugins)
+		{
+			sinsp_plugin::register_plugin(inspector, pl.second.path, pl.second.init_config.c_str());
+		}
+		return;
+	}
 
-    for (vector<plugin_dir_info>::const_iterator it = g_plugin_dirs.begin();
-         it != g_plugin_dirs.end(); ++it)
+	// Otherwise, register any available plugin
+    for (const auto & plugin_dir : g_plugin_dirs)
     {
-        if (string(it->m_dir).empty())
+        if (string(plugin_dir.m_dir).empty())
         {
             continue;
         }
 
         tinydir_dir dir = {};
 
-        tinydir_open(&dir, it->m_dir.c_str());
+        tinydir_open(&dir, plugin_dir.m_dir.c_str());
 
         while (dir.has_next)
         {
@@ -97,7 +110,7 @@ void register_plugins(sinsp *inspector, const char *init_config)
                 goto nextfile;
             }
 
-            sinsp_plugin::register_plugin(inspector, file.path, init_config);
+            sinsp_plugin::register_plugin(inspector, file.path, NULL);
 
         nextfile:
             tinydir_next(&dir);
@@ -107,6 +120,74 @@ void register_plugins(sinsp *inspector, const char *init_config)
     }
 }
 
-const std::vector<plugin_dir_info> get_plugin_dirs() {
+void select_plugin(string& name, const string& init_config)
+{
+	// If it is a path, store it!
+	if (name.find('/') != string::npos)
+	{
+		g_selected_plugins.emplace(name, plugin_selected_info{name, init_config});
+		return;
+	}
+
+	// In case users passed "dummy" in place of "libdummy.so"
+	string soname = "lib" + name + ".so";
+
+	bool found = false;
+	for (const auto & plugin_dir : g_plugin_dirs)
+	{
+		if (string(plugin_dir.m_dir).empty())
+		{
+			continue;
+		}
+
+		tinydir_dir dir = {};
+
+		tinydir_open(&dir, plugin_dir.m_dir.c_str());
+
+		while (dir.has_next)
+		{
+			tinydir_file file;
+			tinydir_readfile(&dir, &file);
+
+			string fname(file.name);
+			string fpath(file.path);
+			string error;
+
+			if (fname == name || fname == soname)
+			{
+				g_selected_plugins.emplace(name, plugin_selected_info{fpath, init_config});
+				found = true;
+				break;
+			}
+
+			tinydir_next(&dir);
+		}
+
+		tinydir_close(&dir);
+	}
+	if (!found)
+	{
+		throw sinsp_exception("plugin " + name + " not found. Use -Il to list all installed plugins.");
+	}
+}
+
+shared_ptr<sinsp_plugin> enable_plugin(sinsp *inspector, string& name)
+{
+	auto itr = g_selected_plugins.find(name);
+	if (itr == g_selected_plugins.end())
+	{
+		throw sinsp_exception("plugin " + name + " not loaded. Use -H to load it.");
+	}
+	auto plugin = sinsp_plugin::register_plugin(inspector, itr->second.path, itr->second.init_config.c_str());
+	return plugin;
+}
+
+map<std::string, plugin_selected_info> get_selected_plugins()
+{
+	return g_selected_plugins;
+}
+
+vector<plugin_dir_info> get_plugin_dirs()
+{
     return g_plugin_dirs;
 }

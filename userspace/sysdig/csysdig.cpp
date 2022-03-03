@@ -42,7 +42,6 @@ limitations under the License.
 #include "fields_info.h"
 #include "table.h"
 #include "utils.h"
-#include "plugin.h"
 #include "plugin_utils.h"
 
 #ifdef _WIN32
