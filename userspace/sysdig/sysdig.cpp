@@ -1021,7 +1021,7 @@ static sysdig_init_res list_remote_interfaces()
 	return sysdig_init_res(EXIT_SUCCESS);
 }
 
-static bool read_remote_interface(char *iface_name, std::string &capture_file_path)
+static bool read_remote_interface(std::string iface_name, std::string &filter, std::string &capture_file_path)
 {
 	remote_interface_client rclient;
 	std::string errstr;
@@ -1031,7 +1031,7 @@ static bool read_remote_interface(char *iface_name, std::string &capture_file_pa
 		return false;
 	}
 
-	if (!rclient.open_iface(std::string(iface_name), capture_file_path, errstr))
+	if (!rclient.open_iface(std::string(iface_name), filter, capture_file_path, errstr))
 	{
 		fprintf(stderr, "%s\n", errstr.c_str());
 		return false;
@@ -1090,6 +1090,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string cri_socket_path;
 #endif
 	bool udig = false;
+
+	std::string remote_interface;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -1640,15 +1642,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						return list_remote_interfaces();
 					}
 					else if (optname == "read-remote-interface") {
-						std::string remote_readfile_path;
-						if (!read_remote_interface(optarg, remote_readfile_path))
-						{
-							return sysdig_init_res(EXIT_FAILURE);
-						}
-
-						// A capture file is now available at remote_readfile_path.
-						// Add it to infiles
-						infiles.push_back(remote_readfile_path);
+						remote_interface = optarg;
 					}
 
 					else if (optname == "page-faults") {
@@ -1850,6 +1844,19 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				res.m_res = EXIT_FAILURE;
 				goto exit;
 			}
+		}
+
+		if(remote_interface != "")
+		{
+			std::string remote_readfile_path;
+			if (!read_remote_interface(remote_interface, filter, remote_readfile_path))
+			{
+				return sysdig_init_res(EXIT_FAILURE);
+			}
+
+			// A capture file is now available at remote_readfile_path.
+			// Add it to infiles
+			infiles.push_back(remote_readfile_path);
 		}
 
 		for(uint32_t j = 0; j < infiles.size() || infiles.size() == 0; j++)
