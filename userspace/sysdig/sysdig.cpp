@@ -975,15 +975,17 @@ static void list_plugins(sinsp *inspector)
 	printf("%lu Plugins Loaded:\n\n%s\n", plugins.size(), os_info.str().c_str());
 }
 
-static bool init_rclient(remote_interface_client &rclient)
+bool init_rclient(remote_interface_client &rclient)
 {
 	std::string errstr;
+
 	char *epath = getenv("SYSDIG_REMOTE_INTERFACE_PROVIDER");
 	if(!epath)
 	{
 		fprintf(stderr, "env var SYSDIG_REMOTE_INTERFACE_PROVIDER must be set\n");
 		return false;
 	}
+
 	std::string path = epath;
 	if (!rclient.init(path, errstr))
 	{
@@ -994,14 +996,13 @@ static bool init_rclient(remote_interface_client &rclient)
 	return true;
 }
 
-static sysdig_init_res list_remote_interfaces()
+static sysdig_init_res list_remote_interfaces(remote_interface_client &rclient)
 {
 	std::string errstr;
 	std::list<remote_interface> ifaces;
 	sysdig_init_res res;
-	remote_interface_client rclient;
 
-	if(!init_rclient(rclient))
+	if (!init_rclient(rclient))
 	{
 		return sysdig_init_res(EXIT_FAILURE);
 	}
@@ -1021,9 +1022,9 @@ static sysdig_init_res list_remote_interfaces()
 	return sysdig_init_res(EXIT_SUCCESS);
 }
 
-static bool read_remote_interface(std::string iface_name, std::string &filter, std::string &capture_file_path)
+static bool read_remote_interface(remote_interface_client &rclient,
+				  std::string iface_name, std::string &filter, std::string &capture_file_path)
 {
-	remote_interface_client rclient;
 	std::string errstr;
 
 	if(!init_rclient(rclient))
@@ -1040,6 +1041,15 @@ static bool read_remote_interface(std::string iface_name, std::string &filter, s
 	return true;
 }
 
+static void close_remote_interface(remote_interface_client &rclient, std::string iface_name)
+{
+	std::string errstr;
+
+	if (!rclient.close_iface(std::string(iface_name), errstr))
+	{
+		fprintf(stderr, "%s\n", errstr.c_str());
+	}
+}
 
 //
 // ARGUMENT PARSING AND PROGRAM SETUP
@@ -1092,6 +1102,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool udig = false;
 
 	std::string remote_interface;
+	remote_interface_client rclient;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -1639,7 +1650,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						list_flds_markdown = true;
 					}
 					else if (optname == "list-remote-interfaces") {
-						return list_remote_interfaces();
+						return list_remote_interfaces(rclient);
 					}
 					else if (optname == "read-remote-interface") {
 						remote_interface = optarg;
@@ -1849,7 +1860,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		if(remote_interface != "")
 		{
 			std::string remote_readfile_path;
-			if (!read_remote_interface(remote_interface, filter, remote_readfile_path))
+			if (!read_remote_interface(rclient, remote_interface, filter, remote_readfile_path))
 			{
 				return sysdig_init_res(EXIT_FAILURE);
 			}
@@ -2119,6 +2130,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			// Done. Close the capture.
 			//
 			inspector->close();
+
+			if(remote_interface != "")
+			{
+				close_remote_interface(rclient, remote_interface);
+			}
 		}
 	}
 	catch(const sinsp_capture_interrupt_exception&)
