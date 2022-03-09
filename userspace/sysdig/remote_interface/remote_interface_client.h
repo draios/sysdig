@@ -45,7 +45,8 @@ public:
 	// Open the interface with the provided name. What is returned
 	// is a path to a capture file that can be opened like any other
 	// capture file.
-	bool open_iface(const std::string &iface_name, std::string &path, std::string &errstr);
+	bool open_iface(const std::string &iface_name, const std::string &filter,
+			std::string &path, std::string &errstr);
 
 	// Close the interface with the provided name.
 	bool close_iface(const std::string &iface_name, std::string &errstr);

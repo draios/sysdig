@@ -72,9 +72,10 @@ bool remote_interface_client::list_ifaces(std::list<remote_interface> &ifaces, s
 	return list_ifaces(ifaces, errstr);
 }
 
-bool remote_interface_client::open_iface(const std::string &iface_name, std::string &path, std::string &errstr)
+bool remote_interface_client::open_iface(const std::string &iface_name, const std::string &filter,
+					 std::string &path, std::string &errstr)
 {
-	bool (*open_iface)(const std::string &, std::string &, std::string &);
+	bool (*open_iface)(const std::string &, const std::string &, std::string &, std::string &);
 	*(void **)(&open_iface) = getsym("open_iface", errstr);
 
 	if(open_iface == NULL)
@@ -82,7 +83,7 @@ bool remote_interface_client::open_iface(const std::string &iface_name, std::str
 		return false;
 	}
 
-	return open_iface(iface_name, path, errstr);
+	return open_iface(iface_name, filter, path, errstr);
 }
 
 bool remote_interface_client::close_iface(const std::string &iface_name, std::string &errstr)
