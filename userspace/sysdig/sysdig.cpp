@@ -46,6 +46,7 @@ limitations under the License.
 #include "utils.h"
 #include "plugin.h"
 #include "plugin_utils.h"
+#include "remote_interface_client.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -974,6 +975,72 @@ static void list_plugins(sinsp *inspector)
 	printf("%lu Plugins Loaded:\n\n%s\n", plugins.size(), os_info.str().c_str());
 }
 
+static bool init_rclient(remote_interface_client &rclient)
+{
+	std::string errstr;
+	char *epath = getenv("SYSDIG_REMOTE_INTERFACE_PROVIDER");
+	if(!epath)
+	{
+		fprintf(stderr, "env var SYSDIG_REMOTE_INTERFACE_PROVIDER must be set\n");
+		return false;
+	}
+	std::string path = epath;
+	if (!rclient.init(path, errstr))
+	{
+		fprintf(stderr, "%s\n", errstr.c_str());
+		return false;
+	}
+
+	return true;
+}
+
+static sysdig_init_res list_remote_interfaces()
+{
+	std::string errstr;
+	std::list<remote_interface> ifaces;
+	sysdig_init_res res;
+	remote_interface_client rclient;
+
+	if(!init_rclient(rclient))
+	{
+		return sysdig_init_res(EXIT_FAILURE);
+	}
+
+	if(!rclient.list_ifaces(ifaces, errstr))
+	{
+		fprintf(stderr, "%s\n", errstr.c_str());
+		return sysdig_init_res(EXIT_FAILURE);
+	}
+
+	for(auto &iface : ifaces)
+	{
+		printf("Name: %s\n", iface.name.c_str());
+		printf("Desc: %s\n", iface.desc.c_str());
+	}
+
+	return sysdig_init_res(EXIT_SUCCESS);
+}
+
+static bool read_remote_interface(char *iface_name, std::string &capture_file_path)
+{
+	remote_interface_client rclient;
+	std::string errstr;
+
+	if(!init_rclient(rclient))
+	{
+		return false;
+	}
+
+	if (!rclient.open_iface(std::string(iface_name), capture_file_path, errstr))
+	{
+		fprintf(stderr, "%s\n", errstr.c_str());
+		return false;
+	}
+
+	return true;
+}
+
+
 //
 // ARGUMENT PARSING AND PROGRAM SETUP
 //
@@ -1066,6 +1133,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"large-environment", no_argument, 0, 0 },
 		{"list", no_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
+		{"list-remote-interfaces", no_argument, 0, 0},
 		{"list-markdown", no_argument, 0, 0 },
 		{"libs-version", no_argument, 0, 0},
 #ifndef MINIMAL_BUILD
@@ -1077,6 +1145,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"print", required_argument, 0, 'p' },
 		{"quiet", no_argument, 0, 'q' },
 		{"resolve-ports", no_argument, 0, 'R'},
+		{"read-remote-interface", required_argument, 0, 0},
 		{"readfile", required_argument, 0, 'r' },
 		{"snaplen", required_argument, 0, 's' },
 		{"summary", no_argument, 0, 'S' },
@@ -1231,6 +1300,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						pginitconf = pluginname.substr(cpos + 1);
 					}
 					select_plugin(pgname, pginitconf);
+
+					// XXX/mstemm DO NOT MERGE THIS CHANGE. The real fix involves adding a
+					// feature to sysdig where a source plugin can be loaded, but is *only*
+					// used to extract fields from a capture file.
+					enable_plugin(inspector, pgname);
 					break;
 				}
 			case 'I':
@@ -1561,6 +1635,20 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					else if (optname == "list-markdown") {
 						list_flds = true;
 						list_flds_markdown = true;
+					}
+					else if (optname == "list-remote-interfaces") {
+						return list_remote_interfaces();
+					}
+					else if (optname == "read-remote-interface") {
+						std::string remote_readfile_path;
+						if (!read_remote_interface(optarg, remote_readfile_path))
+						{
+							return sysdig_init_res(EXIT_FAILURE);
+						}
+
+						// A capture file is now available at remote_readfile_path.
+						// Add it to infiles
+						infiles.push_back(remote_readfile_path);
 					}
 
 					else if (optname == "page-faults") {
