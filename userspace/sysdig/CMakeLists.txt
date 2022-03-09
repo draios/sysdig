@@ -46,7 +46,8 @@ else()
 endif()
 
 list(APPEND SOURCE_FILES
-	plugin_utils.cpp)
+	plugin_utils.cpp
+	remote_interface/remote_interface_client.cpp)
 
 list(APPEND SOURCE_FILES_CSYSDIG
 	plugin_utils.cpp
@@ -63,7 +64,8 @@ target_include_directories(
 	sysdig
 	PUBLIC
         "${LIBSCAP_INCLUDE_DIRS}"
-        "${LIBSINSP_INCLUDE_DIRS}")
+        "${LIBSINSP_INCLUDE_DIRS}"
+	${CMAKE_CURRENT_SOURCE_DIR}/remote_interface)
 
 target_include_directories(
 	csysdig
