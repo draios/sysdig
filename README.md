@@ -59,51 +59,30 @@ Join the Community
 * This is our [blog](https://sysdig.com/blog/). There are many like it, but this one is ours.
 * Join our [Public Slack](https://slack.sysdig.com) channel for sysdig announcements and discussions.
 
+Our [code of conduct](CODE_OF_CONDUCT.md) applies across all our projects and community places.
+
 License Terms
 ---
 The sysdig userspace programs and supporting code are licensed to you under the [Apache 2.0](./COPYING) open source license.
 
-Contributor License Agreements
+Developer Certification of Origin (DCO)
 ---
-### Background
-As sysdig matures and gains wider acceptance, we are formalizing the way that we accept contributions of code from the contributing community. We must now ask that contributions to sysdig be provided subject to the terms and conditions of a [Contributor License Agreement (CLA)](https://github.com/draios/sysdig/tree/dev/cla). The CLA comes in two forms, applicable to contributions by individuals, or by legal entities such as corporations and their employees. We recognize that entering into a CLA with us involves real consideration on your part, and we’ve tried to make this process as clear and simple as possible.
- 
-We’ve modeled our CLA off of industry standards, such as [the CLA used by Kubernetes](https://github.com/kubernetes/kubernetes/blob/master/CONTRIBUTING.md). Note that this agreement is not a transfer of copyright ownership, this simply is a license agreement for contributions, intended to clarify the intellectual property license granted with contributions from any person or entity. It is for your protection as a contributor as well as the protection of sysdig; it does not change your rights to use your own contributions for any other purpose.
+The Apache 2.0 license tells you what rights you have that are provided by the copyright holder. It is important that the contributor fully understands what rights they are licensing and agrees to them. Sometimes the copyright holder isn't the contributor, such as when the contributor is doing work on behalf of a company.
 
-For some background on why contributor license agreements are necessary, you can read FAQs from many other open source projects:
-- [Django’s excellent CLA FAQ](https://www.djangoproject.com/foundation/cla/faq/)
-- [A well-written chapter from Karl Fogel’s Producing Open Source Software on CLAs](http://producingoss.com/en/copyright-assignment.html)
-- [The Wikipedia article on CLAs](http://en.wikipedia.org/wiki/Contributor_license_agreement)
+To make a good faith effort to ensure these criteria are met, we require the Developer Certificate of Origin (DCO) process to be followed.
 
-As always, we are grateful for your past and present contributions to sysdig.
+The DCO is an attestation attached to every contribution made by every developer. In the commit message of the contribution, the developer simply adds a Signed-off-by statement and thereby agrees to the DCO, which you can find at http://developercertificate.org.
 
-### What do I need to do in order to contribute code?
-**Individual contributions**: Individuals who wish to make contributions must review the [Individual Contributor License Agreement](https://github.com/draios/sysdig/blob/dev/cla/sysdig_contributor_agreement.txt) and indicate agreement by adding the following line to every GIT commit message: 
- 
+### DCO Sign-Off Methods
+The DCO requires a sign-off message in the following format appear on each commit in the pull request:
+
 ```
-sysdig-CLA-1.0-signed-off-by: Joe Smith <joe.smith@email.com>
+Signed-off-by: John Doe <john.doe@sysdig.com>
 ```
 
-Use your real name; pseudonyms or anonymous contributions are not allowed.
+You have to use your real name (sorry, no pseudonyms or anonymous contributions).
 
-**Corporate contributions**: Employees of corporations, members of LLCs or LLPs, or others acting on behalf of a contributing entity, must review the [Corporate Contributor License Agreement](https://github.com/draios/sysdig/blob/dev/cla/sysdig_corp_contributor_agreement.txt), must be an authorized representative of the contributing entity, and indicate agreement to it on behalf of the contributing entity by adding the following lines to every GIT commit message: 
- 
-```
-sysdig-CLA-1.0-contributing-entity: Full Legal Name of Entity  
-sysdig-CLA-1.0-signed-off-by: Joe Smith <joe.smith@email.com>  
-```
-
-Use a real name of a natural person who is an authorized representative of the contributing entity; pseudonyms or anonymous contributions are not allowed.
-
-**Government contributions**: Employees or officers of the United States Government, must review the [Corporate Contributor License Agreement](https://github.com/draios/sysdig/blob/dev/cla/sysdig_corp_contributor_agreement.txt), must be an authorized representative of the contributing entity, and indicate agreement to it on behalf of the contributing entity by adding the following lines to every GIT commit message: 
- 
-```
-sysdig-CLA-1.0-contributing-govt-entity: Full Legal Name of Entity
-sysdig-CLA-1.0-signed-off-by: Joe Smith <joe.smith@email.com>  
-This file is a work of authorship of an employee or officer of the United States Government and is not subject to copyright in the United States under 17 USC 105.
-```
-
-Use a real name of a natural person who is an authorized representative of the contributing entity; pseudonyms or anonymous contributions are not allowed.
+The DCO text can either be manually added to your commit body, or you can add either `-s` or `--signoff` to your usual `git commit` commands. If you are using the GitHub UI to make a change, you can add the sign-off message directly to the commit message when creating the pull request. If you forget to add the sign-off you can also amend a previous commit with the sign-off by running `git commit --amend -s`. If you've pushed your changes to GitHub already you'll need to force push your branch after this with `git push -f`.
 
 Commercial Support
 ---
@@ -112,3 +91,7 @@ Interested in a fully supported, fully distributed version of sysdig? Check out 
 Open source sysdig is proudly supported by [Sysdig Inc](https://sysdig.com/company/).  
 
 Interested in what we're doing? [Sysdig is hiring](https://sysdig.com/jobs/).
+
+Reporting a vulnerability
+---
+Please refer to [SECURITY.md](SECURITY.md).
