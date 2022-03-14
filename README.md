@@ -59,6 +59,8 @@ Join the Community
 * This is our [blog](https://sysdig.com/blog/). There are many like it, but this one is ours.
 * Join our [Public Slack](https://slack.sysdig.com) channel for sysdig announcements and discussions.
 
+Our [code of conduct](CODE_OF_CONDUCT.md) applies across all our projects and community places.
+
 License Terms
 ---
 The sysdig userspace programs and supporting code are licensed to you under the [Apache 2.0](./COPYING) open source license.
@@ -89,3 +91,7 @@ Interested in a fully supported, fully distributed version of sysdig? Check out 
 Open source sysdig is proudly supported by [Sysdig Inc](https://sysdig.com/company/).  
 
 Interested in what we're doing? [Sysdig is hiring](https://sysdig.com/jobs/).
+
+Reporting a vulnerability
+---
+Please refer to [SECURITY.md](SECURITY.md).
