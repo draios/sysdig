@@ -59,9 +59,12 @@ list(APPEND SOURCE_FILES_CSYSDIG
 add_executable(sysdig ${SOURCE_FILES})
 add_executable(csysdig ${SOURCE_FILES_CSYSDIG})
 
+add_dependencies(sysdig njson)
+add_dependencies(csysdig njson)
+
 if(USE_BUNDLED_DEPS)
-	add_dependencies(sysdig yaml-cpp njson)
-	add_dependencies(csysdig yaml-cpp njson)
+	add_dependencies(sysdig yaml-cpp)
+	add_dependencies(csysdig yaml-cpp)
 endif()
 
 target_include_directories(
