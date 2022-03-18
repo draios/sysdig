@@ -24,7 +24,17 @@ limitations under the License.
 #include <utility>
 
 vector<plugin_dir_info> g_plugin_dirs;
+
+// Stores user-selected plugins (via '-H' flag)
 std::map<std::string, plugin_selected_init> g_selected_plugins_init;
+/*
+ * Stores actually registered plugins; it can be either:
+ *      a map between plugin name and plugin when user did not select any plugin
+ *      a map between selected plugin name and plugin.
+ *      NOTE: selected plugin name may differ from plugin name (it can be a path to the plugin)
+ */
+std::map<std::string, std::shared_ptr<sinsp_plugin>> g_selected_plugins_registered;
+// Stores user-enabled plugins ('-I' flag)
 std::map<std::string, std::string> g_selected_plugins_enable;
 
 void add_plugin_dir(string dirname, bool front_add)
@@ -80,7 +90,8 @@ void init_plugins(sinsp *inspector)
 	{
 		for (const auto &pl : g_selected_plugins_init)
 		{
-			sinsp_plugin::register_plugin(inspector, pl.second.path, pl.second.init_config.c_str());
+			auto plugin = sinsp_plugin::register_plugin(inspector, pl.second.path, pl.second.init_config.c_str());
+			g_selected_plugins_registered.emplace(pl.second.path, plugin);
 		}
 		return;
 	}
@@ -110,7 +121,7 @@ void init_plugins(sinsp *inspector)
             }
 
             auto plugin = sinsp_plugin::register_plugin(inspector, file.path, NULL);
-            g_selected_plugins_init.emplace(plugin->name(), plugin_selected_init{file.path, ""});
+	        g_selected_plugins_registered.emplace(plugin->name(), plugin);
         }
 
         tinydir_close(&dir);
@@ -160,8 +171,16 @@ void select_plugin_init(string& name, const string& init_config)
 			tinydir_next(&dir);
 		}
 
-		tinydir_close(&dir);
+		if (!found)
+		{
+			tinydir_close(&dir);
+		}
+		else
+		{
+			break;
+		}
 	}
+
 	if (!found)
 	{
 		throw sinsp_exception("plugin " + name + " not found. Use -Il to list all installed plugins.");
@@ -176,19 +195,14 @@ void select_plugin_enable(string& name, const string& open_params)
 bool enable_source_plugin(sinsp *inspector)
 {
     bool source_plugin_enabled = false;
-    std::map<std::string, std::shared_ptr<sinsp_plugin>> plugins;
-    for(auto plugin : inspector->get_plugins())
-    {
-        plugins.emplace(plugin->name(), plugin);
-    }
 
-    for(const auto pginfo : g_selected_plugins_enable)
+    for(const auto& pginfo : g_selected_plugins_enable)
     {
         std::string name = pginfo.first;
         std::string open_params = pginfo.second;
 
-	    auto itr = plugins.find(name);
-	    if (itr == plugins.end())
+	    auto itr = g_selected_plugins_registered.find(name);
+	    if (itr == g_selected_plugins_registered.end())
         {
             throw sinsp_exception("plugin " + name + " not loaded. Use -H to load it.");
         }
@@ -196,11 +210,11 @@ bool enable_source_plugin(sinsp *inspector)
         auto plugin = itr->second;
         if (plugin->type() == TYPE_SOURCE_PLUGIN)
         {
-            if(source_plugin_enabled == true)
+            if(source_plugin_enabled)
             {
                 throw sinsp_exception("only one source plugin can be enabled at a time.");
             }
-            inspector->set_input_plugin(name);
+            inspector->set_input_plugin(plugin->name());
             inspector->set_input_plugin_open_params(open_params);
             source_plugin_enabled = true;
         }
