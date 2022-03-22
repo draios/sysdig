@@ -120,7 +120,7 @@ static void usage()
 "                    they must be specified in the command line after the name.\n"
 " -cl, --list-chisels\n"
 "                    lists the available chisels. Sysdig looks for chisels in the\n"
-"                    following directories: ./chisels, ~/.chisels, /usr/share/sysdig/chisels.\n"
+"                    following directories: ./chisels, ~/.chisels, " SYSDIG_CHISELS_DIR ".\n"
 #endif
 " -C <file_size>, --file-size=<file_size>\n"
 "                    Before writing an event, check whether the file is\n"
@@ -197,7 +197,7 @@ static void usage()
 "                    Only a single source plugin can be registered.\n"
 "                    If no plugins were selected, registers any found plugin in the directories\n"
 "                    specified by ;-separated environment variable SYSDIG_PLUGIN_DIR and\n"
-"                    in /usr/share/sysdig/plugins; then use the provided one as input source.\n"
+"                    in " SYSDIG_PLUGINS_DIR "; then use the provided one as input source.\n"
 "                    The format of openparams is controlled by the plugin, refer to each\n"
 "                    plugin's documentation to learn about it.\n"
 "                    See https://falco.org/docs/plugins/plugin-api-reference/#ss-plugin-t-plugin-init-const-char-config-int32-t-rc-required-yes\n"
@@ -208,7 +208,7 @@ static void usage()
 "                    lists the loaded plugins. If no plugin has been marked as loaded,\n"
 "                    Sysdig looks for plugins in the directories \n"
 "                    specified by ;-separated environment variable SYSDIG_PLUGIN_DIR and\n"
-"     				 in /usr/share/sysdig/plugins.\n"
+"     				 in " SYSDIG_PLUGINS_DIR ".\n"
 #ifdef HAS_CHISELS
 " -i <chiselname>, --chisel-info <chiselname>\n"
 "                    Get a longer description and the arguments associated with\n"
@@ -462,7 +462,7 @@ static void add_chisel_dirs(sinsp* inspector)
 	//
 	// Add the default chisel directory statically configured by the build system
 	//
-	chisel_add_dir(SYSDIG_INSTALLATION_DIR CHISELS_INSTALLATION_DIR, false);
+	chisel_add_dir(SYSDIG_CHISELS_DIR, false);
 
 	//
 	// Add the directories configured in the SYSDIG_CHISEL_DIR environment variable
@@ -1118,7 +1118,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #ifdef HAS_CHISELS
 		add_chisel_dirs(inspector);
 #endif
-		add_plugin_dirs(SYSDIG_INSTALLATION_DIR);
+		add_plugin_dirs(SYSDIG_PLUGINS_DIR);
 
 		//
 		// Parse the args

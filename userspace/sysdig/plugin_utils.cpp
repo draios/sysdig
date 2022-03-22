@@ -59,12 +59,12 @@ void add_plugin_dir(string dirname, bool front_add)
     }
 }
 
-void add_plugin_dirs(string sysdig_installation_dir)
+void add_plugin_dirs(string sysdig_plugins_dir)
 {
     //
     // Add the default plugin directory statically configured by the build system
     //
-    add_plugin_dir(sysdig_installation_dir + PLUGINS_INSTALLATION_DIR, false);
+    add_plugin_dir(sysdig_plugins_dir, false);
 
     //
     // Add the directories configured in the SYSDIG_PLUGIN_DIR environment variable

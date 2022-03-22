@@ -45,7 +45,7 @@ typedef struct
 } plugin_selected_init;
 
 void add_plugin_dir(string dirname, bool front_add);
-void add_plugin_dirs(string sysdig_installation_dir);
+void add_plugin_dirs(string sysdig_plugins_dir);
 std::vector<plugin_dir_info> get_plugin_dirs();
 // Select a plugin for initialization. Name can be either a name or a path.
 void select_plugin_init(string& name, const string& init_config);

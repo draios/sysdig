@@ -220,7 +220,7 @@ static void add_chisel_dirs(sinsp* inspector)
 	//
 	// Add the default chisel directory statically configured by the build system
 	//
-	chisel_add_dir(SYSDIG_INSTALLATION_DIR CHISELS_INSTALLATION_DIR, false);
+	chisel_add_dir(SYSDIG_CHISELS_DIR, false);
 
 	//
 	// Add the directories configured in the SYSDIG_CHISEL_DIR environment variable
@@ -434,7 +434,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 #ifdef HAS_CHISELS
 		add_chisel_dirs(inspector);
 #endif
-		add_plugin_dirs(SYSDIG_INSTALLATION_DIR);
+		add_plugin_dirs(SYSDIG_PLUGINS_DIR);
 		init_plugins(inspector);
 
 		//
