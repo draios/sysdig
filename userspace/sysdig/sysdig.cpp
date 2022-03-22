@@ -190,7 +190,7 @@ static void usage()
 "                    The format of initconf is controlled by the plugin, refer to each\n"
 "                    plugin's documentation to learn about it.\n"
 "                    A path can also be passed as pluginname.\n"
-" -I <inputname>[:<openparams>], --input <inputname>[:<openparams>]\n"
+" -I <pluginname>[:<openparams>], --input <pluginname>[:<openparams>]\n"
 "                    registers a previously selected plugin.\n"
 "                    If the plugin is a source plugin, capture events using it, passing to the \n"
 "                    plugin the openparams string as open parameters.\n"
