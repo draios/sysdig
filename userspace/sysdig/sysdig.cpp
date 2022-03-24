@@ -186,18 +186,18 @@ static void usage()
 "                    create a ring buffer of events.\n"
 " -h, --help         Print this page\n"
 " -H <pluginname>[:<initconfig>], --plugin <pluginname>[:<initconfig>]\n"
-"                    marks a plugin as selected, storing its init config if present.\n"
+"                    registers a plugin, using the passed init config if present.\n"
 "                    The format of initconf is controlled by the plugin, refer to each\n"
 "                    plugin's documentation to learn about it.\n"
-"                    A path can also be passed as pluginname.\n"
+"                    A path can also be used as pluginname.\n"
 " -I <pluginname>[:<openparams>], --input <pluginname>[:<openparams>]\n"
-"                    registers a previously selected plugin.\n"
-"                    If the plugin is a source plugin, capture events using it, passing to the \n"
-"                    plugin the openparams string as open parameters.\n"
+"                    set a previously registered plugin as input plugin,\n"
+"                    capturing events using it and passing the \n"
+"                    openparams string as open parameters.\n"
 "                    Only a single source plugin can be registered.\n"
-"                    If no plugins were selected, registers any found plugin in the directories\n"
+"                    If no plugins were selected, any found plugin in the directories\n"
 "                    specified by ;-separated environment variable SYSDIG_PLUGIN_DIR and\n"
-"                    in " SYSDIG_PLUGINS_DIR "; then use the provided one as input source.\n"
+"                    in " SYSDIG_PLUGINS_DIR " is registered; then use the provided one as input source.\n"
 "                    The format of openparams is controlled by the plugin, refer to each\n"
 "                    plugin's documentation to learn about it.\n"
 "                    See https://falco.org/docs/plugins/plugin-api-reference/#ss-plugin-t-plugin-init-const-char-config-int32-t-rc-required-yes\n"
@@ -205,10 +205,10 @@ static void usage()
 "                    The event sources available for capture vary depending on which \n"
 "                    plugins have been installed.\n"
 " -Il\n"
-"                    lists the loaded plugins. If no plugin has been marked as loaded,\n"
+"                    lists the loaded plugins. If no plugin has been registered through '-H',\n"
 "                    Sysdig looks for plugins in the directories \n"
 "                    specified by ;-separated environment variable SYSDIG_PLUGIN_DIR and\n"
-"     				 in " SYSDIG_PLUGINS_DIR ".\n"
+"                    in " SYSDIG_PLUGINS_DIR ".\n"
 #ifdef HAS_CHISELS
 " -i <chiselname>, --chisel-info <chiselname>\n"
 "                    Get a longer description and the arguments associated with\n"
@@ -1235,7 +1235,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						pgname = pluginname.substr(0, cpos);
 						pginitconf = pluginname.substr(cpos + 1);
 					}
-					select_plugin_init(pgname, pginitconf);
+					select_plugin_init(inspector, pgname, pginitconf);
 					break;
 				}
 			case 'I':
@@ -1402,7 +1402,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				inspector->set_hostname_and_port_resolution_mode(true);
 				break;
 			case 'r':
-				infiles.push_back(optarg);
+				infiles.emplace_back(optarg);
 #ifndef MINIMAL_BUILD
 				k8s_api = new string();
 				mesos_api = new string();
@@ -1539,8 +1539,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 
 					else if(optname == "plugin-config-file") {
-						parse_plugin_configuration_file(optarg);
-						g_plugin_input = true;
+						g_plugin_input = parse_plugin_configuration_file(inspector, optarg);
 					}
 
 					else if (optname == "page-faults") {
@@ -1584,7 +1583,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		// If we are dumping events to file, enable progress printing so we can give
 		// feedback to the user
 		//
-		if(outfile != "" && (infiles.size() != 0 || g_plugin_input == true))
+		if(!outfile.empty() && (infiles.size() != 0 || g_plugin_input))
 		{
 			print_progress = true;
 		}
@@ -1725,7 +1724,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		//
 		if(filter_proclist_flag)
 		{
-			if(filter != "")
+			if(!filter.empty())
 			{
 				if(infiles.size() == 0)
 				{
@@ -1747,7 +1746,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		for(uint32_t j = 0; j < infiles.size() || infiles.size() == 0; j++)
 		{
 #ifdef HAS_FILTERING
-			if(filter.size() && !is_filter_display)
+			if(!filter.empty() && !is_filter_display)
 			{
 				inspector->set_filter(filter);
 			}
@@ -1758,7 +1757,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			// inspector, as that reads the process list.
 			for(auto &comm : suppress_comms)
 			{
-				if (!inspector->suppress_events_comm(comm.c_str()))
+				if (!inspector->suppress_events_comm(comm))
 				{
 					fprintf(stderr, "Could not add %s to the set of suppressed comms--did you specify more than %d values?\n",
 						comm.c_str(),
@@ -1774,6 +1773,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			if(infiles.size() != 0)
 			{
 				initialize_chisels();
+				init_plugins(inspector);
 
 				//
 				// We have a file to open
@@ -1808,9 +1808,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				else
 				{
+					init_plugins(inspector);
 					if(g_plugin_input)
 					{
-						init_plugins(inspector);
 						enable_source_plugin(inspector);
 						inspector->open("");
 					}

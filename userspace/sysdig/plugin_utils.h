@@ -48,12 +48,14 @@ void add_plugin_dir(string dirname, bool front_add);
 void add_plugin_dirs(string sysdig_plugins_dir);
 std::vector<plugin_dir_info> get_plugin_dirs();
 // Select a plugin for initialization. Name can be either a name or a path.
-void select_plugin_init(string& name, const string& init_config);
+void select_plugin_init(sinsp *inspector, string& name, const string& init_config);
 // Select a plugin for use. In case of a source plugin, it will be opened (optionally with parameters) and used.
 void select_plugin_enable(string& name, const string& open_params);
 void init_plugins(sinsp *inspector);
+// Returns whether a source plugin was actually enabled
 bool enable_source_plugin(sinsp *inspector);
-void parse_plugin_configuration_file(std::string config_filename);
+// Returns whether a source plugin was requested
+bool parse_plugin_configuration_file(sinsp *inspector, const std::string& config_filename);
 
 namespace YAML {
 	template<>
