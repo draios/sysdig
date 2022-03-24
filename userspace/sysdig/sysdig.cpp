@@ -195,7 +195,7 @@ static void usage()
 "                    capturing events using it and passing the \n"
 "                    openparams string as open parameters.\n"
 "                    Only a single source plugin can be registered.\n"
-"                    If no plugins were selected, any found plugin in the directories\n"
+"                    If no plugins were registered, any found plugin in the directories\n"
 "                    specified by ;-separated environment variable SYSDIG_PLUGIN_DIR and\n"
 "                    in " SYSDIG_PLUGINS_DIR " is registered; then use the provided one as input source.\n"
 "                    The format of openparams is controlled by the plugin, refer to each\n"
