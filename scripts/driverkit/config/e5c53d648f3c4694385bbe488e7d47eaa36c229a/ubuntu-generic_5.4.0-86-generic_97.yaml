@@ -1,0 +1,6 @@
+kernelversion: 97
+kernelrelease: 5.4.0-86-generic
+target: ubuntu-generic
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-generic_5.4.0-86-generic_97.ko
+  probe: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-generic_5.4.0-86-generic_97.o

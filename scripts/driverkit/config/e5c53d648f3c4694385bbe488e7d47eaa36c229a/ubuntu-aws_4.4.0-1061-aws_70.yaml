@@ -1,0 +1,5 @@
+kernelversion: 70
+kernelrelease: 4.4.0-1061-aws
+target: ubuntu-aws
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-aws_4.4.0-1061-aws_70.ko

@@ -1,0 +1,6 @@
+kernelversion: 20
+kernelrelease: 5.4.0-1020-aws
+target: ubuntu-aws
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-aws_5.4.0-1020-aws_20.ko
+  probe: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-aws_5.4.0-1020-aws_20.o

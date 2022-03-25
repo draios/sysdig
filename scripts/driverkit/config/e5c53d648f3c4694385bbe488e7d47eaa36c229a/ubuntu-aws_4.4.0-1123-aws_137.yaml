@@ -1,0 +1,5 @@
+kernelversion: 137
+kernelrelease: 4.4.0-1123-aws
+target: ubuntu-aws
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-aws_4.4.0-1123-aws_137.ko

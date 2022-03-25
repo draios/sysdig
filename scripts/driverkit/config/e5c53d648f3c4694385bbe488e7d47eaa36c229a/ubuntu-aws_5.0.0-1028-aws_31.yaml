@@ -1,0 +1,6 @@
+kernelversion: 31
+kernelrelease: 5.0.0-1028-aws
+target: ubuntu-aws
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-aws_5.0.0-1028-aws_31.ko
+  probe: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-aws_5.0.0-1028-aws_31.o

@@ -1,0 +1,6 @@
+kernelversion: 94
+kernelrelease: 5.4.0-84-generic
+target: ubuntu-generic
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-generic_5.4.0-84-generic_94.ko
+  probe: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-generic_5.4.0-84-generic_94.o

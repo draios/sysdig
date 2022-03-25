@@ -1,0 +1,6 @@
+kernelversion: 39
+kernelrelease: 4.15.0-1037-aws
+target: ubuntu-aws
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-aws_4.15.0-1037-aws_39.ko
+  probe: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-aws_4.15.0-1037-aws_39.o
