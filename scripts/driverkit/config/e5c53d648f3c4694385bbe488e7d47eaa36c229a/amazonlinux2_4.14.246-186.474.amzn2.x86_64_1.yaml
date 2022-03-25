@@ -1,0 +1,6 @@
+kernelversion: 1
+kernelrelease: 4.14.246-186.474.amzn2.x86_64
+target: amazonlinux2
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_amazonlinux2_4.14.246-186.474.amzn2.x86_64_1.ko
+  probe: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_amazonlinux2_4.14.246-186.474.amzn2.x86_64_1.o

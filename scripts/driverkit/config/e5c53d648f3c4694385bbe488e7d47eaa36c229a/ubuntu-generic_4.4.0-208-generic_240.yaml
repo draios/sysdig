@@ -1,0 +1,5 @@
+kernelversion: 240
+kernelrelease: 4.4.0-208-generic
+target: ubuntu-generic
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-generic_4.4.0-208-generic_240.ko

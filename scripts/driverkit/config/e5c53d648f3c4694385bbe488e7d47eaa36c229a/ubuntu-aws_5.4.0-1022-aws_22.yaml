@@ -1,0 +1,6 @@
+kernelversion: 22
+kernelrelease: 5.4.0-1022-aws
+target: ubuntu-aws
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-aws_5.4.0-1022-aws_22.ko
+  probe: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-aws_5.4.0-1022-aws_22.o

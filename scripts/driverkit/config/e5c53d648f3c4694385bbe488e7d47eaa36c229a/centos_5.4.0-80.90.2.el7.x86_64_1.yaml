@@ -1,0 +1,6 @@
+kernelversion: 1
+kernelrelease: 5.4.0-80.90.2.el7.x86_64
+target: centos
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_centos_5.4.0-80.90.2.el7.x86_64_1.ko
+  probe: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_centos_5.4.0-80.90.2.el7.x86_64_1.o

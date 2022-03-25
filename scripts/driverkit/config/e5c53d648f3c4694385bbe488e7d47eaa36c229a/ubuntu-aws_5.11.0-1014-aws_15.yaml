@@ -1,0 +1,6 @@
+kernelversion: 15
+kernelrelease: 5.11.0-1014-aws
+target: ubuntu-aws
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-aws_5.11.0-1014-aws_15.ko
+  probe: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-aws_5.11.0-1014-aws_15.o

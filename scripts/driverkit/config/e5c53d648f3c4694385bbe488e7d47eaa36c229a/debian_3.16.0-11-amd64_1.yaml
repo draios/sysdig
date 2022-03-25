@@ -1,0 +1,5 @@
+kernelversion: 1
+kernelrelease: 3.16.0-11-amd64
+target: debian
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_debian_3.16.0-11-amd64_1.ko

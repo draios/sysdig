@@ -1,0 +1,6 @@
+kernelversion: 67
+kernelrelease: 5.8.0-60-generic
+target: ubuntu-generic
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-generic_5.8.0-60-generic_67.ko
+  probe: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-generic_5.8.0-60-generic_67.o
