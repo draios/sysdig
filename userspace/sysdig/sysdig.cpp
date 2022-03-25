@@ -1026,6 +1026,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #endif
 	bool udig = false;
 	bool gvisor = false;
+	string gvisor_socket;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -1053,7 +1054,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"fatfile", no_argument, 0, 'F'},
 		{"filter-proclist", no_argument, 0, 0 },
 		{"seconds", required_argument, 0, 'G' },
-		{"gvisor", no_argument, 0, 'g'},
+		{"gvisor", optional_argument, 0, 'g'},
 		{"help", no_argument, 0, 'h' },
 		{"plugin", required_argument, 0, 'H' },
 		{"input", required_argument, 0, 'I' },
@@ -1128,7 +1129,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "AbB::c:"
                                         "C:"
                                         "dDEe:F"
-                                        "G:g"
+                                        "G:g::"
                                         "hH:I:i:jk:K:lLm:M:n:Pp:qRr:Ss:t:TU:uv"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
@@ -1217,6 +1218,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			// Number of seconds between roll-over
 			case 'g':
 				gvisor = true;
+				if(optarg) {
+					gvisor_socket = optarg;
+				} else {
+					gvisor_socket = "/tmp/gvisor.sock";
+				}
 				break;
 			case 'G':
 				duration_seconds = atoi(optarg);
@@ -1839,7 +1845,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				else if (gvisor)
 				{
-					inspector->open_gvisor();
+					inspector->open_gvisor(gvisor_socket);
 				}
 				else
 				{
