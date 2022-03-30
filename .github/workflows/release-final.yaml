@@ -53,7 +53,7 @@ jobs:
       contents: read
 
     container:
-      image: centos:8
+      image: centos:7
 
     steps:
       - name: Install deps
