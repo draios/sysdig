@@ -62,7 +62,7 @@ jobs:
       BUILD_VERSION: ${{ github.ref_name }}
       KEY_ID: EC51E8C4
     container:
-      image: centos:8 # ubi8 does not have rpmsign so we'll use CentOS
+      image: centos:7 # ubi8 does not have rpmsign so we'll use CentOS
     steps:
       - name: Install deps
         run: yum install -y rpm-sign
