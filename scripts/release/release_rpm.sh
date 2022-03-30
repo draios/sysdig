@@ -16,7 +16,7 @@ aws s3 sync s3://$S3_BUCKET/$REPOSITORY_NAME/rpm/$RPM_BASEARCH/ $REPOSITORY_DIR/
 # ls -1tdr $REPOSITORY_DIR/rpm/$RPM_BASEARCH/*sysdig*.rpm | head -n -5 | xargs -d '\n' rm -f || true
 
 cp $PACKAGES_DIR/*rpm $REPOSITORY_DIR/rpm/$RPM_BASEARCH
-createrepo $REPOSITORY_DIR/rpm/$RPM_BASEARCH
+createrepo_c $REPOSITORY_DIR/rpm/$RPM_BASEARCH
 
 # create repomd.xml.asc
 gpg --local-user $KEY_ID --batch --no-tty --yes --detach-sign --armor $REPOSITORY_DIR/rpm/$RPM_BASEARCH/repodata/repomd.xml
