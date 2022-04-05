@@ -1130,7 +1130,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "G:"
                                         "hH:I:i:jk:K:lLm:M:n:Pp:qRr:Ss:t:TU:uv"
                                         "W:"
-                                        "w:xXz:", long_options, &long_index)) != -1)
+                                        "w:xXz", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
