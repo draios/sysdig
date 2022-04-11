@@ -1558,6 +1558,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		}
 
 		init_plugins(inspector);
+		if(g_plugin_input)
+		{
+			enable_source_plugin(inspector);
+		}
 
 #ifdef HAS_CAPTURE
 		if(!cri_socket_path.empty())
@@ -1809,18 +1813,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				else
 				{
-					if(g_plugin_input)
+
+					try
 					{
-						enable_source_plugin(inspector);
 						inspector->open("");
 					}
-					else
+					catch(const sinsp_exception& e)
 					{
-						try
-						{
-							inspector->open("");
-						}
-						catch(const sinsp_exception& e)
+						if (!g_plugin_input)
 						{
 							open_success = false;
 						}
