@@ -1557,6 +1557,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			}
 		}
 
+		init_plugins(inspector);
+		if(g_plugin_input)
+		{
+			enable_source_plugin(inspector);
+		}
+
 #ifdef HAS_CAPTURE
 		if(!cri_socket_path.empty())
 		{
@@ -1583,7 +1589,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		// If we are dumping events to file, enable progress printing so we can give
 		// feedback to the user
 		//
-		if(!outfile.empty() && (infiles.size() != 0 || g_plugin_input))
+		if(!outfile.empty() && (!infiles.empty() || g_plugin_input))
 		{
 			print_progress = true;
 		}
@@ -1714,7 +1720,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		//
 		// Set output buffers len
 		//
-		if(!verbose && g_chisels.size() == 0)
+		if(!verbose && g_chisels.empty())
 		{
 			inspector->set_max_evt_output_len(80);
 		}
@@ -1726,7 +1732,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{
 			if(!filter.empty())
 			{
-				if(infiles.size() == 0)
+				if(infiles.empty())
 				{
 					fprintf(stderr, "--filter-proclist not supported with live captures.\n");
 					res.m_res = EXIT_FAILURE;
@@ -1743,7 +1749,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			}
 		}
 
-		for(uint32_t j = 0; j < infiles.size() || infiles.size() == 0; j++)
+		for(uint32_t j = 0; j < infiles.size() || infiles.empty(); j++)
 		{
 #ifdef HAS_FILTERING
 			if(!filter.empty() && !is_filter_display)
@@ -1770,10 +1776,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			//
 			// Launch the capture
 			//
-			if(infiles.size() != 0)
+			if(!infiles.empty())
 			{
 				initialize_chisels();
-				init_plugins(inspector);
 
 				//
 				// We have a file to open
@@ -1808,19 +1813,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				else
 				{
-					init_plugins(inspector);
-					if(g_plugin_input)
+
+					try
 					{
-						enable_source_plugin(inspector);
 						inspector->open("");
 					}
-					else
+					catch(const sinsp_exception& e)
 					{
-						try
-						{
-							inspector->open("");
-						}
-						catch(const sinsp_exception& e)
+						if (!g_plugin_input)
 						{
 							open_success = false;
 						}
