@@ -60,7 +60,6 @@ endif()
 set(PACKAGE_NAME "sysdig")
 
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
-add_definitions(-DK8S_DISABLE_THREAD)
 
 option(BUILD_WARNINGS_AS_ERRORS "Enable building with -Wextra -Werror flags")
 
