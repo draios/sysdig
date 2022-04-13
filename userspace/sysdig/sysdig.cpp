@@ -57,6 +57,7 @@ limitations under the License.
 #endif
 
 static bool g_terminate = false;
+static bool g_terminating = false;
 static bool g_plugin_input = false;
 #ifdef HAS_CHISELS
 vector<sinsp_chisel*> g_chisels;
@@ -72,11 +73,11 @@ static void signal_callback(int signal)
 	if(g_plugin_input)
 	{
 		//
-		// Input plugins can get stuck at any point.
+		// Input plugins can get stuck in next().
 		// When we are using one, check again in few seconds and force a quit
 		// if we are stuck.
 		//
-		if(g_terminate == true)
+		if(g_terminate == true && g_terminating == false)
 		{
 			exit(0);
 		}
@@ -84,7 +85,7 @@ static void signal_callback(int signal)
 		{
 			g_terminate = true;
 #ifndef _WIN32
-			alarm(2);
+			alarm(3);
 #endif
 		}
 	}
@@ -733,6 +734,10 @@ captureinfo do_inspect(sinsp* inspector,
 			// End of capture, either because the user stopped it, or because
 			// we reached the event count specified with -n.
 			//
+			if(g_terminate)
+			{
+				g_terminating = true;
+			}
 			handle_end_of_file(inspector, print_progress, reset_colors, formatter);
 			break;
 		}
