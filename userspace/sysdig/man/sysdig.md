@@ -135,10 +135,17 @@ OPTIONS
 **-h**, **--help**
   Print this page
 
-**-I** _inputname_[:_inputargs_], **--input** _inputname_[:_inputargs_]
-  Capture events using the plugin with name inputname, passing to the plugin the inputargs string as parameters. The format of inputargs is controller by the plugin, refer to each plugin's documentation to learn about it. The event sources available for capture vary depending on which plugins have been installed. You can list the plugins that have been loaded by using the -Il flag.
+**-H** _pluginname_[:_initconfig_], **--plugin** _pluginname_[:_initconfig_]
+  Registers a plugin, using the passed init config if present. A path can also be used as pluginname. The format of initconf is controlled by the plugin, refer to each plugin's documentation to learn about it.
+
+**-I** _pluginname_[:_openparams_], **--input** _pluginname_[:_openparams_]
+  Capture events using the plugin with name pluginname, passing to the plugin the openparams string as parameters. The format of inputargs is controller by the plugin, refer to each plugin's documentation to learn about it. The event sources available for capture vary depending on which plugins have been installed. You can list the plugins that have been loaded by using the -Il flag.
+
 **-Il**, **--list-inputs**
   List the loaded plugins. Sysdig looks for plugins in the following directories: ./plugins, ~/.plugins, /usr/share/sysdig/plugins.
+
+**--plugin-config-file**
+  Load the plugin configuration from a Falco-compatible yaml config file. Mixing this option with '-H' or '-I' is unsupported. See the plugin section in https://falco.org/docs/configuration/ for additional informations.
 
 **-i _chiselname_**, **--chisel-info=**_chiselname_
   Get a longer description and the arguments associated with a chisel found in the -cl option list.
