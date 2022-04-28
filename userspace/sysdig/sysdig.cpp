@@ -968,9 +968,16 @@ static void list_plugins(sinsp *inspector)
 			os_info << "Type: source plugin" << std::endl;
 			os_info << "ID: " << splugin->id() << std::endl;
 			os_info << "Suggested Open Params:" << std::endl;
-			for (auto &oparam : splugin->list_open_params())
+			for(auto &oparam : splugin->list_open_params())
 			{
-				os_info << oparam.value << ": " << oparam.desc << std::endl;
+				if(oparam.desc == "")
+				{
+					os_info << oparam.value << std::endl;
+				}
+				else
+				{
+					os_info << oparam.value << ": " << oparam.desc << std::endl;
+				}
 			}
 		}
 		else
