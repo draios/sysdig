@@ -1004,7 +1004,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	int op;
 	uint64_t cnt = -1;
 	bool quiet = false;
+#ifdef HAS_FILTERING
 	bool is_filter_display = false;
+#endif
 	bool verbose = false;
 	bool list_flds = false;
 	bool list_flds_markdown = false;
