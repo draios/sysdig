@@ -1004,9 +1004,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	int op;
 	uint64_t cnt = -1;
 	bool quiet = false;
-#ifdef HAS_FILTERING
 	bool is_filter_display = false;
-#endif
 	bool verbose = false;
 	bool list_flds = false;
 	bool list_flds_markdown = false;
@@ -1669,7 +1667,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		//
 		if(optind + n_filterargs < argc)
 		{
-#ifdef HAS_FILTERING
 			for(int32_t j = optind + n_filterargs; j < argc; j++)
 			{
 				filter += argv[j];
@@ -1684,11 +1681,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				sinsp_filter_compiler compiler(inspector, filter);
 				display_filter = compiler.compile();
 			}
-#else
-			fprintf(stderr, "filtering not compiled.\n");
-			res.m_res = EXIT_FAILURE;
-			goto exit;
-#endif
 		}
 
 		if(signal(SIGINT, signal_callback) == SIG_ERR)
@@ -1767,12 +1759,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 		for(uint32_t j = 0; j < infiles.size() || infiles.empty(); j++)
 		{
-#ifdef HAS_FILTERING
 			if(!filter.empty() && !is_filter_display)
 			{
 				inspector->set_filter(filter);
 			}
-#endif
 
 			// Suppress any comms specified via -U. We
 			// need to do this *before* opening the

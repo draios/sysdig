@@ -668,7 +668,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		//
 		if(optind + n_filterargs < argc)
 		{
-#ifdef HAS_FILTERING
 			for(int32_t j = optind + n_filterargs; j < argc; j++)
 			{
 				filter += argv[j];
@@ -677,11 +676,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					filter += " ";
 				}
 			}
-#else
-			fprintf(stderr, "filtering not compiled.\n");
-			res.m_res = EXIT_FAILURE;
-			goto exit;
-#endif
 		}
 
 		if(!bpf)
