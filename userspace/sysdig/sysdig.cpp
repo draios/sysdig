@@ -962,13 +962,13 @@ static void list_plugins(sinsp *inspector)
 		auto schema = p->get_init_schema(schema_type);
 		os_info << "Init Config Schema: " << schema << std::endl;
 
-		if(p->type() == TYPE_SOURCE_PLUGIN)
+		if(p->caps() & CAP_SOURCING)
 		{
-			auto splugin = dynamic_cast<sinsp_source_plugin *>(p.get());
+			auto splugin = dynamic_cast<scap_source_plugin *>(p.get());
 			os_info << "Type: source plugin" << std::endl;
-			os_info << "ID: " << splugin->id() << std::endl;
+			os_info << "ID: " << splugin->id << std::endl;
 			os_info << "Suggested Open Params:" << std::endl;
-			for(auto &oparam : splugin->list_open_params())
+			for(auto &oparam : p->list_open_params())
 			{
 				if(oparam.desc == "")
 				{
