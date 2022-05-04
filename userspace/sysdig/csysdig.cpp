@@ -1018,6 +1018,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			}
 			delete mesos_api;
 			mesos_api = 0;
+#endif // MINIMAL_BUILD
 
 			if(output_type == sinsp_table::OT_JSON)
 			{
@@ -1027,7 +1028,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					printf("{\"progress\": 0},\n");
 				}
 			}
-#endif // MINIMAL_BUILD
 
 			//
 			// Start the capture loop
@@ -1038,11 +1038,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 
 			if(output_type == sinsp_table::OT_JSON)
 			{
-				// The following line produces malformed json when using
-				// csysdig with the -j option. We are leaving it here,
-				// commented, in case it's needed for tools that consume
-				// csysdig's json like sysdig inspect.
-				//printf("]}\n");
+				printf("]}\n");
 				//printf("%c", EOF);
 			}
 
