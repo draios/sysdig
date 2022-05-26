@@ -23,6 +23,12 @@ limitations under the License.
 
 #include <utility>
 
+#ifdef _WIN32
+#define SHAREDOBJ_EXT ".dll"
+#else
+#define SHAREDOBJ_EXT ".so"
+#endif
+
 vector<plugin_dir_info> g_plugin_dirs;
 
 /*
@@ -100,7 +106,13 @@ static bool iterate_plugins_dirs(const std::function<bool(const tinydir_file &)>
 			tinydir_file file;
 			tinydir_readfile(&dir, &file);
 
-			if (strcmp(file.name, ".") == 0 || strcmp(file.name, "..") == 0)
+			auto namelen = strlen(file.name);
+			auto extlen = strlen(SHAREDOBJ_EXT);
+			if (file.is_dir
+                || strcmp(file.name, ".") == 0
+				|| strcmp(file.name, "..") == 0
+				|| (namelen > extlen
+				    && strcmp(file.name + namelen -extlen, SHAREDOBJ_EXT) != 0))
 			{
 				continue;
 			}
