@@ -197,7 +197,7 @@ bool enable_source_plugin(sinsp *inspector)
         }
 
         auto plugin = itr->second;
-        if (plugin->caps() == CAP_SOURCING)
+        if (plugin->caps() & CAP_SOURCING)
         {
             if(source_plugin_enabled)
             {
@@ -292,7 +292,7 @@ bool parse_plugin_configuration_file(sinsp *inspector, const std::string& config
 			// This is always existent, otherwise select_plugin_init() throws an exception
 	        auto itr = g_selected_plugins_registered.find(library_path);
 	        auto p = itr->second;
-	        if (p->caps() == CAP_SOURCING)
+	        if (p->caps() & CAP_SOURCING)
 	        {
 		        select_plugin_enable(library_path, open_params);
 		        input_plugin = true;

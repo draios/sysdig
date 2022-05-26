@@ -960,7 +960,7 @@ static void list_plugins(sinsp *inspector)
 		os_info << "Capabilities: " << std::endl;
 		if(p->caps() & CAP_SOURCING)
 		{
-			os_info << "  - Event Sourcing: (ID=" << p->id();
+			os_info << "  - Event Sourcing (ID=" << p->id();
 			os_info << ", source='" << p->event_source() << "')" << std::endl;
 		}
 		if(p->caps() & CAP_EXTRACTION)
@@ -1808,10 +1808,13 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 					catch(const sinsp_exception& e)
 					{
-						if (!g_plugin_input)
+						if (g_plugin_input)
 						{
-							open_success = false;
+							throw e;
 						}
+						// if we are opening the syscall source, we retry later
+						// by loading the driver with modprobe
+						open_success = false;
 					}
 #ifndef _WIN32
 					//
