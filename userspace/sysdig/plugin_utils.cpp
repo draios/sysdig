@@ -127,7 +127,7 @@ void init_plugins(sinsp *inspector)
 	}
 
 	iterate_plugins_dirs([&inspector] (const tinydir_file file) -> bool {
-		auto plugin = sinsp_plugin::register_plugin(inspector, file.path, nullptr);
+		auto plugin = inspector->register_plugin(file.path, "");
 		g_selected_plugins_registered.emplace(plugin->name(), plugin);
 		return false;
 	});
@@ -138,7 +138,7 @@ void select_plugin_init(sinsp *inspector, string& name, const string& init_confi
 	// If it is a path, register it
 	if (name.find('/') != string::npos)
 	{
-		auto p = sinsp_plugin::register_plugin(inspector, name, init_config.c_str());
+		auto p = inspector->register_plugin(name, init_config);
 		g_selected_plugins_registered.emplace(name, p);
 		return;
 	}
@@ -151,7 +151,7 @@ void select_plugin_init(sinsp *inspector, string& name, const string& init_confi
 	bool found = iterate_plugins_dirs([&inspector, &name, &soname, &init_config] (const tinydir_file file) -> bool {
 		if (file.name == name || file.name == soname)
 		{
-			auto p = sinsp_plugin::register_plugin(inspector, file.path, init_config.c_str());
+			auto p = inspector->register_plugin(file.path, init_config);
 			g_selected_plugins_registered.emplace(name, p);
 			return true; // break-out
 		}
@@ -185,14 +185,13 @@ bool enable_source_plugin(sinsp *inspector)
         }
 
         auto plugin = itr->second;
-        if (plugin->type() == TYPE_SOURCE_PLUGIN)
+        if (plugin->caps() == CAP_SOURCING)
         {
             if(source_plugin_enabled)
             {
                 throw sinsp_exception("only one source plugin can be enabled at a time.");
             }
-            inspector->set_input_plugin(plugin->name());
-            inspector->set_input_plugin_open_params(open_params);
+            inspector->set_input_plugin(plugin->name(), open_params);
             source_plugin_enabled = true;
         }
     }
@@ -281,7 +280,7 @@ bool parse_plugin_configuration_file(sinsp *inspector, const std::string& config
 			// This is always existent, otherwise select_plugin_init() throws an exception
 	        auto itr = g_selected_plugins_registered.find(library_path);
 	        auto p = itr->second;
-	        if (p->type() == TYPE_SOURCE_PLUGIN)
+	        if (p->caps() == CAP_SOURCING)
 	        {
 		        select_plugin_enable(library_path, open_params);
 		        input_plugin = true;

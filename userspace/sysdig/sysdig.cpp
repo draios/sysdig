@@ -45,6 +45,7 @@ limitations under the License.
 #include "fields_info.h"
 #include "utils.h"
 #include "plugin.h"
+#include "plugin_manager.h"
 #include "plugin_utils.h"
 
 #ifdef _WIN32
@@ -942,7 +943,7 @@ static void list_plugins(sinsp *inspector)
 	// This will either register any found plugin or
 	// only plugins marked with '-H'
 	init_plugins(inspector);
-	auto plugins = inspector->get_plugins();
+	const auto& plugins = inspector->get_plugin_manager()->plugins();
 	std::ostringstream os_dirs, os_info;
 
 	for(const plugin_dir_info& path : get_plugin_dirs())
@@ -950,39 +951,21 @@ static void list_plugins(sinsp *inspector)
 		os_dirs << path.m_dir << " ";
 	}
 
-	for(auto &p : plugins)
+	for (auto &p : plugins)
 	{
 		os_info << "Name: " << p->name() << std::endl;
 		os_info << "Description: " << p->description() << std::endl;
 		os_info << "Contact: " << p->contact() << std::endl;
 		os_info << "Version: " << p->plugin_version().as_string() << std::endl;
-
-		// Print schema
-		ss_plugin_schema_type schema_type;
-		auto schema = p->get_init_schema(schema_type);
-		os_info << "Init Config Schema: " << schema << std::endl;
-
-		if(p->type() == TYPE_SOURCE_PLUGIN)
+		os_info << "Capabilities: " << std::endl;
+		if(p->caps() & CAP_SOURCING)
 		{
-			auto splugin = dynamic_cast<sinsp_source_plugin *>(p.get());
-			os_info << "Type: source plugin" << std::endl;
-			os_info << "ID: " << splugin->id() << std::endl;
-			os_info << "Suggested Open Params:" << std::endl;
-			for(auto &oparam : splugin->list_open_params())
-			{
-				if(oparam.desc == "")
-				{
-					os_info << oparam.value << std::endl;
-				}
-				else
-				{
-					os_info << oparam.value << ": " << oparam.desc << std::endl;
-				}
-			}
+			os_info << "  - Event Sourcing: (ID=" << p->id();
+			os_info << ", source='" << p->event_source() << "')" << std::endl;
 		}
-		else
+		if(p->caps() & CAP_EXTRACTION)
 		{
-			os_info << "Type: extractor plugin" << std::endl;
+			os_info << "  - Field Extraction" << std::endl;
 		}
 		os_info << std::endl;
 	}
