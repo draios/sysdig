@@ -250,6 +250,8 @@ static void usage()
 "                    environment from /proc instead of truncating to the first 4KiB\n"
 "                    This may fail for short-lived processes and in that case\n"
 "                    the truncated environment is used instead.\n"
+" --log-level=<trace|debug|info|notice|warning|error|critical|fatal>\n"
+"                    Select log level. Useful together with --debug.\n"
 " --list-markdown    like -l, but produces markdown output\n"
 " -m <url[,marathon_url]>, --mesos-api=<url[,marathon_url]>\n"
 "                    Enable Mesos support by connecting to the API server\n"
@@ -1085,6 +1087,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"list-events", no_argument, 0, 'L' },
 		{"list-markdown", no_argument, 0, 0 },
 		{"libs-version", no_argument, 0, 0},
+		{"log-level", required_argument, 0, 0 },
 #ifndef MINIMAL_BUILD
 		{"mesos-api", required_argument, 0, 'm'},
 #endif // MINIMAL_BUILD
@@ -1518,6 +1521,36 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						printf("falcosecurity/libs version %s", FALCOSECURITY_LIBS_VERSION);
 						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
+					}
+					else if (optname == "log-level") {
+						if (string(optarg) == "fatal") {
+							inspector->set_min_log_severity(sinsp_logger::SEV_FATAL);
+						}
+						else if (string(optarg) == "critical") {
+							inspector->set_min_log_severity(sinsp_logger::SEV_CRITICAL);
+						}
+						else if (string(optarg) == "error") {
+							inspector->set_min_log_severity(sinsp_logger::SEV_ERROR);
+						}
+						else if (string(optarg) == "warning") {
+							inspector->set_min_log_severity(sinsp_logger::SEV_WARNING);
+						}
+						else if (string(optarg) == "notice") {
+							inspector->set_min_log_severity(sinsp_logger::SEV_NOTICE);
+						}
+						else if (string(optarg) == "info") {
+							inspector->set_min_log_severity(sinsp_logger::SEV_INFO);
+						}
+						else if (string(optarg) == "debug") {
+							inspector->set_min_log_severity(sinsp_logger::SEV_DEBUG);
+						}
+						else if (string(optarg) == "trace") {
+							inspector->set_min_log_severity(sinsp_logger::SEV_TRACE);
+						} else {
+							fprintf(stderr, "invalid log level %s\n", optarg);
+							delete inspector;
+							return sysdig_init_res(EXIT_FAILURE);
+						}
 					}
 					else if (optname == "list-chisels") {
 						vector<chisel_desc> chlist;
