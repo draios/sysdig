@@ -141,6 +141,10 @@ void init_plugins(sinsp *inspector)
 	iterate_plugins_dirs([&inspector] (const tinydir_file file) -> bool {
 		auto plugin = inspector->register_plugin(file.path, "");
 		g_selected_plugins_registered.emplace(plugin->name(), plugin);
+		if (plugin->caps() & CAP_EXTRACTION)
+		{
+			g_filterlist.add_filter_check(sinsp_plugin::new_filtercheck(plugin));
+		}
 		return false;
 	});
 }
@@ -152,6 +156,10 @@ void select_plugin_init(sinsp *inspector, string& name, const string& init_confi
 	{
 		auto p = inspector->register_plugin(name, init_config);
 		g_selected_plugins_registered.emplace(name, p);
+		if (p->caps() & CAP_EXTRACTION)
+		{
+			g_filterlist.add_filter_check(sinsp_plugin::new_filtercheck(p));
+		}
 		return;
 	}
 
@@ -165,6 +173,10 @@ void select_plugin_init(sinsp *inspector, string& name, const string& init_confi
 		{
 			auto p = inspector->register_plugin(file.path, init_config);
 			g_selected_plugins_registered.emplace(name, p);
+			if (p->caps() & CAP_EXTRACTION)
+			{
+				g_filterlist.add_filter_check(sinsp_plugin::new_filtercheck(p));
+			}
 			return true; // break-out
 		}
 		return false;
@@ -204,6 +216,7 @@ bool enable_source_plugin(sinsp *inspector)
                 throw sinsp_exception("only one source plugin can be enabled at a time.");
             }
             inspector->set_input_plugin(plugin->name(), open_params);
+			g_filterlist.add_filter_check(inspector->new_generic_filtercheck());
             source_plugin_enabled = true;
         }
     }
