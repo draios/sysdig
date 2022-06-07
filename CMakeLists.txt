@@ -138,6 +138,10 @@ if(APPLE)
 	set(CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000")
 endif()
 
+if(NOT DEFINED SYSDIG_COMPONENT_NAME)
+    set(SYSDIG_COMPONENT_NAME "${CMAKE_PROJECT_NAME}")
+endif()
+
 include(falcosecurity-libs)
 include(yaml-cpp)
 include(nlohmann-json)
@@ -168,6 +172,12 @@ set(CPACK_PROJECT_CONFIG_FILE "${PROJECT_SOURCE_DIR}/CMakeCPackOptions.cmake")
 set(CPACK_STRIP_FILES "ON")
 
 set(CPACK_GENERATOR DEB RPM TGZ)
+
+# Built packages will include only the following components
+set(CPACK_INSTALL_CMAKE_PROJECTS
+  "${CMAKE_CURRENT_BINARY_DIR};${SYSDIG_COMPONENT_NAME};${SYSDIG_COMPONENT_NAME};/"
+  "${CMAKE_CURRENT_BINARY_DIR};${DRIVER_COMPONENT_NAME};${DRIVER_COMPONENT_NAME};/"
+)
 
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Sysdig <support@sysdig.com>")
 set(CPACK_DEBIAN_PACKAGE_SECTION "utils")

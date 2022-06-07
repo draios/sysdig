@@ -102,13 +102,13 @@ if(NOT WIN32)
 	add_subdirectory(man)
 
 	install(TARGETS sysdig 
-		DESTINATION bin)
+		DESTINATION bin COMPONENT "${SYSDIG_COMPONENT_NAME}")
 
 	install(TARGETS csysdig 
-		DESTINATION bin)
+		DESTINATION bin COMPONENT "${SYSDIG_COMPONENT_NAME}")
 
 	install(DIRECTORY chisels
-		DESTINATION share/sysdig)
+		DESTINATION share/sysdig COMPONENT "${SYSDIG_COMPONENT_NAME}")
 
 	file(COPY chisels
 		DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")

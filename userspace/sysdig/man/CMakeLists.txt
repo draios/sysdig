@@ -23,18 +23,18 @@ if (PANDOC)
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 		VERBATIM)
 	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/sysdig.8
-		DESTINATION share/man/man8)
+		DESTINATION share/man/man8 COMPONENT "${SYSDIG_COMPONENT_NAME}")
 
 	add_custom_target(man_csysdig ALL
 		COMMAND ${PANDOC} -s -f markdown_github -t man csysdig.md -o ${CMAKE_CURRENT_BINARY_DIR}/csysdig.8
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 		VERBATIM)
 	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/csysdig.8
-		DESTINATION share/man/man8)
+		DESTINATION share/man/man8 COMPONENT "${SYSDIG_COMPONENT_NAME}")
 else()
 	install(FILES sysdig.8
-		DESTINATION share/man/man8)
+		DESTINATION share/man/man8 COMPONENT "${SYSDIG_COMPONENT_NAME}")
 
 	install(FILES csysdig.8
-		DESTINATION share/man/man8)
+		DESTINATION share/man/man8 COMPONENT "${SYSDIG_COMPONENT_NAME}")
 endif()

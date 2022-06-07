@@ -46,6 +46,8 @@ else()
   set(FALCOSECURITY_LIBS_SOURCE_DIR "${FALCOSECURITY_LIBS_CMAKE_WORKING_DIR}/falcosecurity-libs-prefix/src/falcosecurity-libs")
 endif()
 
+set(LIBS_PACKAGE_NAME "sysdig")
+set(DRIVER_COMPONENT_NAME "scap-driver")
 set(DRIVER_VERSION "${FALCOSECURITY_LIBS_VERSION}")
 
 if(NOT LIBSCAP_DIR)
