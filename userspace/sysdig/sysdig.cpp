@@ -45,6 +45,7 @@ limitations under the License.
 #include "fields_info.h"
 #include "utils.h"
 #include "plugin.h"
+#include "plugin_manager.h"
 #include "plugin_utils.h"
 
 #ifdef _WIN32
@@ -944,7 +945,7 @@ static void list_plugins(sinsp *inspector)
 	// This will either register any found plugin or
 	// only plugins marked with '-H'
 	init_plugins(inspector);
-	auto plugins = inspector->get_plugins();
+	const auto& plugins = inspector->get_plugin_manager()->plugins();
 	std::ostringstream os_dirs, os_info;
 
 	for(const plugin_dir_info& path : get_plugin_dirs())
@@ -952,39 +953,21 @@ static void list_plugins(sinsp *inspector)
 		os_dirs << path.m_dir << " ";
 	}
 
-	for(auto &p : plugins)
+	for (auto &p : plugins)
 	{
 		os_info << "Name: " << p->name() << std::endl;
 		os_info << "Description: " << p->description() << std::endl;
 		os_info << "Contact: " << p->contact() << std::endl;
 		os_info << "Version: " << p->plugin_version().as_string() << std::endl;
-
-		// Print schema
-		ss_plugin_schema_type schema_type;
-		auto schema = p->get_init_schema(schema_type);
-		os_info << "Init Config Schema: " << schema << std::endl;
-
-		if(p->type() == TYPE_SOURCE_PLUGIN)
+		os_info << "Capabilities: " << std::endl;
+		if(p->caps() & CAP_SOURCING)
 		{
-			auto splugin = dynamic_cast<sinsp_source_plugin *>(p.get());
-			os_info << "Type: source plugin" << std::endl;
-			os_info << "ID: " << splugin->id() << std::endl;
-			os_info << "Suggested Open Params:" << std::endl;
-			for(auto &oparam : splugin->list_open_params())
-			{
-				if(oparam.desc == "")
-				{
-					os_info << oparam.value << std::endl;
-				}
-				else
-				{
-					os_info << oparam.value << ": " << oparam.desc << std::endl;
-				}
-			}
+			os_info << "  - Event Sourcing (ID=" << p->id();
+			os_info << ", source='" << p->event_source() << "')" << std::endl;
 		}
-		else
+		if(p->caps() & CAP_EXTRACTION)
 		{
-			os_info << "Type: extractor plugin" << std::endl;
+			os_info << "  - Field Extraction" << std::endl;
 		}
 		os_info << std::endl;
 	}
@@ -1699,7 +1682,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		//
 		if(optind + n_filterargs < argc)
 		{
-#ifdef HAS_FILTERING
 			for(int32_t j = optind + n_filterargs; j < argc; j++)
 			{
 				filter += argv[j];
@@ -1714,11 +1696,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				sinsp_filter_compiler compiler(inspector, filter);
 				display_filter = compiler.compile();
 			}
-#else
-			fprintf(stderr, "filtering not compiled.\n");
-			res.m_res = EXIT_FAILURE;
-			goto exit;
-#endif
 		}
 
 		if(signal(SIGINT, signal_callback) == SIG_ERR)
@@ -1797,12 +1774,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 		for(uint32_t j = 0; j < infiles.size() || infiles.empty(); j++)
 		{
-#ifdef HAS_FILTERING
 			if(!filter.empty() && !is_filter_display)
 			{
 				inspector->set_filter(filter);
 			}
-#endif
 
 			// Suppress any comms specified via -U. We
 			// need to do this *before* opening the
@@ -1866,10 +1841,13 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 					catch(const sinsp_exception& e)
 					{
-						if (!g_plugin_input)
+						if (g_plugin_input)
 						{
-							open_success = false;
+							throw e;
 						}
+						// if we are opening the syscall source, we retry later
+						// by loading the driver with modprobe
+						open_success = false;
 					}
 #ifndef _WIN32
 					//

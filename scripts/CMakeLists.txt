@@ -25,13 +25,13 @@ configure_file(rpm/preuninstall.in rpm/preuninstall)
 configure_file(scap-driver-loader.in scap-driver-loader @ONLY)
 
 install(FILES completions/bash/sysdig
-	DESTINATION "${DIR_ETC}/bash_completion.d")
+	DESTINATION "${DIR_ETC}/bash_completion.d" COMPONENT "${SYSDIG_COMPONENT_NAME}")
 
 install(FILES completions/zsh/_sysdig
-	DESTINATION share/zsh/vendor-completions)
+	DESTINATION share/zsh/vendor-completions COMPONENT "${SYSDIG_COMPONENT_NAME}")
 
 install(FILES completions/zsh/_sysdig
-	DESTINATION share/zsh/site-functions)
+	DESTINATION share/zsh/site-functions COMPONENT "${SYSDIG_COMPONENT_NAME}")
 
 install(PROGRAMS "${CMAKE_BINARY_DIR}/scripts/scap-driver-loader"
-	DESTINATION bin)
+	DESTINATION bin COMPONENT "${SYSDIG_COMPONENT_NAME}")
