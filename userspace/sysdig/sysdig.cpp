@@ -941,6 +941,7 @@ static void list_plugins(sinsp *inspector)
 {
 	// This will either register any found plugin or
 	// only plugins marked with '-H'
+	/*
 	init_plugins(inspector);
 	auto plugins = inspector->get_plugins();
 	std::ostringstream os_dirs, os_info;
@@ -989,6 +990,7 @@ static void list_plugins(sinsp *inspector)
 
 	printf("Plugin search paths are: %s\n", os_dirs.str().c_str());
 	printf("%lu Plugins Loaded:\n\n%s\n", plugins.size(), os_info.str().c_str());
+	*/
 }
 
 //
@@ -1042,6 +1044,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool udig = false;
 	bool gvisor = false;
 	string gvisor_socket;
+	string runsc_root_path;
+	string trace_session_config_path;
 	string inputname;
 	bool has_src_plugin = false;
 
@@ -1072,6 +1076,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"filter-proclist", no_argument, 0, 0 },
 		{"seconds", required_argument, 0, 'G' },
 		{"gvisor", optional_argument, 0, 'g'},
+		{"runsc-root-path", required_argument, 0, 0},
+		{"trace-session-config-path", required_argument, 0, 0},
 		{"help", no_argument, 0, 'h' },
 		{"plugin", required_argument, 0, 'H' },
 		{"input", required_argument, 0, 'I' },
@@ -1571,6 +1577,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					else if (optname == "page-faults") {
 						page_faults = true;
 					}
+
+					else if (optname == "runsc-root-path") {
+						runsc_root_path = optarg;
+					}
+
+					else if (optname == "trace-session-config-path") {
+						trace_session_config_path = optarg;
+					}
 				}
 				break;
 			// getopt_long : '?' for an ambiguous match or an extraneous parameter
@@ -1839,7 +1853,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				else if (gvisor)
 				{
-					inspector->open_gvisor(gvisor_socket);
+					inspector->open_gvisor(gvisor_socket, runsc_root_path, trace_session_config_path);
 				}
 				else
 				{

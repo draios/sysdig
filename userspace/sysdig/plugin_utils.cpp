@@ -172,7 +172,7 @@ void select_plugin_enable(string& name, const string& open_params)
 bool enable_source_plugin(sinsp *inspector)
 {
     bool source_plugin_enabled = false;
-
+    /*
     for(const auto& pginfo : g_selected_plugins_enable)
     {
         std::string name = pginfo.first;
@@ -196,7 +196,7 @@ bool enable_source_plugin(sinsp *inspector)
             source_plugin_enabled = true;
         }
     }
-
+    */
     return source_plugin_enabled;
 }
 
