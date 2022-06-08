@@ -22,6 +22,7 @@ limitations under the License.
 #include "plugin_utils.h"
 
 #include <utility>
+#include <third-party/tinydir.h>
 
 #ifdef _WIN32
 #define SHAREDOBJ_EXT ".dll"
@@ -29,79 +30,31 @@ limitations under the License.
 #define SHAREDOBJ_EXT ".so"
 #endif
 
-vector<plugin_dir_info> g_plugin_dirs;
-
-/*
- * Stores actually registered plugins; it can be either:
- *      a map between plugin name and plugin when user did not select any plugin (therefore plugins are loaded from system folders)
- *      a map between selected plugin name and plugin (selected through "-H" or conf file)
- *      NOTE: selected plugin name may differ from plugin name (it can be a path to the plugin)
- */
-std::map<std::string, std::shared_ptr<sinsp_plugin>> g_selected_plugins_registered;
-/*
- * Stores user-enabled plugins ('-I' flag) to be used as input plugins
- * (we only support one input, but conf file mandates the use of multiple ones)
- */
-std::map<std::string, std::string> g_selected_plugins_enable;
-
-void add_plugin_dir(string dirname, bool front_add)
+static inline void throw_not_found(std::string name)
 {
-    trim(dirname);
-
-    if (dirname[dirname.size() - 1] != '/')
-    {
-        dirname += "/";
-    }
-
-    plugin_dir_info di;
-    di.m_dir = std::move(dirname);
-
-    if (front_add)
-    {
-        g_plugin_dirs.insert(g_plugin_dirs.begin(), di);
-    }
-    else
-    {
-        g_plugin_dirs.push_back(di);
-    }
+    throw sinsp_exception("plugin not found, use -Il to list all the installed plugins: " + name);
 }
 
-void add_plugin_dirs(string sysdig_plugins_dir)
+static inline void throw_no_source_cap(std::string name)
 {
-    //
-    // Add the default plugin directory statically configured by the build system
-    //
-    add_plugin_dir(std::move(sysdig_plugins_dir), false);
-
-    //
-    // Add the directories configured in the SYSDIG_PLUGIN_DIR environment variable
-    //
-    char *s_user_cdirs = getenv("SYSDIG_PLUGIN_DIR");
-
-    if (s_user_cdirs != nullptr)
-    {
-        vector<string> user_cdirs = sinsp_split(s_user_cdirs, ';');
-
-        for (auto & user_cdir : user_cdirs)
-        {
-            add_plugin_dir(user_cdir, true);
-        }
-    }
+    throw sinsp_exception("plugin does not support the event sourcing capability: " + name);
 }
 
-static bool iterate_plugins_dirs(const std::function<bool(const tinydir_file &)>& predicate)
+static bool iterate_plugins_dirs(
+    const std::vector<std::string>& dirs,
+    const std::function<bool(const tinydir_file &)>& predicate)
 {
 	bool breakout = false;
-	for (const auto & plugin_dir : g_plugin_dirs)
+	for (const auto & plugin_dir : dirs)
 	{
-		if (string(plugin_dir.m_dir).empty())
+		if (plugin_dir.empty())
 		{
 			continue;
 		}
 
 		tinydir_dir dir = {};
 
-		for (tinydir_open(&dir, plugin_dir.m_dir.c_str()); dir.has_next && !breakout; tinydir_next(&dir))
+		for (tinydir_open(&dir, plugin_dir.c_str()); dir.has_next && !breakout; tinydir_next(&dir))
 		{
 			tinydir_file file;
 			tinydir_readfile(&dir, &file);
@@ -129,37 +82,87 @@ static bool iterate_plugins_dirs(const std::function<bool(const tinydir_file &)>
 	return breakout;
 }
 
-void init_plugins(sinsp *inspector)
+void plugin_utils::plugin_entry::init(const std::string& conf)
 {
-	// If any plugin was already registered, it means we are in the
-	// "-H"/conf file use case; we already registered any desired plugin!
-	if (!g_selected_plugins_registered.empty())
-	{
-		return;
-	}
-
-	iterate_plugins_dirs([&inspector] (const tinydir_file file) -> bool {
-		auto plugin = inspector->register_plugin(file.path, "");
-		g_selected_plugins_registered.emplace(plugin->name(), plugin);
-		if (plugin->caps() & CAP_EXTRACTION)
-		{
-			g_filterlist.add_filter_check(sinsp_plugin::new_filtercheck(plugin));
-		}
-		return false;
-	});
+    if (!inited)
+    {
+        std::string err;
+        if (!plugin->init(conf, err))
+        {
+            throw sinsp_exception(err.c_str());
+        }
+        if (plugin->caps() & CAP_EXTRACTION)
+        {
+            g_filterlist.add_filter_check(sinsp_plugin::new_filtercheck(plugin));
+        }
+        inited = true;
+    }
 }
 
-void select_plugin_init(sinsp *inspector, string& name, const string& init_config)
+void plugin_utils::add_dir(std::string dirname, bool front_add)
 {
-	// If it is a path, register it
+    trim(dirname);
+
+    if (dirname[dirname.size() - 1] != '/')
+    {
+        dirname += "/";
+    }
+
+    if (front_add)
+    {
+        m_dirs.insert(m_dirs.begin(), std::move(dirname));
+    }
+    else
+    {
+        m_dirs.push_back(std::move(dirname));
+    }
+}
+
+plugin_utils::plugin_utils()
+    : m_has_input_plugin(false)
+{
+    //
+    // Add the directories configured in the SYSDIG_PLUGIN_DIR environment variable
+    //
+    char *s_user_cdirs = getenv("SYSDIG_PLUGIN_DIR");
+
+    if (s_user_cdirs != nullptr)
+    {
+        vector<string> user_cdirs = sinsp_split(s_user_cdirs, ';');
+
+        for (auto & user_cdir : user_cdirs)
+        {
+            add_dir(user_cdir, true);
+        }
+    }
+}
+
+bool plugin_utils::has_plugins() const
+{
+    return !m_plugins.empty();
+}
+
+bool plugin_utils::has_input_plugin() const
+{
+    return m_has_input_plugin;
+}
+
+void plugin_utils::add_directory(const std::string& plugins_dir)
+{
+    add_dir(plugins_dir, false);
+}
+
+void plugin_utils::load_plugin(sinsp *inspector, const string& name)
+{
+    // If it is a path, register it
 	if (name.find('/') != string::npos)
 	{
-		auto p = inspector->register_plugin(name, init_config);
-		g_selected_plugins_registered.emplace(name, p);
-		if (p->caps() & CAP_EXTRACTION)
-		{
-			g_filterlist.add_filter_check(sinsp_plugin::new_filtercheck(p));
-		}
+        plugin_entry p;
+        p.inited = false;
+		p.plugin = inspector->register_plugin(name);
+        p.names.insert(name);
+        p.names.insert(p.plugin->name());
+        m_plugins.push_back(p);
 		return;
 	}
 
@@ -167,71 +170,175 @@ void select_plugin_init(sinsp *inspector, string& name, const string& init_confi
 
 	// In case users passed "dummy" in place of "libdummy.so"
 	string soname = "lib" + name + ".so";
-
-	bool found = iterate_plugins_dirs([&inspector, &name, &soname, &init_config] (const tinydir_file file) -> bool {
+    auto& plugins = m_plugins;
+	bool found = iterate_plugins_dirs(m_dirs, [&inspector, &name, &soname, &plugins] (const tinydir_file file) -> bool {
 		if (file.name == name || file.name == soname)
 		{
-			auto p = inspector->register_plugin(file.path, init_config);
-			g_selected_plugins_registered.emplace(name, p);
-			if (p->caps() & CAP_EXTRACTION)
-			{
-				g_filterlist.add_filter_check(sinsp_plugin::new_filtercheck(p));
-			}
+            plugin_entry p;
+            p.inited = false;
+            p.plugin = inspector->register_plugin(file.path);
+            p.names.insert(file.path);
+            p.names.insert(file.name);
+            p.names.insert(p.plugin->name());
+            plugins.push_back(p);
 			return true; // break-out
 		}
 		return false;
 	});
 	if (!found)
 	{
-		throw sinsp_exception("plugin " + name + " not found. Use -Il to list all installed plugins.");
+		throw_not_found(name);
 	}
 }
 
-// "-I" or config file
-void select_plugin_enable(string& name, const string& open_params)
+void plugin_utils::load_plugins_from_dirs(sinsp *inspector)
 {
-    g_selected_plugins_enable.emplace(name, open_params);
+    auto& plugins = m_plugins;
+    iterate_plugins_dirs(m_dirs, [&inspector, &plugins] (const tinydir_file file) -> bool {
+        plugin_entry p;
+        p.inited = false;
+        p.plugin = inspector->register_plugin(file.path);
+        p.names.insert(file.path);
+        p.names.insert(file.name);
+        p.names.insert(p.plugin->name());
+        p.init("");
+        plugins.push_back(p);
+        return false;
+	});
 }
 
-bool enable_source_plugin(sinsp *inspector)
+plugin_utils::plugin_entry& plugin_utils::find_plugin(const std::string name)
 {
-    bool source_plugin_enabled = false;
-
-    for(const auto& pginfo : g_selected_plugins_enable)
+    for (auto &p : m_plugins)
     {
-        std::string name = pginfo.first;
-        std::string open_params = pginfo.second;
-
-	    auto itr = g_selected_plugins_registered.find(name);
-	    if (itr == g_selected_plugins_registered.end())
+        if (p.names.find(name) != p.names.end())
         {
-            throw sinsp_exception("plugin " + name + " not loaded. Use -H to load it.");
-        }
-
-        auto plugin = itr->second;
-        if (plugin->caps() & CAP_SOURCING)
-        {
-            if(source_plugin_enabled)
-            {
-                throw sinsp_exception("only one source plugin can be enabled at a time.");
-            }
-            inspector->set_input_plugin(plugin->name(), open_params);
-			g_filterlist.add_filter_check(inspector->new_generic_filtercheck());
-            source_plugin_enabled = true;
+            return p;
         }
     }
-
-    return source_plugin_enabled;
+    throw_not_found(name);
 }
 
-vector<plugin_dir_info> get_plugin_dirs()
+const plugin_utils::plugin_entry& plugin_utils::find_plugin(const std::string name) const
 {
-    return g_plugin_dirs;
+    for (auto &p : m_plugins)
+    {
+        if (p.names.find(name) != p.names.end())
+        {
+            return p;
+        }
+    }
+    throw_not_found(name);
 }
 
-bool parse_plugin_configuration_file(sinsp *inspector, const std::string& config_filename)
+void plugin_utils::init_plugin(sinsp *inspector, const string& name, const string& conf)
 {
-	bool input_plugin = false;
+    auto& p = find_plugin(name);
+    p.init(conf);
+}
+
+void plugin_utils::set_input_plugin(sinsp *inspector, const string& name, const string& params)
+{
+    auto& p = find_plugin(name);
+    if (p.plugin->caps() & CAP_SOURCING)
+    {
+        if (m_has_input_plugin)
+        {
+            throw sinsp_exception("using more than one plugin as input is not supported");
+        }
+        inspector->set_input_plugin(p.plugin->name(), params);
+        g_filterlist.add_filter_check(inspector->new_generic_filtercheck());
+        m_has_input_plugin = true;
+        return;
+    }
+    throw_no_source_cap(name);
+}
+
+void plugin_utils::print_plugins_list(sinsp* inspector, std::ostringstream& os) const
+{
+	std::ostringstream os_dirs, os_info;
+
+	for(const auto& path : m_dirs)
+	{
+		os_dirs << path << " ";
+	}
+
+	for (auto &pl : m_plugins)
+	{
+        auto p = pl.plugin;
+		os_info << "Name: " << p->name() << std::endl;
+		os_info << "Description: " << p->description() << std::endl;
+		os_info << "Contact: " << p->contact() << std::endl;
+		os_info << "Version: " << p->plugin_version().as_string() << std::endl;
+		os_info << "Capabilities: " << std::endl;
+		if(p->caps() & CAP_SOURCING)
+		{
+			os_info << "  - Event Sourcing (ID=" << p->id();
+			os_info << ", source='" << p->event_source() << "')" << std::endl;
+		}
+		if(p->caps() & CAP_EXTRACTION)
+		{
+			os_info << "  - Field Extraction" << std::endl;
+		}
+		os_info << std::endl;
+	}
+
+	os << "Plugin search paths are: " << os_dirs.str() << std::endl;
+	os << m_plugins.size() << " Plugins Loaded:" << std::endl << std::endl << os_info.str() << std::endl;
+}
+
+void plugin_utils::print_plugin_init_schema(sinsp* inspector, const string& name, std::ostringstream& os) const
+{
+    auto& p = find_plugin(name);
+    ss_plugin_schema_type type;
+    auto schema = p.plugin->get_init_schema(type);
+    os << "Plugin: " << p.plugin->name() << std::endl;
+    switch (type)
+    {
+        case SS_PLUGIN_SCHEMA_JSON:
+            os << "Schema type: JSON" << std::endl;
+            break;
+        case SS_PLUGIN_SCHEMA_NONE:
+        default:
+            os << "No init config schema available" << std::endl;
+            break;
+    }
+    os << schema << std::endl;
+}
+
+void plugin_utils::print_plugin_open_params(sinsp* inspector, const string& name, std::ostringstream& os) const
+{
+    auto& p = find_plugin(name);
+    if (p.plugin->caps() & CAP_SOURCING)
+    {
+        auto params = p.plugin->list_open_params();
+        os << "Plugin: " << p.plugin->name() << std::endl;
+        if (params.empty())
+        {
+            os << "No suggested open params available" << std::endl;
+        }
+        else
+        {
+            os << "Suggested open params:" << std::endl;
+            for(auto &oparam : p.plugin->list_open_params())
+            {
+                if(oparam.desc == "")
+                {
+                    os << oparam.value << std::endl;
+                }
+                else
+                {
+                    os << oparam.value << ": " << oparam.desc << std::endl;
+                }
+            }
+        }
+        return;
+    }
+    throw_no_source_cap(name);
+}
+
+void plugin_utils::load_plugins_from_conf_file(sinsp *inspector, const std::string& config_filename)
+{
     YAML::Node config;
     std::string config_explanation = ". See https://falco.org/docs/plugins/#loading-plugins-in-falco for additional information.";
     try {
@@ -301,16 +408,13 @@ bool parse_plugin_configuration_file(sinsp *inspector, const std::string& config
 
 	    if (!filter_load_plugins || load_plugins.find(name) != load_plugins.end())
         {
-	        select_plugin_init(inspector, library_path, init_config);
-			// This is always existent, otherwise select_plugin_init() throws an exception
-	        auto itr = g_selected_plugins_registered.find(library_path);
-	        auto p = itr->second;
-	        if (p->caps() & CAP_SOURCING)
-	        {
-		        select_plugin_enable(library_path, open_params);
-		        input_plugin = true;
-			}
+            load_plugin(inspector, library_path);
+            init_plugin(inspector, library_path, init_config);
+            auto& p = find_plugin(library_path);
+            if (p.plugin->caps() & CAP_SOURCING)
+            {
+                set_input_plugin(inspector, library_path, open_params);
+            }
         }
     }
-	return input_plugin;
 }

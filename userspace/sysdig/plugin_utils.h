@@ -23,39 +23,51 @@ limitations under the License.
 #include <sys/stat.h>
 
 #include <sinsp.h>
+#include <plugin.h>
 #include "sysdig.h"
-#include "plugin.h"
 
 #include <yaml-cpp/yaml.h>
 #include <nlohmann/json.hpp>
-#include <third-party/tinydir.h>
 
-//
-// Plugin Directory info
-//
-typedef struct plugin_dir_info
+class plugin_utils
 {
-    std::string m_dir;
-} plugin_dir_info;
+public:
+	plugin_utils();
 
-typedef struct
-{
-	std::string path;
-	std::string init_config;
-} plugin_selected_init;
+	void add_directory(const std::string& plugins_dir);
 
-void add_plugin_dir(string dirname, bool front_add);
-void add_plugin_dirs(string sysdig_plugins_dir);
-std::vector<plugin_dir_info> get_plugin_dirs();
-// Select a plugin for initialization. Name can be either a name or a path.
-void select_plugin_init(sinsp *inspector, string& name, const string& init_config);
-// Select a plugin for use. In case of a source plugin, it will be opened (optionally with parameters) and used.
-void select_plugin_enable(string& name, const string& open_params);
-void init_plugins(sinsp *inspector);
-// Returns whether a source plugin was actually enabled
-bool enable_source_plugin(sinsp *inspector);
-// Returns whether a source plugin was requested
-bool parse_plugin_configuration_file(sinsp *inspector, const std::string& config_filename);
+	void load_plugin(sinsp *inspector, const string& name);
+	void load_plugins_from_dirs(sinsp *inspector);
+	void load_plugins_from_conf_file(sinsp *inspector, const std::string& config_filename);
+
+	void init_plugin(sinsp *inspector, const string& name, const string& conf);
+
+	void set_input_plugin(sinsp *inspector, const string& name, const string& params);
+
+	void print_plugins_list(sinsp* inspector, std::ostringstream& os) const;
+	void print_plugin_init_schema(sinsp* inspector, const string& name, std::ostringstream& os) const;
+	void print_plugin_open_params(sinsp* inspector, const string& name, std::ostringstream& os) const;
+
+	bool has_plugins() const;
+	bool has_input_plugin() const;
+
+private:
+	struct plugin_entry {
+		bool inited;
+		std::set<std::string> names;
+		std::shared_ptr<sinsp_plugin> plugin;
+		
+		void init(const std::string& conf);
+	};
+
+	void add_dir(std::string dirname, bool front_add);
+	plugin_entry& find_plugin(const std::string name);
+	const plugin_entry& find_plugin(const std::string name) const;
+
+	bool m_has_input_plugin;
+	std::vector<std::string> m_dirs;
+	std::vector<plugin_entry> m_plugins;
+};
 
 namespace YAML {
 	template<>
@@ -109,3 +121,4 @@ namespace YAML {
 		}
 	};
 }
+
