@@ -320,7 +320,7 @@ void plugin_utils::print_plugin_info(sinsp* inspector, const string& name)
             break;
         case SS_PLUGIN_SCHEMA_NONE:
         default:
-            os << "Not available" << std::endl;
+            os << "Not available, plugin does not implement the init config schema functionality" << std::endl;
             break;
     }
     os << schema << std::endl;
@@ -338,7 +338,8 @@ void plugin_utils::print_plugin_info(sinsp* inspector, const string& name)
         auto params = p.plugin->list_open_params();
         if (params.empty())
         {
-            os << "No suggested open params available" << std::endl;
+            os << "No suggested open params available: ";
+            os << "plugin has not been configured, or it does not implement the open params suggestion functionality" << std::endl;
         }
         else
         {
