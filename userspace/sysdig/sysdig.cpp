@@ -214,11 +214,6 @@ static void usage()
 " -i <chiselname>, --chisel-info <chiselname>\n"
 "                    Get a longer description and the arguments associated with\n"
 "                    a chisel found in the -cl option list.\n"
-" --input-open-params <pluginname>\n"
-"                    Print the list of suggest open parameters for a previously\n"
-"                    registered plugin, if present.\n"
-"                    Any of the values in the returned list are valid parameters for opening\n"
-"                    the plugin as an input with the -I option.\n"
 #endif
 " -j, --json         Emit output as json, data buffer encoding will depend from the\n"
 "                    print format selected.\n"
@@ -280,10 +275,15 @@ static void usage()
 "                    With -pk or -pkubernetes will use a kubernetes-friendly format.\n"
 "                    With -pm or -pmesos will use a mesos-friendly format.\n"
 "                    See the examples section below for more info.\n"
-" --plugin-init-schema <pluginname>\n"
-"                    Print the schema for the init configuration of a plugin, if present.\n"
-"                    The format of the schema is controlled by the plugin, refer to each\n"
-"                    plugin's documentation to learn about it.\n"
+" --plugin-info <pluginname>\n"
+"                    Print info for a single plugin. This includes name, author,\n"
+"                    and all the descriptive info of the plugin. If present,\n"
+"                    this also prints the schema format for the init configuration\n"
+"                    and a list of suggested open parameters.\n"
+"                    All this info is controlled by the plugin, refer to each\n"
+"                    plugin's documentation to learn more about it.\n"
+"                    This can be combined with the -H option to load the plugin\n"
+"                    with a given configuration.\n"
 "                    A path can also be used as pluginname.\n"
 " -q, --quiet        Don't print events on the screen\n"
 "                    Useful when dumping to disk.\n"
@@ -1027,9 +1027,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"filter-proclist", no_argument, 0, 0 },
 		{"seconds", required_argument, 0, 'G' },
 		{"help", no_argument, 0, 'h' },
-		{"plugin", required_argument, 0, 'H' },
 		{"input", required_argument, 0, 'I' },
-		{"input-open-params", required_argument, 0, 0 },
 #ifdef HAS_CHISELS
 		{"chisel-info", required_argument, 0, 'i' },
 #endif
@@ -1051,8 +1049,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #endif // MINIMAL_BUILD
 		{"numevents", required_argument, 0, 'n' },
 		{"page-faults", no_argument, 0, 0 },
+		{"plugin", required_argument, 0, 'H' },
 		{"plugin-config-file", required_argument, 0, 0},
-		{"plugin-init-schema", required_argument, 0, 0 },
+		{"plugin-info", required_argument, 0, 0 },
 		{"progress", required_argument, 0, 'P' },
 		{"print", required_argument, 0, 'p' },
 		{"quiet", no_argument, 0, 'q' },
@@ -1219,9 +1218,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					string inputname = optarg;
 					if(inputname == "l")
 					{
-						std::ostringstream os;
-						plugins.print_plugins_list(inspector, os);
-						printf("%s", os.str().c_str());
+						plugins.print_plugin_info_list(inspector);
+						printf("More detailed info about individual plugins can be printed with the --plugin-info option:\n");
+						printf(" Detailed info about a single plugin\n");
+						printf("   $ sysdig --plugin-info=dummy\n\n");
+						printf(" Detailed info about a single plugin with a given configuration\n");
+						printf("   $ sysdig -H dummy:'{\"jitter\":50}' --plugin-info=dummy\n\n");
 						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
@@ -1552,23 +1554,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						page_faults = true;
 					}
 
-					else if (optname == "plugin-init-schema")
+					else if (optname == "plugin-info")
 					{
 						auto name = std::string(optarg);
-						std::ostringstream os;
-						plugins.load_plugin(inspector, name);
-						plugins.print_plugin_init_schema(inspector, name, os);
-						printf("%s", os.str().c_str());
-						delete inspector;
-						return sysdig_init_res(EXIT_SUCCESS);
-					}
-
-					else if (optname == "input-open-params")
-					{
-						auto name = std::string(optarg);
-						std::ostringstream os;
-						plugins.print_plugin_open_params(inspector, name, os);
-						printf("%s", os.str().c_str());
+						plugins.print_plugin_info(inspector, name);
 						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}

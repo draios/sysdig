@@ -92,6 +92,24 @@ void plugin_utils::plugin_entry::init(const std::string& conf)
     }
 }
 
+void plugin_utils::plugin_entry::print_info(std::ostringstream& os) const
+{
+    os << "Name: " << plugin->name() << std::endl;
+    os << "Description: " << plugin->description() << std::endl;
+    os << "Contact: " << plugin->contact() << std::endl;
+    os << "Version: " << plugin->plugin_version().as_string() << std::endl;
+    os << "Capabilities: " << std::endl;
+    if(plugin->caps() & CAP_SOURCING)
+    {
+        os << "  - Event Sourcing (ID=" << plugin->id();
+        os << ", source='" << plugin->event_source() << "')" << std::endl;
+    }
+    if(plugin->caps() & CAP_EXTRACTION)
+    {
+        os << "  - Field Extraction" << std::endl;
+    }
+}
+
 void plugin_utils::add_dir(std::string dirname, bool front_add)
 {
     trim(dirname);
@@ -147,6 +165,15 @@ void plugin_utils::add_directory(const std::string& plugins_dir)
 
 void plugin_utils::load_plugin(sinsp *inspector, const string& name)
 {
+    // avoid duplicate loads
+    for (auto &p : m_plugins)
+    {
+        if (p.names.find(name) != p.names.end())
+        {
+            return;
+        }
+    }
+
     // If it is a path, register it
 	if (name.find('/') != string::npos)
 	{
@@ -247,9 +274,9 @@ void plugin_utils::set_input_plugin(sinsp *inspector, const string& name, const 
     throw sinsp_exception(err_plugin_no_source_cap + name);
 }
 
-void plugin_utils::print_plugins_list(sinsp* inspector, std::ostringstream& os) const
+void plugin_utils::print_plugin_info_list(sinsp* inspector) const
 {
-	std::ostringstream os_dirs, os_info;
+	std::ostringstream os, os_dirs, os_info;
 
 	for(const auto& path : m_dirs)
 	{
@@ -258,54 +285,57 @@ void plugin_utils::print_plugins_list(sinsp* inspector, std::ostringstream& os) 
 
 	for (auto &pl : m_plugins)
 	{
-        auto p = pl.plugin;
-		os_info << "Name: " << p->name() << std::endl;
-		os_info << "Description: " << p->description() << std::endl;
-		os_info << "Contact: " << p->contact() << std::endl;
-		os_info << "Version: " << p->plugin_version().as_string() << std::endl;
-		os_info << "Capabilities: " << std::endl;
-		if(p->caps() & CAP_SOURCING)
-		{
-			os_info << "  - Event Sourcing (ID=" << p->id();
-			os_info << ", source='" << p->event_source() << "')" << std::endl;
-		}
-		if(p->caps() & CAP_EXTRACTION)
-		{
-			os_info << "  - Field Extraction" << std::endl;
-		}
-		os_info << std::endl;
+        pl.print_info(os_info);
+        os_info << std::endl;
 	}
 
 	os << "Plugin search paths are: " << os_dirs.str() << std::endl;
 	os << m_plugins.size() << " Plugins Loaded:" << std::endl << std::endl << os_info.str() << std::endl;
+    printf("%s", os.str().c_str());
 }
 
-void plugin_utils::print_plugin_init_schema(sinsp* inspector, const string& name, std::ostringstream& os) const
+void plugin_utils::print_plugin_info(sinsp* inspector, const string& name)
 {
+    std::ostringstream os;
+
+    // try loading the plugin (if already loaded, this has no effect)
+    load_plugin(inspector, name);
     auto& p = find_plugin(name);
+    
+    // print plugin static info
+    p.print_info(os);
+    os << std::endl;
+    printf("%s", os.str().c_str());
+
+    // print plugin init schema
+    os.str("");
+    os.clear();
     ss_plugin_schema_type type;
     auto schema = p.plugin->get_init_schema(type);
-    os << "Plugin: " << p.plugin->name() << std::endl;
+    os << "Init config schema type: ";
     switch (type)
     {
         case SS_PLUGIN_SCHEMA_JSON:
-            os << "Schema type: JSON" << std::endl;
+            os << "JSON" << std::endl;
             break;
         case SS_PLUGIN_SCHEMA_NONE:
         default:
-            os << "No init config schema available" << std::endl;
+            os << "Not available" << std::endl;
             break;
     }
     os << schema << std::endl;
-}
+    os << std::endl;
+    printf("%s", os.str().c_str());
 
-void plugin_utils::print_plugin_open_params(sinsp* inspector, const string& name, std::ostringstream& os) const
-{
-    auto& p = find_plugin(name);
+    // init the plugin with empty config (ignored if already inited)
+    p.init("");
+
+    // print plugin suggested open parameters
     if (p.plugin->caps() & CAP_SOURCING)
     {
+        os.str("");
+        os.clear();
         auto params = p.plugin->list_open_params();
-        os << "Plugin: " << p.plugin->name() << std::endl;
         if (params.empty())
         {
             os << "No suggested open params available" << std::endl;
@@ -325,9 +355,9 @@ void plugin_utils::print_plugin_open_params(sinsp* inspector, const string& name
                 }
             }
         }
-        return;
+        os << std::endl;
+        printf("%s", os.str().c_str());
     }
-    throw sinsp_exception(err_plugin_no_source_cap + name);
 }
 
 void plugin_utils::load_plugins_from_conf_file(sinsp *inspector, const std::string& config_filename)

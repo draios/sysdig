@@ -44,9 +44,8 @@ public:
 
 	void set_input_plugin(sinsp *inspector, const string& name, const string& params);
 
-	void print_plugins_list(sinsp* inspector, std::ostringstream& os) const;
-	void print_plugin_init_schema(sinsp* inspector, const string& name, std::ostringstream& os) const;
-	void print_plugin_open_params(sinsp* inspector, const string& name, std::ostringstream& os) const;
+	void print_plugin_info(sinsp* inspector, const string& name);
+	void print_plugin_info_list(sinsp* inspector) const;
 
 	bool has_plugins() const;
 	bool has_input_plugin() const;
@@ -58,6 +57,7 @@ private:
 		std::shared_ptr<sinsp_plugin> plugin;
 		
 		void init(const std::string& conf);
+		void print_info(std::ostringstream& os) const;
 	};
 
 	void add_dir(std::string dirname, bool front_add);
