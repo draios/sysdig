@@ -380,6 +380,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	bool force_term_compat = false;
 	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
 	bool page_faults = false;
+	plugin_utils plugins;
 
 	static struct option long_options[] =
 	{
@@ -434,8 +435,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 #ifdef HAS_CHISELS
 		add_chisel_dirs(inspector);
 #endif
-		add_plugin_dirs(SYSDIG_PLUGINS_DIR);
-		init_plugins(inspector);
+		plugins.add_directory(SYSDIG_PLUGINS_DIR);
+		plugins.load_plugins_from_dirs(inspector);
 
 		//
 		// Parse the args

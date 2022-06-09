@@ -30,15 +30,8 @@ limitations under the License.
 #define SHAREDOBJ_EXT ".so"
 #endif
 
-static inline void throw_not_found(std::string name)
-{
-    throw sinsp_exception("plugin not found, use -Il to list all the installed plugins: " + name);
-}
-
-static inline void throw_no_source_cap(std::string name)
-{
-    throw sinsp_exception("plugin does not support the event sourcing capability: " + name);
-}
+static const char* err_plugin_not_found = "plugin not found, use -Il to list all the installed plugins: ";
+static const char* err_plugin_no_source_cap = "plugin does not support the event sourcing capability: ";
 
 static bool iterate_plugins_dirs(
     const std::vector<std::string>& dirs,
@@ -187,7 +180,7 @@ void plugin_utils::load_plugin(sinsp *inspector, const string& name)
 	});
 	if (!found)
 	{
-		throw_not_found(name);
+		throw sinsp_exception(err_plugin_not_found + name);
 	}
 }
 
@@ -216,7 +209,7 @@ plugin_utils::plugin_entry& plugin_utils::find_plugin(const std::string name)
             return p;
         }
     }
-    throw_not_found(name);
+    throw sinsp_exception(err_plugin_not_found + name);
 }
 
 const plugin_utils::plugin_entry& plugin_utils::find_plugin(const std::string name) const
@@ -228,7 +221,7 @@ const plugin_utils::plugin_entry& plugin_utils::find_plugin(const std::string na
             return p;
         }
     }
-    throw_not_found(name);
+    throw sinsp_exception(err_plugin_not_found + name);
 }
 
 void plugin_utils::init_plugin(sinsp *inspector, const string& name, const string& conf)
@@ -251,7 +244,7 @@ void plugin_utils::set_input_plugin(sinsp *inspector, const string& name, const 
         m_has_input_plugin = true;
         return;
     }
-    throw_no_source_cap(name);
+    throw sinsp_exception(err_plugin_no_source_cap + name);
 }
 
 void plugin_utils::print_plugins_list(sinsp* inspector, std::ostringstream& os) const
@@ -334,7 +327,7 @@ void plugin_utils::print_plugin_open_params(sinsp* inspector, const string& name
         }
         return;
     }
-    throw_no_source_cap(name);
+    throw sinsp_exception(err_plugin_no_source_cap + name);
 }
 
 void plugin_utils::load_plugins_from_conf_file(sinsp *inspector, const std::string& config_filename)
