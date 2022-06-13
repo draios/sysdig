@@ -139,7 +139,7 @@ void init_plugins(sinsp *inspector)
 	}
 
 	iterate_plugins_dirs([&inspector] (const tinydir_file file) -> bool {
-		auto plugin = inspector->register_plugin(file.path, "");
+		auto plugin = inspector->register_plugin(file.path);
 		g_selected_plugins_registered.emplace(plugin->name(), plugin);
 		if (plugin->caps() & CAP_EXTRACTION)
 		{
@@ -154,7 +154,7 @@ void select_plugin_init(sinsp *inspector, string& name, const string& init_confi
 	// If it is a path, register it
 	if (name.find('/') != string::npos)
 	{
-		auto p = inspector->register_plugin(name, init_config);
+		auto p = inspector->register_plugin(name);
 		g_selected_plugins_registered.emplace(name, p);
 		if (p->caps() & CAP_EXTRACTION)
 		{
@@ -171,7 +171,7 @@ void select_plugin_init(sinsp *inspector, string& name, const string& init_confi
 	bool found = iterate_plugins_dirs([&inspector, &name, &soname, &init_config] (const tinydir_file file) -> bool {
 		if (file.name == name || file.name == soname)
 		{
-			auto p = inspector->register_plugin(file.path, init_config);
+			auto p = inspector->register_plugin(file.path);
 			g_selected_plugins_registered.emplace(name, p);
 			if (p->caps() & CAP_EXTRACTION)
 			{
