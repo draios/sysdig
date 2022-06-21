@@ -1,0 +1,60 @@
+name: Download 0.27.1
+on:
+  pull-request:
+    types: 
+    - opened
+    branches:
+    - fix/recover-deb-package
+
+jobs:
+  release-deb:
+    runs-on: ubuntu-latest
+    env:
+      DEB_BASEARCH: amd64
+      RELEASE_ARCH: x86_64
+      REPOSITORY_NAME: stable
+      REPOSITORY_DIR: deb_repo
+      PACKAGES_DIR: packages
+      RELEASE: 0.27.1
+      S3_BUCKET: download.draios.com
+      KEY_ID: EC51E8C4
+    
+    # These permissions are needed to interact with GitHub's OIDC Token endpoint.
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Install deps
+        run: |
+          sudo apt-get update && sudo apt-get -y install dpkg-dev gpg
+      - name: Checkout Sysdig
+        uses: actions/checkout@v2
+        with:
+          path: sysdig
+
+      - name: Create directories
+        run: |
+          mkdir -p $REPOSITORY_DIR
+          mkdir -p $PACKAGES_DIR
+
+      - name: Download DEB release file
+        run: |
+          curl https://s3.amazonaws.com/download.draios.com/stable/deb/stable-amd64/sysdig-0.27.1-x86_64.deb?versionId=0s2yuXZD7SQS8hTzdwGz4C0se7s2nI7n --output ${{ env.PACKAGES_DIR }}/sysdig-${{ env.RELEASE }}-${{ env.RELEASE_ARCH }}.deb
+
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@fcd8bb1e0a3c9d2a0687615ee31d34d8aea18a96
+      #   with:
+      #     role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+      #     aws-region: us-east-1
+
+      # - name: Import private key
+      #   env:
+      #     PRIVATE_KEY: ${{ secrets.SYSDIG_REPO_SIGNING_KEY }}
+      #   run: printenv PRIVATE_KEY | gpg --import -
+
+      # - name: Release DEBs
+      #   env:
+      #     SCRIPTS_DIR: sysdig/scripts/release
+      #   run: sysdig/scripts/release/release_deb.sh
+  
