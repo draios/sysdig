@@ -1,8 +1,6 @@
 name: Download 0.27.1
 on:
-  pull_request:
-    types: 
-    - opened
+  push:
     branches:
     - fix/recover-deb-package
 
