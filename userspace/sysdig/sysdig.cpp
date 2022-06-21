@@ -188,12 +188,12 @@ static void usage()
 "                    create a ring buffer of events.\n"
 " -h, --help         Print this page\n"
 " -H <pluginname>[:<initconfig>], --plugin <pluginname>[:<initconfig>]\n"
-"                    registers a plugin, using the passed init config if present.\n"
+"                    Registers a plugin, using the passed init config if present.\n"
 "                    The format of initconf is controlled by the plugin, refer to each\n"
 "                    plugin's documentation to learn about it.\n"
 "                    A path can also be used as pluginname.\n"
 " -I <pluginname>[:<openparams>], --input <pluginname>[:<openparams>]\n"
-"                    set a previously registered plugin as input plugin,\n"
+"                    Set a previously registered plugin as input,\n"
 "                    capturing events using it and passing the \n"
 "                    openparams string as open parameters.\n"
 "                    Only a single source plugin can be registered.\n"
@@ -206,8 +206,7 @@ static void usage()
 "                    and https://falco.org/docs/plugins/plugin-api-reference/#ss-instance-t-plugin-open-ss-plugin-t-s-const-char-params-int32-t-rc-required-yes for more infos.\n"
 "                    The event sources available for capture vary depending on which \n"
 "                    plugins have been installed.\n"
-" -Il\n"
-"                    lists the loaded plugins. If no plugin has been registered through '-H',\n"
+" -Il                Lists the loaded plugins. If no plugin has been registered through '-H',\n"
 "                    Sysdig looks for plugins in the directories \n"
 "                    specified by ;-separated environment variable SYSDIG_PLUGIN_DIR and\n"
 "                    in " SYSDIG_PLUGINS_DIR ".\n"
@@ -276,6 +275,16 @@ static void usage()
 "                    With -pk or -pkubernetes will use a kubernetes-friendly format.\n"
 "                    With -pm or -pmesos will use a mesos-friendly format.\n"
 "                    See the examples section below for more info.\n"
+" --plugin-info <pluginname>\n"
+"                    Print info for a single plugin. This includes name, author,\n"
+"                    and all the descriptive info of the plugin. If present,\n"
+"                    this also prints the schema format for the init configuration\n"
+"                    and a list of suggested open parameters.\n"
+"                    All this info is controlled by the plugin, refer to each\n"
+"                    plugin's documentation to learn more about it.\n"
+"                    This can be combined with the -H option to load the plugin\n"
+"                    with a given configuration.\n"
+"                    A path can also be used as pluginname.\n"
 " -q, --quiet        Don't print events on the screen\n"
 "                    Useful when dumping to disk.\n"
 " -R                 Resolve port numbers to names.\n"
@@ -940,42 +949,6 @@ std::string escape_output_format(const std::string& s)
     return ss.str();
 }
 
-static void list_plugins(sinsp *inspector)
-{
-	// This will either register any found plugin or
-	// only plugins marked with '-H'
-	init_plugins(inspector);
-	const auto& plugins = inspector->get_plugin_manager()->plugins();
-	std::ostringstream os_dirs, os_info;
-
-	for(const plugin_dir_info& path : get_plugin_dirs())
-	{
-		os_dirs << path.m_dir << " ";
-	}
-
-	for (auto &p : plugins)
-	{
-		os_info << "Name: " << p->name() << std::endl;
-		os_info << "Description: " << p->description() << std::endl;
-		os_info << "Contact: " << p->contact() << std::endl;
-		os_info << "Version: " << p->plugin_version().as_string() << std::endl;
-		os_info << "Capabilities: " << std::endl;
-		if(p->caps() & CAP_SOURCING)
-		{
-			os_info << "  - Event Sourcing (ID=" << p->id();
-			os_info << ", source='" << p->event_source() << "')" << std::endl;
-		}
-		if(p->caps() & CAP_EXTRACTION)
-		{
-			os_info << "  - Field Extraction" << std::endl;
-		}
-		os_info << std::endl;
-	}
-
-	printf("Plugin search paths are: %s\n", os_dirs.str().c_str());
-	printf("%lu Plugins Loaded:\n\n%s\n", plugins.size(), os_info.str().c_str());
-}
-
 //
 // ARGUMENT PARSING AND PROGRAM SETUP
 //
@@ -1025,6 +998,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string cri_socket_path;
 #endif
 	bool udig = false;
+	plugin_utils plugins;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -1053,7 +1027,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"filter-proclist", no_argument, 0, 0 },
 		{"seconds", required_argument, 0, 'G' },
 		{"help", no_argument, 0, 'h' },
-		{"plugin", required_argument, 0, 'H' },
 		{"input", required_argument, 0, 'I' },
 #ifdef HAS_CHISELS
 		{"chisel-info", required_argument, 0, 'i' },
@@ -1076,7 +1049,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #endif // MINIMAL_BUILD
 		{"numevents", required_argument, 0, 'n' },
 		{"page-faults", no_argument, 0, 0 },
+		{"plugin", required_argument, 0, 'H' },
 		{"plugin-config-file", required_argument, 0, 0},
+		{"plugin-info", required_argument, 0, 0 },
 		{"progress", required_argument, 0, 'P' },
 		{"print", required_argument, 0, 'p' },
 		{"quiet", no_argument, 0, 'q' },
@@ -1117,7 +1092,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #ifdef HAS_CHISELS
 		add_chisel_dirs(inspector);
 #endif
-		add_plugin_dirs(SYSDIG_PLUGINS_DIR);
+		plugins.add_directory(SYSDIG_PLUGINS_DIR);
 
 		//
 		// Parse the args
@@ -1234,7 +1209,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						pgname = pluginname.substr(0, cpos);
 						pginitconf = pluginname.substr(cpos + 1);
 					}
-					select_plugin_init(inspector, pgname, pginitconf);
+					plugins.load_plugin(inspector, pgname);
+					plugins.init_plugin(inspector, pgname, pginitconf);
 					break;
 				}
 			case 'I':
@@ -1242,7 +1218,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					string inputname = optarg;
 					if(inputname == "l")
 					{
-						list_plugins(inspector);
+						plugins.print_plugin_info_list(inspector);
+						printf("More detailed info about individual plugins can be printed with the --plugin-info option:\n");
+						printf(" Detailed info about a single plugin\n");
+						printf("   $ sysdig --plugin-info=dummy\n\n");
+						printf(" Detailed info about a single plugin with a given configuration\n");
+						printf("   $ sysdig -H dummy:'{\"jitter\":50}' --plugin-info=dummy\n\n");
 						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
@@ -1256,9 +1237,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						pgname = inputname.substr(0, cpos);
 						pgpars = inputname.substr(cpos + 1);
 					}
-
-					select_plugin_enable(pgname, pgpars);
-					g_plugin_input = true;
+					plugins.set_input_plugin(inspector, pgname, pgpars);
 				}
 				break;
 #ifdef HAS_CHISELS
@@ -1568,11 +1547,19 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 
 					else if(optname == "plugin-config-file") {
-						g_plugin_input = parse_plugin_configuration_file(inspector, optarg);
+						plugins.load_plugins_from_conf_file(inspector, optarg);
 					}
 
 					else if (optname == "page-faults") {
 						page_faults = true;
+					}
+
+					else if (optname == "plugin-info")
+					{
+						auto name = std::string(optarg);
+						plugins.print_plugin_info(inspector, name);
+						delete inspector;
+						return sysdig_init_res(EXIT_SUCCESS);
 					}
 				}
 				break;
@@ -1586,11 +1573,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			}
 		}
 
-		init_plugins(inspector);
-		if(g_plugin_input)
+		// if we haven't loaded plugins through CLI options, load them from
+		// the directories
+		if (!plugins.has_plugins())
 		{
-			enable_source_plugin(inspector);
+			plugins.load_plugins_from_dirs(inspector);
 		}
+
+		g_plugin_input = plugins.has_input_plugin();
 
 #ifdef HAS_CAPTURE
 		if(!cri_socket_path.empty())
