@@ -42,19 +42,19 @@ jobs:
         run: |
           curl https://s3.amazonaws.com/download.draios.com/stable/deb/stable-amd64/sysdig-0.27.1-x86_64.deb?versionId=0s2yuXZD7SQS8hTzdwGz4C0se7s2nI7n --output ${{ env.PACKAGES_DIR }}/sysdig-${{ env.RELEASE }}-${{ env.RELEASE_ARCH }}.deb
 
-      # - name: Configure AWS credentials
-      #   uses: aws-actions/configure-aws-credentials@fcd8bb1e0a3c9d2a0687615ee31d34d8aea18a96
-      #   with:
-      #     role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-      #     aws-region: us-east-1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@fcd8bb1e0a3c9d2a0687615ee31d34d8aea18a96
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
 
-      # - name: Import private key
-      #   env:
-      #     PRIVATE_KEY: ${{ secrets.SYSDIG_REPO_SIGNING_KEY }}
-      #   run: printenv PRIVATE_KEY | gpg --import -
+      - name: Import private key
+        env:
+          PRIVATE_KEY: ${{ secrets.SYSDIG_REPO_SIGNING_KEY }}
+        run: printenv PRIVATE_KEY | gpg --import -
 
-      # - name: Release DEBs
-      #   env:
-      #     SCRIPTS_DIR: sysdig/scripts/release
-      #   run: sysdig/scripts/release/release_deb.sh
+      - name: Release DEBs
+        env:
+          SCRIPTS_DIR: sysdig/scripts/release
+        run: sysdig/scripts/release/release_deb.sh
   
