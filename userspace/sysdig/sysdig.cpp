@@ -1845,7 +1845,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				else if (gvisor)
 				{
-					inspector->open_gvisor(gvisor_socket);
+					inspector->open_gvisor(gvisor_socket, "/var/run/docker/runtime-runc/moby", "/home/ubuntu/falcosecurity/libs/userspace/libscap/engine/gvisor/config.json");
 				}
 				else
 				{

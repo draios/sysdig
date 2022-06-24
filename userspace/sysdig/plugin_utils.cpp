@@ -131,6 +131,7 @@ static bool iterate_plugins_dirs(const std::function<bool(const tinydir_file &)>
 
 void init_plugins(sinsp *inspector)
 {
+    /*
 	// If any plugin was already registered, it means we are in the
 	// "-H"/conf file use case; we already registered any desired plugin!
 	if (!g_selected_plugins_registered.empty())
@@ -147,10 +148,12 @@ void init_plugins(sinsp *inspector)
 		}
 		return false;
 	});
+    */
 }
 
 void select_plugin_init(sinsp *inspector, string& name, const string& init_config)
 {
+    /*
 	// If it is a path, register it
 	if (name.find('/') != string::npos)
 	{
@@ -185,6 +188,7 @@ void select_plugin_init(sinsp *inspector, string& name, const string& init_confi
 	{
 		throw sinsp_exception("plugin " + name + " not found. Use -Il to list all installed plugins.");
 	}
+    */
 }
 
 // "-I" or config file
