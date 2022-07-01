@@ -41,6 +41,14 @@ option(MINIMAL_BUILD "Produce a minimal sysdig binary with only the essential fe
 option(MUSL_OPTIMIZED_BUILD "Enable if you want a musl optimized build" OFF)
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
 
+# gVisor is currently only supported on Linux x86_64
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND CMAKE_SYSTEM_NAME MATCHES "Linux" AND NOT MINIMAL_BUILD)
+  option(BUILD_SYSDIG_GVISOR "Build gVisor support for Falco" ON)
+  if (BUILD_SYSDIG_GVISOR)
+    add_definitions(-DHAS_GVISOR)
+  endif()
+endif()
+
 # Add path for custom CMake modules.
 list(APPEND CMAKE_MODULE_PATH
 	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")

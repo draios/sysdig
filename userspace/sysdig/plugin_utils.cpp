@@ -89,6 +89,7 @@ void add_plugin_dirs(string sysdig_plugins_dir)
     }
 }
 
+/*
 static bool iterate_plugins_dirs(const std::function<bool(const tinydir_file &)>& predicate)
 {
 	bool breakout = false;
@@ -128,6 +129,7 @@ static bool iterate_plugins_dirs(const std::function<bool(const tinydir_file &)>
 	}
 	return breakout;
 }
+*/
 
 void init_plugins(sinsp *inspector)
 {

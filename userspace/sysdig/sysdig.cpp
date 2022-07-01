@@ -31,11 +31,9 @@ limitations under the License.
 #include <sinsp.h>
 #include "scap_open_exception.h"
 #include "sinsp_capture_interrupt_exception.h"
-#ifdef HAS_CAPTURE
 #ifndef WIN32
 #include "driver_config.h"
 #endif // WIN32
-#endif // HAS_CAPTURE
 #include "sysdig.h"
 #ifdef HAS_CHISELS
 #include "chisel.h"
@@ -132,7 +130,6 @@ static void usage()
 "                    starting at 0 and continuing upward. The units of file_size\n"
 "                    are millions of bytes (10^6, not 2^20). Use the -W flag to\n"
 "                    determine how many files will be saved to disk.\n"
-#ifdef HAS_CAPTURE
 #ifndef MINIMAL_BUILD
 " --cri <path>       Path to CRI socket for container metadata\n"
 "                    Use the specified socket to fetch data from a CRI-compatible runtime\n"
@@ -140,7 +137,6 @@ static void usage()
 " --cri-timeout <timeout_ms>\n"
 "                    Wait at most <timeout_ms> milliseconds for response from CRI\n"
 #endif // MINIMAL_BUILD
-#endif // HAS_CAPTURE
 " -d, --displayflt   Make the given filter a display one\n"
 "                    Setting this option causes the events to be filtered\n"
 "                    after being parsed by the state system. Events are\n"
@@ -1021,9 +1017,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool bpf = false;
 	string bpf_probe;
 	std::set<std::string> suppress_comms;
-#ifdef HAS_CAPTURE
 	string cri_socket_path;
-#endif
 	bool udig = false;
 	bool gvisor = false;
 	string gvisor_socket;
@@ -1043,10 +1037,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"chisel", required_argument, 0, 'c' },
 		{"list-chisels", no_argument, 0, 0 },
 #endif
-#ifdef HAS_CAPTURE
 		{"cri", required_argument, 0, 0 },
 		{"cri-timeout", required_argument, 0, 0 },
-#endif
 		{"displayflt", no_argument, 0, 'd' },
 		{"debug", no_argument, 0, 'D'},
 		{"exclude-users", no_argument, 0, 'E' },
@@ -1553,14 +1545,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
-#ifdef HAS_CAPTURE
 					else if (optname == "cri") {
 						cri_socket_path = optarg;
 					}
 					else if (optname == "cri-timeout") {
 						inspector->set_cri_timeout(sinsp_numparser::parsed64(optarg));
 					}
-#endif
 					else if (optname == "unbuffered") {
 						unbuf_flag = true;
 					}
@@ -1603,12 +1593,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			enable_source_plugin(inspector);
 		}
 
-#ifdef HAS_CAPTURE
 		if(!cri_socket_path.empty())
 		{
 			inspector->set_cri_socket_path(cri_socket_path);
 		}
-#endif
 
 		if(!bpf)
 		{
@@ -1829,7 +1817,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				//
 				// No file to open, this is a live capture
 				//
-#if defined(HAS_CAPTURE)
 				bool open_success = true;
 
 				if(print_progress && !g_plugin_input)
@@ -1845,7 +1832,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				else if (gvisor)
 				{
-					inspector->open_gvisor("/home/ubuntu/falcosecurity/libs/userspace/libscap/engine/gvisor/config.json", "/var/run/docker/runtime-runc/moby");
+					inspector->open_gvisor("/home/ubuntu/dev/falcosecurity/libs/userspace/libscap/engine/gvisor/config.json", "/var/run/docker/runtime-runc/moby");
 				}
 				else
 				{
@@ -1894,21 +1881,19 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 #endif // _WIN32
 				}
-#else // HAS_CAPTURE
 				//
 				// Starting live capture
 				// If this fails on Windows and OSX, don't try with any driver
 				//
-				inspector->open("");
-#endif // HAS_CAPTURE
+				//inspector->open("");
 
 				//
 				// Enable gathering the CPU from the kernel module
 				//
-				if(!udig)
-				{
-					inspector->set_get_procs_cpu_from_driver(true);
-				}
+				//if(!udig)
+				//{
+				//	inspector->set_get_procs_cpu_from_driver(true);
+				//}
 			}
 
 			//
