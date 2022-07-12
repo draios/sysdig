@@ -40,7 +40,7 @@ using namespace std;
 #ifndef NOCURSESUI
 
 #include <curses.h>
-#include "table.h"
+#include "chisel_table.h"
 #include "cursescomponents.h"
 #include "cursestable.h"
 #include "cursesui.h"
@@ -48,7 +48,7 @@ using namespace std;
 ///////////////////////////////////////////////////////////////////////////////
 // curses_table implementation
 ///////////////////////////////////////////////////////////////////////////////
-curses_table::curses_table(sinsp_cursesui* parent, sinsp* inspector, sinsp_table::tabletype type)
+curses_table::curses_table(sinsp_cursesui* parent, sinsp* inspector, chisel_table::tabletype type)
 {
 	m_tblwin = NULL;
 	m_data = NULL;
@@ -129,7 +129,7 @@ curses_table::~curses_table()
 	delete m_converter;
 }
 
-void curses_table::configure(sinsp_table* table, 
+void curses_table::configure(chisel_table* table, 
 	vector<int32_t>* colsizes, vector<string>* colnames)
 {
 	uint32_t j;
@@ -197,7 +197,7 @@ void curses_table::configure(sinsp_table* table,
 
 void curses_table::update_rowkey(int32_t row)
 {
-	sinsp_table_field* rowkey = m_table->get_row_key(row);
+	chisel_table_field* rowkey = m_table->get_row_key(row);
 
 	if(rowkey != NULL)
 	{
@@ -210,7 +210,7 @@ void curses_table::update_rowkey(int32_t row)
 	}
 }
 
-void curses_table::update_data(vector<sinsp_sample_row>* data, bool force_selection_change)
+void curses_table::update_data(vector<chisel_sample_row>* data, bool force_selection_change)
 {
 	m_data = data;
 
@@ -282,7 +282,7 @@ void curses_table::print_wait()
 	string wstr;
 	bool is_tracer_view = false;
 
-	sinsp_view_info* vinfo = m_parent->get_selected_view();
+	chisel_view_info* vinfo = m_parent->get_selected_view();
 	if(vinfo)
 	{
 		if(vinfo->m_id == "tracers" ||
@@ -375,7 +375,7 @@ void curses_table::render(bool data_changed)
 
 		for(j = 0; j < m_w; j++)
 		{
-			if(m_type == sinsp_table::TT_TABLE)
+			if(m_type == chisel_table::TT_TABLE)
 			{
 				wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
 			}
@@ -391,7 +391,7 @@ void curses_table::render(bool data_changed)
 		{
 			if(j == m_table->get_sorting_col() - 1)
 			{
-				if(m_type == sinsp_table::TT_TABLE)
+				if(m_type == chisel_table::TT_TABLE)
 				{
 					wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HIGHLIGHT_FOCUS]);
 				}
@@ -402,7 +402,7 @@ void curses_table::render(bool data_changed)
 			}
 			else
 			{
-				if(m_type == sinsp_table::TT_TABLE)
+				if(m_type == chisel_table::TT_TABLE)
 				{
 					wattrset(m_tblwin, m_parent->m_colors[sinsp_cursesui::PANEL_HEADER_FOCUS]);
 				}
@@ -453,7 +453,7 @@ void curses_table::render(bool data_changed)
 		//
 		// Render the rows
 		//
-		vector<sinsp_table_field>* row;
+		vector<chisel_table_field>* row;
 
 		for(l = 0; l < (int32_t)MIN(m_data->size(), m_h - 1); l++)
 		{
@@ -487,7 +487,7 @@ void curses_table::render(bool data_changed)
 
 			for(j = 0, k = 0; j < m_legend.size(); j++)
 			{
-				sinsp_filter_check* extractor = m_table->m_extractors->at(j + 1);
+				auto extractor = m_table->m_extractors->at(j + 1);
 				uint64_t td = 0;
 
 				if(extractor->m_aggregation == A_TIME_AVG || 
@@ -570,7 +570,7 @@ render_end:
 string curses_table::get_field_val(string fldname)
 {
 	uint32_t j;
-	vector<sinsp_table_field>* row;
+	vector<chisel_table_field>* row;
 	string res;
 
 	row = &(m_data->at(m_selct).m_values);
@@ -616,7 +616,7 @@ string curses_table::get_field_val(string fldname)
 //
 // Return false if the user wants us to exit
 //
-sysdig_table_action curses_table::handle_input(int ch)
+chisel_table_action curses_table::handle_input(int ch)
 {
 	if(m_data == NULL)
 	{
@@ -772,7 +772,7 @@ sysdig_table_action curses_table::handle_input(int ch)
 			break;
 		case 'c':
 		case KEY_DC:
-			if(m_type == sinsp_table::TT_LIST)
+			if(m_type == chisel_table::TT_LIST)
 			{
 				m_table->clear();
 				render(true);
@@ -787,7 +787,7 @@ sysdig_table_action curses_table::handle_input(int ch)
 	// Check if this view has any action configured, and if yes find if this key
 	// is one of the view hotkeys
 	//
-	sinsp_view_info* vinfo = m_parent->get_selected_view();
+	chisel_view_info* vinfo = m_parent->get_selected_view();
 
 	for(auto hk : vinfo->m_actions)
 	{

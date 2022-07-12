@@ -166,7 +166,7 @@ public:
 		m_title = title;
 	}
 	void render();
-	sysdig_table_action handle_input(int ch);
+	chisel_table_action handle_input(int ch);
 
 	WINDOW* m_win;
 	int32_t m_y_start;
@@ -191,7 +191,7 @@ public:
 	void print_no_data();
 	void process_event(sinsp_evt* evt, int32_t next_res);
 	void render_header();
-	sysdig_table_action handle_input(int ch);
+	chisel_table_action handle_input(int ch);
 	void populate_sidemenu();
 	void reset();
 	bool get_position(OUT int32_t* pos, OUT int32_t* totlines, OUT float* percent, OUT bool* truncated);
@@ -232,7 +232,7 @@ class curses_mainhelp_page
 public:
 	curses_mainhelp_page(sinsp_cursesui* parent);
 	~curses_mainhelp_page();
-	sysdig_table_action handle_input(int ch);
+	chisel_table_action handle_input(int ch);
 	void render();
 
 private:
@@ -247,7 +247,7 @@ class curses_viewinfo_page
 public:
 	curses_viewinfo_page(sinsp_cursesui* parent, uint32_t viewnum, uint32_t starty, uint32_t startx, uint32_t h, uint32_t w);
 	~curses_viewinfo_page();
-	sysdig_table_action handle_input(int ch);
+	chisel_table_action handle_input(int ch);
 	void render();
 
 private:

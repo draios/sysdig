@@ -40,7 +40,7 @@ limitations under the License.
 #include "chisel_utils.h"
 #endif
 #include "fields_info.h"
-#include "table.h"
+#include "chisel_table.h"
 #include "utils.h"
 #include "plugin_utils.h"
 
@@ -57,7 +57,7 @@ limitations under the License.
 #include "cursestable.h"
 #include "cursesui.h"
 #include "scap_open_exception.h"
-#include "sinsp_capture_interrupt_exception.h"
+#include "chisel_capture_interrupt_exception.h"
 
 #define MOUSE_CAPABLE_TERM "xterm-1003"
 #define MOUSE_CAPABLE_TERM_COMPAT "xterm-1002"
@@ -238,17 +238,17 @@ static void add_chisel_dirs(sinsp* inspector)
 	}
 }
 
-static void print_views(sinsp_view_manager* view_manager)
+static void print_views(chisel_view_manager* view_manager)
 {
 	Json::FastWriter writer;
 	Json::Value root;
 
-	vector<sinsp_view_info>* vlist = view_manager->get_views();
+	vector<chisel_view_info>* vlist = view_manager->get_views();
 
 	for(auto it = vlist->begin(); it != vlist->end(); ++it)
 	{
 		Json::Value jv;
-		sinsp_view_info& vinfo = *it;
+		chisel_view_info& vinfo = *it;
 
 		jv["id"] = vinfo.m_id;
 		jv["name"] = vinfo.m_name;
@@ -256,7 +256,7 @@ static void print_views(sinsp_view_manager* view_manager)
 		jv["isRoot"] = vinfo.m_is_root;
 		jv["drilldownTarget"] = vinfo.m_drilldown_target;
 		jv["filter"] = vinfo.m_filter;
-		jv["canDrillDown"] = (vinfo.m_type == sinsp_view_info::T_TABLE);
+		jv["canDrillDown"] = (vinfo.m_type == chisel_view_info::T_TABLE);
 
 		for(auto it = vinfo.m_applies_to.begin(); it != vinfo.m_applies_to.end(); ++it)
 		{
@@ -365,9 +365,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 #endif
 
 #ifndef _WIN32
-	sinsp_table::output_type output_type = sinsp_table::OT_CURSES;
+	chisel_table::output_type output_type = chisel_table::OT_CURSES;
 #else
-	sinsp_table::output_type output_type = sinsp_table::OT_JSON;
+	chisel_table::output_type output_type = chisel_table::OT_JSON;
 #endif
 #ifndef MINIMAL_BUILD
 	string* k8s_api = 0;
@@ -506,7 +506,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 #endif // MINIMAL_BUILD
 			case 'j':
-				output_type = sinsp_table::OT_JSON;
+				output_type = chisel_table::OT_JSON;
 				break;
 			case 'l':
 				list_flds = true;
@@ -587,7 +587,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					else if(optname == "interactive")
 					{
 						is_interactive = true;
-						output_type = sinsp_table::OT_JSON;
+						output_type = chisel_table::OT_JSON;
 					}
 					else if(optname == "large-environment")
 					{
@@ -611,7 +611,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					}
 					else if(optname == "raw")
 					{
-						output_type = sinsp_table::OT_RAW;
+						output_type = chisel_table::OT_RAW;
 					}
 					else if(optname == "force-term-compat")
 					{
@@ -719,7 +719,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Initialize ncurses
 		//
 #ifndef NOCURSESUI
-		if(output_type == sinsp_table::OT_CURSES)
+		if(output_type == chisel_table::OT_CURSES)
 		{
 			//
 			// Check if terminal has mouse support
@@ -758,7 +758,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		//
 		// Create the list of views
 		//
-		sinsp_view_manager view_manager;
+		chisel_view_manager view_manager;
 
 		//
 		// Scan the chisel list to load the Lua views, and add them to the list
@@ -787,7 +787,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					}
 				}
 
-				if(output_type != sinsp_table::OT_JSON)
+				if(output_type != chisel_table::OT_JSON)
 				{
 					if(std::find(it.m_viewinfo.m_tags.begin(),
 						it.m_viewinfo.m_tags.end(),
@@ -1015,7 +1015,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			mesos_api = 0;
 #endif // MINIMAL_BUILD
 
-			if(output_type == sinsp_table::OT_JSON)
+			if(output_type == chisel_table::OT_JSON)
 			{
 				printf("{\"slices\": [\n");
 				if(display_view != "dig" && display_view != "echo")
@@ -1031,7 +1031,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				cnt,
 				&ui);
 
-			if(output_type == sinsp_table::OT_JSON)
+			if(output_type == chisel_table::OT_JSON)
 			{
 				printf("]}\n");
 				//printf("%c", EOF);
@@ -1043,7 +1043,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			inspector->close();
 		}
 	}
-	catch(const sinsp_capture_interrupt_exception&)
+	catch(const chisel_capture_interrupt_exception&)
 	{
 	}
 	catch(const scap_open_exception& e)
@@ -1072,7 +1072,7 @@ exit:
 	// Restore the original screen
 	//
 #ifndef NOCURSESUI
-	if(output_type == sinsp_table::OT_CURSES)
+	if(output_type == chisel_table::OT_CURSES)
 	{
 		endwin();
 	}

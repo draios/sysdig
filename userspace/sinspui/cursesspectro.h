@@ -63,10 +63,10 @@ public:
 	curses_spectro(sinsp_cursesui* parent, sinsp* inspector, bool is_tracer);
 	~curses_spectro();
 
-	void configure(sinsp_table* table);
-	void update_data(vector<sinsp_sample_row>* data, bool force_selection_change = false);
+	void configure(chisel_table* table);
+	void update_data(vector<chisel_sample_row>* data, bool force_selection_change = false);
 	void render(bool data_changed);
-	sysdig_table_action handle_input(int ch);
+	chisel_table_action handle_input(int ch);
 	void set_x_start(uint32_t x)
 	{
 		m_table_x_start = x;
@@ -88,7 +88,7 @@ public:
 		return false;
 	}
 
-	sinsp_table_field_storage m_last_key;
+	chisel_table_field_storage m_last_key;
 	bool m_drilled_up;
 	bool m_selection_changed;
 	MEVENT m_last_mevent;
@@ -109,11 +109,11 @@ private:
 	sinsp* m_inspector;
 	WINDOW* m_tblwin;
 	sinsp_cursesui* m_parent;
-	sinsp_table* m_table;
+	chisel_table* m_table;
 	int32_t m_table_x_start;
 	uint32_t m_table_y_start;
 	vector<curses_table_column_info> m_legend;
-	vector<sinsp_sample_row>* m_data;
+	vector<chisel_sample_row>* m_data;
 	uint32_t m_w;
 	uint32_t m_h;
 	vector<uint32_t> m_colpalette;

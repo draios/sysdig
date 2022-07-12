@@ -30,7 +30,7 @@ limitations under the License.
 
 #include <sinsp.h>
 #include "scap_open_exception.h"
-#include "sinsp_capture_interrupt_exception.h"
+#include "chisel_capture_interrupt_exception.h"
 #ifdef HAS_CAPTURE
 #ifndef WIN32
 #include "driver_config.h"
@@ -2066,7 +2066,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			inspector->close();
 		}
 	}
-	catch(const sinsp_capture_interrupt_exception&)
+	catch(const chisel_capture_interrupt_exception&)
 	{
 		handle_end_of_file(NULL, print_progress, reset_colors);
 	}

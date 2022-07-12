@@ -63,11 +63,11 @@ class sinsp_ui_selection_info
 public:
 	sinsp_ui_selection_info(string field, 
 		string val,
-		sinsp_view_column_info* column_info,
+		chisel_view_column_info* column_info,
 		string view_filter,
 		uint32_t prev_selected_view, 
 		uint32_t prev_selected_sidemenu_entry, 
-		sinsp_table_field* rowkey,
+		chisel_table_field* rowkey,
 		uint32_t prev_sorting_col,
 		string prev_manual_filter,
 		bool prev_is_filter_sysdig,
@@ -99,14 +99,14 @@ public:
 
 	string m_field;
 	string m_val;
-	sinsp_view_column_info* m_column_info;
+	chisel_view_column_info* m_column_info;
 	string m_view_filter;
 	uint32_t m_prev_selected_view;
 	uint32_t m_prev_selected_sidemenu_entry;
 	uint32_t m_prev_sorting_col;
 	string m_prev_manual_filter;
 	bool m_prev_is_filter_sysdig;
-	sinsp_table_field m_rowkey;
+	chisel_table_field m_rowkey;
 	bool m_prev_is_sorting_ascending;
 	bool m_is_drilldown;
 };
@@ -116,11 +116,11 @@ class sinsp_ui_selection_hierarchy
 public:
 	void push_back(string field, 
 		string val,
-		sinsp_view_column_info* column_info,
+		chisel_view_column_info* column_info,
 		string view_filter,
 		uint32_t prev_selected_view, 
 		uint32_t prev_selected_sidemenu_entry, 
-		sinsp_table_field* rowkey,
+		chisel_table_field* rowkey,
 		uint32_t prev_sorting_col,
 		string prev_manual_filter,
 		bool prev_is_filter_sysdig,
@@ -431,14 +431,14 @@ public:
 
 	sinsp_cursesui(sinsp* inspector, string event_source_name, 
 		string cmdline_capture_filter, uint64_t refresh_interval_ns, 
-		bool print_containers, sinsp_table::output_type output_type, bool is_mousedrag_available,
+		bool print_containers, chisel_table::output_type output_type, bool is_mousedrag_available,
 		int32_t json_first_row, int32_t json_last_row, int32_t sorting_col,
 		sinsp_evt::param_fmt json_spy_text_fmt);
 	~sinsp_cursesui();
-	void configure(sinsp_view_manager* views);
+	void configure(chisel_view_manager* views);
 	void start(bool is_drilldown, bool is_spy_switch);
-	sinsp_view_info* get_selected_view();
-	sinsp_view_info* get_prev_selected_view();
+	chisel_view_info* get_selected_view();
+	chisel_view_info* get_prev_selected_view();
 	void pause();
 	bool is_searching()
 	{
@@ -461,9 +461,9 @@ public:
 #endif
 	void turn_search_on(search_caller_interface* ifc, string header_text);
 	uint64_t get_time_delta();
-	void run_action(sinsp_view_action_info* action);
-	void spy_selection(string field, string val, sinsp_view_column_info* column_info, bool is_dig);
-	sysdig_table_action handle_input(int ch);
+	void run_action(chisel_view_action_info* action);
+	void spy_selection(string field, string val, chisel_view_column_info* column_info, bool is_dig);
+	chisel_table_action handle_input(int ch);
 	bool handle_stdin_input(bool* res);
 
 	//
@@ -485,7 +485,7 @@ public:
 		//
 		// Process the user input
 		//
-		if(m_output_type != sinsp_table::OT_JSON)
+		if(m_output_type != chisel_table::OT_JSON)
 		{
 #ifndef NOCURSESUI
 			if((ts - m_last_input_check_ts > m_input_check_period_ns) || m_eof)
@@ -543,7 +543,7 @@ public:
 					//
 					// Handle the event
 					//
-					sysdig_table_action ta = handle_input(input);
+					chisel_table_action ta = handle_input(input);
 
 					bool res;
 					if(execute_table_action(ta, 0, &res) == true)
@@ -588,7 +588,7 @@ public:
 #ifndef NOCURSESUI
 			usleep(10000);
 #endif
-			if(m_output_type == sinsp_table::OT_RAW || m_output_type == sinsp_table::OT_JSON)
+			if(m_output_type == chisel_table::OT_RAW || m_output_type == chisel_table::OT_JSON)
 			{
 				if(m_interactive)
 				{
@@ -707,9 +707,9 @@ public:
 		return false;
 	}
 
-	sinsp_table* m_datatable;
+	chisel_table* m_datatable;
 	int m_colors[LAST_COLORELEMENT];
-	sinsp_view_manager m_views;
+	chisel_view_manager m_views;
 	int32_t m_selected_view;
 	int32_t m_prev_selected_view;
 	uint32_t m_selected_view_sidemenu_entry;
@@ -745,14 +745,14 @@ private:
 	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);
 	void restart_capture(bool is_spy_switch);
 	void switch_view(bool is_spy_switch);
-	bool spectro_selection(string field, string val, sinsp_view_column_info* column_info, filtercheck_field_info* info, sysdig_table_action ta);
-	bool do_drilldown(string field, string val, sinsp_view_column_info* column_info, uint32_t new_view_num, filtercheck_field_info* info, bool dont_restart);
+	bool spectro_selection(string field, string val, chisel_view_column_info* column_info, filtercheck_field_info* info, chisel_table_action ta);
+	bool do_drilldown(string field, string val, chisel_view_column_info* column_info, uint32_t new_view_num, filtercheck_field_info* info, bool dont_restart);
 	// returns false if there is no suitable drill down view for this field
-	bool drilldown(string field, string val, sinsp_view_column_info* column_info, filtercheck_field_info* info, bool dont_restart);
+	bool drilldown(string field, string val, chisel_view_column_info* column_info, filtercheck_field_info* info, bool dont_restart);
 	// returns false if we are already at the top of the hierarchy
 	bool drillup();
 	void create_complete_filter(bool templated);
-	bool execute_table_action(sysdig_table_action ta, uint32_t rownumber, bool* res);
+	bool execute_table_action(chisel_table_action ta, uint32_t rownumber, bool* res);
 	int32_t get_viewnum_by_name(string name);
 
 #ifndef NOCURSESUI
@@ -763,7 +763,7 @@ private:
 	void render_spy_main_menu();
 	void render_position_info();
 	void render_main_menu();
-	sysdig_table_action handle_textbox_input(int ch);
+	chisel_table_action handle_textbox_input(int ch);
 	void populate_view_sidemenu(string field, vector<sidemenu_list_entry>* viewlist);
 	void populate_action_sidemenu();
 	void populate_view_cols_sidemenu();
@@ -800,7 +800,7 @@ private:
 	uint32_t m_filterstring_start_x;
 	uint32_t m_filterstring_end_x;
 	string m_search_header_text;
-	sinsp_table::output_type m_output_type;
+	chisel_table::output_type m_output_type;
 	bool m_truncated_input;
 	bool m_interactive;
 	int32_t m_json_first_row;
