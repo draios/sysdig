@@ -179,6 +179,14 @@ static void usage()
 "                    file. This could cause the file to contain unwanted or sensitive\n"
 "                    information. Using this flag causes the command line filter to\n"
 "                    be applied to the /proc dump as well.\n"
+" -g, --gvisor-config\n"
+"                    Parse events from gVisor using the specified configuration file.\n"
+"                    A sysdig-compatible configuration file can be generated with --gvisor-generate-config\n"
+"                    and can be used for both runsc and sysdig.\n"
+" --gvisor-generate-config [=<socket_path>(=/tmp/gvisor.sock)]\n"
+"                    Generate a configuration file that can be used for gVisor.\n"
+" --gvisor-root <gvisor_root>\n"
+"                    gVisor root directory for storage of container state. Equivalent to runsc --root flag.\n"
 " -G <num_seconds>, --seconds=<num_seconds>\n"
 "                    Rotates the dump file specified with the -w option every\n"
 "                    num_seconds seconds. Saved files will have the name specified\n"
@@ -999,6 +1007,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #endif
 	bool udig = false;
 	plugin_utils plugins;
+	bool gvisor = false;
+	string gvisor_config;
+	string gvisor_root;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -1025,6 +1036,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"event-limit", required_argument, 0, 'e'},
 		{"fatfile", no_argument, 0, 'F'},
 		{"filter-proclist", no_argument, 0, 0 },
+		{"gvisor-config", required_argument, 0, 'g'},
+		{"gvisor-generate-config", optional_argument, 0, 0},
+		{"gvisor-root", required_argument, 0, 0},
 		{"seconds", required_argument, 0, 'G' },
 		{"help", no_argument, 0, 'h' },
 		{"input", required_argument, 0, 'I' },
@@ -1101,7 +1115,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
                                         "AbB::c:"
                                         "C:"
                                         "dDEe:F"
-                                        "G:"
+                                        "g:G:"
                                         "hH:I:i:jk:K:lLm:M:n:Pp:qRr:Ss:t:TU:uv"
                                         "W:"
                                         "w:xXz", long_options, &long_index)) != -1)
@@ -1188,6 +1202,13 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				inspector->set_fatfile_dump_mode(true);
 				break;
 			// Number of seconds between roll-over
+			case 'g':
+				gvisor = true;
+				if(optarg)
+				{
+					gvisor_config = optarg;
+				}
+				break;
 			case 'G':
 				duration_seconds = atoi(optarg);
 				if(duration_seconds <= 0)
@@ -1537,6 +1558,25 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						filter_proclist_flag = true;
 					}
 
+					else if (optname == "gvisor-generate-config") {
+						string socket_path;
+						if (optarg)
+						{
+							socket_path = std::string(optarg);
+						}
+						string generated_config = inspector->generate_gvisor_config(socket_path);
+						printf("%s", generated_config.c_str());
+						return sysdig_init_res(EXIT_SUCCESS);
+					}
+
+					else if (optname == "gvisor_root")
+					{
+						if (optarg)
+						{
+							gvisor_root = std::string(optarg);
+						}
+					}
+
 					else if (optname == "large-environment") {
 						inspector->set_large_envs(true);
 					}
@@ -1821,6 +1861,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				if(udig)
 				{
 					inspector->open_udig();
+				}
+				else if(gvisor)
+				{
+					inspector->open_gvisor(gvisor_config, gvisor_root);
 				}
 				else
 				{
