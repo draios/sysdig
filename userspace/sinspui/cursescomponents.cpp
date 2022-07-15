@@ -38,10 +38,10 @@ using namespace std;
 #include "filter.h"
 #include "filterchecks.h"
 
-#include "table.h"
+#include "chisel_table.h"
 #include "cursescomponents.h"
 #include "cursestable.h"
-#include "viewinfo.h"
+#include "chisel_viewinfo.h"
 #include "cursesui.h"
 #include "utils.h"
 
@@ -452,7 +452,7 @@ void curses_table_sidemenu::update_view_info()
 //
 // Return true if the parent should handle the event
 //
-sysdig_table_action curses_table_sidemenu::handle_input(int ch)
+chisel_table_action curses_table_sidemenu::handle_input(int ch)
 {
 	int32_t prev_select;
 	int input;
@@ -1113,11 +1113,11 @@ void curses_textbox::render()
 //
 // Return true if the parent should handle the event
 //
-sysdig_table_action curses_textbox::handle_input(int ch)
+chisel_table_action curses_textbox::handle_input(int ch)
 {
 	if(m_sidemenu)
 	{
-		sysdig_table_action ta = m_sidemenu->handle_input(ch);
+		chisel_table_action ta = m_sidemenu->handle_input(ch);
 		if(ta == STA_SWITCH_VIEW)
 		{
 			switch(m_parent->m_selected_view_sidemenu_entry)
@@ -1422,7 +1422,7 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 	ctext_config config;
 	int input;
 
-	sinsp_view_info* vinfo = parent->m_views.at(viewnum);
+	chisel_view_info* vinfo = parent->m_views.at(viewnum);
 
 	m_win = newwin(h, w, starty, startx);
 
@@ -1483,7 +1483,7 @@ curses_viewinfo_page::curses_viewinfo_page(sinsp_cursesui* parent,
 
 	uint32_t j;
 
-	if(vinfo->get_type() == sinsp_view_info::T_TABLE)
+	if(vinfo->get_type() == chisel_view_info::T_TABLE)
 	{
 		j = vinfo->does_groupby()? 2 : 1;
 	}
@@ -1586,7 +1586,7 @@ void curses_viewinfo_page::render()
 	m_ctext->redraw();
 }
 
-sysdig_table_action curses_viewinfo_page::handle_input(int ch)
+chisel_table_action curses_viewinfo_page::handle_input(int ch)
 {
 	int32_t totlines;
 
@@ -1935,7 +1935,7 @@ void curses_mainhelp_page::render()
 	m_ctext->redraw();
 }
 
-sysdig_table_action curses_mainhelp_page::handle_input(int ch)
+chisel_table_action curses_mainhelp_page::handle_input(int ch)
 {
 	int32_t totlines;
 

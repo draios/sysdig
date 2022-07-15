@@ -41,7 +41,7 @@ using namespace std;
 #ifndef NOCURSESUI
 
 #include <curses.h>
-#include "table.h"
+#include "chisel_table.h"
 #include "ctext.h"
 #include "cursescomponents.h"
 #include "cursestable.h"
@@ -201,7 +201,7 @@ curses_spectro::~curses_spectro()
 	delete m_converter;
 }
 
-void curses_spectro::configure(sinsp_table* table)
+void curses_spectro::configure(chisel_table* table)
 {
 	uint32_t j;
 
@@ -227,7 +227,7 @@ void curses_spectro::print_error(string wstr)
 		"%s", wstr.c_str());
 }
 
-void curses_spectro::update_data(vector<sinsp_sample_row>* data, bool force_selection_change)
+void curses_spectro::update_data(vector<chisel_sample_row>* data, bool force_selection_change)
 {
 	m_data = data;
 }
@@ -366,8 +366,8 @@ void curses_spectro::render(bool data_changed)
 		//
 		for(auto d : *m_data)
 		{
-			sinsp_table_field* key = &(d.m_values[0]); 
-			sinsp_table_field* data = &(d.m_values[1]); 
+			chisel_table_field* key = &(d.m_values[0]); 
+			chisel_table_field* data = &(d.m_values[1]); 
 			if(key->m_len != 8)
 			{
 				throw sinsp_exception("the key of a spectrogram view must be a number");
@@ -424,7 +424,7 @@ void curses_spectro::render(bool data_changed)
 //
 // Return false if the user wants us to exit
 //
-sysdig_table_action curses_spectro::handle_input(int ch)
+chisel_table_action curses_spectro::handle_input(int ch)
 {
 	if(m_data == NULL)
 	{

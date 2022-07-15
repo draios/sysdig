@@ -29,7 +29,7 @@ limitations under the License.
 #include <conio.h>
 #define getch _getch
 #endif
-#include "table.h"
+#include "chisel_table.h"
 #include "cursescomponents.h"
 #include "cursestable.h"
 #include "cursesspectro.h"
@@ -231,7 +231,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	string cmdline_capture_filter,
 	uint64_t refresh_interval_ns,
 	bool print_containers,
-	sinsp_table::output_type output_type,
+	chisel_table::output_type output_type,
 	bool is_mousedrag_available,
 	int32_t json_first_row, int32_t json_last_row,
 	int32_t sorting_col,
@@ -273,7 +273,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_json_spy_renderer = NULL;
 	m_json_spy_text_fmt = json_spy_text_fmt;
 
-	if(output_type == sinsp_table::OT_JSON)
+	if(output_type == chisel_table::OT_JSON)
 	{
 		g_filterchecks_force_raw_times = true;
 	}
@@ -301,7 +301,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_view_sort_sidemenu = NULL;
 	m_selected_view_sort_sidemenu_entry = 0;
 
-	if(output_type == sinsp_table::OT_CURSES)
+	if(output_type == chisel_table::OT_CURSES)
 	{
 		//
 		// Colors initialization
@@ -423,7 +423,7 @@ sinsp_cursesui::~sinsp_cursesui()
 	}
 
 #ifndef NOCURSESUI
-	if(m_output_type == sinsp_table::OT_CURSES)
+	if(m_output_type == chisel_table::OT_CURSES)
 	{
 		if(m_viz != NULL)
 		{
@@ -465,7 +465,7 @@ sinsp_cursesui::~sinsp_cursesui()
 	delete m_timedelta_formatter;
 }
 
-void sinsp_cursesui::configure(sinsp_view_manager* views)
+void sinsp_cursesui::configure(chisel_view_manager* views)
 {
 	if(views == NULL)
 	{
@@ -527,7 +527,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 #ifndef NOCURSESUI
 	spy_text_renderer::sysdig_output_type dig_otype = spy_text_renderer::OT_NORMAL;
 
-	if(m_output_type == sinsp_table::OT_CURSES)
+	if(m_output_type == chisel_table::OT_CURSES)
 	{
 		if(m_viz != NULL)
 		{
@@ -567,40 +567,40 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 	//
 	// If we need a new datatable, allocate it and set it up
 	//
-	sinsp_view_info* wi = NULL;
-	sinsp_table::tabletype ty = sinsp_table::TT_NONE;
+	chisel_view_info* wi = NULL;
+	chisel_table::tabletype ty = chisel_table::TT_NONE;
 
 	if(m_selected_view >= 0)
 	{
 		wi = m_views.at(m_selected_view);
 
-		if(wi->m_type == sinsp_view_info::T_TABLE)
+		if(wi->m_type == chisel_view_info::T_TABLE)
 		{
-			ty = sinsp_table::TT_TABLE;
-			m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, 
+			ty = chisel_table::TT_TABLE;
+			m_datatable = new chisel_table(m_inspector, ty, m_refresh_interval_ns, 
 				m_output_type, m_json_first_row, m_json_last_row);
 		}
-		else if(wi->m_type == sinsp_view_info::T_LIST)
+		else if(wi->m_type == chisel_view_info::T_LIST)
 		{
-			ty = sinsp_table::TT_LIST;
-			m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, 
+			ty = chisel_table::TT_LIST;
+			m_datatable = new chisel_table(m_inspector, ty, m_refresh_interval_ns, 
 				m_output_type, m_json_first_row, m_json_last_row);
 		}
-		else if(wi->m_type == sinsp_view_info::T_SPECTRO)
+		else if(wi->m_type == chisel_view_info::T_SPECTRO)
 		{
-			ty = sinsp_table::TT_TABLE;
+			ty = chisel_table::TT_TABLE;
 
 			//
 			// Accelerate the refresh rate to 1/2s
 			//
 			if(m_refresh_interval_ns == 2000000000)
 			{
-				m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns / 4, 
+				m_datatable = new chisel_table(m_inspector, ty, m_refresh_interval_ns / 4, 
 					m_output_type, m_json_first_row, m_json_last_row);
 			}
 			else
 			{
-				m_datatable = new sinsp_table(m_inspector, ty, m_refresh_interval_ns, 
+				m_datatable = new chisel_table(m_inspector, ty, m_refresh_interval_ns, 
 					m_output_type, m_json_first_row, m_json_last_row);
 			}
 		}
@@ -637,7 +637,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		//
 		// Create the visualization component
 		//
-		if(m_output_type == sinsp_table::OT_JSON)
+		if(m_output_type == chisel_table::OT_JSON)
 		{
 			m_json_spy_renderer= new json_spy_renderer(m_inspector,
 				this,
@@ -660,7 +660,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 	}
 
 #ifndef NOCURSESUI
-	if(m_output_type != sinsp_table::OT_CURSES)
+	if(m_output_type != chisel_table::OT_CURSES)
 	{
 		return;
 	}
@@ -668,13 +668,13 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 	//
 	// If we need a table or spectrogram visualization, allocate it and set it up
 	//
-	if(m_output_type != sinsp_table::OT_JSON)
+	if(m_output_type != chisel_table::OT_JSON)
 	{
 		if(m_selected_view >= 0)
 		{
-			if(wi != NULL && wi->m_type == sinsp_view_info::T_SPECTRO)
+			if(wi != NULL && wi->m_type == chisel_view_info::T_SPECTRO)
 			{
-				ASSERT(ty == sinsp_table::TT_TABLE);
+				ASSERT(ty == chisel_table::TT_TABLE);
 				m_spectro = new curses_spectro(this, 
 					m_inspector, 
 					m_views.at(m_selected_view)->m_id == "spectro_traces");
@@ -683,7 +683,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 			}
 			else
 			{
-				ASSERT(ty != sinsp_table::TT_NONE);
+				ASSERT(ty != chisel_table::TT_NONE);
 				m_viz = new curses_table(this, m_inspector, ty);
 				m_spectro = NULL;
 				m_chart = m_viz;
@@ -743,7 +743,7 @@ void sinsp_cursesui::render_header()
 
 	if(m_selected_view >= 0)
 	{
-		sinsp_view_info* sv = get_selected_view();
+		chisel_view_info* sv = get_selected_view();
 		const char* vcs = sv->m_name.c_str();
 		vs = vcs;
 	}
@@ -786,7 +786,7 @@ void sinsp_cursesui::render_header()
 				continue;
 			}
 
-			if(m_views.at(pv)->m_type == sinsp_view_info::T_SPECTRO)
+			if(m_views.at(pv)->m_type == chisel_view_info::T_SPECTRO)
 			{
 				//vs += m_sel_hierarchy.at(j)->m_prev_manual_filter.c_str();
 				vs += "spectrogram area";
@@ -974,7 +974,7 @@ void sinsp_cursesui::render_default_main_menu()
 {
 	bool istable;
 
-	if(m_datatable != NULL && m_datatable->m_type == sinsp_table::TT_TABLE)
+	if(m_datatable != NULL && m_datatable->m_type == chisel_table::TT_TABLE)
 	{
 		istable = true;
 	}
@@ -1242,7 +1242,7 @@ void sinsp_cursesui::render()
 }
 #endif
 
-sinsp_view_info* sinsp_cursesui::get_selected_view()
+chisel_view_info* sinsp_cursesui::get_selected_view()
 {
 	if(m_selected_view < 0)
 	{
@@ -1253,7 +1253,7 @@ sinsp_view_info* sinsp_cursesui::get_selected_view()
 	return m_views.at(m_selected_view);
 }
 
-sinsp_view_info* sinsp_cursesui::get_prev_selected_view()
+chisel_view_info* sinsp_cursesui::get_prev_selected_view()
 {
 	if(m_prev_selected_view < 0)
 	{
@@ -1312,7 +1312,7 @@ void sinsp_cursesui::populate_view_cols_sidemenu()
 	int32_t k = 0;
 
 	vector<sidemenu_list_entry> viewlist;
-	sinsp_view_info* vinfo = get_selected_view();
+	chisel_view_info* vinfo = get_selected_view();
 
 	for(auto it : vinfo->m_columns)
 	{
@@ -1347,7 +1347,7 @@ void sinsp_cursesui::populate_action_sidemenu()
 
 	m_selected_action_sidemenu_entry = 0;
 
-	sinsp_view_info* vinfo = get_selected_view();
+	chisel_view_info* vinfo = get_selected_view();
 
 	for(auto hk : vinfo->m_actions)
 	{
@@ -1391,7 +1391,7 @@ Json::Value sinsp_cursesui::generate_json_info_section()
 	Json::Value jinfo;
 	Json::Value jlegend;
 
-	sinsp_view_info* wi = NULL;
+	chisel_view_info* wi = NULL;
 
 	if(m_selected_view >= 0)
 	{
@@ -1408,7 +1408,7 @@ Json::Value sinsp_cursesui::generate_json_info_section()
 			jinfo["appliesTo"].append(av);
 		}
 
-		sinsp_view_column_info* kinfo = wi->get_key();
+		chisel_view_column_info* kinfo = wi->get_key();
 		if(kinfo)
 		{
 			jinfo["drillDownKeyField"] = kinfo->m_field;
@@ -1453,14 +1453,14 @@ Json::Value sinsp_cursesui::generate_json_info_section()
 
 void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 {
-	vector<sinsp_sample_row>* sample;
+	vector<chisel_sample_row>* sample;
 	m_datatable->flush(evt);
 
 	//
 	// It's time to refresh the data for this chart.
 	// First of all, create the data for the chart
 	//
-	if(m_output_type == sinsp_table::OT_JSON && (m_inspector->is_live() || (m_eof > 0)))
+	if(m_output_type == chisel_table::OT_JSON && (m_inspector->is_live() || (m_eof > 0)))
 	{
 		printf("{\"progress\": 100, ");
 
@@ -1471,7 +1471,7 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 
 		Json::Value root = generate_json_info_section();
 
-		if(m_views.at(m_selected_view)->m_type == sinsp_view_info::T_TABLE)
+		if(m_views.at(m_selected_view)->m_type == chisel_view_info::T_TABLE)
 		{
 			bool res;
 			execute_table_action(STA_DRILLDOWN_TEMPLATE, 0, &res);
@@ -1490,14 +1490,14 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 	}
 	else
 	{
-		if(m_output_type != sinsp_table::OT_JSON)
+		if(m_output_type != chisel_table::OT_JSON)
 		{
 			sample = m_datatable->get_sample(get_time_delta());
 		}
 	}
 
 #ifndef NOCURSESUI
-	if(m_output_type == sinsp_table::OT_CURSES)
+	if(m_output_type == chisel_table::OT_CURSES)
 	{
 		//
 		// If the help page has been shown, don't update the screen
@@ -1517,7 +1517,7 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 				ASSERT(m_spectro == NULL);
 				m_viz->update_data(sample);
 
-				if(m_datatable->m_type == sinsp_table::TT_LIST && m_inspector->is_live())
+				if(m_datatable->m_type == chisel_table::TT_LIST && m_inspector->is_live())
 				{
 					m_viz->follow_end();
 				}
@@ -1544,7 +1544,7 @@ void sinsp_cursesui::handle_end_of_sample(sinsp_evt* evt, int32_t next_res)
 	{
 #ifndef NOCURSESUI
 /*
-		if(m_output_type == sinsp_table::OT_CURSES)
+		if(m_output_type == chisel_table::OT_CURSES)
 		{
 			if(m_offline_replay)
 			{
@@ -1605,7 +1605,7 @@ void sinsp_cursesui::create_complete_filter(bool templated)
 void sinsp_cursesui::switch_view(bool is_spy_switch)
 {
 #ifndef NOCURSESUI
-	if(m_output_type == sinsp_table::OT_CURSES)
+	if(m_output_type == chisel_table::OT_CURSES)
 	{
 		//
 		// Clear the screen to make sure all the crap is removed
@@ -1629,7 +1629,7 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 	// Put the current view in the hierarchy stack
 	//
 #if 1
-	sinsp_view_info* psv = get_prev_selected_view();
+	chisel_view_info* psv = get_prev_selected_view();
 
 	if(psv != NULL)
 	{
@@ -1697,7 +1697,7 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 	}
 
 #ifndef NOCURSESUI
-	if(m_output_type == sinsp_table::OT_CURSES)
+	if(m_output_type == chisel_table::OT_CURSES)
 	{
 		delete m_view_sidemenu;
 		m_view_sidemenu = NULL;
@@ -1723,11 +1723,11 @@ void sinsp_cursesui::switch_view(bool is_spy_switch)
 }
 
 void sinsp_cursesui::spy_selection(string field, string val, 
-	sinsp_view_column_info* column_info,
+	chisel_view_column_info* column_info,
 	bool is_dig)
 {
 	uint32_t srtcol;
-	sinsp_table_field rowkeybak;
+	chisel_table_field rowkeybak;
 
 #ifdef NOCURSESUI
 	if(true)
@@ -1736,9 +1736,9 @@ void sinsp_cursesui::spy_selection(string field, string val,
 #endif
 	{
 #ifndef NOCURSESUI
-		sinsp_table_field* rowkey = m_datatable->get_row_key(m_viz->m_selct);
+		chisel_table_field* rowkey = m_datatable->get_row_key(m_viz->m_selct);
 #else
-		sinsp_table_field* rowkey = NULL;
+		chisel_table_field* rowkey = NULL;
 #endif
 		if(rowkey != NULL)
 		{
@@ -1823,7 +1823,7 @@ void sinsp_cursesui::spy_selection(string field, string val,
 
 // returns false if there is no suitable drill down view for this field
 bool sinsp_cursesui::do_drilldown(string field, string val, 
-	sinsp_view_column_info* column_info,
+	chisel_view_column_info* column_info,
 	uint32_t new_view_num, filtercheck_field_info* info,
 	bool dont_restart)
 {
@@ -1847,7 +1847,7 @@ bool sinsp_cursesui::do_drilldown(string field, string val,
 	//
 	// Do the drilldown
 	//
-	sinsp_table_field* rowkey = NULL;
+	chisel_table_field* rowkey = NULL;
 
 #ifndef NOCURSESUI
 	if(m_viz != NULL)
@@ -1855,7 +1855,7 @@ bool sinsp_cursesui::do_drilldown(string field, string val,
 		rowkey = m_datatable->get_row_key(m_viz->m_selct);
 	}
 #endif
-	sinsp_table_field rowkeybak;
+	chisel_table_field rowkeybak;
 	if(rowkey != NULL)
 	{
 		rowkeybak.m_val = new uint8_t[rowkey->m_len];
@@ -1896,7 +1896,7 @@ bool sinsp_cursesui::do_drilldown(string field, string val,
 	// Reset the filter
 	//
 #ifndef NOCURSESUI
-	if(m_output_type != sinsp_table::OT_JSON)
+	if(m_output_type != chisel_table::OT_JSON)
 	{
 		if(m_viz != NULL)
 		{
@@ -1954,7 +1954,7 @@ bool sinsp_cursesui::do_drilldown(string field, string val,
 
 // returns false if there is no suitable drill down view for this field
 bool sinsp_cursesui::drilldown(string field, string val, 
-	sinsp_view_column_info* column_info,
+	chisel_view_column_info* column_info,
 	filtercheck_field_info* info, bool dont_restart)
 {
 	uint32_t j = 0;
@@ -1984,8 +1984,8 @@ bool sinsp_cursesui::drilldown(string field, string val,
 }
 
 bool sinsp_cursesui::spectro_selection(string field, string val,
-	sinsp_view_column_info* column_info,
-	filtercheck_field_info* info, sysdig_table_action ta)
+	chisel_view_column_info* column_info,
+	filtercheck_field_info* info, chisel_table_action ta)
 {
 	uint32_t j = 0;
 	string spectro_name;
@@ -2051,7 +2051,7 @@ bool sinsp_cursesui::drillup()
 			field = psinfo->m_field;
 		}
 
-		sinsp_table_field rowkey = sinfo->m_rowkey;
+		chisel_table_field rowkey = sinfo->m_rowkey;
 
 		m_selected_view = sinfo->m_prev_selected_view;
 		m_selected_view_sidemenu_entry = sinfo->m_prev_selected_sidemenu_entry;
@@ -2065,7 +2065,7 @@ bool sinsp_cursesui::drillup()
 			}
 		}
 
-		if(m_views.at(m_selected_view)->m_type == sinsp_view_info::T_SPECTRO)
+		if(m_views.at(m_selected_view)->m_type == chisel_view_info::T_SPECTRO)
 		{
 			m_is_filter_sysdig = false;
 		}
@@ -2201,7 +2201,7 @@ void sinsp_cursesui::print_progress(double progress)
 	refresh();
 }
 
-sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
+chisel_table_action sinsp_cursesui::handle_textbox_input(int ch)
 {
 	bool closing = false;
 	string* str = NULL;
@@ -2404,7 +2404,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 	}
 	else if(m_output_searching)
 	{
-		sinsp_table_field* skey = m_datatable->search_in_sample(*str);
+		chisel_table_field* skey = m_datatable->search_in_sample(*str);
 
 		if(skey != NULL)
 		{
@@ -2448,7 +2448,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 
 	if(closing)
 	{
-		sysdig_table_action res = STA_NONE;
+		chisel_table_action res = STA_NONE;
 
 		if(m_is_filter_sysdig && !m_output_searching)
 		{
@@ -2470,7 +2470,7 @@ sysdig_table_action sinsp_cursesui::handle_textbox_input(int ch)
 	return STA_NONE;
 }
 
-sysdig_table_action sinsp_cursesui::handle_input(int ch)
+chisel_table_action sinsp_cursesui::handle_input(int ch)
 {
 	//
 	// Avoid parsing keys during file load
@@ -2489,7 +2489,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 	if(m_mainhelp_page != NULL)
 	{
-		sysdig_table_action actn = m_mainhelp_page->handle_input(ch);
+		chisel_table_action actn = m_mainhelp_page->handle_input(ch);
 
 		if(actn == STA_DESTROY_CHILD)
 		{
@@ -2528,7 +2528,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 	{
 		ASSERT(m_action_sidemenu == NULL);
 
-		sysdig_table_action ta = m_view_sidemenu->handle_input(ch);
+		chisel_table_action ta = m_view_sidemenu->handle_input(ch);
 		if(ta == STA_SWITCH_VIEW)
 		{
 			if(m_viewinfo_page)
@@ -2547,10 +2547,10 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 	{
 		if(m_action_sidemenu != NULL)
 		{
-			sysdig_table_action ta = m_action_sidemenu->handle_input(ch);
+			chisel_table_action ta = m_action_sidemenu->handle_input(ch);
 			if(ta == STA_SWITCH_VIEW)
 			{
-				sinsp_view_info* vinfo = get_selected_view();
+				chisel_view_info* vinfo = get_selected_view();
 
 				g_logger.format("running action %d %s", m_selected_action_sidemenu_entry,
 					vinfo->m_name.c_str());
@@ -2593,7 +2593,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 
 		if(m_view_sort_sidemenu != NULL)
 		{
-			sysdig_table_action ta = m_view_sort_sidemenu->handle_input(ch);
+			chisel_table_action ta = m_view_sort_sidemenu->handle_input(ch);
 			if(ta == STA_SWITCH_VIEW || ta == STA_DESTROY_CHILD)
 			{
 				if(ta == STA_SWITCH_VIEW) 
@@ -2635,7 +2635,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 		ASSERT(m_action_sidemenu == NULL);
 		ASSERT(m_output_filtering == false);
 		ASSERT(m_output_searching == false);
-		sysdig_table_action actn = m_spy_box->handle_input(ch);
+		chisel_table_action actn = m_spy_box->handle_input(ch);
 
 		if(actn != STA_PARENT_HANDLE)
 		{
@@ -2651,7 +2651,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 	{
 		ASSERT(m_view_sidemenu == NULL);
 
-		sysdig_table_action actn = m_viewinfo_page->handle_input(ch);
+		chisel_table_action actn = m_viewinfo_page->handle_input(ch);
 
 		if(actn == STA_DESTROY_CHILD)
 		{
@@ -2674,7 +2674,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 	//
 	if(m_viz)
 	{
-		sysdig_table_action actn = m_viz->handle_input(ch);
+		chisel_table_action actn = m_viz->handle_input(ch);
 		if(actn != STA_PARENT_HANDLE)
 		{
 			return actn;
@@ -2682,7 +2682,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 	}
 	else if(m_spectro)
 	{
-		sysdig_table_action actn = m_spectro->handle_input(ch);
+		chisel_table_action actn = m_spectro->handle_input(ch);
 		if(actn != STA_PARENT_HANDLE)
 		{
 			return actn;
@@ -2823,7 +2823,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				//
 				return STA_NONE;
 			}
-			else if(m_datatable->m_type == sinsp_table::TT_LIST)
+			else if(m_datatable->m_type == chisel_table::TT_LIST)
 			{
 				//
 				// No F5 for list tables
@@ -2847,7 +2847,7 @@ sysdig_table_action sinsp_cursesui::handle_input(int ch)
 				//
 				return STA_NONE;
 			}
-			else if(m_datatable->m_type == sinsp_table::TT_LIST)
+			else if(m_datatable->m_type == chisel_table::TT_LIST)
 			{
 				//
 				// No F5 for list tables
@@ -3071,7 +3071,7 @@ bool sinsp_cursesui::handle_stdin_input(bool* res)
 	string astr = root["action"].asString();
 	Json::Value args = root["args"];
 
-	sysdig_table_action ta;
+	chisel_table_action ta;
 	uint32_t rownum = 0;
 
 	if(astr == "apply")
@@ -3126,7 +3126,7 @@ uint64_t sinsp_cursesui::get_time_delta()
 	}
 }
 
-void sinsp_cursesui::run_action(sinsp_view_action_info* action)
+void sinsp_cursesui::run_action(chisel_view_action_info* action)
 {
 	string resolved_command;
 	bool replacing = false;
@@ -3303,7 +3303,7 @@ bool sinsp_cursesui::is_spectro_paused(int input)
 // Returns true if the caller should return immediatly after calling us. 
 // In that case, res is filled with the result.
 //
-bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, uint32_t rownumber, bool* res)
+bool sinsp_cursesui::execute_table_action(chisel_table_action ta, uint32_t rownumber, bool* res)
 {
 	//
 	// Some events require that we perform additional actions
@@ -3326,7 +3326,7 @@ bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, uint32_t rownu
 #ifndef NOCURSESUI
 			if(m_viz != NULL)
 			{
-				sinsp_view_column_info* kinfo = get_selected_view()->get_key();
+				chisel_view_column_info* kinfo = get_selected_view()->get_key();
 
 				//
 				// Note: kinfo is null for list views, which currently don't support
@@ -3348,13 +3348,13 @@ bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, uint32_t rownu
 			else
 #endif
 			{
-				if(m_output_type == sinsp_table::OT_CURSES)
+				if(m_output_type == chisel_table::OT_CURSES)
 				{
 					drilldown("", "", NULL, NULL, false);
 				}
 				else
 				{
-					sinsp_view_column_info* kinfo = get_selected_view()->get_key();
+					chisel_view_column_info* kinfo = get_selected_view()->get_key();
 					auto res = m_datatable->get_row_key_name_and_val(rownumber, false);
 					if(res.first != NULL)
 					{
@@ -3372,7 +3372,7 @@ bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, uint32_t rownu
 		return true;
 	case STA_DRILLDOWN_TEMPLATE:
 		{
-			sinsp_view_column_info* kinfo = get_selected_view()->get_key();
+			chisel_view_column_info* kinfo = get_selected_view()->get_key();
 			auto res = m_datatable->get_row_key_name_and_val(0, true);
 			if(res.first != NULL)
 			{
@@ -3395,7 +3395,7 @@ bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, uint32_t rownu
 	case STA_SPECTRO:
 	case STA_SPECTRO_FILE:
 		{
-			sinsp_view_column_info* kinfo = get_selected_view()->get_key();
+			chisel_view_column_info* kinfo = get_selected_view()->get_key();
 
 			//
 			// Note: kinfo is null for list views, that currently don't support
@@ -3421,7 +3421,7 @@ bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, uint32_t rownu
 		{
 			pair<filtercheck_field_info*, string> res;
 #ifndef NOCURSESUI
-			if(m_output_type == sinsp_table::OT_CURSES)
+			if(m_output_type == chisel_table::OT_CURSES)
 			{
 				res = m_datatable->get_row_key_name_and_val(m_viz->m_selct, false);
 			}
@@ -3459,7 +3459,7 @@ bool sinsp_cursesui::execute_table_action(sysdig_table_action ta, uint32_t rownu
 			else
 #endif
 			{
-				if(m_output_type == sinsp_table::OT_CURSES)
+				if(m_output_type == chisel_table::OT_CURSES)
 				{
 					spy_selection("", "", NULL, true);
 				}
