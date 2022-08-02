@@ -764,9 +764,9 @@ captureinfo do_inspect(sinsp* inspector,
 		}
 		res = inspector->next(&ev);
 
-		if(res == SCAP_TIMEOUT)
+		if(res == SCAP_TIMEOUT || res == SCAP_FILTERED_EVENT)
 		{
-			if(ev != NULL && ev->is_filtered_out())
+			if(res == SCAP_FILTERED_EVENT && ev != NULL && ev->is_filtered_out())
 			{
 				//
 				// The event has been dropped by the filtering system.
