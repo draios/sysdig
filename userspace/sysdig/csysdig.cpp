@@ -303,7 +303,7 @@ captureinfo do_inspect(sinsp* inspector,
 
 		res = inspector->next(&ev);
 
-		if(res == SCAP_TIMEOUT)
+		if(res == SCAP_TIMEOUT || res == SCAP_FILTERED_EVENT)
 		{
 			continue;
 		}
