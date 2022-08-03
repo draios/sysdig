@@ -32,8 +32,8 @@ else()
   # default below In case you want to test against another falcosecurity/libs version just pass the variable - ie., `cmake
   # -DFALCOSECURITY_LIBS_VERSION=dev ..`
   if(NOT FALCOSECURITY_LIBS_VERSION)
-    set(FALCOSECURITY_LIBS_VERSION "111135405708f69efa391a5140706e273917e28d")
-    set(FALCOSECURITY_LIBS_CHECKSUM "SHA256=7765bbdf599adf8d3abbbea3d434800232bb48d369dd8b5d6c1c03cfa065758c")
+    set(FALCOSECURITY_LIBS_VERSION "b4c198773bf05486e122f6d3f7f63be125242413")
+    set(FALCOSECURITY_LIBS_CHECKSUM "SHA256=e85fa42a0b58ba21ca7efb38c20ce25207f4816245bdf154e6b9a037a1cce930")
   endif()
 
   # cd /path/to/build && cmake /path/to/source
@@ -73,6 +73,7 @@ set(WITH_CHISEL ON CACHE INTERNAL "" FORCE)
 set(USE_BUNDLED_TBB ON CACHE BOOL "")
 set(USE_BUNDLED_B64 ON CACHE BOOL "")
 set(USE_BUNDLED_JSONCPP ON CACHE BOOL "")
+set(USE_BUNDLED_VALIJSON ON CACHE BOOL "")
 
 list(APPEND CMAKE_MODULE_PATH "${FALCOSECURITY_LIBS_SOURCE_DIR}/cmake/modules")
 
