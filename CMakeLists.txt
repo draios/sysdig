@@ -194,7 +194,7 @@ else()
                         INSTALL_COMMAND "")
 		else()
 		ExternalProject_Add(luajit
-			URL "http://download.draios.com/dependencies/LuaJIT-2.0.3.tar.gz"
+			URL "https://download.sysdig.com/dependencies/LuaJIT-2.0.3.tar.gz"
 			URL_MD5 "f14e9104be513913810cd59c8c658dc0"
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND ${CMD_MAKE}
@@ -205,7 +205,7 @@ else()
 	else()
 		set(LUAJIT_LIB "${LUAJIT_SRC}/lua51.lib")
 		ExternalProject_Add(luajit
-			URL "http://download.draios.com/dependencies/LuaJIT-2.0.3.tar.gz"
+			URL "https://download.sysdig.com/dependencies/LuaJIT-2.0.3.tar.gz"
 			URL_MD5 "f14e9104be513913810cd59c8c658dc0"
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND msvcbuild.bat
@@ -257,7 +257,7 @@ if(NOT MINIMAL_BUILD)
 		if(NOT WIN32)
 			set(ZLIB_LIB "${ZLIB_SRC}/libz.a")
 			ExternalProject_Add(zlib
-				URL "http://download.draios.com/dependencies/zlib-1.2.11.tar.gz"
+				URL "https://download.sysdig.com/dependencies/zlib-1.2.11.tar.gz"
 				URL_MD5 "1c9f62f0778697a09d36121ead88e08e"
 				CONFIGURE_COMMAND "./configure"
 				BUILD_COMMAND ${CMD_MAKE}
@@ -267,7 +267,7 @@ if(NOT MINIMAL_BUILD)
 		else()
 			set(ZLIB_LIB "${ZLIB_SRC}/zdll.lib")
 			ExternalProject_Add(zlib
-				URL "http://download.draios.com/dependencies/zlib-1.2.11.tar.gz"
+				URL "https://download.sysdig.com/dependencies/zlib-1.2.11.tar.gz"
 				URL_MD5 "1c9f62f0778697a09d36121ead88e08e"
 				CONFIGURE_COMMAND ""
 				BUILD_COMMAND nmake -f win32/Makefile.msc
@@ -299,7 +299,7 @@ if(NOT WIN32)
 		set(TBB_INCLUDE_DIR "${TBB_SRC}/include/")
 		set(TBB_LIB "${TBB_SRC}/build/lib_release/libtbb.a")
 		ExternalProject_Add(tbb
-			URL "http://s3.amazonaws.com/download.draios.com/dependencies/tbb-2018_U5.tar.gz"
+			URL "http://download.sysdig.com/dependencies/tbb-2018_U5.tar.gz"
 			URL_MD5 "ff3ae09f8c23892fbc3008c39f78288f"
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND ${CMD_MAKE} tbb_build_dir=${TBB_SRC}/build tbb_build_prefix=lib extra_inc=big_iron.inc
@@ -334,7 +334,7 @@ if(NOT WIN32 AND NOT APPLE)
 
 		ExternalProject_Add(
 			jq
-			URL "http://download.draios.com/dependencies/jq-1.6.tar.gz"
+			URL "https://download.sysdig.com/dependencies/jq-1.6.tar.gz"
 			URL_HASH "SHA256=787518068c35e244334cc79b8e56b60dbab352dff175b7f04a94f662b540bfd9"
 			CONFIGURE_COMMAND ./configure --disable-maintainer-mode --enable-all-static --disable-dependency-tracking --with-oniguruma=builtin --prefix=${JQ_INSTALL_DIR}
 			BUILD_COMMAND ${CMD_MAKE} LDFLAGS=-all-static
@@ -361,7 +361,7 @@ if(NOT WIN32)
 		message(STATUS "Using bundled ncurses in '${CURSES_BUNDLE_DIR}'")
 
 		ExternalProject_Add(ncurses
-			URL "http://download.draios.com/dependencies/ncurses-6.0-20150725.tgz"
+			URL "https://download.sysdig.com/dependencies/ncurses-6.0-20150725.tgz"
 			URL_MD5 "32b8913312e738d707ae68da439ca1f4"
 			CONFIGURE_COMMAND ./configure --without-cxx --without-cxx-binding --without-ada --without-manpages --without-progs --without-tests --with-terminfo-dirs=/etc/terminfo:/lib/terminfo:/usr/share/terminfo
 			BUILD_COMMAND ${CMD_MAKE}
@@ -391,7 +391,7 @@ if(NOT WIN32 AND NOT APPLE)
 		set(B64_INCLUDE "${B64_SRC}/include")
 		set(B64_LIB "${B64_SRC}/src/libb64.a")
 		ExternalProject_Add(b64
-			URL "http://download.draios.com/dependencies/libb64-1.2.src.zip"
+			URL "https://download.sysdig.com/dependencies/libb64-1.2.src.zip"
 			URL_MD5 "a609809408327117e2c643bed91b76c5"
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND ${CMD_MAKE}
@@ -420,7 +420,7 @@ if(NOT WIN32 AND NOT MINIMAL_BUILD)
 		message(STATUS "Using bundled openssl in '${OPENSSL_BUNDLE_DIR}'")
 
 		ExternalProject_Add(openssl
-			URL "http://download.draios.com/dependencies/openssl-1.0.2n.tar.gz"
+			URL "https://download.sysdig.com/dependencies/openssl-1.0.2n.tar.gz"
 			URL_MD5 "13bdc1b1d1ff39b6fd42a255e74676a4"
 			CONFIGURE_COMMAND ./config shared --prefix=${OPENSSL_INSTALL_DIR}
 			BUILD_COMMAND ${CMD_MAKE}
@@ -453,7 +453,7 @@ if(NOT WIN32 AND NOT MINIMAL_BUILD)
 
 		ExternalProject_Add(curl
 			DEPENDS openssl
-			URL "http://download.draios.com/dependencies/curl-7.61.0.tar.bz2"
+			URL "https://download.sysdig.com/dependencies/curl-7.61.0.tar.bz2"
 			URL_MD5 "31d0a9f48dc796a7db351898a1e5058a"
 			CONFIGURE_COMMAND ./configure ${CURL_SSL_OPTION} --disable-threaded-resolver --disable-shared --enable-optimize --disable-curldebug --disable-rt --enable-http --disable-ftp --disable-file --disable-ldap --disable-ldaps --disable-rtsp --disable-telnet --disable-tftp --disable-pop3 --disable-imap --disable-smb --disable-smtp --disable-gopher --disable-sspi --disable-ntlm-wb --disable-tls-srp --without-winssl --without-darwinssl --without-polarssl --without-cyassl --without-nss --without-axtls --without-ca-path --without-ca-bundle --without-libmetalink --without-librtmp --without-winidn --without-libidn --without-libidn2 --without-nghttp2 --without-libssh2  --without-libpsl
 			BUILD_COMMAND ${CMD_MAKE}
@@ -573,7 +573,7 @@ if(NOT WIN32 AND NOT APPLE)
 
 			ExternalProject_Add(grpc
 			DEPENDS protobuf zlib c-ares
-			URL "http://download.draios.com/dependencies/grpc-1.8.1.tar.gz"
+			URL "https://download.sysdig.com/dependencies/grpc-1.8.1.tar.gz"
 			URL_MD5 "2fc42c182a0ed1b48ad77397f76bb3bc"
 			CONFIGURE_COMMAND ""
 			# TODO what if using system openssl, protobuf or cares?
