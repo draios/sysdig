@@ -40,7 +40,7 @@ BRANCH=$3
 if [ ! -d "$TRACEDIR" ]; then
 	mkdir -p $TRACEDIR
 	cd $TRACEDIR
-	wget -O traces.zip https://s3.amazonaws.com/download.draios.com/sysdig-tests/traces-$BRANCH.zip || wget -O traces.zip https://s3.amazonaws.com/download.draios.com/sysdig-tests/traces.zip
+	wget -O traces.zip https://download.sysdig.com/sysdig-tests/traces-$BRANCH.zip || wget -O traces.zip https://download.sysdig.com/sysdig-tests/traces.zip
 	unzip traces.zip
 	rm -rf traces.zip
 	cd -
@@ -49,7 +49,7 @@ fi
 if [ ! -d "$BASELINEDIR" ]; then
 	mkdir -p $BASELINEDIR
 	cd $BASELINEDIR
-	wget -O baseline.zip https://s3.amazonaws.com/download.draios.com/sysdig-tests/baseline-$BRANCH.zip || wget -O baseline.zip https://s3.amazonaws.com/download.draios.com/sysdig-tests/baseline-dev.zip
+	wget -O baseline.zip https://download.sysdig.com/sysdig-tests/baseline-$BRANCH.zip || wget -O baseline.zip https://download.sysdig.com/sysdig-tests/baseline-dev.zip
 	unzip baseline.zip
 	rm -rf baseline.zip
 	cd -
