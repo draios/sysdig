@@ -1534,6 +1534,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 							delete inspector;
 							return sysdig_init_res(EXIT_FAILURE);
 						}
+						g_logger.add_stdout_log();
 					}
 					else if (optname == "list-chisels") {
 						vector<chisel_desc> chlist;
