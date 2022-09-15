@@ -56,7 +56,8 @@ jobs:
     needs: base
     strategy:
       matrix:
-        artifact: [ tools, llvm-7, gcc-5, gcc-6, gcc-7, gcc-8, gcc-9, gcc-10, gcc-12 ]
+        # See docker/scap-driver-toolchains/ and add more if/when needed
+        artifact: [ tools, gcc-12 ]
 
     env:
       REGISTRY: ghcr.io
