@@ -30,11 +30,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set up QEMU
+        id: qemu
+        if: steps.changed.outputs.any_changed == 'true'
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: amd64, arm64, s390x
+
+      - name: Set up Docker Buildx
+        id: buildx
+        if: steps.changed.outputs.any_changed == 'true'
+        uses: docker/setup-buildx-action@v1
+
       - name: Build new scap-driver-toolchains-base
         id: build
         if: steps.changed.outputs.any_changed == 'true'
         uses: docker/build-push-action@v2
         with:
+          platforms: linux/amd64, linux/arm64, linux/s390x
           context: docker/scap-driver-toolchains/base
           tags: ${{ format('{0}:dev,{0}:{1}', env.IMAGE, github.sha) }}
           push: true
@@ -69,11 +82,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set up QEMU
+        id: qemu
+        if: steps.changed.outputs.any_changed == 'true'
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: amd64, arm64, s390x
+
+      - name: Set up Docker Buildx
+        id: buildx
+        if: steps.changed.outputs.any_changed == 'true'
+        uses: docker/setup-buildx-action@v1
+
       - name: Build new scap-driver-toolchains-${{ matrix.artifact }}
         id: build
         if: steps.changed.outputs.any_changed == 'true'
         uses: docker/build-push-action@v2
         with:
+          platforms: linux/amd64, linux/arm64, linux/s390x
           context: docker/scap-driver-toolchains/${{ matrix.artifact }}
           tags: ${{ format('{0}:dev,{0}:{1}', env.IMAGE, github.sha) }}
           push: true
