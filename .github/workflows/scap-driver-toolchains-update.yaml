@@ -1,0 +1,353 @@
+name: Scap driver toolchains update
+on:
+  push:
+    branches: [dev]
+    paths: ['docker/scap-driver-toolchains/**']
+
+jobs:
+  base:
+    env:
+      REGISTRY: ghcr.io
+      IMAGE: ghcr.io/draios/scap-driver-toolchains-base
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Check if changed
+        id: changed
+        uses: tj-actions/changed-files@v10.1
+        with:
+          files: |
+            ^docker/scap-driver-toolchains/base
+
+      - name: Login to Github Packages
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build new scap-driver-toolchains-base
+        id: build
+        if: steps.changed.outputs.any_changed == 'true'
+        uses: docker/build-push-action@v2
+        with:
+          context: docker/scap-driver-toolchains/base
+          tags: ${{ format('{0}:dev,{0}:{1}', env.IMAGE, github.sha) }}
+          push: true
+
+  tools:
+    needs: base
+    env:
+      REGISTRY: ghcr.io
+      IMAGE: ghcr.io/draios/scap-driver-toolchains-tools
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Check if changed
+        id: changed
+        uses: tj-actions/changed-files@v10.1
+        with:
+          files: |
+            ^docker/scap-driver-toolchains/tools
+
+      - name: Login to Github Packages
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build new scap-driver-toolchains-tools
+        id: build
+        if: steps.changed.outputs.any_changed == 'true'
+        uses: docker/build-push-action@v2
+        with:
+          context: docker/scap-driver-toolchains/tools
+          tags: ${{ format('{0}:dev,{0}:{1}', env.IMAGE, github.sha) }}
+          push: true
+
+
+  llvm-7:
+    needs: base
+    env:
+      REGISTRY: ghcr.io
+      IMAGE: ghcr.io/draios/scap-driver-toolchains-llvm-7
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Check if changed
+        id: changed
+        uses: tj-actions/changed-files@v10.1
+        with:
+          files: |
+            ^docker/scap-driver-toolchains/llvm-7
+
+      - name: Login to Github Packages
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build new scap-driver-toolchains-llvm-7
+        id: build
+        if: steps.changed.outputs.any_changed == 'true'
+        uses: docker/build-push-action@v2
+        with:
+          context: docker/scap-driver-toolchains/llvm-7
+          tags: ${{ format('{0}:dev,{0}:{1}', env.IMAGE, github.sha) }}
+          push: true
+
+
+  gcc-5:
+    needs: base
+    env:
+      REGISTRY: ghcr.io
+      IMAGE: ghcr.io/draios/scap-driver-toolchains-gcc-5
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Check if changed
+        id: changed
+        uses: tj-actions/changed-files@v10.1
+        with:
+          files: |
+            ^docker/scap-driver-toolchains/gcc-5
+
+      - name: Login to Github Packages
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build new scap-driver-toolchains-gcc-5
+        id: build
+        if: steps.changed.outputs.any_changed == 'true'
+        uses: docker/build-push-action@v2
+        with:
+          context: docker/scap-driver-toolchains/gcc-5
+          tags: ${{ format('{0}:dev,{0}:{1}', env.IMAGE, github.sha) }}
+          push: true
+
+
+  gcc-6:
+    needs: base
+    env:
+      REGISTRY: ghcr.io
+      IMAGE: ghcr.io/draios/scap-driver-toolchains-gcc-6
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Check if changed
+        id: changed
+        uses: tj-actions/changed-files@v10.1
+        with:
+          files: |
+            ^docker/scap-driver-toolchains/gcc-6
+
+      - name: Login to Github Packages
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build new scap-driver-toolchains-gcc-6
+        id: build
+        if: steps.changed.outputs.any_changed == 'true'
+        uses: docker/build-push-action@v2
+        with:
+          context: docker/scap-driver-toolchains/gcc-6
+          tags: ${{ format('{0}:dev,{0}:{1}', env.IMAGE, github.sha) }}
+          push: true
+
+
+  gcc-7:
+    needs: base
+    env:
+      REGISTRY: ghcr.io
+      IMAGE: ghcr.io/draios/scap-driver-toolchains-gcc-7
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Check if changed
+        id: changed
+        uses: tj-actions/changed-files@v10.1
+        with:
+          files: |
+            ^docker/scap-driver-toolchains/gcc-7
+
+      - name: Login to Github Packages
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build new scap-driver-toolchains-gcc-7
+        id: build
+        if: steps.changed.outputs.any_changed == 'true'
+        uses: docker/build-push-action@v2
+        with:
+          context: docker/scap-driver-toolchains/gcc-7
+          tags: ${{ format('{0}:dev,{0}:{1}', env.IMAGE, github.sha) }}
+          push: true
+
+
+  gcc-8:
+    needs: base
+    env:
+      REGISTRY: ghcr.io
+      IMAGE: ghcr.io/draios/scap-driver-toolchains-gcc-8
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Check if changed
+        id: changed
+        uses: tj-actions/changed-files@v10.1
+        with:
+          files: |
+            ^docker/scap-driver-toolchains/gcc-8
+
+      - name: Login to Github Packages
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build new scap-driver-toolchains-gcc-8
+        id: build
+        if: steps.changed.outputs.any_changed == 'true'
+        uses: docker/build-push-action@v2
+        with:
+          context: docker/scap-driver-toolchains/gcc-8
+          tags: ${{ format('{0}:dev,{0}:{1}', env.IMAGE, github.sha) }}
+          push: true
+
+
+  gcc-9:
+    needs: base
+    env:
+      REGISTRY: ghcr.io
+      IMAGE: ghcr.io/draios/scap-driver-toolchains-gcc-9
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Check if changed
+        id: changed
+        uses: tj-actions/changed-files@v10.1
+        with:
+          files: |
+            ^docker/scap-driver-toolchains/gcc-9
+
+      - name: Login to Github Packages
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build new scap-driver-toolchains-gcc-9
+        id: build
+        if: steps.changed.outputs.any_changed == 'true'
+        uses: docker/build-push-action@v2
+        with:
+          context: docker/scap-driver-toolchains/gcc-9
+          tags: ${{ format('{0}:dev,{0}:{1}', env.IMAGE, github.sha) }}
+          push: true
+
+
+  gcc-10:
+    needs: base
+    env:
+      REGISTRY: ghcr.io
+      IMAGE: ghcr.io/draios/scap-driver-toolchains-gcc-10
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Check if changed
+        id: changed
+        uses: tj-actions/changed-files@v10.1
+        with:
+          files: |
+            ^docker/scap-driver-toolchains/gcc-10
+
+      - name: Login to Github Packages
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build new scap-driver-toolchains-gcc-10
+        id: build
+        if: steps.changed.outputs.any_changed == 'true'
+        uses: docker/build-push-action@v2
+        with:
+          context: docker/scap-driver-toolchains/gcc-10
+          tags: ${{ format('{0}:dev,{0}:{1}', env.IMAGE, github.sha) }}
+          push: true
+
+
+  gcc-12:
+    needs: base
+    env:
+      REGISTRY: ghcr.io
+      IMAGE: ghcr.io/draios/scap-driver-toolchains-gcc-12
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Check if changed
+        id: changed
+        uses: tj-actions/changed-files@v10.1
+        with:
+          files: |
+            ^docker/scap-driver-toolchains/gcc-12
+
+      - name: Login to Github Packages
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build new scap-driver-toolchains-gcc-12
+        id: build
+        if: steps.changed.outputs.any_changed == 'true'
+        uses: docker/build-push-action@v2
+        with:
+          context: docker/scap-driver-toolchains/gcc-12
+          tags: ${{ format('{0}:dev,{0}:{1}', env.IMAGE, github.sha) }}
+          push: true
