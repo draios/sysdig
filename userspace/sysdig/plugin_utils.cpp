@@ -130,7 +130,6 @@ void plugin_utils::add_dir(std::string dirname, bool front_add)
 }
 
 plugin_utils::plugin_utils()
-    : m_has_input_plugin(false)
 {
     //
     // Add the directories configured in the SYSDIG_PLUGIN_DIR environment variable
@@ -155,8 +154,19 @@ bool plugin_utils::has_plugins() const
 
 bool plugin_utils::has_input_plugin() const
 {
-    return m_has_input_plugin;
+    return !m_input_plugin_name.empty();
 }
+
+const std::string& plugin_utils::input_plugin_name() const
+{
+    return m_input_plugin_name;
+}
+
+const std::string& plugin_utils::input_plugin_params() const
+{
+    return m_input_plugin_params;
+}
+
 
 void plugin_utils::add_directory(const std::string& plugins_dir)
 {
@@ -257,18 +267,18 @@ void plugin_utils::init_plugin(sinsp *inspector, const string& name, const strin
     p.init(conf);
 }
 
-void plugin_utils::set_input_plugin(sinsp *inspector, const string& name, const string& params)
+void plugin_utils::select_input_plugin(sinsp *inspector, const string& name, const string& params)
 {
     auto& p = find_plugin(name);
     if (p.plugin->caps() & CAP_SOURCING)
     {
-        if (m_has_input_plugin)
+        if (!m_input_plugin_name.empty())
         {
             throw sinsp_exception("using more than one plugin as input is not supported");
         }
-        inspector->set_input_plugin(p.plugin->name(), params);
         g_filterlist.add_filter_check(inspector->new_generic_filtercheck());
-        m_has_input_plugin = true;
+        m_input_plugin_name = name;
+        m_input_plugin_params = params;
         return;
     }
     throw sinsp_exception(err_plugin_no_source_cap + name);
@@ -437,7 +447,7 @@ void plugin_utils::load_plugins_from_conf_file(sinsp *inspector, const std::stri
             auto& p = find_plugin(library_path);
             if (p.plugin->caps() & CAP_SOURCING)
             {
-                set_input_plugin(inspector, library_path, open_params);
+                select_input_plugin(inspector, library_path, open_params);
             }
         }
     }

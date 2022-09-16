@@ -42,13 +42,15 @@ public:
 
 	void init_plugin(sinsp *inspector, const string& name, const string& conf);
 
-	void set_input_plugin(sinsp *inspector, const string& name, const string& params);
+	void select_input_plugin(sinsp *inspector, const string& name, const string& params);
 
 	void print_plugin_info(sinsp* inspector, const string& name);
 	void print_plugin_info_list(sinsp* inspector) const;
 
 	bool has_plugins() const;
 	bool has_input_plugin() const;
+	const std::string& input_plugin_name() const;
+	const std::string& input_plugin_params() const;
 
 private:
 	struct plugin_entry {
@@ -64,7 +66,8 @@ private:
 	plugin_entry& find_plugin(const std::string name);
 	const plugin_entry& find_plugin(const std::string name) const;
 
-	bool m_has_input_plugin;
+	std::string m_input_plugin_name;
+	std::string m_input_plugin_params;
 	std::vector<std::string> m_dirs;
 	std::vector<plugin_entry> m_plugins;
 };

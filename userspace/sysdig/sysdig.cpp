@@ -27,6 +27,7 @@ limitations under the License.
 #include <sys/stat.h>
 #include <assert.h>
 #include <algorithm>
+#include <unordered_set>
 
 #include <sinsp.h>
 #include "scap_open_exception.h"
@@ -1258,7 +1259,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						pgname = inputname.substr(0, cpos);
 						pgpars = inputname.substr(cpos + 1);
 					}
-					plugins.set_input_plugin(inspector, pgname, pgpars);
+					plugins.select_input_plugin(inspector, pgname, pgpars);
 				}
 				break;
 #ifdef HAS_CHISELS
@@ -1632,17 +1633,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 		if(!bpf)
 		{
-			const char *probe = scap_get_bpf_probe_from_env();
+			const char *probe = getenv("SYSDIG_BPF_PROBE");
 			if(probe)
 			{
 				bpf = true;
 				bpf_probe = probe;
 			}
-		}
-
-		if(bpf)
-		{
-			inspector->set_bpf_probe(bpf_probe);
 		}
 
 		//
@@ -1835,7 +1831,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				//
 				// We have a file to open
 				//
-				inspector->open(infiles[j]);
+				inspector->open_savefile(infiles[j]);
 			}
 			else
 			{
@@ -1849,9 +1845,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				//
 				// No file to open, this is a live capture
 				//
-#if defined(HAS_CAPTURE)
-				bool open_success = true;
-
 				if(print_progress && !g_plugin_input)
 				{
 					fprintf(stderr, "the -P flag cannot be used with live captures.\n");
@@ -1859,7 +1852,32 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					goto exit;
 				}
 
-				if(udig)
+				/* Populate syscalls of interest */
+				std::unordered_set<uint32_t> sc_of_interest;
+				for(int i = 0; i < PPM_SC_MAX; i++)
+				{
+					sc_of_interest.insert(i);
+				}
+
+				/* Populate tracepoints of interest */
+				std::unordered_set<uint32_t> tp_of_interest;
+				for(int i = 0; i < TP_VAL_MAX; i++)
+				{
+					tp_of_interest.insert(i);
+				}
+
+				if(!page_faults)
+				{
+					tp_of_interest.erase(PAGE_FAULT_USER);
+					tp_of_interest.erase(PAGE_FAULT_KERN);
+				}
+
+				if (g_plugin_input)
+				{
+					inspector->open_plugin(plugins.input_plugin_name(), plugins.input_plugin_params());
+				}
+#if defined(HAS_CAPTURE)
+				else if(udig)
 				{
 					inspector->open_udig();
 				}
@@ -1867,69 +1885,47 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				{
 					inspector->open_gvisor(gvisor_config, gvisor_root);
 				}
-				else
+#ifndef _WIN32
+				else if(bpf)
 				{
-
 					try
 					{
-						inspector->open("");
+						inspector->open_bpf(bpf_probe.c_str(), DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
 					}
 					catch(const sinsp_exception& e)
 					{
-						if (g_plugin_input)
+						if(system("scap-driver-loader bpf"))
 						{
-							throw e;
+							fprintf(stderr, "Unable to load the BPF probe\n");
 						}
-						// if we are opening the syscall source, we retry later
-						// by loading the driver with modprobe
-						open_success = false;
+						inspector->open_bpf(bpf_probe.c_str(), DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
 					}
-#ifndef _WIN32
-					//
-					// Starting the live capture failed, try to load the driver with
-					// modprobe.
-					//
-					if(!open_success)
-					{
-						open_success = true;
 
-						if(bpf)
-						{
-							if(bpf_probe.empty())
-							{
-								if(system("scap-driver-loader bpf"))
-								{
-									fprintf(stderr, "Unable to load the BPF probe\n");
-								}
-							}
-						}
-						else
-						{
-							if(system("modprobe " DRIVER_NAME " > /dev/null 2> /dev/null"))
-							{
-								fprintf(stderr, "Unable to load the driver\n");
-							}
-						}
-
-						inspector->open("");
-					}
-#endif // _WIN32
-				}
-#else // HAS_CAPTURE
-				//
-				// Starting live capture
-				// If this fails on Windows and OSX, don't try with any driver
-				//
-				inspector->open("");
-#endif // HAS_CAPTURE
-
-				//
-				// Enable gathering the CPU from the kernel module
-				//
-				if(!udig)
-				{
+					// Enable gathering the CPU from the kernel module
 					inspector->set_get_procs_cpu_from_driver(true);
 				}
+				else
+				{
+					try
+					{
+						inspector->open_kmod(DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
+					}
+					catch(const sinsp_exception& e)
+					{
+						// if we are opening the syscall source, we retry later
+						// by loading the driver with modprobe
+						if(system("modprobe " DRIVER_NAME " > /dev/null 2> /dev/null"))
+						{
+							fprintf(stderr, "Unable to load the driver\n");
+						}
+						inspector->open_kmod(DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
+					}
+
+					// Enable gathering the CPU from the kernel module
+					inspector->set_get_procs_cpu_from_driver(true);
+#endif // _WIN32
+				}
+#endif // HAS_CAPTURE
 			}
 
 			//
@@ -1946,11 +1942,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			if(force_tracers_capture)
 			{
 				inspector->enable_tracers_capture();
-			}
-
-			if(page_faults)
-			{
-				inspector->enable_page_faults();
 			}
 
 			duration = ((double)clock()) / CLOCKS_PER_SEC;
