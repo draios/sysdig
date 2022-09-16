@@ -36,10 +36,20 @@ jobs:
             ${{ env.SYSDIG_DOCKERHUB_IMAGE_BASE }}:latest
 
   release-rpm:
+    strategy:
+      matrix:
+        name: [amd64, arm64]
+        include:
+          - name: amd64
+            base_arch: x86_64
+            release_arch: x86_64
+          - name: arm64
+            base_arch: aarch64
+            release_arch: aarch64
     runs-on: ubuntu-latest
     env:
-      RPM_BASEARCH: x86_64
-      RELEASE_ARCH: x86_64
+      RPM_BASEARCH: ${{ matrix.base_arch }}
+      RELEASE_ARCH: ${{ matrix.release_arch }}
       REPOSITORY_NAME: stable
       REPOSITORY_DIR: rpm_repo
       PACKAGES_DIR: packages
@@ -99,10 +109,20 @@ jobs:
         run: sysdig/scripts/release/release_rpm.sh
         
   release-deb:
+    strategy:
+      matrix:
+        name: [amd64, arm64]
+        include:
+          - name: amd64
+            base_arch: amd64
+            release_arch: x86_64
+          - name: arm64
+            base_arch: arm64
+            release_arch: aarch64
     runs-on: ubuntu-latest
     env:
-      DEB_BASEARCH: amd64
-      RELEASE_ARCH: x86_64
+      DEB_BASEARCH: ${{ matrix.base_arch }}
+      RELEASE_ARCH: ${{ matrix.release_arch }}
       REPOSITORY_NAME: stable
       REPOSITORY_DIR: deb_repo
       PACKAGES_DIR: packages
@@ -155,10 +175,20 @@ jobs:
         run: sysdig/scripts/release/release_deb.sh
   
   release-tgz:
+    strategy:
+      matrix:
+        name: [amd64, arm64]
+        include:
+          - name: amd64
+            base_arch: x86_64
+            release_arch: x86_64
+          - name: arm64
+            base_arch: aarch64
+            release_arch: aarch64
     runs-on: ubuntu-latest
     env:
-      RELEASE_ARCH: x86_64
-      TGZ_BASEARCH: x86_64
+      RELEASE_ARCH: ${{ matrix.release_arch }}
+      TGZ_BASEARCH: ${{ matrix.base_arch }}
       REPOSITORY_NAME: stable
       REPOSITORY_DIR: tgz_repo
       PACKAGES_DIR: packages
