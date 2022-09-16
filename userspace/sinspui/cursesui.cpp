@@ -1569,7 +1569,18 @@ void sinsp_cursesui::restart_capture(bool is_spy_switch)
 
 	m_inspector->close();
 	start(true, is_spy_switch);
-	m_inspector->open(m_event_source_name);
+
+	// note: here we don't propagate information about eBPF, udig, and
+	// configs like enabling/disabling page-faults. Not sure if this works
+	// properly
+	if (m_event_source_name.empty())
+	{
+		m_inspector->open_savefile(m_event_source_name);
+	}
+	else
+	{
+		m_inspector->open_kmod();
+	}
 }
 
 void sinsp_cursesui::create_complete_filter(bool templated)
