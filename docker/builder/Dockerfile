@@ -25,7 +25,7 @@ RUN yum -y install centos-release-scl && \
     yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm && \
     yum -y install dpkg
 
-ARG CMAKE_VERSION=3.6.3
+ARG CMAKE_VERSION=3.22.5
 RUN source scl_source enable devtoolset-7 llvm-toolset-7 && \
     cd /tmp && \
     curl -L https://github.com/kitware/cmake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz | tar xz; \
