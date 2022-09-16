@@ -2,7 +2,7 @@ name: Create Sysdig draft/RC release
 on:
   push:
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+'
+      - '^[0-9]+.[0-9]+.[0-9]+(?:-[a-z_0-9]+)?$'
 
 jobs:
   build-release-linux:
