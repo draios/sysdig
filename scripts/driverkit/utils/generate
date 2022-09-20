@@ -1,0 +1,218 @@
+#!/usr/bin/env bash
+# set -xe
+
+DRIVER_NAME="scap"
+PROBE_NAME="scap"
+
+aarch64_MINIMUM_KVER=(
+        "eBPF:4.17"
+        "kmod:3.4"
+)
+x86_64_MINIMUM_KVER=(
+        "eBPF:4.14"
+        "kmod:2.6"
+)
+declare -A output=()
+
+CURRENT_DIR="$(pwd)"
+
+while getopts ":a:k:d:v:h:c:r:t:" arg; do
+  case $arg in
+    a)
+      TARGET_ARCH=${OPTARG}
+      ;;
+    k)
+      TARGET_KERNEL=${OPTARG}
+      ;;
+    d)
+      TARGET_DISTRO=${OPTARG}
+      ;;
+    v)
+      TARGET_VERSION=${OPTARG}
+      ;;
+    h)
+      TARGET_HEADERS=${OPTARG}
+      ;;
+    c)
+      TARGET_KERNEL_DEFCONFIG=${OPTARG}
+      ;;
+    r)
+      TARGET_KERNEL_RELEASE=${OPTARG}
+      ;;
+    t)
+      TARGET_KERNEL_VERSION=${OPTARG}
+      ;;
+  esac
+done
+
+if [ -z ${TARGET_ARCH} ]; then
+    echo "TARGET_ARCH can't be empty"
+    exit 1
+fi
+
+if [ -z ${TARGET_DISTRO} ]; then
+    echo "TARGET_DISTRO can't be empty"
+    exit 1
+fi
+
+compute_kernel() {
+    TARGET_KERNEL="${TARGET_KERNEL_RELEASE}_${TARGET_KERNEL_VERSION}"
+}
+
+compute_kernelversion() {
+    TARGET_KERNEL_VERSION=$(echo "${TARGET_KERNEL##*_}")
+}
+
+compute_kernelrelease() {
+    TARGET_KERNEL_RELEASE="${TARGET_KERNEL%_${TARGET_KERNEL_VERSION}}"
+}
+
+# If target kernel is not empty, compute release and version
+# Else, compute it with release and version
+if [ -n "${TARGET_KERNEL}" ]; then
+  echo "The '-k TARGET_KERNEL' option is deprecated, prefer the '-r TARGET_KERNEL_RELEASE -t TARGET_KERNEL_VERSION' combo"
+  if [ -z "${TARGET_KERNEL_VERSION}" ]; then
+    compute_kernelversion
+  fi
+  if [ -z "${TARGET_KERNEL_RELEASE}" ]; then
+    compute_kernelrelease
+  fi
+else
+  if [ -z "${TARGET_KERNEL_RELEASE}" ] || [ -z "${TARGET_KERNEL_VERSION}" ]; then
+    echo "Options '-k TARGET_KERNEL', '- r TARGET_KERNEL_RELEASE', '-t TARGET_KERNEL_RELEASE' can't be empty at the same time"
+    exit 1
+  fi
+  compute_kernel
+fi
+
+check_outputs() {
+    regex='([0-9]+)\.([0-9]+)'
+    if [[ "${TARGET_KERNEL}" =~ ${regex} ]]
+    then
+        maj=${BASH_REMATCH[1]}
+        min=${BASH_REMATCH[2]}
+
+        # Use correct array for target arch
+        declare -n arrayname=${TARGET_ARCH}_MINIMUM_KVER
+        ctr=0
+        for min_kver in "${arrayname[@]}" ; do
+            KEY="${min_kver%%:*}"
+            VALUE="${min_kver##*:}"
+
+            if [[ "${VALUE}" =~ ${regex} ]]
+            then
+                req_maj=${BASH_REMATCH[1]}
+                req_min=${BASH_REMATCH[2]}
+
+                if [[ ( $maj -gt $req_maj ) || ( $maj -eq $req_maj && $min -ge $req_min ) ]]
+                then
+                    output["$KEY"]=1
+                    ctr=$((ctr+1))
+                else
+                    echo "Skipping $KEY output: version ($maj.$min) too low: minimum: ($req_maj.$req_min)"
+                fi
+            else
+                echo "Wrong minimum kernel version: ${VALUE}."
+                return 1
+            fi
+        done
+    else
+        echo "Wrong target kernel: ${TARGET_KERNEL}."
+        return 1
+    fi
+
+    if [[ $ctr -eq 0 ]];
+    then
+        echo "No outputs configured. Unsupported target kernel version: ${TARGET_KERNEL}."
+        return 1
+    fi
+}
+
+arch_to_driverkit_arch() {
+	case "$1" in
+		"x86_64")
+			echo -n "amd64"
+			;;
+		"aarch64")
+			echo -n "arm64"
+			;;
+		*)
+			echo "unknown architecture"
+			exit 1
+			;;
+	esac
+}
+
+# If driver version is a semver, we are in the newest case
+# thus we must support %arch/ subfolder for configs.
+# Else, we are in the old case, and we only support x86_64 configs
+# in the TARGET_VERSION folder.
+# TODO: rm this once old format support is dropped, and always use ${TARGET_VERSION}/${TARGET_ARCH}
+function path_from_version() {
+  SEMVER_REGEX="^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(\\-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
+  if [[ $TARGET_VERSION =~ $SEMVER_REGEX ]]; then
+    # valid semver
+    echo -n "${TARGET_VERSION}/${TARGET_ARCH}"
+  elif [[ $TARGET_ARCH == "aarch64" ]]; then
+    # not valid (old versions) -> skip arm64
+    echo "Skipping arm64 configs for old tree."
+    exit 1
+  else
+    # not valid (old versions)
+    echo -n "${TARGET_VERSION}"
+  fi
+}
+
+generate_yamls() {
+    # TODO: remove once we only support new tree. It is not an error, as we are skipping
+    # arm64 configs for old tree.
+    SUBPATH=$(path_from_version) || exit 0
+    # This is an error: wrong arch passed to make generate
+    DKARCH=$(arch_to_driverkit_arch ${TARGET_ARCH}) || exit 1
+    FOLDER="${CURRENT_DIR}/../driverkit/config/${SUBPATH}"
+    mkdir -p ${FOLDER}
+    FILE="${FOLDER}/${TARGET_DISTRO}_${TARGET_KERNEL}.yaml"
+    echo "---"
+    echo "${FILE}"
+    echo "---"
+    echo "kernelversion: ${TARGET_KERNEL_VERSION}"
+    echo "kernelrelease: ${TARGET_KERNEL_RELEASE}"
+    echo "target: ${TARGET_DISTRO}"
+    echo "architecture: ${DKARCH}"
+    echo "output:"
+    if [[ ${output["kmod"]} -eq 1 ]]
+    then
+        echo "  module: output/${SUBPATH}/${DRIVER_NAME}_${TARGET_DISTRO}_${TARGET_KERNEL}.ko"
+    fi
+    if [[ ${output["eBPF"]} -eq 1 ]]
+    then
+        echo "  probe: output/${SUBPATH}/${PROBE_NAME}_${TARGET_DISTRO}_${TARGET_KERNEL}.o"
+    fi
+    if [[ -n "${TARGET_HEADERS}" ]]; then
+        echo "kernelurls: ${TARGET_HEADERS}"
+    fi
+    
+    echo "kernelversion: ${TARGET_KERNEL_VERSION}" > ${FILE}
+    echo "kernelrelease: ${TARGET_KERNEL_RELEASE}" >> ${FILE}
+    echo "target: ${TARGET_DISTRO}" >> ${FILE}
+    echo "architecture: ${DKARCH}" >> ${FILE}
+    echo "output:" >> ${FILE}
+    if [[ ${output["kmod"]} -eq 1 ]]
+    then
+        echo "  module: output/${SUBPATH}/${DRIVER_NAME}_${TARGET_DISTRO}_${TARGET_KERNEL}.ko" >> ${FILE}
+    fi
+    if [[ ${output["eBPF"]} -eq 1 ]]
+    then
+        echo "  probe: output/${SUBPATH}/${PROBE_NAME}_${TARGET_DISTRO}_${TARGET_KERNEL}.o" >> ${FILE}
+    fi
+    if [ -n "${TARGET_HEADERS}" ] && [ "${TARGET_HEADERS}" != "null" ]; then
+        echo "kernelurls: ${TARGET_HEADERS}" >> ${FILE}
+    fi
+
+    if [ -n "${TARGET_KERNEL_DEFCONFIG}" ] && [ "${TARGET_KERNEL_DEFCONFIG}" != "null" ]; then
+        echo "kernelconfigdata: ${TARGET_KERNEL_DEFCONFIG}" >> ${FILE}
+    fi
+}
+
+check_outputs || exit 0
+generate_yamls

@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+DRY_RUN="${DRY_RUN:-false}"
+TMPDIR="$(mktemp -d)"
+ARCH="$1"
+LIST_URL="https://raw.githubusercontent.com/falcosecurity/kernel-crawler/kernels/${ARCH}/list.json"
+
+function pretty_echo() {
+	echo
+	echo "> ${1}"
+}
+
+function get_kernel_releases() {
+	curl -sL -o $TMPDIR/sample.json $LIST_URL
+}
+
+function generate_from_kernel_releases() {
+	local target_match="ubuntu-gke"
+	local target_replace="ubuntu-generic"
+
+	for distro_family in $(jq -cr '. | keys[]' $TMPDIR/sample.json); do
+		while read -r release
+		do
+			read -r version
+			read -r target
+			read -r kernelurls
+			read -r kerneldefconfig
+			pretty_echo "Generating configs for:"
+			echo "release: $release	version: $version	target: $target"
+			test $DRY_RUN == "true" || \
+				make -C "$(dirname $0)/.." \
+				-e TARGET_ARCH="${ARCH}" \
+				-e TARGET_KERNEL_RELEASE="${release}" \
+				-e TARGET_KERNEL_VERSION="${version}" \
+				-e TARGET_DISTRO="${target/${target_match}/${target_replace}}" \
+				-e TARGET_HEADERS="${kernelurls}" \
+				-e TARGET_KERNEL_DEFCONFIG="${kerneldefconfig}" \
+				generate >/dev/null
+		done < <(jq -cr ".${distro_family}[] | (.kernelrelease, .kernelversion, .target, .headers, .kernelconfigdata)" $TMPDIR/sample.json)
+	done
+}
+
+function cleanup() {
+	rm -r $TMPDIR
+}
+
+# $1: the program to check
+function check_program {
+    if hash "$1" 2>/dev/null; then
+        type -P "$1" >&/dev/null
+    else
+        echo "> aborting because $1 is required..." >&2
+       return 1
+    fi
+}
+
+function main() {
+	check_program "jq"
+	get_kernel_releases
+	generate_from_kernel_releases
+	cleanup
+}
+
+trap cleanup SIGINT
+
+main $@
