@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: falcosecurity/driverkit
-          ref: v0.9.2
+          ref: v0.9.7
           path: driverkit-repo
 
       - name: Build Driverkit
