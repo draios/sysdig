@@ -12,6 +12,14 @@ on:
 
 jobs:
   build-drivers:
+    strategy:
+      matrix:
+        name: [amd64, arm64]
+        include:
+          - name: amd64
+            arch: x86_64
+          - name: arm64
+            arch: aarch64
     runs-on: ubuntu-latest
     env:
       S3_BUCKET: download.draios.com
@@ -26,20 +34,12 @@ jobs:
       - name: Checkout Sysdig
         uses: actions/checkout@v2
 
-      - name: Checkout Driverkit
-        uses: actions/checkout@v2
-        with:
-          repository: falcosecurity/driverkit
-          ref: v0.6.0
-          path: driverkit-repo
-
-      - name: Build Driverkit
-        working-directory: driverkit-repo
+      - name: Download DriverKit
         run: |
-          GIT_COMMIT=$(git rev-parse HEAD)
-          LDFLAGS="-X github.com/falcosecurity/driverkit/pkg/version.buildTime=$(date +%s) -X github.com/falcosecurity/driverkit/pkg/version.gitCommit=${GIT_COMMIT} -X github.com/falcosecurity/driverkit/pkg/driverbuilder.builderBaseImage=falcosecurity/driverkit-builder:af65823"
-
-          CGO_ENABLED=1 go build -v -ldflags "$LDFLAGS" -tags 'sqlite_omit_load_extension linux' -o driverkit
+          wget -O driverkit.tar.gz https://github.com/falcosecurity/driverkit/releases/download/v0.9.7/driverkit_0.9.7_linux_amd64.tar.gz && \
+            tar -xvf driverkit.tar.gz && \
+            rm -rf driverkit.tar.gz && \
+            chmod +x ./driverkit
 
       - uses: actions/setup-python@v2
         with:
@@ -64,6 +64,7 @@ jobs:
         working-directory: scripts/driverkit/build
         run: |
           poetry run python build.py ../config \
-          --driverkit ../../../driverkit-repo/driverkit \
+          --driverkit ${{ github.workspace }}/driverkit \
+          --arch ${{ matrix.arch }} \
           --s3-bucket ${{ env.S3_BUCKET }} --s3-prefix ${{ env.S3_PREFIX }} \
           ${{ (github.event_name == 'workflow_dispatch') && (github.event.inputs.rebuild == 'true') && '--rebuild' || '' }}
