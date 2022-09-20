@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (C) 2021 The Falco Authors.
+# Copyright (C) 2022 The Falco Authors.
 #
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -113,11 +113,15 @@ get_target_id() {
 	elif [ -f "${HOST_ROOT}/etc/centos-release" ]; then
 		# Older CentOS distros
 		OS_ID=centos
-	elif [ -f "${HOST_ROOT}/etc/VERSION" ]; then
-		OS_ID=minikube
 	else
 		>&2 echo "Detected an unsupported target system, please get in touch with the Falco community"
 		exit 1
+	fi
+
+	# Overwrite the OS_ID if /etc/VERSION file is present.
+	# Not sure if there is a better way to detect minikube.
+	if [ -f "${HOST_ROOT}/etc/VERSION" ]; then
+		OS_ID=minikube
 	fi
 
 	case "${OS_ID}" in
@@ -129,16 +133,63 @@ get_target_id() {
 		fi
 		;;
 	("ubuntu")
-		if [[ $KERNEL_RELEASE == *"aws"* ]]; then
-			TARGET_ID="ubuntu-aws"
+		# Extract the flavor from the kernelrelease
+		# Examples:
+		# 5.0.0-1028-aws-5.0 -> ubuntu-aws-5.0
+		# 5.15.0-1009-aws -> ubuntu-aws
+		if [[ $KERNEL_RELEASE =~ -([a-zA-Z]+)(-.*)?$ ]];
+		then
+			TARGET_ID="ubuntu-${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
 		else
 			TARGET_ID="ubuntu-generic"
+		fi
+		;;
+	("flatcar")
+		KERNEL_RELEASE="${VERSION_ID}"
+		TARGET_ID=$(echo "${OS_ID}" | tr '[:upper:]' '[:lower:]')
+		;;
+	("minikube")
+		TARGET_ID="${OS_ID}"
+		# Extract the minikube version. Ex. With minikube version equal to "v1.26.0-1655407986-14197" the extracted version
+		# will be "1.26.0"
+		if [[ $(cat ${HOST_ROOT}/etc/VERSION) =~ ([0-9]+(\.[0-9]+){2}) ]]; then
+			# kernel version for minikube is always in "1_minikubeversion" format. Ex "1_1.26.0".
+			KERNEL_VERSION="1_${BASH_REMATCH[1]}"
+		else
+			echo "* Unable to extract minikube version from ${HOST_ROOT}/etc/VERSION"
+			exit 1
 		fi
 		;;
 	(*)
 		TARGET_ID=$(echo "${OS_ID}" | tr '[:upper:]' '[:lower:]')
 		;;
 	esac
+}
+
+flatcar_relocate_tools() {
+	local -a tools=(
+		scripts/basic/fixdep
+		scripts/mod/modpost
+		tools/objtool/objtool
+	)
+	local -r hostld=$(ls /host/usr/lib64/ld-linux-*.so.*)
+	local -r kdir=/lib/modules/$(ls /lib/modules/)/build
+	echo "** Found host dl interpreter: ${hostld}"
+	for host_tool in ${tools[@]}; do
+		t=${host_tool}
+		tool=$(basename $t)
+		tool_dir=$(dirname $t)
+		host_tool=${kdir}/${host_tool}
+		if [ ! -f ${host_tool} ]; then
+			continue
+		fi
+		umount ${host_tool} 2>/dev/null || true
+		mkdir -p /tmp/${tool_dir}/
+		cp -a ${host_tool} /tmp/${tool_dir}/
+		echo "** Setting host dl interpreter for $host_tool"
+		patchelf --set-interpreter ${hostld} --set-rpath /host/usr/lib64 /tmp/${tool_dir}/${tool}
+		mount -o bind /tmp/${tool_dir}/${tool} ${host_tool}
+	done
 }
 
 load_kernel_module_compile() {
@@ -153,6 +204,12 @@ load_kernel_module_compile() {
 		return
 	fi
 
+	if [ "${TARGET_ID}" == "flatcar" ]; then
+		KERNEL_RELEASE=$(uname -r)
+		echo "* Flatcar detected (version ${VERSION_ID}); relocating kernel tools"
+		flatcar_relocate_tools
+	fi
+
 	# Try to compile using all the available gcc versions
 	for CURRENT_GCC in $(which gcc) $(ls "$(dirname "$(which gcc)")"/gcc-* | grep 'gcc-[0-9]\+' | sort -n -r -k 2 -t -); do
 		echo "* Trying to dkms install ${DRIVER_NAME} module with GCC ${CURRENT_GCC}"
@@ -160,14 +217,25 @@ load_kernel_module_compile() {
 		echo "make CC=${CURRENT_GCC} \$@" >> /tmp/scap-dkms-make
 		chmod +x /tmp/scap-dkms-make
 		if dkms install --directive="MAKE='/tmp/scap-dkms-make'" -m "${DRIVER_NAME}" -v "${DRIVER_VERSION}" -k "${KERNEL_RELEASE}" 2>/dev/null; then
-			echo "* ${DRIVER_NAME} module installed in dkms, trying to insmod"
-			chcon -t modules_object_t "/var/lib/dkms/${DRIVER_NAME}/${DRIVER_VERSION}/${KERNEL_RELEASE}/${ARCH}/module/${DRIVER_NAME}.ko" > /dev/null 2>&1 || true
-			chcon -t modules_object_t "/var/lib/dkms/${DRIVER_NAME}/${DRIVER_VERSION}/${KERNEL_RELEASE}/${ARCH}/module/${DRIVER_NAME}.ko.xz" > /dev/null 2>&1 || true
-			if insmod "/var/lib/dkms/${DRIVER_NAME}/${DRIVER_VERSION}/${KERNEL_RELEASE}/${ARCH}/module/${DRIVER_NAME}.ko" > /dev/null 2>&1; then
+			echo "* ${DRIVER_NAME} module installed in dkms"
+			KO_FILE="/var/lib/dkms/${DRIVER_NAME}/${DRIVER_VERSION}/${KERNEL_RELEASE}/${ARCH}/module/${DRIVER_NAME}"
+			if [ -f "$KO_FILE.ko" ]; then
+				KO_FILE="$KO_FILE.ko"
+			elif [ -f "$KO_FILE.ko.gz" ]; then
+				KO_FILE="$KO_FILE.ko.gz"
+			elif [ -f "$KO_FILE.ko.xz" ]; then
+				KO_FILE="$KO_FILE.ko.xz"
+			elif [ -f "$KO_FILE.ko.zst" ]; then
+				KO_FILE="$KO_FILE.ko.zst"
+			else
+				>&2 echo "${DRIVER_NAME} module file not found"
+				return
+			fi
+			echo "* ${DRIVER_NAME} module found: ${KO_FILE}"
+			echo "* Trying insmod"
+			chcon -t modules_object_t "$KO_FILE" > /dev/null 2>&1 || true
+			if insmod "$KO_FILE" > /dev/null 2>&1; then
 				echo "* Success: ${DRIVER_NAME} module found and loaded in dkms"
-				exit 0
-			elif insmod "/var/lib/dkms/${DRIVER_NAME}/${DRIVER_VERSION}/${KERNEL_RELEASE}/${ARCH}/module/${DRIVER_NAME}.ko.xz" > /dev/null 2>&1; then
-				echo "* Success: ${DRIVER_NAME} module found and loaded in dkms (xz)"
 				exit 0
 			else
 				echo "* Unable to insmod ${DRIVER_NAME} module"
@@ -188,131 +256,158 @@ load_kernel_module_download() {
 	get_target_id
 
 	local FALCO_KERNEL_MODULE_FILENAME="${DRIVER_NAME}_${TARGET_ID}_${KERNEL_RELEASE}_${KERNEL_VERSION}.ko"
-
-	local URL
-	URL=$(echo "${DRIVERS_REPO}/${DRIVER_VERSION}/${FALCO_KERNEL_MODULE_FILENAME}" | sed s/+/%2B/g)
+	local URL=$(echo "${1}/${DRIVER_VERSION}/${ARCH}/${FALCO_KERNEL_MODULE_FILENAME}" | sed s/+/%2B/g)
 
 	echo "* Trying to download a prebuilt ${DRIVER_NAME} module from ${URL}"
-	if curl -L --create-dirs "${FALCO_DRIVER_CURL_OPTIONS}" -o "${HOME}/.scap/${FALCO_KERNEL_MODULE_FILENAME}" "${URL}"; then
+	if curl -L --create-dirs "${FALCO_DRIVER_CURL_OPTIONS}" -o "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${FALCO_KERNEL_MODULE_FILENAME}" "${URL}"; then
 		echo "* Download succeeded"
-		chcon -t modules_object_t "${HOME}/.scap/${FALCO_KERNEL_MODULE_FILENAME}" > /dev/null 2>&1 || true
-		insmod "${HOME}/.scap/${FALCO_KERNEL_MODULE_FILENAME}" && echo "* Success: ${DRIVER_NAME} module found and inserted"
-		exit $?
+		chcon -t modules_object_t "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${FALCO_KERNEL_MODULE_FILENAME}" > /dev/null 2>&1 || true
+		if insmod "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${FALCO_KERNEL_MODULE_FILENAME}"; then
+			echo "* Success: ${DRIVER_NAME} module found and inserted"
+			exit 0
+		else
+			>&2 echo "Unable to insmod the prebuilt ${DRIVER_NAME} module"
+		fi	
 	else
 		>&2 echo "Unable to find a prebuilt ${DRIVER_NAME} module"
 		return
 	fi
 }
 
-load_kernel_module() {
-	if ! hash lsmod > /dev/null 2>&1; then
-		>&2 echo "This program requires lsmod"
-		exit 1
-	fi
+print_clean_termination() {
+	echo
+	echo "[SUCCESS] Cleaning phase correctly terminated."
+	echo 
+	echo "================ Cleaning phase ================"
+	echo 
+}
 
-	if ! hash modprobe > /dev/null 2>&1; then
-		>&2 echo "This program requires modprobe"
+print_filename_components() {
+	echo " - driver name: ${DRIVER_NAME}"
+	echo " - target identifier: ${TARGET_ID}"
+	echo " - kernel release: ${KERNEL_RELEASE}"
+	echo " - kernel version: ${KERNEL_VERSION}"
+}
+
+clean_kernel_module() {
+	echo 
+	echo "================ Cleaning phase ================"
+	echo 
+
+	if ! hash lsmod > /dev/null 2>&1; then
+		>&2 echo "This program requires lsmod."
 		exit 1
 	fi
 
 	if ! hash rmmod > /dev/null 2>&1; then
-		>&2 echo "This program requires rmmod"
+		>&2 echo "This program requires rmmod."
 		exit 1
 	fi
 
-	echo "* Unloading ${DRIVER_NAME} module, if present"
-	rmmod "${DRIVER_NAME}" 2>/dev/null
-	WAIT_TIME=0
 	KMOD_NAME=$(echo "${DRIVER_NAME}" | tr "-" "_")
-	while lsmod | cut -d' ' -f1 | grep -qx "${KMOD_NAME}" && [ $WAIT_TIME -lt "${MAX_RMMOD_WAIT}" ]; do
-		if rmmod "${DRIVER_NAME}" 2>/dev/null; then
-			echo "* Unloading ${DRIVER_NAME} module succeeded after ${WAIT_TIME}s"
-			break
+	echo "* 1. Check if kernel module '${KMOD_NAME}' is still loaded:"
+
+	if ! lsmod | cut -d' ' -f1 | grep -qx "${KMOD_NAME}"; then
+		echo "- OK! There is no '${KMOD_NAME}' module loaded."
+		echo
+	fi
+
+	# Wait 50s = MAX_RMMOD_WAIT * 5s
+	MAX_RMMOD_WAIT=10
+	# Remove kernel module if is still loaded.
+	while lsmod | cut -d' ' -f1 | grep -qx "${KMOD_NAME}" && [ $MAX_RMMOD_WAIT -gt 0 ]; do
+		echo "- Kernel module '${KMOD_NAME}' is still loaded."
+		echo "- Trying to unload it with 'rmmod ${KMOD_NAME}'..."
+		if rmmod ${KMOD_NAME}; then
+			echo "- OK! Unloading '${KMOD_NAME}' module succeeded."
+			echo
+		else
+			echo "- Nothing to do...'scap-driver-loader' will wait until you remove the kernel module to have a clean termination."
+			echo "- Check that no process is using the kernel module with 'lsmod | grep ${KMOD_NAME}'."
+			echo "- Sleep 5 seconds..."
+			echo
+			((--MAX_RMMOD_WAIT))
+			sleep 5
 		fi
-		((++WAIT_TIME))
-		if (( WAIT_TIME % 5 == 0 )); then
-			echo "* ${DRIVER_NAME} module still loaded, waited ${WAIT_TIME}s (max wait ${MAX_RMMOD_WAIT}s)"
-		fi
-		sleep 1
 	done
 
-	if lsmod | cut -d' ' -f1 | grep -qx "${KMOD_NAME}" > /dev/null 2>&1; then
-		echo "* ${DRIVER_NAME} module seems to still be loaded, hoping the best"
-		exit 0
+	if [ ${MAX_RMMOD_WAIT} -eq 0 ]; then
+		echo "[WARNING] '${KMOD_NAME}' module is still loaded, you could have incompatibility issues."
+		echo
+	fi
+	
+	if ! hash dkms >/dev/null 2>&1; then
+		echo "- Skipping dkms remove (dkms not found)."
+		print_clean_termination
+		return
 	fi
 
-	echo "* Trying to load a system ${DRIVER_NAME} module, if present"
-	if modprobe "${DRIVER_NAME}" > /dev/null 2>&1; then
-		echo "* Success: ${DRIVER_NAME} module found and loaded with modprobe"
-		exit 0
+	# Remove all versions of this module from dkms.
+	echo "* 2. Check all versions of kernel module '${KMOD_NAME}' in dkms:"
+	DRIVER_VERSIONS=$(dkms status -m "${KMOD_NAME}" | tr -d "," | tr -d ":" | tr "/" " " | cut -d' ' -f2)
+	if [ -z "${DRIVER_VERSIONS}" ]; then
+		echo "- OK! There are no '${KMOD_NAME}' module versions in dkms."
+	else
+		echo "- There are some versions of '${KMOD_NAME}' module in dkms."
+		echo
+		echo "* 3. Removing all the following versions from dkms:"
+		echo "${DRIVER_VERSIONS}"
+		echo
 	fi
+
+	for CURRENT_VER in ${DRIVER_VERSIONS}; do
+		echo "- Removing ${CURRENT_VER}..."
+		if dkms remove -m ${KMOD_NAME} -v "${CURRENT_VER}" --all; then
+			echo
+			echo "- OK! Removing '${CURRENT_VER}' succeeded."
+			echo
+		else
+			echo "[WARNING] Removing '${KMOD_NAME}' version '${CURRENT_VER}' failed."
+		fi
+	done
+
+	print_clean_termination
+}
+
+load_kernel_module() {
+	clean_kernel_module
 
 	echo "* Looking for a ${DRIVER_NAME} module locally (kernel ${KERNEL_RELEASE})"
 
 	get_target_id
 
 	local FALCO_KERNEL_MODULE_FILENAME="${DRIVER_NAME}_${TARGET_ID}_${KERNEL_RELEASE}_${KERNEL_VERSION}.ko"
+	echo "* Filename '${FALCO_KERNEL_MODULE_FILENAME}' is composed of:"
+	print_filename_components
 
-	if [ -f "${HOME}/.scap/${FALCO_KERNEL_MODULE_FILENAME}" ]; then
-		echo "* Found a prebuilt ${DRIVER_NAME} module at ${HOME}/.scap/${FALCO_KERNEL_MODULE_FILENAME}, loading it"
-		chcon -t modules_object_t "${HOME}/.scap/${FALCO_KERNEL_MODULE_FILENAME}" > /dev/null 2>&1 || true
-		insmod "${HOME}/.scap/${FALCO_KERNEL_MODULE_FILENAME}" && echo "* Success: ${DRIVER_NAME} module found and inserted"
+	if [ -f "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${FALCO_KERNEL_MODULE_FILENAME}" ]; then
+		echo "* Found a prebuilt ${DRIVER_NAME} module at ${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${FALCO_KERNEL_MODULE_FILENAME}, loading it"
+		chcon -t modules_object_t "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${FALCO_KERNEL_MODULE_FILENAME}" > /dev/null 2>&1 || true
+		insmod "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${FALCO_KERNEL_MODULE_FILENAME}" && echo "* Success: ${DRIVER_NAME} module found and inserted"
 		exit $?
 	fi
 
 	if [ -n "$ENABLE_DOWNLOAD" ]; then
-		load_kernel_module_download
+		IFS=", " read -r -a urls <<< "${DRIVERS_REPO}"
+		for url in "${urls[@]}"; do
+			load_kernel_module_download $url
+		done
 	fi
 
 	if [ -n "$ENABLE_COMPILE" ]; then
 		load_kernel_module_compile
 	fi
 
+	# Last try (might load a previous driver version)
+	echo "* Trying to load a system ${DRIVER_NAME} module, if present"
+	if modprobe "${DRIVER_NAME}" > /dev/null 2>&1; then
+		echo "* Success: ${DRIVER_NAME} module found and loaded with modprobe"
+		exit 0
+	fi
+
 	# Not able to download a prebuilt module nor to compile one on-the-fly
 	>&2 echo "Consider compiling your own ${DRIVER_NAME} driver and loading it or getting in touch with the Falco community"
 	exit 1
-}
-
-clean_kernel_module() {
-	if ! hash lsmod > /dev/null 2>&1; then
-		>&2 echo "This program requires lsmod"
-		exit 1
-	fi
-
-	if ! hash rmmod > /dev/null 2>&1; then
-		>&2 echo "This program requires rmmod"
-		exit 1
-	fi
-
-	KMOD_NAME=$(echo "${DRIVER_NAME}" | tr "-" "_")
-	if lsmod | cut -d' ' -f1 | grep -qx "${KMOD_NAME}"; then
-		if rmmod "${DRIVER_NAME}" 2>/dev/null; then
-			echo "* Unloading ${DRIVER_NAME} module succeeded"
-		else
-			echo "* Unloading ${DRIVER_NAME} module failed"
-		fi
-	else
-		echo "* There is no ${DRIVER_NAME} module loaded"
-	fi
-
-	if ! hash dkms >/dev/null 2>&1; then
-		echo "* Skipping dkms remove (dkms not found)"
-		return
-	fi
-
-	DRIVER_VERSIONS=$(dkms status -m "${DRIVER_NAME}" | cut -d',' -f2 | sed -e 's/^[[:space:]]*//')
-	if [ -z "${DRIVER_VERSIONS}" ]; then
-		echo "* There is no ${DRIVER_NAME} module in dkms"
-		return
-	fi
-	for CURRENT_VER in ${DRIVER_VERSIONS}; do
-		if dkms remove -m "${DRIVER_NAME}" -v "${CURRENT_VER}" --all 2>/dev/null; then
-			echo "* Removing ${DRIVER_NAME}/${CURRENT_VER} succeeded"
-		else
-			echo "* Removing ${DRIVER_NAME}/${CURRENT_VER} failed"
-			exit 1
-		fi
-	done
 }
 
 load_bpf_probe_compile() {
@@ -420,8 +515,8 @@ load_bpf_probe_compile() {
 
 	make -C "/usr/src/${DRIVER_NAME}-${DRIVER_VERSION}/bpf" > /dev/null
 
-	mkdir -p "${HOME}/.scap"
-	mv "/usr/src/${DRIVER_NAME}-${DRIVER_VERSION}/bpf/probe.o" "${HOME}/.scap/${BPF_PROBE_FILENAME}"
+	mkdir -p "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}"
+	mv "/usr/src/${DRIVER_NAME}-${DRIVER_VERSION}/bpf/probe.o" "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${BPF_PROBE_FILENAME}"
 
 	if [ -n "${BPF_KERNEL_SOURCES_URL}" ]; then
 		rm -r /tmp/kernel
@@ -431,56 +526,56 @@ load_bpf_probe_compile() {
 
 load_bpf_probe_download() {
 	local URL
-	URL=$(echo "${DRIVERS_REPO}/${DRIVER_VERSION}/${BPF_PROBE_FILENAME}" | sed s/+/%2B/g)
+	URL=$(echo "${1}/${DRIVER_VERSION}/${ARCH}/${BPF_PROBE_FILENAME}" | sed s/+/%2B/g)
 
 	echo "* Trying to download a prebuilt eBPF probe from ${URL}"
 
-	if ! curl -L --create-dirs "${FALCO_DRIVER_CURL_OPTIONS}" -o "${HOME}/.scap/${BPF_PROBE_FILENAME}" "${URL}"; then
+	if ! curl -L --create-dirs "${FALCO_DRIVER_CURL_OPTIONS}" -o "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${BPF_PROBE_FILENAME}" "${URL}"; then
 		>&2 echo "Unable to find a prebuilt ${DRIVER_NAME} eBPF probe"
-		return
+		return 1
 	fi
+	return 0
 }
 
 load_bpf_probe() {
-	echo "* Mounting debugfs"
 
 	if [ ! -d /sys/kernel/debug/tracing ]; then
+		echo "* Mounting debugfs"
 		mount -t debugfs nodev /sys/kernel/debug
 	fi
 
 	get_target_id
 
 	BPF_PROBE_FILENAME="${DRIVER_NAME}_${TARGET_ID}_${KERNEL_RELEASE}_${KERNEL_VERSION}.o"
+	echo "* Filename '${BPF_PROBE_FILENAME}' is composed of:"
+	print_filename_components
 
 	if [ -n "$ENABLE_DOWNLOAD" ]; then
-		if [ -f "${HOME}/.scap/${BPF_PROBE_FILENAME}" ]; then
-			echo "* Skipping download, eBPF probe is already present in ${HOME}/.scap/${BPF_PROBE_FILENAME}"
+		if [ -f "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${BPF_PROBE_FILENAME}" ]; then
+			echo "* Skipping download, eBPF probe is already present in ${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${BPF_PROBE_FILENAME}"
 		else
-			load_bpf_probe_download
+			IFS=", " read -r -a urls <<< "${DRIVERS_REPO}"
+			for url in "${urls[@]}"; do
+				load_bpf_probe_download $url
+				if [ $? -eq 0 ]; then
+                	break
+                fi
+			done
 		fi
 	fi
 
 	if [ -n "$ENABLE_COMPILE" ]; then
-		if [ -f "${HOME}/.scap/${BPF_PROBE_FILENAME}" ]; then
-			echo "* Skipping compilation, eBPF probe is already present in ${HOME}/.scap/${BPF_PROBE_FILENAME}"
+		if [ -f "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${BPF_PROBE_FILENAME}" ]; then
+			echo "* Skipping compilation, eBPF probe is already present in ${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${BPF_PROBE_FILENAME}"
 		else
 			load_bpf_probe_compile
 		fi
 	fi
 
-	if [ -f "${HOME}/.scap/${BPF_PROBE_FILENAME}" ]; then
-		echo "* eBPF probe located in ${HOME}/.scap/${BPF_PROBE_FILENAME}"
+	if [ -f "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${BPF_PROBE_FILENAME}" ]; then
+		echo "* eBPF probe located in ${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${BPF_PROBE_FILENAME}"
 
-		if [ ! -f /proc/sys/net/core/bpf_jit_enable ] || [ $(cat /proc/sys/net/core/bpf_jit_enable) -eq 0 ]; then
-			echo "**********************************************************"
-			echo "** BPF doesn't have JIT enabled, performance might be   **"
-			echo "** degraded. Please ensure to run on a kernel with      **"
-			echo "** CONFIG_BPF_JIT enabled and/or use --net=host if      **"
-			echo "** running inside a container.                          **"
-			echo "**********************************************************"
-		fi
-
-		ln -sf "${HOME}/.scap/${BPF_PROBE_FILENAME}" "${HOME}/.scap/${DRIVER_NAME}-bpf.o" \
+		ln -sf "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${BPF_PROBE_FILENAME}" "${HOME}/.scap/${DRIVER_NAME}-bpf.o" \
 			&& echo "* Success: eBPF probe symlinked to ${HOME}/.scap/${DRIVER_NAME}-bpf.o"
 		exit $?
 	else
@@ -506,7 +601,7 @@ print_usage() {
 	echo "  --source-only  skip execution and allow sourcing in another script"
 	echo ""
 	echo "Environment variables:"
-	echo "  DRIVER_REPO              specify a different URL where to look for prebuilt Falco drivers"
+	echo "  DRIVERS_REPO             specify different URL(s) where to look for prebuilt Falco drivers (comma separated)"
 	echo "  DRIVER_NAME              specify a different name for the driver"
 	echo "  DRIVER_INSECURE_DOWNLOAD whether you want to allow insecure downloads or not"
 	echo ""
@@ -538,7 +633,7 @@ if [[ -z "$MAX_RMMOD_WAIT" ]]; then
 	MAX_RMMOD_WAIT=60
 fi
 
-DRIVER_VERSION="@DRIVER_VERSION@"
+DRIVER_VERSION=${DRIVER_VERSION:-"@DRIVER_VERSION@"}
 DRIVER_NAME=${DRIVER_NAME:-"@DRIVER_NAME@"}
 
 DRIVER="module"
@@ -607,7 +702,7 @@ if [ -z "$has_opts" ]; then
 fi
 
 if [ -z "$source_only" ]; then
-	echo "* Running scap-driver-loader for: driver version=${DRIVER_VERSION}"
+	echo "* Running scap-driver-loader for: driver version=${DRIVER_VERSION}, arch=${ARCH}, kernel release=${KERNEL_RELEASE}, kernel version=${KERNEL_VERSION}"
 
 	if [ "$(id -u)" != 0 ]; then
 		>&2 echo "This program must be run as root (or with sudo)"
