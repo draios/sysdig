@@ -101,7 +101,6 @@ if(NOT WIN32)
 			set(KBUILD_FLAGS "${SYSDIG_FEATURE_FLAGS}")
 		endif()
 
-		set(SCAP_BPF_PROBE_ENV_VAR_NAME "SYSDIG_BPF_PROBE")
 		set(SCAP_HOST_ROOT_ENV_VAR_NAME "HOST_ROOT")
 		set(DRIVER_PACKAGE_NAME "scap")
 
@@ -157,6 +156,11 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 
 	set(DRIVERS_REPO "https://download.sysdig.com/scap-drivers")
 	
+	# If no path is provided, try to search the BPF probe in: `home/.falco/falco-bpf.o`
+	# This is the same fallback that we had in the libraries: `SCAP_PROBE_BPF_FILEPATH`.
+	set(SYSDIG_PROBE_BPF_FILEPATH ".${DRIVER_NAME}/${DRIVER_NAME}-bpf.o")
+	add_definitions(-DSYSDIG_PROBE_BPF_FILEPATH="${SYSDIG_PROBE_BPF_FILEPATH}")
+
 	add_subdirectory(scripts)
 endif()
 
