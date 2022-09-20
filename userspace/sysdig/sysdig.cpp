@@ -1634,10 +1634,21 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		if(!bpf)
 		{
 			const char *probe = getenv("SYSDIG_BPF_PROBE");
-			if(probe)
+			if(probe && strlen(probe) > 0)
 			{
 				bpf = true;
 				bpf_probe = probe;
+			}
+			else
+			{
+				const char *home = std::getenv("HOME");
+				if(!home)
+				{
+					fprintf(stderr, "Cannot get the env variable 'HOME'");
+					res.m_res = EXIT_FAILURE;
+					goto exit;
+				}
+				bpf_probe = std::string(home) + "/" + SYSDIG_PROBE_BPF_FILEPATH;
 			}
 		}
 
@@ -1853,19 +1864,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 
 				/* Populate syscalls of interest */
-				std::unordered_set<uint32_t> sc_of_interest;
-				for(int i = 0; i < PPM_SC_MAX; i++)
-				{
-					sc_of_interest.insert(i);
-				}
+				std::unordered_set<uint32_t> sc_of_interest = inspector->get_all_ppm_sc();
 
 				/* Populate tracepoints of interest */
-				std::unordered_set<uint32_t> tp_of_interest;
-				for(int i = 0; i < TP_VAL_MAX; i++)
-				{
-					tp_of_interest.insert(i);
-				}
-
+				std::unordered_set<uint32_t> tp_of_interest = inspector->get_all_tp();
 				if(!page_faults)
 				{
 					tp_of_interest.erase(PAGE_FAULT_USER);
@@ -1890,7 +1892,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				{
 					try
 					{
-						inspector->open_bpf(bpf_probe.c_str(), DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
+						inspector->open_bpf(bpf_probe, DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
 					}
 					catch(const sinsp_exception& e)
 					{
@@ -1898,7 +1900,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						{
 							fprintf(stderr, "Unable to load the BPF probe\n");
 						}
-						inspector->open_bpf(bpf_probe.c_str(), DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
+						inspector->open_bpf(bpf_probe, DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
 					}
 
 					// Enable gathering the CPU from the kernel module
