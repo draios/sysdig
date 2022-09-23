@@ -35,6 +35,7 @@ jobs:
   build-release-linux-arm64:
     runs-on: ubuntu-latest
     env:
+      REGISTRY: ghcr.io
       BUILD_VERSION: ${{ github.ref_name }}
     steps:
       - name: Checkout Sysdig
@@ -47,12 +48,14 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
-          platforms: 'arm64'
+          platforms: 'amd64,arm64'
       - name: Run the build process with Docker
         uses: addnab/docker-run-action@v3
         with:
-          image: draios/sysdig-builder:dev
-          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          image: ghcr.io/draios/sysdig-builder:dev
           options: --platform=linux/arm64 -v ${{ github.workspace }}/sysdig:/source/sysdig -v ${{ github.workspace }}/sysdig-build-aarch64:/build
           run: |
             build cmake && build package
