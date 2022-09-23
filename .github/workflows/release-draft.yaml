@@ -101,11 +101,9 @@ jobs:
         include:
           - name: amd64
             arch: x86_64
-            jobname: build-release-linux-amd64
           - name: arm64
             arch: aarch64
-            jobname: build-release-linux-arm64
-    needs: ${{ matrix.jobname }}
+    needs: [build-release-linux-amd64, build-release-linux-arm64]
     runs-on: ubuntu-latest
     env:
       BUILD_VERSION: ${{ github.ref_name }}
@@ -141,11 +139,9 @@ jobs:
         include:
           - name: amd64
             arch: x86_64
-            jobname: build-release-linux-amd64
           - name: arm64
             arch: aarch64
-            jobname: build-release-linux-arm64
-    needs: ${{ matrix.jobname }}
+    needs: [build-release-linux-amd64, build-release-linux-arm64]
     env:
       BUILD_VERSION: ${{ github.ref_name }}
       KEY_ID: EC51E8C4
