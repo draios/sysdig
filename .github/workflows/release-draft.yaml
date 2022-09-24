@@ -56,14 +56,18 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ${{ env.REGISTRY }}
           image: ghcr.io/draios/sysdig-builder:dev
-          options: --platform=linux/arm64 -v ${{ github.workspace }}/sysdig:/source/sysdig -v ${{ github.workspace }}/sysdig-build-aarch64:/build
+          options: --platform=linux/arm64 -v ${{ github.workspace }}/sysdig:/source/sysdig -v ${{ github.workspace }}/sysdig-build-aarch64:/build/release-packages
           run: |
-            build cmake && build package
+            mkdir -p /build/release-packages && \
+              build cmake && \
+              build package && \
+              cp /build/release/sysdig-${{ env.BUILD_VERSION }}* /build/release-packages
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v2
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-aarch64
-          path: ${{ github.workspace }}/sysdig-build-aarch64/release/sysdig-${{ env.BUILD_VERSION }}*
+          path: ${{ github.workspace }}/sysdig-build-aarch64/sysdig-${{ env.BUILD_VERSION }}*
 
   push-container-image:
     runs-on: ubuntu-latest
