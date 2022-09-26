@@ -56,7 +56,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ${{ env.REGISTRY }}
           image: ghcr.io/draios/sysdig-builder:dev
-          options: --platform=linux/arm64 -v ${{ github.workspace }}/sysdig:/source/sysdig -v ${{ github.workspace }}/sysdig-build-aarch64:/build/release-packages
+          options: --platform=linux/arm64 -v ${{ github.workspace }}/sysdig:/source/sysdig -v ${{ github.workspace }}/sysdig-build-aarch64:/build/release-packages -e BUILD_VERSION=${{ env.BUILD_VERSION }}
           run: |
             mkdir -p /build/release-packages && \
               build cmake && \
@@ -71,6 +71,7 @@ jobs:
 
   push-container-image:
     runs-on: ubuntu-latest
+    needs: [build-release-linux-amd64, build-release-linux-arm64, sign-rpms, sign-debs]
     env:
       BUILD_VERSION: ${{ github.ref_name }}
       REGISTRY: ghcr.io
