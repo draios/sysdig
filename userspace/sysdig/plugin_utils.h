@@ -28,6 +28,7 @@ limitations under the License.
 
 #include <yaml-cpp/yaml.h>
 #include <nlohmann/json.hpp>
+#include <unordered_set>
 
 class plugin_utils
 {
@@ -45,7 +46,7 @@ public:
 	void select_input_plugin(sinsp *inspector, const string& name, const string& params);
 
 	void print_plugin_info(sinsp* inspector, const string& name);
-	void print_plugin_info_list(sinsp* inspector) const;
+	void print_plugin_info_list(sinsp* inspector);
 
 	bool has_plugins() const;
 	bool has_input_plugin() const;
@@ -53,12 +54,16 @@ public:
 	const std::string& input_plugin_params() const;
 
 private:
-	struct plugin_entry {
-		bool inited;
-		std::set<std::string> names;
+	struct plugin_entry
+	{
+		bool registered = false;
+		bool inited = false;
+		std::string libpath;
+		std::unordered_set<std::string> names;
 		std::shared_ptr<sinsp_plugin> plugin;
 		
-		void init(const std::string& conf);
+		void ensure_inited(const std::string& conf);
+		void ensure_registered(sinsp *inspector);
 		void print_info(std::ostringstream& os) const;
 	};
 

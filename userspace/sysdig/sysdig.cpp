@@ -1011,6 +1011,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool gvisor = false;
 	string gvisor_config;
 	string gvisor_root;
+	bool list_plugins = false;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -1108,6 +1109,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		add_chisel_dirs(inspector);
 #endif
 		plugins.add_directory(SYSDIG_PLUGINS_DIR);
+		plugins.load_plugins_from_dirs(inspector);
 
 		//
 		// Parse the args
@@ -1240,14 +1242,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					string inputname = optarg;
 					if(inputname == "l")
 					{
-						plugins.print_plugin_info_list(inspector);
-						printf("More detailed info about individual plugins can be printed with the --plugin-info option:\n");
-						printf(" Detailed info about a single plugin\n");
-						printf("   $ sysdig --plugin-info=dummy\n\n");
-						printf(" Detailed info about a single plugin with a given configuration\n");
-						printf("   $ sysdig -H dummy:'{\"jitter\":50}' --plugin-info=dummy\n\n");
-						delete inspector;
-						return sysdig_init_res(EXIT_SUCCESS);
+						list_plugins = true;
+						break;
 					}
 
 					size_t cpos = inputname.find(':');
@@ -1615,11 +1611,16 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			}
 		}
 
-		// if we haven't loaded plugins through CLI options, load them from
-		// the directories
-		if (!plugins.has_plugins())
+		if (list_plugins)
 		{
-			plugins.load_plugins_from_dirs(inspector);
+			plugins.print_plugin_info_list(inspector);
+			printf("More detailed info about individual plugins can be printed with the --plugin-info option:\n");
+			printf(" Detailed info about a single plugin\n");
+			printf("   $ sysdig --plugin-info=dummy\n\n");
+			printf(" Detailed info about a single plugin with a given configuration\n");
+			printf("   $ sysdig -H dummy:'{\"jitter\":50}' --plugin-info=dummy\n\n");
+			delete inspector;
+			return sysdig_init_res(EXIT_SUCCESS);
 		}
 
 		g_plugin_input = plugins.has_input_plugin();

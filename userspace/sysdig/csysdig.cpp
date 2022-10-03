@@ -381,6 +381,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
 	bool page_faults = false;
 	plugin_utils plugins;
+	bool list_plugins = false;
 
 	static struct option long_options[] =
 	{
@@ -642,6 +643,18 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			default:
 				break;
 			}
+		}
+
+		if (list_plugins)
+		{
+			plugins.print_plugin_info_list(inspector);
+			printf("More detailed info about individual plugins can be printed with the --plugin-info option:\n");
+			printf(" Detailed info about a single plugin\n");
+			printf("   $ sysdig --plugin-info=dummy\n\n");
+			printf(" Detailed info about a single plugin with a given configuration\n");
+			printf("   $ sysdig -H dummy:'{\"jitter\":50}' --plugin-info=dummy\n\n");
+			delete inspector;
+			return sysdig_init_res(EXIT_SUCCESS);
 		}
 
 #ifdef HAS_CAPTURE
