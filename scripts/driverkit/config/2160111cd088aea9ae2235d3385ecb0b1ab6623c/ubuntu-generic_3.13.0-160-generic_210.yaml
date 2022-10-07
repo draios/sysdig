@@ -1,5 +1,0 @@
-kernelversion: 210
-kernelrelease: 3.13.0-160-generic
-target: ubuntu-generic
-output:
-  module: output/2160111cd088aea9ae2235d3385ecb0b1ab6623c/scap_ubuntu-generic_3.13.0-160-generic_210.ko

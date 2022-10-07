@@ -1,6 +1,0 @@
-kernelversion: 17
-kernelrelease: 4.15.0-1017-aws
-target: ubuntu-aws
-output:
-  module: output/2160111cd088aea9ae2235d3385ecb0b1ab6623c/scap_ubuntu-aws_4.15.0-1017-aws_17.ko
-  probe: output/2160111cd088aea9ae2235d3385ecb0b1ab6623c/scap_ubuntu-aws_4.15.0-1017-aws_17.o

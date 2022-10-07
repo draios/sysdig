@@ -1,5 +1,0 @@
-kernelversion: 1
-kernelrelease: 4.18.0-240.el8.x86_64
-target: centos
-output:
-  module: output/2160111cd088aea9ae2235d3385ecb0b1ab6623c/scap_centos_4.18.0-240.el8.x86_64_1.ko

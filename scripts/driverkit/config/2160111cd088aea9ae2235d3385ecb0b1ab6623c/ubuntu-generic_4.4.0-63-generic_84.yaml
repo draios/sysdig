@@ -1,5 +1,0 @@
-kernelversion: 84
-kernelrelease: 4.4.0-63-generic
-target: ubuntu-generic
-output:
-  module: output/2160111cd088aea9ae2235d3385ecb0b1ab6623c/scap_ubuntu-generic_4.4.0-63-generic_84.ko
