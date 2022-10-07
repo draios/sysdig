@@ -41,15 +41,15 @@ RUN apt-get update \
 # prefix https://snapshot.debian.org/archive/debian/20170517T033514Z
 # or so.
 
-RUN curl -o cpp-6_6.3.0-18_amd64.deb https://s3.amazonaws.com/download.draios.com/dependencies/gcc-6-debs/cpp-6_6.3.0-18_amd64.deb \
-    && curl -o gcc-6-base_6.3.0-18_amd64.deb https://s3.amazonaws.com/download.draios.com/dependencies/gcc-6-debs/gcc-6-base_6.3.0-18_amd64.deb \
-    && curl -o gcc-6_6.3.0-18_amd64.deb https://s3.amazonaws.com/download.draios.com/dependencies/gcc-6-debs/gcc-6_6.3.0-18_amd64.deb \
-    && curl -o libasan3_6.3.0-18_amd64.deb https://s3.amazonaws.com/download.draios.com/dependencies/gcc-6-debs/libasan3_6.3.0-18_amd64.deb \
-    && curl -o libcilkrts5_6.3.0-18_amd64.deb https://s3.amazonaws.com/download.draios.com/dependencies/gcc-6-debs/libcilkrts5_6.3.0-18_amd64.deb \
-    && curl -o libgcc-6-dev_6.3.0-18_amd64.deb https://s3.amazonaws.com/download.draios.com/dependencies/gcc-6-debs/libgcc-6-dev_6.3.0-18_amd64.deb \
-    && curl -o libubsan0_6.3.0-18_amd64.deb https://s3.amazonaws.com/download.draios.com/dependencies/gcc-6-debs/libubsan0_6.3.0-18_amd64.deb \
-    && curl -o libmpfr4_3.1.3-2_amd64.deb https://s3.amazonaws.com/download.draios.com/dependencies/gcc-6-debs/libmpfr4_3.1.3-2_amd64.deb \
-    && curl -o libisl15_0.18-1_amd64.deb https://s3.amazonaws.com/download.draios.com/dependencies/gcc-6-debs/libisl15_0.18-1_amd64.deb \
+RUN curl -o cpp-6_6.3.0-18_amd64.deb https://download.sysdig.com/dependencies/gcc-6-debs/cpp-6_6.3.0-18_amd64.deb \
+    && curl -o gcc-6-base_6.3.0-18_amd64.deb https://download.sysdig.com/dependencies/gcc-6-debs/gcc-6-base_6.3.0-18_amd64.deb \
+    && curl -o gcc-6_6.3.0-18_amd64.deb https://download.sysdig.com/dependencies/gcc-6-debs/gcc-6_6.3.0-18_amd64.deb \
+    && curl -o libasan3_6.3.0-18_amd64.deb https://download.sysdig.com/dependencies/gcc-6-debs/libasan3_6.3.0-18_amd64.deb \
+    && curl -o libcilkrts5_6.3.0-18_amd64.deb https://download.sysdig.com/dependencies/gcc-6-debs/libcilkrts5_6.3.0-18_amd64.deb \
+    && curl -o libgcc-6-dev_6.3.0-18_amd64.deb https://download.sysdig.com/dependencies/gcc-6-debs/libgcc-6-dev_6.3.0-18_amd64.deb \
+    && curl -o libubsan0_6.3.0-18_amd64.deb https://download.sysdig.com/dependencies/gcc-6-debs/libubsan0_6.3.0-18_amd64.deb \
+    && curl -o libmpfr4_3.1.3-2_amd64.deb https://download.sysdig.com/dependencies/gcc-6-debs/libmpfr4_3.1.3-2_amd64.deb \
+    && curl -o libisl15_0.18-1_amd64.deb https://download.sysdig.com/dependencies/gcc-6-debs/libisl15_0.18-1_amd64.deb \
     && dpkg -i cpp-6_6.3.0-18_amd64.deb gcc-6-base_6.3.0-18_amd64.deb gcc-6_6.3.0-18_amd64.deb libasan3_6.3.0-18_amd64.deb libcilkrts5_6.3.0-18_amd64.deb libgcc-6-dev_6.3.0-18_amd64.deb libubsan0_6.3.0-18_amd64.deb libmpfr4_3.1.3-2_amd64.deb libisl15_0.18-1_amd64.deb \
     && rm -f cpp-6_6.3.0-18_amd64.deb gcc-6-base_6.3.0-18_amd64.deb gcc-6_6.3.0-18_amd64.deb libasan3_6.3.0-18_amd64.deb libcilkrts5_6.3.0-18_amd64.deb libgcc-6-dev_6.3.0-18_amd64.deb libubsan0_6.3.0-18_amd64.deb libmpfr4_3.1.3-2_amd64.deb libisl15_0.18-1_amd64.deb
 
@@ -58,13 +58,13 @@ RUN curl -o cpp-6_6.3.0-18_amd64.deb https://s3.amazonaws.com/download.draios.co
 # version 3, 4, or 5 compiler. So grab copies we've saved from debian
 # snapshots with the prefix https://snapshot.debian.org/archive/debian/20190122T000000Z.
 
-RUN curl -o cpp-5_5.5.0-12_amd64.deb https://s3.amazonaws.com/download.draios.com/dependencies/cpp-5_5.5.0-12_amd64.deb \
- && curl -o gcc-5-base_5.5.0-12_amd64.deb https://s3.amazonaws.com/download.draios.com/dependencies/gcc-5-base_5.5.0-12_amd64.deb \
- && curl -o gcc-5_5.5.0-12_amd64.deb https://s3.amazonaws.com/download.draios.com/dependencies/gcc-5_5.5.0-12_amd64.deb \
- && curl -o libasan2_5.5.0-12_amd64.deb https://s3.amazonaws.com/download.draios.com/dependencies/libasan2_5.5.0-12_amd64.deb \
- && curl -o libgcc-5-dev_5.5.0-12_amd64.deb https://s3.amazonaws.com/download.draios.com/dependencies/libgcc-5-dev_5.5.0-12_amd64.deb \
- && curl -o libisl15_0.18-4_amd64.deb https://s3.amazonaws.com/download.draios.com/dependencies/libisl15_0.18-4_amd64.deb \
- && curl -o libmpx0_5.5.0-12_amd64.deb https://s3.amazonaws.com/download.draios.com/dependencies/libmpx0_5.5.0-12_amd64.deb \
+RUN curl -o cpp-5_5.5.0-12_amd64.deb https://download.sysdig.com/dependencies/cpp-5_5.5.0-12_amd64.deb \
+ && curl -o gcc-5-base_5.5.0-12_amd64.deb https://download.sysdig.com/dependencies/gcc-5-base_5.5.0-12_amd64.deb \
+ && curl -o gcc-5_5.5.0-12_amd64.deb https://download.sysdig.com/dependencies/gcc-5_5.5.0-12_amd64.deb \
+ && curl -o libasan2_5.5.0-12_amd64.deb https://download.sysdig.com/dependencies/libasan2_5.5.0-12_amd64.deb \
+ && curl -o libgcc-5-dev_5.5.0-12_amd64.deb https://download.sysdig.com/dependencies/libgcc-5-dev_5.5.0-12_amd64.deb \
+ && curl -o libisl15_0.18-4_amd64.deb https://download.sysdig.com/dependencies/libisl15_0.18-4_amd64.deb \
+ && curl -o libmpx0_5.5.0-12_amd64.deb https://download.sysdig.com/dependencies/libmpx0_5.5.0-12_amd64.deb \
  && dpkg -i cpp-5_5.5.0-12_amd64.deb gcc-5-base_5.5.0-12_amd64.deb gcc-5_5.5.0-12_amd64.deb libasan2_5.5.0-12_amd64.deb libgcc-5-dev_5.5.0-12_amd64.deb libisl15_0.18-4_amd64.deb libmpx0_5.5.0-12_amd64.deb \
  && rm -f cpp-5_5.5.0-12_amd64.deb gcc-5-base_5.5.0-12_amd64.deb gcc-5_5.5.0-12_amd64.deb libasan2_5.5.0-12_amd64.deb libgcc-5-dev_5.5.0-12_amd64.deb libisl15_0.18-4_amd64.deb libmpx0_5.5.0-12_amd64.deb
 
@@ -78,7 +78,7 @@ RUN rm -rf /usr/bin/clang \
  && ln -s /usr/bin/clang-7 /usr/bin/clang \
  && ln -s /usr/bin/llc-7 /usr/bin/llc
 
-RUN curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public | apt-key add - \
+RUN curl -s https://download.sysdig.com/DRAIOS-GPG-KEY.public | apt-key add - \
  && curl -s -o /etc/apt/sources.list.d/draios.list http://download.draios.com/$SYSDIG_REPOSITORY/deb/draios.list \
  && apt-get update \
  && apt-get install -y --no-install-recommends sysdig \
