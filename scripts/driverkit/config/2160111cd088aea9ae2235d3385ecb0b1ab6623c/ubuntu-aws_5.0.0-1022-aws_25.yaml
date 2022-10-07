@@ -1,6 +1,0 @@
-kernelversion: 25
-kernelrelease: 5.0.0-1022-aws
-target: ubuntu-aws
-output:
-  module: output/2160111cd088aea9ae2235d3385ecb0b1ab6623c/scap_ubuntu-aws_5.0.0-1022-aws_25.ko
-  probe: output/2160111cd088aea9ae2235d3385ecb0b1ab6623c/scap_ubuntu-aws_5.0.0-1022-aws_25.o

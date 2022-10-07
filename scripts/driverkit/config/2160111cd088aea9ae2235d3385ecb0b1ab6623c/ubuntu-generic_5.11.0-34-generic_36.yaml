@@ -1,6 +1,0 @@
-kernelversion: 36
-kernelrelease: 5.11.0-34-generic
-target: ubuntu-generic
-output:
-  module: output/2160111cd088aea9ae2235d3385ecb0b1ab6623c/scap_ubuntu-generic_5.11.0-34-generic_36.ko
-  probe: output/2160111cd088aea9ae2235d3385ecb0b1ab6623c/scap_ubuntu-generic_5.11.0-34-generic_36.o

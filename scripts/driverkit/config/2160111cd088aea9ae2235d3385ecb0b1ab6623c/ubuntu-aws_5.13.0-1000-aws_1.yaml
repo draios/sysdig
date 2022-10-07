@@ -1,6 +1,0 @@
-kernelversion: 1
-kernelrelease: 5.13.0-1000-aws
-target: ubuntu-aws
-output:
-  module: output/2160111cd088aea9ae2235d3385ecb0b1ab6623c/scap_ubuntu-aws_5.13.0-1000-aws_1.ko
-  probe: output/2160111cd088aea9ae2235d3385ecb0b1ab6623c/scap_ubuntu-aws_5.13.0-1000-aws_1.o
