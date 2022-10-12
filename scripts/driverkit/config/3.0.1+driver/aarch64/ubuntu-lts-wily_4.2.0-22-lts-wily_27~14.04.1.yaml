@@ -1,0 +1,7 @@
+kernelversion: 27~14.04.1
+kernelrelease: 4.2.0-22-lts-wily
+target: ubuntu-lts-wily
+architecture: arm64
+output:
+  module: output/3.0.1+driver/aarch64/scap_ubuntu-lts-wily_4.2.0-22-lts-wily_27~14.04.1.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lts-wily/linux-headers-4.2.0-22-generic_4.2.0-22.27~14.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lts-wily/linux-headers-4.2.0-22_4.2.0-22.27~14.04.1_all.deb"]

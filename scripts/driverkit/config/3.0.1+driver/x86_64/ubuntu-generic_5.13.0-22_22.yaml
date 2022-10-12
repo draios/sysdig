@@ -1,0 +1,8 @@
+kernelversion: 22
+kernelrelease: 5.13.0-22
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/3.0.1+driver/x86_64/scap_ubuntu-generic_5.13.0-22_22.ko
+  probe: output/3.0.1+driver/x86_64/scap_ubuntu-generic_5.13.0-22_22.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.13.0-22_5.13.0-22.22_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.13.0-22-generic_5.13.0-22.22_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.13.0-22_5.13.0-22.22_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.13.0-22-generic_5.13.0-22.22_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.13.0-22-lowlatency_5.13.0-22.22_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.13.0-22-lowlatency_5.13.0-22.22_amd64.deb"]

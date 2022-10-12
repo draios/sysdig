@@ -1,0 +1,7 @@
+kernelversion: 188
+kernelrelease: 3.13.0-139-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/3.0.1+driver/aarch64/scap_ubuntu-generic_3.13.0-139-generic_188.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-3.13.0-139-generic_3.13.0-139.188_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-3.13.0-139_3.13.0-139.188_all.deb"]

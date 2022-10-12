@@ -1,0 +1,8 @@
+kernelversion: 26
+kernelrelease: 5.13.0-25
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/3.0.1+driver/x86_64/scap_ubuntu-generic_5.13.0-25_26.ko
+  probe: output/3.0.1+driver/x86_64/scap_ubuntu-generic_5.13.0-25_26.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.13.0-25-lowlatency_5.13.0-25.26_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.13.0-25_5.13.0-25.26_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.13.0-25-generic_5.13.0-25.26_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.13.0-25_5.13.0-25.26_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.13.0-25-lowlatency_5.13.0-25.26_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.13.0-25-generic_5.13.0-25.26_amd64.deb"]
