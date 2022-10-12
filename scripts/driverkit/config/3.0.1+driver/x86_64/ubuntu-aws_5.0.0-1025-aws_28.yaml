@@ -1,0 +1,6 @@
+kernelversion: 28
+kernelrelease: 5.0.0-1025-aws
+target: ubuntu-aws
+output:
+  module: output/3.0.1+driver/x86_64/scap_ubuntu-aws_5.0.0-1025-aws_28.ko
+  probe: output/3.0.1+driver/x86_64/scap_ubuntu-aws_5.0.0-1025-aws_28.o

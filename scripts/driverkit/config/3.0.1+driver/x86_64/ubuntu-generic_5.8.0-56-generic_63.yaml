@@ -1,0 +1,6 @@
+kernelversion: 63
+kernelrelease: 5.8.0-56-generic
+target: ubuntu-generic
+output:
+  module: output/3.0.1+driver/x86_64/scap_ubuntu-generic_5.8.0-56-generic_63.ko
+  probe: output/3.0.1+driver/x86_64/scap_ubuntu-generic_5.8.0-56-generic_63.o

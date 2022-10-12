@@ -1,0 +1,6 @@
+kernelversion: 37
+kernelrelease: 5.11.0-35-generic
+target: ubuntu-generic
+output:
+  module: output/3.0.1+driver/x86_64/scap_ubuntu-generic_5.11.0-35-generic_37.ko
+  probe: output/3.0.1+driver/x86_64/scap_ubuntu-generic_5.11.0-35-generic_37.o

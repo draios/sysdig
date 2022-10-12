@@ -1,0 +1,7 @@
+kernelversion: 57
+kernelrelease: 3.13.0-32-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/3.0.1+driver/aarch64/scap_ubuntu-generic_3.13.0-32-generic_57.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-3.13.0-32_3.13.0-32.57_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-3.13.0-32-generic_3.13.0-32.57_arm64.deb"]

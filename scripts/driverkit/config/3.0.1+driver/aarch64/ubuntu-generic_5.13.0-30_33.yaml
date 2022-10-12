@@ -1,0 +1,8 @@
+kernelversion: 33
+kernelrelease: 5.13.0-30
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/3.0.1+driver/aarch64/scap_ubuntu-generic_5.13.0-30_33.ko
+  probe: output/3.0.1+driver/aarch64/scap_ubuntu-generic_5.13.0-30_33.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.13.0-30_5.13.0-30.33_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.13.0-30-generic_5.13.0-30.33_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.13.0-30-generic-64k_5.13.0-30.33_arm64.deb"]

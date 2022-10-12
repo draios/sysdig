@@ -1,0 +1,6 @@
+kernelversion: 1
+kernelrelease: 5.4.0-80.90.2.el7.x86_64
+target: centos
+output:
+  module: output/3.0.1+driver/x86_64/scap_centos_5.4.0-80.90.2.el7.x86_64_1.ko
+  probe: output/3.0.1+driver/x86_64/scap_centos_5.4.0-80.90.2.el7.x86_64_1.o

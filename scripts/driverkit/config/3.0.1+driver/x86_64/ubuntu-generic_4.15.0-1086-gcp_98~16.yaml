@@ -1,0 +1,8 @@
+kernelversion: 98~16
+kernelrelease: 4.15.0-1086-gcp
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/3.0.1+driver/x86_64/scap_ubuntu-generic_4.15.0-1086-gcp_98~16.ko
+  probe: output/3.0.1+driver/x86_64/scap_ubuntu-generic_4.15.0-1086-gcp_98~16.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp/linux-gcp-headers-4.15.0-1086_4.15.0-1086.98~16.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp/linux-headers-4.15.0-1086-gcp_4.15.0-1086.98~16.04.1_amd64.deb"]
