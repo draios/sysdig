@@ -58,6 +58,8 @@ limitations under the License.
 #include <termios.h>
 #endif
 
+static constexpr const char* g_unknown_field_err = "nonexistent field ";
+
 static bool g_terminate = false;
 static bool g_terminating = false;
 static bool g_plugin_input = false;
@@ -1732,8 +1734,21 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 			if(is_filter_display)
 			{
-				sinsp_filter_compiler compiler(inspector, filter);
-				display_filter = compiler.compile();
+				try
+				{
+					sinsp_filter_compiler compiler(inspector, filter);
+					display_filter = compiler.compile();
+				}
+				catch (sinsp_exception& e)
+				{
+					const char* errpos = strstr(e.what(), g_unknown_field_err);
+					if (errpos != NULL)
+					{
+						const char* field = errpos + strlen(g_unknown_field_err);
+						plugins.print_field_extraction_support(inspector, field);
+					}
+					throw e;
+				}
 			}
 		}
 
@@ -1815,7 +1830,20 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{
 			if(!filter.empty() && !is_filter_display)
 			{
-				inspector->set_filter(filter);
+				try
+				{
+					inspector->set_filter(filter);
+				}
+				catch (sinsp_exception& e)
+				{
+					const char* errpos = strstr(e.what(), g_unknown_field_err);
+					if (errpos != NULL)
+					{
+						const char* field = errpos + strlen(g_unknown_field_err);
+						plugins.print_field_extraction_support(inspector, field);
+					}
+					throw e;
+				}
 			}
 
 			// Suppress any comms specified via -U. We

@@ -21,6 +21,8 @@ limitations under the License.
 
 #include "plugin_utils.h"
 
+#include <unordered_set>
+
 #include <utility>
 #include <third-party/tinydir.h>
 
@@ -471,4 +473,37 @@ void plugin_utils::load_plugins_from_conf_file(sinsp *inspector, const std::stri
             }
         }
     }
+}
+
+void plugin_utils::print_field_extraction_support(sinsp* inspector, const std::string& field)
+{
+    auto err = "filter contains an unknown field '" + field + "'";
+    std::unordered_set<std::string> compatible_plugins;
+    for (auto &p : m_plugins)
+    {
+        p.ensure_registered(inspector);
+        if (p.plugin->caps() & CAP_EXTRACTION)
+        {
+            const auto &fields = p.plugin->fields();
+            for (const auto& f : fields)
+            {
+                std::string fname = f.m_name;
+                if (fname == field)
+                {
+                    compatible_plugins.insert(p.plugin->name());
+                }
+            }
+        }
+    }
+    if (!compatible_plugins.empty())
+    {
+        std::string fmt;
+        for (const auto& pname : compatible_plugins)
+        {
+            fmt += fmt.empty() ? "" : ", ";
+            fmt += pname;
+        }
+        throw sinsp_exception(err + ", but it can be supported by loading one of these plugins: " + fmt);
+    }
+    throw sinsp_exception(err + ", and none of the loaded plugins is capable of extracting it");
 }
