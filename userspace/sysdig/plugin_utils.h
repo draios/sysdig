@@ -37,16 +37,17 @@ public:
 
 	void add_directory(const std::string& plugins_dir);
 
-	void load_plugin(sinsp *inspector, const string& name);
+	void load_plugin(sinsp *inspector, const std::string& name);
 	void load_plugins_from_dirs(sinsp *inspector);
 	void load_plugins_from_conf_file(sinsp *inspector, const std::string& config_filename);
 
-	void init_plugin(sinsp *inspector, const string& name, const string& conf);
+	void init_plugin(sinsp *inspector, const std::string& name, const std::string& conf);
 
-	void select_input_plugin(sinsp *inspector, const string& name, const string& params);
+	void select_input_plugin(sinsp *inspector, const std::string& name, const std::string& params);
 
-	void print_plugin_info(sinsp* inspector, const string& name);
+	void print_plugin_info(sinsp* inspector, const std::string& name);
 	void print_plugin_info_list(sinsp* inspector);
+	void print_field_extraction_support(sinsp* inspector, const std::string& field);
 
 	bool has_plugins() const;
 	bool has_input_plugin() const;
