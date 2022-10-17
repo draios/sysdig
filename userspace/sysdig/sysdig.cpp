@@ -1014,6 +1014,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string gvisor_config;
 	string gvisor_root;
 	bool list_plugins = false;
+	bool plugin_input = false;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -1248,6 +1249,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						break;
 					}
 
+					if (plugin_input)
+					{
+						throw sinsp_exception("using more than one plugin as input is not supported");
+					}
+
 					size_t cpos = inputname.find(':');
 					string pgname = inputname;
 					string pgpars;
@@ -1258,6 +1264,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						pgpars = inputname.substr(cpos + 1);
 					}
 					plugins.select_input_plugin(inspector, pgname, pgpars);
+					plugin_input = true;
 				}
 				break;
 #ifdef HAS_CHISELS
@@ -1500,7 +1507,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
 					else if (optname == "libs-version") {
-						printf("falcosecurity/libs version %s", FALCOSECURITY_LIBS_VERSION);
+						printf("falcosecurity/libs version %s\n", FALCOSECURITY_LIBS_VERSION);
 						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}

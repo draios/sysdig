@@ -293,13 +293,19 @@ void plugin_utils::select_input_plugin(sinsp *inspector, const string& name, con
     p.ensure_registered(inspector);
     if (p.plugin->caps() & CAP_SOURCING)
     {
-        if (!m_input_plugin_name.empty())
+        // we need to add the generic evt.* filtercheck class only once
+        if (m_input_plugin_name.empty())
         {
-            throw sinsp_exception("using more than one plugin as input is not supported");
+            g_filterlist.add_filter_check(inspector->new_generic_filtercheck());
         }
-        g_filterlist.add_filter_check(inspector->new_generic_filtercheck());
+
         m_input_plugin_name = name;
-        m_input_plugin_params = params;
+        if (!params.empty())
+        {
+            // note: we must add params only if they are not empty, otherwise
+            // we risk overwriting previously-defined params with an empty string.
+            m_input_plugin_params = params;
+        }
         return;
     }
     throw sinsp_exception(err_plugin_no_source_cap + name);
@@ -469,7 +475,7 @@ void plugin_utils::load_plugins_from_conf_file(sinsp *inspector, const std::stri
             auto& p = find_plugin(library_path);
             if (p.plugin->caps() & CAP_SOURCING)
             {
-                select_input_plugin(inspector, library_path, open_params);
+                select_input_plugin(inspector, name, open_params);
             }
         }
     }
