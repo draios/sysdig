@@ -46,12 +46,12 @@ else()
 endif()
 
 list(APPEND SOURCE_FILES
-	plugin_utils.cpp
-	supported_events.cpp)
+	utils/plugin_utils.cpp
+	utils/supported_events.cpp)
 
 list(APPEND SOURCE_FILES_CSYSDIG
-	plugin_utils.cpp
-	supported_events.cpp
+	utils/plugin_utils.cpp
+	utils/supported_events.cpp
 	../sinspui/ctext.cpp
 	../sinspui/cursescomponents.cpp
 	../sinspui/cursesspectro.cpp

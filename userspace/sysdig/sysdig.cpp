@@ -48,8 +48,8 @@ limitations under the License.
 #include "plugin.h"
 #include "plugin_manager.h"
 
-#include "plugin_utils.h"
-#include "supported_events.h"
+#include "utils/plugin_utils.h"
+#include "utils/supported_events.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"

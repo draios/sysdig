@@ -42,7 +42,7 @@ limitations under the License.
 #include "fields_info.h"
 #include "chisel_table.h"
 #include "utils.h"
-#include "plugin_utils.h"
+#include "utils/plugin_utils.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"

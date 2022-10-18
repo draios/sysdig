@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2013-2021 Sysdig Inc.
+Copyright (C) 2013-2022 Sysdig Inc.
 
 This file is part of sysdig.
 
