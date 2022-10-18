@@ -136,34 +136,48 @@ static bool iterate_plugins_dirs(
 	return breakout;
 }
 
-void plugin_utils::plugin_entry::ensure_inited(const std::string& conf)
+void plugin_utils::plugin_entry::init(sinsp *inspector)
 {
-    if (!inited)
+    std::string err;
+    auto plugin = get_plugin(inspector);
+    if (!plugin->init(init_config, err))
     {
-        std::string err;
-        if (!plugin->init(conf, err))
+        throw sinsp_exception(err.c_str());
+    }
+    if (plugin->caps() & CAP_EXTRACTION)
+    {
+        g_filterlist.add_filter_check(sinsp_plugin::new_filtercheck(plugin));
+    }
+    inited = true;
+}
+
+std::shared_ptr<sinsp_plugin> plugin_utils::plugin_entry::get_plugin(sinsp *inspector) const
+{
+    for (auto& p : inspector->get_plugin_manager()->plugins())
+    {
+        const auto& name = p->name();
+        if (names.find(name) != names.end())
         {
-            throw sinsp_exception(err.c_str());
+            return p;
         }
-        if (plugin->caps() & CAP_EXTRACTION)
+    }
+    return inspector->register_plugin(libpath);
+}
+
+void plugin_utils::init_loaded_plugins(sinsp* inspector)
+{
+    for (auto &p : m_plugins)
+    {
+        if (!p.inited)
         {
-            g_filterlist.add_filter_check(sinsp_plugin::new_filtercheck(plugin));
+            p.init(inspector);
         }
-        inited = true;
     }
 }
 
-void plugin_utils::plugin_entry::ensure_registered(sinsp *inspector)
+void plugin_utils::plugin_entry::print_info(sinsp* inspector, std::ostringstream& os) const
 {
-    if (!registered)
-    {
-        this->plugin = inspector->register_plugin(libpath);
-        registered = true;
-    }
-}
-
-void plugin_utils::plugin_entry::print_info(std::ostringstream& os) const
-{
+    auto plugin = get_plugin(inspector);
     os << "Name: " << plugin->name() << std::endl;
     os << "Description: " << plugin->description() << std::endl;
     os << "Contact: " << plugin->contact() << std::endl;
@@ -237,7 +251,6 @@ const std::string& plugin_utils::input_plugin_params() const
     return m_input_plugin_params;
 }
 
-
 void plugin_utils::add_directory(const std::string& plugins_dir)
 {
     add_dir(plugins_dir, false);
@@ -250,7 +263,6 @@ void plugin_utils::load_plugin(sinsp *inspector, const string& name)
     {
         if (p.names.find(name) != p.names.end())
         {
-            p.ensure_registered(inspector);
             return;
         }
     }
@@ -261,9 +273,8 @@ void plugin_utils::load_plugin(sinsp *inspector, const string& name)
         plugin_entry p;
         p.inited = false;
         p.libpath = name;
-        p.ensure_registered(inspector);
         p.names.insert(name);
-        p.names.insert(p.plugin->name());
+        p.names.insert(p.get_plugin(inspector)->name());
         m_plugins.push_back(p);
 		return;
 	}
@@ -283,11 +294,10 @@ void plugin_utils::load_plugin(sinsp *inspector, const string& name)
             plugin_entry p;
             p.inited = false;
             p.libpath = file.path;
-            p.ensure_registered(inspector);
             p.names.insert(soname);
             p.names.insert(file.path);
             p.names.insert(file.name);
-            p.names.insert(p.plugin->name());
+            p.names.insert(p.get_plugin(inspector)->name());
             plugins.push_back(p);
             return true; // break-out
         }
@@ -310,7 +320,6 @@ void plugin_utils::load_plugins_from_dirs(sinsp *inspector)
 
         plugin_entry p;
         p.inited = false;
-        p.registered = false;
         p.libpath = file.path;
         p.names.insert(file.path);
         p.names.insert(file.name);
@@ -336,7 +345,7 @@ const plugin_utils::plugin_entry& plugin_utils::find_plugin(const std::string na
 {
     for (auto &p : m_plugins)
     {
-        if (p.names.find(name) != p.names.end() && p.registered)
+        if (p.names.find(name) != p.names.end())
         {
             return p;
         }
@@ -344,35 +353,34 @@ const plugin_utils::plugin_entry& plugin_utils::find_plugin(const std::string na
     throw sinsp_exception(err_plugin_not_found + name);
 }
 
-void plugin_utils::init_plugin(sinsp *inspector, const string& name, const string& conf)
+void plugin_utils::config_plugin(sinsp *inspector, const string& name, const string& conf)
 {
     auto& p = find_plugin(name);
-    p.ensure_registered(inspector);
-    p.ensure_inited(conf);
+    p.init_config = conf;
 }
 
 void plugin_utils::select_input_plugin(sinsp *inspector, const string& name, const string& params)
 {
     auto& p = find_plugin(name);
-    p.ensure_registered(inspector);
-    if (p.plugin->caps() & CAP_SOURCING)
+    if (p.get_plugin(inspector)->caps() & CAP_SOURCING)
     {
         // we need to add the generic evt.* filtercheck class only once
-        if (m_input_plugin_name.empty())
+        if (has_input_plugin())
         {
-            g_filterlist.add_filter_check(inspector->new_generic_filtercheck());
+            throw sinsp_exception("using more than one plugin as input is not supported");
         }
-
+        g_filterlist.add_filter_check(inspector->new_generic_filtercheck());
         m_input_plugin_name = name;
-        if (!params.empty())
-        {
-            // note: we must add params only if they are not empty, otherwise
-            // we risk overwriting previously-defined params with an empty string.
-            m_input_plugin_params = params;
-        }
+        m_input_plugin_params = params;
         return;
     }
     throw sinsp_exception(err_plugin_no_source_cap + name);
+}
+
+void plugin_utils::clear_input_plugin()
+{
+    m_input_plugin_name.clear();
+    m_input_plugin_params.clear();
 }
 
 void plugin_utils::print_plugin_info_list(sinsp* inspector)
@@ -386,8 +394,7 @@ void plugin_utils::print_plugin_info_list(sinsp* inspector)
 
 	for (auto &pl : m_plugins)
 	{
-        pl.ensure_registered(inspector);
-        pl.print_info(os_info);
+        pl.print_info(inspector, os_info);
         os_info << std::endl;
 	}
 
@@ -403,9 +410,10 @@ void plugin_utils::print_plugin_info(sinsp* inspector, const string& name)
     // try loading the plugin (if already loaded, this has no effect)
     load_plugin(inspector, name);
     auto& p = find_plugin(name);
+    auto plugin = p.get_plugin(inspector);
     
     // print plugin static info
-    p.print_info(os);
+    p.print_info(inspector, os);
     os << std::endl;
     printf("%s", os.str().c_str());
 
@@ -413,7 +421,7 @@ void plugin_utils::print_plugin_info(sinsp* inspector, const string& name)
     os.str("");
     os.clear();
     ss_plugin_schema_type type;
-    auto schema = p.plugin->get_init_schema(type);
+    auto schema = plugin->get_init_schema(type);
     os << "Init config schema type: ";
     switch (type)
     {
@@ -430,14 +438,17 @@ void plugin_utils::print_plugin_info(sinsp* inspector, const string& name)
     printf("%s", os.str().c_str());
 
     // init the plugin with empty config (ignored if already inited)
-    p.ensure_inited("");
+    if (!p.inited)
+    {
+        p.init(inspector);
+    }
 
     // print plugin suggested open parameters
-    if (p.plugin->caps() & CAP_SOURCING)
+    if (plugin->caps() & CAP_SOURCING)
     {
         os.str("");
         os.clear();
-        auto params = p.plugin->list_open_params();
+        auto params = plugin->list_open_params();
         if (params.empty())
         {
             os << "No suggested open params available: ";
@@ -446,7 +457,7 @@ void plugin_utils::print_plugin_info(sinsp* inspector, const string& name)
         else
         {
             os << "Suggested open params:" << std::endl;
-            for(auto &oparam : p.plugin->list_open_params())
+            for(auto &oparam : plugin->list_open_params())
             {
                 if(oparam.desc == "")
                 {
@@ -535,9 +546,9 @@ void plugin_utils::load_plugins_from_conf_file(sinsp *inspector, const std::stri
 	    if (!filter_load_plugins || load_plugins.find(name) != load_plugins.end())
         {
             load_plugin(inspector, library_path);
-            init_plugin(inspector, library_path, init_config);
+            config_plugin(inspector, library_path, init_config);
             auto& p = find_plugin(library_path);
-            if (p.plugin->caps() & CAP_SOURCING)
+            if (p.get_plugin(inspector)->caps() & CAP_SOURCING)
             {
                 select_input_plugin(inspector, name, open_params);
             }
@@ -582,7 +593,9 @@ std::vector<std::string> plugin_utils::get_event_sources(sinsp *inspector)
 {
     for (auto &pl : m_plugins)
 	{
-        pl.ensure_registered(inspector);
+        // note: this triggers the inspector to register
+        // the plugin, in case it was not registered already
+        pl.get_plugin(inspector);
 	}
     return inspector->get_plugin_manager()->sources();
 }
@@ -597,10 +610,10 @@ std::vector<std::unique_ptr<sinsp_filter_check>> plugin_utils::get_filterchecks(
     {
         for (auto &pl : m_plugins)
         {
-            pl.ensure_registered(inspector);
-            if (pl.plugin->caps() & CAP_EXTRACTION && pl.plugin->is_source_compatible(source))
+            auto plugin = pl.get_plugin(inspector);
+            if (plugin->caps() & CAP_EXTRACTION && plugin->is_source_compatible(source))
             {
-                list.push_back(std::unique_ptr<sinsp_filter_check>(sinsp_plugin::new_filtercheck(pl.plugin)));
+                list.push_back(std::unique_ptr<sinsp_filter_check>(sinsp_plugin::new_filtercheck(plugin)));
             }
         }
     }
