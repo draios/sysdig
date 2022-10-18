@@ -51,7 +51,7 @@ public:
 	const std::string& input_plugin_params() const;
 
 	std::vector<std::string> get_event_sources(sinsp *inspector);
-	filter_check_list get_filterchecks(sinsp *inspector, const std::string& source);
+	std::vector<std::unique_ptr<sinsp_filter_check>> get_filterchecks(sinsp *inspector, const std::string& source);
 
 private:
 	struct plugin_entry
