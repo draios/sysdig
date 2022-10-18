@@ -17,18 +17,14 @@ limitations under the License.
 
 */
 
-#define __STDC_FORMAT_MACROS
+#pragma once
 
-#include <stdio.h>
-#include <sys/stat.h>
-
+#include <vector>
+#include <string>
+#include <memory>
+#include <unordered_set>
 #include <sinsp.h>
 #include <plugin.h>
-#include "sysdig.h"
-
-#include <yaml-cpp/yaml.h>
-#include <nlohmann/json.hpp>
-#include <unordered_set>
 
 class plugin_utils
 {
@@ -54,6 +50,9 @@ public:
 	const std::string& input_plugin_name() const;
 	const std::string& input_plugin_params() const;
 
+	std::vector<std::string> get_event_sources(sinsp *inspector);
+	filter_check_list get_filterchecks(sinsp *inspector, const std::string& source);
+
 private:
 	struct plugin_entry
 	{
@@ -77,57 +76,4 @@ private:
 	std::vector<std::string> m_dirs;
 	std::vector<plugin_entry> m_plugins;
 };
-
-namespace YAML {
-	template<>
-	struct convert<nlohmann::json> {
-		static bool decode(const Node& node, nlohmann::json& res)
-		{
-			int int_val;
-			double double_val;
-			bool bool_val;
-			std::string str_val;
-
-			switch (node.Type()) {
-				case YAML::NodeType::Map:
-					for (auto &&it: node)
-					{
-						nlohmann::json sub{};
-						YAML::convert<nlohmann::json>::decode(it.second, sub);
-						res[it.first.as<std::string>()] = sub;
-					}
-					break;
-				case YAML::NodeType::Sequence:
-					for (auto &&it : node)
-					{
-						nlohmann::json sub{};
-						YAML::convert<nlohmann::json>::decode(it, sub);
-						res.emplace_back(sub);
-					}
-					break;
-				case YAML::NodeType::Scalar:
-					if (YAML::convert<int>::decode(node, int_val))
-					{
-						res = int_val;
-					}
-					else if (YAML::convert<double>::decode(node, double_val))
-					{
-						res = double_val;
-					}
-					else if (YAML::convert<bool>::decode(node, bool_val))
-					{
-						res = bool_val;
-					}
-					else if (YAML::convert<std::string>::decode(node, str_val))
-					{
-						res = str_val;
-					}
-				default:
-					break;
-			}
-			
-			return true;
-		}
-	};
-}
 

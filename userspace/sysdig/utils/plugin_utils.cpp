@@ -17,14 +17,16 @@ limitations under the License.
 
 */
 
-#define __STDC_FORMAT_MACROS
-
 #include "plugin_utils.h"
 
 #include <unordered_set>
 
 #include <utility>
 #include <third-party/tinydir.h>
+#include <yaml-cpp/yaml.h>
+#include <nlohmann/json.hpp>
+
+#include <plugin_manager.h>
 
 #ifdef _WIN32
 #define SHAREDOBJ_EXT ".dll"
@@ -34,6 +36,59 @@ limitations under the License.
 
 static const char* err_plugin_not_found = "plugin not found, use -Il to list all the installed plugins: ";
 static const char* err_plugin_no_source_cap = "plugin does not support the event sourcing capability: ";
+
+namespace YAML {
+	template<>
+	struct convert<nlohmann::json> {
+		static bool decode(const Node& node, nlohmann::json& res)
+		{
+			int int_val;
+			double double_val;
+			bool bool_val;
+			std::string str_val;
+
+			switch (node.Type()) {
+				case YAML::NodeType::Map:
+					for (auto &&it: node)
+					{
+						nlohmann::json sub{};
+						YAML::convert<nlohmann::json>::decode(it.second, sub);
+						res[it.first.as<std::string>()] = sub;
+					}
+					break;
+				case YAML::NodeType::Sequence:
+					for (auto &&it : node)
+					{
+						nlohmann::json sub{};
+						YAML::convert<nlohmann::json>::decode(it, sub);
+						res.emplace_back(sub);
+					}
+					break;
+				case YAML::NodeType::Scalar:
+					if (YAML::convert<int>::decode(node, int_val))
+					{
+						res = int_val;
+					}
+					else if (YAML::convert<double>::decode(node, double_val))
+					{
+						res = double_val;
+					}
+					else if (YAML::convert<bool>::decode(node, bool_val))
+					{
+						res = bool_val;
+					}
+					else if (YAML::convert<std::string>::decode(node, str_val))
+					{
+						res = str_val;
+					}
+				default:
+					break;
+			}
+			
+			return true;
+		}
+	};
+}
 
 static bool iterate_plugins_dirs(
     const std::vector<std::string>& dirs,
@@ -512,4 +567,28 @@ void plugin_utils::print_field_extraction_support(sinsp* inspector, const std::s
         throw sinsp_exception(err + ", but it can be supported by loading one of these plugins: " + fmt);
     }
     throw sinsp_exception(err + ", and none of the loaded plugins is capable of extracting it");
+}
+
+std::vector<std::string> plugin_utils::get_event_sources(sinsp *inspector)
+{
+    for (auto &pl : m_plugins)
+	{
+        pl.ensure_registered(inspector);
+	}
+    return inspector->get_plugin_manager()->sources();
+}
+
+filter_check_list plugin_utils::get_filterchecks(sinsp *inspector, const std::string& source)
+{
+    filter_check_list list;
+    list.add_filter_check(inspector->new_generic_filtercheck());
+    for (auto &pl : m_plugins)
+	{
+        pl.ensure_registered(inspector);
+        if (pl.plugin->caps() & CAP_EXTRACTION && pl.plugin->is_source_compatible(source))
+        {
+            list.add_filter_check(sinsp_plugin::new_filtercheck(pl.plugin));
+        }
+	}
+    return list;
 }
