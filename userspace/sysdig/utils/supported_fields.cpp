@@ -40,6 +40,21 @@ void print_supported_fields(sinsp* inspector, plugin_utils& plugins, const std::
     // add event sources defined by the loaded plugins
     const auto& plugin_sources = plugins.get_event_sources(inspector);
     sources.insert(sources.end(), plugin_sources.begin(), plugin_sources.end());
+    if (!source.empty())
+    {
+        bool found = false;
+        for (const auto& s : sources)
+        {
+            if (s == source)
+            {
+                found = true;
+            }
+        }
+        if (!found)
+        {
+            throw sinsp_exception("value for --list must be a valid source type");
+        }
+    }
 
 	// Do a first pass to group together classes that are
 	// applicable to multiple event sources.
