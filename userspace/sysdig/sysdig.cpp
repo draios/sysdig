@@ -47,7 +47,9 @@ limitations under the License.
 #include "utils.h"
 #include "plugin.h"
 #include "plugin_manager.h"
+
 #include "plugin_utils.h"
+#include "supported_events.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -1318,7 +1320,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				list_flds = true;
 				break;
 			case 'L':
-				list_events(inspector);
+				// todo(jasondellaluce): support CLI for printing in markdown too
+				print_supported_events(inspector, false);
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
 #ifndef MINIMAL_BUILD
