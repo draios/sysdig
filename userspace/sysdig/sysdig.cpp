@@ -979,6 +979,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool verbose = false;
 	bool list_flds = false;
 	bool list_flds_markdown = false;
+	std::string list_flds_source = "";
 	bool print_progress = false;
 	bool compress = false;
 	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
@@ -1061,9 +1062,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"k8s-api-cert", required_argument, 0, 'K' },
 #endif // MINIMAL_BUILD
 		{"large-environment", no_argument, 0, 0 },
-		{"list", no_argument, 0, 'l' },
+		{"list", optional_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
-		{"list-markdown", no_argument, 0, 0 },
+		{"list-markdown", optional_argument, 0, 0 },
 		{"libs-version", no_argument, 0, 0},
 		{"log-level", required_argument, 0, 0 },
 #ifndef MINIMAL_BUILD
@@ -1319,6 +1320,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				return sysdig_init_res(EXIT_SUCCESS);
 			case 'l':
 				list_flds = true;
+				if (optarg)
+				{
+					list_flds_source = optarg;
+				}
 				break;
 			case 'L':
 				// todo(jasondellaluce): support CLI for printing in markdown too
@@ -1595,6 +1600,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					else if (optname == "list-markdown") {
 						list_flds = true;
 						list_flds_markdown = true;
+						if (optarg)
+						{
+							list_flds_source = optarg;
+						}
 					}
 
 					else if(optname == "plugin-config-file") {
@@ -1710,8 +1719,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		//
 		if(list_flds)
 		{
-			// TODO(JASON): support more sources
-			print_supported_fields(inspector, plugins, "syscall", verbose, list_flds_markdown);
+			print_supported_fields(inspector, plugins, list_flds_source, verbose, list_flds_markdown);
 			res.m_res = EXIT_SUCCESS;
 			goto exit;
 		}
