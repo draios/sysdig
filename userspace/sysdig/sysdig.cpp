@@ -50,6 +50,7 @@ limitations under the License.
 
 #include "utils/plugin_utils.h"
 #include "utils/supported_events.h"
+#include "utils/supported_fields.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -1709,19 +1710,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		//
 		if(list_flds)
 		{
-			if(verbose)
-			{
-				//
-				// -ll shows the fields verbosely, i.e. with more information
-				// like the type
-				//
-				list_fields(true, list_flds_markdown);
-			}
-			else
-			{
-				list_fields(false, list_flds_markdown);
-			}
-
+			// TODO(JASON): support more sources
+			print_supported_fields(inspector, plugins, "syscall", verbose, list_flds_markdown);
 			res.m_res = EXIT_SUCCESS;
 			goto exit;
 		}
