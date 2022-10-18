@@ -17,6 +17,7 @@ limitations under the License.
 
 */
 
+#include "common.h"
 #include "plugin_utils.h"
 
 #include <unordered_set>
@@ -26,12 +27,15 @@ limitations under the License.
 #include <yaml-cpp/yaml.h>
 #include <nlohmann/json.hpp>
 
+#include <filterchecks.h>
 #include <plugin_manager.h>
 
 #ifdef _WIN32
-#define SHAREDOBJ_EXT ".dll"
+#define SHAREDOBJ_PREFIX ""
+#define SHAREDOBJ_EXT    ".dll"
 #else
-#define SHAREDOBJ_EXT ".so"
+#define SHAREDOBJ_PREFIX "lib"
+#define SHAREDOBJ_EXT    ".so"
 #endif
 
 static const char* err_plugin_not_found = "plugin not found, use -Il to list all the installed plugins: ";
@@ -267,27 +271,32 @@ void plugin_utils::load_plugin(sinsp *inspector, const string& name)
 	// Otherwise, try to find it from system folders
 
 	// In case users passed "dummy" in place of "libdummy.so"
-	string soname = "lib" + name + ".so";
+    std::string soname = name;
+    if (!sinsp_utils::endswith(soname, SHAREDOBJ_EXT))
+    {
+        soname = SHAREDOBJ_PREFIX + name + SHAREDOBJ_EXT;
+    }
     auto& plugins = m_plugins;
-	bool found = iterate_plugins_dirs(m_dirs, [&inspector, &name, &soname, &plugins] (const tinydir_file file) -> bool {
-		if (file.name == name || file.name == soname)
-		{
+    bool found = iterate_plugins_dirs(m_dirs, [&inspector, &name, &soname, &plugins] (const tinydir_file file) -> bool {
+        if (file.name == name || file.name == soname)
+        {
             plugin_entry p;
             p.inited = false;
             p.libpath = file.path;
             p.ensure_registered(inspector);
+            p.names.insert(soname);
             p.names.insert(file.path);
             p.names.insert(file.name);
             p.names.insert(p.plugin->name());
             plugins.push_back(p);
-			return true; // break-out
-		}
-		return false;
-	});
-	if (!found)
-	{
-		throw sinsp_exception(err_plugin_not_found + name);
-	}
+            return true; // break-out
+        }
+        return false;
+    });
+    if (!found)
+    {
+        throw sinsp_exception(err_plugin_not_found + name);
+    }
 }
 
 void plugin_utils::load_plugins_from_dirs(sinsp *inspector)
@@ -578,17 +587,22 @@ std::vector<std::string> plugin_utils::get_event_sources(sinsp *inspector)
     return inspector->get_plugin_manager()->sources();
 }
 
-filter_check_list plugin_utils::get_filterchecks(sinsp *inspector, const std::string& source)
+std::vector<std::unique_ptr<sinsp_filter_check>> plugin_utils::get_filterchecks(sinsp *inspector, const std::string& source)
 {
-    filter_check_list list;
-    list.add_filter_check(inspector->new_generic_filtercheck());
-    for (auto &pl : m_plugins)
-	{
-        pl.ensure_registered(inspector);
-        if (pl.plugin->caps() & CAP_EXTRACTION && pl.plugin->is_source_compatible(source))
+    std::vector<std::unique_ptr<sinsp_filter_check>> list;
+    list.push_back(std::unique_ptr<sinsp_filter_check>(inspector->new_generic_filtercheck()));
+
+    // todo(jasondellaluce): remove this once we support extracting plugin fields from syscalls
+    if (source != s_syscall_source)
+    {
+        for (auto &pl : m_plugins)
         {
-            list.add_filter_check(sinsp_plugin::new_filtercheck(pl.plugin));
+            pl.ensure_registered(inspector);
+            if (pl.plugin->caps() & CAP_EXTRACTION && pl.plugin->is_source_compatible(source))
+            {
+                list.push_back(std::unique_ptr<sinsp_filter_check>(sinsp_plugin::new_filtercheck(pl.plugin)));
+            }
         }
-	}
+    }
     return list;
 }
