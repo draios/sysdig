@@ -1241,7 +1241,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						pginitconf = pluginname.substr(cpos + 1);
 					}
 					plugins.load_plugin(inspector, pgname);
-					plugins.init_plugin(inspector, pgname, pginitconf);
+					plugins.config_plugin(inspector, pgname, pginitconf);
 					break;
 				}
 			case 'I':
@@ -1253,9 +1253,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						break;
 					}
 
-					if (plugin_input)
+					if (!plugin_input)
 					{
-						throw sinsp_exception("using more than one plugin as input is not supported");
+						// note: this gives -I priority over --plugin-config-file
+						plugins.clear_input_plugin();
+						plugin_input = true;
 					}
 
 					size_t cpos = inputname.find(':');
@@ -1268,7 +1270,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						pgpars = inputname.substr(cpos + 1);
 					}
 					plugins.select_input_plugin(inspector, pgname, pgpars);
-					plugin_input = true;
 				}
 				break;
 #ifdef HAS_CHISELS
@@ -1633,6 +1634,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			}
 		}
 
+		plugins.init_loaded_plugins(inspector);
+		
 		if (list_plugins)
 		{
 			plugins.print_plugin_info_list(inspector);

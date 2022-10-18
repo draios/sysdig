@@ -37,9 +37,10 @@ public:
 	void load_plugins_from_dirs(sinsp *inspector);
 	void load_plugins_from_conf_file(sinsp *inspector, const std::string& config_filename);
 
-	void init_plugin(sinsp *inspector, const std::string& name, const std::string& conf);
+	void config_plugin(sinsp *inspector, const std::string& name, const std::string& conf);
 
 	void select_input_plugin(sinsp *inspector, const std::string& name, const std::string& params);
+	void clear_input_plugin();
 
 	void print_plugin_info(sinsp* inspector, const std::string& name);
 	void print_plugin_info_list(sinsp* inspector);
@@ -50,21 +51,21 @@ public:
 	const std::string& input_plugin_name() const;
 	const std::string& input_plugin_params() const;
 
+	void init_loaded_plugins(sinsp* inspector);
 	std::vector<std::string> get_event_sources(sinsp *inspector);
 	std::vector<std::unique_ptr<sinsp_filter_check>> get_filterchecks(sinsp *inspector, const std::string& source);
 
 private:
 	struct plugin_entry
 	{
-		bool registered = false;
 		bool inited = false;
 		std::string libpath;
+		std::string init_config;
 		std::unordered_set<std::string> names;
-		std::shared_ptr<sinsp_plugin> plugin;
 		
-		void ensure_inited(const std::string& conf);
-		void ensure_registered(sinsp *inspector);
-		void print_info(std::ostringstream& os) const;
+		void init(sinsp *inspector);
+		void print_info(sinsp* inspector, std::ostringstream& os) const;
+		std::shared_ptr<sinsp_plugin> get_plugin(sinsp *inspector) const;
 	};
 
 	void add_dir(std::string dirname, bool front_add);
