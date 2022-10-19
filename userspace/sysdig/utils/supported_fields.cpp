@@ -56,14 +56,14 @@ void print_supported_fields(sinsp* inspector, plugin_utils& plugins, const std::
         }
     }
 
-	// Do a first pass to group together classes that are
-	// applicable to multiple event sources.
-	for(const auto &src : sources)
-	{
-		if(source != "" && source != src)
-		{
-			continue;
-		}
+    // Do a first pass to group together classes that are
+    // applicable to multiple event sources.
+    for(const auto &src : sources)
+    {
+        if(source != "" && source != src)
+        {
+            continue;
+        }
 
         std::vector<const filter_check_info*> filterchecks;
         // todo(jasondellaluce): change this once we support extracting plugin fields from syscalls
@@ -91,8 +91,8 @@ void print_supported_fields(sinsp* inspector, plugin_utils& plugins, const std::
         }
         
         const auto classes = sinsp_filter_factory::check_infos_to_fieldclass_infos(filterchecks);
-		for(const auto &fld_class : classes)
-		{
+        for(const auto &fld_class : classes)
+        {
             bool found = false;
             for (auto &info : field_infos)
             {
@@ -108,10 +108,10 @@ void print_supported_fields(sinsp* inspector, plugin_utils& plugins, const std::
                 field_infos[field_infos.size() - 1].class_info = fld_class;
                 field_infos[field_infos.size() - 1].compatible_sources.insert(src);
             }
-		}
-	}
+        }
+    }
 
-	for(auto &info : field_infos)
+    for(auto &info : field_infos)
     {
         if (markdown)
         {
