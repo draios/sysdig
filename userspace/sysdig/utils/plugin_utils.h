@@ -35,7 +35,7 @@ public:
 
 	void load_plugin(sinsp *inspector, const std::string& name);
 	void read_plugins_from_dirs(sinsp *inspector);
-	void load_plugins_from_conf_file(sinsp *inspector, const std::string& config_filename);
+	void load_plugins_from_conf_file(sinsp *inspector, const std::string& config_filename, bool set_input);
 
 	void config_plugin(sinsp *inspector, const std::string& name, const std::string& conf);
 

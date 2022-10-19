@@ -1018,7 +1018,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string gvisor_config;
 	string gvisor_root;
 	bool list_plugins = false;
-	bool plugin_input = false;
+	std::string plugin_config_file = "";
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -1253,13 +1253,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						break;
 					}
 
-					if (!plugin_input)
-					{
-						// note: this gives -I priority over --plugin-config-file
-						plugins.clear_input_plugin();
-						plugin_input = true;
-					}
-
 					size_t cpos = inputname.find(':');
 					string pgname = inputname;
 					string pgpars;
@@ -1270,6 +1263,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						pgpars = inputname.substr(cpos + 1);
 					}
 					plugins.select_input_plugin(inspector, pgname, pgpars);
+					g_plugin_input = true;
 				}
 				break;
 #ifdef HAS_CHISELS
@@ -1608,7 +1602,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 
 					else if(optname == "plugin-config-file") {
-						plugins.load_plugins_from_conf_file(inspector, optarg);
+						plugin_config_file = optarg;
+						plugins.load_plugins_from_conf_file(inspector, optarg, false);
 					}
 
 					else if (optname == "page-faults") {
@@ -1634,6 +1629,22 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			}
 		}
 
+		// given the CLI options, we finish loading and initializing plugins.
+		// if no plugin has been specified as input with -I, we try to
+		// reload the config file (if present), and set the input plugin 
+		// depending on its content. In this way, -I has priority no matter
+		// what the CLI option order is, and the config file can also be used
+		// for the purposes of configuring plugins without defining the input.
+		if (!g_plugin_input && !plugin_config_file.empty())
+		{
+			// reload the file but by setting the plugin input, if present
+			plugins.load_plugins_from_conf_file(inspector, plugin_config_file, true);
+
+			// set a flag if our event sourc input is a plugin-defined one
+			g_plugin_input = plugins.has_input_plugin();
+		}
+
+		// all plugins have been loaded and configured so now we initialize them
 		plugins.init_loaded_plugins(inspector);
 		
 		if (list_plugins)
@@ -1647,8 +1658,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			delete inspector;
 			return sysdig_init_res(EXIT_SUCCESS);
 		}
-
-		g_plugin_input = plugins.has_input_plugin();
 
 #ifdef HAS_CAPTURE
 		if(!cri_socket_path.empty())

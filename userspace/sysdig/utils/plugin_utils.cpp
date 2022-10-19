@@ -480,7 +480,7 @@ void plugin_utils::print_plugin_info(sinsp* inspector, const string& name)
     }
 }
 
-void plugin_utils::load_plugins_from_conf_file(sinsp *inspector, const std::string& config_filename)
+void plugin_utils::load_plugins_from_conf_file(sinsp *inspector, const std::string& config_filename, bool set_input)
 {
     YAML::Node config;
     std::string config_explanation = ". See https://falco.org/docs/plugins/#loading-plugins-in-falco for additional information.";
@@ -554,7 +554,7 @@ void plugin_utils::load_plugins_from_conf_file(sinsp *inspector, const std::stri
             load_plugin(inspector, library_path);
             config_plugin(inspector, library_path, init_config);
             auto& p = find_plugin(library_path);
-            if (p.get_plugin(inspector)->caps() & CAP_SOURCING)
+            if (set_input && p.get_plugin(inspector)->caps() & CAP_SOURCING)
             {
                 select_input_plugin(inspector, name, open_params);
             }
