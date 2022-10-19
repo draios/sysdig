@@ -1116,7 +1116,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		add_chisel_dirs(inspector);
 #endif
 		plugins.add_directory(SYSDIG_PLUGINS_DIR);
-		plugins.load_plugins_from_dirs(inspector);
+		plugins.read_plugins_from_dirs(inspector);
 
 		//
 		// Parse the args
