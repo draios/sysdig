@@ -25,48 +25,48 @@ limitations under the License.
 
 struct event_entry
 {
-	bool is_enter;
-	std::string name;
-	struct ppm_event_info info;
+    bool is_enter;
+    std::string name;
+    struct ppm_event_info info;
 };
 
 static std::vector<event_entry> get_event_entries(sinsp* inspector, bool include_generics)
 {
-	event_entry entry;
-	std::vector<event_entry> events;
-	const struct ppm_event_info* etable = inspector->get_event_info_tables()->m_event_info;
+    event_entry entry;
+    std::vector<event_entry> events;
+    const struct ppm_event_info* etable = inspector->get_event_info_tables()->m_event_info;
 
-	// skip generic events
-	for(uint32_t evt = PPME_GENERIC_X + 1; evt < PPM_EVENT_MAX; evt++)
-	{
-		if (!sinsp::is_old_version_event(evt)
-				&& !sinsp::is_unused_event(evt)
-				&& !sinsp::is_unknown_event(evt))
-		{
-			entry.is_enter = PPME_IS_ENTER(evt);
-			entry.name = etable[evt].name;
-			entry.info = etable[evt];
-			events.push_back(entry);
-		}
-	}
+    // skip generic events
+    for(uint32_t evt = PPME_GENERIC_X + 1; evt < PPM_EVENT_MAX; evt++)
+    {
+        if (!sinsp::is_old_version_event(evt)
+                && !sinsp::is_unused_event(evt)
+                && !sinsp::is_unknown_event(evt))
+        {
+            entry.is_enter = PPME_IS_ENTER(evt);
+            entry.name = etable[evt].name;
+            entry.info = etable[evt];
+            events.push_back(entry);
+        }
+    }
 
-	if (include_generics)
-	{
-		// append generic events
-		const auto generic_syscalls = inspector->get_events_names({PPME_GENERIC_E});
-		for (const auto& name : generic_syscalls)
-		{
-			for(uint32_t evt = PPME_GENERIC_E; evt <= PPME_GENERIC_X; evt++)
-			{
-				entry.is_enter = PPME_IS_ENTER(evt);
-				entry.name = name;
-				entry.info = etable[evt];
-				events.push_back(entry);
-			}
-		}
-	}
+    if (include_generics)
+    {
+        // append generic events
+        const auto generic_syscalls = inspector->get_events_names({PPME_GENERIC_E});
+        for (const auto& name : generic_syscalls)
+        {
+            for(uint32_t evt = PPME_GENERIC_E; evt <= PPME_GENERIC_X; evt++)
+            {
+                entry.is_enter = PPME_IS_ENTER(evt);
+                entry.name = name;
+                entry.info = etable[evt];
+                events.push_back(entry);
+            }
+        }
+    }
 
-	return events;
+    return events;
 }
 
 void print_supported_events(sinsp* inspector, bool markdown)
