@@ -34,7 +34,7 @@ public:
 	void add_directory(const std::string& plugins_dir);
 
 	void load_plugin(sinsp *inspector, const std::string& name);
-	void load_plugins_from_dirs(sinsp *inspector);
+	void read_plugins_from_dirs(sinsp *inspector);
 	void load_plugins_from_conf_file(sinsp *inspector, const std::string& config_filename);
 
 	void config_plugin(sinsp *inspector, const std::string& name, const std::string& conf);
@@ -58,6 +58,7 @@ public:
 private:
 	struct plugin_entry
 	{
+		bool used = false;
 		bool inited = false;
 		std::string libpath;
 		std::string init_config;

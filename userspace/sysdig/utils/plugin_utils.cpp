@@ -168,7 +168,7 @@ void plugin_utils::init_loaded_plugins(sinsp* inspector)
 {
     for (auto &p : m_plugins)
     {
-        if (!p.inited)
+        if (p.used && !p.inited)
         {
             p.init(inspector);
         }
@@ -263,6 +263,7 @@ void plugin_utils::load_plugin(sinsp *inspector, const string& name)
     {
         if (p.names.find(name) != p.names.end())
         {
+            p.used = true;
             return;
         }
     }
@@ -271,6 +272,7 @@ void plugin_utils::load_plugin(sinsp *inspector, const string& name)
 	if (name.find('/') != string::npos)
 	{
         plugin_entry p;
+        p.used = true;
         p.inited = false;
         p.libpath = name;
         p.names.insert(name);
@@ -292,6 +294,7 @@ void plugin_utils::load_plugin(sinsp *inspector, const string& name)
         if (file.name == name || file.name == soname)
         {
             plugin_entry p;
+            p.used = true;
             p.inited = false;
             p.libpath = file.path;
             p.names.insert(soname);
@@ -309,7 +312,7 @@ void plugin_utils::load_plugin(sinsp *inspector, const string& name)
     }
 }
 
-void plugin_utils::load_plugins_from_dirs(sinsp *inspector)
+void plugin_utils::read_plugins_from_dirs(sinsp *inspector)
 {
     auto& plugins = m_plugins;
     auto tmpinsp = std::unique_ptr<sinsp>(new sinsp());
@@ -319,6 +322,7 @@ void plugin_utils::load_plugins_from_dirs(sinsp *inspector)
         auto plugin = tmpinsp->register_plugin(file.path);
 
         plugin_entry p;
+        p.used = false;
         p.inited = false;
         p.libpath = file.path;
         p.names.insert(file.path);
@@ -333,7 +337,7 @@ plugin_utils::plugin_entry& plugin_utils::find_plugin(const std::string name)
 {
     for (auto &p : m_plugins)
     {
-        if (p.names.find(name) != p.names.end())
+        if (p.names.find(name) != p.names.end() && p.used)
         {
             return p;
         }
@@ -361,8 +365,10 @@ void plugin_utils::config_plugin(sinsp *inspector, const string& name, const str
 
 void plugin_utils::select_input_plugin(sinsp *inspector, const string& name, const string& params)
 {
+    load_plugin(inspector, name);
     auto& p = find_plugin(name);
-    if (p.get_plugin(inspector)->caps() & CAP_SOURCING)
+    auto plugin = p.get_plugin(inspector);
+    if (plugin->caps() & CAP_SOURCING)
     {
         // we need to add the generic evt.* filtercheck class only once
         if (has_input_plugin())
@@ -370,7 +376,7 @@ void plugin_utils::select_input_plugin(sinsp *inspector, const string& name, con
             throw sinsp_exception("using more than one plugin as input is not supported");
         }
         g_filterlist.add_filter_check(inspector->new_generic_filtercheck());
-        m_input_plugin_name = name;
+        m_input_plugin_name = plugin->name();
         m_input_plugin_params = params;
         return;
     }
