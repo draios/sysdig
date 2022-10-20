@@ -1603,7 +1603,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 					else if(optname == "plugin-config-file") {
 						plugin_config_file = optarg;
-						plugins.load_plugins_from_conf_file(inspector, optarg, false);
+						plugins.load_plugins_from_conf_file(inspector, plugin_config_file, false);
 					}
 
 					else if (optname == "page-faults") {
