@@ -564,7 +564,13 @@ void plugin_utils::load_plugins_from_conf_file(sinsp *inspector, const std::stri
 
 void plugin_utils::print_field_extraction_support(sinsp* inspector, const std::string& field)
 {
-    auto err = "filter contains an unknown field '" + field + "'";
+    std::string field_name = field;
+    size_t field_arg_pos = field.find_first_of('[');
+    if (field_arg_pos != std::string::npos)
+    {
+        field_name = field.substr(0, field_arg_pos);
+    }
+    auto err = "filter contains an unknown field '" + field_name + "'";
     std::unordered_set<std::string> compatible_plugins;
     for (auto &p : m_plugins)
     {
@@ -575,7 +581,7 @@ void plugin_utils::print_field_extraction_support(sinsp* inspector, const std::s
             for (const auto& f : fields)
             {
                 std::string fname = f.m_name;
-                if (fname == field)
+                if (fname == field_name)
                 {
                     compatible_plugins.insert(plugin->name());
                 }
