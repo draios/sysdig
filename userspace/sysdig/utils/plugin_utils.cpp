@@ -568,16 +568,16 @@ void plugin_utils::print_field_extraction_support(sinsp* inspector, const std::s
     std::unordered_set<std::string> compatible_plugins;
     for (auto &p : m_plugins)
     {
-        p.ensure_registered(inspector);
-        if (p.plugin->caps() & CAP_EXTRACTION)
+        auto plugin = p.get_plugin(inspector);
+        if (plugin->caps() & CAP_EXTRACTION)
         {
-            const auto &fields = p.plugin->fields();
+            const auto &fields = plugin->fields();
             for (const auto& f : fields)
             {
                 std::string fname = f.m_name;
                 if (fname == field)
                 {
-                    compatible_plugins.insert(p.plugin->name());
+                    compatible_plugins.insert(plugin->name());
                 }
             }
         }
