@@ -388,9 +388,9 @@ static void usage()
 " Print the name of the files opened by cat\n"
 "   $ sysdig -p\"%%evt.arg.name\" proc.name=cat and evt.type=open\n\n"
 " Register any found plugin and use dummy as input source passing to it open params\n"
-"   $ sysdig -I dummy:'{\"start\":1,\"maxEvents\":10}'\n\n"
+"   $ sysdig -I dummy:10'\n\n"
 " Load and register dummy source plugin passing to it init config and open params\n"
-"   $ sysdig -H dummy:'{\"jitter\":50}' -I dummy:'{\"start\":1,\"maxEvents\":10}'\n\n"
+"   $ sysdig -H dummy:'{\"jitter\":50}' -I dummy:10\n\n"
     );
 }
 
