@@ -78,6 +78,8 @@ set(USE_BUNDLED_RE2 ON CACHE BOOL "")
 
 list(APPEND CMAKE_MODULE_PATH "${FALCOSECURITY_LIBS_SOURCE_DIR}/cmake/modules")
 
-include(driver)
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+  include(driver)
+endif()
 include(libscap)
 include(libsinsp)
