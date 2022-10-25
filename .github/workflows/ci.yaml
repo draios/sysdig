@@ -99,3 +99,18 @@ jobs:
             mkdir -p build
             cd build && cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False ../
             KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
+
+  build-sysdig-others-amd64:
+    name: build-sysdig-other-amd64
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout Sysdig
+        uses: actions/checkout@v3
+      - name: Build
+        run: |
+          mkdir -p build
+          cd build && cmake -Wno-dev -DBUILD_DRIVER=OFF ..
+          cmake --build . --target package

@@ -68,6 +68,33 @@ jobs:
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-aarch64
           path: ${{ github.workspace }}/sysdig-build-aarch64/sysdig-${{ env.BUILD_VERSION }}*
+          
+  build-release-others-amd64:
+    name: build-release-others-amd64
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+        include:
+          - os: windows-latest
+            artifact_name: win
+          - os: macos-latest
+            artifact_name: osx
+    env:
+      BUILD_VERSION: ${{ github.ref_name }}
+    runs-on: ${{ matrix.os }}  
+    steps:
+      - name: Checkout Sysdig
+        uses: actions/checkout@v3
+      - name: Build
+        run: |
+          mkdir -p build
+          cd build && cmake -DBUILD_DRIVER=OFF ..
+          cmake --build . --target package
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.artifact_name }}-x86_64
+          path: /build/release/sysdig-${{ env.BUILD_VERSION }}*        
 
   push-container-image:
     runs-on: ubuntu-latest
