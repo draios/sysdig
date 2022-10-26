@@ -72,7 +72,6 @@ void sinsp_opener::open(sinsp* inspector) const
         return;
     }
 
-#ifndef _WIN32
     if(bpf.enabled)
     {
         auto probe = bpf.probe;
@@ -122,8 +121,7 @@ void sinsp_opener::open(sinsp* inspector) const
 
     // Enable gathering the CPU from the kernel module
     inspector->set_get_procs_cpu_from_driver(true);
-#elif // _WIN32
+#else // HAS_CAPTURE
     throw sinsp_exception("can't open inspector");
-#endif // _WIN32
 #endif // HAS_CAPTURE
 }

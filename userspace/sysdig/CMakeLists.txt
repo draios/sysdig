@@ -120,6 +120,7 @@ if(NOT WIN32)
 		DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
 else()
+	include(luajit)
 
 	target_link_libraries(sysdig
 		sinsp
@@ -137,11 +138,6 @@ else()
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different
 			"${LUAJIT_SRC}/lua51.dll"
 			"${PROJECT_BINARY_DIR}/$(Configuration)/lua51.dll")
-
-	add_custom_command(TARGET sysdig POST_BUILD
-		COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-			"${ZLIB_INCLUDE}/zlib1.dll"
-			"${PROJECT_BINARY_DIR}/$(Configuration)/")
 
 	add_custom_command(TARGET sysdig POST_BUILD
 		COMMAND "${CMAKE_COMMAND}" -E copy_directory
