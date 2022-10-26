@@ -128,9 +128,6 @@ else()
 
 	set(CMAKE_C_FLAGS_RELEASE "${SYSDIG_FLAGS_WIN_RELEASE}")
 	set(CMAKE_CXX_FLAGS_RELEASE "${SYSDIG_FLAGS_WIN_RELEASE}")
-
-	add_definitions(-DHAS_CAPTURE)
-	
 endif()
 
 if(APPLE)

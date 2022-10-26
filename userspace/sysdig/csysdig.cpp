@@ -985,7 +985,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			}
 
 			//
-			// Done. Close the capture.
+			// Done. Close the inspector.
 			//
 			inspector->close();
 		}
