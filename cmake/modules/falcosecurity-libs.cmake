@@ -46,7 +46,9 @@ endif()
 
 set(LIBS_PACKAGE_NAME "sysdig")
 
-add_definitions(-D_GNU_SOURCE)
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+  add_definitions(-D_GNU_SOURCE)
+endif()
 add_definitions(-DHAS_CAPTURE)
 
 if(MUSL_OPTIMIZED_BUILD)
