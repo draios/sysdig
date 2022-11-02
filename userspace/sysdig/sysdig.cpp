@@ -1669,21 +1669,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		if(!bpf)
 		{
 			const char *probe = getenv("SYSDIG_BPF_PROBE");
-			if(probe && strlen(probe) > 0)
+			if (probe)
 			{
 				bpf = true;
 				bpf_probe = probe;
-			}
-			else
-			{
-				const char *home = std::getenv("HOME");
-				if(!home)
-				{
-					fprintf(stderr, "Cannot get the env variable 'HOME'");
-					res.m_res = EXIT_FAILURE;
-					goto exit;
-				}
-				bpf_probe = std::string(home) + "/" + SYSDIG_PROBE_BPF_FILEPATH;
 			}
 		}
 
@@ -1939,6 +1928,18 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #ifndef _WIN32
 				else if(bpf)
 				{
+					if (bpf_probe.empty())
+					{
+						const char *home = std::getenv("HOME");
+						if(!home)
+						{
+							fprintf(stderr, "Cannot get the env variable 'HOME'");
+							res.m_res = EXIT_FAILURE;
+							goto exit;
+						}
+						bpf_probe = std::string(home) + "/" + SYSDIG_PROBE_BPF_FILEPATH;
+					}
+
 					try
 					{
 						inspector->open_bpf(bpf_probe, DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
