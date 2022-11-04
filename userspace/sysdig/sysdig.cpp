@@ -1664,6 +1664,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{
 			inspector->set_cri_socket_path(cri_socket_path);
 		}
+
+		inspector->set_exec_hashing(true);
 #endif
 
 		if(!bpf)
