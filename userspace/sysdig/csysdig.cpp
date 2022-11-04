@@ -43,6 +43,7 @@ limitations under the License.
 #include "chisel_table.h"
 #include "utils.h"
 #include "utils/plugin_utils.h"
+#include "utils/sinsp_opener.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -358,8 +359,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	int32_t json_last_row = 0;
 	int32_t sorting_col = -1;
 	bool list_views = false;
-	bool bpf = false;
-	string bpf_probe;
 #ifdef HAS_CAPTURE
 	string cri_socket_path;
 #endif
@@ -379,9 +378,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	bool force_tracers_capture = false;
 	bool force_term_compat = false;
 	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
-	bool page_faults = false;
 	plugin_utils plugins;
 	bool list_plugins = false;
+	sinsp_opener opener;
 
 	static struct option long_options[] =
 	{
@@ -465,10 +464,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 			case 'B':
 			{
-				bpf = true;
+				opener.mode_bpf = true;
 				if(optarg)
 				{
-					bpf_probe = optarg;
+					opener.bpf_probe = optarg;
 				}
 				break;
 			}
@@ -636,7 +635,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					}
 					else if(optname == "page-faults")
 					{
-						page_faults = true;
+						opener.enable_page_faults = true;
 					}
 				}
 				break;
@@ -692,13 +691,13 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			}
 		}
 
-		if(!bpf)
+		if(!opener.mode_bpf)
 		{
 			const char *probe = getenv("SYSDIG_BPF_PROBE");
 			if(probe)
 			{
-				bpf = true;
-				bpf_probe = probe;
+				opener.mode_bpf = true;
+				opener.bpf_probe = probe;
 			}
 		}
 
@@ -829,7 +828,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			// Initialize the UI
 			//
 			sinsp_cursesui ui(inspector,
-				(infiles.size() != 0)? infiles[0] : "",
+				&opener,
 				(filter.size() != 0)? filter : "",
 				refresh_interval_ns,
 				print_containers,
@@ -875,7 +874,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				//
 				// We have a file to open
 				//
-				inspector->open_savefile(infiles[j]);
+				opener.mode_savefile = true;
+				opener.savefile_path = infiles[j];
+				opener.open(inspector);
 			}
 			else
 			{
@@ -883,77 +884,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				{
 					break;
 				}
-
-				//
-				// No file to open, this is a live capture
-				//
-
-				std::unordered_set<uint32_t> sc_of_interest = inspector->get_all_ppm_sc();
-
-				/* Populate tracepoints of interest */
-				std::unordered_set<uint32_t> tp_of_interest = inspector->get_all_tp();
-				if(!page_faults)
-				{
-					tp_of_interest.erase(PAGE_FAULT_USER);
-					tp_of_interest.erase(PAGE_FAULT_KERN);
-				}
-
-				if (g_plugin_input)
-				{
-					inspector->open_plugin(plugins.input_plugin_name(), plugins.input_plugin_params());
-				}
-#if defined(HAS_CAPTURE) && !defined(_WIN32)
-				else if(bpf)
-				{
-					if (bpf_probe.empty())
-					{
-						const char *home = std::getenv("HOME");
-						if(!home)
-						{
-							fprintf(stderr, "Cannot get the env variable 'HOME'");
-							res.m_res = EXIT_FAILURE;
-							goto exit;
-						}
-						bpf_probe = std::string(home) + "/" + SYSDIG_PROBE_BPF_FILEPATH;
-					}
-
-					try
-					{
-						inspector->open_bpf(bpf_probe, DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
-					}
-					catch(const sinsp_exception& e)
-					{
-						if(system("scap-driver-loader bpf"))
-						{
-							fprintf(stderr, "Unable to load the BPF probe\n");
-						}
-						inspector->open_bpf(bpf_probe, DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
-					}
-
-					// Enable gathering the CPU from the kernel module
-					inspector->set_get_procs_cpu_from_driver(true);
-				}
-				else
-				{
-					try
-					{
-						inspector->open_kmod(DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
-					}
-					catch(const sinsp_exception& e)
-					{
-						// if we are opening the syscall source, we retry later
-						// by loading the driver with modprobe
-						if(system("modprobe " DRIVER_NAME " > /dev/null 2> /dev/null"))
-						{
-							fprintf(stderr, "Unable to load the driver\n");
-						}
-						inspector->open_kmod(DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
-					}
-
-					// Enable gathering the CPU from the kernel module
-					inspector->set_get_procs_cpu_from_driver(true);
-				}
-#endif // HAS_CAPTURE && !_WIN32
+				opener.open(inspector);
 			}
 
 			//
