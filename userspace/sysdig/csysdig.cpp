@@ -464,10 +464,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 			case 'B':
 			{
-				opener.mode_bpf = true;
+				opener.bpf.enabled = true;
 				if(optarg)
 				{
-					opener.bpf_probe = optarg;
+					opener.bpf.probe = optarg;
 				}
 				break;
 			}
@@ -635,7 +635,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					}
 					else if(optname == "page-faults")
 					{
-						opener.enable_page_faults = true;
+						opener.options.page_faults = true;
 					}
 				}
 				break;
@@ -691,13 +691,13 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			}
 		}
 
-		if(!opener.mode_bpf)
+		if(!opener.bpf.enabled)
 		{
 			const char *probe = getenv("SYSDIG_BPF_PROBE");
 			if(probe)
 			{
-				opener.mode_bpf = true;
-				opener.bpf_probe = probe;
+				opener.bpf.enabled = true;
+				opener.bpf.probe = probe;
 			}
 		}
 
@@ -874,8 +874,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				//
 				// We have a file to open
 				//
-				opener.mode_savefile = true;
-				opener.savefile_path = infiles[j];
+				opener.savefile.enabled = true;
+				opener.savefile.path = infiles[j];
 				opener.open(inspector);
 			}
 			else
