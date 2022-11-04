@@ -31,20 +31,20 @@ limitations under the License.
 
 void sinsp_opener::open(sinsp* inspector) const
 {
-    if(enable_print_progress && !(mode_plugin || mode_savefile))
+    if(options.print_progress && !(plugin.enabled || savefile.enabled))
     {
         throw sinsp_exception("the -P flag cannot be used with live captures.");
     }
 
-    if(mode_savefile)
+    if(savefile.enabled)
     {
-        inspector->open_savefile(savefile_path);
+        inspector->open_savefile(savefile.path);
         return;
     }
 
-    if (mode_plugin)
+    if (plugin.enabled)
     {
-        inspector->open_plugin(plugin_name, plugin_params);
+        inspector->open_plugin(plugin.name, plugin.params);
         return;
     }
 
@@ -54,28 +54,28 @@ void sinsp_opener::open(sinsp* inspector) const
 
     /* Populate tracepoints of interest */
     std::unordered_set<uint32_t> tp_of_interest = inspector->get_all_tp();
-    if(!enable_page_faults)
+    if(!options.page_faults)
     {
         tp_of_interest.erase(PAGE_FAULT_USER);
         tp_of_interest.erase(PAGE_FAULT_KERN);
     }
 
-    if(mode_udig)
+    if(udig.enabled)
     {
         inspector->open_udig();
         return;
     }
 
-    if(mode_gvisor)
+    if(gvisor.enabled)
     {
-        inspector->open_gvisor(gvisor_config, gvisor_root);
+        inspector->open_gvisor(gvisor.config, gvisor.root);
         return;
     }
 
 #ifndef _WIN32
-    if(mode_bpf)
+    if(bpf.enabled)
     {
-        auto probe = bpf_probe;
+        auto probe = bpf.probe;
         if (probe.empty())
         {
             const char *home = std::getenv("HOME");
@@ -104,6 +104,7 @@ void sinsp_opener::open(sinsp* inspector) const
         return;
     }
     
+    // default to kernel module if no other option is specified
     try
     {
         inspector->open_kmod(DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);

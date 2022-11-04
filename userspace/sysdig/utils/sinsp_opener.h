@@ -24,14 +24,7 @@ limitations under the License.
 
 struct sinsp_opener
 {
-    sinsp_opener():
-        mode_udig(false),
-        mode_bpf(false),
-        mode_gvisor(false),
-        mode_plugin(false),
-        mode_savefile(false),
-        enable_print_progress(false),
-        enable_page_faults(false) { }
+    sinsp_opener() = default;
     virtual ~sinsp_opener() = default;
 	sinsp_opener(sinsp_opener&&) = default;
 	sinsp_opener& operator = (sinsp_opener&&) = default;
@@ -40,17 +33,41 @@ struct sinsp_opener
     
     void open(sinsp* inspector) const;
 
-    bool mode_udig;
-    bool mode_bpf;
-    bool mode_gvisor;
-    bool mode_plugin;
-    bool mode_savefile;
-    bool enable_print_progress;
-    bool enable_page_faults;
-    std::string bpf_probe;
-    std::string savefile_path;
-    std::string plugin_name;
-    std::string plugin_params;
-    std::string gvisor_config;
-    std::string gvisor_root;
+    struct 
+    {
+        bool print_progress = false;
+        bool page_faults = false;
+    } options;
+
+    struct
+    {
+        bool enabled = false;
+    } udig;
+
+    struct
+    {
+        bool enabled = false;
+        std::string probe;
+    } bpf;
+
+
+    struct
+    {
+        bool enabled = false;
+        std::string config;
+        std::string root;
+    } gvisor;
+
+    struct
+    {
+        bool enabled = false;
+        std::string name;
+        std::string params;
+    } plugin;
+
+    struct
+    {
+        bool enabled = false;
+        std::string path;
+    } savefile;    
 };

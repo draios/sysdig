@@ -1148,10 +1148,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			case 'B':
 			{
-				opener.mode_bpf = true;
+				opener.bpf.enabled = true;
 				if(optarg)
 				{
-					opener.bpf_probe = optarg;
+					opener.bpf.probe = optarg;
 				}
 				break;
 			}
@@ -1207,10 +1207,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			// Number of seconds between roll-over
 			case 'g':
-				opener.mode_gvisor = true;
+				opener.gvisor.enabled = true;
 				if(optarg)
 				{
-					opener.gvisor_config = optarg;
+					opener.gvisor.config = optarg;
 				}
 				break;
 			case 'G':
@@ -1258,7 +1258,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 					plugins.select_input_plugin(inspector, pgname, pgpars);
 					g_plugin_input = true;
-					opener.mode_plugin = true;
+					opener.plugin.enabled = true;
 				}
 				break;
 #ifdef HAS_CHISELS
@@ -1352,7 +1352,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				break;
 			case 'P':
-				opener.enable_print_progress = true;
+				opener.options.print_progress = true;
 				break;
 			case 'p':
 				if(string(optarg) == "p")
@@ -1450,7 +1450,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				suppress_comms.insert(string(optarg));
 				break;
 			case 'u':
-				opener.mode_udig = true;
+				opener.udig.enabled = true;
 				break;
 			case 'v':
 				verbose = true;
@@ -1579,7 +1579,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					{
 						if (optarg)
 						{
-							opener.gvisor_root = std::string(optarg);
+							opener.gvisor.root = std::string(optarg);
 						}
 					}
 
@@ -1602,7 +1602,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 
 					else if (optname == "page-faults") {
-						opener.enable_page_faults = true;
+						opener.options.page_faults = true;
 					}
 
 					else if (optname == "plugin-info")
@@ -1630,14 +1630,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		// depending on its content. In this way, -I has priority no matter
 		// what the CLI option order is, and the config file can also be used
 		// for the purposes of configuring plugins without defining the input.
-		if (!opener.mode_plugin && !plugin_config_file.empty())
+		if (!opener.plugin.enabled && !plugin_config_file.empty())
 		{
 			// reload the file but by setting the plugin input, if present
 			plugins.load_plugins_from_conf_file(inspector, plugin_config_file, true);
 
 			// set a flag if our event sourc input is a plugin-defined one
-			opener.mode_plugin = plugins.has_input_plugin();
-			g_plugin_input = opener.mode_plugin;
+			opener.plugin.enabled = plugins.has_input_plugin();
+			g_plugin_input = opener.plugin.enabled;
 		}
 
 		// all plugins have been loaded and configured so now we initialize them
@@ -1662,19 +1662,19 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		}
 #endif
 
-		if (opener.mode_plugin)
+		if (opener.plugin.enabled)
 		{
-			opener.plugin_name = plugins.input_plugin_name();
-			opener.plugin_params = plugins.input_plugin_params();
+			opener.plugin.name = plugins.input_plugin_name();
+			opener.plugin.params = plugins.input_plugin_params();
 		}
 		
-		if(!opener.mode_bpf)
+		if(!opener.bpf.enabled)
 		{
 			const char *probe = getenv("SYSDIG_BPF_PROBE");
 			if (probe)
 			{
-				opener.mode_bpf = true;
-				opener.bpf_probe = probe;
+				opener.bpf.enabled = true;
+				opener.bpf.probe = probe;
 			}
 		}
 
@@ -1682,9 +1682,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		// If we are dumping events to file, enable progress printing so we can give
 		// feedback to the user
 		//
-		if(!outfile.empty() && (!infiles.empty() || opener.mode_plugin))
+		if(!outfile.empty() && (!infiles.empty() || opener.plugin.enabled))
 		{
-			opener.enable_print_progress = true;
+			opener.options.print_progress = true;
 		}
 
 		//
@@ -1878,8 +1878,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			if(!infiles.empty())
 			{
 				initialize_chisels();
-				opener.mode_savefile = true;
-				opener.savefile_path = infiles[j];
+				opener.savefile.enabled = true;
+				opener.savefile.path = infiles[j];
 				opener.open(inspector);
 			}
 			else
@@ -1993,7 +1993,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				jflag,
 				unbuf_flag,
 				reset_colors,
-				opener.enable_print_progress,
+				opener.options.print_progress,
 				display_filter,
 				summary_table,
 				&syscall_evt_formatter,
@@ -2025,29 +2025,29 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	}
 	catch(const chisel_capture_interrupt_exception&)
 	{
-		handle_end_of_file(NULL, opener.enable_print_progress, reset_colors);
+		handle_end_of_file(NULL, opener.options.print_progress, reset_colors);
 	}
 	catch(const scap_open_exception& e)
 	{
 		cerr << e.what() << endl;
-		handle_end_of_file(NULL, opener.enable_print_progress, reset_colors);
+		handle_end_of_file(NULL, opener.options.print_progress, reset_colors);
 		res.m_res = e.scap_rc();
 	}
 	catch(const sinsp_exception& e)
 	{
 		cerr << e.what() << endl;
-		handle_end_of_file(NULL, opener.enable_print_progress, reset_colors);
+		handle_end_of_file(NULL, opener.options.print_progress, reset_colors);
 		res.m_res = EXIT_FAILURE;
 	}
 	catch (const std::runtime_error& e)
 	{
 		cerr << e.what() << endl;
-		handle_end_of_file(NULL, opener.enable_print_progress, reset_colors);
+		handle_end_of_file(NULL, opener.options.print_progress, reset_colors);
 		res.m_res = EXIT_FAILURE;
 	}
 	catch(...)
 	{
-		handle_end_of_file(NULL, opener.enable_print_progress, reset_colors);
+		handle_end_of_file(NULL, opener.options.print_progress, reset_colors);
 		res.m_res = EXIT_FAILURE;
 	}
 
