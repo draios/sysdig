@@ -48,6 +48,7 @@ limitations under the License.
 #include "plugin.h"
 #include "plugin_manager.h"
 
+#include "utils/sinsp_opener.h"
 #include "utils/plugin_utils.h"
 #include "utils/supported_events.h"
 #include "utils/supported_fields.h"
@@ -980,7 +981,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool list_flds = false;
 	bool list_flds_markdown = false;
 	std::string list_flds_source = "";
-	bool print_progress = false;
 	bool compress = false;
 	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
 	sinsp_filter* display_filter = NULL;
@@ -1005,20 +1005,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	string* mesos_api = 0;
 #endif // MINIMAL_BUILD
 	bool force_tracers_capture = false;
-	bool page_faults = false;
-	bool bpf = false;
-	string bpf_probe;
 	std::set<std::string> suppress_comms;
 #ifdef HAS_CAPTURE
 	string cri_socket_path;
 #endif
-	bool udig = false;
 	plugin_utils plugins;
-	bool gvisor = false;
-	string gvisor_config;
-	string gvisor_root;
 	bool list_plugins = false;
 	std::string plugin_config_file = "";
+	sinsp_opener opener;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -1154,10 +1148,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			case 'B':
 			{
-				bpf = true;
+				opener.mode_bpf = true;
 				if(optarg)
 				{
-					bpf_probe = optarg;
+					opener.bpf_probe = optarg;
 				}
 				break;
 			}
@@ -1213,10 +1207,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			// Number of seconds between roll-over
 			case 'g':
-				gvisor = true;
+				opener.mode_gvisor = true;
 				if(optarg)
 				{
-					gvisor_config = optarg;
+					opener.gvisor_config = optarg;
 				}
 				break;
 			case 'G':
@@ -1264,6 +1258,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 					plugins.select_input_plugin(inspector, pgname, pgpars);
 					g_plugin_input = true;
+					opener.mode_plugin = true;
 				}
 				break;
 #ifdef HAS_CHISELS
@@ -1357,7 +1352,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				break;
 			case 'P':
-				print_progress = true;
+				opener.enable_print_progress = true;
 				break;
 			case 'p':
 				if(string(optarg) == "p")
@@ -1455,7 +1450,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				suppress_comms.insert(string(optarg));
 				break;
 			case 'u':
-				udig = true;
+				opener.mode_udig = true;
 				break;
 			case 'v':
 				verbose = true;
@@ -1584,7 +1579,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					{
 						if (optarg)
 						{
-							gvisor_root = std::string(optarg);
+							opener.gvisor_root = std::string(optarg);
 						}
 					}
 
@@ -1607,7 +1602,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 
 					else if (optname == "page-faults") {
-						page_faults = true;
+						opener.enable_page_faults = true;
 					}
 
 					else if (optname == "plugin-info")
@@ -1635,13 +1630,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		// depending on its content. In this way, -I has priority no matter
 		// what the CLI option order is, and the config file can also be used
 		// for the purposes of configuring plugins without defining the input.
-		if (!g_plugin_input && !plugin_config_file.empty())
+		if (!opener.mode_plugin && !plugin_config_file.empty())
 		{
 			// reload the file but by setting the plugin input, if present
 			plugins.load_plugins_from_conf_file(inspector, plugin_config_file, true);
 
 			// set a flag if our event sourc input is a plugin-defined one
-			g_plugin_input = plugins.has_input_plugin();
+			opener.mode_plugin = plugins.has_input_plugin();
+			g_plugin_input = opener.mode_plugin;
 		}
 
 		// all plugins have been loaded and configured so now we initialize them
@@ -1666,13 +1662,19 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		}
 #endif
 
-		if(!bpf)
+		if (opener.mode_plugin)
+		{
+			opener.plugin_name = plugins.input_plugin_name();
+			opener.plugin_params = plugins.input_plugin_params();
+		}
+		
+		if(!opener.mode_bpf)
 		{
 			const char *probe = getenv("SYSDIG_BPF_PROBE");
 			if (probe)
 			{
-				bpf = true;
-				bpf_probe = probe;
+				opener.mode_bpf = true;
+				opener.bpf_probe = probe;
 			}
 		}
 
@@ -1680,9 +1682,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		// If we are dumping events to file, enable progress printing so we can give
 		// feedback to the user
 		//
-		if(!outfile.empty() && (!infiles.empty() || g_plugin_input))
+		if(!outfile.empty() && (!infiles.empty() || opener.mode_plugin))
 		{
-			print_progress = true;
+			opener.enable_print_progress = true;
 		}
 
 		//
@@ -1876,11 +1878,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			if(!infiles.empty())
 			{
 				initialize_chisels();
-
-				//
-				// We have a file to open
-				//
-				inspector->open_savefile(infiles[j]);
+				opener.mode_savefile = true;
+				opener.savefile_path = infiles[j];
+				opener.open(inspector);
 			}
 			else
 			{
@@ -1890,94 +1890,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 
 				initialize_chisels();
-
-				//
-				// No file to open, this is a live capture
-				//
-				if(print_progress && !g_plugin_input)
-				{
-					fprintf(stderr, "the -P flag cannot be used with live captures.\n");
-					res.m_res = EXIT_FAILURE;
-					goto exit;
-				}
-
-				/* Populate syscalls of interest */
-				std::unordered_set<uint32_t> sc_of_interest = inspector->get_all_ppm_sc();
-
-				/* Populate tracepoints of interest */
-				std::unordered_set<uint32_t> tp_of_interest = inspector->get_all_tp();
-				if(!page_faults)
-				{
-					tp_of_interest.erase(PAGE_FAULT_USER);
-					tp_of_interest.erase(PAGE_FAULT_KERN);
-				}
-
-				if (g_plugin_input)
-				{
-					inspector->open_plugin(plugins.input_plugin_name(), plugins.input_plugin_params());
-				}
-#if defined(HAS_CAPTURE)
-				else if(udig)
-				{
-					inspector->open_udig();
-				}
-				else if(gvisor)
-				{
-					inspector->open_gvisor(gvisor_config, gvisor_root);
-				}
-#ifndef _WIN32
-				else if(bpf)
-				{
-					if (bpf_probe.empty())
-					{
-						const char *home = std::getenv("HOME");
-						if(!home)
-						{
-							fprintf(stderr, "Cannot get the env variable 'HOME'");
-							res.m_res = EXIT_FAILURE;
-							goto exit;
-						}
-						bpf_probe = std::string(home) + "/" + SYSDIG_PROBE_BPF_FILEPATH;
-					}
-
-					try
-					{
-						inspector->open_bpf(bpf_probe, DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
-					}
-					catch(const sinsp_exception& e)
-					{
-						if(system("scap-driver-loader bpf"))
-						{
-							fprintf(stderr, "Unable to load the BPF probe\n");
-						}
-						inspector->open_bpf(bpf_probe, DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
-					}
-
-					// Enable gathering the CPU from the kernel module
-					inspector->set_get_procs_cpu_from_driver(true);
-				}
-				else
-				{
-					try
-					{
-						inspector->open_kmod(DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
-					}
-					catch(const sinsp_exception& e)
-					{
-						// if we are opening the syscall source, we retry later
-						// by loading the driver with modprobe
-						if(system("modprobe " DRIVER_NAME " > /dev/null 2> /dev/null"))
-						{
-							fprintf(stderr, "Unable to load the driver\n");
-						}
-						inspector->open_kmod(DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
-					}
-
-					// Enable gathering the CPU from the kernel module
-					inspector->set_get_procs_cpu_from_driver(true);
-#endif // _WIN32
-				}
-#endif // HAS_CAPTURE
+				opener.open(inspector);
 			}
 
 			//
@@ -2080,7 +1993,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				jflag,
 				unbuf_flag,
 				reset_colors,
-				print_progress,
+				opener.enable_print_progress,
 				display_filter,
 				summary_table,
 				&syscall_evt_formatter,
@@ -2112,29 +2025,29 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	}
 	catch(const chisel_capture_interrupt_exception&)
 	{
-		handle_end_of_file(NULL, print_progress, reset_colors);
+		handle_end_of_file(NULL, opener.enable_print_progress, reset_colors);
 	}
 	catch(const scap_open_exception& e)
 	{
 		cerr << e.what() << endl;
-		handle_end_of_file(NULL, print_progress, reset_colors);
+		handle_end_of_file(NULL, opener.enable_print_progress, reset_colors);
 		res.m_res = e.scap_rc();
 	}
 	catch(const sinsp_exception& e)
 	{
 		cerr << e.what() << endl;
-		handle_end_of_file(NULL, print_progress, reset_colors);
+		handle_end_of_file(NULL, opener.enable_print_progress, reset_colors);
 		res.m_res = EXIT_FAILURE;
 	}
 	catch (const std::runtime_error& e)
 	{
 		cerr << e.what() << endl;
-		handle_end_of_file(NULL, print_progress, reset_colors);
+		handle_end_of_file(NULL, opener.enable_print_progress, reset_colors);
 		res.m_res = EXIT_FAILURE;
 	}
 	catch(...)
 	{
-		handle_end_of_file(NULL, print_progress, reset_colors);
+		handle_end_of_file(NULL, opener.enable_print_progress, reset_colors);
 		res.m_res = EXIT_FAILURE;
 	}
 
