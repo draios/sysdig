@@ -26,10 +26,10 @@ struct sinsp_opener
 {
     sinsp_opener() = default;
     virtual ~sinsp_opener() = default;
-	sinsp_opener(sinsp_opener&&) = default;
-	sinsp_opener& operator = (sinsp_opener&&) = default;
-	sinsp_opener(const sinsp_opener&) = default;
-	sinsp_opener& operator = (const sinsp_opener&) = default;
+    sinsp_opener(sinsp_opener&&) = default;
+    sinsp_opener& operator = (sinsp_opener&&) = default;
+    sinsp_opener(const sinsp_opener&) = default;
+    sinsp_opener& operator = (const sinsp_opener&) = default;
     
     void open(sinsp* inspector) const;
 
@@ -49,7 +49,6 @@ struct sinsp_opener
         bool enabled = false;
         std::string probe;
     } bpf;
-
 
     struct
     {
