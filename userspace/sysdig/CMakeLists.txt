@@ -46,11 +46,13 @@ else()
 endif()
 
 list(APPEND SOURCE_FILES
+	utils/sinsp_opener.cpp
 	utils/plugin_utils.cpp
 	utils/supported_events.cpp
 	utils/supported_fields.cpp)
 
 list(APPEND SOURCE_FILES_CSYSDIG
+	utils/sinsp_opener.cpp
 	utils/plugin_utils.cpp
 	utils/supported_events.cpp
 	utils/supported_fields.cpp
