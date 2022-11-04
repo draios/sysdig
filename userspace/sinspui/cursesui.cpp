@@ -227,7 +227,7 @@ uint64_t json_spy_renderer::get_count()
 // sinsp_cursesui implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
-	string event_source_name,
+	sinsp_opener* source_opener,
 	string cmdline_capture_filter,
 	uint64_t refresh_interval_ns,
 	bool print_containers,
@@ -238,7 +238,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	sinsp_evt::param_fmt json_spy_text_fmt)
 {
 	m_inspector = inspector;
-	m_event_source_name = event_source_name;
+	m_source_opener = source_opener;
 	m_selected_view = 0;
 	m_prev_selected_view = 0;
 	m_selected_view_sidemenu_entry = 0;
@@ -1570,17 +1570,7 @@ void sinsp_cursesui::restart_capture(bool is_spy_switch)
 	m_inspector->close();
 	start(true, is_spy_switch);
 
-	// note: here we don't propagate information about eBPF, udig, and
-	// configs like enabling/disabling page-faults. Not sure if this works
-	// properly
-	if (m_event_source_name.empty())
-	{
-		m_inspector->open_savefile(m_event_source_name);
-	}
-	else
-	{
-		m_inspector->open_kmod();
-	}
+	m_source_opener->open(m_inspector);
 }
 
 void sinsp_cursesui::create_complete_filter(bool templated)

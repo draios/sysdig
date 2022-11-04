@@ -21,6 +21,8 @@ limitations under the License.
 #include <unistd.h>
 #endif
 
+#include "../sysdig/utils/sinsp_opener.h"
+
 #define UI_USER_INPUT_CHECK_PERIOD_NS 10000000
 #define VIEW_SIDEMENU_WIDTH 20
 #define ACTION_SIDEMENU_WIDTH 30
@@ -429,7 +431,7 @@ public:
 		LAST_COLORELEMENT
 	};
 
-	sinsp_cursesui(sinsp* inspector, string event_source_name, 
+	sinsp_cursesui(sinsp* inspector, sinsp_opener* source_opener, 
 		string cmdline_capture_filter, uint64_t refresh_interval_ns, 
 		bool print_containers, chisel_table::output_type output_type, bool is_mousedrag_available,
 		int32_t json_first_row, int32_t json_last_row, int32_t sorting_col,
@@ -774,7 +776,7 @@ private:
 
 	vector<sinsp_menuitem_info> m_menuitems;
 	vector<sinsp_menuitem_info> m_menuitems_spybox;
-	string m_event_source_name;
+	sinsp_opener* m_source_opener;
 	string m_cmdline_capture_filter;
 	string m_complete_filter;
 	string m_complete_filter_noview;
