@@ -253,14 +253,14 @@ load_kernel_module_compile() {
 }
 
 load_kernel_module_download() {
-	local FALCO_KERNEL_MODULE_FILENAME="${DRIVER_NAME}_${TARGET_ID}_${KERNEL_RELEASE}_${KERNEL_VERSION}.ko"
-	local URL=$(echo "${1}/${DRIVER_VERSION}/${ARCH}/${FALCO_KERNEL_MODULE_FILENAME}" | sed s/+/%2B/g)
+	local SYSDIG_KERNEL_MODULE_FILENAME="${DRIVER_NAME}_${TARGET_ID}_${KERNEL_RELEASE}_${KERNEL_VERSION}.ko"
+	local URL=$(echo "${1}/${DRIVER_VERSION}/${ARCH}/${SYSDIG_KERNEL_MODULE_FILENAME}" | sed s/+/%2B/g)
 
 	echo "* Trying to download a prebuilt ${DRIVER_NAME} module from ${URL}"
-	if curl -L --create-dirs "${FALCO_DRIVER_CURL_OPTIONS}" -o "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${FALCO_KERNEL_MODULE_FILENAME}" "${URL}"; then
+	if curl -L --create-dirs "${SYSDIG_DRIVER_CURL_OPTIONS}" -o "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${SYSDIG_KERNEL_MODULE_FILENAME}" "${URL}"; then
 		echo "* Download succeeded"
-		chcon -t modules_object_t "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${FALCO_KERNEL_MODULE_FILENAME}" > /dev/null 2>&1 || true
-		if insmod "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${FALCO_KERNEL_MODULE_FILENAME}"; then
+		chcon -t modules_object_t "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${SYSDIG_KERNEL_MODULE_FILENAME}" > /dev/null 2>&1 || true
+		if insmod "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${SYSDIG_KERNEL_MODULE_FILENAME}"; then
 			echo "* Success: ${DRIVER_NAME} module found and inserted"
 			exit 0
 		else
@@ -372,14 +372,14 @@ load_kernel_module() {
 
 	echo "* Looking for a ${DRIVER_NAME} module locally (kernel ${KERNEL_RELEASE})"
 
-	local FALCO_KERNEL_MODULE_FILENAME="${DRIVER_NAME}_${TARGET_ID}_${KERNEL_RELEASE}_${KERNEL_VERSION}.ko"
-	echo "* Filename '${FALCO_KERNEL_MODULE_FILENAME}' is composed of:"
+	local SYSDIG_KERNEL_MODULE_FILENAME="${DRIVER_NAME}_${TARGET_ID}_${KERNEL_RELEASE}_${KERNEL_VERSION}.ko"
+	echo "* Filename '${SYSDIG_KERNEL_MODULE_FILENAME}' is composed of:"
 	print_filename_components
 
-	if [ -f "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${FALCO_KERNEL_MODULE_FILENAME}" ]; then
-		echo "* Found a prebuilt ${DRIVER_NAME} module at ${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${FALCO_KERNEL_MODULE_FILENAME}, loading it"
-		chcon -t modules_object_t "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${FALCO_KERNEL_MODULE_FILENAME}" > /dev/null 2>&1 || true
-		insmod "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${FALCO_KERNEL_MODULE_FILENAME}" && echo "* Success: ${DRIVER_NAME} module found and inserted"
+	if [ -f "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${SYSDIG_KERNEL_MODULE_FILENAME}" ]; then
+		echo "* Found a prebuilt ${DRIVER_NAME} module at ${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${SYSDIG_KERNEL_MODULE_FILENAME}, loading it"
+		chcon -t modules_object_t "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${SYSDIG_KERNEL_MODULE_FILENAME}" > /dev/null 2>&1 || true
+		insmod "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${SYSDIG_KERNEL_MODULE_FILENAME}" && echo "* Success: ${DRIVER_NAME} module found and inserted"
 		exit $?
 	fi
 
@@ -484,7 +484,7 @@ load_bpf_probe_compile() {
 		mkdir -p /tmp/kernel
 		cd /tmp/kernel || exit
 		cd "$(mktemp -d -p /tmp/kernel)" || exit
-		if ! curl -L -o kernel-sources.tgz --create-dirs "${FALCO_DRIVER_CURL_OPTIONS}" "${BPF_KERNEL_SOURCES_URL}"; then
+		if ! curl -L -o kernel-sources.tgz --create-dirs "${SYSDIG_DRIVER_CURL_OPTIONS}" "${BPF_KERNEL_SOURCES_URL}"; then
 			>&2 echo "Unable to download the kernel sources"
 			return
 		fi
@@ -526,7 +526,7 @@ load_bpf_probe_download() {
 
 	echo "* Trying to download a prebuilt eBPF probe from ${URL}"
 
-	if ! curl -L --create-dirs "${FALCO_DRIVER_CURL_OPTIONS}" -o "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${BPF_PROBE_FILENAME}" "${URL}"; then
+	if ! curl -L --create-dirs "${SYSDIG_DRIVER_CURL_OPTIONS}" -o "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${BPF_PROBE_FILENAME}" "${URL}"; then
 		>&2 echo "Unable to find a prebuilt ${DRIVER_NAME} eBPF probe"
 		return 1
 	fi
@@ -595,7 +595,7 @@ print_usage() {
 	echo "  --source-only  skip execution and allow sourcing in another script"
 	echo ""
 	echo "Environment variables:"
-	echo "  DRIVERS_REPO             specify different URL(s) where to look for prebuilt Falco drivers (comma separated)"
+	echo "  DRIVERS_REPO             specify different URL(s) where to look for prebuilt Sysdig drivers (comma separated)"
 	echo "  DRIVER_NAME              specify a different name for the driver"
 	echo "  DRIVER_INSECURE_DOWNLOAD whether you want to allow insecure downloads or not"
 	echo ""
@@ -618,9 +618,9 @@ DRIVERS_REPO=${DRIVERS_REPO:-"@DRIVERS_REPO@"}
 
 if [ -n "$DRIVER_INSECURE_DOWNLOAD" ]
 then
-	FALCO_DRIVER_CURL_OPTIONS=-fsSk
+	SYSDIG_DRIVER_CURL_OPTIONS=-fsSk
 else
-	FALCO_DRIVER_CURL_OPTIONS=-fsS
+	SYSDIG_DRIVER_CURL_OPTIONS=-fsS
 fi
 
 if [[ -z "$MAX_RMMOD_WAIT" ]]; then
@@ -633,7 +633,7 @@ DRIVER_NAME=${DRIVER_NAME:-"@DRIVER_NAME@"}
 TARGET_ID="placeholder" # when no target id can be fetched, we try to build the driver from source anyway, using a placeholder name
 
 DRIVER="module"
-if [ -v FALCO_BPF_PROBE ]; then
+if [ -v SYSDIG_BPF_PROBE ]; then
 	DRIVER="bpf"
 fi
 
