@@ -402,7 +402,7 @@ load_kernel_module() {
 	fi
 
 	# Not able to download a prebuilt module nor to compile one on-the-fly
-	>&2 echo "Consider compiling your own ${DRIVER_NAME} driver and loading it or getting in touch with the Falco community"
+	>&2 echo "Consider compiling your own ${DRIVER_NAME} driver and loading it or getting in touch with the Sysdig community"
 	exit 1
 }
 
@@ -710,9 +710,9 @@ if [ -z "$source_only" ]; then
 	if [ $res != 0 ]; then
 		if [ -n "$ENABLE_COMPILE" ]; then
 			ENABLE_DOWNLOAD=
-			>&2 echo "Detected an unsupported target system, please get in touch with the Falco community. Trying to compile anyway."
+			>&2 echo "Detected an unsupported target system, please get in touch with the Sysdig community. Trying to compile anyway."
 		else
-			>&2 echo "Detected an unsupported target system, please get in touch with the Falco community."
+			>&2 echo "Detected an unsupported target system, please get in touch with the Sysdig community."
 			exit 1
 		fi
 	fi
