@@ -751,6 +751,8 @@ captureinfo do_inspect(sinsp* inspector,
 	// plugin_evt_formatter based on the event type.
 	sinsp_evt_formatter *formatter = syscall_evt_formatter;
 
+	inspector->start_capture();
+
 	//
 	// Loop through the events
 	//
@@ -901,7 +903,7 @@ captureinfo do_inspect(sinsp* inspector,
 			cout << flush;
 		}
 	}
-
+	inspector->stop_capture();
 	return retval;
 }
 
