@@ -288,6 +288,7 @@ captureinfo do_inspect(sinsp* inspector,
 	int32_t res;
 	sinsp_evt* ev;
 
+	inspector->start_capture();
 	//
 	// Loop through the events
 	//
@@ -332,7 +333,7 @@ captureinfo do_inspect(sinsp* inspector,
 
 		retval.m_nevts++;
 	}
-
+	inspector->stop_capture();
 	return retval;
 }
 
