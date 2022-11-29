@@ -77,6 +77,12 @@ jobs:
         run: build cmake
       - name: Build packages
         run: build package
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: packages-linux-amd64
+          path: |
+            $GITHUB_WORKSPACE/sysdig/build/sysdig-*
 
   build-sysdig-linux-arm64:
     runs-on: ubuntu-latest
@@ -91,6 +97,10 @@ jobs:
           arch: aarch64
           distro: buster
           githubToken: ${{ github.token }}
+          setup: |
+            mkdir -p "${PWD}/artifacts"
+          dockerRunArgs: |
+            --volume "${PWD}/artifacts:/artifacts"
           install: |
             apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev libyaml-cpp-dev nlohmann-json3-dev libncurses-dev linux-headers-arm64
           run: |
@@ -99,6 +109,14 @@ jobs:
             mkdir -p build
             cd build && cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False ../
             KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
+            make package
+            cp sysdig.{deb,rpm,tgz} "/artifacts/"
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: packages-linux-arm64
+          path: |
+            ${PWD}/artifacts/sysdig-*
 
   build-sysdig-others-amd64:
     name: build-sysdig-other-amd64
@@ -114,3 +132,9 @@ jobs:
           mkdir -p build
           cd build && cmake -Wno-dev -DBUILD_DRIVER=OFF ..
           cmake --build . --target package
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: packages-linux-${{ matrix.os }}
+          path: |
+            build/sysdig-*
