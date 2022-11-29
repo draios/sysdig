@@ -154,6 +154,22 @@ else()
 			$<TARGET_FILE:csysdig>
 			"${PROJECT_BINARY_DIR}/$(Configuration)/csysdig.exe")
 
+	install(TARGETS sysdig
+			DESTINATION programs
+			COMPONENT "${SYSDIG_COMPONENT_NAME}")
+
+	install(TARGETS csysdig
+			DESTINATION programs
+			COMPONENT "${SYSDIG_COMPONENT_NAME}")
+
+	install(DIRECTORY chisels
+			DESTINATION programs
+			COMPONENT "${SYSDIG_COMPONENT_NAME}")
+
+	install(FILES "${LUAJIT_SRC}/lua51.dll"
+			DESTINATION programs
+			COMPONENT "${SYSDIG_COMPONENT_NAME}")
+
 endif()
 
 configure_file(config_sysdig.h.in config_sysdig.h)
