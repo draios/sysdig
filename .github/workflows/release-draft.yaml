@@ -27,7 +27,7 @@ jobs:
       - name: Build packages
         run: build package
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-x86_64
           path: /build/release/sysdig-${{ env.BUILD_VERSION }}*
@@ -64,7 +64,7 @@ jobs:
               cp /build/release/sysdig-${{ env.BUILD_VERSION }}* /build/release-packages
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-aarch64
           path: ${{ github.workspace }}/sysdig-build-aarch64/sysdig-${{ env.BUILD_VERSION }}*
@@ -88,13 +88,13 @@ jobs:
       - name: Build
         run: |
           mkdir -p build
-          cd build && cmake -DBUILD_DRIVER=OFF ..
+          cd build && cmake -Wno-dev -DBUILD_DRIVER=OFF ..
           cmake --build . --target package
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.artifact_name }}-x86_64
-          path: /build/release/sysdig-${{ env.BUILD_VERSION }}*        
+          name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.artifact_name }}
+          path: /build/sysdig-${{ env.BUILD_VERSION }}*
 
   push-container-image:
     runs-on: ubuntu-latest
@@ -149,7 +149,7 @@ jobs:
       - name: Install deps
         run: yum install -y rpm-sign
       - name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.arch }}
       - name: Import private key
@@ -161,7 +161,7 @@ jobs:
       - name: Check signature
         run: test "$(rpm -qpi *.rpm | awk '/Signature/' | grep -i none | wc -l)" -eq 0
       - name: Upload Signed RPMs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.arch }}
           path: "*.rpm"
@@ -186,7 +186,7 @@ jobs:
       - name: Install deps
         run: apt-get update && apt-get -y install dpkg-sig
       - name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.arch }}
       - name: Import private key
@@ -198,7 +198,7 @@ jobs:
       - name: Check signature
         run: dpkg-sig --verify *.deb
       - name: Upload Signed DEBs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.arch }}
           path: "*.deb"
@@ -210,11 +210,11 @@ jobs:
       BUILD_VERSION: ${{ github.ref_name }}
     steps:
       - name: Download artifacts (amd64)
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-x86_64
       - name: Download artifacts (arm64)
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-aarch64
       - name: Create draft release
