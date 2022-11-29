@@ -1093,11 +1093,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{0, 0, 0, 0}
 	};
 
+#ifndef _WIN32
 	if (isatty(fileno(stdout)))
 	{
 		output_format = R"(*%evt.num %evt.outputtime %evt.cpu \e[01;32m%proc.name\e[00m (\e[01;36m%proc.pid\e[00m.%thread.tid) %evt.dir \e[01;34m%evt.type\e[00m %evt.info)";
 		output_format_plugin = R"(*%evt.num %evt.datetime.s [\e[01;32m%evt.pluginname\e[00m] %evt.plugininfo)";
-	} else
+	}
+	else
+#endif
 	{
 		output_format = "*%evt.num %evt.outputtime %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.info";
 		output_format_plugin = "*%evt.num %evt.datetime.s [%evt.pluginname] %evt.plugininfo";
