@@ -14,13 +14,15 @@ jobs:
     steps:
       - name: Checkout Sysdig
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Check if builder is modified
         id: builder-files
-        uses: tj-actions/changed-files@v10.1
+        uses: tj-actions/changed-files@v34
         with:
           files: |
-            ^docker/builder
+            docker/builder/**
 
       - name: Set up QEMU
         if: steps.builder-files.outputs.any_changed == 'true'
@@ -77,52 +79,84 @@ jobs:
         run: build cmake
       - name: Build packages
         run: build package
-      - name: Upload artifacts
+      - name: Upload rpm package
         uses: actions/upload-artifact@v3
         with:
-          name: packages-linux-amd64
+          name: sysdig-dev-linux-amd64.rpm
           path: |
-            $GITHUB_WORKSPACE/sysdig/build/sysdig-*
+            /build/release/sysdig-*.rpm
+      - name: Upload deb package
+        uses: actions/upload-artifact@v3
+        with:
+          name: sysdig-dev-linux-amd64.deb
+          path: |
+            /build/release/sysdig-*.deb
+      - name: Upload tar.gz package
+        uses: actions/upload-artifact@v3
+        with:
+          name: sysdig-dev-linux-amd64.tar.gz
+          path: |
+            /build/release/sysdig-*.tar.gz      
 
   build-sysdig-linux-arm64:
+    needs: builder
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Sysdig
         uses: actions/checkout@v3
         with:
           path: sysdig
-      - uses: uraimo/run-on-arch-action@v2.2.0
-        name: Build for aarch64 (system deps)
+      - name: Create build dir
+        run: |
+          mkdir -p ${{ github.workspace }}/sysdig-build-aarch64
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
         with:
-          arch: aarch64
-          distro: buster
-          githubToken: ${{ github.token }}
-          setup: |
-            mkdir -p "${PWD}/artifacts"
-          dockerRunArgs: |
-            --volume "${PWD}/artifacts:/artifacts"
-          install: |
-            apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev libyaml-cpp-dev nlohmann-json3-dev libncurses-dev linux-headers-arm64
+          platforms: 'amd64,arm64'
+      - name: Run the build process with Docker
+        uses: addnab/docker-run-action@v3
+        with:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          image: ${{ needs.builder.outputs.builder_image }}
+          options: --platform=linux/arm64 -v ${{ github.workspace }}/sysdig:/source/sysdig -v ${{ github.workspace }}/sysdig-build-aarch64:/build/dev-packages
           run: |
-            git config --global --add safe.directory ${{ github.workspace }}/sysdig
-            cd ${{ github.workspace }}/sysdig
-            mkdir -p build
-            cd build && cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False ../
-            KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
-            make package
-            cp sysdig.{deb,rpm,tgz} "/artifacts/"
-      - name: Upload artifacts
+            mkdir -p /build/dev-packages && \
+            build cmake && \
+            build package && \
+            cp /build/release/sysdig-* /build/dev-packages
+      - name: Upload deb package
         uses: actions/upload-artifact@v3
         with:
-          name: packages-linux-arm64
+          name: sysdig-dev-linux-arm64.deb
           path: |
-            ${PWD}/artifacts/sysdig-*
+            ${{ github.workspace }}/sysdig-build-aarch64/sysdig-*.deb
+      - name: Upload rpm package
+        uses: actions/upload-artifact@v3
+        with:
+          name: sysdig-dev-linux-arm64.rpm
+          path: |
+            ${{ github.workspace }}/sysdig-build-aarch64/sysdig-*.rpm
+      - name: Upload tar.gz package
+        uses: actions/upload-artifact@v3
+        with:
+          name: sysdig-dev-linux-arm64.tar.gz
+          path: |
+            ${{ github.workspace }}/sysdig-build-aarch64/sysdig-*.tar.gz
 
   build-sysdig-others-amd64:
     name: build-sysdig-other-amd64
     strategy:
       matrix:
         os: [windows-latest, macos-latest]
+        include:
+          - os: windows-latest
+            artifact_name: win
+            artifact_ext: exe
+          - os: macos-latest
+            artifact_name: osx
+            artifact_ext: dmg
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Sysdig
@@ -135,6 +169,6 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: packages-linux-${{ matrix.os }}
+          name: sysdig-dev-${{ matrix.artifact_name }}-amd64.${{ matrix.artifact_ext }}
           path: |
             build/sysdig-*
