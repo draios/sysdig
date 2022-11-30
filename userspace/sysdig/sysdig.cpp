@@ -42,6 +42,7 @@ limitations under the License.
 #include "chisel.h"
 #include "chisel_utils.h"
 #include "chisel_fields_info.h"
+extern vector<chiseldir_info>* g_chisel_dirs;
 #endif
 #include "fields_info.h"
 #include "utils.h"
@@ -1665,7 +1666,31 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			inspector->set_cri_socket_path(cri_socket_path);
 		}
 
-		inspector->set_exec_hashing(true);
+		//
+		// Scan the list of chisel directories and try to find
+		// files named falco_signatures.txt, from which we will load the
+		// hashes.
+		//
+		vector<string> csdirs;
+		for(auto cd : *g_chisel_dirs)
+		{
+			string sfname = cd.m_dir + "falco_signatures.txt";
+
+			ifstream fs(sfname);
+			if(fs.good())
+			{
+				csdirs.push_back(sfname);
+			}
+			fs.close();
+		}
+
+		//
+		// If any hashes file was found, enable hashing
+		//
+		if(csdirs.size() > 0)
+		{
+			inspector->set_exec_hashing(true, csdirs);
+		}
 #endif
 
 		if(!bpf)
