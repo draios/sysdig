@@ -67,7 +67,7 @@ public:
 	}
 
 	int m_res;
-	vector<string> m_next_run_args;
+	std::vector<std::string> m_next_run_args;
 };
 
 //

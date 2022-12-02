@@ -29,8 +29,6 @@ limitations under the License.
 #define __83a9222a_c8b9_4f36_9721_5dfbaccb28d0_CTEXT
 #define CTEXT_BUFFER_SIZE (4096)
 
-using namespace std;
-
 class ctext;
 
 struct ctext_config_struct
@@ -177,17 +175,17 @@ typedef struct ctext_search_struct
 	int16_t _match_count;
 
 	// The string to match
-	string _query;
+	std::string _query;
 
 } ctext_search;
 
 typedef struct ctext_row_struct
 {
-	string data;
-	vector<ctext_format> format;
+	std::string data;
+	std::vector<ctext_format> format;
 } ctext_row;
 
-typedef vector<ctext_row> ctext_buffer;
+typedef std::vector<ctext_row> ctext_buffer;
 
 class ctext 
 {
@@ -424,7 +422,7 @@ class ctext
 		// Returns you_manage_this_memory back at you or NULL
 		// on an error.
 		//
-		ctext_search *new_search(ctext_search *you_manage_this_memory, string to_search, bool is_case_insensitive = false, bool is_forward = true, bool do_wrap = false);
+		ctext_search *new_search(ctext_search *you_manage_this_memory, std::string to_search, bool is_case_insensitive = false, bool is_forward = true, bool do_wrap = false);
 
 		//
 		// If you want to modify the query of an existing search then you
@@ -433,7 +431,7 @@ class ctext
 		//
 		// Returns 0 on success
 		//
-		int8_t set_query(ctext_search *p_search, string new_query);
+		int8_t set_query(ctext_search *p_search, std::string new_query);
 
 		//
 		// After you've initiated your search you can then go over
@@ -524,7 +522,7 @@ class ctext
 		int32_t m_win_height;
 		uint64_t m_event_counter;
 
-		ofstream *m_debug;
+		std::ofstream *m_debug;
 };
 
 int cprintf(ctext*win, const char *format, ...);
