@@ -77,8 +77,10 @@ jobs:
         include:
           - os: windows-latest
             artifact_name: win
+            artifact_ext: exe
           - os: macos-latest
             artifact_name: osx
+            artifact_ext: dmg
     env:
       BUILD_VERSION: ${{ github.ref_name }}
     runs-on: ${{ matrix.os }}  
@@ -93,8 +95,8 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.artifact_name }}
-          path: /build/sysdig-${{ env.BUILD_VERSION }}*
+          name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.artifact_name }}-x86_64
+          path: /build/sysdig-${{ env.BUILD_VERSION }}*.${{ matrix.artifact_ext }}
 
   push-container-image:
     runs-on: ubuntu-latest
@@ -217,6 +219,14 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-aarch64
+      - name: Download artifacts (win-amd64)
+        uses: actions/download-artifact@v3
+        with:
+          name: sysdig-release-${{ env.BUILD_VERSION }}-win-x86_64
+      - name: Download artifacts (osx-amd64)
+        uses: actions/download-artifact@v3
+        with:
+          name: sysdig-release-${{ env.BUILD_VERSION }}-osx-x86_64
       - name: Create draft release
         uses: softprops/action-gh-release@v1
         with:
