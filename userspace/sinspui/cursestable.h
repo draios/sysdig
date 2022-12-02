@@ -34,8 +34,8 @@ public:
 	~curses_table();
 
 	void configure(chisel_table* table, 
-		vector<int32_t>* colsizes, vector<string>* colnames);
-	void update_data(vector<chisel_sample_row>* data, bool force_selection_change = false);
+		std::vector<int32_t>* colsizes, std::vector<std::string>* colnames);
+	void update_data(std::vector<chisel_sample_row>* data, bool force_selection_change = false);
 	void render(bool data_changed);
 	chisel_table_action handle_input(int ch);
 	void set_x_start(uint32_t x)
@@ -47,7 +47,7 @@ public:
 	void goto_row(int32_t row);
 	bool get_position(OUT int32_t* pos, OUT int32_t* totlines, OUT float* percent, OUT bool* truncated);
 	void follow_end();
-	string get_field_val(string fldname);
+	std::string get_field_val(std::string fldname);
 	uint32_t get_data_size()
 	{
 		if(m_table != NULL)
@@ -67,9 +67,9 @@ public:
 	
 private:
 	alignment get_field_alignment(ppm_param_type type);
-	void print_error(string wstr);
+	void print_error(std::string wstr);
 	void print_wait();
-	void print_line_centered(string line, int32_t off = 0);
+	void print_line_centered(std::string line, int32_t off = 0);
 
 	sinsp* m_inspector;
 	WINDOW* m_tblwin;
@@ -79,10 +79,10 @@ private:
 	uint32_t m_table_y_start;
 	uint32_t m_scrolloff_x;
 	uint32_t m_colsizes[PT_MAX];
-	vector<curses_table_column_info> m_legend;
-	vector<chisel_sample_row>* m_data;
+	std::vector<curses_table_column_info> m_legend;
+	std::vector<chisel_sample_row>* m_data;
 	sinsp_filter_check_reference* m_converter;
-	vector<uint32_t> m_column_startx;
+	std::vector<uint32_t> m_column_startx;
 	char alignbuf[64];
 	chisel_table::tabletype m_type;
 

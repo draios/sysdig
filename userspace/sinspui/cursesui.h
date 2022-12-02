@@ -27,7 +27,7 @@ limitations under the License.
 #define VIEW_SIDEMENU_WIDTH 20
 #define ACTION_SIDEMENU_WIDTH 30
 #define FILTER_TEMPLATE_MAGIC "@#$f1CA^&;"
-string combine_filters(string flt1, string flt2);
+std::string combine_filters(std::string flt1, std::string flt2);
 class ctext;
 class sinsp_chart;
 class curses_spectro;
@@ -43,8 +43,8 @@ public:
 		ALL = TABLE | LIST,
 	};
 
-	sinsp_menuitem_info(string key, 
-		string desc, 
+	sinsp_menuitem_info(std::string key, 
+		std::string desc, 
 		sinsp_menuitem_info::type type,
 		int keyboard_equivalent)
 	{
@@ -54,8 +54,8 @@ public:
 		m_keyboard_equivalent = keyboard_equivalent;
 	}
 
-	string m_key;
-	string m_desc;
+	std::string m_key;
+	std::string m_desc;
 	sinsp_menuitem_info::type m_type;
 	int m_keyboard_equivalent;
 };
@@ -63,15 +63,15 @@ public:
 class sinsp_ui_selection_info
 {
 public:
-	sinsp_ui_selection_info(string field, 
-		string val,
+	sinsp_ui_selection_info(std::string field, 
+		std::string val,
 		chisel_view_column_info* column_info,
-		string view_filter,
+		std::string view_filter,
 		uint32_t prev_selected_view, 
 		uint32_t prev_selected_sidemenu_entry, 
 		chisel_table_field* rowkey,
 		uint32_t prev_sorting_col,
-		string prev_manual_filter,
+		std::string prev_manual_filter,
 		bool prev_is_filter_sysdig,
 		bool prev_is_sorting_ascending,
 		bool is_drilldown)
@@ -99,14 +99,14 @@ public:
 		}
 	}
 
-	string m_field;
-	string m_val;
+	std::string m_field;
+	std::string m_val;
 	chisel_view_column_info* m_column_info;
-	string m_view_filter;
+	std::string m_view_filter;
 	uint32_t m_prev_selected_view;
 	uint32_t m_prev_selected_sidemenu_entry;
 	uint32_t m_prev_sorting_col;
-	string m_prev_manual_filter;
+	std::string m_prev_manual_filter;
 	bool m_prev_is_filter_sysdig;
 	chisel_table_field m_rowkey;
 	bool m_prev_is_sorting_ascending;
@@ -116,15 +116,15 @@ public:
 class sinsp_ui_selection_hierarchy
 {
 public:
-	void push_back(string field, 
-		string val,
+	void push_back(std::string field, 
+		std::string val,
 		chisel_view_column_info* column_info,
-		string view_filter,
+		std::string view_filter,
 		uint32_t prev_selected_view, 
 		uint32_t prev_selected_sidemenu_entry, 
 		chisel_table_field* rowkey,
 		uint32_t prev_sorting_col,
-		string prev_manual_filter,
+		std::string prev_manual_filter,
 		bool prev_is_filter_sysdig,
 		bool prev_is_sorting_ascending,
 		bool is_drilldown)
@@ -154,9 +154,9 @@ public:
 		}
 	}
 
-	string tofilter(bool templated)
+	std::string tofilter(bool templated)
 	{
-		string res;
+		std::string res;
 		uint32_t j;
 		uint32_t hs = (uint32_t)m_hierarchy.size();
 
@@ -206,7 +206,7 @@ public:
 
 					if(templated && (j == hs - 1)) 
 					{
-						res += string("\"") + FILTER_TEMPLATE_MAGIC + "\"";
+						res += std::string("\"") + FILTER_TEMPLATE_MAGIC + "\"";
 					}
 					else
 					{
@@ -234,7 +234,7 @@ public:
 
 		if(res.size() >= 5)
 		{
-			string trailer = res.substr(res.size() - 5).c_str();
+			std::string trailer = res.substr(res.size() - 5).c_str();
 			if(trailer == " and ")
 			{
 				res = res.substr(0, res.size() - 5);
@@ -269,7 +269,7 @@ public:
 
 
 private:
-	vector<sinsp_ui_selection_info> m_hierarchy;
+	std::vector<sinsp_ui_selection_info> m_hierarchy;
 };
 
 class sinsp_mouse_to_key_list_entry
@@ -324,7 +324,7 @@ public:
 		m_list.clear();
 	}
 
-	vector<sinsp_mouse_to_key_list_entry> m_list;
+	std::vector<sinsp_mouse_to_key_list_entry> m_list;
 };
 
 class json_spy_renderer
@@ -338,9 +338,9 @@ public:
 		sinsp_evt::param_fmt text_fmt);
 
 	~json_spy_renderer();
-	void set_filter(string filter);
+	void set_filter(std::string filter);
 	void process_event(sinsp_evt* evt, int32_t next_res);
-	string get_data();
+	std::string get_data();
 	uint64_t get_count();
 
 private:
@@ -432,7 +432,7 @@ public:
 	};
 
 	sinsp_cursesui(sinsp* inspector, sinsp_opener* source_opener, 
-		string cmdline_capture_filter, uint64_t refresh_interval_ns, 
+		std::string cmdline_capture_filter, uint64_t refresh_interval_ns, 
 		bool print_containers, chisel_table::output_type output_type, bool is_mousedrag_available,
 		int32_t json_first_row, int32_t json_last_row, int32_t sorting_col,
 		sinsp_evt::param_fmt json_spy_text_fmt);
@@ -461,10 +461,10 @@ public:
 #ifndef NOCURSESUI
 	void render();
 #endif
-	void turn_search_on(search_caller_interface* ifc, string header_text);
+	void turn_search_on(search_caller_interface* ifc, std::string header_text);
 	uint64_t get_time_delta();
 	void run_action(chisel_view_action_info* action);
-	void spy_selection(string field, string val, chisel_view_column_info* column_info, bool is_dig);
+	void spy_selection(std::string field, std::string val, chisel_view_column_info* column_info, bool is_dig);
 	chisel_table_action handle_input(int ch);
 	bool handle_stdin_input(bool* res);
 
@@ -625,7 +625,7 @@ public:
 			uint64_t evtnum = evt->get_num();
 			if((evtnum - m_last_progress_evt > 2000) || (next_res == SCAP_EOF))
 			{
-				string jdata = m_json_spy_renderer->get_data();
+				std::string jdata = m_json_spy_renderer->get_data();
 				double rprogress = m_inspector->get_read_progress();
 				printf("{\"progress\": %.2lf,", rprogress);
 				if(next_res == SCAP_EOF)
@@ -747,26 +747,26 @@ private:
 	void handle_end_of_sample(sinsp_evt* evt, int32_t next_res);
 	void restart_capture(bool is_spy_switch);
 	void switch_view(bool is_spy_switch);
-	bool spectro_selection(string field, string val, chisel_view_column_info* column_info, filtercheck_field_info* info, chisel_table_action ta);
-	bool do_drilldown(string field, string val, chisel_view_column_info* column_info, uint32_t new_view_num, filtercheck_field_info* info, bool dont_restart);
+	bool spectro_selection(std::string field, std::string val, chisel_view_column_info* column_info, filtercheck_field_info* info, chisel_table_action ta);
+	bool do_drilldown(std::string field, std::string val, chisel_view_column_info* column_info, uint32_t new_view_num, filtercheck_field_info* info, bool dont_restart);
 	// returns false if there is no suitable drill down view for this field
-	bool drilldown(string field, string val, chisel_view_column_info* column_info, filtercheck_field_info* info, bool dont_restart);
+	bool drilldown(std::string field, std::string val, chisel_view_column_info* column_info, filtercheck_field_info* info, bool dont_restart);
 	// returns false if we are already at the top of the hierarchy
 	bool drillup();
 	void create_complete_filter(bool templated);
 	bool execute_table_action(chisel_table_action ta, uint32_t rownumber, bool* res);
-	int32_t get_viewnum_by_name(string name);
+	int32_t get_viewnum_by_name(std::string name);
 
 #ifndef NOCURSESUI
 	void render_header();
-	void draw_bottom_menu(vector<sinsp_menuitem_info>* items, bool istable);
+	void draw_bottom_menu(std::vector<sinsp_menuitem_info>* items, bool istable);
 	void render_default_main_menu();
 	void render_filtersearch_main_menu();
 	void render_spy_main_menu();
 	void render_position_info();
 	void render_main_menu();
 	chisel_table_action handle_textbox_input(int ch);
-	void populate_view_sidemenu(string field, vector<sidemenu_list_entry>* viewlist);
+	void populate_view_sidemenu(std::string field, std::vector<sidemenu_list_entry>* viewlist);
 	void populate_action_sidemenu();
 	void populate_view_cols_sidemenu();
 	void print_progress(double progress);
@@ -774,14 +774,14 @@ private:
 	bool is_spectro_paused(int input);
 #endif
 
-	vector<sinsp_menuitem_info> m_menuitems;
-	vector<sinsp_menuitem_info> m_menuitems_spybox;
+	std::vector<sinsp_menuitem_info> m_menuitems;
+	std::vector<sinsp_menuitem_info> m_menuitems_spybox;
 	sinsp_opener* m_source_opener;
-	string m_cmdline_capture_filter;
-	string m_complete_filter;
-	string m_complete_filter_noview;
-	string m_manual_filter;
-	string m_manual_search_text;
+	std::string m_cmdline_capture_filter;
+	std::string m_complete_filter;
+	std::string m_complete_filter_noview;
+	std::string m_manual_filter;
+	std::string m_manual_search_text;
 	bool m_paused;
 	uint64_t m_last_input_check_ts;
 	bool m_output_filtering;
@@ -789,7 +789,7 @@ private:
 	uint32_t m_cursor_pos;
 	bool m_is_filter_sysdig;
 	uint64_t m_last_progress_evt;
-	vector<sidemenu_list_entry> m_sidemenu_viewlist;
+	std::vector<sidemenu_list_entry> m_sidemenu_viewlist;
 	sinsp_chart* m_chart;
 	search_caller_interface* m_search_caller_interface;
 	int32_t m_search_start_x, m_search_start_y;
@@ -801,7 +801,7 @@ private:
 	sinsp_mouse_to_key_list m_mouse_to_key_list;
 	uint32_t m_filterstring_start_x;
 	uint32_t m_filterstring_end_x;
-	string m_search_header_text;
+	std::string m_search_header_text;
 	chisel_table::output_type m_output_type;
 	bool m_truncated_input;
 	bool m_interactive;
