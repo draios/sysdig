@@ -882,19 +882,16 @@ captureinfo do_inspect(sinsp* inspector,
 				continue;
 			}
 
+			if(display_filter && !display_filter->run(ev))
+			{
+				continue;
+			}
+
+			//
+			// Output the line
+			//
 			if(formatter->tostring(ev, &line))
 			{
-				//
-				// Output the line
-				//
-				if(display_filter)
-				{
-					if(!display_filter->run(ev))
-					{
-						continue;
-					}
-				}
-
 				cout << line << endl;
 			}
 		}
