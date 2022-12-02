@@ -68,7 +68,7 @@ static bool g_terminate = false;
 static bool g_terminating = false;
 static bool g_plugin_input = false;
 #ifdef HAS_CHISELS
-vector<sinsp_chisel*> g_chisels;
+std::vector<sinsp_chisel*> g_chisels;
 #endif
 
 static void usage();
@@ -415,7 +415,7 @@ inline void output_progress(sinsp* inspector, sinsp_evt* ev)
 {
 	if(ev == NULL || (ev->get_num() % 10000 == 0))
 	{
-		string ps;
+		std::string ps;
 		double progress_pct = inspector->get_read_progress_with_str(&ps);
 
 		if(progress_pct - g_last_printed_progress_pct > 0.1)
@@ -438,17 +438,17 @@ inline void output_progress(sinsp* inspector, sinsp_evt* ev)
 }
 
 void print_summary_table(sinsp* inspector,
-						 vector<summary_table_entry> &summary_table,
+						 std::vector<summary_table_entry> &summary_table,
 						 uint32_t nentries)
 {
 	sinsp_evttables* einfo = inspector->get_event_info_tables();
 
-	cout << "----------------------\n";
-	string tstr = string("Event");
+	std::cout << "----------------------\n";
+	std::string tstr = std::string("Event");
 	tstr.resize(16, ' ');
 	tstr += "#Calls\n";
-	cout << tstr;
-	cout << "----------------------\n";
+	std::cout << tstr;
+	std::cout << "----------------------\n";
 
 	sort(summary_table.begin(), summary_table.end(),
 		summary_table_entry_rsort_comparer());
@@ -500,7 +500,7 @@ static void add_chisel_dirs(sinsp* inspector)
 
 	if(s_user_cdirs != NULL)
 	{
-		vector<string> user_cdirs = sinsp_split(s_user_cdirs, ';');
+		std::vector<std::string> user_cdirs = sinsp_split(s_user_cdirs, ';');
 
 		for(uint32_t j = 0; j < user_cdirs.size(); j++)
 		{
@@ -534,13 +534,13 @@ static void parse_chisel_args(sinsp_chisel* ch, sinsp* inspector, int optind, in
 {
 	uint32_t nargs = ch->get_n_args();
 	uint32_t nreqargs = ch->get_n_required_args();
-	string args;
+	std::string args;
 
 	if(nargs != 0)
 	{
 		if(optind > (int32_t)argc)
 		{
-			throw sinsp_exception("invalid number of arguments for chisel " + string(optarg) + ", " + to_string((long long int)nargs) + " expected.");
+			throw sinsp_exception("invalid number of arguments for chisel " + std::string(optarg) + ", " + std::to_string((long long int)nargs) + " expected.");
 		}
 		else if(optind < (int32_t)argc)
 		{
@@ -555,7 +555,7 @@ static void parse_chisel_args(sinsp_chisel* ch, sinsp* inspector, int optind, in
 			{
 				if(args[0] != '-')
 				{
-					string testflt;
+					std::string testflt;
 
 					for(int32_t j = optind; j < argc; j++)
 					{
@@ -592,7 +592,7 @@ static void parse_chisel_args(sinsp_chisel* ch, sinsp* inspector, int optind, in
 		{
 			if(nreqargs != 0)
 			{
-				throw sinsp_exception("missing arguments for chisel " + string(optarg));
+				throw sinsp_exception("missing arguments for chisel " + std::string(optarg));
 			}
 		}
 	}
@@ -633,7 +633,7 @@ static void chisels_on_capture_end()
 static void chisels_do_timeout(sinsp_evt* ev)
 {
 #ifdef HAS_CHISELS
-	for(vector<sinsp_chisel*>::iterator it = g_chisels.begin();
+	for(std::vector<sinsp_chisel*>::iterator it = g_chisels.begin();
 		it != g_chisels.end(); ++it)
 	{
 		(*it)->do_timeout(ev);
@@ -643,18 +643,18 @@ static void chisels_do_timeout(sinsp_evt* ev)
 
 void handle_end_of_file(sinsp* inspector, bool print_progress, bool reset_colors = false, sinsp_evt_formatter* formatter = NULL)
 {
-	string line;
+	std::string line;
 
 	// Notify the formatter that we are at the
 	// end of the capture in case it needs to
 	// write any terminating characters
 	if(formatter != NULL && formatter->on_capture_end(&line))
 	{
-		cout << line << endl;
+		std::cout << line << std::endl;
 	}
 
 	if(reset_colors) {
-		cout << "\e[00m";
+		std::cout << "\e[00m";
 	}
 
 	//
@@ -689,9 +689,9 @@ void handle_end_of_file(sinsp* inspector, bool print_progress, bool reset_colors
 	}
 }
 
-vector<string> split_nextrun_args(string na)
+std::vector<std::string> split_nextrun_args(std::string na)
 {
-	vector<string> res;
+	std::vector<std::string> res;
 	uint32_t laststart = 0;
 	uint32_t j;
 	bool inquote = false;
@@ -706,7 +706,7 @@ vector<string> split_nextrun_args(string na)
 		{
 			if(!inquote)
 			{
-				string arg = na.substr(laststart, j - laststart);
+				std::string arg = na.substr(laststart, j - laststart);
 				replace_in_place(arg, "\"", "");
 				res.push_back(arg);
 				laststart = j + 1;
@@ -732,14 +732,14 @@ captureinfo do_inspect(sinsp* inspector,
 	bool reset_colors,
 	bool print_progress,
 	sinsp_filter* display_filter,
-	vector<summary_table_entry> &summary_table,
+	std::vector<summary_table_entry> &summary_table,
 	sinsp_evt_formatter* syscall_evt_formatter,
 	sinsp_evt_formatter* plugin_evt_formatter)
 {
 	captureinfo retval;
 	int32_t res;
 	sinsp_evt* ev;
-	string line;
+	std::string line;
 	uint64_t duration_start = 0;
 
 	if(json)
@@ -803,7 +803,7 @@ captureinfo do_inspect(sinsp* inspector,
 			// Notify the chisels that we're exiting, and then die with an error.
 			//
 			handle_end_of_file(inspector, print_progress, reset_colors, formatter);
-			cerr << "res = " << res << endl;
+			std::cerr << "res = " << res << std::endl;
 			throw sinsp_exception(inspector->getlasterr().c_str());
 		}
 
@@ -833,7 +833,7 @@ captureinfo do_inspect(sinsp* inspector,
 #ifdef HAS_CHISELS
 		if(!g_chisels.empty())
 		{
-			for(vector<sinsp_chisel*>::iterator it = g_chisels.begin(); it != g_chisels.end(); ++it)
+			for(std::vector<sinsp_chisel*>::iterator it = g_chisels.begin(); it != g_chisels.end(); ++it)
 			{
 				if((*it)->run(ev) == false)
 				{
@@ -894,13 +894,13 @@ captureinfo do_inspect(sinsp* inspector,
 			//
 			if(formatter->tostring(ev, &line))
 			{
-				cout << line << endl;
+				std::cout << line << std::endl;
 			}
 		}
 
 		if(do_flush)
 		{
-			cout << flush;
+			std::cout << std::flush;
 		}
 	}
 	inspector->stop_capture();
@@ -970,8 +970,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 {
 	sysdig_init_res res;
 	sinsp* inspector = NULL;
-	vector<string> infiles;
-	string outfile;
+	std::vector<std::string> infiles;
+	std::string outfile;
 	int op;
 	uint64_t cnt = -1;
 	bool quiet = false;
@@ -986,8 +986,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	double duration = 1;
 	int duration_to_tot = 0;
 	captureinfo cinfo;
-	string output_format;
-	string output_format_plugin;
+	std::string output_format;
+	std::string output_format_plugin;
 	uint32_t snaplen = 0;
 	int long_index = 0;
 	int32_t n_filterargs = 0;
@@ -995,18 +995,18 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool unbuf_flag = false;
 	bool reset_colors = false;
 	bool filter_proclist_flag = false;
-	string cname;
-	vector<summary_table_entry> summary_table;
+	std::string cname;
+	std::vector<summary_table_entry> summary_table;
 #ifndef MINIMAL_BUILD
-	string* k8s_api = 0;
-	string* node_name = 0;
-	string* k8s_api_cert = 0;
-	string* mesos_api = 0;
+	std::string* k8s_api = 0;
+	std::string* node_name = 0;
+	std::string* k8s_api_cert = 0;
+	std::string* mesos_api = 0;
 #endif // MINIMAL_BUILD
 	bool force_tracers_capture = false;
 	std::set<std::string> suppress_comms;
 #ifdef HAS_CAPTURE
-	string cri_socket_path;
+	std::string cri_socket_path;
 #endif
 	plugin_utils plugins;
 	bool list_plugins = false;
@@ -1160,10 +1160,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #ifdef HAS_CHISELS
 			case 'c':
 				{
-					string chisel = optarg;
+					std::string chisel = optarg;
 					if(chisel == "l")
 					{
-						vector<chisel_desc> chlist;
+						std::vector<chisel_desc> chlist;
 						sinsp_chisel::get_chisel_list(&chlist);
 						list_chisels(&chlist, true);
 						delete inspector;
@@ -1182,7 +1182,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				rollover_mb = atoi(optarg);
 				if(rollover_mb <= 0)
 				{
-					throw sinsp_exception(string("invalid file size") + optarg);
+					throw sinsp_exception(std::string("invalid file size") + optarg);
 					res.m_res = EXIT_FAILURE;
 					goto exit;
 				}
@@ -1199,7 +1199,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				event_limit = strtoul(optarg, NULL, 0);
 				if(event_limit <= 0)
 				{
-					throw sinsp_exception(string("invalid parameter 'number of events' ") + optarg);
+					throw sinsp_exception(std::string("invalid parameter 'number of events' ") + optarg);
 					res.m_res = EXIT_FAILURE;
 					goto exit;
 				}
@@ -1219,19 +1219,19 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				duration_seconds = atoi(optarg);
 				if(duration_seconds <= 0)
 				{
-					throw sinsp_exception(string("invalid duration") + optarg);
+					throw sinsp_exception(std::string("invalid duration") + optarg);
 					res.m_res = EXIT_FAILURE;
 					goto exit;
 				}
 				break;
 			case 'H':
 				{
-					string pluginname = optarg;
+					std::string pluginname = optarg;
 					size_t cpos = pluginname.find(':');
-					string pgname = pluginname;
-					string pginitconf;
+					std::string pgname = pluginname;
+					std::string pginitconf;
 					// Extract init config from string if present
-					if(cpos != string::npos)
+					if(cpos != std::string::npos)
 					{
 						pgname = pluginname.substr(0, cpos);
 						pginitconf = pluginname.substr(cpos + 1);
@@ -1242,7 +1242,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 			case 'I':
 				{
-					string inputname = optarg;
+					std::string inputname = optarg;
 					if(inputname == "l")
 					{
 						list_plugins = true;
@@ -1250,10 +1250,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 
 					size_t cpos = inputname.find(':');
-					string pgname = inputname;
-					string pgpars;
+					std::string pgname = inputname;
+					std::string pgpars;
 					// Extract open params from string if present
-					if(cpos != string::npos)
+					if(cpos != std::string::npos)
 					{
 						pgname = inputname.substr(0, cpos);
 						pgpars = inputname.substr(cpos + 1);
@@ -1268,7 +1268,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			case 'i':
 				{
 					cname = optarg;
-					vector<chisel_desc> chlist;
+					std::vector<chisel_desc> chlist;
 
 					sinsp_chisel::get_chisel_list(&chlist);
 
@@ -1297,13 +1297,13 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 #ifndef MINIMAL_BUILD
 			case 'k':
-				k8s_api = new string(optarg);
+				k8s_api = new std::string(optarg);
 				break;
 			case 'N':
-				node_name = new string(optarg);
+				node_name = new std::string(optarg);
 				break;
 			case 'K':
-				k8s_api_cert = new string(optarg);
+				k8s_api_cert = new std::string(optarg);
 				break;
 #endif // MINIMAL_BUILD
 			case 'h':
@@ -1324,14 +1324,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				return sysdig_init_res(EXIT_SUCCESS);
 #ifndef MINIMAL_BUILD
 			case 'm':
-				mesos_api = new string(optarg);
+				mesos_api = new std::string(optarg);
 				break;
 #endif // MINIMAL_BUILD
 			case 'M':
 				duration_to_tot = atoi(optarg);
 				if(duration_to_tot <= 0)
 				{
-					throw sinsp_exception(string("invalid duration") + optarg);
+					throw sinsp_exception(std::string("invalid duration") + optarg);
 					res.m_res = EXIT_FAILURE;
 					goto exit;
 				}
@@ -1348,7 +1348,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 				if(cnt <= 0)
 				{
-					throw sinsp_exception(string("invalid event count ") + optarg);
+					throw sinsp_exception(std::string("invalid event count ") + optarg);
 					res.m_res = EXIT_FAILURE;
 					goto exit;
 				}
@@ -1357,14 +1357,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				opener.options.print_progress = true;
 				break;
 			case 'p':
-				if(string(optarg) == "p")
+				if(std::string(optarg) == "p")
 				{
 					// -pp shows the default output format, useful if the user wants to tweak it.
 					printf("%s\n", output_format.c_str());
 					delete inspector;
 					return sysdig_init_res(EXIT_SUCCESS);
 				}
-				else if(string(optarg) == "c" || string(optarg) == "container")
+				else if(std::string(optarg) == "c" || std::string(optarg) == "container")
 				{
 					output_format = "*%evt.num %evt.outputtime %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
 
@@ -1374,7 +1374,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						inspector->set_print_container_data(true);
 					}
 				}
-				else if(string(optarg) == "k" || string(optarg) == "kubernetes")
+				else if(std::string(optarg) == "k" || std::string(optarg) == "kubernetes")
 				{
 					output_format = "*%evt.num %evt.outputtime %evt.cpu %k8s.pod.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
 
@@ -1384,7 +1384,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						inspector->set_print_container_data(true);
 					}
 				}
-				else if(string(optarg) == "m" || string(optarg) == "mesos")
+				else if(std::string(optarg) == "m" || std::string(optarg) == "mesos")
 				{
 					output_format = "*%evt.num %evt.outputtime %evt.cpu %mesos.task.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
 
@@ -1410,8 +1410,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			case 'r':
 				infiles.emplace_back(optarg);
 #ifndef MINIMAL_BUILD
-				k8s_api = new string();
-				mesos_api = new string();
+				k8s_api = new std::string();
+				mesos_api = new std::string();
 #endif // MINIMAL_BUILD
 				break;
 			case 'S':
@@ -1431,7 +1431,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			case 't':
 				{
-					string tms(optarg);
+					std::string tms(optarg);
 
 					if(tms == "h" || tms == "a" || tms == "r" || tms == "d" || tms == "D")
 					{
@@ -1449,7 +1449,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				force_tracers_capture = true;
 				break;
 			case 'U':
-				suppress_comms.insert(string(optarg));
+				suppress_comms.insert(std::string(optarg));
 				break;
 			case 'u':
 				opener.udig.enabled = true;
@@ -1467,7 +1467,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				file_limit = atoi(optarg);
 				if(file_limit <= 0)
 				{
-					throw sinsp_exception(string("invalid file limit") + optarg);
+					throw sinsp_exception(std::string("invalid file limit") + optarg);
 					res.m_res = EXIT_FAILURE;
 					goto exit;
 				}
@@ -1498,7 +1498,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			case 0:
 				{
-					string optname = string(long_options[long_index].name);
+					std::string optname = std::string(long_options[long_index].name);
 					if (long_options[long_index].flag != 0) {
 						break;
 					}
@@ -1513,28 +1513,28 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
 					else if (optname == "log-level") {
-						if (string(optarg) == "fatal") {
+						if (std::string(optarg) == "fatal") {
 							inspector->set_min_log_severity(sinsp_logger::SEV_FATAL);
 						}
-						else if (string(optarg) == "critical") {
+						else if (std::string(optarg) == "critical") {
 							inspector->set_min_log_severity(sinsp_logger::SEV_CRITICAL);
 						}
-						else if (string(optarg) == "error") {
+						else if (std::string(optarg) == "error") {
 							inspector->set_min_log_severity(sinsp_logger::SEV_ERROR);
 						}
-						else if (string(optarg) == "warning") {
+						else if (std::string(optarg) == "warning") {
 							inspector->set_min_log_severity(sinsp_logger::SEV_WARNING);
 						}
-						else if (string(optarg) == "notice") {
+						else if (std::string(optarg) == "notice") {
 							inspector->set_min_log_severity(sinsp_logger::SEV_NOTICE);
 						}
-						else if (string(optarg) == "info") {
+						else if (std::string(optarg) == "info") {
 							inspector->set_min_log_severity(sinsp_logger::SEV_INFO);
 						}
-						else if (string(optarg) == "debug") {
+						else if (std::string(optarg) == "debug") {
 							inspector->set_min_log_severity(sinsp_logger::SEV_DEBUG);
 						}
-						else if (string(optarg) == "trace") {
+						else if (std::string(optarg) == "trace") {
 							inspector->set_min_log_severity(sinsp_logger::SEV_TRACE);
 						} else {
 							fprintf(stderr, "invalid log level %s\n", optarg);
@@ -1544,7 +1544,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						g_logger.add_stdout_log();
 					}
 					else if (optname == "list-chisels") {
-						vector<chisel_desc> chlist;
+						std::vector<chisel_desc> chlist;
 						sinsp_chisel::get_chisel_list(&chlist);
 						list_chisels(&chlist, true);
 						delete inspector;
@@ -1567,12 +1567,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 
 					else if (optname == "gvisor-generate-config") {
-						string socket_path;
+						std::string socket_path;
 						if (optarg)
 						{
 							socket_path = std::string(optarg);
 						}
-						string generated_config = inspector->generate_gvisor_config(socket_path);
+						std::string generated_config = inspector->generate_gvisor_config(socket_path);
 						printf("%s", generated_config.c_str());
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
@@ -1729,7 +1729,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			goto exit;
 		}
 
-		string filter;
+		std::string filter;
 
 		//
 		// the filter is at the end of the command line
@@ -1934,7 +1934,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				{
 					if(char* k8s_cert_env = getenv("SYSDIG_K8S_API_CERT"))
 					{
-						k8s_api_cert = new string(k8s_cert_env);
+						k8s_api_cert = new std::string(k8s_cert_env);
 					}
 				}
 				inspector->init_k8s_client(k8s_api, k8s_api_cert, node_name, verbose);
@@ -1949,10 +1949,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					{
 						if(char* k8s_cert_env = getenv("SYSDIG_K8S_API_CERT"))
 						{
-							k8s_api_cert = new string(k8s_cert_env);
+							k8s_api_cert = new std::string(k8s_cert_env);
 						}
 					}
-					k8s_api = new string(k8s_api_env);
+					k8s_api = new std::string(k8s_api_env);
 					inspector->init_k8s_client(k8s_api, k8s_api_cert, node_name, verbose);
 				}
 				else
@@ -1975,7 +1975,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			{
 				if(mesos_api_env != NULL)
 				{
-					mesos_api = new string(mesos_api_env);
+					mesos_api = new std::string(mesos_api_env);
 					inspector->init_mesos_client(mesos_api, verbose);
 				}
 			}
@@ -2031,19 +2031,19 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	}
 	catch(const scap_open_exception& e)
 	{
-		cerr << e.what() << endl;
+		std::cerr << e.what() << std::endl;
 		handle_end_of_file(NULL, opener.options.print_progress, reset_colors);
 		res.m_res = e.scap_rc();
 	}
 	catch(const sinsp_exception& e)
 	{
-		cerr << e.what() << endl;
+		std::cerr << e.what() << std::endl;
 		handle_end_of_file(NULL, opener.options.print_progress, reset_colors);
 		res.m_res = EXIT_FAILURE;
 	}
 	catch (const std::runtime_error& e)
 	{
-		cerr << e.what() << endl;
+		std::cerr << e.what() << std::endl;
 		handle_end_of_file(NULL, opener.options.print_progress, reset_colors);
 		res.m_res = EXIT_FAILURE;
 	}
@@ -2057,10 +2057,10 @@ exit:
 	//
 	// If any of the chisels is requesting another run,
 	//
-	for(vector<sinsp_chisel*>::iterator it = g_chisels.begin();
+	for(std::vector<sinsp_chisel*>::iterator it = g_chisels.begin();
 		it != g_chisels.end(); ++it)
 	{
-		string na;
+		std::string na;
 		if((*it)->get_nextrun_args(&na))
 		{
 			res.m_next_run_args = split_nextrun_args(na);
@@ -2112,7 +2112,7 @@ int main(int argc, char **argv)
 		optopt = '?';
 
 		int newargc = (int)res.m_next_run_args.size() + 1;
-		vector<char*> newargv;
+		std::vector<char*> newargv;
 
 		newargv.push_back(argv[0]);
 
