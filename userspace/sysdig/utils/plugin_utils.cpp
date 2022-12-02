@@ -222,7 +222,7 @@ plugin_utils::plugin_utils()
 
     if (s_user_cdirs != nullptr)
     {
-        vector<string> user_cdirs = sinsp_split(s_user_cdirs, ';');
+        std::vector<std::string> user_cdirs = sinsp_split(s_user_cdirs, ';');
 
         for (auto & user_cdir : user_cdirs)
         {
@@ -256,7 +256,7 @@ void plugin_utils::add_directory(const std::string& plugins_dir)
     add_dir(plugins_dir, false);
 }
 
-void plugin_utils::load_plugin(sinsp *inspector, const string& name)
+void plugin_utils::load_plugin(sinsp *inspector, const std::string& name)
 {
     // avoid duplicate loads
     for (auto &p : m_plugins)
@@ -269,7 +269,7 @@ void plugin_utils::load_plugin(sinsp *inspector, const string& name)
     }
 
     // If it is a path, register it
-	if (name.find('/') != string::npos)
+	if (name.find('/') != std::string::npos)
 	{
         plugin_entry p;
         p.used = true;
@@ -357,13 +357,13 @@ const plugin_utils::plugin_entry& plugin_utils::find_plugin(const std::string na
     throw sinsp_exception(err_plugin_not_found + name);
 }
 
-void plugin_utils::config_plugin(sinsp *inspector, const string& name, const string& conf)
+void plugin_utils::config_plugin(sinsp *inspector, const std::string& name, const std::string& conf)
 {
     auto& p = find_plugin(name);
     p.init_config = conf;
 }
 
-void plugin_utils::select_input_plugin(sinsp *inspector, const string& name, const string& params)
+void plugin_utils::select_input_plugin(sinsp *inspector, const std::string& name, const std::string& params)
 {
     load_plugin(inspector, name);
     auto& p = find_plugin(name);
@@ -409,7 +409,7 @@ void plugin_utils::print_plugin_info_list(sinsp* inspector)
     printf("%s", os.str().c_str());
 }
 
-void plugin_utils::print_plugin_info(sinsp* inspector, const string& name)
+void plugin_utils::print_plugin_info(sinsp* inspector, const std::string& name)
 {
     std::ostringstream os;
 
@@ -486,7 +486,7 @@ void plugin_utils::load_plugins_from_conf_file(sinsp *inspector, const std::stri
     std::string config_explanation = ". See https://falco.org/docs/plugins/#loading-plugins-in-falco for additional information.";
     try {
         config = YAML::LoadFile(config_filename);
-    } catch (exception &e)
+    } catch (std::exception &e)
     {
         throw sinsp_exception("could not read or find configuration file " + config_filename + ": " + e.what());
     }

@@ -39,6 +39,8 @@ limitations under the License.
 extern int32_t g_screen_w;
 extern bool g_filterchecks_force_raw_times;
 
+using namespace std;
+
 #ifndef NOCURSESUI
 #define ColorPair(i,j) COLOR_PAIR((7-i)*8+j)
 #endif
