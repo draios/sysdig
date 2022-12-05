@@ -90,13 +90,13 @@ jobs:
       - name: Build
         run: |
           mkdir -p build
-          cd build && cmake -Wno-dev -DBUILD_DRIVER=OFF ..
-          cmake --build . --target package
+          cd build && cmake -Wno-dev -DBUILD_DRIVER=OFF -DSYSDIG_VERSION="${{ env.BUILD_VERSION }}" ..
+          cmake --build . --target package --config Release
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.artifact_name }}-x86_64
-          path: /build/sysdig-${{ env.BUILD_VERSION }}*.${{ matrix.artifact_ext }}
+          path: build/sysdig-${{ env.BUILD_VERSION }}*.${{ matrix.artifact_ext }}
 
   push-container-image:
     runs-on: ubuntu-latest

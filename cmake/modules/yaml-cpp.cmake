@@ -30,7 +30,7 @@ else()
   if(NOT WIN32)
     set(YAMLCPP_LIB "${YAMLCPP_SRC}/libyaml-cpp.a")
   else()
-    set(YAMLCPP_LIB "${YAMLCPP_SRC}/Debug/yaml-cpp.lib")
+    set(YAMLCPP_LIB "${YAMLCPP_SRC}/${CMAKE_BUILD_TYPE}/yaml-cpp.lib")
   endif()
   set(YAMLCPP_INCLUDE_DIR "${YAMLCPP_SRC}/include")
   ExternalProject_Add(
