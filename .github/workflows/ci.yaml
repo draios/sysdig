@@ -165,7 +165,7 @@ jobs:
         run: |
           mkdir -p build
           cd build && cmake -Wno-dev -DBUILD_DRIVER=OFF ..
-          cmake --build . --target package
+          cmake --build . --target package --config Release
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
