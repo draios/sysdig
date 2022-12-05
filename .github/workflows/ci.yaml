@@ -82,19 +82,19 @@ jobs:
       - name: Upload rpm package
         uses: actions/upload-artifact@v3
         with:
-          name: sysdig-dev-linux-amd64.rpm
+          name: sysdig-dev-linux-x86_64.rpm
           path: |
             /build/release/sysdig-*.rpm
       - name: Upload deb package
         uses: actions/upload-artifact@v3
         with:
-          name: sysdig-dev-linux-amd64.deb
+          name: sysdig-dev-linux-x86_64.deb
           path: |
             /build/release/sysdig-*.deb
       - name: Upload tar.gz package
         uses: actions/upload-artifact@v3
         with:
-          name: sysdig-dev-linux-x86_64
+          name: sysdig-dev-linux-x86_64.tar.gz
           path: |
             /build/release/sysdig-*.tar.gz      
 
@@ -129,19 +129,19 @@ jobs:
       - name: Upload deb package
         uses: actions/upload-artifact@v3
         with:
-          name: sysdig-dev-linux-arm64.deb
+          name: sysdig-dev-linux-aarch64.deb
           path: |
             ${{ github.workspace }}/sysdig-build-aarch64/sysdig-*.deb
       - name: Upload rpm package
         uses: actions/upload-artifact@v3
         with:
-          name: sysdig-dev-linux-arm64.rpm
+          name: sysdig-dev-linux-aarch64.rpm
           path: |
             ${{ github.workspace }}/sysdig-build-aarch64/sysdig-*.rpm
       - name: Upload tar.gz package
         uses: actions/upload-artifact@v3
         with:
-          name: sysdig-dev-linux-aarch64
+          name: sysdig-dev-linux-aarch64.tar.gz
           path: |
             ${{ github.workspace }}/sysdig-build-aarch64/sysdig-*.tar.gz
 
@@ -169,6 +169,6 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: sysdig-dev-${{ matrix.artifact_name }}-x86_64
+          name: sysdig-dev-${{ matrix.artifact_name }}-x86_64.${{ matrix.artifact_ext }}
           path: |
             build/sysdig-*.${{ matrix.artifact_ext }}

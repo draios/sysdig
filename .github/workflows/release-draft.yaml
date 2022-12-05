@@ -211,11 +211,11 @@ jobs:
     env:
       BUILD_VERSION: ${{ github.ref_name }}
     steps:
-      - name: Download artifacts (amd64)
+      - name: Download artifacts (linux-amd64)
         uses: actions/download-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-x86_64
-      - name: Download artifacts (arm64)
+      - name: Download artifacts (linux-arm64)
         uses: actions/download-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-aarch64
