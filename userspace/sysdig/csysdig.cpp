@@ -42,7 +42,8 @@ limitations under the License.
 #include "fields_info.h"
 #include "chisel_table.h"
 #include "utils.h"
-#include "plugin_utils.h"
+#include "utils/plugin_utils.h"
+#include "utils/sinsp_opener.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -229,7 +230,7 @@ static void add_chisel_dirs(sinsp* inspector)
 
 	if(s_user_cdirs != NULL)
 	{
-		vector<string> user_cdirs = sinsp_split(s_user_cdirs, ';');
+		std::vector<std::string> user_cdirs = sinsp_split(s_user_cdirs, ';');
 
 		for(uint32_t j = 0; j < user_cdirs.size(); j++)
 		{
@@ -243,7 +244,7 @@ static void print_views(chisel_view_manager* view_manager)
 	Json::FastWriter writer;
 	Json::Value root;
 
-	vector<chisel_view_info>* vlist = view_manager->get_views();
+	std::vector<chisel_view_info>* vlist = view_manager->get_views();
 
 	for(auto it = vlist->begin(); it != vlist->end(); ++it)
 	{
@@ -274,7 +275,7 @@ static void print_views(chisel_view_manager* view_manager)
 		root.append(jv);
 	}
 
-	string output = writer.write(root);
+	std::string output = writer.write(root);
 	printf("%s", output.substr(0, output.size() - 1).c_str());
 }
 #endif
@@ -287,6 +288,7 @@ captureinfo do_inspect(sinsp* inspector,
 	int32_t res;
 	sinsp_evt* ev;
 
+	inspector->start_capture();
 	//
 	// Loop through the events
 	//
@@ -331,25 +333,25 @@ captureinfo do_inspect(sinsp* inspector,
 
 		retval.m_nevts++;
 	}
-
+	inspector->stop_capture();
 	return retval;
 }
 
-string g_version_string = SYSDIG_VERSION;
+std::string g_version_string = SYSDIG_VERSION;
 
 sysdig_init_res csysdig_init(int argc, char **argv)
 {
 	sysdig_init_res res;
 	sinsp* inspector = NULL;
-	vector<string> infiles;
+	std::vector<std::string> infiles;
 	int op;
 	uint64_t cnt = -1;
 	uint32_t snaplen = 0;
 	int long_index = 0;
 	int32_t n_filterargs = 0;
 	captureinfo cinfo;
-	string errorstr;
-	string display_view;
+	std::string errorstr;
+	std::string display_view;
 	bool print_containers = false;
 	uint64_t refresh_interval_ns = 2000000000;
 	bool list_flds = false;
@@ -358,10 +360,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	int32_t json_last_row = 0;
 	int32_t sorting_col = -1;
 	bool list_views = false;
-	bool bpf = false;
-	string bpf_probe;
 #ifdef HAS_CAPTURE
-	string cri_socket_path;
+	std::string cri_socket_path;
 #endif
 
 #ifndef _WIN32
@@ -370,17 +370,18 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	chisel_table::output_type output_type = chisel_table::OT_JSON;
 #endif
 #ifndef MINIMAL_BUILD
-	string* k8s_api = 0;
-	string* node_name = 0;
-	string* k8s_api_cert = 0;
-	string* mesos_api = 0;
+	std::string* k8s_api = 0;
+	std::string* node_name = 0;
+	std::string* k8s_api_cert = 0;
+	std::string* mesos_api = 0;
 #endif // MINIMAL_BUILD
 	bool terminal_with_mouse = false;
 	bool force_tracers_capture = false;
 	bool force_term_compat = false;
 	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
-	bool page_faults = false;
 	plugin_utils plugins;
+	bool list_plugins = false;
+	sinsp_opener opener;
 
 	static struct option long_options[] =
 	{
@@ -436,7 +437,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		add_chisel_dirs(inspector);
 #endif
 		plugins.add_directory(SYSDIG_PLUGINS_DIR);
-		plugins.load_plugins_from_dirs(inspector);
+		plugins.read_plugins_from_dirs(inspector);
 
 		//
 		// Parse the args
@@ -464,10 +465,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 			case 'B':
 			{
-				bpf = true;
+				opener.bpf.enabled = true;
 				if(optarg)
 				{
-					bpf_probe = optarg;
+					opener.bpf.probe = optarg;
 				}
 				break;
 			}
@@ -496,13 +497,13 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				return sysdig_init_res(EXIT_SUCCESS);
 #ifndef MINIMAL_BUILD
 			case 'k':
-				k8s_api = new string(optarg);
+				k8s_api = new std::string(optarg);
 				break;
 			case 'N':
-				node_name = new string(optarg);
+				node_name = new std::string(optarg);
 				break;
 			case 'K':
-				k8s_api_cert = new string(optarg);
+				k8s_api_cert = new std::string(optarg);
 				break;
 #endif // MINIMAL_BUILD
 			case 'j':
@@ -513,7 +514,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 #ifndef MINIMAL_BUILD
 			case 'm':
-				mesos_api = new string(optarg);
+				mesos_api = new std::string(optarg);
 				break;
 #endif // MINIMAL_BUILD
 			case 'n':
@@ -528,13 +529,13 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 
 				if(cnt <= 0)
 				{
-					throw sinsp_exception(string("invalid event count ") + optarg);
+					throw sinsp_exception(std::string("invalid event count ") + optarg);
 					res.m_res = EXIT_FAILURE;
 					goto exit;
 				}
 				break;
 			case 'p':
-				if(string(optarg) == "c" || string(optarg) == "container")
+				if(std::string(optarg) == "c" || std::string(optarg) == "container")
 				{
 					inspector->set_print_container_data(true);
 					print_containers = true;
@@ -547,8 +548,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			case 'r':
 				infiles.push_back(optarg);
 #ifndef MINIMAL_BUILD
-				k8s_api = new string();
-				mesos_api = new string();
+				k8s_api = new std::string();
+				mesos_api = new std::string();
 #endif // MINIMAL_BUILD
 				break;
 			case 's':
@@ -577,7 +578,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 						break;
 					}
 
-					string optname = string(long_options[long_index].name);
+					std::string optname = std::string(long_options[long_index].name);
 					if(optname == "version")
 					{
 						printf("sysdig version %s\n", SYSDIG_VERSION);
@@ -635,13 +636,25 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					}
 					else if(optname == "page-faults")
 					{
-						page_faults = true;
+						opener.options.page_faults = true;
 					}
 				}
 				break;
 			default:
 				break;
 			}
+		}
+
+		if (list_plugins)
+		{
+			plugins.print_plugin_info_list(inspector);
+			printf("More detailed info about individual plugins can be printed with the --plugin-info option:\n");
+			printf(" Detailed info about a single plugin\n");
+			printf("   $ sysdig --plugin-info=dummy\n\n");
+			printf(" Detailed info about a single plugin with a given configuration\n");
+			printf("   $ sysdig -H dummy:'{\"jitter\":50}' --plugin-info=dummy\n\n");
+			delete inspector;
+			return sysdig_init_res(EXIT_SUCCESS);
 		}
 
 #ifdef HAS_CAPTURE
@@ -651,7 +664,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		}
 #endif
 
-		string filter;
+		std::string filter;
 
 		//
 		// If -l was specified, print the fields and exit
@@ -679,24 +692,13 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			}
 		}
 
-		if(!bpf)
+		if(!opener.bpf.enabled)
 		{
 			const char *probe = getenv("SYSDIG_BPF_PROBE");
-			if(probe && strlen(probe) > 0)
+			if(probe)
 			{
-				bpf = true;
-				bpf_probe = probe;
-			}
-			else
-			{
-				const char *home = std::getenv("HOME");
-				if(!home)
-				{
-					fprintf(stderr, "Cannot get the env variable 'HOME'");
-					res.m_res = EXIT_FAILURE;
-					goto exit;
-				}
-				bpf_probe = std::string(home) + "/" + SYSDIG_PROBE_BPF_FILEPATH;
+				opener.bpf.enabled = true;
+				opener.bpf.probe = probe;
 			}
 		}
 
@@ -769,7 +771,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		//
 		// Scan the chisel list to load the Lua views, and add them to the list
 		//
-		vector<chisel_desc> chlist;
+		std::vector<chisel_desc> chlist;
 		sinsp_chisel::get_chisel_list(&chlist);
 
 		for(auto it : chlist)
@@ -827,7 +829,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			// Initialize the UI
 			//
 			sinsp_cursesui ui(inspector,
-				(infiles.size() != 0)? infiles[0] : "",
+				&opener,
 				(filter.size() != 0)? filter : "",
 				refresh_interval_ns,
 				print_containers,
@@ -873,7 +875,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				//
 				// We have a file to open
 				//
-				inspector->open_savefile(infiles[j]);
+				opener.savefile.enabled = true;
+				opener.savefile.path = infiles[j];
+				opener.open(inspector);
 			}
 			else
 			{
@@ -881,65 +885,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				{
 					break;
 				}
-
-				//
-				// No file to open, this is a live capture
-				//
-
-				std::unordered_set<uint32_t> sc_of_interest = inspector->get_all_ppm_sc();
-
-				/* Populate tracepoints of interest */
-				std::unordered_set<uint32_t> tp_of_interest = inspector->get_all_tp();
-				if(!page_faults)
-				{
-					tp_of_interest.erase(PAGE_FAULT_USER);
-					tp_of_interest.erase(PAGE_FAULT_KERN);
-				}
-
-				if (g_plugin_input)
-				{
-					inspector->open_plugin(plugins.input_plugin_name(), plugins.input_plugin_params());
-				}
-#if defined(HAS_CAPTURE) && !defined(_WIN32)
-				else if(bpf)
-				{
-					try
-					{
-						inspector->open_bpf(bpf_probe, DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
-					}
-					catch(const sinsp_exception& e)
-					{
-						if(system("scap-driver-loader bpf"))
-						{
-							fprintf(stderr, "Unable to load the BPF probe\n");
-						}
-						inspector->open_bpf(bpf_probe, DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
-					}
-
-					// Enable gathering the CPU from the kernel module
-					inspector->set_get_procs_cpu_from_driver(true);
-				}
-				else
-				{
-					try
-					{
-						inspector->open_kmod(DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
-					}
-					catch(const sinsp_exception& e)
-					{
-						// if we are opening the syscall source, we retry later
-						// by loading the driver with modprobe
-						if(system("modprobe " DRIVER_NAME " > /dev/null 2> /dev/null"))
-						{
-							fprintf(stderr, "Unable to load the driver\n");
-						}
-						inspector->open_kmod(DEFAULT_DRIVER_BUFFER_BYTES_DIM, sc_of_interest, tp_of_interest);
-					}
-
-					// Enable gathering the CPU from the kernel module
-					inspector->set_get_procs_cpu_from_driver(true);
-				}
-#endif // HAS_CAPTURE && !_WIN32
+				opener.open(inspector);
 			}
 
 			//
@@ -968,7 +914,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				{
 					if(char* k8s_cert_env = getenv("SYSDIG_K8S_API_CERT"))
 					{
-						k8s_api_cert = new string(k8s_cert_env);
+						k8s_api_cert = new std::string(k8s_cert_env);
 					}
 				}
 				inspector->init_k8s_client(k8s_api, k8s_api_cert, node_name);
@@ -983,10 +929,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					{
 						if(char* k8s_cert_env = getenv("SYSDIG_K8S_API_CERT"))
 						{
-							k8s_api_cert = new string(k8s_cert_env);
+							k8s_api_cert = new std::string(k8s_cert_env);
 						}
 					}
-					k8s_api = new string(k8s_api_env);
+					k8s_api = new std::string(k8s_api_env);
 					inspector->init_k8s_client(k8s_api, k8s_api_cert, node_name);
 				}
 				else
@@ -1009,7 +955,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			{
 				if(mesos_api_env != NULL)
 				{
-					mesos_api = new string(mesos_api_env);
+					mesos_api = new std::string(mesos_api_env);
 					inspector->init_mesos_client(mesos_api);
 				}
 			}
@@ -1040,7 +986,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			}
 
 			//
-			// Done. Close the capture.
+			// Done. Close the inspector.
 			//
 			inspector->close();
 		}
@@ -1082,7 +1028,7 @@ exit:
 
 	if(errorstr != "")
 	{
-		cerr << errorstr << endl;
+		std::cerr << errorstr << std::endl;
 	}
 
 	return res;

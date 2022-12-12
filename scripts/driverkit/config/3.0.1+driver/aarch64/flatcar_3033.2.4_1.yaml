@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 3033.2.4
+target: flatcar
+architecture: arm64
+output:
+  module: output/3.0.1+driver/aarch64/scap_flatcar_3033.2.4_1.ko
+  probe: output/3.0.1+driver/aarch64/scap_flatcar_3033.2.4_1.o
+kernelurls: ["https://stable.release.flatcar-linux.net/arm64-usr/3033.2.4/flatcar_developer_container.bin.bz2"]

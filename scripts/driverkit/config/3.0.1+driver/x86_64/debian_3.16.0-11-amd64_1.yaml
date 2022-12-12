@@ -1,0 +1,5 @@
+kernelversion: 1
+kernelrelease: 3.16.0-11-amd64
+target: debian
+output:
+  module: output/3.0.1+driver/x86_64/scap_debian_3.16.0-11-amd64_1.ko

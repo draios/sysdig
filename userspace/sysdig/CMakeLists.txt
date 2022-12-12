@@ -46,10 +46,16 @@ else()
 endif()
 
 list(APPEND SOURCE_FILES
-	plugin_utils.cpp)
+	utils/sinsp_opener.cpp
+	utils/plugin_utils.cpp
+	utils/supported_events.cpp
+	utils/supported_fields.cpp)
 
 list(APPEND SOURCE_FILES_CSYSDIG
-	plugin_utils.cpp
+	utils/sinsp_opener.cpp
+	utils/plugin_utils.cpp
+	utils/supported_events.cpp
+	utils/supported_fields.cpp
 	../sinspui/ctext.cpp
 	../sinspui/cursescomponents.cpp
 	../sinspui/cursesspectro.cpp
@@ -114,6 +120,7 @@ if(NOT WIN32)
 		DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
 else()
+	include(luajit)
 
 	target_link_libraries(sysdig
 		sinsp
@@ -133,11 +140,6 @@ else()
 			"${PROJECT_BINARY_DIR}/$(Configuration)/lua51.dll")
 
 	add_custom_command(TARGET sysdig POST_BUILD
-		COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-			"${ZLIB_INCLUDE}/zlib1.dll"
-			"${PROJECT_BINARY_DIR}/$(Configuration)/")
-
-	add_custom_command(TARGET sysdig POST_BUILD
 		COMMAND "${CMAKE_COMMAND}" -E copy_directory
 			"${PROJECT_SOURCE_DIR}/userspace/sysdig/chisels"
 			"${PROJECT_BINARY_DIR}/$(Configuration)/chisels")
@@ -151,6 +153,22 @@ else()
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different
 			$<TARGET_FILE:csysdig>
 			"${PROJECT_BINARY_DIR}/$(Configuration)/csysdig.exe")
+
+	install(TARGETS sysdig
+			DESTINATION programs
+			COMPONENT "${SYSDIG_COMPONENT_NAME}")
+
+	install(TARGETS csysdig
+			DESTINATION programs
+			COMPONENT "${SYSDIG_COMPONENT_NAME}")
+
+	install(DIRECTORY chisels
+			DESTINATION programs
+			COMPONENT "${SYSDIG_COMPONENT_NAME}")
+
+	install(FILES "${LUAJIT_SRC}/lua51.dll"
+			DESTINATION programs
+			COMPONENT "${SYSDIG_COMPONENT_NAME}")
 
 endif()
 

@@ -1,0 +1,6 @@
+kernelversion: 1
+kernelrelease: 5.13.0-1000-aws
+target: ubuntu-aws
+output:
+  module: output/3.0.1+driver/x86_64/scap_ubuntu-aws_5.13.0-1000-aws_1.ko
+  probe: output/3.0.1+driver/x86_64/scap_ubuntu-aws_5.13.0-1000-aws_1.o

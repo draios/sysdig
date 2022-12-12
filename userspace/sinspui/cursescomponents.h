@@ -20,21 +20,21 @@ limitations under the License.
 class search_caller_interface
 {
 public:
-	virtual bool on_search_key_pressed(string search_str) = 0;
+	virtual bool on_search_key_pressed(std::string search_str) = 0;
 	virtual bool on_search_next() = 0;
-	virtual string* get_last_search_string() = 0;
+	virtual std::string* get_last_search_string() = 0;
 };
 
 class sidemenu_list_entry
 {
 public:
-	sidemenu_list_entry(string name, uint32_t id)
+	sidemenu_list_entry(std::string name, uint32_t id)
 	{
 		m_name = name;
 		m_id = id;
 	}
 
-	string m_name;
+	std::string m_name;
 	uint32_t m_id;
 };
 
@@ -111,7 +111,7 @@ public:
 //private:
 	filtercheck_field_info m_info;
 	int32_t m_size;
-	string m_name;
+	std::string m_name;
 
 	friend class curses_table;
 };
@@ -152,7 +152,7 @@ public:
 		uint32_t selct,
 		uint32_t width);
 	~curses_table_sidemenu();
-	void set_entries(vector<sidemenu_list_entry>* entries)
+	void set_entries(std::vector<sidemenu_list_entry>* entries)
 	{
 		m_entries = *entries;
 
@@ -161,7 +161,7 @@ public:
 			m_selct = 0;
 		}
 	}
-	void set_title(string title)
+	void set_title(std::string title)
 	{
 		m_title = title;
 	}
@@ -171,8 +171,8 @@ public:
 	WINDOW* m_win;
 	int32_t m_y_start;
 	sinsp_cursesui* m_parent;
-	vector<sidemenu_list_entry> m_entries;
-	string m_title;
+	std::vector<sidemenu_list_entry> m_entries;
+	std::string m_title;
 	MEVENT m_last_mevent;
 	sidemenu_type m_type;
 
@@ -187,7 +187,7 @@ public:
 	curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type, spy_text_renderer::sysdig_output_type sotype);
 	~curses_textbox();
 	void render();
-	void set_filter(string filter);
+	void set_filter(std::string filter);
 	void print_no_data();
 	void process_event(sinsp_evt* evt, int32_t next_res);
 	void render_header();
@@ -195,11 +195,11 @@ public:
 	void populate_sidemenu();
 	void reset();
 	bool get_position(OUT int32_t* pos, OUT int32_t* totlines, OUT float* percent, OUT bool* truncated);
-	string* get_last_search_string();
+	std::string* get_last_search_string();
 	int8_t get_offset(int32_t* x, int32_t* y); 
 	int8_t scroll_to(int32_t x, int32_t y);
 	void up();
-	bool on_search_key_pressed(string search_str);
+	bool on_search_key_pressed(std::string search_str);
 	bool on_search_next();
 
 	MEVENT m_last_mevent;
@@ -216,10 +216,10 @@ private:
 	uint32_t n_prints;
 	bool m_paused;
 	curses_table_sidemenu* m_sidemenu;
-	vector<sidemenu_list_entry> m_entries;
+	std::vector<sidemenu_list_entry> m_entries;
 //	int32_t m_viz_type;
 //	sinsp_evt_formatter* m_formatter;
-	string m_last_search_string;
+	std::string m_last_search_string;
 	ctext_search* m_searcher;
 	bool m_has_searched;
 	bool m_search_type_is_goto;

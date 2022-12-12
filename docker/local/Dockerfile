@@ -12,7 +12,7 @@ ENV HOME /root
 
 RUN cp /etc/skel/.bashrc /root && cp /etc/skel/.profile /root
 
-ADD http://download.draios.com/apt-draios-priority /etc/apt/preferences.d/
+ADD https://download.sysdig.com/apt-draios-priority /etc/apt/preferences.d/
 
 RUN apt-get update \
  && apt-get upgrade -y \

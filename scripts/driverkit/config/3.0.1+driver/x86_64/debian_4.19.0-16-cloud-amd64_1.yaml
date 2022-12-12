@@ -1,0 +1,6 @@
+kernelversion: 1
+kernelrelease: 4.19.0-16-cloud-amd64
+target: debian
+output:
+  module: output/3.0.1+driver/x86_64/scap_debian_4.19.0-16-cloud-amd64_1.ko
+  probe: output/3.0.1+driver/x86_64/scap_debian_4.19.0-16-cloud-amd64_1.o

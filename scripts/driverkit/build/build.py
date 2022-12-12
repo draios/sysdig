@@ -80,7 +80,7 @@ def main():
     all_archs = len(args.arch) == 0
     dri_dirs = [x for x in config_dir.iterdir() if x.is_dir()]
     for dri_dir in dri_dirs:
-        implicit_arch = ""
+        legacy_arch = ""
         config_dirs = [x for x in dri_dir.iterdir() if x.is_dir()]
         if not config_dirs:
             if all_archs or args.arch == "x86_64":
@@ -88,15 +88,15 @@ def main():
                 # have the arch directory split, so config are placed in the
                 # driver version directory itself
                 config_dirs = [dri_dir]
-                implicit_arch = "x86_64"
+                legacy_arch = "x86_64"
             else:
                 # Archs other than x86_64 are not supported on older driver ver
                 continue
         for config_dir in config_dirs:
             # if arch is not dediced implicitly, then it must be equal to the
             # config directory name
-            arch = implicit_arch
-            if arch == "":
+            arch = legacy_arch
+            if legacy_arch == "":
                 arch = config_dir.name
 
             # skip this config if the arch is not the one we're building for
@@ -125,12 +125,18 @@ def main():
                 module_s3key = None
                 if module_output is not None:
                     module_basename = os.path.basename(module_output)
-                    module_s3key = f"{s3_prefix}/{driverversion}/{module_basename}"
+                    if legacy_arch == "": # we need to specify an arch
+                        module_s3key = f"{s3_prefix}/{driverversion}/{arch}/{module_basename}"
+                    else:
+                        module_s3key = f"{s3_prefix}/{driverversion}/{module_basename}"
 
                 probe_s3key = None
                 if probe_output is not None:
                     probe_basename = os.path.basename(probe_output)
-                    probe_s3key = f"{s3_prefix}/{driverversion}/{probe_basename}"
+                    if legacy_arch == "": # we need to specify an arch
+                        probe_s3key = f"{s3_prefix}/{driverversion}/{arch}/{probe_basename}"
+                    else:
+                        probe_s3key = f"{s3_prefix}/{driverversion}/{probe_basename}"
 
                 if s3:
                     need_module = (module_output is not None) and (args.rebuild or not s3_exists(s3, s3_bucket, module_s3key))

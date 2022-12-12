@@ -32,8 +32,8 @@ else()
   # default below In case you want to test against another falcosecurity/libs version just pass the variable - ie., `cmake
   # -DFALCOSECURITY_LIBS_VERSION=dev ..`
   if(NOT FALCOSECURITY_LIBS_VERSION)
-    set(FALCOSECURITY_LIBS_VERSION "3d69d4b515891101323154eea0dac6fed0f8b065")
-    set(FALCOSECURITY_LIBS_CHECKSUM "SHA256=59f6d04054b2b68562bcf86310ad5c4129bf63e023a4c6b0ae00b756bbf20d88")
+    set(FALCOSECURITY_LIBS_VERSION "200841063d131cb6029c1060339663d64ee64ebb")
+    set(FALCOSECURITY_LIBS_CHECKSUM "SHA256=a04c8acad2648745e328009b485c46f428412debed2dded5ab9b0d5481347a0d")
   endif()
 
   # cd /path/to/build && cmake /path/to/source
@@ -46,8 +46,10 @@ endif()
 
 set(LIBS_PACKAGE_NAME "sysdig")
 
-add_definitions(-D_GNU_SOURCE)
-add_definitions(-DHAS_CAPTURE)
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+  add_definitions(-D_GNU_SOURCE)
+  add_definitions(-DHAS_CAPTURE)
+endif()
 
 if(MUSL_OPTIMIZED_BUILD)
   add_definitions(-DMUSL_OPTIMIZED)
@@ -78,15 +80,8 @@ set(USE_BUNDLED_RE2 ON CACHE BOOL "")
 
 list(APPEND CMAKE_MODULE_PATH "${FALCOSECURITY_LIBS_SOURCE_DIR}/cmake/modules")
 
-include(CheckSymbolExists)
-check_symbol_exists(strlcpy "string.h" HAVE_STRLCPY)
-if(HAVE_STRLCPY)
-	message(STATUS "Existing strlcpy found, will *not* use local definition by setting -DHAVE_STRLCPY.")
-	add_definitions(-DHAVE_STRLCPY)
-else()
-	message(STATUS "No strlcpy found, will use local definition")
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+  include(driver)
 endif()
-
-include(driver)
 include(libscap)
 include(libsinsp)

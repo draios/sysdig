@@ -27,7 +27,7 @@ jobs:
       - name: Build packages
         run: build package
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-x86_64
           path: /build/release/sysdig-${{ env.BUILD_VERSION }}*
@@ -64,10 +64,39 @@ jobs:
               cp /build/release/sysdig-${{ env.BUILD_VERSION }}* /build/release-packages
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-aarch64
           path: ${{ github.workspace }}/sysdig-build-aarch64/sysdig-${{ env.BUILD_VERSION }}*
+          
+  build-release-others-amd64:
+    name: build-release-others-amd64
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+        include:
+          - os: windows-latest
+            artifact_name: win
+            artifact_ext: exe
+          - os: macos-latest
+            artifact_name: osx
+            artifact_ext: dmg
+    env:
+      BUILD_VERSION: ${{ github.ref_name }}
+    runs-on: ${{ matrix.os }}  
+    steps:
+      - name: Checkout Sysdig
+        uses: actions/checkout@v3
+      - name: Build
+        run: |
+          mkdir -p build
+          cd build && cmake -Wno-dev -DBUILD_DRIVER=OFF -DSYSDIG_VERSION="${{ env.BUILD_VERSION }}" ..
+          cmake --build . --target package --config Release
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.artifact_name }}-x86_64
+          path: build/sysdig-${{ env.BUILD_VERSION }}*.${{ matrix.artifact_ext }}
 
   push-container-image:
     runs-on: ubuntu-latest
@@ -122,7 +151,7 @@ jobs:
       - name: Install deps
         run: yum install -y rpm-sign
       - name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.arch }}
       - name: Import private key
@@ -134,7 +163,7 @@ jobs:
       - name: Check signature
         run: test "$(rpm -qpi *.rpm | awk '/Signature/' | grep -i none | wc -l)" -eq 0
       - name: Upload Signed RPMs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.arch }}
           path: "*.rpm"
@@ -159,7 +188,7 @@ jobs:
       - name: Install deps
         run: apt-get update && apt-get -y install dpkg-sig
       - name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.arch }}
       - name: Import private key
@@ -171,7 +200,7 @@ jobs:
       - name: Check signature
         run: dpkg-sig --verify *.deb
       - name: Upload Signed DEBs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.arch }}
           path: "*.deb"
@@ -182,14 +211,22 @@ jobs:
     env:
       BUILD_VERSION: ${{ github.ref_name }}
     steps:
-      - name: Download artifacts (amd64)
-        uses: actions/download-artifact@v2
+      - name: Download artifacts (linux-amd64)
+        uses: actions/download-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-x86_64
-      - name: Download artifacts (arm64)
-        uses: actions/download-artifact@v2
+      - name: Download artifacts (linux-arm64)
+        uses: actions/download-artifact@v3
         with:
           name: sysdig-release-${{ env.BUILD_VERSION }}-aarch64
+      - name: Download artifacts (win-amd64)
+        uses: actions/download-artifact@v3
+        with:
+          name: sysdig-release-${{ env.BUILD_VERSION }}-win-x86_64
+      - name: Download artifacts (osx-amd64)
+        uses: actions/download-artifact@v3
+        with:
+          name: sysdig-release-${{ env.BUILD_VERSION }}-osx-x86_64
       - name: Create draft release
         uses: softprops/action-gh-release@v1
         with:
