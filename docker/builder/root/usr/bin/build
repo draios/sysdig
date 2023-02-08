@@ -4,6 +4,8 @@ set -eu -o pipefail
 
 SOURCE_DIR=/source
 BUILD_DIR=/build
+SKEL_DIR=/build-skeleton
+BUILD_SYSDIG_MODERN_BPF=ON
 CMD=${1:-usage}
 shift
 
@@ -19,6 +21,46 @@ case "$BUILD_TYPE" in
 esac
 
 case "$CMD" in
+"cmake-skeleton")
+    if [ ! -f "$SOURCE_DIR/sysdig/README.md" ]; then
+        echo "Could not find sysdig source in $SOURCE_DIR/sysdig. ($SOURCE_DIR/sysdig/README.md not found!)" >&2
+        exit 1
+    fi
+
+    if [ -f "$SOURCE_DIR/libs/README.md" ]; then
+        echo "Found falcosecurity libs source in $SOURCE_DIR/libs"
+        FALCOSECURITY_LIBS_SOURCE_DIR="$SOURCE_DIR/libs"
+    fi
+
+    # Prepare build directory
+    mkdir -p "$SKEL_DIR/$BUILD_TYPE"
+    cd "$SKEL_DIR/$BUILD_TYPE"
+
+    CMAKE_ARGS=(
+        -DCMAKE_BUILD_TYPE="$BUILD_TYPE"
+        -DBUILD_SYSDIG_MODERN_BPF="$BUILD_SYSDIG_MODERN_BPF"
+        -DBUILD_WARNINGS_AS_ERRORS="$BUILD_WARNINGS_AS_ERRORS"
+        -DUSE_BUNDLED_DEPS=ON
+    )
+
+    if [ ! -z "${FALCOSECURITY_LIBS_SOURCE_DIR:=}" ]; then
+        CMAKE_ARGS+=(-DFALCOSECURITY_LIBS_SOURCE_DIR="$FALCOSECURITY_LIBS_SOURCE_DIR")
+    fi
+
+    CMAKE_ARGS+=("$SOURCE_DIR/sysdig")
+
+    echo "cmake ${CMAKE_ARGS[@]}"
+    cmake "${CMAKE_ARGS[@]}"
+    exit "$(printf '%d\n' $?)"
+    ;;
+"make-skeleton")
+    # Prepare build directory
+    cd "$SKEL_DIR/$BUILD_TYPE"
+
+    echo "make ProbeSkeleton"
+	make ProbeSkeleton
+    exit "$(printf '%d\n' $?)"
+    ;;
 "cmake")
     if [ ! -f "$SOURCE_DIR/sysdig/README.md" ]; then
         echo "Could not find sysdig source in $SOURCE_DIR/sysdig. ($SOURCE_DIR/sysdig/README.md not found!)" >&2
@@ -39,6 +81,8 @@ case "$CMD" in
         -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX:-/usr}"
         -DBUILD_DRIVER="$BUILD_DRIVER"
         -DBUILD_BPF="$BUILD_BPF"
+        -DBUILD_SYSDIG_MODERN_BPF="$BUILD_SYSDIG_MODERN_BPF"
+        -DMODERN_BPF_SKEL_DIR="$SKEL_DIR/$BUILD_TYPE/skel_dir"
         -DBUILD_WARNINGS_AS_ERRORS="$BUILD_WARNINGS_AS_ERRORS"
         -DSYSDIG_VERSION="$BUILD_VERSION"
         -DUSE_BUNDLED_DEPS=ON
