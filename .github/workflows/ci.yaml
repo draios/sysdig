@@ -4,13 +4,17 @@ on:
     branches: [dev]
   push:
     branches: [dev]
+  workflow_dispatch:
+
 
 jobs:
   builder:
     env:
       REGISTRY: ghcr.io
       BUILDER_IMAGE_BASE: ghcr.io/draios/sysdig-builder-pr
+      SKEL_BUILDER_IMAGE_BASE: ghcr.io/draios/sysdig-skel-builder-pr
       BUILDER_DEV: ghcr.io/draios/sysdig-builder:dev
+      SKEL_BUILDER_DEV: ghcr.io/draios/sysdig-skel-builder:dev
 
     runs-on: ubuntu-latest
     steps:
@@ -44,11 +48,28 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
+      - name: Get new skeleton builder image tag
+        id: get-new-skeleton-builder
+        if: steps.builder-files.outputs.any_changed == 'true'
+        run: |
+          echo "::set-output name=skeleton_builder_image::${{ env.SKEL_BUILDER_IMAGE_BASE }}:${{ github.event.pull_request.number }}"
+      
       - name: Get new builder image tag
         id: get-new-builder
         if: steps.builder-files.outputs.any_changed == 'true'
         run: |
           echo "::set-output name=builder_image::${{ env.BUILDER_IMAGE_BASE }}:${{ github.event.pull_request.number }}"
+
+      - name: Build new skeleton builder
+        id: skeleton-builder
+        if: steps.builder-files.outputs.any_changed == 'true'
+        uses: docker/build-push-action@v3
+        with:
+          context: docker/builder
+          file:  docker/builder/modern_bpf_probe.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.get-new-skeleton-builder.outputs.skeleton_builder_image }}
+          push: true
 
       - name: Build new builder
         id: build-builder
@@ -62,9 +83,36 @@ jobs:
 
     outputs:
       builder_image: ${{ (steps.builder-files.outputs.any_changed == 'true') && steps.get-new-builder.outputs.builder_image || env.BUILDER_DEV }}
+      skeleton_builder_image: ${{ (steps.builder-files.outputs.any_changed == 'true') && steps.get-new-skeleton-builder.outputs.skeleton_builder_image || env.SKEL_BUILDER_DEV }}
+
+  build-skeleton-sysdig-linux-amd64:
+    needs: builder
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.builder.outputs.skeleton_builder_image }}
+    steps:
+      - name: Checkout Sysdig
+        uses: actions/checkout@v3
+        with:
+          path: sysdig
+      - name: Link paths
+        run: |
+          mkdir -p /source
+          ln -s "$GITHUB_WORKSPACE/sysdig" /source/sysdig
+      - name: Prepare build skeleton
+        run: build cmake-skeleton
+      - name: Build skeleton
+        run: build make-skeleton
+      - name: Cache build skeleton
+        uses: actions/cache/save@v3
+        if: always()
+        id: cache
+        with:
+          path: /build-skeleton
+          key: build-skeleton-${{ github.run_id }}
 
   build-sysdig-linux-amd64:
-    needs: builder
+    needs: [builder,build-skeleton-sysdig-linux-amd64]
     runs-on: ubuntu-latest
     container:
       image: ${{ needs.builder.outputs.builder_image }}
@@ -77,6 +125,13 @@ jobs:
         run: |
           mkdir -p /source
           ln -s "$GITHUB_WORKSPACE/sysdig" /source/sysdig
+      - name: Restore build skeleton
+        id: cache
+        uses: actions/cache/restore@v3
+        with:
+          path: /build-skeleton
+          key: build-skeleton-${{ github.run_id }}
+          restore-keys: build-skeleton-
       - name: Build
         run: build cmake
       - name: Build packages
@@ -102,6 +157,12 @@ jobs:
 
   build-sysdig-linux-arm64:
     needs: builder
+    env:
+      REGISTRY: ghcr.io
+      BUILDER_IMAGE_BASE: ghcr.io/draios/sysdig-builder-pr
+      SKEL_BUILDER_IMAGE_BASE: ghcr.io/draios/sysdig-skel-builder-pr
+      BUILDER_DEV: ghcr.io/draios/sysdig-builder:dev
+      SKEL_BUILDER_DEV: ghcr.io/draios/sysdig-skel-builder:dev
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Sysdig
@@ -111,10 +172,30 @@ jobs:
       - name: Create build dir
         run: |
           mkdir -p ${{ github.workspace }}/sysdig-build-aarch64
+
+      - name: Login to Github Packages
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
           platforms: 'amd64,arm64'
+      - name: Run the build skeleton process with Docker
+        uses: addnab/docker-run-action@v3
+        with:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          image: ${{ needs.builder.outputs.skeleton_builder_image }}
+          options: --platform=linux/arm64 -v ${{ github.workspace }}/sysdig:/source/sysdig -v ${{ github.workspace }}/sysdig-build-aarch64:/build/dev-packages -v ${{ github.workspace }}/skeleton-build:/build-skeleton
+          run: |
+            mkdir -p /build/dev-packages && \
+            build cmake-skeleton && \
+            build make-skeleton
       - name: Run the build process with Docker
         uses: addnab/docker-run-action@v3
         with:
@@ -122,7 +203,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ${{ env.REGISTRY }}
           image: ${{ needs.builder.outputs.builder_image }}
-          options: --platform=linux/arm64 -v ${{ github.workspace }}/sysdig:/source/sysdig -v ${{ github.workspace }}/sysdig-build-aarch64:/build/dev-packages
+          options: --platform=linux/arm64 -v ${{ github.workspace }}/sysdig:/source/sysdig -v ${{ github.workspace }}/sysdig-build-aarch64:/build/dev-packages -v ${{ github.workspace }}/skeleton-build:/build-skeleton
           run: |
             mkdir -p /build/dev-packages && \
             build cmake && \

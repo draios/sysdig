@@ -1,7 +1,7 @@
-FROM centos:7
+FROM ubuntu:22.04
 
-LABEL name="sysdig/sysdig-builder"
-LABEL usage="docker run -v $PWD/..:/source -v $PWD/build:/build sysdig/sysdig-builder cmake"
+LABEL name="sysdig/sysdig-skel-builder"
+LABEL usage="docker run -v $PWD/..:/source -v $PWD/build:/build sysdig/sysdig-skel-builder cmake"
 
 ARG BUILD_TYPE=release
 ARG BUILD_DRIVER=OFF
@@ -22,9 +22,12 @@ COPY ./root /
 WORKDIR /
 
 # build toolchain
-RUN yum -y install centos-release-scl; \
-    yum -y install devtoolset-9-gcc devtoolset-9-gcc-c++ git wget make m4 rpm-build clang; \
-	source scl_source enable devtoolset-9
+RUN apt update && \
+	apt install -y build-essential git curl wget clang llvm libelf-dev && \
+	git clone https://github.com/libbpf/bpftool.git --branch v7.0.0 --single-branch && \
+	cd bpftool && \
+	git submodule update --init && \
+	cd src && make install && rm -r /bpftool
 
 # With some previous cmake versions it fails when downloading `zlib` with curl in the libs building phase
 RUN curl -L -o /tmp/cmake.tar.gz https://github.com/Kitware/CMake/releases/download/v3.22.5/cmake-3.22.5-linux-$(uname -m).tar.gz; \
@@ -34,9 +37,5 @@ RUN curl -L -o /tmp/cmake.tar.gz https://github.com/Kitware/CMake/releases/downl
     rm -rf /tmp/cmake-3.22.5-linux-$(uname -m)/
 
 # DTS
-ENV BASH_ENV=/usr/bin/scl_enable \
-    ENV=/usr/bin/scl_enable \
-    PROMPT_COMMAND=". /usr/bin/scl_enable"
-
 ENTRYPOINT ["build"]
 CMD ["usage"]
