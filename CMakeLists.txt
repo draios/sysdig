@@ -134,6 +134,14 @@ if(APPLE)
 	set(CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000")
 endif()
 
+# Modern BPF is not supported on not Linux systems and in MINIMAL_BUILD
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+  option(BUILD_SYSDIG_MODERN_BPF "Build modern BPF support for Falco" OFF)
+  if(BUILD_SYSDIG_MODERN_BPF)
+    add_definitions(-DHAS_MODERN_BPF)
+  endif()
+endif()
+
 if(NOT DEFINED SYSDIG_COMPONENT_NAME)
     set(SYSDIG_COMPONENT_NAME "${CMAKE_PROJECT_NAME}")
 endif()

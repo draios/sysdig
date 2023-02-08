@@ -131,6 +131,15 @@ static void usage()
 "                    lists the available chisels. Sysdig looks for chisels in the\n"
 "                    following directories: ./chisels, ~/.chisels, " SYSDIG_CHISELS_DIR ".\n"
 #endif
+#ifdef HAS_MODERN_BPF
+"  --cpus-for-each-buffer <cpus_num>\n"
+"                    [EXPERIMENTAL] Please note this config regards only the modern BPF probe.\n"
+"                    They are experimental so they could change over releases.\n"
+"                    How many CPUs you want to assign to a single syscall buffer (ring buffer).\n"
+"                    By default, every syscall buffer is associated to 2 CPUs, so the mapping is\n"
+"                    1:2. The modern BPF probe allows you to choose different mappings, for\n"
+"                    example, 1:1 would mean a syscall buffer for each CPU.\n"
+#endif
 " -C <file_size>, --file-size=<file_size>\n"
 "                    Before writing an event, check whether the file is\n"
 "                    currently larger than file_size and, if so, close the\n"
@@ -274,6 +283,11 @@ static void usage()
 "                    Marathon url is optional and defaults to Mesos address, port 8080.\n"
 "                    The API servers can also be specified via the environment variable\n"
 "                    SYSDIG_MESOS_API.\n"
+#ifdef HAS_MODERN_BPF
+"--modern-bpf\n"
+"                    [EXPERIMENTAL] Enable live capture using the modern BPF probe instead of\n"
+"                    of the kernel module.\n"
+#endif
 " -M <num_seconds>   Stop collecting after <num_seconds> reached.\n"
 " -n <num>, --numevents=<num>\n"
 "                    Stop capturing after <num> events\n"
@@ -1028,6 +1042,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"chisel", required_argument, 0, 'c' },
 		{"list-chisels", no_argument, 0, 0 },
 #endif
+#ifdef HAS_MODERN_BPF
+		{"cpus-for-each-buffer", required_argument, 0, 0 },
+#endif
 #ifdef HAS_CAPTURE
 		{"cri", required_argument, 0, 0 },
 		{"cri-timeout", required_argument, 0, 0 },
@@ -1063,6 +1080,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #ifndef MINIMAL_BUILD
 		{"mesos-api", required_argument, 0, 'm'},
 #endif // MINIMAL_BUILD
+#ifdef HAS_MODERN_BPF
+		{"modern-bpf", no_argument, 0, 0 },
+#endif
 		{"numevents", required_argument, 0, 'n' },
 		{"page-faults", no_argument, 0, 0 },
 		{"plugin", required_argument, 0, 'H' },
@@ -1550,6 +1570,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
+#ifdef HAS_MODERN_BPF
+					else if(optname == "cpus-for-each-buffer")
+					{
+						opener.bpf.cpus_for_each_syscall_buffer = sinsp_numparser::parsed16(optarg);
+					}
+#endif
 #ifdef HAS_CAPTURE
 					else if (optname == "cri") {
 						cri_socket_path = optarg;
@@ -1597,6 +1623,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 							list_flds_source = optarg;
 						}
 					}
+
+#ifdef HAS_MODERN_BPF
+					else if(optname == "modern-bpf")
+					{
+						opener.bpf.enabled = true;
+						opener.bpf.modern = true;
+					}
+#endif
 
 					else if(optname == "plugin-config-file") {
 						plugin_config_file = optarg;
