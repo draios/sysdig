@@ -47,6 +47,10 @@ struct sinsp_opener
     struct
     {
         bool enabled = false;
+#ifdef HAS_MODERN_BPF
+        bool modern  = false;
+		uint16_t cpus_for_each_syscall_buffer = 2;
+#endif
         std::string probe;
     } bpf;
 
