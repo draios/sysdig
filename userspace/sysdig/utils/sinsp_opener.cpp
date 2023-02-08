@@ -74,6 +74,14 @@ void sinsp_opener::open(sinsp* inspector) const
 
     if(bpf.enabled)
     {
+#ifdef HAS_MODERN_BPF
+		if(bpf.modern)
+		{
+			inspector->open_modern_bpf(DEFAULT_DRIVER_BUFFER_BYTES_DIM, bpf.cpus_for_each_syscall_buffer, true, sc_of_interest, tp_of_interest);
+			return;
+		}
+#endif
+
         auto probe = bpf.probe;
         if (probe.empty())
         {

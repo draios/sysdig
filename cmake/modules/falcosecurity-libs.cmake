@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2013-2021 Draios Inc dba Sysdig.
+# Copyright (C) 2013-2023 Draios Inc dba Sysdig.
 #
 # This file is part of sysdig .
 #
@@ -28,9 +28,9 @@ if(FALCOSECURITY_LIBS_SOURCE_DIR)
   set(FALCOSECURITY_LIBS_VERSION "0.0.0-local")
   message(STATUS "Using local version of falcosecurity/libs: '${FALCOSECURITY_LIBS_SOURCE_DIR}'")
 else()
-  # The falcosecurity/libs git reference (branch name, commit hash, or tag) To update falcosecurity/libs version for the next release, change the
-  # default below In case you want to test against another falcosecurity/libs version just pass the variable - ie., `cmake
-  # -DFALCOSECURITY_LIBS_VERSION=dev ..`
+  # FALCOSECURITY_LIBS_VERSION accepts a git reference (branch name, commit hash, or tag) to the falcosecurity/libs repository.
+  # In case you want to test against another falcosecurity/libs version (or branch, or commit) just pass the variable -
+  # ie., `cmake -DFALCOSECURITY_LIBS_VERSION=dev ..`
   if(NOT FALCOSECURITY_LIBS_VERSION)
     set(FALCOSECURITY_LIBS_VERSION "0.10.4")
     set(FALCOSECURITY_LIBS_CHECKSUM "SHA256=30c5c846b6336d51473bb73bc0e6c18f91dd931e346ae34f18ad7ad4a5b904a2")
@@ -65,6 +65,9 @@ set(LIBSINSP_DIR "${FALCOSECURITY_LIBS_SOURCE_DIR}")
 # configure gVisor support
 set(BUILD_LIBSCAP_GVISOR ${BUILD_SYSDIG_GVISOR} CACHE BOOL "")
 
+# configure modern BPF support
+set(BUILD_LIBSCAP_MODERN_BPF ${BUILD_SYSDIG_MODERN_BPF} CACHE BOOL "")
+
 # explicitly disable the tests/examples of this dependency
 set(CREATE_TEST_TARGETS OFF CACHE BOOL "")
 set(BUILD_LIBSCAP_EXAMPLES OFF CACHE BOOL "")
@@ -79,6 +82,16 @@ set(USE_BUNDLED_VALIJSON ON CACHE BOOL "")
 set(USE_BUNDLED_RE2 ON CACHE BOOL "")
 
 list(APPEND CMAKE_MODULE_PATH "${FALCOSECURITY_LIBS_SOURCE_DIR}/cmake/modules")
+
+include(CheckSymbolExists)
+check_symbol_exists(strlcpy "string.h" HAVE_STRLCPY)
+
+if(HAVE_STRLCPY)
+  message(STATUS "Existing strlcpy found, will *not* use local definition by setting -DHAVE_STRLCPY.")
+  add_definitions(-DHAVE_STRLCPY)
+else()
+  message(STATUS "No strlcpy found, will use local definition")
+endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   include(driver)

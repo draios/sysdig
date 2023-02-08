@@ -109,11 +109,25 @@ static void usage()
 " -A, --print-ascii  When emitting JSON, only print the text portion of data buffers, and echo\n"
 "                    end-of-lines. This is useful to only display human-readable\n"
 "                    data.\n"
+#ifdef HAS_MODERN_BPF
+" -b, --modern-bpf\n"
+"                    [EXPERIMENTAL] Enable live capture using the modern BPF probe instead of\n"
+"                    of the kernel module.\n"
+#endif
 " -B<bpf_probe>, --bpf=<bpf_probe>\n"
 "                    Enable live capture using the specified BPF probe instead of the kernel module.\n"
 "                    The BPF probe can also be specified via the environment variable\n"
 "                    SYSDIG_BPF_PROBE. If <bpf_probe> is left empty, sysdig will\n"
 "                    try to load one from the scap-driver-loader script.\n"
+#ifdef HAS_MODERN_BPF
+"  --cpus-for-each-buffer <cpus_num>\n"
+"                    [EXPERIMENTAL] Please note this config regards only the modern BPF probe.\n"
+"                    They are experimental so they could change over releases.\n"
+"                    How many CPUs you want to assign to a single syscall buffer (ring buffer).\n"
+"                    By default, every syscall buffer is associated to 2 CPUs, so the mapping is\n"
+"                    1:2. The modern BPF probe allows you to choose different mappings, for\n"
+"                    example, 1:1 would mean a syscall buffer for each CPU.\n"
+#endif
 #ifdef HAS_CAPTURE
 " --cri <path>       Path to CRI socket for container metadata\n"
 "                    Use the specified socket to fetch data from a CRI-compatible runtime\n"
@@ -387,6 +401,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	{
 		{"print-ascii", no_argument, 0, 'A' },
 		{"bpf", optional_argument, 0, 'B' },
+#ifdef HAS_MODERN_BPF
+		{"cpus-for-each-buffer", required_argument, 0, 0 },
+#endif
 #ifdef HAS_CAPTURE
 		{"cri", required_argument, 0, 0 },
 		{"cri-timeout", required_argument, 0, 0 },
@@ -408,6 +425,9 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 #ifndef MINIMAL_BUILD
 		{"mesos-api", required_argument, 0, 'm'},
 #endif // MINIMAL_BUILD
+#ifdef HAS_MODERN_BPF
+		{"modern-bpf", no_argument, 0, 0 },
+#endif
 		{"numevents", required_argument, 0, 'n' },
 		{"page-faults", no_argument, 0, 0 },
 		{"print", required_argument, 0, 'p' },
@@ -594,6 +614,12 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					{
 						inspector->set_large_envs(true);
 					}
+#ifdef HAS_MODERN_BPF
+					else if(optname == "cpus-for-each-buffer")
+					{
+						opener.bpf.cpus_for_each_syscall_buffer = sinsp_numparser::parsed16(optarg);
+					}
+#endif
 #ifdef HAS_CAPTURE
 #ifndef MINIMAL_BUILD
 					else if(optname == "cri")
@@ -622,6 +648,13 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					{
 						json_first_row = sinsp_numparser::parsed32(optarg);
 					}
+#ifdef HAS_MODERN_BPF
+					else if(optname == "modern-bpf")
+					{
+						opener.bpf.enabled = true;
+						opener.bpf.modern = true;
+					}
+#endif
 					else if(optname == "to")
 					{
 						json_last_row = sinsp_numparser::parsed32(optarg);
