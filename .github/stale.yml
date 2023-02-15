@@ -10,3 +10,16 @@ issues:
     recent activity. It will be closed if no further activity occurs. Thank you
     for your contributions.
   closeComment: false
+pulls:
+  daysUntilStale: 120
+  daysUntilClose: 7
+  exemptLabels:
+    - pinned
+    - security
+    - falcosecurity-contrib
+  staleLabel: stale
+  markComment: >
+    This pull request has been automatically marked as stale because it has not had
+    recent activity. It will be closed if no further activity occurs. Thank you
+    for your contributions.
+  closeComment: false
