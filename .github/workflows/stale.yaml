@@ -11,15 +11,10 @@ jobs:
         with:
           stale-pr-label: stale
           stale-pr-message: "This pull request has been automatically marked as stale because it has not had recent activity. It will be closed if no further activity occurs. Thank you for your contributions."
-          exempt-pr-labels:
-            - pinned
-            - security
-            - falcosecurity-contrib
+          exempt-pr-labels: pinned,security,falcosecurity-contrib
           stale-issue-label: stale
           stale-issue-message: "This issue has been automatically marked as stale because it has not had recent activity. It will be closed if no further activity occurs. Thank you for your contributions."
-          exempt-issue-labels:
-            - pinned
-            - security
+          exempt-issue-labels: pinned,security,falcosecurity-contrib
           days-before-stale: 120
           days-before-close: 7
           operations-per-run: 500
