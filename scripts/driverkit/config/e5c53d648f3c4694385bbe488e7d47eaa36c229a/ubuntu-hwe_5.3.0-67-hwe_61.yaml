@@ -1,0 +1,8 @@
+kernelversion: 61
+kernelrelease: 5.3.0-67-hwe
+target: ubuntu-hwe
+architecture: amd64
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-hwe_5.3.0-67-hwe_61.ko
+  probe: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-hwe_5.3.0-67-hwe_61.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe/linux-headers-5.3.0-67-lowlatency_5.3.0-67.61_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe/linux-headers-5.3.0-67-generic_5.3.0-67.61_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe/linux-hwe-headers-5.3.0-67_5.3.0-67.61_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe/linux-headers-5.3.0-67-generic_5.3.0-67.61_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe/linux-hwe-headers-5.3.0-67_5.3.0-67.61_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe/linux-headers-5.3.0-67-lowlatency_5.3.0-67.61_amd64.deb"]

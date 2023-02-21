@@ -1,0 +1,9 @@
+kernelversion: 1
+kernelrelease: 4.19.101-2
+target: arch
+architecture: amd64
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_arch_4.19.101-2_1.ko
+  probe: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_arch_4.19.101-2_1.o
+kernelurls: ["https://archive.archlinux.org/packages/l/linux-lts-headers/linux-lts-headers-4.19.101-2-x86_64.pkg.tar.zst"]
+kernelconfigdata: null

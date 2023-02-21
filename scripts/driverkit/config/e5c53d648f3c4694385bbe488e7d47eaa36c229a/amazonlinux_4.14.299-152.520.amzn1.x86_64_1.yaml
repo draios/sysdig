@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 4.14.299-152.520.amzn1.x86_64
+target: amazonlinux
+architecture: amd64
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_amazonlinux_4.14.299-152.520.amzn1.x86_64_1.ko
+  probe: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_amazonlinux_4.14.299-152.520.amzn1.x86_64_1.o
+kernelurls: ["http://packages.us-east-1.amazonaws.com/2018.03/updates/4342b9d26ac8/x86_64/Packages/kernel-devel-4.14.299-152.520.amzn1.x86_64.rpm"]

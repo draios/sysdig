@@ -1,0 +1,9 @@
+kernelversion: 1
+kernelrelease: 5.5.6.zen1-1
+target: arch
+architecture: amd64
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_arch_5.5.6.zen1-1_1.ko
+  probe: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_arch_5.5.6.zen1-1_1.o
+kernelurls: ["https://archive.archlinux.org/packages/l/linux-zen-headers/linux-zen-headers-5.5.6.zen1-1-x86_64.pkg.tar.zst"]
+kernelconfigdata: null

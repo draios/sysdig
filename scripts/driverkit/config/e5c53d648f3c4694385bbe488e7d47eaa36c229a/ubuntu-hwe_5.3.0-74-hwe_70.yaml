@@ -1,0 +1,8 @@
+kernelversion: 70
+kernelrelease: 5.3.0-74-hwe
+target: ubuntu-hwe
+architecture: amd64
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-hwe_5.3.0-74-hwe_70.ko
+  probe: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_ubuntu-hwe_5.3.0-74-hwe_70.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe/linux-hwe-headers-5.3.0-74_5.3.0-74.70_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe/linux-headers-5.3.0-74-lowlatency_5.3.0-74.70_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe/linux-headers-5.3.0-74-lowlatency_5.3.0-74.70_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe/linux-hwe-headers-5.3.0-74_5.3.0-74.70_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe/linux-headers-5.3.0-74-generic_5.3.0-74.70_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe/linux-headers-5.3.0-74-generic_5.3.0-74.70_amd64.deb"]
