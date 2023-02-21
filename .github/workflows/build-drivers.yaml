@@ -24,7 +24,7 @@ jobs:
     env:
       S3_BUCKET: download.draios.com
       S3_PREFIX: scap-drivers
-      DRIVERKIT_VERSION: 0.10.1
+      DRIVERKIT_VERSION: 0.11.1
 
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
