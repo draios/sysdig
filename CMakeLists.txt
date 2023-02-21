@@ -46,7 +46,11 @@ list(APPEND CMAKE_MODULE_PATH
 	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
 if(NOT DEFINED SYSDIG_VERSION)
-	set(SYSDIG_VERSION "0.1.1dev")
+	set(SYSDIG_VERSION "0.0.0-dev")
+endif()
+
+if(${SYSDIG_VERSION} STREQUAL "dev")
+	set(SYSDIG_VERSION "0.0.0-dev")
 endif()
 
 if(NOT DEFINED DIR_ETC)
@@ -136,10 +140,10 @@ endif()
 
 # Modern BPF is not supported on not Linux systems and in MINIMAL_BUILD
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-  option(BUILD_SYSDIG_MODERN_BPF "Build modern BPF support for Falco" OFF)
-  if(BUILD_SYSDIG_MODERN_BPF)
-    add_definitions(-DHAS_MODERN_BPF)
-  endif()
+	option(BUILD_SYSDIG_MODERN_BPF "Build modern BPF support for Sysdig" OFF)
+	if(BUILD_SYSDIG_MODERN_BPF)
+		add_definitions(-DHAS_MODERN_BPF)
+	endif()
 endif()
 
 if(NOT DEFINED SYSDIG_COMPONENT_NAME)
@@ -179,6 +183,13 @@ set(CPACK_PACKAGE_VERSION "${SYSDIG_VERSION}")
 set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CMAKE_SYSTEM_PROCESSOR}")
 set(CPACK_PROJECT_CONFIG_FILE "${PROJECT_SOURCE_DIR}/CMakeCPackOptions.cmake")
 set(CPACK_STRIP_FILES "ON")
+
+if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
+	set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
+endif()
+if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64")
+	set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "arm64")
+endif()
 
 if(WIN32)
 	set(CPACK_GENERATOR "NSIS") # this needs NSIS installed, and available
