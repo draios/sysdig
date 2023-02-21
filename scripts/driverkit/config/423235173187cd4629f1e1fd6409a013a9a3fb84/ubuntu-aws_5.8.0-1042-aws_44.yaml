@@ -1,6 +1,0 @@
-kernelversion: 44
-kernelrelease: 5.8.0-1042-aws
-target: ubuntu-aws
-output:
-  module: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_ubuntu-aws_5.8.0-1042-aws_44.ko
-  probe: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_ubuntu-aws_5.8.0-1042-aws_44.o

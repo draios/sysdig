@@ -1,6 +1,0 @@
-kernelversion: 79
-kernelrelease: 5.4.0-71-generic
-target: ubuntu-generic
-output:
-  module: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_ubuntu-generic_5.4.0-71-generic_79.ko
-  probe: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_ubuntu-generic_5.4.0-71-generic_79.o

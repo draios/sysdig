@@ -1,5 +1,0 @@
-kernelversion: 35
-kernelrelease: 4.4.0-1026-aws
-target: ubuntu-aws
-output:
-  module: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_ubuntu-aws_4.4.0-1026-aws_35.ko

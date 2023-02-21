@@ -1,6 +1,0 @@
-kernelversion: 1
-kernelrelease: 4.14.203-156.332.amzn2.x86_64
-target: amazonlinux2
-output:
-  module: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_amazonlinux2_4.14.203-156.332.amzn2.x86_64_1.ko
-  probe: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_amazonlinux2_4.14.203-156.332.amzn2.x86_64_1.o
