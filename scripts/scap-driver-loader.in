@@ -113,6 +113,9 @@ get_target_id() {
 	elif [ -f "${HOST_ROOT}/etc/centos-release" ]; then
 		# Older CentOS distros
 		OS_ID=centos
+	elif [ -f "${HOST_ROOT}/etc/redhat-release" ]; then
+		# Older RHEL distros
+		OS_ID=rhel
 	else
 		return 1
 	fi
@@ -158,6 +161,16 @@ get_target_id() {
 			echo "* Unable to extract minikube version from ${HOST_ROOT}/etc/VERSION"
 			exit 1
 		fi
+		;;
+	("bottlerocket")
+		TARGET_ID="${OS_ID}"
+		# variant_id has been sourced from os-release. Get only the first variant part
+		if [[ -n ${VARIANT_ID} ]];  then
+			# take just first part (eg: VARIANT_ID=aws-k8s-1.15 -> aws)
+			VARIANT_ID_CUT=${VARIANT_ID%%-*}
+		fi
+		# version_id has been sourced from os-release. Build a kernel version like: 1_1.11.0-aws
+		KERNEL_VERSION="1_${VERSION_ID}-${VARIANT_ID_CUT}"
 		;;
 	(*)
 		TARGET_ID=$(echo "${OS_ID}" | tr '[:upper:]' '[:lower:]')
@@ -211,7 +224,13 @@ load_kernel_module_compile() {
 	fi
 
 	# Try to compile using all the available gcc versions
-	for CURRENT_GCC in $(which gcc) $(ls "$(dirname "$(which gcc)")"/gcc-* | grep 'gcc-[0-9]\+' | sort -n -r -k 2 -t -); do
+	for CURRENT_GCC in $(ls "$(dirname "$(which gcc)")"/gcc*); do
+		# Filter away gcc-{ar,nm,...}
+		# Only gcc compiler has `-print-search-dirs` option.
+		${CURRENT_GCC} -print-search-dirs 2>&1 | grep "install:"
+		if [ "$?" -ne "0" ]; then
+			continue
+		fi
 		echo "* Trying to dkms install ${DRIVER_NAME} module with GCC ${CURRENT_GCC}"
 		echo "#!/usr/bin/env bash" > /tmp/scap-dkms-make
 		echo "make CC=${CURRENT_GCC} \$@" >> /tmp/scap-dkms-make
@@ -232,14 +251,13 @@ load_kernel_module_compile() {
 				return
 			fi
 			echo "* ${DRIVER_NAME} module found: ${KO_FILE}"
-			echo "* Trying insmod"
+			echo "* Trying to insmod"
 			chcon -t modules_object_t "$KO_FILE" > /dev/null 2>&1 || true
 			if insmod "$KO_FILE" > /dev/null 2>&1; then
 				echo "* Success: ${DRIVER_NAME} module found and loaded in dkms"
 				exit 0
-			else
-				echo "* Unable to insmod ${DRIVER_NAME} module"
 			fi
+			echo "* Unable to insmod ${DRIVER_NAME} module"
 		else
 			DKMS_LOG="/var/lib/dkms/${DRIVER_NAME}/${DRIVER_VERSION}/build/make.log"
 			if [ -f "${DKMS_LOG}" ]; then
@@ -263,9 +281,8 @@ load_kernel_module_download() {
 		if insmod "${HOME}/.scap/${DRIVER_VERSION}/${ARCH}/${SYSDIG_KERNEL_MODULE_FILENAME}"; then
 			echo "* Success: ${DRIVER_NAME} module found and inserted"
 			exit 0
-		else
-			>&2 echo "Unable to insmod the prebuilt ${DRIVER_NAME} module"
-		fi	
+		fi
+		>&2 echo "Unable to insmod the prebuilt ${DRIVER_NAME} module"
 	else
 		>&2 echo "Unable to find a prebuilt ${DRIVER_NAME} module"
 		return
@@ -598,6 +615,7 @@ print_usage() {
 	echo "  DRIVERS_REPO             specify different URL(s) where to look for prebuilt Sysdig drivers (comma separated)"
 	echo "  DRIVER_NAME              specify a different name for the driver"
 	echo "  DRIVER_INSECURE_DOWNLOAD whether you want to allow insecure downloads or not"
+	echo "  DRIVER_CURL_OPTIONS      specify additional options to be passed to curl command used to download Sysdig drivers"
 	echo ""
 	echo "Versions:"
 	echo "  Driver version ${DRIVER_VERSION}"
@@ -616,12 +634,14 @@ KERNEL_VERSION=$(uname -v | sed 's/#\([[:digit:]]\+\).*/\1/')
 
 DRIVERS_REPO=${DRIVERS_REPO:-"@DRIVERS_REPO@"}
 
+SYSDIG_DRIVER_CURL_OPTIONS="-fsS --connect-timeout 5 --max-time 60 --retry 3 --retry-max-time 120"
+
 if [ -n "$DRIVER_INSECURE_DOWNLOAD" ]
 then
-	SYSDIG_DRIVER_CURL_OPTIONS=-fsSk
-else
-	SYSDIG_DRIVER_CURL_OPTIONS=-fsS
+	SYSDIG_DRIVER_CURL_OPTIONS+=" -k"
 fi
+
+SYSDIG_DRIVER_CURL_OPTIONS+=" "${DRIVER_CURL_OPTIONS}
 
 if [[ -z "$MAX_RMMOD_WAIT" ]]; then
 	MAX_RMMOD_WAIT=60
