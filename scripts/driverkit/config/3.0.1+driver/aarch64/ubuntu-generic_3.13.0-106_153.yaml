@@ -1,7 +1,0 @@
-kernelversion: 153
-kernelrelease: 3.13.0-106
-target: ubuntu-generic
-architecture: arm64
-output:
-  module: output/3.0.1+driver/aarch64/scap_ubuntu-generic_3.13.0-106_153.ko
-kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-3.13.0-106-generic_3.13.0-106.153_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-3.13.0-106_3.13.0-106.153_all.deb"]

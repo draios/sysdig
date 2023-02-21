@@ -1,6 +1,0 @@
-kernelversion: 40
-kernelrelease: 5.8.0-1038-aws
-target: ubuntu-aws
-output:
-  module: output/3.0.1+driver/x86_64/scap_ubuntu-aws_5.8.0-1038-aws_40.ko
-  probe: output/3.0.1+driver/x86_64/scap_ubuntu-aws_5.8.0-1038-aws_40.o

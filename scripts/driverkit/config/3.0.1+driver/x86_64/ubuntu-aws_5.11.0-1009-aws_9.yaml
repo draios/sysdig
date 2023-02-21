@@ -1,6 +1,0 @@
-kernelversion: 9
-kernelrelease: 5.11.0-1009-aws
-target: ubuntu-aws
-output:
-  module: output/3.0.1+driver/x86_64/scap_ubuntu-aws_5.11.0-1009-aws_9.ko
-  probe: output/3.0.1+driver/x86_64/scap_ubuntu-aws_5.11.0-1009-aws_9.o

@@ -1,8 +1,0 @@
-kernelversion: 36+22.10.1
-kernelrelease: 5.15.0-35
-target: ubuntu-generic
-architecture: arm64
-output:
-  module: output/3.0.1+driver/aarch64/scap_ubuntu-generic_5.15.0-35_36+22.10.1.ko
-  probe: output/3.0.1+driver/aarch64/scap_ubuntu-generic_5.15.0-35_36+22.10.1.o
-kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.15.0-35-generic-64k_5.15.0-35.36+22.10.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.15.0-35-generic_5.15.0-35.36+22.10.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.15.0-35_5.15.0-35.36+22.10.1_all.deb"]

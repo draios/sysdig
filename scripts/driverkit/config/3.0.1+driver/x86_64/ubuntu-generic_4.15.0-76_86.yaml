@@ -1,8 +1,0 @@
-kernelversion: 86
-kernelrelease: 4.15.0-76
-target: ubuntu-generic
-architecture: amd64
-output:
-  module: output/3.0.1+driver/x86_64/scap_ubuntu-generic_4.15.0-76_86.ko
-  probe: output/3.0.1+driver/x86_64/scap_ubuntu-generic_4.15.0-76_86.o
-kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-76-lowlatency_4.15.0-76.86_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-76-generic_4.15.0-76.86_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-76-generic_4.15.0-76.86_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-76_4.15.0-76.86_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-76_4.15.0-76.86_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-76-lowlatency_4.15.0-76.86_amd64.deb"]

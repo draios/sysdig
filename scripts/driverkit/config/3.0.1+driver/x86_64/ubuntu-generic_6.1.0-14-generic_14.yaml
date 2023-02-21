@@ -1,0 +1,8 @@
+kernelversion: 14
+kernelrelease: 6.1.0-14-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/3.0.1+driver/x86_64/scap_ubuntu-generic_6.1.0-14-generic_14.ko
+  probe: output/3.0.1+driver/x86_64/scap_ubuntu-generic_6.1.0-14-generic_14.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-6.1.0-14-generic_6.1.0-14.14_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-6.1.0-14_6.1.0-14.14_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-6.1.0-14_6.1.0-14.14_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-6.1.0-14-generic_6.1.0-14.14_amd64.deb"]
