@@ -1,5 +1,0 @@
-kernelversion: 1
-kernelrelease: 4.18.0-348.el8.0.2.x86_64
-target: rocky
-output:
-  module: output/3.0.1+driver/x86_64/scap_rocky_4.18.0-348.el8.0.2.x86_64_1.ko

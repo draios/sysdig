@@ -1,8 +1,0 @@
-kernelversion: 42
-kernelrelease: 5.13.0-37
-target: ubuntu-generic
-architecture: amd64
-output:
-  module: output/3.0.1+driver/x86_64/scap_ubuntu-generic_5.13.0-37_42.ko
-  probe: output/3.0.1+driver/x86_64/scap_ubuntu-generic_5.13.0-37_42.o
-kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.13.0-37-lowlatency_5.13.0-37.42_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.13.0-37-lowlatency_5.13.0-37.42_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.13.0-37-generic_5.13.0-37.42_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.13.0-37_5.13.0-37.42_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.13.0-37-generic_5.13.0-37.42_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.13.0-37_5.13.0-37.42_all.deb"]

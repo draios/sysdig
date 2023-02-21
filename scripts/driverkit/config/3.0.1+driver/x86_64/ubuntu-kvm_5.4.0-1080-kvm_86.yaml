@@ -1,0 +1,8 @@
+kernelversion: 86
+kernelrelease: 5.4.0-1080-kvm
+target: ubuntu-kvm
+architecture: amd64
+output:
+  module: output/3.0.1+driver/x86_64/scap_ubuntu-kvm_5.4.0-1080-kvm_86.ko
+  probe: output/3.0.1+driver/x86_64/scap_ubuntu-kvm_5.4.0-1080-kvm_86.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-headers-5.4.0-1080-kvm_5.4.0-1080.86_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-5.4.0-1080_5.4.0-1080.86_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-5.4.0-1080_5.4.0-1080.86_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-headers-5.4.0-1080-kvm_5.4.0-1080.86_amd64.deb"]

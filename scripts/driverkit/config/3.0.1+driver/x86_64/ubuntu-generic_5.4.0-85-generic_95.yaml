@@ -1,6 +1,0 @@
-kernelversion: 95
-kernelrelease: 5.4.0-85-generic
-target: ubuntu-generic
-output:
-  module: output/3.0.1+driver/x86_64/scap_ubuntu-generic_5.4.0-85-generic_95.ko
-  probe: output/3.0.1+driver/x86_64/scap_ubuntu-generic_5.4.0-85-generic_95.o
