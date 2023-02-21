@@ -1,0 +1,9 @@
+kernelversion: 1
+kernelrelease: 5.14.21-150400.22.1.x86_64
+target: opensuse
+architecture: amd64
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_opensuse_5.14.21-150400.22.1.x86_64_1.ko
+  probe: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_opensuse_5.14.21-150400.22.1.x86_64_1.o
+kernelurls: ["https://mirrors.edge.kernel.org/opensuse/distribution/openSUSE-current/repo/oss/x86_64/kernel-default-devel-5.14.21-150400.22.1.x86_64.rpm","https://mirrors.edge.kernel.org/opensuse/distribution/leap/15.4/repo/oss/noarch/kernel-devel-5.14.21-150400.22.1.noarch.rpm","https://mirrors.edge.kernel.org/opensuse/distribution/openSUSE-stable/repo/oss/noarch/kernel-devel-5.14.21-150400.22.1.noarch.rpm","http://download.opensuse.org/distribution/leap/./15.4/repo/oss/noarch/kernel-devel-5.14.21-150400.22.1.noarch.rpm","https://mirrors.edge.kernel.org/opensuse/distribution/openSUSE-stable/repo/oss/x86_64/kernel-default-devel-5.14.21-150400.22.1.x86_64.rpm","http://download.opensuse.org/distribution/leap/./15.4/repo/oss/x86_64/kernel-default-devel-5.14.21-150400.22.1.x86_64.rpm","https://mirrors.edge.kernel.org/opensuse/distribution/openSUSE-current/repo/oss/noarch/kernel-devel-5.14.21-150400.22.1.noarch.rpm","https://mirrors.edge.kernel.org/opensuse/distribution/leap/15.4/repo/oss/x86_64/kernel-default-devel-5.14.21-150400.22.1.x86_64.rpm"]
+kernelconfigdata: null

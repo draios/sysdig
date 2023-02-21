@@ -1,0 +1,9 @@
+kernelversion: 1
+kernelrelease: 5.11.12-300.fc34.x86_64
+target: fedora
+architecture: amd64
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_fedora_5.11.12-300.fc34.x86_64_1.ko
+  probe: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_fedora_5.11.12-300.fc34.x86_64_1.o
+kernelurls: ["https://mirrors.kernel.org/fedora/releases/34/Everything/x86_64/os/Packages/k/kernel-devel-5.11.12-300.fc34.x86_64.rpm"]
+kernelconfigdata: null

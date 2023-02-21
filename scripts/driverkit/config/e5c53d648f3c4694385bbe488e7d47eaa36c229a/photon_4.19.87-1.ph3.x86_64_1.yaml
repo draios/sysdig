@@ -1,0 +1,9 @@
+kernelversion: 1
+kernelrelease: 4.19.87-1.ph3.x86_64
+target: photon
+architecture: amd64
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_photon_4.19.87-1.ph3.x86_64_1.ko
+  probe: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_photon_4.19.87-1.ph3.x86_64_1.o
+kernelurls: ["https://packages.vmware.com/photon/3.0/photon_updates_3.0_x86_64/x86_64/linux-devel-4.19.87-1.ph3.x86_64.rpm"]
+kernelconfigdata: null

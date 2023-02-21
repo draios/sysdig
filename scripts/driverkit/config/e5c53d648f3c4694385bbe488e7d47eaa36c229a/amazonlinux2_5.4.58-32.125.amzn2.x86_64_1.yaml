@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 5.4.58-32.125.amzn2.x86_64
+target: amazonlinux2
+architecture: amd64
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_amazonlinux2_5.4.58-32.125.amzn2.x86_64_1.ko
+  probe: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_amazonlinux2_5.4.58-32.125.amzn2.x86_64_1.o
+kernelurls: ["http://amazonlinux.us-east-1.amazonaws.com/2/extras/kernel-5.4/stable/x86_64/fe1bda51bb55145d6724e039334087b2982cce04413a00026976089e55c655c2/../../../../../../blobstore/6bae59358dae7d22dcb5367097e0665e8083ec0ddca96e54e6b0db735286f3fb/kernel-devel-5.4.58-32.125.amzn2.x86_64.rpm"]

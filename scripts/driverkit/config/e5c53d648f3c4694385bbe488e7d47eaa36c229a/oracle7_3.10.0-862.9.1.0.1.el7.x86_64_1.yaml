@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 3.10.0-862.9.1.0.1.el7.x86_64
+target: oracle7
+architecture: amd64
+output:
+  module: output/e5c53d648f3c4694385bbe488e7d47eaa36c229a/scap_oracle7_3.10.0-862.9.1.0.1.el7.x86_64_1.ko
+kernelurls: ["http://yum.oracle.com/repo/OracleLinux/OL7/MODRHCK/x86_64/getPackage/kernel-devel-3.10.0-862.9.1.0.1.el7.x86_64.rpm"]
+kernelconfigdata: null
