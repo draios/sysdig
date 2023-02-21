@@ -1,6 +1,0 @@
-kernelversion: 74
-kernelrelease: 4.15.0-65-generic
-target: ubuntu-generic
-output:
-  module: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_ubuntu-generic_4.15.0-65-generic_74.ko
-  probe: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_ubuntu-generic_4.15.0-65-generic_74.o

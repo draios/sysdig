@@ -1,5 +1,0 @@
-kernelversion: 1
-kernelrelease: 4.14.209-117.337.amzn1.x86_64
-target: amazonlinux
-output:
-  module: output/423235173187cd4629f1e1fd6409a013a9a3fb84/scap_amazonlinux_4.14.209-117.337.amzn1.x86_64_1.ko
