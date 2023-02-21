@@ -210,7 +210,7 @@ generate_yamls() {
     fi
 
     if [ -n "${TARGET_KERNEL_DEFCONFIG}" ] && [ "${TARGET_KERNEL_DEFCONFIG}" != "null" ]; then
-        echo "kernelconfigdata: ${TARGET_KERNEL_DEFCONFIG}" >> ${FILE}
+		echo "kernelconfigdata: $(cat $TARGET_KERNEL_DEFCONFIG)" >> ${FILE}
     fi
 }
 
