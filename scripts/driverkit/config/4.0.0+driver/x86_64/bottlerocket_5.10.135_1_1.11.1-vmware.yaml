@@ -1,0 +1,8 @@
+kernelversion: 1_1.11.1-vmware
+kernelrelease: 5.10.135
+target: bottlerocket
+architecture: amd64
+output:
+  module: output/4.0.0+driver/x86_64/scap_bottlerocket_5.10.135_1_1.11.1-vmware.ko
+  probe: output/4.0.0+driver/x86_64/scap_bottlerocket_5.10.135_1_1.11.1-vmware.o
+kernelconfigdata: /tmp/tmp.P4fzqzQHHV/bottlerocket.1_1.11.1-vmware.5.10.135.conf

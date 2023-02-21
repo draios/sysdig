@@ -1,0 +1,8 @@
+kernelversion: 176
+kernelrelease: 4.4.0-150-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/4.0.0+driver/aarch64/scap_ubuntu-generic_4.4.0-150-generic_176.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-150-generic_4.4.0-150.176_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-150_4.4.0-150.176_all.deb"]
+kernelconfigdata: /tmp/tmp.mRHmZjLurQ/ubuntu-generic.176.4.4.0-150-generic.conf

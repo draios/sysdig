@@ -1,0 +1,8 @@
+kernelversion: 1_1.11.1-metal
+kernelrelease: 5.10.135
+target: bottlerocket
+architecture: amd64
+output:
+  module: output/4.0.0+driver/x86_64/scap_bottlerocket_5.10.135_1_1.11.1-metal.ko
+  probe: output/4.0.0+driver/x86_64/scap_bottlerocket_5.10.135_1_1.11.1-metal.o
+kernelconfigdata: /tmp/tmp.P4fzqzQHHV/bottlerocket.1_1.11.1-metal.5.10.135.conf
