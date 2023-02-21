@@ -1,0 +1,8 @@
+kernelversion: 1_1.27.1
+kernelrelease: 5.10.57
+target: minikube
+architecture: arm64
+output:
+  module: output/4.0.0+driver/aarch64/scap_minikube_5.10.57_1_1.27.1.ko
+  probe: output/4.0.0+driver/aarch64/scap_minikube_5.10.57_1_1.27.1.o
+kernelconfigdata: /tmp/tmp.mRHmZjLurQ/minikube.1_1.27.1.5.10.57.conf

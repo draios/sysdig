@@ -1,0 +1,8 @@
+kernelversion: 1_1.10.0-metal
+kernelrelease: 5.15.59
+target: bottlerocket
+architecture: arm64
+output:
+  module: output/4.0.0+driver/aarch64/scap_bottlerocket_5.15.59_1_1.10.0-metal.ko
+  probe: output/4.0.0+driver/aarch64/scap_bottlerocket_5.15.59_1_1.10.0-metal.o
+kernelconfigdata: /tmp/tmp.mRHmZjLurQ/bottlerocket.1_1.10.0-metal.5.15.59.conf

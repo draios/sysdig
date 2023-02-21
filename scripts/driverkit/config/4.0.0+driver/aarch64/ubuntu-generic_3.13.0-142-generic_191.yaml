@@ -1,0 +1,8 @@
+kernelversion: 191
+kernelrelease: 3.13.0-142-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/4.0.0+driver/aarch64/scap_ubuntu-generic_3.13.0-142-generic_191.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-3.13.0-142-generic_3.13.0-142.191_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-3.13.0-142_3.13.0-142.191_all.deb"]
+kernelconfigdata: /tmp/tmp.mRHmZjLurQ/ubuntu-generic.191.3.13.0-142-generic.conf
