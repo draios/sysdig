@@ -5,4 +5,3 @@ architecture: arm64
 output:
   module: output/4.0.0+driver/aarch64/scap_ubuntu-snapdragon_4.15.0-1066-snapdragon_73.ko
 kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-snapdragon/linux-snapdragon-headers-4.15.0-1066_4.15.0-1066.73_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-snapdragon/linux-headers-4.15.0-1066-snapdragon_4.15.0-1066.73_arm64.deb"]
-kernelconfigdata: /tmp/tmp.mRHmZjLurQ/ubuntu-snapdragon.73.4.15.0-1066-snapdragon.conf

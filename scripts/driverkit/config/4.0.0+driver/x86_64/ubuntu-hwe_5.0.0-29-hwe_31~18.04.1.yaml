@@ -6,4 +6,3 @@ output:
   module: output/4.0.0+driver/x86_64/scap_ubuntu-hwe_5.0.0-29-hwe_31~18.04.1.ko
   probe: output/4.0.0+driver/x86_64/scap_ubuntu-hwe_5.0.0-29-hwe_31~18.04.1.o
 kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe/linux-headers-5.0.0-29-generic_5.0.0-29.31~18.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe/linux-headers-5.0.0-29-lowlatency_5.0.0-29.31~18.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe/linux-headers-5.0.0-29-generic_5.0.0-29.31~18.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe/linux-headers-5.0.0-29_5.0.0-29.31~18.04.1_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe/linux-headers-5.0.0-29-lowlatency_5.0.0-29.31~18.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe/linux-headers-5.0.0-29_5.0.0-29.31~18.04.1_all.deb"]
-kernelconfigdata: /tmp/tmp.P4fzqzQHHV/ubuntu-hwe.31~18.04.1.5.0.0-29-hwe.conf

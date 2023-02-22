@@ -6,4 +6,3 @@ output:
   module: output/4.0.0+driver/x86_64/scap_ubuntu-azure_5.15.0-1012-azure_15.ko
   probe: output/4.0.0+driver/x86_64/scap_ubuntu-azure_5.15.0-1012-azure_15.o
 kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-azure-headers-5.15.0-1012_5.15.0-1012.15_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-headers-5.15.0-1012-azure_5.15.0-1012.15_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure/linux-azure-headers-5.15.0-1012_5.15.0-1012.15_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure/linux-headers-5.15.0-1012-azure_5.15.0-1012.15_amd64.deb"]
-kernelconfigdata: /tmp/tmp.P4fzqzQHHV/ubuntu-azure.15.5.15.0-1012-azure.conf

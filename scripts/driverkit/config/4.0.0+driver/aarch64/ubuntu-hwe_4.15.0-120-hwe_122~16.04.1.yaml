@@ -5,4 +5,3 @@ architecture: arm64
 output:
   module: output/4.0.0+driver/aarch64/scap_ubuntu-hwe_4.15.0-120-hwe_122~16.04.1.ko
 kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe/linux-headers-4.15.0-120_4.15.0-120.122~16.04.1_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe/linux-headers-4.15.0-120-generic_4.15.0-120.122~16.04.1_arm64.deb"]
-kernelconfigdata: /tmp/tmp.mRHmZjLurQ/ubuntu-hwe.122~16.04.1.4.15.0-120-hwe.conf

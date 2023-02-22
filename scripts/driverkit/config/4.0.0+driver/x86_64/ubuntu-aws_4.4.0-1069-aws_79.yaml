@@ -5,4 +5,3 @@ architecture: amd64
 output:
   module: output/4.0.0+driver/x86_64/scap_ubuntu-aws_4.4.0-1069-aws_79.ko
 kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-aws-headers-4.4.0-1069_4.4.0-1069.79_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-aws-headers-4.4.0-1069_4.4.0-1069.79_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-headers-4.4.0-1069-aws_4.4.0-1069.79_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-headers-4.4.0-1069-aws_4.4.0-1069.79_amd64.deb"]
-kernelconfigdata: /tmp/tmp.P4fzqzQHHV/ubuntu-aws.79.4.4.0-1069-aws.conf

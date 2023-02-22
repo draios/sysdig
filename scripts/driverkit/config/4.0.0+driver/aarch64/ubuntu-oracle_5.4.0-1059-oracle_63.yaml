@@ -6,4 +6,3 @@ output:
   module: output/4.0.0+driver/aarch64/scap_ubuntu-oracle_5.4.0-1059-oracle_63.ko
   probe: output/4.0.0+driver/aarch64/scap_ubuntu-oracle_5.4.0-1059-oracle_63.o
 kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-headers-5.4.0-1059-oracle_5.4.0-1059.63_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-oracle-headers-5.4.0-1059_5.4.0-1059.63_all.deb"]
-kernelconfigdata: /tmp/tmp.mRHmZjLurQ/ubuntu-oracle.63.5.4.0-1059-oracle.conf

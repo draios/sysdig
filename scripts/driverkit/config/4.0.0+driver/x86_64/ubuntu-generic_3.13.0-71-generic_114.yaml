@@ -5,4 +5,3 @@ architecture: amd64
 output:
   module: output/4.0.0+driver/x86_64/scap_ubuntu-generic_3.13.0-71-generic_114.ko
 kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-71_3.13.0-71.114_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-71-generic_3.13.0-71.114_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-3.13.0-71-lowlatency_3.13.0-71.114_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-3.13.0-71_3.13.0-71.114_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-71-lowlatency_3.13.0-71.114_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-3.13.0-71-generic_3.13.0-71.114_amd64.deb"]
-kernelconfigdata: /tmp/tmp.P4fzqzQHHV/ubuntu-generic.114.3.13.0-71-generic.conf

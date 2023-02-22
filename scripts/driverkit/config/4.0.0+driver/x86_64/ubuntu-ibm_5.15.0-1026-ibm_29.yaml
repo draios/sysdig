@@ -6,4 +6,3 @@ output:
   module: output/4.0.0+driver/x86_64/scap_ubuntu-ibm_5.15.0-1026-ibm_29.ko
   probe: output/4.0.0+driver/x86_64/scap_ubuntu-ibm_5.15.0-1026-ibm_29.o
 kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm/linux-ibm-headers-5.15.0-1026_5.15.0-1026.29_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-headers-5.15.0-1026-ibm_5.15.0-1026.29_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-ibm-headers-5.15.0-1026_5.15.0-1026.29_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm/linux-headers-5.15.0-1026-ibm_5.15.0-1026.29_amd64.deb"]
-kernelconfigdata: /tmp/tmp.P4fzqzQHHV/ubuntu-ibm.29.5.15.0-1026-ibm.conf

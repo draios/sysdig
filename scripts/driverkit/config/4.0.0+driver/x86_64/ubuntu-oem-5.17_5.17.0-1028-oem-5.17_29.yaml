@@ -6,4 +6,3 @@ output:
   module: output/4.0.0+driver/x86_64/scap_ubuntu-oem-5.17_5.17.0-1028-oem-5.17_29.ko
   probe: output/4.0.0+driver/x86_64/scap_ubuntu-oem-5.17_5.17.0-1028-oem-5.17_29.o
 kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-5.17/linux-oem-5.17-headers-5.17.0-1028_5.17.0-1028.29_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-5.17/linux-oem-5.17-headers-5.17.0-1028_5.17.0-1028.29_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-5.17/linux-headers-5.17.0-1028-oem_5.17.0-1028.29_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-5.17/linux-headers-5.17.0-1028-oem_5.17.0-1028.29_amd64.deb"]
-kernelconfigdata: /tmp/tmp.P4fzqzQHHV/ubuntu-oem-5.17.29.5.17.0-1028-oem-5.17.conf

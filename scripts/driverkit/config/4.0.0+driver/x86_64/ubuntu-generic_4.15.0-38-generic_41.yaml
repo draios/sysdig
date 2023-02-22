@@ -6,4 +6,3 @@ output:
   module: output/4.0.0+driver/x86_64/scap_ubuntu-generic_4.15.0-38-generic_41.ko
   probe: output/4.0.0+driver/x86_64/scap_ubuntu-generic_4.15.0-38-generic_41.o
 kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-38-generic_4.15.0-38.41_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-38-lowlatency_4.15.0-38.41_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-38-generic_4.15.0-38.41_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-38_4.15.0-38.41_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-38-lowlatency_4.15.0-38.41_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-38_4.15.0-38.41_all.deb"]
-kernelconfigdata: /tmp/tmp.P4fzqzQHHV/ubuntu-generic.41.4.15.0-38-generic.conf

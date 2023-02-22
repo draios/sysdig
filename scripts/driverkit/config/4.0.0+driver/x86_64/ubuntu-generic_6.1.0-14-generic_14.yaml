@@ -6,4 +6,3 @@ output:
   module: output/4.0.0+driver/x86_64/scap_ubuntu-generic_6.1.0-14-generic_14.ko
   probe: output/4.0.0+driver/x86_64/scap_ubuntu-generic_6.1.0-14-generic_14.o
 kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-6.1.0-14-generic_6.1.0-14.14_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-6.1.0-14_6.1.0-14.14_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-6.1.0-14_6.1.0-14.14_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-6.1.0-14-generic_6.1.0-14.14_amd64.deb"]
-kernelconfigdata: /tmp/tmp.P4fzqzQHHV/ubuntu-generic.14.6.1.0-14-generic.conf

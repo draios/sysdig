@@ -6,4 +6,3 @@ output:
   module: output/4.0.0+driver/x86_64/scap_ubuntu-genericop-5.4_5.4.0-1011-gkeop-5.4_12~18.04.2.ko
   probe: output/4.0.0+driver/x86_64/scap_ubuntu-genericop-5.4_5.4.0-1011-gkeop-5.4_12~18.04.2.o
 kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-gkeop-5.4/linux-headers-5.4.0-1011-gkeop_5.4.0-1011.12~18.04.2_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gkeop-5.4/linux-gkeop-5.4-headers-5.4.0-1011_5.4.0-1011.12~18.04.2_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gkeop-5.4/linux-headers-5.4.0-1011-gkeop_5.4.0-1011.12~18.04.2_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gkeop-5.4/linux-gkeop-5.4-headers-5.4.0-1011_5.4.0-1011.12~18.04.2_all.deb"]
-kernelconfigdata: /tmp/tmp.P4fzqzQHHV/ubuntu-gkeop-5.4.12~18.04.2.5.4.0-1011-gkeop-5.4.conf

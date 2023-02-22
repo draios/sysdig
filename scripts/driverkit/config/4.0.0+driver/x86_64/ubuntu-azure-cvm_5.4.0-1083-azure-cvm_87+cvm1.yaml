@@ -6,4 +6,3 @@ output:
   module: output/4.0.0+driver/x86_64/scap_ubuntu-azure-cvm_5.4.0-1083-azure-cvm_87+cvm1.ko
   probe: output/4.0.0+driver/x86_64/scap_ubuntu-azure-cvm_5.4.0-1083-azure-cvm_87+cvm1.o
 kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-cvm/linux-headers-5.4.0-1083-azure-cvm_5.4.0-1083.87+cvm1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure-cvm/linux-azure-cvm-headers-5.4.0-1083_5.4.0-1083.87+cvm1_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure-cvm/linux-headers-5.4.0-1083-azure-cvm_5.4.0-1083.87+cvm1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-cvm/linux-azure-cvm-headers-5.4.0-1083_5.4.0-1083.87+cvm1_all.deb"]
-kernelconfigdata: /tmp/tmp.P4fzqzQHHV/ubuntu-azure-cvm.87+cvm1.5.4.0-1083-azure-cvm.conf
