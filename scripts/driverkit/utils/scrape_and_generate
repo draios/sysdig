@@ -30,7 +30,10 @@ function generate_from_kernel_releases() {
 			read -r target
 			read -r kernelurls
 			read -r kerneldefconfig
-			echo $kerneldefconfig > $TMPDIR/${target}.${version}.${release}.conf
+			if [[ $kerneldefconfig != 'null' ]]; then
+				echo $kerneldefconfig > $TMPDIR/${target}.${version}.${release}.conf
+				kerneldefconfig=$TMPDIR/${target}.${version}.${release}.conf
+			fi
 			pretty_echo "Generating configs for:"
 			echo "release: $release	version: $version	target: $target"
 			test $DRY_RUN == "true" || \
@@ -40,7 +43,7 @@ function generate_from_kernel_releases() {
 				-e TARGET_KERNEL_VERSION="${version}" \
 				-e TARGET_DISTRO="${target/${target_match}/${target_replace}}" \
 				-e TARGET_HEADERS="${kernelurls}" \
-				-e TARGET_KERNEL_DEFCONFIG="$TMPDIR/${target}.${version}.${release}.conf" \
+				-e TARGET_KERNEL_DEFCONFIG="${kerneldefconfig}" \
 				generate >/dev/null
 		done < <(jq -cr ".${distro_family}[] | (.kernelrelease, .kernelversion, .target, .headers, .kernelconfigdata)" $TMPDIR/sample.json)
 	done
