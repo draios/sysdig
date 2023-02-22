@@ -110,7 +110,7 @@ static void usage()
 "                    end-of-lines. This is useful to only display human-readable\n"
 "                    data.\n"
 #ifdef HAS_MODERN_BPF
-" -b, --modern-bpf\n"
+" --modern-bpf\n"
 "                    [EXPERIMENTAL] Enable live capture using the modern BPF probe instead of\n"
 "                    of the kernel module.\n"
 #endif
