@@ -4,8 +4,8 @@ on:
     - cron: "30 1 * * *"
 
 jobs:
-  stale-pr:
-    runs-on: tools-runner-small
+  stale:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/stale@v7
         with:
