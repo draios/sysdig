@@ -6,6 +6,8 @@ DRY_RUN="${DRY_RUN:-false}"
 TMPDIR="$(mktemp -d)"
 ARCH="$1"
 LIST_URL="https://raw.githubusercontent.com/falcosecurity/kernel-crawler/kernels/${ARCH}/list.json"
+EXCLUDE_LIST=(.ArchLinux .Fedora .PhotonOS .Flatcar .OpenSUSE .RockyLinux .Oracle6 .Oracle7 .Oracle8)
+EXCLUDE_STRING=$(echo ${EXCLUDE_LIST[@]} | tr ' ' ',')
 
 function pretty_echo() {
 	echo
@@ -13,7 +15,8 @@ function pretty_echo() {
 }
 
 function get_kernel_releases() {
-	curl -sL -o $TMPDIR/sample.json $LIST_URL
+	curl -sL $LIST_URL | \
+		jq "del(${EXCLUDE_STRING})" > $TMPDIR/sample.json
 }
 
 function generate_from_kernel_releases() {
