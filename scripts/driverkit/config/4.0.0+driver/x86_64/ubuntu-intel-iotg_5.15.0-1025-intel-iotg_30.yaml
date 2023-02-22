@@ -6,4 +6,3 @@ output:
   module: output/4.0.0+driver/x86_64/scap_ubuntu-intel-iotg_5.15.0-1025-intel-iotg_30.ko
   probe: output/4.0.0+driver/x86_64/scap_ubuntu-intel-iotg_5.15.0-1025-intel-iotg_30.o
 kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-intel-iotg/linux-intel-iotg-headers-5.15.0-1025_5.15.0-1025.30_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-intel-iotg/linux-intel-iotg-headers-5.15.0-1025_5.15.0-1025.30_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-intel-iotg/linux-headers-5.15.0-1025-intel-iotg_5.15.0-1025.30_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-intel-iotg/linux-headers-5.15.0-1025-intel-iotg_5.15.0-1025.30_amd64.deb"]
-kernelconfigdata: /tmp/tmp.P4fzqzQHHV/ubuntu-intel-iotg.30.5.15.0-1025-intel-iotg.conf

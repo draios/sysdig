@@ -6,4 +6,3 @@ output:
   module: output/4.0.0+driver/x86_64/scap_ubuntu-aws_5.15.0-1031-aws_35.ko
   probe: output/4.0.0+driver/x86_64/scap_ubuntu-aws_5.15.0-1031-aws_35.o
 kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-aws-headers-5.15.0-1031_5.15.0-1031.35_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-aws-headers-5.15.0-1031_5.15.0-1031.35_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-headers-5.15.0-1031-aws_5.15.0-1031.35_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-headers-5.15.0-1031-aws_5.15.0-1031.35_amd64.deb"]
-kernelconfigdata: /tmp/tmp.P4fzqzQHHV/ubuntu-aws.35.5.15.0-1031-aws.conf

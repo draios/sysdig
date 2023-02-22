@@ -6,4 +6,3 @@ output:
   module: output/4.0.0+driver/x86_64/scap_amazonlinux2_4.14.121-109.96.amzn2.x86_64_1.ko
   probe: output/4.0.0+driver/x86_64/scap_amazonlinux2_4.14.121-109.96.amzn2.x86_64_1.o
 kernelurls: ["http://amazonlinux.us-east-1.amazonaws.com/2/core/2.0/x86_64/0ec88645aa441aada97df3767b7d1921d80d8fc385cd8ff5f4815b1adc5600f4/../../../../../blobstore/bf8060e0b066eeb4be444d2246363ae501e98772c453295ed51eb5d07e9709c9/kernel-devel-4.14.121-109.96.amzn2.x86_64.rpm"]
-kernelconfigdata: /tmp/tmp.P4fzqzQHHV/amazonlinux2.1.4.14.121-109.96.amzn2.x86_64.conf

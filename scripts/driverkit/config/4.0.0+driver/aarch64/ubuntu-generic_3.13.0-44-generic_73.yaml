@@ -5,4 +5,3 @@ architecture: arm64
 output:
   module: output/4.0.0+driver/aarch64/scap_ubuntu-generic_3.13.0-44-generic_73.ko
 kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-3.13.0-44-generic_3.13.0-44.73_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-3.13.0-44_3.13.0-44.73_all.deb"]
-kernelconfigdata: /tmp/tmp.mRHmZjLurQ/ubuntu-generic.73.3.13.0-44-generic.conf

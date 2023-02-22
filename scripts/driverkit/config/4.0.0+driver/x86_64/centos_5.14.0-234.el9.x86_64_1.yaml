@@ -6,4 +6,3 @@ output:
   module: output/4.0.0+driver/x86_64/scap_centos_5.14.0-234.el9.x86_64_1.ko
   probe: output/4.0.0+driver/x86_64/scap_centos_5.14.0-234.el9.x86_64_1.o
 kernelurls: ["http://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/Packages/kernel-devel-5.14.0-234.el9.x86_64.rpm"]
-kernelconfigdata: /tmp/tmp.P4fzqzQHHV/centos.1.5.14.0-234.el9.x86_64.conf

@@ -6,4 +6,3 @@ output:
   module: output/4.0.0+driver/x86_64/scap_ubuntu-oracle_4.15.0-1065-oracle_73.ko
   probe: output/4.0.0+driver/x86_64/scap_ubuntu-oracle_4.15.0-1065-oracle_73.o
 kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle/linux-oracle-headers-4.15.0-1065_4.15.0-1065.73_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle/linux-headers-4.15.0-1065-oracle_4.15.0-1065.73_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle/linux-headers-4.15.0-1065-oracle_4.15.0-1065.73_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle/linux-oracle-headers-4.15.0-1065_4.15.0-1065.73_all.deb"]
-kernelconfigdata: /tmp/tmp.P4fzqzQHHV/ubuntu-oracle.73.4.15.0-1065-oracle.conf

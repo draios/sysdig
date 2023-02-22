@@ -6,4 +6,3 @@ output:
   module: output/4.0.0+driver/x86_64/scap_ubuntu-ibm_5.4.0-1038-ibm_43.ko
   probe: output/4.0.0+driver/x86_64/scap_ubuntu-ibm_5.4.0-1038-ibm_43.o
 kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-ibm-headers-5.4.0-1038_5.4.0-1038.43_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-headers-5.4.0-1038-ibm_5.4.0-1038.43_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm/linux-ibm-headers-5.4.0-1038_5.4.0-1038.43_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm/linux-headers-5.4.0-1038-ibm_5.4.0-1038.43_amd64.deb"]
-kernelconfigdata: /tmp/tmp.P4fzqzQHHV/ubuntu-ibm.43.5.4.0-1038-ibm.conf

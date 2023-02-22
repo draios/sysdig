@@ -5,4 +5,3 @@ architecture: amd64
 output:
   module: output/4.0.0+driver/x86_64/scap_ubuntu-hwe-edge_4.13.0-21-hwe-edge_24~16.04.1.ko
 kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-edge/linux-headers-4.13.0-21_4.13.0-21.24~16.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-edge/linux-headers-4.13.0-21-lowlatency_4.13.0-21.24~16.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-edge/linux-headers-4.13.0-21_4.13.0-21.24~16.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-edge/linux-headers-4.13.0-21-generic_4.13.0-21.24~16.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-edge/linux-headers-4.13.0-21-generic_4.13.0-21.24~16.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-edge/linux-headers-4.13.0-21-lowlatency_4.13.0-21.24~16.04.1_amd64.deb"]
-kernelconfigdata: /tmp/tmp.P4fzqzQHHV/ubuntu-hwe-edge.24~16.04.1.4.13.0-21-hwe-edge.conf

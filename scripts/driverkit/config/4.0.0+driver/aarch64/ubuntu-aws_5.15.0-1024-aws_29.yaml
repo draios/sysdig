@@ -6,4 +6,3 @@ output:
   module: output/4.0.0+driver/aarch64/scap_ubuntu-aws_5.15.0-1024-aws_29.ko
   probe: output/4.0.0+driver/aarch64/scap_ubuntu-aws_5.15.0-1024-aws_29.o
 kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-aws-headers-5.15.0-1024_5.15.0-1024.29_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-headers-5.15.0-1024-aws_5.15.0-1024.29_arm64.deb"]
-kernelconfigdata: /tmp/tmp.mRHmZjLurQ/ubuntu-aws.29.5.15.0-1024-aws.conf

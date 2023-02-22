@@ -6,4 +6,3 @@ output:
   module: output/4.0.0+driver/x86_64/scap_ubuntu-gcp-edge_4.18.0-1012-gcp-edge_13~18.04.1.ko
   probe: output/4.0.0+driver/x86_64/scap_ubuntu-gcp-edge_4.18.0-1012-gcp-edge_13~18.04.1.o
 kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp-edge/linux-headers-4.18.0-1012-gcp_4.18.0-1012.13~18.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp-edge/linux-headers-4.18.0-1012-gcp_4.18.0-1012.13~18.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp-edge/linux-gcp-headers-4.18.0-1012_4.18.0-1012.13~18.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp-edge/linux-gcp-headers-4.18.0-1012_4.18.0-1012.13~18.04.1_amd64.deb"]
-kernelconfigdata: /tmp/tmp.P4fzqzQHHV/ubuntu-gcp-edge.13~18.04.1.4.18.0-1012-gcp-edge.conf
