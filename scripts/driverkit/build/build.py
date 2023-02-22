@@ -180,7 +180,7 @@ def main():
                             s3.upload_fileobj(fp, s3_bucket, module_s3key, ExtraArgs={'ACL':'public-read'})
                         delete_file(module_output)
 
-                    if probe_output is not None:
+                    if probe_output is not None and os.path.isfile(probe_output):
                         with open(probe_output, 'rb') as fp:
                             s3.upload_fileobj(fp, s3_bucket, probe_s3key, ExtraArgs={'ACL':'public-read'})
                         delete_file(probe_output)
