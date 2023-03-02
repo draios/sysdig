@@ -9,6 +9,7 @@ jobs:
     env:
       REGISTRY: ghcr.io
       BUILDER_IMAGE_BASE: ghcr.io/draios/sysdig-builder
+      SKEL_BUILDER_IMAGE_BASE: ghcr.io/draios/sysdig-skel-builder
 
     runs-on: ubuntu-latest
     steps:
@@ -29,6 +30,16 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build new skeleton builder
+        id: build-skeleton-builder
+        uses: docker/build-push-action@v3
+        with:
+          context: docker/builder
+          file:  docker/builder/modern_bpf_probe.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ format('{0}:dev,{0}:{1}', env.SKEL_BUILDER_IMAGE_BASE, github.sha) }}
+          push: true
       
       - name: Build new builder
         id: build-builder
