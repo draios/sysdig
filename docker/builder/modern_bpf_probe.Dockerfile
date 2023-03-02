@@ -38,4 +38,4 @@ RUN curl -L -o /tmp/cmake.tar.gz https://github.com/Kitware/CMake/releases/downl
 
 # DTS
 ENTRYPOINT ["build"]
-CMD ["usage"]
+CMD ["usage"] 
