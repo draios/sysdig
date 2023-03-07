@@ -1573,6 +1573,8 @@ void sinsp_cursesui::restart_capture(bool is_spy_switch)
 	start(true, is_spy_switch);
 
 	m_source_opener->open(m_inspector);
+
+	m_inspector->start_capture();
 }
 
 void sinsp_cursesui::create_complete_filter(bool templated)
