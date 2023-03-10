@@ -269,6 +269,7 @@ void curses_spectro::draw_axis()
 			uint64_t aval = (uint64_t)pow(10, curtime);
 
 			m_converter->set_val(PT_RELTIME, 
+				EPF_NONE,
 				(uint8_t*)&aval,
 				8,
 				0,
