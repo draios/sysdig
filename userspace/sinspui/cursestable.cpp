@@ -497,6 +497,7 @@ void curses_table::render(bool data_changed)
 				}
 
 				m_converter->set_val(m_legend[j].m_info.m_type, 
+					EPF_NONE,
 					row->at(j).m_val, 
 					row->at(j).m_len,
 					row->at(j).m_cnt,
@@ -594,6 +595,7 @@ string curses_table::get_field_val(string fldname)
 		{
 			uint32_t k = j - 1;
 			m_converter->set_val(m_legend[k].m_info.m_type, 
+				EPF_NONE,
 				row->at(k).m_val, 
 				row->at(k).m_len,
 				row->at(k).m_cnt,

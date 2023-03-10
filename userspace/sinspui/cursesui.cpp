@@ -868,6 +868,7 @@ void sinsp_cursesui::render_header()
 		}
 
 		m_timedelta_formatter->set_val(PT_RELTIME, 
+			EPF_NONE,
 			(uint8_t*)&m_evt_ts_delta,
 			8,
 			0,
