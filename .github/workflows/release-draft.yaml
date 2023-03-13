@@ -7,6 +7,32 @@ on:
       - '[0-9]+.[0-9]+.[0-9]+-[a-z]+[0-9]+'
 
 jobs:
+
+  build-skeleton-sysdig-linux-amd64:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/draios/sysdig-skel-builder:dev
+    steps:
+      - name: Checkout Sysdig
+        uses: actions/checkout@v3
+        with:
+          path: sysdig
+      - name: Link paths
+        run: |
+          mkdir -p /source
+          ln -s "$GITHUB_WORKSPACE/sysdig" /source/sysdig
+      - name: Prepare build skeleton
+        run: build cmake-skeleton
+      - name: Build skeleton
+        run: build make-skeleton
+      - name: Cache build skeleton
+        uses: actions/cache/save@v3
+        if: always()
+        id: cache
+        with:
+          path: /build-skeleton
+          key: build-skeleton-${{ github.run_id }}
+
   build-release-linux-amd64:
     runs-on: ubuntu-latest
     env:
@@ -22,6 +48,13 @@ jobs:
         run: |
           mkdir -p /source
           ln -s "$GITHUB_WORKSPACE/sysdig" /source/sysdig
+      - name: Restore build skeleton
+        id: cache
+        uses: actions/cache/restore@v3
+        with:
+          path: /build-skeleton
+          key: build-skeleton-${{ github.run_id }}
+          restore-keys: build-skeleton-
       - name: Build
         run: build cmake
       - name: Build packages
@@ -49,6 +82,18 @@ jobs:
         uses: docker/setup-qemu-action@v2
         with:
           platforms: 'amd64,arm64'
+      - name: Run the build skeleton process with Docker
+        uses: addnab/docker-run-action@v3
+        with:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          image: ghcr.io/draios/sysdig-skel-builder:dev
+          options: --platform=linux/arm64 -v ${{ github.workspace }}/sysdig:/source/sysdig -v ${{ github.workspace }}/sysdig-build-aarch64:/build/dev-packages -v ${{ github.workspace }}/skeleton-build:/build-skeleton
+          run: |
+            mkdir -p /build/dev-packages && \
+            build cmake-skeleton && \
+            build make-skeleton
       - name: Run the build process with Docker
         uses: addnab/docker-run-action@v3
         with:
@@ -59,9 +104,9 @@ jobs:
           options: --platform=linux/arm64 -v ${{ github.workspace }}/sysdig:/source/sysdig -v ${{ github.workspace }}/sysdig-build-aarch64:/build/release-packages -e BUILD_VERSION=${{ env.BUILD_VERSION }}
           run: |
             mkdir -p /build/release-packages && \
-              build cmake && \
-              build package && \
-              cp /build/release/sysdig-${{ env.BUILD_VERSION }}* /build/release-packages
+            build cmake && \
+            build package && \
+            cp /build/release/sysdig-${{ env.BUILD_VERSION }}* /build/release-packages
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
