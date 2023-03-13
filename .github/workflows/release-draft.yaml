@@ -34,6 +34,7 @@ jobs:
           key: build-skeleton-${{ github.run_id }}
 
   build-release-linux-amd64:
+    needs: build-skeleton-sysdig-linux-amd64:
     runs-on: ubuntu-latest
     env:
       BUILD_VERSION: ${{ github.ref_name }}
@@ -89,9 +90,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ${{ env.REGISTRY }}
           image: ghcr.io/draios/sysdig-skel-builder:dev
-          options: --platform=linux/arm64 -v ${{ github.workspace }}/sysdig:/source/sysdig -v ${{ github.workspace }}/sysdig-build-aarch64:/build/dev-packages -v ${{ github.workspace }}/skeleton-build:/build-skeleton
+          options: --platform=linux/arm64 -v ${{ github.workspace }}/sysdig:/source/sysdig -v ${{ github.workspace }}/sysdig-build-aarch64:/build/release-packages -v ${{ github.workspace }}/skeleton-build:/build-skeleton -e BUILD_VERSION=${{ env.BUILD_VERSION }}
           run: |
-            mkdir -p /build/dev-packages && \
+            mkdir -p /build/release-packages && \
             build cmake-skeleton && \
             build make-skeleton
       - name: Run the build process with Docker
