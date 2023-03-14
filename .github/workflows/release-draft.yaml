@@ -34,7 +34,7 @@ jobs:
           key: build-skeleton-${{ github.run_id }}
 
   build-release-linux-amd64:
-    needs: build-skeleton-sysdig-linux-amd64:
+    needs: build-skeleton-sysdig-linux-amd64
     runs-on: ubuntu-latest
     env:
       BUILD_VERSION: ${{ github.ref_name }}
