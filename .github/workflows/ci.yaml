@@ -52,13 +52,13 @@ jobs:
         id: get-new-skeleton-builder
         if: steps.builder-files.outputs.any_changed == 'true'
         run: |
-          echo "::set-output name=skeleton_builder_image::${{ (github.event.pull_request.number != '') && format('{0}:{1}', env.SKEL_BUILDER_IMAGE_BASE, github.event.pull_request.number)  || env.SKEL_BUILDER_DEV }}"
+          echo "name=skeleton_builder_image::${{ (github.event.pull_request.number != '') && format('{0}:{1}', env.SKEL_BUILDER_IMAGE_BASE, github.event.pull_request.number)  || env.SKEL_BUILDER_DEV }}" >> $GITHUB_OUTPUT
       
       - name: Get new builder image tag
         id: get-new-builder
         if: steps.builder-files.outputs.any_changed == 'true'
         run: |
-          echo "::set-output name=builder_image::${{ (github.event.pull_request.number != '') && format('{0}:{1}', env.BUILDER_IMAGE_BASE, github.event.pull_request.number)  || env.BUILDER_DEV }}"
+          echo "name=builder_image::${{ (github.event.pull_request.number != '') && format('{0}:{1}', env.BUILDER_IMAGE_BASE, github.event.pull_request.number)  || env.BUILDER_DEV }}" >> $GITHUB_OUTPUT
 
       - name: Build new skeleton builder
         id: skeleton-builder
