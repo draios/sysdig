@@ -1,0 +1,9 @@
+name: CI check
+on: [pull_request,workflow_dispatch]
+
+jobs:
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: reviewdog/action-actionlint@v1
