@@ -102,7 +102,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ${{ env.REGISTRY }}
           image: ghcr.io/draios/sysdig-builder:dev
-          options: --platform=linux/arm64 -v ${{ github.workspace }}/sysdig:/source/sysdig -v ${{ github.workspace }}/sysdig-build-aarch64:/build/release-packages -e BUILD_VERSION=${{ env.BUILD_VERSION }}
+          options: --platform=linux/arm64 -v ${{ github.workspace }}/sysdig:/source/sysdig -v ${{ github.workspace }}/sysdig-build-aarch64:/build/release-packages -v ${{ github.workspace }}/skeleton-build:/build-skeleton -e BUILD_VERSION=${{ env.BUILD_VERSION }}
           run: |
             mkdir -p /build/release-packages && \
             build cmake && \
