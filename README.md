@@ -1,5 +1,6 @@
 sysdig
 ======
+[![CI Build](https://github.com/draios/sysdig/actions/workflows/ci.yaml/badge.svg)](https://github.com/draios/sysdig/actions/workflows/ci.yaml) ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/draios/sysdig)
 
 <p align="center"><img src="https://raw.githubusercontent.com/draios/sysdig/dev/img/logo_large.png" width="360"></p>
 <p align="center"><b>Dig Deeper</b></p>
