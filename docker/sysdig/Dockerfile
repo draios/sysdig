@@ -1,18 +1,12 @@
-FROM ghcr.io/draios/sysdig-builder:dev AS builder
+FROM registry.access.redhat.com/ubi8/ubi
+
+LABEL usage="docker run --rm -i -t --privileged --net=host -v /var/run/docker.sock:/host/var/run/docker.sock -v /dev:/host/dev -v /proc:/host/proc:ro -v /boot:/host/boot:ro -v /src:/src -v /lib/modules:/host/lib/modules:ro -v /usr:/host/usr:ro -v /etc:/host/etc:ro --name NAME IMAGE"
 
 ARG BUILD_VERSION=0.1.1dev
 ENV BUILD_VERSION=${BUILD_VERSION}
 
-WORKDIR /source
-
-COPY . /source/sysdig
-
-RUN if [ -d /source/sysdig/falcosecurity-libs ]; then ln -s /source/sysdig/falcosecurity-libs /source/libs; fi
-
-RUN INSTALL_PREFIX=/opt/sysdig build cmake
-RUN build install
-
-FROM registry.access.redhat.com/ubi8/ubi
+ENV HOST_ROOT /host
+ENV HOME /root
 
 RUN yum -y install \
     make \
@@ -31,14 +25,11 @@ RUN mkdir -p /tmp/dkms \
     && cd /tmp \
     && rm -fr /tmp/dkms
 
-COPY --from=builder /opt/sysdig /opt/sysdig
-RUN for b in /opt/sysdig/bin/*; do ln -s "$b" /usr/bin/$(basename "$b"); done \
-    && for b in /opt/sysdig/src/*; do ln -s "$b" /usr/src/$(basename "$b"); done
+COPY ./sysdig-release-${BUILD_VERSION}-*.rpm /
+
+RUN rpm --nodeps --force -i ./sysdig-release-${BUILD_VERSION}-$(uname -p).rpm && rm /sysdig-release-*.rpm
 
 COPY docker/sysdig/docker-entrypoint.sh /
-
-ENV HOST_ROOT /host
-ENV SYSDIG_HOST_ROOT /host
 
 RUN rm -df /lib/modules \
 	&& ln -s $HOST_ROOT/lib/modules /lib/modules

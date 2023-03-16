@@ -154,6 +154,14 @@ jobs:
     steps:
       - name: Checkout Sysdig
         uses: actions/checkout@v3
+      - name: Download artifacts aarch64
+        uses: actions/download-artifact@v3
+        with:
+          name: sysdig-release-${{ env.BUILD_VERSION }}-aarch64
+      - name: Download artifacts x86_64
+        uses: actions/download-artifact@v3
+        with:
+          name: sysdig-release-${{ env.BUILD_VERSION }}-x86_64
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
