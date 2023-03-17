@@ -25,9 +25,9 @@ RUN mkdir -p /tmp/dkms \
     && cd /tmp \
     && rm -fr /tmp/dkms
 
-COPY ./sysdig-release-${BUILD_VERSION}-*.rpm /
+COPY ./sysdig-${BUILD_VERSION}-*.rpm /
 
-RUN rpm --nodeps --force -i ./sysdig-release-${BUILD_VERSION}-$(uname -p).rpm && rm /sysdig-release-*.rpm
+RUN rpm --nodeps --force -i /sysdig-${BUILD_VERSION}-$(uname -p).rpm && rm /sysdig-*.rpm
 
 COPY docker/sysdig/docker-entrypoint.sh /
 
