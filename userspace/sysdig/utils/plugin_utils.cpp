@@ -192,6 +192,10 @@ void plugin_utils::plugin_entry::print_info(sinsp* inspector, std::ostringstream
     {
         os << "  - Field Extraction" << std::endl;
     }
+    if(plugin->caps() & CAP_STATE)
+    {
+        os << "  - State Management" << std::endl;
+    }
 }
 
 void plugin_utils::add_dir(std::string dirname, bool front_add)
@@ -617,16 +621,13 @@ std::vector<std::unique_ptr<sinsp_filter_check>> plugin_utils::get_filterchecks(
     std::vector<std::unique_ptr<sinsp_filter_check>> list;
     list.push_back(std::unique_ptr<sinsp_filter_check>(inspector->new_generic_filtercheck()));
 
-    // todo(jasondellaluce): remove this once we support extracting plugin fields from syscalls
-    if (source != s_syscall_source)
+    for (auto &pl : m_plugins)
     {
-        for (auto &pl : m_plugins)
+        auto plugin = pl.get_plugin(inspector);
+        if (plugin->caps() & CAP_EXTRACTION
+            && sinsp_plugin::is_source_compatible(plugin->extract_event_sources(), source))
         {
-            auto plugin = pl.get_plugin(inspector);
-            if (plugin->caps() & CAP_EXTRACTION && plugin->is_source_compatible(source))
-            {
-                list.push_back(std::unique_ptr<sinsp_filter_check>(sinsp_plugin::new_filtercheck(plugin)));
-            }
+            list.push_back(std::unique_ptr<sinsp_filter_check>(sinsp_plugin::new_filtercheck(plugin)));
         }
     }
     return list;

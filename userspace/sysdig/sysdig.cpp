@@ -43,7 +43,6 @@ limitations under the License.
 #include "chisel_utils.h"
 #include "chisel_fields_info.h"
 #endif
-#include "fields_info.h"
 #include "utils.h"
 #include "plugin.h"
 #include "plugin_manager.h"
@@ -1862,8 +1861,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					res.m_res = EXIT_FAILURE;
 					goto exit;
 				}
-
-				inspector->filter_proc_table_when_saving(true);
 			}
 			else
 			{

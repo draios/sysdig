@@ -50,14 +50,14 @@ void sinsp_opener::open(sinsp* inspector) const
 
 #if defined(HAS_CAPTURE)
     /* Populate syscalls of interest */
-    std::unordered_set<uint32_t> sc_of_interest = inspector->get_all_ppm_sc();
+    auto sc_of_interest = libsinsp::events::all_sc_set();
 
     /* Populate tracepoints of interest */
-    std::unordered_set<uint32_t> tp_of_interest = inspector->get_all_tp();
+    auto tp_of_interest = libsinsp::events::all_tp_set();
     if(!options.page_faults)
     {
-        tp_of_interest.erase(PAGE_FAULT_USER);
-        tp_of_interest.erase(PAGE_FAULT_KERN);
+        tp_of_interest.remove(ppm_tp_code::PAGE_FAULT_USER);
+        tp_of_interest.remove(ppm_tp_code::PAGE_FAULT_KERN);
     }
 
     if(udig.enabled)
