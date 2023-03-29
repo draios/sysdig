@@ -1,0 +1,8 @@
+kernelversion: 36
+kernelrelease: 5.3.0-1034-aws-5.3
+target: ubuntu-aws-5.3
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-aws-5.3_5.3.0-1034-aws-5.3_36.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-aws-5.3_5.3.0-1034-aws-5.3_36.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws-5.3/linux-aws-5.3-headers-5.3.0-1034_5.3.0-1034.36_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws-5.3/linux-headers-5.3.0-1034-aws_5.3.0-1034.36_arm64.deb"]

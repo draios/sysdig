@@ -1,0 +1,8 @@
+kernelversion: 31
+kernelrelease: 5.15.0-30-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-generic_5.15.0-30-generic_31.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-generic_5.15.0-30-generic_31.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.15.0-30-generic_5.15.0-30.31_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.15.0-30-generic_5.15.0-30.31_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.15.0-30_5.15.0-30.31_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.15.0-30_5.15.0-30.31_all.deb"]

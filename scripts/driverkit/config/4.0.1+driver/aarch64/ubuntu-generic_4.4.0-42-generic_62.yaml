@@ -1,0 +1,7 @@
+kernelversion: 62
+kernelrelease: 4.4.0-42-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-generic_4.4.0-42-generic_62.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-42_4.4.0-42.62_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-42-generic_4.4.0-42.62_arm64.deb"]

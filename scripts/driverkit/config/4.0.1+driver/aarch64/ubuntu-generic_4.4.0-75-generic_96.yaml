@@ -1,0 +1,7 @@
+kernelversion: 96
+kernelrelease: 4.4.0-75-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-generic_4.4.0-75-generic_96.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-75_4.4.0-75.96_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-75-generic_4.4.0-75.96_arm64.deb"]

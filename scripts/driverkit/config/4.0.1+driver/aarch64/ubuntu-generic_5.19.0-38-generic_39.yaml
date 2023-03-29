@@ -1,0 +1,8 @@
+kernelversion: 39
+kernelrelease: 5.19.0-38-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-generic_5.19.0-38-generic_39.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-generic_5.19.0-38-generic_39.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.19.0-38_5.19.0-38.39_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.19.0-38-generic_5.19.0-38.39_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.19.0-38-generic-64k_5.19.0-38.39_arm64.deb"]

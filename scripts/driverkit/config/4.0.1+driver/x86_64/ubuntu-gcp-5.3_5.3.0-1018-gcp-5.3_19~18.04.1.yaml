@@ -1,0 +1,8 @@
+kernelversion: 19~18.04.1
+kernelrelease: 5.3.0-1018-gcp-5.3
+target: ubuntu-gcp-5.3
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-gcp-5.3_5.3.0-1018-gcp-5.3_19~18.04.1.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-gcp-5.3_5.3.0-1018-gcp-5.3_19~18.04.1.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp-5.3/linux-gcp-5.3-headers-5.3.0-1018_5.3.0-1018.19~18.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp-5.3/linux-gcp-5.3-headers-5.3.0-1018_5.3.0-1018.19~18.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp-5.3/linux-headers-5.3.0-1018-gcp_5.3.0-1018.19~18.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp-5.3/linux-headers-5.3.0-1018-gcp_5.3.0-1018.19~18.04.1_amd64.deb"]

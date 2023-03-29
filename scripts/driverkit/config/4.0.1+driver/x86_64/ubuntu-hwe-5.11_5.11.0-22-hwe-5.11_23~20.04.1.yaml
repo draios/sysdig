@@ -1,0 +1,8 @@
+kernelversion: 23~20.04.1
+kernelrelease: 5.11.0-22-hwe-5.11
+target: ubuntu-hwe-5.11
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-hwe-5.11_5.11.0-22-hwe-5.11_23~20.04.1.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-hwe-5.11_5.11.0-22-hwe-5.11_23~20.04.1.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-5.11/linux-headers-5.11.0-22-generic_5.11.0-22.23~20.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-5.11/linux-hwe-5.11-headers-5.11.0-22_5.11.0-22.23~20.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-5.11/linux-headers-5.11.0-22-lowlatency_5.11.0-22.23~20.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-5.11/linux-hwe-5.11-headers-5.11.0-22_5.11.0-22.23~20.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-5.11/linux-headers-5.11.0-22-generic_5.11.0-22.23~20.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-5.11/linux-headers-5.11.0-22-lowlatency_5.11.0-22.23~20.04.1_amd64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 76~18.04.1
+kernelrelease: 5.4.0-1070-oracle-5.4
+target: ubuntu-oracle-5.4
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-oracle-5.4_5.4.0-1070-oracle-5.4_76~18.04.1.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-oracle-5.4_5.4.0-1070-oracle-5.4_76~18.04.1.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle-5.4/linux-headers-5.4.0-1070-oracle_5.4.0-1070.76~18.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle-5.4/linux-oracle-5.4-headers-5.4.0-1070_5.4.0-1070.76~18.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle-5.4/linux-oracle-5.4-headers-5.4.0-1070_5.4.0-1070.76~18.04.1_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle-5.4/linux-headers-5.4.0-1070-oracle_5.4.0-1070.76~18.04.1_amd64.deb"]

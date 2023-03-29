@@ -1,0 +1,8 @@
+kernelversion: 17
+kernelrelease: 5.19.0-1016-azure
+target: ubuntu-azure
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-azure_5.19.0-1016-azure_17.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-azure_5.19.0-1016-azure_17.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-azure-headers-5.19.0-1016_5.19.0-1016.17_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-headers-5.19.0-1016-azure_5.19.0-1016.17_arm64.deb"]

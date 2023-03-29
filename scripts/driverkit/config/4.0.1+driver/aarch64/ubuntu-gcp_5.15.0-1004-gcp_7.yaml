@@ -1,0 +1,8 @@
+kernelversion: 7
+kernelrelease: 5.15.0-1004-gcp
+target: ubuntu-gcp
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-gcp_5.15.0-1004-gcp_7.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-gcp_5.15.0-1004-gcp_7.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp/linux-headers-5.15.0-1004-gcp_5.15.0-1004.7_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp/linux-gcp-headers-5.15.0-1004_5.15.0-1004.7_arm64.deb"]

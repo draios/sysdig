@@ -1,0 +1,8 @@
+kernelversion: 41
+kernelrelease: 5.4.0-1038-raspi
+target: ubuntu-raspi
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-raspi_5.4.0-1038-raspi_41.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-raspi_5.4.0-1038-raspi_41.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-raspi/linux-headers-5.4.0-1038-raspi_5.4.0-1038.41_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-raspi/linux-raspi-headers-5.4.0-1038_5.4.0-1038.41_arm64.deb"]

@@ -1,0 +1,7 @@
+kernelversion: 99~14.04.2
+kernelrelease: 4.4.0-78-lts-xenial
+target: ubuntu-lts-xenial
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-lts-xenial_4.4.0-78-lts-xenial_99~14.04.2.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lts-xenial/linux-headers-4.4.0-78_4.4.0-78.99~14.04.2_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lts-xenial/linux-headers-4.4.0-78-generic_4.4.0-78.99~14.04.2_arm64.deb"]

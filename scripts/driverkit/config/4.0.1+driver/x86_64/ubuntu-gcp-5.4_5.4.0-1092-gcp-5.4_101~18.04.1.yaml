@@ -1,0 +1,8 @@
+kernelversion: 101~18.04.1
+kernelrelease: 5.4.0-1092-gcp-5.4
+target: ubuntu-gcp-5.4
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-gcp-5.4_5.4.0-1092-gcp-5.4_101~18.04.1.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-gcp-5.4_5.4.0-1092-gcp-5.4_101~18.04.1.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp-5.4/linux-gcp-5.4-headers-5.4.0-1092_5.4.0-1092.101~18.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp-5.4/linux-gcp-5.4-headers-5.4.0-1092_5.4.0-1092.101~18.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp-5.4/linux-headers-5.4.0-1092-gcp_5.4.0-1092.101~18.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp-5.4/linux-headers-5.4.0-1092-gcp_5.4.0-1092.101~18.04.1_amd64.deb"]

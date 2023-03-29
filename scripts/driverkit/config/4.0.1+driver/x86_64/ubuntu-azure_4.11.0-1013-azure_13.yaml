@@ -1,0 +1,7 @@
+kernelversion: 13
+kernelrelease: 4.11.0-1013-azure
+target: ubuntu-azure
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-azure_4.11.0-1013-azure_13.ko
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure/linux-headers-4.11.0-1013-azure_4.11.0-1013.13_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure/linux-azure-headers-4.11.0-1013_4.11.0-1013.13_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-headers-4.11.0-1013-azure_4.11.0-1013.13_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-azure-headers-4.11.0-1013_4.11.0-1013.13_all.deb"]

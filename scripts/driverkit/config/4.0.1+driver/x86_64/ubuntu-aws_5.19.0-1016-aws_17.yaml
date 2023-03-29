@@ -1,0 +1,8 @@
+kernelversion: 17
+kernelrelease: 5.19.0-1016-aws
+target: ubuntu-aws
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-aws_5.19.0-1016-aws_17.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-aws_5.19.0-1016-aws_17.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-headers-5.19.0-1016-aws_5.19.0-1016.17_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-aws-headers-5.19.0-1016_5.19.0-1016.17_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-aws-headers-5.19.0-1016_5.19.0-1016.17_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-headers-5.19.0-1016-aws_5.19.0-1016.17_amd64.deb"]

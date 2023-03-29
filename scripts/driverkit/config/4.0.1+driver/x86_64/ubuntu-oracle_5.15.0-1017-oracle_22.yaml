@@ -1,0 +1,8 @@
+kernelversion: 22
+kernelrelease: 5.15.0-1017-oracle
+target: ubuntu-oracle
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-oracle_5.15.0-1017-oracle_22.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-oracle_5.15.0-1017-oracle_22.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle/linux-oracle-headers-5.15.0-1017_5.15.0-1017.22_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle/linux-headers-5.15.0-1017-oracle_5.15.0-1017.22_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle/linux-headers-5.15.0-1017-oracle_5.15.0-1017.22_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle/linux-oracle-headers-5.15.0-1017_5.15.0-1017.22_all.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 102~18.04.1
+kernelrelease: 5.4.0-1093-gcp-5.4
+target: ubuntu-gcp-5.4
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-gcp-5.4_5.4.0-1093-gcp-5.4_102~18.04.1.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-gcp-5.4_5.4.0-1093-gcp-5.4_102~18.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp-5.4/linux-gcp-5.4-headers-5.4.0-1093_5.4.0-1093.102~18.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp-5.4/linux-headers-5.4.0-1093-gcp_5.4.0-1093.102~18.04.1_arm64.deb"]

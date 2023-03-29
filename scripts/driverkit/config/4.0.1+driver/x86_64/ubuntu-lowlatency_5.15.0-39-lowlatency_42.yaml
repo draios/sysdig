@@ -1,0 +1,8 @@
+kernelversion: 42
+kernelrelease: 5.15.0-39-lowlatency
+target: ubuntu-lowlatency
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-lowlatency_5.15.0-39-lowlatency_42.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-lowlatency_5.15.0-39-lowlatency_42.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-lowlatency/linux-headers-5.15.0-39-lowlatency_5.15.0-39.42_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lowlatency/linux-headers-5.15.0-39-lowlatency_5.15.0-39.42_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-lowlatency/linux-lowlatency-headers-5.15.0-39_5.15.0-39.42_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lowlatency/linux-lowlatency-headers-5.15.0-39_5.15.0-39.42_all.deb"]

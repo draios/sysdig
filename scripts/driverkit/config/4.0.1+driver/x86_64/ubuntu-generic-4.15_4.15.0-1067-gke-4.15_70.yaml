@@ -1,0 +1,8 @@
+kernelversion: 70
+kernelrelease: 4.15.0-1067-gke-4.15
+target: ubuntu-generic-4.15
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-generic-4.15_4.15.0-1067-gke-4.15_70.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-generic-4.15_4.15.0-1067-gke-4.15_70.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-gke-4.15/linux-gke-4.15-headers-4.15.0-1067_4.15.0-1067.70_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gke-4.15/linux-headers-4.15.0-1067-gke_4.15.0-1067.70_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gke-4.15/linux-headers-4.15.0-1067-gke_4.15.0-1067.70_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gke-4.15/linux-gke-4.15-headers-4.15.0-1067_4.15.0-1067.70_amd64.deb"]

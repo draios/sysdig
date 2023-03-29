@@ -1,0 +1,7 @@
+kernelversion: 29~16.04.2
+kernelrelease: 4.13.0-25-hwe-edge
+target: ubuntu-hwe-edge
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-hwe-edge_4.13.0-25-hwe-edge_29~16.04.2.ko
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-edge/linux-headers-4.13.0-25_4.13.0-25.29~16.04.2_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-edge/linux-headers-4.13.0-25-lowlatency_4.13.0-25.29~16.04.2_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-edge/linux-headers-4.13.0-25-generic_4.13.0-25.29~16.04.2_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-edge/linux-headers-4.13.0-25_4.13.0-25.29~16.04.2_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-edge/linux-headers-4.13.0-25-generic_4.13.0-25.29~16.04.2_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-edge/linux-headers-4.13.0-25-lowlatency_4.13.0-25.29~16.04.2_amd64.deb"]

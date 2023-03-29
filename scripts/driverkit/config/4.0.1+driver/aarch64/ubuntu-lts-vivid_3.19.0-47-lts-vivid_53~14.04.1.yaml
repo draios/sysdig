@@ -1,0 +1,7 @@
+kernelversion: 53~14.04.1
+kernelrelease: 3.19.0-47-lts-vivid
+target: ubuntu-lts-vivid
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-lts-vivid_3.19.0-47-lts-vivid_53~14.04.1.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lts-vivid/linux-headers-3.19.0-47_3.19.0-47.53~14.04.1_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lts-vivid/linux-headers-3.19.0-47-generic_3.19.0-47.53~14.04.1_arm64.deb"]

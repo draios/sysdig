@@ -1,0 +1,8 @@
+kernelversion: 3
+kernelrelease: 5.15.0-1003-ibm
+target: ubuntu-ibm
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-ibm_5.15.0-1003-ibm_3.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-ibm_5.15.0-1003-ibm_3.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm/linux-headers-5.15.0-1003-ibm_5.15.0-1003.3_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-headers-5.15.0-1003-ibm_5.15.0-1003.3_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm/linux-ibm-headers-5.15.0-1003_5.15.0-1003.3_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-ibm-headers-5.15.0-1003_5.15.0-1003.3_all.deb"]

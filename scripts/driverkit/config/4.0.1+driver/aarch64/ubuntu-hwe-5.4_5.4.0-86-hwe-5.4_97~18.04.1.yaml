@@ -1,0 +1,8 @@
+kernelversion: 97~18.04.1
+kernelrelease: 5.4.0-86-hwe-5.4
+target: ubuntu-hwe-5.4
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-hwe-5.4_5.4.0-86-hwe-5.4_97~18.04.1.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-hwe-5.4_5.4.0-86-hwe-5.4_97~18.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-5.4/linux-headers-5.4.0-86-generic_5.4.0-86.97~18.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-5.4/linux-hwe-5.4-headers-5.4.0-86_5.4.0-86.97~18.04.1_all.deb"]

@@ -1,0 +1,7 @@
+kernelversion: 74~14.04.1
+kernelrelease: 4.4.0-53-lts-xenial
+target: ubuntu-lts-xenial
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-lts-xenial_4.4.0-53-lts-xenial_74~14.04.1.ko
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-lts-xenial/linux-headers-4.4.0-53-lowlatency_4.4.0-53.74~14.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-lts-xenial/linux-headers-4.4.0-53-generic_4.4.0-53.74~14.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-lts-xenial/linux-headers-4.4.0-53_4.4.0-53.74~14.04.1_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lts-xenial/linux-headers-4.4.0-53_4.4.0-53.74~14.04.1_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lts-xenial/linux-headers-4.4.0-53-generic_4.4.0-53.74~14.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lts-xenial/linux-headers-4.4.0-53-lowlatency_4.4.0-53.74~14.04.1_amd64.deb"]

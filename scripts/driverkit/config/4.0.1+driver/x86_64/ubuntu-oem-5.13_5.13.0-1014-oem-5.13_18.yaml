@@ -1,0 +1,8 @@
+kernelversion: 18
+kernelrelease: 5.13.0-1014-oem-5.13
+target: ubuntu-oem-5.13
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-oem-5.13_5.13.0-1014-oem-5.13_18.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-oem-5.13_5.13.0-1014-oem-5.13_18.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-5.13/linux-headers-5.13.0-1014-oem_5.13.0-1014.18_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-5.13/linux-oem-5.13-headers-5.13.0-1014_5.13.0-1014.18_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-5.13/linux-oem-5.13-headers-5.13.0-1014_5.13.0-1014.18_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-5.13/linux-headers-5.13.0-1014-oem_5.13.0-1014.18_amd64.deb"]

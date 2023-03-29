@@ -1,0 +1,7 @@
+kernelversion: 66~14.04.1
+kernelrelease: 3.19.0-59-lts-vivid
+target: ubuntu-lts-vivid
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-lts-vivid_3.19.0-59-lts-vivid_66~14.04.1.ko
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-lts-vivid/linux-headers-3.19.0-59-lowlatency_3.19.0-59.66~14.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lts-vivid/linux-headers-3.19.0-59-generic_3.19.0-59.66~14.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lts-vivid/linux-headers-3.19.0-59_3.19.0-59.66~14.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-lts-vivid/linux-headers-3.19.0-59_3.19.0-59.66~14.04.1_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lts-vivid/linux-headers-3.19.0-59-lowlatency_3.19.0-59.66~14.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-lts-vivid/linux-headers-3.19.0-59-generic_3.19.0-59.66~14.04.1_amd64.deb"]

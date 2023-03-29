@@ -1,0 +1,8 @@
+kernelversion: 38
+kernelrelease: 5.15.0-1031-gcp
+target: ubuntu-gcp
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-gcp_5.15.0-1031-gcp_38.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-gcp_5.15.0-1031-gcp_38.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp/linux-gcp-headers-5.15.0-1031_5.15.0-1031.38_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp/linux-headers-5.15.0-1031-gcp_5.15.0-1031.38_arm64.deb"]

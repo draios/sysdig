@@ -1,0 +1,8 @@
+kernelversion: 31~20.04.2
+kernelrelease: 5.13.0-1026-oracle-5.13
+target: ubuntu-oracle-5.13
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-oracle-5.13_5.13.0-1026-oracle-5.13_31~20.04.2.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-oracle-5.13_5.13.0-1026-oracle-5.13_31~20.04.2.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle-5.13/linux-oracle-5.13-headers-5.13.0-1026_5.13.0-1026.31~20.04.2_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle-5.13/linux-headers-5.13.0-1026-oracle_5.13.0-1026.31~20.04.2_arm64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 58~20.04.1
+kernelrelease: 5.15.0-52-lowlatency-hwe-5.15
+target: ubuntu-lowlatency-hwe-5.15
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-lowlatency-hwe-5.15_5.15.0-52-lowlatency-hwe-5.15_58~20.04.1.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-lowlatency-hwe-5.15_5.15.0-52-lowlatency-hwe-5.15_58~20.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency-hwe-5.15/linux-lowlatency-hwe-5.15-headers-5.15.0-52_5.15.0-52.58~20.04.1_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency-hwe-5.15/linux-headers-5.15.0-52-lowlatency_5.15.0-52.58~20.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency-hwe-5.15/linux-headers-5.15.0-52-lowlatency-64k_5.15.0-52.58~20.04.1_arm64.deb"]

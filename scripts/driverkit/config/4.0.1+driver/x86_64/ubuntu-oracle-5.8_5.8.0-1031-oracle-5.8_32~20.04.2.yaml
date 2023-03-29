@@ -1,0 +1,8 @@
+kernelversion: 32~20.04.2
+kernelrelease: 5.8.0-1031-oracle-5.8
+target: ubuntu-oracle-5.8
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-oracle-5.8_5.8.0-1031-oracle-5.8_32~20.04.2.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-oracle-5.8_5.8.0-1031-oracle-5.8_32~20.04.2.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle-5.8/linux-oracle-5.8-headers-5.8.0-1031_5.8.0-1031.32~20.04.2_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle-5.8/linux-headers-5.8.0-1031-oracle_5.8.0-1031.32~20.04.2_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle-5.8/linux-oracle-5.8-headers-5.8.0-1031_5.8.0-1031.32~20.04.2_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle-5.8/linux-headers-5.8.0-1031-oracle_5.8.0-1031.32~20.04.2_amd64.deb"]

@@ -1,0 +1,7 @@
+kernelversion: 45~14.04.1
+kernelrelease: 4.2.0-38-lts-wily
+target: ubuntu-lts-wily
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-lts-wily_4.2.0-38-lts-wily_45~14.04.1.ko
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-lts-wily/linux-headers-4.2.0-38-generic_4.2.0-38.45~14.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lts-wily/linux-headers-4.2.0-38-generic_4.2.0-38.45~14.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-lts-wily/linux-headers-4.2.0-38-lowlatency_4.2.0-38.45~14.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-lts-wily/linux-headers-4.2.0-38_4.2.0-38.45~14.04.1_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lts-wily/linux-headers-4.2.0-38-lowlatency_4.2.0-38.45~14.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lts-wily/linux-headers-4.2.0-38_4.2.0-38.45~14.04.1_all.deb"]

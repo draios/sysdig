@@ -1,0 +1,8 @@
+kernelversion: 22
+kernelrelease: 5.15.0-1017-intel-iotg
+target: ubuntu-intel-iotg
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-intel-iotg_5.15.0-1017-intel-iotg_22.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-intel-iotg_5.15.0-1017-intel-iotg_22.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-intel-iotg/linux-intel-iotg-headers-5.15.0-1017_5.15.0-1017.22_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-intel-iotg/linux-headers-5.15.0-1017-intel-iotg_5.15.0-1017.22_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-intel-iotg/linux-intel-iotg-headers-5.15.0-1017_5.15.0-1017.22_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-intel-iotg/linux-headers-5.15.0-1017-intel-iotg_5.15.0-1017.22_amd64.deb"]

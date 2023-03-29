@@ -1,0 +1,8 @@
+kernelversion: 23
+kernelrelease: 5.15.0-1018-oracle
+target: ubuntu-oracle
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-oracle_5.15.0-1018-oracle_23.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-oracle_5.15.0-1018-oracle_23.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-headers-5.15.0-1018-oracle_5.15.0-1018.23_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-oracle-headers-5.15.0-1018_5.15.0-1018.23_all.deb"]

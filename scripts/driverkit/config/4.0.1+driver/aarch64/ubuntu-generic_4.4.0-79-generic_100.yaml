@@ -1,0 +1,7 @@
+kernelversion: 100
+kernelrelease: 4.4.0-79-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-generic_4.4.0-79-generic_100.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-79_4.4.0-79.100_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-79-generic_4.4.0-79.100_arm64.deb"]

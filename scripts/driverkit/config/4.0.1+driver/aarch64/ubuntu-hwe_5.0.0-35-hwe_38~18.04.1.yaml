@@ -1,0 +1,8 @@
+kernelversion: 38~18.04.1
+kernelrelease: 5.0.0-35-hwe
+target: ubuntu-hwe
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-hwe_5.0.0-35-hwe_38~18.04.1.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-hwe_5.0.0-35-hwe_38~18.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe/linux-headers-5.0.0-35-generic_5.0.0-35.38~18.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe/linux-headers-5.0.0-35_5.0.0-35.38~18.04.1_all.deb"]

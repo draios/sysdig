@@ -1,0 +1,8 @@
+kernelversion: 35
+kernelrelease: 5.10.0-1034-oem-5.10
+target: ubuntu-oem-5.10
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-oem-5.10_5.10.0-1034-oem-5.10_35.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-oem-5.10_5.10.0-1034-oem-5.10_35.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-5.10/linux-oem-5.10-headers-5.10.0-1034_5.10.0-1034.35_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-5.10/linux-headers-5.10.0-1034-oem_5.10.0-1034.35_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-5.10/linux-headers-5.10.0-1034-oem_5.10.0-1034.35_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-5.10/linux-oem-5.10-headers-5.10.0-1034_5.10.0-1034.35_all.deb"]
