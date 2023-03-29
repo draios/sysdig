@@ -1,0 +1,8 @@
+kernelversion: 52
+kernelrelease: 5.10.0-1050-oem-5.10
+target: ubuntu-oem-5.10
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-oem-5.10_5.10.0-1050-oem-5.10_52.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-oem-5.10_5.10.0-1050-oem-5.10_52.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-5.10/linux-headers-5.10.0-1050-oem_5.10.0-1050.52_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-5.10/linux-oem-5.10-headers-5.10.0-1050_5.10.0-1050.52_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-5.10/linux-headers-5.10.0-1050-oem_5.10.0-1050.52_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-5.10/linux-oem-5.10-headers-5.10.0-1050_5.10.0-1050.52_all.deb"]

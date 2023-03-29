@@ -1,0 +1,8 @@
+kernelversion: 14
+kernelrelease: 5.15.0-1011-gke
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-generic_5.15.0-1011-gke_14.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-generic_5.15.0-1011-gke_14.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gke/linux-headers-5.15.0-1011-gke_5.15.0-1011.14_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gke/linux-gke-headers-5.15.0-1011_5.15.0-1011.14_arm64.deb"]

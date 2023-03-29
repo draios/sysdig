@@ -1,0 +1,8 @@
+kernelversion: 29
+kernelrelease: 5.19.0-28-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-generic_5.19.0-28-generic_29.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-generic_5.19.0-28-generic_29.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.19.0-28-generic-64k_5.19.0-28.29_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.19.0-28-generic_5.19.0-28.29_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.19.0-28_5.19.0-28.29_all.deb"]

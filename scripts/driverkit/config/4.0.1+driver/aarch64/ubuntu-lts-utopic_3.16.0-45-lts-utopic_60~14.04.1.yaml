@@ -1,0 +1,7 @@
+kernelversion: 60~14.04.1
+kernelrelease: 3.16.0-45-lts-utopic
+target: ubuntu-lts-utopic
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-lts-utopic_3.16.0-45-lts-utopic_60~14.04.1.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lts-utopic/linux-headers-3.16.0-45_3.16.0-45.60~14.04.1_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lts-utopic/linux-headers-3.16.0-45-generic_3.16.0-45.60~14.04.1_arm64.deb"]

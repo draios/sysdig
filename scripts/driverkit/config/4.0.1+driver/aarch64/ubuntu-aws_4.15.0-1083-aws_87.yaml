@@ -1,0 +1,7 @@
+kernelversion: 87
+kernelrelease: 4.15.0-1083-aws
+target: ubuntu-aws
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-aws_4.15.0-1083-aws_87.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-headers-4.15.0-1083-aws_4.15.0-1083.87_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-aws-headers-4.15.0-1083_4.15.0-1083.87_all.deb"]

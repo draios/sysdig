@@ -1,0 +1,8 @@
+kernelversion: 13~20.04.1
+kernelrelease: 5.13.0-1012-aws-5.13
+target: ubuntu-aws-5.13
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-aws-5.13_5.13.0-1012-aws-5.13_13~20.04.1.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-aws-5.13_5.13.0-1012-aws-5.13_13~20.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws-5.13/linux-aws-5.13-headers-5.13.0-1012_5.13.0-1012.13~20.04.1_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws-5.13/linux-headers-5.13.0-1012-aws_5.13.0-1012.13~20.04.1_arm64.deb"]

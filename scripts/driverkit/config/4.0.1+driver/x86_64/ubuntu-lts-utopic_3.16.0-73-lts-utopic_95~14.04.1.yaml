@@ -1,0 +1,7 @@
+kernelversion: 95~14.04.1
+kernelrelease: 3.16.0-73-lts-utopic
+target: ubuntu-lts-utopic
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-lts-utopic_3.16.0-73-lts-utopic_95~14.04.1.ko
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-lts-utopic/linux-headers-3.16.0-73-lowlatency_3.16.0-73.95~14.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-lts-utopic/linux-headers-3.16.0-73_3.16.0-73.95~14.04.1_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lts-utopic/linux-headers-3.16.0-73-lowlatency_3.16.0-73.95~14.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-lts-utopic/linux-headers-3.16.0-73-generic_3.16.0-73.95~14.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lts-utopic/linux-headers-3.16.0-73-generic_3.16.0-73.95~14.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lts-utopic/linux-headers-3.16.0-73_3.16.0-73.95~14.04.1_all.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 124
+kernelrelease: 4.15.0-1110-gcp-4.15
+target: ubuntu-gcp-4.15
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-gcp-4.15_4.15.0-1110-gcp-4.15_124.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-gcp-4.15_4.15.0-1110-gcp-4.15_124.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp-4.15/linux-headers-4.15.0-1110-gcp_4.15.0-1110.124_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp-4.15/linux-headers-4.15.0-1110-gcp_4.15.0-1110.124_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp-4.15/linux-gcp-4.15-headers-4.15.0-1110_4.15.0-1110.124_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp-4.15/linux-gcp-4.15-headers-4.15.0-1110_4.15.0-1110.124_amd64.deb"]

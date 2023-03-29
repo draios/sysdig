@@ -1,0 +1,8 @@
+kernelversion: 18
+kernelrelease: 5.17.0-1017-oem-5.17
+target: ubuntu-oem-5.17
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-oem-5.17_5.17.0-1017-oem-5.17_18.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-oem-5.17_5.17.0-1017-oem-5.17_18.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-5.17/linux-headers-5.17.0-1017-oem_5.17.0-1017.18_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-5.17/linux-oem-5.17-headers-5.17.0-1017_5.17.0-1017.18_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-5.17/linux-headers-5.17.0-1017-oem_5.17.0-1017.18_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-5.17/linux-oem-5.17-headers-5.17.0-1017_5.17.0-1017.18_all.deb"]

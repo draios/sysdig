@@ -1,0 +1,7 @@
+kernelversion: 1
+kernelrelease: 2.6.32-358.18.1.el6.x86_64
+target: centos
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_centos_2.6.32-358.18.1.el6.x86_64_1.ko
+kernelurls: ["http://archive.kernel.org/centos/6.4/updates/x86_64/Packages/kernel-devel-2.6.32-358.18.1.el6.x86_64.rpm"]

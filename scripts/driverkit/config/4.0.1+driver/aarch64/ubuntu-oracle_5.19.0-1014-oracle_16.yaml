@@ -1,0 +1,8 @@
+kernelversion: 16
+kernelrelease: 5.19.0-1014-oracle
+target: ubuntu-oracle
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-oracle_5.19.0-1014-oracle_16.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-oracle_5.19.0-1014-oracle_16.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-oracle-headers-5.19.0-1014_5.19.0-1014.16_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-headers-5.19.0-1014-oracle_5.19.0-1014.16_arm64.deb"]

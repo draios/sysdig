@@ -1,0 +1,8 @@
+kernelversion: 32
+kernelrelease: 5.15.0-1025-gcp
+target: ubuntu-gcp
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-gcp_5.15.0-1025-gcp_32.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-gcp_5.15.0-1025-gcp_32.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp/linux-headers-5.15.0-1025-gcp_5.15.0-1025.32_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp/linux-gcp-headers-5.15.0-1025_5.15.0-1025.32_arm64.deb"]

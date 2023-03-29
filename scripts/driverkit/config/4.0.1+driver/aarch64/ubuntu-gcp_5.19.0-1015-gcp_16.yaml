@@ -1,0 +1,8 @@
+kernelversion: 16
+kernelrelease: 5.19.0-1015-gcp
+target: ubuntu-gcp
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-gcp_5.19.0-1015-gcp_16.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-gcp_5.19.0-1015-gcp_16.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp/linux-gcp-headers-5.19.0-1015_5.19.0-1015.16_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp/linux-headers-5.19.0-1015-gcp_5.19.0-1015.16_arm64.deb"]

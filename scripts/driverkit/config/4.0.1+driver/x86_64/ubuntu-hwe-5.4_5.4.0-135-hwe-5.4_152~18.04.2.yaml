@@ -1,0 +1,8 @@
+kernelversion: 152~18.04.2
+kernelrelease: 5.4.0-135-hwe-5.4
+target: ubuntu-hwe-5.4
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-hwe-5.4_5.4.0-135-hwe-5.4_152~18.04.2.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-hwe-5.4_5.4.0-135-hwe-5.4_152~18.04.2.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-5.4/linux-hwe-5.4-headers-5.4.0-135_5.4.0-135.152~18.04.2_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-5.4/linux-hwe-5.4-headers-5.4.0-135_5.4.0-135.152~18.04.2_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-5.4/linux-headers-5.4.0-135-lowlatency_5.4.0-135.152~18.04.2_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-5.4/linux-headers-5.4.0-135-lowlatency_5.4.0-135.152~18.04.2_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-5.4/linux-headers-5.4.0-135-generic_5.4.0-135.152~18.04.2_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-5.4/linux-headers-5.4.0-135-generic_5.4.0-135.152~18.04.2_amd64.deb"]

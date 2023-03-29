@@ -1,0 +1,7 @@
+kernelversion: 37
+kernelrelease: 4.4.0-21-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-generic_4.4.0-21-generic_37.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-21_4.4.0-21.37_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-21-generic_4.4.0-21.37_arm64.deb"]

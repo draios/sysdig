@@ -1,0 +1,7 @@
+kernelversion: 1
+kernelrelease: 4.9.65-2+grsecunoff1~bpo9+1-amd64
+target: debian
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_debian_4.9.65-2+grsecunoff1~bpo9+1-amd64_1.ko
+kernelurls: ["http://mirrors.edge.kernel.org/debian/pool/main/l/linux-grsec/linux-headers-4.9.0-4-common-grsec_4.9.65-2+grsecunoff1~bpo9+1_all.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux-grsec/linux-headers-4.9.0-4-grsec-amd64_4.9.65-2+grsecunoff1~bpo9+1_amd64.deb","http://security.debian.org/pool/updates/main/l/linux/linux-kbuild-4.9_4.9.320-2_amd64.deb"]

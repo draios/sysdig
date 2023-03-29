@@ -1,0 +1,8 @@
+kernelversion: 43
+kernelrelease: 5.15.0-40-lowlatency
+target: ubuntu-lowlatency
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-lowlatency_5.15.0-40-lowlatency_43.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-lowlatency_5.15.0-40-lowlatency_43.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-lowlatency-headers-5.15.0-40_5.15.0-40.43_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-5.15.0-40-lowlatency_5.15.0-40.43_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-5.15.0-40-lowlatency-64k_5.15.0-40.43_arm64.deb"]

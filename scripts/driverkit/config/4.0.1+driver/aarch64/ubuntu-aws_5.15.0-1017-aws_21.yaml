@@ -1,0 +1,8 @@
+kernelversion: 21
+kernelrelease: 5.15.0-1017-aws
+target: ubuntu-aws
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-aws_5.15.0-1017-aws_21.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-aws_5.15.0-1017-aws_21.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-aws-headers-5.15.0-1017_5.15.0-1017.21_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-headers-5.15.0-1017-aws_5.15.0-1017.21_arm64.deb"]

@@ -1,0 +1,7 @@
+kernelversion: 154
+kernelrelease: 3.13.0-107-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-generic_3.13.0-107-generic_154.ko
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-107-generic_3.13.0-107.154_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-107-lowlatency_3.13.0-107.154_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-3.13.0-107_3.13.0-107.154_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-3.13.0-107-generic_3.13.0-107.154_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-3.13.0-107-lowlatency_3.13.0-107.154_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-107_3.13.0-107.154_all.deb"]

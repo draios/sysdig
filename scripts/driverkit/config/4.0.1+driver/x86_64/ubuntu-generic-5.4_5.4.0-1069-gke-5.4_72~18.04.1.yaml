@@ -1,0 +1,8 @@
+kernelversion: 72~18.04.1
+kernelrelease: 5.4.0-1069-gke-5.4
+target: ubuntu-generic-5.4
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-generic-5.4_5.4.0-1069-gke-5.4_72~18.04.1.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-generic-5.4_5.4.0-1069-gke-5.4_72~18.04.1.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-gke-5.4/linux-headers-5.4.0-1069-gke_5.4.0-1069.72~18.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gke-5.4/linux-gke-5.4-headers-5.4.0-1069_5.4.0-1069.72~18.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gke-5.4/linux-gke-5.4-headers-5.4.0-1069_5.4.0-1069.72~18.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gke-5.4/linux-headers-5.4.0-1069-gke_5.4.0-1069.72~18.04.1_amd64.deb"]

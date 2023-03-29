@@ -1,0 +1,8 @@
+kernelversion: 17~20.04.1
+kernelrelease: 5.15.0-1012-gcp-5.15
+target: ubuntu-gcp-5.15
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-gcp-5.15_5.15.0-1012-gcp-5.15_17~20.04.1.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-gcp-5.15_5.15.0-1012-gcp-5.15_17~20.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp-5.15/linux-gcp-5.15-headers-5.15.0-1012_5.15.0-1012.17~20.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp-5.15/linux-headers-5.15.0-1012-gcp_5.15.0-1012.17~20.04.1_arm64.deb"]

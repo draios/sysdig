@@ -1,0 +1,8 @@
+kernelversion: 5
+kernelrelease: 5.15.0-1005-nvidia
+target: ubuntu-nvidia
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-nvidia_5.15.0-1005-nvidia_5.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-nvidia_5.15.0-1005-nvidia_5.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-nvidia/linux-headers-5.15.0-1005-nvidia_5.15.0-1005.5_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-nvidia/linux-headers-5.15.0-1005-nvidia-64k_5.15.0-1005.5_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-nvidia/linux-nvidia-headers-5.15.0-1005_5.15.0-1005.5_all.deb"]

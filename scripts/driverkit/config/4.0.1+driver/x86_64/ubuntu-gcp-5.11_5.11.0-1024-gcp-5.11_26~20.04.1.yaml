@@ -1,0 +1,8 @@
+kernelversion: 26~20.04.1
+kernelrelease: 5.11.0-1024-gcp-5.11
+target: ubuntu-gcp-5.11
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-gcp-5.11_5.11.0-1024-gcp-5.11_26~20.04.1.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-gcp-5.11_5.11.0-1024-gcp-5.11_26~20.04.1.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp-5.11/linux-gcp-5.11-headers-5.11.0-1024_5.11.0-1024.26~20.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp-5.11/linux-gcp-5.11-headers-5.11.0-1024_5.11.0-1024.26~20.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp-5.11/linux-headers-5.11.0-1024-gcp_5.11.0-1024.26~20.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp-5.11/linux-headers-5.11.0-1024-gcp_5.11.0-1024.26~20.04.1_amd64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 102
+kernelrelease: 5.4.0-1093-oracle
+target: ubuntu-oracle
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-oracle_5.4.0-1093-oracle_102.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-oracle_5.4.0-1093-oracle_102.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-headers-5.4.0-1093-oracle_5.4.0-1093.102_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-oracle-headers-5.4.0-1093_5.4.0-1093.102_all.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 123
+kernelrelease: 4.15.0-1111-azure-4.15
+target: ubuntu-azure-4.15
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-azure-4.15_4.15.0-1111-azure-4.15_123.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-azure-4.15_4.15.0-1111-azure-4.15_123.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-4.15/linux-headers-4.15.0-1111-azure_4.15.0-1111.123_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure-4.15/linux-headers-4.15.0-1111-azure_4.15.0-1111.123_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-4.15/linux-azure-4.15-headers-4.15.0-1111_4.15.0-1111.123_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure-4.15/linux-azure-4.15-headers-4.15.0-1111_4.15.0-1111.123_all.deb"]

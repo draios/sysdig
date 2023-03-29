@@ -1,0 +1,8 @@
+kernelversion: 21
+kernelrelease: 5.19.0-1019-gcp
+target: ubuntu-gcp
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-gcp_5.19.0-1019-gcp_21.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-gcp_5.19.0-1019-gcp_21.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp/linux-gcp-headers-5.19.0-1019_5.19.0-1019.21_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp/linux-headers-5.19.0-1019-gcp_5.19.0-1019.21_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp/linux-gcp-headers-5.19.0-1019_5.19.0-1019.21_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp/linux-headers-5.19.0-1019-gcp_5.19.0-1019.21_amd64.deb"]

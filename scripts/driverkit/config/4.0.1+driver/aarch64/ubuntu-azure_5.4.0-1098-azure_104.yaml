@@ -1,0 +1,8 @@
+kernelversion: 104
+kernelrelease: 5.4.0-1098-azure
+target: ubuntu-azure
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-azure_5.4.0-1098-azure_104.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-azure_5.4.0-1098-azure_104.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-azure-headers-5.4.0-1098_5.4.0-1098.104_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-headers-5.4.0-1098-azure_5.4.0-1098.104_arm64.deb"]

@@ -1,0 +1,7 @@
+kernelversion: 79
+kernelrelease: 3.13.0-46-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-generic_3.13.0-46-generic_79.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-3.13.0-46-generic_3.13.0-46.79_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-3.13.0-46_3.13.0-46.79_all.deb"]

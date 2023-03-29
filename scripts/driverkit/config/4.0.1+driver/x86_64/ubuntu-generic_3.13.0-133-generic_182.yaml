@@ -1,0 +1,7 @@
+kernelversion: 182
+kernelrelease: 3.13.0-133-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-generic_3.13.0-133-generic_182.ko
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-3.13.0-133-lowlatency_3.13.0-133.182_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-3.13.0-133-generic_3.13.0-133.182_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-133-lowlatency_3.13.0-133.182_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-133_3.13.0-133.182_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-3.13.0-133-generic_3.13.0-133.182_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-3.13.0-133_3.13.0-133.182_all.deb"]

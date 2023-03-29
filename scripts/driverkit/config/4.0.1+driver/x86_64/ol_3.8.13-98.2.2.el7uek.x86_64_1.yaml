@@ -1,0 +1,7 @@
+kernelversion: 1
+kernelrelease: 3.8.13-98.2.2.el7uek.x86_64
+target: ol
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ol_3.8.13-98.2.2.el7uek.x86_64_1.ko
+kernelurls: ["http://yum.oracle.com/repo/OracleLinux/OL7/UEKR3/x86_64/getPackage/kernel-uek-devel-3.8.13-98.2.2.el7uek.x86_64.rpm"]

@@ -1,0 +1,8 @@
+kernelversion: 23
+kernelrelease: 5.15.0-1017-gcp
+target: ubuntu-gcp
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-gcp_5.15.0-1017-gcp_23.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-gcp_5.15.0-1017-gcp_23.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp/linux-headers-5.15.0-1017-gcp_5.15.0-1017.23_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp/linux-headers-5.15.0-1017-gcp_5.15.0-1017.23_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp/linux-gcp-headers-5.15.0-1017_5.15.0-1017.23_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp/linux-gcp-headers-5.15.0-1017_5.15.0-1017.23_amd64.deb"]

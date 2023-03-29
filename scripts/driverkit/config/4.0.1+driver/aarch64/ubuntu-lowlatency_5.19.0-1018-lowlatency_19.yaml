@@ -1,0 +1,8 @@
+kernelversion: 19
+kernelrelease: 5.19.0-1018-lowlatency
+target: ubuntu-lowlatency
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-lowlatency_5.19.0-1018-lowlatency_19.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-lowlatency_5.19.0-1018-lowlatency_19.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-5.19.0-1018-lowlatency-64k_5.19.0-1018.19_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-5.19.0-1018-lowlatency_5.19.0-1018.19_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-lowlatency-headers-5.19.0-1018_5.19.0-1018.19_all.deb"]

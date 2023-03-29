@@ -1,0 +1,8 @@
+kernelversion: 76
+kernelrelease: 5.15.0-69-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-generic_5.15.0-69-generic_76.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-generic_5.15.0-69-generic_76.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.15.0-69-generic_5.15.0-69.76_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.15.0-69-generic-64k_5.15.0-69.76_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.15.0-69_5.15.0-69.76_all.deb"]
