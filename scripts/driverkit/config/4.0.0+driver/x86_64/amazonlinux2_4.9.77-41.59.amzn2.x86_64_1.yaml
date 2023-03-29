@@ -4,4 +4,4 @@ target: amazonlinux2
 architecture: amd64
 output:
   module: output/4.0.0+driver/x86_64/scap_amazonlinux2_4.9.77-41.59.amzn2.x86_64_1.ko
-kernelurls: ["http://amazonlinux.us-east-1.amazonaws.com/2/core/2.0/x86_64/0ec88645aa441aada97df3767b7d1921d80d8fc385cd8ff5f4815b1adc5600f4/../../../../../blobstore/b7c31d392e4b09503950d7d4c6590000cd7b7111d304e02e01b6b884a5882baf/kernel-devel-4.9.77-41.59.amzn2.x86_64.rpm"]
+kernelurls: ["http://amazonlinux.us-east-1.amazonaws.com/2/core/2.0/x86_64/bc092ede49973c1eab8a3f858cd1dec189d249a026e17f910a9f8f7447e93c1b/../../../../../blobstore/b7c31d392e4b09503950d7d4c6590000cd7b7111d304e02e01b6b884a5882baf/kernel-devel-4.9.77-41.59.amzn2.x86_64.rpm"]
