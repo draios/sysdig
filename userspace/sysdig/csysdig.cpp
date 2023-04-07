@@ -39,7 +39,6 @@ limitations under the License.
 #include "chisel.h"
 #include "chisel_utils.h"
 #endif
-#include "fields_info.h"
 #include "chisel_table.h"
 #include "utils.h"
 #include "utils/plugin_utils.h"
@@ -704,7 +703,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		//
 		if(list_flds)
 		{
-			list_fields(false, false);
+			//list_fields(false, false);
 
 			res.m_res = EXIT_SUCCESS;
 			goto exit;

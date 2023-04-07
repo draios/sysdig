@@ -477,7 +477,7 @@ void print_summary_table(sinsp* inspector,
 
 		if(e.m_is_unsupported_syscall)
 		{
-			tstr = einfo->m_syscall_info_table[e.m_id / 2].name;
+			//tstr = einfo->m_syscall_info_table[e.m_id / 2].name;
 			tstr.resize(16, ' ');
 
 			printf("%s%s%" PRIu64 "\n",
@@ -487,7 +487,7 @@ void print_summary_table(sinsp* inspector,
 		}
 		else
 		{
-			tstr = einfo->m_event_info[e.m_id].name;
+			//tstr = einfo->m_event_info[e.m_id].name;
 			tstr.resize(16, ' ');
 
 			printf("%s%s%" PRIu64 "\n",
