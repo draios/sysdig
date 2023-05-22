@@ -35,11 +35,9 @@ void print_supported_fields(sinsp* inspector, plugin_utils& plugins, const std::
 {
     std::vector<fields_info> field_infos;
     std::vector<std::unique_ptr<const sinsp_filter_check>> filtecheck_lists; // only used to retain memory until we finish
-    std::vector<std::string> sources = { s_syscall_source };
+    std::vector<std::string> sources = plugins.get_event_sources(inspector);
 
     // add event sources defined by the loaded plugins
-    const auto& plugin_sources = plugins.get_event_sources(inspector);
-    sources.insert(sources.end(), plugin_sources.begin(), plugin_sources.end());
     if (!source.empty())
     {
         bool found = false;
@@ -66,7 +64,6 @@ void print_supported_fields(sinsp* inspector, plugin_utils& plugins, const std::
         }
 
         std::vector<const filter_check_info*> filterchecks;
-        // todo(jasondellaluce): change this once we support extracting plugin fields from syscalls
         if (src == s_syscall_source)
         {
             std::vector<const filter_check_info*> all_checks;
@@ -81,13 +78,11 @@ void print_supported_fields(sinsp* inspector, plugin_utils& plugins, const std::
                 }
             }
         }
-        else
+
+        for (auto& check: plugins.get_filterchecks(inspector, src))
         {
-            for (auto& check: plugins.get_filterchecks(inspector, src))
-            {
-                filterchecks.push_back(check->get_fields());
-                filtecheck_lists.push_back(std::move(check));
-            }
+            filterchecks.push_back(check->get_fields());
+            filtecheck_lists.push_back(std::move(check));
         }
         
         const auto classes = sinsp_filter_factory::check_infos_to_fieldclass_infos(filterchecks);

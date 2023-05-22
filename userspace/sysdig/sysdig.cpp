@@ -43,7 +43,6 @@ limitations under the License.
 #include "chisel_utils.h"
 #include "chisel_fields_info.h"
 #endif
-#include "fields_info.h"
 #include "utils.h"
 #include "plugin.h"
 #include "plugin_manager.h"
@@ -455,8 +454,6 @@ void print_summary_table(sinsp* inspector,
 						 std::vector<summary_table_entry> &summary_table,
 						 uint32_t nentries)
 {
-	sinsp_evttables* einfo = inspector->get_event_info_tables();
-
 	std::cout << "----------------------\n";
 	std::string tstr = std::string("Event");
 	tstr.resize(16, ' ');
@@ -478,7 +475,7 @@ void print_summary_table(sinsp* inspector,
 
 		if(e.m_is_unsupported_syscall)
 		{
-			tstr = einfo->m_syscall_info_table[e.m_id / 2].name;
+			tstr = scap_get_ppm_sc_name((ppm_sc_code) (e.m_id / 2));
 			tstr.resize(16, ' ');
 
 			printf("%s%s%" PRIu64 "\n",
@@ -488,7 +485,7 @@ void print_summary_table(sinsp* inspector,
 		}
 		else
 		{
-			tstr = einfo->m_event_info[e.m_id].name;
+			tstr = libsinsp::events::info((ppm_event_code) e.m_id)->name;
 			tstr.resize(16, ' ');
 
 			printf("%s%s%" PRIu64 "\n",
@@ -1862,8 +1859,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					res.m_res = EXIT_FAILURE;
 					goto exit;
 				}
-
-				inspector->filter_proc_table_when_saving(true);
 			}
 			else
 			{

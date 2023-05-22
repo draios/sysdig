@@ -39,11 +39,11 @@ limitations under the License.
 #include "chisel.h"
 #include "chisel_utils.h"
 #endif
-#include "fields_info.h"
 #include "chisel_table.h"
 #include "utils.h"
 #include "utils/plugin_utils.h"
 #include "utils/sinsp_opener.h"
+#include "utils/supported_fields.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -704,8 +704,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		//
 		if(list_flds)
 		{
-			list_fields(false, false);
-
+			// todo(jasondellaluce): support source selection, verbosity, markdown
+			print_supported_fields(inspector, plugins, "", true, false);
 			res.m_res = EXIT_SUCCESS;
 			goto exit;
 		}
