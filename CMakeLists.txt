@@ -148,6 +148,9 @@ endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
+if(MSVC OR WIN32)
+	add_compile_definitions(_HAS_STD_BYTE=0)
+endif()
 
 include(falcosecurity-libs)
 include(yaml-cpp)
