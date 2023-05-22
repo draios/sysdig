@@ -146,6 +146,9 @@ if(NOT DEFINED SYSDIG_COMPONENT_NAME)
     set(SYSDIG_COMPONENT_NAME "${CMAKE_PROJECT_NAME}")
 endif()
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 include(falcosecurity-libs)
 include(yaml-cpp)
 include(nlohmann-json)
