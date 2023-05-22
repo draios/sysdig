@@ -146,6 +146,7 @@ void plugin_utils::plugin_entry::init(sinsp *inspector)
     }
     if (plugin->caps() & CAP_EXTRACTION)
     {
+        // todo(jasondellaluce): manage field name conflicts
         g_filterlist.add_filter_check(sinsp_plugin::new_filtercheck(plugin));
     }
     inited = true;
@@ -185,12 +186,29 @@ void plugin_utils::plugin_entry::print_info(sinsp* inspector, std::ostringstream
     os << "Capabilities: " << std::endl;
     if(plugin->caps() & CAP_SOURCING)
     {
-        os << "  - Event Sourcing (ID=" << plugin->id();
-        os << ", source='" << plugin->event_source() << "')" << std::endl;
+        os << "  - Event Sourcing";
+        if (plugin->id() != 0)
+        {
+            os << " (ID=" << plugin->id();
+            os << ", source='" << plugin->event_source() << "')";
+        }
+        else
+        {
+            os << " (system events)";
+        }
+        os << std::endl;
     }
     if(plugin->caps() & CAP_EXTRACTION)
     {
         os << "  - Field Extraction" << std::endl;
+    }
+    if(plugin->caps() & CAP_PARSING)
+    {
+        os << "  - Event Parsing" << std::endl;
+    }
+    if(plugin->caps() & CAP_ASYNC)
+    {
+        os << "  - Async Events" << std::endl;
     }
 }
 
@@ -609,7 +627,7 @@ std::vector<std::string> plugin_utils::get_event_sources(sinsp *inspector)
         // the plugin, in case it was not registered already
         pl.get_plugin(inspector);
     }
-    return inspector->get_plugin_manager()->sources();
+    return inspector->event_sources();
 }
 
 std::vector<std::unique_ptr<sinsp_filter_check>> plugin_utils::get_filterchecks(sinsp *inspector, const std::string& source)
@@ -617,16 +635,13 @@ std::vector<std::unique_ptr<sinsp_filter_check>> plugin_utils::get_filterchecks(
     std::vector<std::unique_ptr<sinsp_filter_check>> list;
     list.push_back(std::unique_ptr<sinsp_filter_check>(inspector->new_generic_filtercheck()));
 
-    // todo(jasondellaluce): remove this once we support extracting plugin fields from syscalls
-    if (source != s_syscall_source)
+    for (auto &pl : m_plugins)
     {
-        for (auto &pl : m_plugins)
+        auto plugin = pl.get_plugin(inspector);
+        if (plugin->caps() & CAP_EXTRACTION
+            && sinsp_plugin::is_source_compatible(plugin->extract_event_sources(), source))
         {
-            auto plugin = pl.get_plugin(inspector);
-            if (plugin->caps() & CAP_EXTRACTION && plugin->is_source_compatible(source))
-            {
-                list.push_back(std::unique_ptr<sinsp_filter_check>(sinsp_plugin::new_filtercheck(plugin)));
-            }
+            list.push_back(std::unique_ptr<sinsp_filter_check>(sinsp_plugin::new_filtercheck(plugin)));
         }
     }
     return list;
