@@ -1,0 +1,8 @@
+kernelversion: 34
+kernelrelease: 5.15.0-1031-raspi
+target: ubuntu-raspi
+architecture: arm64
+output:
+  module: output/5.0.1+driver/aarch64/scap_ubuntu-raspi_5.15.0-1031-raspi_34.ko
+  probe: output/5.0.1+driver/aarch64/scap_ubuntu-raspi_5.15.0-1031-raspi_34.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-raspi/linux-raspi-headers-5.15.0-1031_5.15.0-1031.34_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-raspi/linux-headers-5.15.0-1031-raspi_5.15.0-1031.34_arm64.deb"]
