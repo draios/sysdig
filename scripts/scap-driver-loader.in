@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (C) 2022 The Falco Authors.
+# Copyright (C) 2023 The Falco Authors.
 #
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -128,10 +128,44 @@ get_target_id() {
 
 	case "${OS_ID}" in
 	("amzn")
-		if [[ $VERSION_ID == "2" ]]; then
+		case "${VERSION_ID}" in
+		("2")
 			TARGET_ID="amazonlinux2"
-		else
+			;;
+		("2022")
+			TARGET_ID="amazonlinux2022"
+			;;
+		("2023")
+			TARGET_ID="amazonlinux2023"
+			;;
+		(*)
 			TARGET_ID="amazonlinux"
+			;;
+		esac
+		;;
+	("debian")
+		# Workaround: debian kernelreleases might now be actual kernel running;
+		# instead, they might be the Debian kernel package
+		# providing the compatible kernel ABI
+		# See https://lists.debian.org/debian-user/2017/03/msg00485.html
+		# Real kernel release is embedded inside the kernel version.
+		# Moreover, kernel arch, when present, is attached to the former,
+		# therefore make sure to properly take it and attach it to the latter.
+		# Moreover, we support 3 flavors for debian kernels: cloud, rt and normal.
+ 		# KERNEL-RELEASE will have a `-rt`, or `-cloud` if we are in one of these flavors.
+ 		# Manage it to download the correct driver.
+ 		#
+ 		# Example: KERNEL_RELEASE="5.10.0-0.deb10.22-rt-amd64" and `uname -v`="5.10.178-3"
+ 		# should lead to: KERNEL_RELEASE="5.10.178-3-rt-amd64"
+		TARGET_ID=$(echo "${OS_ID}" | tr '[:upper:]' '[:lower:]')
+		local ARCH_extra=""
+		if [[ $KERNEL_RELEASE =~ -?(rt-|cloud-|)(amd64|arm64) ]];
+		then
+			ARCH_extra="-${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+		fi
+		if [[ $(uname -v) =~ ([0-9]+\.[0-9]+\.[0-9]+\-[0-9]+) ]];
+		then
+			KERNEL_RELEASE="${BASH_REMATCH[1]}${ARCH_extra}"
 		fi
 		;;
 	("ubuntu")
@@ -151,7 +185,7 @@ get_target_id() {
 		TARGET_ID=$(echo "${OS_ID}" | tr '[:upper:]' '[:lower:]')
 		;;
 	("minikube")
-		TARGET_ID="${OS_ID}"
+		TARGET_ID=$(echo "${OS_ID}" | tr '[:upper:]' '[:lower:]')
 		# Extract the minikube version. Ex. With minikube version equal to "v1.26.0-1655407986-14197" the extracted version
 		# will be "1.26.0"
 		if [[ $(cat ${HOST_ROOT}/etc/VERSION) =~ ([0-9]+(\.[0-9]+){2}) ]]; then
@@ -163,7 +197,7 @@ get_target_id() {
 		fi
 		;;
 	("bottlerocket")
-		TARGET_ID="${OS_ID}"
+		TARGET_ID=$(echo "${OS_ID}" | tr '[:upper:]' '[:lower:]')
 		# variant_id has been sourced from os-release. Get only the first variant part
 		if [[ -n ${VARIANT_ID} ]];  then
 			# take just first part (eg: VARIANT_ID=aws-k8s-1.15 -> aws)
@@ -171,6 +205,11 @@ get_target_id() {
 		fi
 		# version_id has been sourced from os-release. Build a kernel version like: 1_1.11.0-aws
 		KERNEL_VERSION="1_${VERSION_ID}-${VARIANT_ID_CUT}"
+		;;
+	("talos")
+		TARGET_ID=$(echo "${OS_ID}" | tr '[:upper:]' '[:lower:]')
+		# version_id has been sourced from os-release. Build a kernel version like: 1_1.4.1
+		KERNEL_VERSION="1_${VERSION_ID}"
 		;;
 	(*)
 		TARGET_ID=$(echo "${OS_ID}" | tr '[:upper:]' '[:lower:]')
@@ -232,10 +271,10 @@ load_kernel_module_compile() {
 			continue
 		fi
 		echo "* Trying to dkms install ${DRIVER_NAME} module with GCC ${CURRENT_GCC}"
-		echo "#!/usr/bin/env bash" > /tmp/scap-dkms-make
-		echo "make CC=${CURRENT_GCC} \$@" >> /tmp/scap-dkms-make
-		chmod +x /tmp/scap-dkms-make
-		if dkms install --directive="MAKE='/tmp/scap-dkms-make'" -m "${DRIVER_NAME}" -v "${DRIVER_VERSION}" -k "${KERNEL_RELEASE}" 2>/dev/null; then
+		echo "#!/usr/bin/env bash" > "${TMPDIR}/scap-dkms-make"
+		echo "make CC=${CURRENT_GCC} \$@" >> "${TMPDIR}/scap-dkms-make"
+		chmod +x "${TMPDIR}/scap-dkms-make"
+		if dkms install --directive="MAKE='${TMPDIR}/scap-dkms-make'" -m "${DRIVER_NAME}" -v "${DRIVER_VERSION}" -k "${KERNEL_RELEASE}" 2>/dev/null; then
 			echo "* ${DRIVER_NAME} module installed in dkms"
 			KO_FILE="/var/lib/dkms/${DRIVER_NAME}/${DRIVER_VERSION}/${KERNEL_RELEASE}/${ARCH}/module/${DRIVER_NAME}"
 			if [ -f "$KO_FILE.ko" ]; then
@@ -656,6 +695,8 @@ DRIVER="module"
 if [ -v SYSDIG_BPF_PROBE ]; then
 	DRIVER="bpf"
 fi
+
+TMPDIR=${TMPDIR:-"/tmp"}
 
 ENABLE_COMPILE=
 ENABLE_DOWNLOAD=
