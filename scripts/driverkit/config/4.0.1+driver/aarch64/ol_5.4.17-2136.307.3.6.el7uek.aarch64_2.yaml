@@ -1,0 +1,8 @@
+kernelversion: 2
+kernelrelease: 5.4.17-2136.307.3.6.el7uek.aarch64
+target: ol
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ol_5.4.17-2136.307.3.6.el7uek.aarch64_2.ko
+  probe: output/4.0.1+driver/aarch64/scap_ol_5.4.17-2136.307.3.6.el7uek.aarch64_2.o
+kernelurls: ["http://yum.oracle.com/repo/OracleLinux/OL7/UEKR6/aarch64/getPackage/kernel-uek-devel-5.4.17-2136.307.3.6.el7uek.aarch64.rpm"]

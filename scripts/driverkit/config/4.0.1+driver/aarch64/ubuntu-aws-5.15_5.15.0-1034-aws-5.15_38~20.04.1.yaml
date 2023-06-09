@@ -1,0 +1,8 @@
+kernelversion: 38~20.04.1
+kernelrelease: 5.15.0-1034-aws-5.15
+target: ubuntu-aws-5.15
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-aws-5.15_5.15.0-1034-aws-5.15_38~20.04.1.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-aws-5.15_5.15.0-1034-aws-5.15_38~20.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws-5.15/linux-aws-5.15-headers-5.15.0-1034_5.15.0-1034.38~20.04.1_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws-5.15/linux-headers-5.15.0-1034-aws_5.15.0-1034.38~20.04.1_arm64.deb"]

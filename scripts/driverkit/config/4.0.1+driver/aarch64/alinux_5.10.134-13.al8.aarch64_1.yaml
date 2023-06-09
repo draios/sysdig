@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 5.10.134-13.al8.aarch64
+target: alinux
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_alinux_5.10.134-13.al8.aarch64_1.ko
+  probe: output/4.0.1+driver/aarch64/scap_alinux_5.10.134-13.al8.aarch64_1.o
+kernelurls: ["http://mirrors.aliyun.com/alinux/3/plus/aarch64/Packages/kernel-devel-5.10.134-13.al8.aarch64.rpm"]

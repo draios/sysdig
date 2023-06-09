@@ -1,0 +1,8 @@
+kernelversion: 2
+kernelrelease: 4.14.35-2047.507.7.4.el7uek.x86_64
+target: ol
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ol_4.14.35-2047.507.7.4.el7uek.x86_64_2.ko
+  probe: output/4.0.1+driver/x86_64/scap_ol_4.14.35-2047.507.7.4.el7uek.x86_64_2.o
+kernelurls: ["http://yum.oracle.com/repo/OracleLinux/OL7/UEKR5/x86_64/getPackage/kernel-uek-devel-4.14.35-2047.507.7.4.el7uek.x86_64.rpm"]

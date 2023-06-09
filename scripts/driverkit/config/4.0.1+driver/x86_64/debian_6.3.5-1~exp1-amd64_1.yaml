@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 6.3.5-1~exp1-amd64
+target: debian
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_debian_6.3.5-1~exp1-amd64_1.ko
+  probe: output/4.0.1+driver/x86_64/scap_debian_6.3.5-1~exp1-amd64_1.o
+kernelurls: ["http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-6.3.0-0-common-rt_6.3.5-1~exp1_all.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-kbuild-6.3_6.3.5-1~exp1_amd64.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-6.3.0-0-common_6.3.5-1~exp1_all.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-6.3.0-0-cloud-amd64_6.3.5-1~exp1_amd64.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-6.3.0-0-rt-amd64_6.3.5-1~exp1_amd64.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-6.3.0-0-amd64_6.3.5-1~exp1_amd64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 17
+kernelrelease: 6.0.0-1017-oem-6.0
+target: ubuntu-oem-6.0
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-oem-6.0_6.0.0-1017-oem-6.0_17.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-oem-6.0_6.0.0-1017-oem-6.0_17.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-6.0/linux-headers-6.0.0-1017-oem_6.0.0-1017.17_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-6.0/linux-oem-6.0-headers-6.0.0-1017_6.0.0-1017.17_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-6.0/linux-headers-6.0.0-1017-oem_6.0.0-1017.17_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-6.0/linux-oem-6.0-headers-6.0.0-1017_6.0.0-1017.17_all.deb"]

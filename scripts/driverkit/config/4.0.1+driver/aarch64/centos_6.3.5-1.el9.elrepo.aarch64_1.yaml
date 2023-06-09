@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 6.3.5-1.el9.elrepo.aarch64
+target: centos
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_centos_6.3.5-1.el9.elrepo.aarch64_1.ko
+  probe: output/4.0.1+driver/aarch64/scap_centos_6.3.5-1.el9.elrepo.aarch64_1.o
+kernelurls: ["http://mirror.rackspace.com/elrepo/kernel/el9/aarch64/RPMS/kernel-ml-devel-6.3.5-1.el9.elrepo.aarch64.rpm"]
