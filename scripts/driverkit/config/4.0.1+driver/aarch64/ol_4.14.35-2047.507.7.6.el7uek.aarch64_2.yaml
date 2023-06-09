@@ -1,0 +1,7 @@
+kernelversion: 2
+kernelrelease: 4.14.35-2047.507.7.6.el7uek.aarch64
+target: ol
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ol_4.14.35-2047.507.7.6.el7uek.aarch64_2.ko
+kernelurls: ["http://yum.oracle.com/repo/OracleLinux/OL7/latest/aarch64/getPackage/kernel-uek-devel-4.14.35-2047.507.7.6.el7uek.aarch64.rpm"]

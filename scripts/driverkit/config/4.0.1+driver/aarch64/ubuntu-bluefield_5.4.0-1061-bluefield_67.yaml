@@ -1,0 +1,8 @@
+kernelversion: 67
+kernelrelease: 5.4.0-1061-bluefield
+target: ubuntu-bluefield
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-bluefield_5.4.0-1061-bluefield_67.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-bluefield_5.4.0-1061-bluefield_67.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-bluefield/linux-headers-5.4.0-1061-bluefield_5.4.0-1061.67_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-bluefield/linux-bluefield-headers-5.4.0-1061_5.4.0-1061.67_all.deb"]

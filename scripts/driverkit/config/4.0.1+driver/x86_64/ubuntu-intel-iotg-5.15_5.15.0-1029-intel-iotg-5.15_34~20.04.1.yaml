@@ -1,0 +1,8 @@
+kernelversion: 34~20.04.1
+kernelrelease: 5.15.0-1029-intel-iotg-5.15
+target: ubuntu-intel-iotg-5.15
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-intel-iotg-5.15_5.15.0-1029-intel-iotg-5.15_34~20.04.1.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-intel-iotg-5.15_5.15.0-1029-intel-iotg-5.15_34~20.04.1.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-intel-iotg-5.15/linux-headers-5.15.0-1029-intel-iotg_5.15.0-1029.34~20.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-intel-iotg-5.15/linux-intel-iotg-5.15-headers-5.15.0-1029_5.15.0-1029.34~20.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-intel-iotg-5.15/linux-headers-5.15.0-1029-intel-iotg_5.15.0-1029.34~20.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-intel-iotg-5.15/linux-intel-iotg-5.15-headers-5.15.0-1029_5.15.0-1029.34~20.04.1_all.deb"]

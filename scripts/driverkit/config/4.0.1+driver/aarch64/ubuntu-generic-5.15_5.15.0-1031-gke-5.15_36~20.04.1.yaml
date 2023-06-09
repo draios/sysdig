@@ -1,0 +1,8 @@
+kernelversion: 36~20.04.1
+kernelrelease: 5.15.0-1031-gke-5.15
+target: ubuntu-generic-5.15
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-generic-5.15_5.15.0-1031-gke-5.15_36~20.04.1.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-generic-5.15_5.15.0-1031-gke-5.15_36~20.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gke-5.15/linux-gke-5.15-headers-5.15.0-1031_5.15.0-1031.36~20.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gke-5.15/linux-headers-5.15.0-1031-gke_5.15.0-1031.36~20.04.1_arm64.deb"]

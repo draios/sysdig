@@ -1,0 +1,8 @@
+kernelversion: 26
+kernelrelease: 5.19.0-1025-lowlatency
+target: ubuntu-lowlatency
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-lowlatency_5.19.0-1025-lowlatency_26.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-lowlatency_5.19.0-1025-lowlatency_26.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-lowlatency-headers-5.19.0-1025_5.19.0-1025.26_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-5.19.0-1025-lowlatency-64k_5.19.0-1025.26_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-5.19.0-1025-lowlatency_5.19.0-1025.26_arm64.deb"]

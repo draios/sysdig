@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 6.3.4-1.el8.elrepo.x86_64
+target: centos
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_centos_6.3.4-1.el8.elrepo.x86_64_1.ko
+  probe: output/4.0.1+driver/x86_64/scap_centos_6.3.4-1.el8.elrepo.x86_64_1.o
+kernelurls: ["http://elrepo.org/linux/kernel/el8/x86_64/RPMS/kernel-ml-devel-6.3.4-1.el8.elrepo.x86_64.rpm"]

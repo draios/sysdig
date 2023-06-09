@@ -1,0 +1,8 @@
+kernelversion: 29
+kernelrelease: 5.19.0-1026-azure
+target: ubuntu-azure
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-azure_5.19.0-1026-azure_29.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-azure_5.19.0-1026-azure_29.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure/linux-headers-5.19.0-1026-azure_5.19.0-1026.29_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure/linux-azure-headers-5.19.0-1026_5.19.0-1026.29_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-headers-5.19.0-1026-azure_5.19.0-1026.29_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-azure-headers-5.19.0-1026_5.19.0-1026.29_all.deb"]

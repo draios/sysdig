@@ -1,0 +1,8 @@
+kernelversion: 16
+kernelrelease: 6.0.0-1016-oem-6.0
+target: ubuntu-oem-6.0
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-oem-6.0_6.0.0-1016-oem-6.0_16.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-oem-6.0_6.0.0-1016-oem-6.0_16.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-6.0/linux-headers-6.0.0-1016-oem_6.0.0-1016.16_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-6.0/linux-headers-6.0.0-1016-oem_6.0.0-1016.16_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-6.0/linux-oem-6.0-headers-6.0.0-1016_6.0.0-1016.16_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-6.0/linux-oem-6.0-headers-6.0.0-1016_6.0.0-1016.16_all.deb"]
