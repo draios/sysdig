@@ -47,6 +47,7 @@ def main():
     ap.add_argument('--moduledevicename', default='scap', help='The module device name')
     ap.add_argument('--arch', default='', help='The architecture for which driver must be built. If empty, all supported archs are considered.')
     ap.add_argument('--rebuild', action='store_true', help='Rebuild all drivers, including the ones already present on S3')
+    ap.add_argument('--version', default='', help='Specific version to be built of the driver in the config_dir.')
     args = ap.parse_args()
 
     if args.rebuild:
@@ -78,7 +79,16 @@ def main():
         s3_prefix = args.s3_prefix.lstrip('/')
 
     all_archs = len(args.arch) == 0
-    dri_dirs = [x for x in config_dir.iterdir() if x.is_dir()]
+    if args.version is None:
+        dri_dirs = [x for x in config_dir.iterdir() if x.is_dir()]
+    else:
+        version_dir = Path(args.config_dir, args.version)
+        if version_dir.is_dir():
+            dri_dirs = [version_dir]
+        else:
+            print(f"[-] {args.version} configs not found in {config_dir}")
+            return 1
+
     for dri_dir in dri_dirs:
         legacy_arch = ""
         config_dirs = [x for x in dri_dir.iterdir() if x.is_dir()]

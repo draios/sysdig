@@ -9,6 +9,10 @@ on:
         description: 'Set rebuild to "true" to perform a complete rebuild of all the probes, even if they were already present on S3'
         required: true
         default: 'false'
+      version:
+        description: 'Set version to a specific driver version (e.g. "5.0.1+driver") to build a specific version of the driver only'
+        required: false
+        default: ''
 
 jobs:
   build-drivers:
@@ -68,4 +72,5 @@ jobs:
           --driverkit ${{ github.workspace }}/driverkit \
           --arch ${{ matrix.arch }} \
           --s3-bucket ${{ env.S3_BUCKET }} --s3-prefix ${{ env.S3_PREFIX }} \
-          ${{ (github.event_name == 'workflow_dispatch') && (github.event.inputs.rebuild == 'true') && '--rebuild' || '' }}
+          ${{ (github.event_name == 'workflow_dispatch') && (github.event.inputs.rebuild == 'true') && '--rebuild' || '' }} \
+          ${{ (github.event_name == 'workflow_dispatch') && (github.event.inputs.version != '') && format('--version {0}',github.event.inputs.version) || '' }}
