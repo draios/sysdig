@@ -118,6 +118,25 @@ def main():
             files = list(config_dir.glob("*.yaml"))
             print(f"[*] found {len(files)} files")
 
+            if not args.rebuild:
+                prefix = f"{s3_prefix}/{driverversion}/{arch}/"
+                paginator = s3.get_paginator('list_objects_v2')
+                pages = paginator.paginate(Bucket=s3_bucket, Prefix=prefix, Delimiter="/")
+
+                # Prefetch all driver already compiled
+                exclude_list = [obj['Key'] for page in pages for obj in page['Contents']]
+
+                # Get the basename then remove the `scap_` prefix and `.ko` or `.o` extension
+                # so we end up with the exact name of the config file
+                exclude_list = ['.'.join(os.path.basename(x)[5:].split('.')[:-1]) for x in exclude_list]
+
+                # Exclude only if both kmod and bpf driver are not built
+                exclude_list = set([i for i in exclude_list if exclude_list.count(i)>1])
+
+                # First remove the `.yaml` extension then filter the original file list
+                files = [x for x in files if os.path.basename(x)[:-5] not in exclude_list]
+
+
             count = 0
             success_count = 0
             fail_count = 0
@@ -149,8 +168,8 @@ def main():
                         probe_s3key = f"{s3_prefix}/{driverversion}/{probe_basename}"
 
                 if s3:
-                    need_module = (module_output is not None) and (args.rebuild or not s3_exists(s3, s3_bucket, module_s3key))
-                    need_probe = (probe_output is not None) and (args.rebuild or not s3_exists(s3, s3_bucket, probe_s3key))
+                    need_module = (module_output is not None)
+                    need_probe = (probe_output is not None)
                 else:
                     need_module = (module_output is not None) and (args.rebuild or not os.path.exists(module_output))
                     need_probe = (probe_output is not None) and (args.rebuild or not os.path.exists(probe_output))
