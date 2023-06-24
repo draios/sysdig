@@ -45,9 +45,10 @@ def main():
     ap.add_argument('--s3-prefix', help='S3 key prefix')
     ap.add_argument('--moduledrivername', default='scap', help='The module driver name')
     ap.add_argument('--moduledevicename', default='scap', help='The module device name')
-    ap.add_argument('--arch', default='', help='The architecture for which driver must be built. If empty, all supported archs are considered.')
+    ap.add_argument('--arch', default='x86_64', help='The architecture for which driver must be built.')
     ap.add_argument('--rebuild', action='store_true', help='Rebuild all drivers, including the ones already present on S3')
     ap.add_argument('--version', default='', help='Specific version to be built of the driver in the config_dir.')
+    ap.add_argument('--dry-run', action='store_true', help='Dry run the build script.')
     args = ap.parse_args()
 
     if args.rebuild:
@@ -78,7 +79,6 @@ def main():
         s3_bucket = args.s3_bucket
         s3_prefix = args.s3_prefix.lstrip('/')
 
-    all_archs = len(args.arch) == 0
     if args.version is None:
         dri_dirs = [x for x in config_dir.iterdir() if x.is_dir()]
     else:
@@ -90,33 +90,41 @@ def main():
             return 1
 
     for dri_dir in dri_dirs:
-        legacy_arch = ""
         config_dirs = [x for x in dri_dir.iterdir() if x.is_dir()]
-        if not config_dirs:
-            if all_archs or args.arch == "x86_64":
-                # Older configs (based on commit hash driver versions) don't
-                # have the arch directory split, so config are placed in the
-                # driver version directory itself
-                config_dirs = [dri_dir]
-                legacy_arch = "x86_64"
-            else:
-                # Archs other than x86_64 are not supported on older driver ver
-                continue
         for config_dir in config_dirs:
             # if arch is not dediced implicitly, then it must be equal to the
             # config directory name
-            arch = legacy_arch
-            if legacy_arch == "":
-                arch = config_dir.name
+            arch = config_dir.name
 
             # skip this config if the arch is not the one we're building for
-            if arch != args.arch and not all_archs:
+            if arch != args.arch:
                 continue
 
             driverversion = dri_dir.name
             print(f"[*] loading drivers from driver version directory {driverversion} for arch {arch}")
             files = list(config_dir.glob("*.yaml"))
             print(f"[*] found {len(files)} files")
+            if args.dry_run:
+                print(f"[!] Running a dry run")
+
+            already_build_list = []
+            if not args.rebuild:
+                prefix = f"{s3_prefix}/{driverversion}/{arch}/"
+                paginator = s3.get_paginator('list_objects_v2')
+                pages = paginator.paginate(Bucket=s3_bucket, Prefix=prefix, Delimiter="/")
+
+                # Prefetch all driver already compiled
+                already_build_list = [os.path.basename(obj['Key']) for page in pages for obj in page['Contents']]
+
+                # Get the basename then remove the `scap_` prefix and `.ko` or `.o` extension
+                # so we end up with the exact name of the config file
+                exclude_list = ['.'.join(x[5:].split('.')[:-1]) for x in already_build_list]
+
+                # Exclude only if both kmod and bpf driver are not built
+                exclude_list = set([i for i in exclude_list if exclude_list.count(i)>1])
+
+                # First remove the `.yaml` extension then filter the original file list
+                files = [x for x in files if os.path.basename(x)[:-5] not in exclude_list]
 
             if not args.rebuild:
                 prefix = f"{s3_prefix}/{driverversion}/{arch}/"
@@ -154,22 +162,16 @@ def main():
                 module_s3key = None
                 if module_output is not None:
                     module_basename = os.path.basename(module_output)
-                    if legacy_arch == "": # we need to specify an arch
-                        module_s3key = f"{s3_prefix}/{driverversion}/{arch}/{module_basename}"
-                    else:
-                        module_s3key = f"{s3_prefix}/{driverversion}/{module_basename}"
+                    module_s3key = f"{s3_prefix}/{driverversion}/{arch}/{module_basename}"
 
                 probe_s3key = None
                 if probe_output is not None:
                     probe_basename = os.path.basename(probe_output)
-                    if legacy_arch == "": # we need to specify an arch
-                        probe_s3key = f"{s3_prefix}/{driverversion}/{arch}/{probe_basename}"
-                    else:
-                        probe_s3key = f"{s3_prefix}/{driverversion}/{probe_basename}"
+                    probe_s3key = f"{s3_prefix}/{driverversion}/{arch}/{probe_basename}"
 
                 if s3:
-                    need_module = (module_output is not None)
-                    need_probe = (probe_output is not None)
+                    need_module = (module_output is not None) and (module_basename not in already_build_list)
+                    need_probe  = (probe_output  is not None) and (probe_basename  not in already_build_list)
                 else:
                     need_module = (module_output is not None) and (args.rebuild or not os.path.exists(module_output))
                     need_probe = (probe_output is not None) and (args.rebuild or not os.path.exists(probe_output))
@@ -185,6 +187,9 @@ def main():
                     Path(module_output).parent.mkdir(parents=True, exist_ok=True)
                 if probe_output is not None:
                     Path(probe_output).parent.mkdir(parents=True, exist_ok=True)
+
+                if args.dry_run:
+                    continue
 
                 # note: we don't need to pass the target architecture to
                 # driverkit, because we are assuming that the architecture is
