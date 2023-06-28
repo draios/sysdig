@@ -132,8 +132,7 @@ static void usage()
 #endif
 #ifdef HAS_MODERN_BPF
 "  --cpus-for-each-buffer <cpus_num>\n"
-"                    [EXPERIMENTAL] Please note this config regards only the modern BPF probe.\n"
-"                    They are experimental so they could change over releases.\n"
+"                    Please note this config regards only the modern BPF probe.\n"
 "                    How many CPUs you want to assign to a single syscall buffer (ring buffer).\n"
 "                    By default, every syscall buffer is associated to 2 CPUs, so the mapping is\n"
 "                    1:2. The modern BPF probe allows you to choose different mappings, for\n"
@@ -284,8 +283,7 @@ static void usage()
 "                    SYSDIG_MESOS_API.\n"
 #ifdef HAS_MODERN_BPF
 "--modern-bpf\n"
-"                    [EXPERIMENTAL] Enable live capture using the modern BPF probe instead of\n"
-"                    of the kernel module.\n"
+"                    Enable live capture using the modern BPF probe instead of the kernel module.\n"
 #endif
 " -M <num_seconds>   Stop collecting after <num_seconds> reached.\n"
 " -n <num>, --numevents=<num>\n"
