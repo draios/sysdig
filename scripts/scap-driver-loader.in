@@ -152,11 +152,11 @@ get_target_id() {
 		# Moreover, kernel arch, when present, is attached to the former,
 		# therefore make sure to properly take it and attach it to the latter.
 		# Moreover, we support 3 flavors for debian kernels: cloud, rt and normal.
- 		# KERNEL-RELEASE will have a `-rt`, or `-cloud` if we are in one of these flavors.
- 		# Manage it to download the correct driver.
- 		#
- 		# Example: KERNEL_RELEASE="5.10.0-0.deb10.22-rt-amd64" and `uname -v`="5.10.178-3"
- 		# should lead to: KERNEL_RELEASE="5.10.178-3-rt-amd64"
+		# KERNEL-RELEASE will have a `-rt`, or `-cloud` if we are in one of these flavors.
+		# Manage it to download the correct driver.
+		#
+		# Example: KERNEL_RELEASE="5.10.0-0.deb10.22-rt-amd64" and `uname -v`="5.10.178-3"
+		# should lead to: KERNEL_RELEASE="5.10.178-3-rt-amd64"
 		TARGET_ID=$(echo "${OS_ID}" | tr '[:upper:]' '[:lower:]')
 		local ARCH_extra=""
 		if [[ $KERNEL_RELEASE =~ -?(rt-|cloud-|)(amd64|arm64) ]];
@@ -171,13 +171,25 @@ get_target_id() {
 	("ubuntu")
 		# Extract the flavor from the kernelrelease
 		# Examples:
-		# 5.0.0-1028-aws-5.0 -> ubuntu-aws-5.0
+		# 5.0.0-1028-aws-5.0 -> ubuntu-aws
 		# 5.15.0-1009-aws -> ubuntu-aws
 		if [[ $KERNEL_RELEASE =~ -([a-zA-Z]+)(-.*)?$ ]];
 		then
-			TARGET_ID="ubuntu-${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+			TARGET_ID="ubuntu-${BASH_REMATCH[1]}"
 		else
 			TARGET_ID="ubuntu-generic"
+		fi
+
+
+		# In the case that the kernelversion isn't just a number
+		# we keep also the remaining part excluding `-Ubuntu`.
+		# E.g.:
+		# from the following `uname -v` result
+		# `#26~22.04.1-Ubuntu SMP Mon Apr 24 01:58:15 UTC 2023`
+		# we obtain the kernelversion`26~22.04.1`
+		if [[ $(uname -v) =~ (^\#[0-9]+\~[^-]*-Ubuntu .*$) ]];
+		then
+			KERNEL_VERSION=$(uname -v | sed 's/#\([^-\\ ]*\).*/\1/g')
 		fi
 		;;
 	("flatcar")
