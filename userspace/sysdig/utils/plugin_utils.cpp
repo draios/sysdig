@@ -136,7 +136,7 @@ static bool iterate_plugins_dirs(
 	return breakout;
 }
 
-void plugin_utils::plugin_entry::init(sinsp *inspector)
+void plugin_utils::plugin_entry::init(sinsp *inspector, filter_check_list* flist)
 {
     std::string err;
     auto plugin = get_plugin(inspector);
@@ -147,7 +147,7 @@ void plugin_utils::plugin_entry::init(sinsp *inspector)
     if (plugin->caps() & CAP_EXTRACTION)
     {
         // todo(jasondellaluce): manage field name conflicts
-        g_filterlist.add_filter_check(sinsp_plugin::new_filtercheck(plugin));
+        flist->add_filter_check(sinsp_plugin::new_filtercheck(plugin));
     }
     inited = true;
 }
@@ -165,13 +165,13 @@ std::shared_ptr<sinsp_plugin> plugin_utils::plugin_entry::get_plugin(sinsp *insp
     return inspector->register_plugin(libpath);
 }
 
-void plugin_utils::init_loaded_plugins(sinsp* inspector)
+void plugin_utils::init_loaded_plugins(sinsp* inspector, filter_check_list* flist)
 {
     for (auto &p : m_plugins)
     {
         if (p.used && !p.inited)
         {
-            p.init(inspector);
+            p.init(inspector, flist);
         }
     }
 }
@@ -381,7 +381,7 @@ void plugin_utils::config_plugin(sinsp *inspector, const std::string& name, cons
     p.init_config = conf;
 }
 
-void plugin_utils::select_input_plugin(sinsp *inspector, const std::string& name, const std::string& params)
+void plugin_utils::select_input_plugin(sinsp *inspector, filter_check_list* flist, const std::string& name, const std::string& params)
 {
     load_plugin(inspector, name);
     auto& p = find_plugin(name);
@@ -393,7 +393,7 @@ void plugin_utils::select_input_plugin(sinsp *inspector, const std::string& name
         {
             throw sinsp_exception("using more than one plugin as input is not supported");
         }
-        g_filterlist.add_filter_check(inspector->new_generic_filtercheck());
+        flist->add_filter_check(inspector->new_generic_filtercheck());
         m_input_plugin_name = plugin->name();
         m_input_plugin_params = params;
         return;
@@ -427,7 +427,7 @@ void plugin_utils::print_plugin_info_list(sinsp* inspector)
     printf("%s", os.str().c_str());
 }
 
-void plugin_utils::print_plugin_info(sinsp* inspector, const std::string& name)
+void plugin_utils::print_plugin_info(sinsp* inspector, filter_check_list* flist, const std::string& name)
 {
     std::ostringstream os;
 
@@ -464,7 +464,7 @@ void plugin_utils::print_plugin_info(sinsp* inspector, const std::string& name)
     // init the plugin with empty config (ignored if already inited)
     if (!p.inited)
     {
-        p.init(inspector);
+        p.init(inspector, flist);
     }
 
     // print plugin suggested open parameters
@@ -498,7 +498,7 @@ void plugin_utils::print_plugin_info(sinsp* inspector, const std::string& name)
     }
 }
 
-void plugin_utils::load_plugins_from_conf_file(sinsp *inspector, const std::string& config_filename, bool set_input)
+void plugin_utils::load_plugins_from_conf_file(sinsp *inspector, filter_check_list* flist, const std::string& config_filename, bool set_input)
 {
     YAML::Node config;
     std::string config_explanation = ". See https://falco.org/docs/plugins/#loading-plugins-in-falco for additional information.";
@@ -574,7 +574,7 @@ void plugin_utils::load_plugins_from_conf_file(sinsp *inspector, const std::stri
             auto& p = find_plugin(library_path);
             if (set_input && p.get_plugin(inspector)->caps() & CAP_SOURCING)
             {
-                select_input_plugin(inspector, name, open_params);
+                select_input_plugin(inspector, flist, name, open_params);
             }
         }
     }

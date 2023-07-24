@@ -540,7 +540,10 @@ static void initialize_chisels()
 //    - the next token starts with a '-'
 //    - the rest of the command line contains a valid filter
 //
-static void parse_chisel_args(sinsp_chisel* ch, sinsp* inspector, int optind, int argc, char **argv, int32_t* n_filterargs)
+static void parse_chisel_args(
+	sinsp_chisel* ch,
+	std::shared_ptr<gen_event_filter_factory> filter_factory,
+	int optind, int argc, char **argv, int32_t* n_filterargs)
 {
 	uint32_t nargs = ch->get_n_args();
 	uint32_t nreqargs = ch->get_n_required_args();
@@ -585,7 +588,7 @@ static void parse_chisel_args(sinsp_chisel* ch, sinsp* inspector, int optind, in
 					{
 						try
 						{
-							sinsp_filter_compiler compiler(inspector, testflt);
+							sinsp_filter_compiler compiler(filter_factory, testflt);
 							sinsp_filter* s = compiler.compile();
 							delete s;
 						}
@@ -1022,6 +1025,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool list_plugins = false;
 	std::string plugin_config_file = "";
 	sinsp_opener opener;
+	std::unique_ptr<filter_check_list> filter_list;
+	std::shared_ptr<gen_event_filter_factory> filter_factory;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -1124,6 +1129,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		inspector = new sinsp();
 		inspector->set_hostname_and_port_resolution_mode(false);
 
+		filter_list.reset(new sinsp_filter_check_list());
+		filter_factory.reset(new sinsp_filter_factory(inspector, *filter_list.get()));
+
 #ifdef HAS_CHISELS
 		add_chisel_dirs(inspector);
 #endif
@@ -1187,7 +1195,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 
 					sinsp_chisel* ch = new sinsp_chisel(inspector, chisel);
-					parse_chisel_args(ch, inspector, optind, argc, argv, &n_filterargs);
+					parse_chisel_args(ch, filter_factory, optind, argc, argv, &n_filterargs);
 					g_chisels.push_back(ch);
 				}
 #endif
@@ -1274,7 +1282,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						pgname = inputname.substr(0, cpos);
 						pgpars = inputname.substr(cpos + 1);
 					}
-					plugins.select_input_plugin(inspector, pgname, pgpars);
+					plugins.select_input_plugin(inspector, filter_list.get(), pgname, pgpars);
 					g_plugin_input = true;
 					opener.plugin.enabled = true;
 				}
@@ -1630,7 +1638,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 					else if(optname == "plugin-config-file") {
 						plugin_config_file = optarg;
-						plugins.load_plugins_from_conf_file(inspector, plugin_config_file, false);
+						plugins.load_plugins_from_conf_file(inspector, filter_list.get(), plugin_config_file, false);
 					}
 
 					else if (optname == "page-faults") {
@@ -1640,7 +1648,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					else if (optname == "plugin-info")
 					{
 						auto name = std::string(optarg);
-						plugins.print_plugin_info(inspector, name);
+						plugins.print_plugin_info(inspector, filter_list.get(), name);
 						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
@@ -1665,7 +1673,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		if (!opener.plugin.enabled && !plugin_config_file.empty())
 		{
 			// reload the file but by setting the plugin input, if present
-			plugins.load_plugins_from_conf_file(inspector, plugin_config_file, true);
+			plugins.load_plugins_from_conf_file(inspector, filter_list.get(), plugin_config_file, true);
 
 			// set a flag if our event sourc input is a plugin-defined one
 			opener.plugin.enabled = plugins.has_input_plugin();
@@ -1673,7 +1681,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		}
 
 		// all plugins have been loaded and configured so now we initialize them
-		plugins.init_loaded_plugins(inspector);
+		plugins.init_loaded_plugins(inspector, filter_list.get());
 		
 		if (list_plugins)
 		{
@@ -1779,7 +1787,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			{
 				try
 				{
-					sinsp_filter_compiler compiler(inspector, filter);
+					sinsp_filter_compiler compiler(filter_factory, filter);
 					display_filter = compiler.compile();
 				}
 				catch (sinsp_exception& e)
@@ -1833,9 +1841,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		//
 		// Create the event formatter
 		//
-		sinsp_evt_formatter syscall_evt_formatter(inspector, output_format);
+		sinsp_evt_formatter syscall_evt_formatter(inspector, output_format, *filter_list.get());
 
-		sinsp_evt_formatter plugin_evt_formatter(inspector, output_format_plugin);
+		sinsp_evt_formatter plugin_evt_formatter(inspector, output_format_plugin, *filter_list.get());
 
 		//
 		// Set output buffers len
@@ -1873,7 +1881,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			{
 				try
 				{
-					inspector->set_filter(filter);
+					sinsp_filter_compiler compiler(filter_factory, filter);
+					inspector->set_filter(compiler.compile());
 				}
 				catch (sinsp_exception& e)
 				{
@@ -2154,6 +2163,5 @@ int main(int argc, char **argv)
 #ifdef _WIN32
 	_CrtDumpMemoryLeaks();
 #endif
-
 	return res.m_res;
 }
