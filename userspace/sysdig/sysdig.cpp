@@ -982,7 +982,7 @@ std::string escape_output_format(const std::string& s)
 sysdig_init_res sysdig_init(int argc, char **argv)
 {
 	sysdig_init_res res;
-	sinsp* inspector = NULL;
+	std::unique_ptr<sinsp> inspector;
 	std::vector<std::string> infiles;
 	std::string outfile;
 	int op;
@@ -1126,17 +1126,17 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 	try
 	{
-		inspector = new sinsp();
+		inspector.reset(new sinsp());
 		inspector->set_hostname_and_port_resolution_mode(false);
 
 		filter_list.reset(new sinsp_filter_check_list());
-		filter_factory.reset(new sinsp_filter_factory(inspector, *filter_list.get()));
+		filter_factory.reset(new sinsp_filter_factory(inspector.get(), *filter_list.get()));
 
 #ifdef HAS_CHISELS
-		add_chisel_dirs(inspector);
+		add_chisel_dirs(inspector.get());
 #endif
 		plugins.add_directory(SYSDIG_PLUGINS_DIR);
-		plugins.read_plugins_from_dirs(inspector);
+		plugins.read_plugins_from_dirs(inspector.get());
 
 		//
 		// Parse the args
@@ -1156,7 +1156,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				if(event_buffer_format != sinsp_evt::PF_NORMAL)
 				{
 					fprintf(stderr, "you cannot specify more than one output format\n");
-					delete inspector;
 					return sysdig_init_res(EXIT_SUCCESS);
 				}
 
@@ -1166,7 +1165,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				if(event_buffer_format != sinsp_evt::PF_NORMAL)
 				{
 					fprintf(stderr, "you cannot specify more than one output format\n");
-					delete inspector;
 					return sysdig_init_res(EXIT_SUCCESS);
 				}
 
@@ -1190,11 +1188,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						std::vector<chisel_desc> chlist;
 						sinsp_chisel::get_chisel_list(&chlist);
 						list_chisels(&chlist, true);
-						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
 
-					sinsp_chisel* ch = new sinsp_chisel(inspector, chisel);
+					sinsp_chisel* ch = new sinsp_chisel(inspector.get(), chisel);
 					parse_chisel_args(ch, filter_factory, optind, argc, argv, &n_filterargs);
 					g_chisels.push_back(ch);
 				}
@@ -1260,8 +1257,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						pgname = pluginname.substr(0, cpos);
 						pginitconf = pluginname.substr(cpos + 1);
 					}
-					plugins.load_plugin(inspector, pgname);
-					plugins.config_plugin(inspector, pgname, pginitconf);
+					plugins.load_plugin(inspector.get(), pgname);
+					plugins.config_plugin(inspector.get(), pgname, pginitconf);
 					break;
 				}
 			case 'I':
@@ -1282,7 +1279,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						pgname = inputname.substr(0, cpos);
 						pgpars = inputname.substr(cpos + 1);
 					}
-					plugins.select_input_plugin(inspector, filter_list.get(), pgname, pgpars);
+					plugins.select_input_plugin(inspector.get(), filter_list.get(), pgname, pgpars);
 					g_plugin_input = true;
 					opener.plugin.enabled = true;
 				}
@@ -1301,7 +1298,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						if(chlist[j].m_name == cname)
 						{
 							print_chisel_info(&chlist[j]);
-							delete inspector;
 							return sysdig_init_res(EXIT_SUCCESS);
 						}
 					}
@@ -1332,7 +1328,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #endif // MINIMAL_BUILD
 			case 'h':
 				usage();
-				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
 			case 'l':
 				list_flds = true;
@@ -1343,8 +1338,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			case 'L':
 				// todo(jasondellaluce): support CLI for printing in markdown too
-				print_supported_events(inspector, false);
-				delete inspector;
+				print_supported_events(inspector.get(), false);
 				return sysdig_init_res(EXIT_SUCCESS);
 #ifndef MINIMAL_BUILD
 			case 'm':
@@ -1385,7 +1379,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				{
 					// -pp shows the default output format, useful if the user wants to tweak it.
 					printf("%s\n", output_format.c_str());
-					delete inspector;
 					return sysdig_init_res(EXIT_SUCCESS);
 				}
 				else if(std::string(optarg) == "c" || std::string(optarg) == "container")
@@ -1464,7 +1457,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					else
 					{
 						fprintf(stderr, "invalid modifier for flag -t\n");
-						delete inspector;
 						return sysdig_init_res(EXIT_FAILURE);
 					}
 				}
@@ -1501,7 +1493,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				if(event_buffer_format != sinsp_evt::PF_NORMAL)
 				{
 					fprintf(stderr, "you cannot specify more than one output format\n");
-					delete inspector;
 					return sysdig_init_res(EXIT_FAILURE);
 				}
 
@@ -1511,7 +1502,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				if(event_buffer_format != sinsp_evt::PF_NORMAL)
 				{
 					fprintf(stderr, "you cannot specify more than one output format\n");
-					delete inspector;
 					return sysdig_init_res(EXIT_FAILURE);
 				}
 
@@ -1528,12 +1518,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 					if (optname == "version") {
 						printf("sysdig version %s\n", SYSDIG_VERSION);
-						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
 					else if (optname == "libs-version") {
 						printf("falcosecurity/libs version %s\n", FALCOSECURITY_LIBS_VERSION);
-						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
 					else if (optname == "log-level") {
@@ -1562,7 +1550,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 							inspector->set_min_log_severity(sinsp_logger::SEV_TRACE);
 						} else {
 							fprintf(stderr, "invalid log level %s\n", optarg);
-							delete inspector;
 							return sysdig_init_res(EXIT_FAILURE);
 						}
 						g_logger.add_stdout_log();
@@ -1571,7 +1558,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						std::vector<chisel_desc> chlist;
 						sinsp_chisel::get_chisel_list(&chlist);
 						list_chisels(&chlist, true);
-						delete inspector;
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
 #ifdef HAS_MODERN_BPF
@@ -1638,7 +1624,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 					else if(optname == "plugin-config-file") {
 						plugin_config_file = optarg;
-						plugins.load_plugins_from_conf_file(inspector, filter_list.get(), plugin_config_file, false);
+						plugins.load_plugins_from_conf_file(inspector.get(), filter_list.get(), plugin_config_file, false);
 					}
 
 					else if (optname == "page-faults") {
@@ -1648,15 +1634,13 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					else if (optname == "plugin-info")
 					{
 						auto name = std::string(optarg);
-						plugins.print_plugin_info(inspector, filter_list.get(), name);
-						delete inspector;
+						plugins.print_plugin_info(inspector.get(), filter_list.get(), name);
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
 				}
 				break;
 			// getopt_long : '?' for an ambiguous match or an extraneous parameter
 			case '?':
-				delete inspector;
 				return sysdig_init_res(EXIT_FAILURE);
 				break;
 			default:
@@ -1673,7 +1657,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		if (!opener.plugin.enabled && !plugin_config_file.empty())
 		{
 			// reload the file but by setting the plugin input, if present
-			plugins.load_plugins_from_conf_file(inspector, filter_list.get(), plugin_config_file, true);
+			plugins.load_plugins_from_conf_file(inspector.get(), filter_list.get(), plugin_config_file, true);
 
 			// set a flag if our event sourc input is a plugin-defined one
 			opener.plugin.enabled = plugins.has_input_plugin();
@@ -1681,17 +1665,16 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		}
 
 		// all plugins have been loaded and configured so now we initialize them
-		plugins.init_loaded_plugins(inspector, filter_list.get());
+		plugins.init_loaded_plugins(inspector.get(), filter_list.get());
 		
 		if (list_plugins)
 		{
-			plugins.print_plugin_info_list(inspector);
+			plugins.print_plugin_info_list(inspector.get());
 			printf("More detailed info about individual plugins can be printed with the --plugin-info option:\n");
 			printf(" Detailed info about a single plugin\n");
 			printf("   $ sysdig --plugin-info=dummy\n\n");
 			printf(" Detailed info about a single plugin with a given configuration\n");
 			printf("   $ sysdig -H dummy:'{\"jitter\":50}' --plugin-info=dummy\n\n");
-			delete inspector;
 			return sysdig_init_res(EXIT_SUCCESS);
 		}
 
@@ -1762,7 +1745,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		//
 		if(list_flds)
 		{
-			print_supported_fields(inspector, plugins, list_flds_source, verbose, list_flds_markdown);
+			print_supported_fields(inspector.get(), plugins, list_flds_source, verbose, list_flds_markdown);
 			res.m_res = EXIT_SUCCESS;
 			goto exit;
 		}
@@ -1796,7 +1779,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					if (errpos != NULL)
 					{
 						const char* field = errpos + strlen(g_unknown_field_err);
-						plugins.print_field_extraction_support(inspector, field);
+						plugins.print_field_extraction_support(inspector.get(), field);
 					}
 					throw e;
 				}
@@ -1841,9 +1824,9 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		//
 		// Create the event formatter
 		//
-		sinsp_evt_formatter syscall_evt_formatter(inspector, output_format, *filter_list.get());
+		sinsp_evt_formatter syscall_evt_formatter(inspector.get(), output_format, *filter_list.get());
 
-		sinsp_evt_formatter plugin_evt_formatter(inspector, output_format_plugin, *filter_list.get());
+		sinsp_evt_formatter plugin_evt_formatter(inspector.get(), output_format_plugin, *filter_list.get());
 
 		//
 		// Set output buffers len
@@ -1890,7 +1873,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					if (errpos != NULL)
 					{
 						const char* field = errpos + strlen(g_unknown_field_err);
-						plugins.print_field_extraction_support(inspector, field);
+						plugins.print_field_extraction_support(inspector.get(), field);
 					}
 					throw e;
 				}
@@ -1919,7 +1902,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				initialize_chisels();
 				opener.savefile.enabled = true;
 				opener.savefile.path = infiles[j];
-				opener.open(inspector);
+				opener.open(inspector.get());
 			}
 			else
 			{
@@ -1929,7 +1912,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 
 				initialize_chisels();
-				opener.open(inspector);
+				opener.open(inspector.get());
 			}
 
 			//
@@ -2025,7 +2008,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			// from messing up the output and possibly the shell line after program termination.
 			disable_tty_echo();
 #endif
-			cinfo = do_inspect(inspector,
+			cinfo = do_inspect(inspector.get(),
 				cnt,
 				uint64_t(duration_to_tot*ONE_SECOND_IN_NS),
 				quiet,
@@ -2109,18 +2092,13 @@ exit:
 	//
 	if(!summary_table.empty())
 	{
-		print_summary_table(inspector, summary_table, 100);
+		print_summary_table(inspector.get(), summary_table, 100);
 	}
 
 	//
 	// Free all the stuff that was allocated
 	//
 	free_chisels();
-
-	if(inspector)
-	{
-		delete inspector;
-	}
 
 	if(display_filter)
 	{
