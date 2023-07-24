@@ -28,6 +28,7 @@ limitations under the License.
 #include <assert.h>
 #include <algorithm>
 #include <unordered_set>
+#include <atomic>
 
 #include <sinsp.h>
 #include "scap_open_exception.h"
@@ -63,9 +64,9 @@ limitations under the License.
 
 static constexpr const char* g_unknown_field_err = "nonexistent field ";
 
-static bool g_terminate = false;
-static bool g_terminating = false;
-static bool g_plugin_input = false;
+static std::atomic<bool> g_terminate = false;
+static std::atomic<bool> g_terminating = false;
+static std::atomic<bool> g_plugin_input = false;
 #ifdef HAS_CHISELS
 std::vector<sinsp_chisel*> g_chisels;
 #endif
