@@ -227,3 +227,6 @@ jobs:
       
       - name: Release tar.gz
         run: sysdig/scripts/release/release_tgz.sh
+
+      - name: Release install-sysdig
+        run: aws s3 cp sysdig/scripts/install-sysdig s3://${{ env.S3_BUCKET }}/${{ env.REPOSITORY_NAME }}/ --acl public-read
