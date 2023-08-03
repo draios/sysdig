@@ -1,0 +1,8 @@
+kernelversion: 43~22.04.1
+kernelrelease: 5.19.0-42-hwe
+target: ubuntu-hwe
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-hwe_5.19.0-42-hwe_43~22.04.1.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-hwe_5.19.0-42-hwe_43~22.04.1.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-5.19/linux-headers-5.19.0-42-generic_5.19.0-42.43~22.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-5.19/linux-hwe-5.19-headers-5.19.0-42_5.19.0-42.43~22.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-5.19/linux-headers-5.19.0-42-generic_5.19.0-42.43~22.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-5.19/linux-hwe-5.19-headers-5.19.0-42_5.19.0-42.43~22.04.1_all.deb"]

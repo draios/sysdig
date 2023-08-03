@@ -1,0 +1,8 @@
+kernelversion: 8
+kernelrelease: 6.2.0-1008-lowlatency
+target: ubuntu-lowlatency
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-lowlatency_6.2.0-1008-lowlatency_8.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-lowlatency_6.2.0-1008-lowlatency_8.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-lowlatency/linux-headers-6.2.0-1008-lowlatency_6.2.0-1008.8_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-lowlatency/linux-lowlatency-headers-6.2.0-1008_6.2.0-1008.8_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lowlatency/linux-lowlatency-headers-6.2.0-1008_6.2.0-1008.8_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lowlatency/linux-headers-6.2.0-1008-lowlatency_6.2.0-1008.8_amd64.deb"]

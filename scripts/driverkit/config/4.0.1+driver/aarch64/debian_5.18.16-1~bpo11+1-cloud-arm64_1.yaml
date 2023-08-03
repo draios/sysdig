@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 5.18.16-1~bpo11+1-cloud-arm64
+target: debian
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_debian_5.18.16-1~bpo11+1-cloud-arm64_1.ko
+  probe: output/4.0.1+driver/aarch64/scap_debian_5.18.16-1~bpo11+1-cloud-arm64_1.o
+kernelurls: ["http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-5.18.0-0.deb11.4-cloud-arm64_5.18.16-1~bpo11+1_arm64.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-5.18.0-0.deb11.4-common_5.18.16-1~bpo11+1_all.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-kbuild-5.18_5.18.16-1~bpo11+1_arm64.deb"]

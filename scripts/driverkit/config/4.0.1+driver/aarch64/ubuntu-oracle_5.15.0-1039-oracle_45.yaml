@@ -1,0 +1,8 @@
+kernelversion: 45
+kernelrelease: 5.15.0-1039-oracle
+target: ubuntu-oracle
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-oracle_5.15.0-1039-oracle_45.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-oracle_5.15.0-1039-oracle_45.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-oracle-headers-5.15.0-1039_5.15.0-1039.45_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-headers-5.15.0-1039-oracle_5.15.0-1039.45_arm64.deb"]
