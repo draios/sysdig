@@ -143,30 +143,8 @@ arch_to_driverkit_arch() {
 	esac
 }
 
-# If driver version is a semver, we are in the newest case
-# thus we must support %arch/ subfolder for configs.
-# Else, we are in the old case, and we only support x86_64 configs
-# in the TARGET_VERSION folder.
-# TODO: rm this once old format support is dropped, and always use ${TARGET_VERSION}/${TARGET_ARCH}
-function path_from_version() {
-  SEMVER_REGEX="^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(\\-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
-  if [[ $TARGET_VERSION =~ $SEMVER_REGEX ]]; then
-    # valid semver
-    echo -n "${TARGET_VERSION}/${TARGET_ARCH}"
-  elif [[ $TARGET_ARCH == "aarch64" ]]; then
-    # not valid (old versions) -> skip arm64
-    echo "Skipping arm64 configs for old tree."
-    exit 1
-  else
-    # not valid (old versions)
-    echo -n "${TARGET_VERSION}"
-  fi
-}
-
 generate_yamls() {
-    # TODO: remove once we only support new tree. It is not an error, as we are skipping
-    # arm64 configs for old tree.
-    SUBPATH=$(path_from_version) || exit 0
+    SUBPATH="${TARGET_VERSION}/${TARGET_ARCH}"
     # This is an error: wrong arch passed to make generate
     DKARCH=$(arch_to_driverkit_arch ${TARGET_ARCH}) || exit 1
     FOLDER="${CURRENT_DIR}/../driverkit/config/${SUBPATH}"
