@@ -1,0 +1,8 @@
+kernelversion: 123
+kernelrelease: 5.4.0-109-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/d1f3bd3a5d51b89e90030ff666967f866a1e49f9/aarch64/scap_ubuntu-generic_5.4.0-109-generic_123.ko
+  probe: output/d1f3bd3a5d51b89e90030ff666967f866a1e49f9/aarch64/scap_ubuntu-generic_5.4.0-109-generic_123.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.4.0-109-generic_5.4.0-109.123_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.4.0-109_5.4.0-109.123_all.deb"]

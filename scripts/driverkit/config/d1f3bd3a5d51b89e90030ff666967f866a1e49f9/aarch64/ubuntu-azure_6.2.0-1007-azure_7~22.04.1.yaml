@@ -1,0 +1,8 @@
+kernelversion: 7~22.04.1
+kernelrelease: 6.2.0-1007-azure
+target: ubuntu-azure
+architecture: arm64
+output:
+  module: output/d1f3bd3a5d51b89e90030ff666967f866a1e49f9/aarch64/scap_ubuntu-azure_6.2.0-1007-azure_7~22.04.1.ko
+  probe: output/d1f3bd3a5d51b89e90030ff666967f866a1e49f9/aarch64/scap_ubuntu-azure_6.2.0-1007-azure_7~22.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure-6.2/linux-headers-6.2.0-1007-azure_6.2.0-1007.7~22.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure-6.2/linux-azure-6.2-headers-6.2.0-1007_6.2.0-1007.7~22.04.1_all.deb"]
