@@ -5,4 +5,4 @@ architecture: arm64
 output:
   module: output/3.0.1+driver/aarch64/scap_amazonlinux2023_6.1.27-43.48.amzn2023.aarch64_1.ko
   probe: output/3.0.1+driver/aarch64/scap_amazonlinux2023_6.1.27-43.48.amzn2023.aarch64_1.o
-kernelurls: ["https://cdn.amazonlinux.com/al2023/core/guids/39bb49d03479516df3e774e04e07e383e7839254cff65f773a4e4e76554675b2/aarch64/../../../../blobstore/4e706f00c6dd32773fb53c447ec6428f9fa6fce969be66d14191783428d0a9b3/kernel-devel-6.1.27-43.48.amzn2023.aarch64.rpm"]
+kernelurls: ["https://cdn.amazonlinux.com/al2023/core/guids/9cf1057036ef7d615de550a658447fad88617805da0cfc9b854ba0fb8a668466/aarch64/../../../../blobstore/4e706f00c6dd32773fb53c447ec6428f9fa6fce969be66d14191783428d0a9b3/kernel-devel-6.1.27-43.48.amzn2023.aarch64.rpm"]
