@@ -1,0 +1,8 @@
+kernelversion: 45
+kernelrelease: 5.15.0-1040-aws
+target: ubuntu-aws
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-aws_5.15.0-1040-aws_45.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-aws_5.15.0-1040-aws_45.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-aws-headers-5.15.0-1040_5.15.0-1040.45_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-headers-5.15.0-1040-aws_5.15.0-1040.45_arm64.deb"]

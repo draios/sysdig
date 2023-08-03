@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 5.10.149-2~deb10u1-rt-arm64
+target: debian
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_debian_5.10.149-2~deb10u1-rt-arm64_1.ko
+  probe: output/4.0.1+driver/aarch64/scap_debian_5.10.149-2~deb10u1-rt-arm64_1.o
+kernelurls: ["http://security.debian.org/pool/updates/main/l/linux-5.10/linux-kbuild-5.10_5.10.179-1~deb10u1_arm64.deb","http://security.debian.org/pool/updates/main/l/linux-5.10/linux-headers-5.10.0-0.deb10.19-common-rt_5.10.149-2~deb10u1_all.deb","http://security.debian.org/pool/updates/main/l/linux-5.10/linux-headers-5.10.0-0.deb10.19-rt-arm64_5.10.149-2~deb10u1_arm64.deb"]

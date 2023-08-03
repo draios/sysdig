@@ -1,0 +1,8 @@
+kernelversion: 112
+kernelrelease: 5.4.0-1104-aws
+target: ubuntu-aws
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-aws_5.4.0-1104-aws_112.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-aws_5.4.0-1104-aws_112.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-aws-headers-5.4.0-1104_5.4.0-1104.112_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-headers-5.4.0-1104-aws_5.4.0-1104.112_arm64.deb"]

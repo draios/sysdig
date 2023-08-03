@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 6.0.12-1~bpo11+1-rt-arm64
+target: debian
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_debian_6.0.12-1~bpo11+1-rt-arm64_1.ko
+  probe: output/4.0.1+driver/aarch64/scap_debian_6.0.12-1~bpo11+1-rt-arm64_1.o
+kernelurls: ["http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-6.0.0-0.deb11.6-rt-arm64_6.0.12-1~bpo11+1_arm64.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-6.0.0-0.deb11.6-common-rt_6.0.12-1~bpo11+1_all.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-kbuild-6.0_6.0.12-1~bpo11+1_arm64.deb"]

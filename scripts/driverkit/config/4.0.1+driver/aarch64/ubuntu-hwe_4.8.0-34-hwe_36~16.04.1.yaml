@@ -1,0 +1,7 @@
+kernelversion: 36~16.04.1
+kernelrelease: 4.8.0-34-hwe
+target: ubuntu-hwe
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-hwe_4.8.0-34-hwe_36~16.04.1.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-edge/linux-headers-4.8.0-34_4.8.0-34.36~16.04.1_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-edge/linux-headers-4.8.0-34-generic_4.8.0-34.36~16.04.1_arm64.deb"]

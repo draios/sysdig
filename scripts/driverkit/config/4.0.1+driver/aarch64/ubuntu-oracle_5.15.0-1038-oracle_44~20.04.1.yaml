@@ -1,0 +1,8 @@
+kernelversion: 44~20.04.1
+kernelrelease: 5.15.0-1038-oracle
+target: ubuntu-oracle
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-oracle_5.15.0-1038-oracle_44~20.04.1.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-oracle_5.15.0-1038-oracle_44~20.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle-5.15/linux-oracle-5.15-headers-5.15.0-1038_5.15.0-1038.44~20.04.1_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle-5.15/linux-headers-5.15.0-1038-oracle_5.15.0-1038.44~20.04.1_arm64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 4.19.232-1-cloud-amd64
+target: debian
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_debian_4.19.232-1-cloud-amd64_1.ko
+  probe: output/4.0.1+driver/x86_64/scap_debian_4.19.232-1-cloud-amd64_1.o
+kernelurls: ["http://security.debian.org/pool/updates/main/l/linux/linux-headers-4.19.0-19-cloud-amd64_4.19.232-1_amd64.deb","http://security.debian.org/pool/updates/main/l/linux/linux-headers-4.19.0-19-common_4.19.232-1_all.deb","http://security.debian.org/pool/updates/main/l/linux/linux-kbuild-4.19_4.19.289-1_amd64.deb"]
