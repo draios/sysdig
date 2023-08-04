@@ -32,8 +32,8 @@ else()
   # In case you want to test against another falcosecurity/libs version (or branch, or commit) just pass the variable -
   # ie., `cmake -DFALCOSECURITY_LIBS_VERSION=dev ..`
   if(NOT FALCOSECURITY_LIBS_VERSION)
-    set(FALCOSECURITY_LIBS_VERSION "0.11.3")
-    set(FALCOSECURITY_LIBS_CHECKSUM "SHA256=b4f9dc8c1612f4b14207d107bce323a0684dce0dbf018e5b846177992569367b")
+    set(FALCOSECURITY_LIBS_VERSION "d1f3bd3a5d51b89e90030ff666967f866a1e49f9")
+    set(FALCOSECURITY_LIBS_CHECKSUM "SHA256=964da2991145a324d9c70717073501f4a28fafeefdb01ec53a114a57bcffc606")
   endif()
 
   # cd /path/to/build && cmake /path/to/source
@@ -105,5 +105,7 @@ endif()
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   include(driver)
 endif()
+include(ExternalProject)
+include(tinydir)
 include(libscap)
 include(libsinsp)
