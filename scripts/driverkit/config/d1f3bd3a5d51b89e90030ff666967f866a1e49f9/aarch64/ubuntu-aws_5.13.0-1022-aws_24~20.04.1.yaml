@@ -1,8 +1,0 @@
-kernelversion: 24~20.04.1
-kernelrelease: 5.13.0-1022-aws
-target: ubuntu-aws
-architecture: arm64
-output:
-  module: output/d1f3bd3a5d51b89e90030ff666967f866a1e49f9/aarch64/scap_ubuntu-aws_5.13.0-1022-aws_24~20.04.1.ko
-  probe: output/d1f3bd3a5d51b89e90030ff666967f866a1e49f9/aarch64/scap_ubuntu-aws_5.13.0-1022-aws_24~20.04.1.o
-kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws-5.13/linux-headers-5.13.0-1022-aws_5.13.0-1022.24~20.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws-5.13/linux-aws-5.13-headers-5.13.0-1022_5.13.0-1022.24~20.04.1_all.deb"]
