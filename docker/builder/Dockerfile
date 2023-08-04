@@ -23,7 +23,7 @@ WORKDIR /
 
 # build toolchain
 RUN yum -y install centos-release-scl; \
-    yum -y install devtoolset-9-gcc devtoolset-9-gcc-c++ git wget make m4 rpm-build clang; \
+    yum -y install devtoolset-9-gcc devtoolset-9-gcc-c++ git wget make m4 rpm-build clang perl-IPC-Cmd ; \
 	source scl_source enable devtoolset-9
 
 # With some previous cmake versions it fails when downloading `zlib` with curl in the libs building phase
