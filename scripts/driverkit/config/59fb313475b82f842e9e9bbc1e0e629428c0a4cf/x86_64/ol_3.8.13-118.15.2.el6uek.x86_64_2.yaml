@@ -1,0 +1,7 @@
+kernelversion: 2
+kernelrelease: 3.8.13-118.15.2.el6uek.x86_64
+target: ol
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ol_3.8.13-118.15.2.el6uek.x86_64_2.ko
+kernelurls: ["http://yum.oracle.com/repo/OracleLinux/OL6/UEKR3/latest/x86_64/getPackage/kernel-uek-devel-3.8.13-118.15.2.el6uek.x86_64.rpm"]

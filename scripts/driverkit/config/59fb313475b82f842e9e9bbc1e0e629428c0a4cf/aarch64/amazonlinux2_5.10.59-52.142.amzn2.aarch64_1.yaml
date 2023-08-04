@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 5.10.59-52.142.amzn2.aarch64
+target: amazonlinux2
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_amazonlinux2_5.10.59-52.142.amzn2.aarch64_1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_amazonlinux2_5.10.59-52.142.amzn2.aarch64_1.o
+kernelurls: ["http://amazonlinux.us-east-1.amazonaws.com/2/extras/kernel-ng/stable/aarch64/f9bb600b110c667c6e2c57454f861bb81462dc01d366747d6614565287e7f066/../../../../../../blobstore/df7627fb6fb8ed9791a89cc60bfa5cf6c04b02ce16b03d903bb24336eacbeabc/kernel-devel-5.10.59-52.142.amzn2.aarch64.rpm"]

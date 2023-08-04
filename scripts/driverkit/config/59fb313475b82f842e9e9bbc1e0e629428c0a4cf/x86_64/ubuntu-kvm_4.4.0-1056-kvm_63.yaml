@@ -1,0 +1,7 @@
+kernelversion: 63
+kernelrelease: 4.4.0-1056-kvm
+target: ubuntu-kvm
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-kvm_4.4.0-1056-kvm_63.ko
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-4.4.0-1056_4.4.0-1056.63_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-4.4.0-1056_4.4.0-1056.63_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-headers-4.4.0-1056-kvm_4.4.0-1056.63_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-headers-4.4.0-1056-kvm_4.4.0-1056.63_amd64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 28
+kernelrelease: 5.0.0-1025-aws
+target: ubuntu-aws
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-aws_5.0.0-1025-aws_28.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-aws_5.0.0-1025-aws_28.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws-5.0/linux-headers-5.0.0-1025-aws_5.0.0-1025.28_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws-5.0/linux-aws-headers-5.0.0-1025_5.0.0-1025.28_all.deb"]

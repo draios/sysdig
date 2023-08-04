@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 4.19.91-26.al7.aarch64
+target: alinux
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_alinux_4.19.91-26.al7.aarch64_1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_alinux_4.19.91-26.al7.aarch64_1.o
+kernelurls: ["http://mirrors.aliyun.com/alinux/2.1903/plus/aarch64/Packages/kernel-devel-4.19.91-26.al7.aarch64.rpm"]

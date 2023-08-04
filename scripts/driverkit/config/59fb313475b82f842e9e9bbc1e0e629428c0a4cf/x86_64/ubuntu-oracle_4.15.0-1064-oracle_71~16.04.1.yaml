@@ -1,0 +1,8 @@
+kernelversion: 71~16.04.1
+kernelrelease: 4.15.0-1064-oracle
+target: ubuntu-oracle
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-oracle_4.15.0-1064-oracle_71~16.04.1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-oracle_4.15.0-1064-oracle_71~16.04.1.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle/linux-headers-4.15.0-1064-oracle_4.15.0-1064.71~16.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle/linux-oracle-headers-4.15.0-1064_4.15.0-1064.71~16.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle/linux-headers-4.15.0-1064-oracle_4.15.0-1064.71~16.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle/linux-oracle-headers-4.15.0-1064_4.15.0-1064.71~16.04.1_all.deb"]

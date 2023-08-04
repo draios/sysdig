@@ -1,0 +1,8 @@
+kernelversion: 44
+kernelrelease: 5.4.0-1040-bluefield
+target: ubuntu-bluefield
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-bluefield_5.4.0-1040-bluefield_44.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-bluefield_5.4.0-1040-bluefield_44.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-bluefield/linux-headers-5.4.0-1040-bluefield_5.4.0-1040.44_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-bluefield/linux-bluefield-headers-5.4.0-1040_5.4.0-1040.44_all.deb"]

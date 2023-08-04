@@ -1,0 +1,8 @@
+kernelversion: 116
+kernelrelease: 5.4.0-1110-azure
+target: ubuntu-azure
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-azure_5.4.0-1110-azure_116.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-azure_5.4.0-1110-azure_116.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-headers-5.4.0-1110-azure_5.4.0-1110.116_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-azure-headers-5.4.0-1110_5.4.0-1110.116_all.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 7.1
+kernelrelease: 6.3.0-7-lowlatency
+target: ubuntu-lowlatency
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-lowlatency_6.3.0-7-lowlatency_7.1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-lowlatency_6.3.0-7-lowlatency_7.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-6.3.0-7-lowlatency-64k_6.3.0-7.7.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-lowlatency-headers-6.3.0-7_6.3.0-7.7.1_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-6.3.0-7-lowlatency_6.3.0-7.7.1_arm64.deb"]

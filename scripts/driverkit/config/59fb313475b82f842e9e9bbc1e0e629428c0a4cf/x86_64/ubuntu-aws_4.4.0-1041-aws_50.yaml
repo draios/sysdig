@@ -1,0 +1,7 @@
+kernelversion: 50
+kernelrelease: 4.4.0-1041-aws
+target: ubuntu-aws
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-aws_4.4.0-1041-aws_50.ko
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-aws-headers-4.4.0-1041_4.4.0-1041.50_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-headers-4.4.0-1041-aws_4.4.0-1041.50_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-headers-4.4.0-1041-aws_4.4.0-1041.50_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-aws-headers-4.4.0-1041_4.4.0-1041.50_all.deb"]

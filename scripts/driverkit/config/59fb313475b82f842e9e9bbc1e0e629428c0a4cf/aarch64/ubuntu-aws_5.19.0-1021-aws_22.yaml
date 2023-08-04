@@ -1,0 +1,8 @@
+kernelversion: 22
+kernelrelease: 5.19.0-1021-aws
+target: ubuntu-aws
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-aws_5.19.0-1021-aws_22.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-aws_5.19.0-1021-aws_22.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-headers-5.19.0-1021-aws_5.19.0-1021.22_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-aws-headers-5.19.0-1021_5.19.0-1021.22_all.deb"]

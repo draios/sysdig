@@ -1,0 +1,8 @@
+kernelversion: 34~20.04.1
+kernelrelease: 5.15.0-33-lowlatency
+target: ubuntu-lowlatency
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-lowlatency_5.15.0-33-lowlatency_34~20.04.1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-lowlatency_5.15.0-33-lowlatency_34~20.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency-hwe-5.15/linux-headers-5.15.0-33-lowlatency_5.15.0-33.34~20.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency-hwe-5.15/linux-lowlatency-hwe-5.15-headers-5.15.0-33_5.15.0-33.34~20.04.1_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency-hwe-5.15/linux-headers-5.15.0-33-lowlatency-64k_5.15.0-33.34~20.04.1_arm64.deb"]

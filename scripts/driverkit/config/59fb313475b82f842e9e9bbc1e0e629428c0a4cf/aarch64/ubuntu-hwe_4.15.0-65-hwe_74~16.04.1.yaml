@@ -1,0 +1,7 @@
+kernelversion: 74~16.04.1
+kernelrelease: 4.15.0-65-hwe
+target: ubuntu-hwe
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-hwe_4.15.0-65-hwe_74~16.04.1.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe/linux-headers-4.15.0-65_4.15.0-65.74~16.04.1_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe/linux-headers-4.15.0-65-generic_4.15.0-65.74~16.04.1_arm64.deb"]

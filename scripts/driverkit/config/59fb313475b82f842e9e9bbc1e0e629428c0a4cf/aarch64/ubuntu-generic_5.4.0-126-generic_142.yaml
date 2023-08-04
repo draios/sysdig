@@ -1,0 +1,8 @@
+kernelversion: 142
+kernelrelease: 5.4.0-126-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-generic_5.4.0-126-generic_142.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-generic_5.4.0-126-generic_142.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.4.0-126_5.4.0-126.142_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.4.0-126-generic_5.4.0-126.142_arm64.deb"]

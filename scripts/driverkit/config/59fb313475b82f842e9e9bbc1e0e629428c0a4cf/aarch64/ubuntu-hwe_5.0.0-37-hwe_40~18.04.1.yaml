@@ -1,0 +1,8 @@
+kernelversion: 40~18.04.1
+kernelrelease: 5.0.0-37-hwe
+target: ubuntu-hwe
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-hwe_5.0.0-37-hwe_40~18.04.1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-hwe_5.0.0-37-hwe_40~18.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe/linux-headers-5.0.0-37-generic_5.0.0-37.40~18.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe/linux-headers-5.0.0-37_5.0.0-37.40~18.04.1_all.deb"]

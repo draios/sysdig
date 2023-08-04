@@ -1,0 +1,8 @@
+kernelversion: 25
+kernelrelease: 5.13.0-1021-oem
+target: ubuntu-oem
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-oem_5.13.0-1021-oem_25.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-oem_5.13.0-1021-oem_25.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-5.13/linux-oem-5.13-headers-5.13.0-1021_5.13.0-1021.25_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-5.13/linux-headers-5.13.0-1021-oem_5.13.0-1021.25_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-5.13/linux-oem-5.13-headers-5.13.0-1021_5.13.0-1021.25_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-5.13/linux-headers-5.13.0-1021-oem_5.13.0-1021.25_amd64.deb"]

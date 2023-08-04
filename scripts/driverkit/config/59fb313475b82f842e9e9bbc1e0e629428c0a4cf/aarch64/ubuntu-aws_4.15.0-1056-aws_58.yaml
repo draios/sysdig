@@ -1,0 +1,7 @@
+kernelversion: 58
+kernelrelease: 4.15.0-1056-aws
+target: ubuntu-aws
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-aws_4.15.0-1056-aws_58.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-headers-4.15.0-1056-aws_4.15.0-1056.58_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-aws-headers-4.15.0-1056_4.15.0-1056.58_all.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 20
+kernelrelease: 5.4.0-1020-aws
+target: ubuntu-aws
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-aws_5.4.0-1020-aws_20.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-aws_5.4.0-1020-aws_20.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-headers-5.4.0-1020-aws_5.4.0-1020.20_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-aws-headers-5.4.0-1020_5.4.0-1020.20_all.deb"]

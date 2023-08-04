@@ -1,0 +1,8 @@
+kernelversion: 83
+kernelrelease: 5.4.0-1076-oracle
+target: ubuntu-oracle
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-oracle_5.4.0-1076-oracle_83.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-oracle_5.4.0-1076-oracle_83.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-oracle-headers-5.4.0-1076_5.4.0-1076.83_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-headers-5.4.0-1076-oracle_5.4.0-1076.83_arm64.deb"]

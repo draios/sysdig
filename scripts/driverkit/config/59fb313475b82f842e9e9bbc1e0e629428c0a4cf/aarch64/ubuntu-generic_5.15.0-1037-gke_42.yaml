@@ -1,0 +1,8 @@
+kernelversion: 42
+kernelrelease: 5.15.0-1037-gke
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-generic_5.15.0-1037-gke_42.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-generic_5.15.0-1037-gke_42.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gke/linux-headers-5.15.0-1037-gke_5.15.0-1037.42_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gke/linux-gke-headers-5.15.0-1037_5.15.0-1037.42_arm64.deb"]

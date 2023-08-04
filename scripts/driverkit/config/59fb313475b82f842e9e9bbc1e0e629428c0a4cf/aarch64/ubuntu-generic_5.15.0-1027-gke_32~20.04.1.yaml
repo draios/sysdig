@@ -1,0 +1,8 @@
+kernelversion: 32~20.04.1
+kernelrelease: 5.15.0-1027-gke
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-generic_5.15.0-1027-gke_32~20.04.1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-generic_5.15.0-1027-gke_32~20.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gke-5.15/linux-headers-5.15.0-1027-gke_5.15.0-1027.32~20.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gke-5.15/linux-gke-5.15-headers-5.15.0-1027_5.15.0-1027.32~20.04.1_arm64.deb"]

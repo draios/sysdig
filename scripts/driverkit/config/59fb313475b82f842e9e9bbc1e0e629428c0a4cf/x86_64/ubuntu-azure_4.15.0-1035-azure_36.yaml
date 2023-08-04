@@ -1,0 +1,8 @@
+kernelversion: 36
+kernelrelease: 4.15.0-1035-azure
+target: ubuntu-azure
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-azure_4.15.0-1035-azure_36.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-azure_4.15.0-1035-azure_36.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-headers-4.15.0-1035-azure_4.15.0-1035.36_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-azure-headers-4.15.0-1035_4.15.0-1035.36_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure/linux-headers-4.15.0-1035-azure_4.15.0-1035.36_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure/linux-azure-headers-4.15.0-1035_4.15.0-1035.36_all.deb"]
