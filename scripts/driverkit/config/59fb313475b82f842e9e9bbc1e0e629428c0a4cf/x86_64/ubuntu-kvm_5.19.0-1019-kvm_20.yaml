@@ -1,0 +1,8 @@
+kernelversion: 20
+kernelrelease: 5.19.0-1019-kvm
+target: ubuntu-kvm
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-kvm_5.19.0-1019-kvm_20.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-kvm_5.19.0-1019-kvm_20.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-headers-5.19.0-1019-kvm_5.19.0-1019.20_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-5.19.0-1019_5.19.0-1019.20_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-5.19.0-1019_5.19.0-1019.20_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-headers-5.19.0-1019-kvm_5.19.0-1019.20_amd64.deb"]

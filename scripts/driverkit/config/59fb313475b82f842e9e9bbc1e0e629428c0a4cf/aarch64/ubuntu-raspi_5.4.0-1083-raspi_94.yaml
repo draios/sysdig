@@ -1,0 +1,8 @@
+kernelversion: 94
+kernelrelease: 5.4.0-1083-raspi
+target: ubuntu-raspi
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-raspi_5.4.0-1083-raspi_94.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-raspi_5.4.0-1083-raspi_94.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-raspi/linux-headers-5.4.0-1083-raspi_5.4.0-1083.94_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-raspi/linux-raspi-headers-5.4.0-1083_5.4.0-1083.94_arm64.deb"]

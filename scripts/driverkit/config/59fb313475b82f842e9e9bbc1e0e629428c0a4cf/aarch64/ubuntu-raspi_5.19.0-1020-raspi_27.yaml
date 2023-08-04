@@ -1,0 +1,8 @@
+kernelversion: 27
+kernelrelease: 5.19.0-1020-raspi
+target: ubuntu-raspi
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-raspi_5.19.0-1020-raspi_27.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-raspi_5.19.0-1020-raspi_27.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-raspi/linux-headers-5.19.0-1020-raspi_5.19.0-1020.27_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-raspi/linux-raspi-headers-5.19.0-1020_5.19.0-1020.27_arm64.deb"]

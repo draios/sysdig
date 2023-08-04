@@ -1,0 +1,8 @@
+kernelversion: 8
+kernelrelease: 6.2.0-1006-raspi
+target: ubuntu-raspi
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-raspi_6.2.0-1006-raspi_8.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-raspi_6.2.0-1006-raspi_8.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-raspi/linux-headers-6.2.0-1006-raspi_6.2.0-1006.8_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-raspi/linux-raspi-headers-6.2.0-1006_6.2.0-1006.8_arm64.deb"]

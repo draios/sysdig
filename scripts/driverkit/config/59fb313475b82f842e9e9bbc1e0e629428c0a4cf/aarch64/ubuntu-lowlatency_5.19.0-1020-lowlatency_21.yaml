@@ -1,0 +1,8 @@
+kernelversion: 21
+kernelrelease: 5.19.0-1020-lowlatency
+target: ubuntu-lowlatency
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-lowlatency_5.19.0-1020-lowlatency_21.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-lowlatency_5.19.0-1020-lowlatency_21.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-lowlatency-headers-5.19.0-1020_5.19.0-1020.21_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-5.19.0-1020-lowlatency-64k_5.19.0-1020.21_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-5.19.0-1020-lowlatency_5.19.0-1020.21_arm64.deb"]

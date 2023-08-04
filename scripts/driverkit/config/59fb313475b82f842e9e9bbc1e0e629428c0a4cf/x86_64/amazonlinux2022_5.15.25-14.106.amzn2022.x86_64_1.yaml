@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 5.15.25-14.106.amzn2022.x86_64
+target: amazonlinux2022
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_amazonlinux2022_5.15.25-14.106.amzn2022.x86_64_1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_amazonlinux2022_5.15.25-14.106.amzn2022.x86_64_1.o
+kernelurls: ["https://al2022-repos-us-east-1-9761ab97.s3.dualstack.us-east-1.amazonaws.com/core/guids/54a27ef1598955d2f12bcd3d29f646e7d6681e92bf047f1861fccc20013093b0/x86_64/../../../../blobstore/cb99878b7f439d9396fa103f400fe3dd71b4703d01c3ba997d00508b6f3ce18b/kernel-devel-5.15.25-14.106.amzn2022.x86_64.rpm"]

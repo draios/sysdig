@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 5.19.11-1~bpo11+1-rt-amd64
+target: debian
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_debian_5.19.11-1~bpo11+1-rt-amd64_1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_debian_5.19.11-1~bpo11+1-rt-amd64_1.o
+kernelurls: ["http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-kbuild-5.19_5.19.11-1~bpo11+1_amd64.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-5.19.0-0.deb11.2-common-rt_5.19.11-1~bpo11+1_all.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-5.19.0-0.deb11.2-rt-amd64_5.19.11-1~bpo11+1_amd64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 4.19.269-1-rt-arm64
+target: debian
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_debian_4.19.269-1-rt-arm64_1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_debian_4.19.269-1-rt-arm64_1.o
+kernelurls: ["http://security.debian.org/pool/updates/main/l/linux/linux-kbuild-4.19_4.19.289-1_arm64.deb","http://security.debian.org/pool/updates/main/l/linux/linux-headers-4.19.0-23-common-rt_4.19.269-1_all.deb","http://security.debian.org/pool/updates/main/l/linux/linux-headers-4.19.0-23-rt-arm64_4.19.269-1_arm64.deb"]

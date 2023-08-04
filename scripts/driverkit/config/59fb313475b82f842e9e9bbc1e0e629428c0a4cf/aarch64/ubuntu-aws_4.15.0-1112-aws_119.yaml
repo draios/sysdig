@@ -1,0 +1,7 @@
+kernelversion: 119
+kernelrelease: 4.15.0-1112-aws
+target: ubuntu-aws
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-aws_4.15.0-1112-aws_119.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-headers-4.15.0-1112-aws_4.15.0-1112.119_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-aws-headers-4.15.0-1112_4.15.0-1112.119_all.deb"]

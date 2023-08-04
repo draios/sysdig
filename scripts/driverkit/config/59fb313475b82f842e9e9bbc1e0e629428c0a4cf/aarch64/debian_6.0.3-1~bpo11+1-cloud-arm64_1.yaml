@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 6.0.3-1~bpo11+1-cloud-arm64
+target: debian
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_debian_6.0.3-1~bpo11+1-cloud-arm64_1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_debian_6.0.3-1~bpo11+1-cloud-arm64_1.o
+kernelurls: ["http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-kbuild-6.0_6.0.12-1~bpo11+1_arm64.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-6.0.0-0.deb11.2-cloud-arm64_6.0.3-1~bpo11+1_arm64.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-6.0.0-0.deb11.2-common_6.0.3-1~bpo11+1_all.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 25
+kernelrelease: 5.4.0-1022-bluefield
+target: ubuntu-bluefield
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-bluefield_5.4.0-1022-bluefield_25.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-bluefield_5.4.0-1022-bluefield_25.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-bluefield/linux-bluefield-headers-5.4.0-1022_5.4.0-1022.25_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-bluefield/linux-headers-5.4.0-1022-bluefield_5.4.0-1022.25_arm64.deb"]

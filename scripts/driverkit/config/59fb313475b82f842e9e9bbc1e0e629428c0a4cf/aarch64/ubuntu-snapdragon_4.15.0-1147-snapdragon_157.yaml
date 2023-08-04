@@ -1,0 +1,7 @@
+kernelversion: 157
+kernelrelease: 4.15.0-1147-snapdragon
+target: ubuntu-snapdragon
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-snapdragon_4.15.0-1147-snapdragon_157.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-snapdragon/linux-snapdragon-headers-4.15.0-1147_4.15.0-1147.157_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-snapdragon/linux-headers-4.15.0-1147-snapdragon_4.15.0-1147.157_arm64.deb"]

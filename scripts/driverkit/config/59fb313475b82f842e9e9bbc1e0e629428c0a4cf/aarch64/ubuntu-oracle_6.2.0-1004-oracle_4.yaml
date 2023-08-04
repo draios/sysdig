@@ -1,0 +1,8 @@
+kernelversion: 4
+kernelrelease: 6.2.0-1004-oracle
+target: ubuntu-oracle
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-oracle_6.2.0-1004-oracle_4.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-oracle_6.2.0-1004-oracle_4.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-headers-6.2.0-1004-oracle_6.2.0-1004.4_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-oracle-headers-6.2.0-1004_6.2.0-1004.4_all.deb"]

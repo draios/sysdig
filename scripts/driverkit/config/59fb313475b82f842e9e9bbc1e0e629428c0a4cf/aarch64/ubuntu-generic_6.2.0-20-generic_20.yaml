@@ -1,0 +1,8 @@
+kernelversion: 20
+kernelrelease: 6.2.0-20-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-generic_6.2.0-20-generic_20.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-generic_6.2.0-20-generic_20.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-6.2.0-20-generic_6.2.0-20.20_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-6.2.0-20-generic-64k_6.2.0-20.20_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-6.2.0-20_6.2.0-20.20_all.deb"]

@@ -1,0 +1,7 @@
+kernelversion: 189
+kernelrelease: 4.15.0-180-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-generic_4.15.0-180-generic_189.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.15.0-180_4.15.0-180.189_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.15.0-180-generic_4.15.0-180.189_arm64.deb"]

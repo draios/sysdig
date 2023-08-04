@@ -1,0 +1,8 @@
+kernelversion: 52
+kernelrelease: 5.4.0-1047-ibm
+target: ubuntu-ibm
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-ibm_5.4.0-1047-ibm_52.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-ibm_5.4.0-1047-ibm_52.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm/linux-headers-5.4.0-1047-ibm_5.4.0-1047.52_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-headers-5.4.0-1047-ibm_5.4.0-1047.52_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm/linux-ibm-headers-5.4.0-1047_5.4.0-1047.52_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-ibm-headers-5.4.0-1047_5.4.0-1047.52_all.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 30~22.04.2
+kernelrelease: 5.19.0-1027-azure
+target: ubuntu-azure
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-azure_5.19.0-1027-azure_30~22.04.2.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-azure_5.19.0-1027-azure_30~22.04.2.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure-5.19/linux-headers-5.19.0-1027-azure_5.19.0-1027.30~22.04.2_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure-5.19/linux-azure-5.19-headers-5.19.0-1027_5.19.0-1027.30~22.04.2_all.deb"]

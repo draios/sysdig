@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 4.18.0-305.17.1.el8_4.aarch64
+target: centos
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_centos_4.18.0-305.17.1.el8_4.aarch64_1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_centos_4.18.0-305.17.1.el8_4.aarch64_1.o
+kernelurls: ["http://archive.kernel.org/centos/8.4.2105/BaseOS/aarch64/os/Packages/kernel-devel-4.18.0-305.17.1.el8_4.aarch64.rpm"]

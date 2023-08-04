@@ -1,0 +1,8 @@
+kernelversion: 109
+kernelrelease: 5.4.0-1100-oracle
+target: ubuntu-oracle
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-oracle_5.4.0-1100-oracle_109.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-oracle_5.4.0-1100-oracle_109.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-oracle-headers-5.4.0-1100_5.4.0-1100.109_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-headers-5.4.0-1100-oracle_5.4.0-1100.109_arm64.deb"]

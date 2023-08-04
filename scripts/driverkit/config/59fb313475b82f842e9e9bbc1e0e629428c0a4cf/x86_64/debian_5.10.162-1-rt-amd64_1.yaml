@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 5.10.162-1-rt-amd64
+target: debian
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_debian_5.10.162-1-rt-amd64_1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_debian_5.10.162-1-rt-amd64_1.o
+kernelurls: ["http://security.debian.org/pool/updates/main/l/linux/linux-headers-5.10.0-21-common-rt_5.10.162-1_all.deb","http://security.debian.org/pool/updates/main/l/linux-5.10/linux-kbuild-5.10_5.10.179-1~deb10u1_amd64.deb","http://security.debian.org/pool/updates/main/l/linux/linux-headers-5.10.0-21-rt-amd64_5.10.162-1_amd64.deb"]
