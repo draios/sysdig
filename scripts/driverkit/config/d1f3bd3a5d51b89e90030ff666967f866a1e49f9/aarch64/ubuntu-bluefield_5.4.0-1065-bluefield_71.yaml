@@ -1,8 +1,0 @@
-kernelversion: 71
-kernelrelease: 5.4.0-1065-bluefield
-target: ubuntu-bluefield
-architecture: arm64
-output:
-  module: output/d1f3bd3a5d51b89e90030ff666967f866a1e49f9/aarch64/scap_ubuntu-bluefield_5.4.0-1065-bluefield_71.ko
-  probe: output/d1f3bd3a5d51b89e90030ff666967f866a1e49f9/aarch64/scap_ubuntu-bluefield_5.4.0-1065-bluefield_71.o
-kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-bluefield/linux-bluefield-headers-5.4.0-1065_5.4.0-1065.71_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-bluefield/linux-headers-5.4.0-1065-bluefield_5.4.0-1065.71_arm64.deb"]

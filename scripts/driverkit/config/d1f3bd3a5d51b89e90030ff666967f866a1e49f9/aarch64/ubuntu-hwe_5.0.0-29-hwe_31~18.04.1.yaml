@@ -1,8 +1,0 @@
-kernelversion: 31~18.04.1
-kernelrelease: 5.0.0-29-hwe
-target: ubuntu-hwe
-architecture: arm64
-output:
-  module: output/d1f3bd3a5d51b89e90030ff666967f866a1e49f9/aarch64/scap_ubuntu-hwe_5.0.0-29-hwe_31~18.04.1.ko
-  probe: output/d1f3bd3a5d51b89e90030ff666967f866a1e49f9/aarch64/scap_ubuntu-hwe_5.0.0-29-hwe_31~18.04.1.o
-kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe/linux-headers-5.0.0-29-generic_5.0.0-29.31~18.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe/linux-headers-5.0.0-29_5.0.0-29.31~18.04.1_all.deb"]

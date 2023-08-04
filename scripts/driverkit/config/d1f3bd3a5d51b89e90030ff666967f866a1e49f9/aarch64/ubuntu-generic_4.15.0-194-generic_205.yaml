@@ -1,7 +1,0 @@
-kernelversion: 205
-kernelrelease: 4.15.0-194-generic
-target: ubuntu-generic
-architecture: arm64
-output:
-  module: output/d1f3bd3a5d51b89e90030ff666967f866a1e49f9/aarch64/scap_ubuntu-generic_4.15.0-194-generic_205.ko
-kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.15.0-194_4.15.0-194.205_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.15.0-194-generic_4.15.0-194.205_arm64.deb"]

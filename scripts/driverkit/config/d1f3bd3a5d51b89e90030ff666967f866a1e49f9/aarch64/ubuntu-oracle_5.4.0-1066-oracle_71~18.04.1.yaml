@@ -1,8 +1,0 @@
-kernelversion: 71~18.04.1
-kernelrelease: 5.4.0-1066-oracle
-target: ubuntu-oracle
-architecture: arm64
-output:
-  module: output/d1f3bd3a5d51b89e90030ff666967f866a1e49f9/aarch64/scap_ubuntu-oracle_5.4.0-1066-oracle_71~18.04.1.ko
-  probe: output/d1f3bd3a5d51b89e90030ff666967f866a1e49f9/aarch64/scap_ubuntu-oracle_5.4.0-1066-oracle_71~18.04.1.o
-kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle-5.4/linux-oracle-5.4-headers-5.4.0-1066_5.4.0-1066.71~18.04.1_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle-5.4/linux-headers-5.4.0-1066-oracle_5.4.0-1066.71~18.04.1_arm64.deb"]
