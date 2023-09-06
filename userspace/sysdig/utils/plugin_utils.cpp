@@ -23,7 +23,7 @@ limitations under the License.
 #include <unordered_set>
 
 #include <utility>
-#include <third-party/tinydir.h>
+#include <tinydir.h>
 #include <yaml-cpp/yaml.h>
 #include <nlohmann/json.hpp>
 
