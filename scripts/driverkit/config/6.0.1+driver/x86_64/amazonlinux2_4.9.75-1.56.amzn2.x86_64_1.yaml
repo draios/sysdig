@@ -1,0 +1,7 @@
+kernelversion: 1
+kernelrelease: 4.9.75-1.56.amzn2.x86_64
+target: amazonlinux2
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_amazonlinux2_4.9.75-1.56.amzn2.x86_64_1.ko
+kernelurls: ["http://amazonlinux.us-east-1.amazonaws.com/2/core/2.0/x86_64/eb72ea01ca029aaf7a15e5b987f6bee895bae6c7ef9f3bd009d8a3181c6e78c8/../../../../../blobstore/ae757f139e69f930fe9f703974265e913367cc2c798b69d5dd5cf062992c80e4/kernel-devel-4.9.75-1.56.amzn2.x86_64.rpm"]

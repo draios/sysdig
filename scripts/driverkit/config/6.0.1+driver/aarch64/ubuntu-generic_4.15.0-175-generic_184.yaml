@@ -1,0 +1,7 @@
+kernelversion: 184
+kernelrelease: 4.15.0-175-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-generic_4.15.0-175-generic_184.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.15.0-175_4.15.0-175.184_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.15.0-175-generic_4.15.0-175.184_arm64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 14
+kernelrelease: 6.2.0-1014-azure
+target: ubuntu-azure
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-azure_6.2.0-1014-azure_14.ko
+  probe: output/6.0.1+driver/aarch64/scap_ubuntu-azure_6.2.0-1014-azure_14.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-azure-headers-6.2.0-1014_6.2.0-1014.14_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-headers-6.2.0-1014-azure_6.2.0-1014.14_arm64.deb"]

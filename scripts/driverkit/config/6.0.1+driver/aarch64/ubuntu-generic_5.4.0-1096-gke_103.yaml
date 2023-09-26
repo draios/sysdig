@@ -1,0 +1,8 @@
+kernelversion: 103
+kernelrelease: 5.4.0-1096-gke
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-generic_5.4.0-1096-gke_103.ko
+  probe: output/6.0.1+driver/aarch64/scap_ubuntu-generic_5.4.0-1096-gke_103.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gke/linux-headers-5.4.0-1096-gke_5.4.0-1096.103_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gke/linux-gke-headers-5.4.0-1096_5.4.0-1096.103_arm64.deb"]

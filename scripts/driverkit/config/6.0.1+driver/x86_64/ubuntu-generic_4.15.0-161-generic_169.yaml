@@ -1,0 +1,8 @@
+kernelversion: 169
+kernelrelease: 4.15.0-161-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-generic_4.15.0-161-generic_169.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-generic_4.15.0-161-generic_169.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-161-generic_4.15.0-161.169_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-161-lowlatency_4.15.0-161.169_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-161_4.15.0-161.169_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-161-generic_4.15.0-161.169_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-161-lowlatency_4.15.0-161.169_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-161_4.15.0-161.169_all.deb"]

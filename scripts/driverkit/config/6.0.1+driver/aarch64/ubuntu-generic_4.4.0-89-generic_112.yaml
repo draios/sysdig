@@ -1,0 +1,7 @@
+kernelversion: 112
+kernelrelease: 4.4.0-89-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-generic_4.4.0-89-generic_112.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-89_4.4.0-89.112_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-89-generic_4.4.0-89.112_arm64.deb"]

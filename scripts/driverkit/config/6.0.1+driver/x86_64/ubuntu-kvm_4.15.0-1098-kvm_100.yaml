@@ -1,0 +1,8 @@
+kernelversion: 100
+kernelrelease: 4.15.0-1098-kvm
+target: ubuntu-kvm
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-kvm_4.15.0-1098-kvm_100.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-kvm_4.15.0-1098-kvm_100.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-headers-4.15.0-1098-kvm_4.15.0-1098.100_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-4.15.0-1098_4.15.0-1098.100_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-4.15.0-1098_4.15.0-1098.100_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-headers-4.15.0-1098-kvm_4.15.0-1098.100_amd64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 70
+kernelrelease: 5.3.0-74-hwe
+target: ubuntu-hwe
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-hwe_5.3.0-74-hwe_70.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-hwe_5.3.0-74-hwe_70.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe/linux-hwe-headers-5.3.0-74_5.3.0-74.70_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe/linux-hwe-headers-5.3.0-74_5.3.0-74.70_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe/linux-headers-5.3.0-74-lowlatency_5.3.0-74.70_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe/linux-headers-5.3.0-74-generic_5.3.0-74.70_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe/linux-headers-5.3.0-74-generic_5.3.0-74.70_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe/linux-headers-5.3.0-74-lowlatency_5.3.0-74.70_amd64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 147
+kernelrelease: 5.4.0-131-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-generic_5.4.0-131-generic_147.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-generic_5.4.0-131-generic_147.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.4.0-131-generic_5.4.0-131.147_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.4.0-131-lowlatency_5.4.0-131.147_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.4.0-131_5.4.0-131.147_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.4.0-131_5.4.0-131.147_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.4.0-131-lowlatency_5.4.0-131.147_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.4.0-131-generic_5.4.0-131.147_amd64.deb"]

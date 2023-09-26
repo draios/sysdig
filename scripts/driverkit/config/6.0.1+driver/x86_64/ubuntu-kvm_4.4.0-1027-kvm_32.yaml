@@ -1,0 +1,7 @@
+kernelversion: 32
+kernelrelease: 4.4.0-1027-kvm
+target: ubuntu-kvm
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-kvm_4.4.0-1027-kvm_32.ko
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-4.4.0-1027_4.4.0-1027.32_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-headers-4.4.0-1027-kvm_4.4.0-1027.32_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-4.4.0-1027_4.4.0-1027.32_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-headers-4.4.0-1027-kvm_4.4.0-1027.32_amd64.deb"]

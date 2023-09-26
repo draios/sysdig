@@ -1,0 +1,7 @@
+kernelversion: 30
+kernelrelease: 4.15.0-1029-aws
+target: ubuntu-aws
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-aws_4.15.0-1029-aws_30.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-headers-4.15.0-1029-aws_4.15.0-1029.30_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-aws-headers-4.15.0-1029_4.15.0-1029.30_all.deb"]

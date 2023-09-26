@@ -1,0 +1,8 @@
+kernelversion: 35~18.04.1
+kernelrelease: 5.3.0-1034-azure
+target: ubuntu-azure
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-azure_5.3.0-1034-azure_35~18.04.1.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-azure_5.3.0-1034-azure_35~18.04.1.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure-5.3/linux-azure-5.3-headers-5.3.0-1034_5.3.0-1034.35~18.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-5.3/linux-headers-5.3.0-1034-azure_5.3.0-1034.35~18.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure-5.3/linux-headers-5.3.0-1034-azure_5.3.0-1034.35~18.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-5.3/linux-azure-5.3-headers-5.3.0-1034_5.3.0-1034.35~18.04.1_all.deb"]

@@ -1,0 +1,7 @@
+kernelversion: 18
+kernelrelease: 4.4.0-1013-kvm
+target: ubuntu-kvm
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-kvm_4.4.0-1013-kvm_18.ko
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-headers-4.4.0-1013-kvm_4.4.0-1013.18_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-4.4.0-1013_4.4.0-1013.18_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-headers-4.4.0-1013-kvm_4.4.0-1013.18_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-4.4.0-1013_4.4.0-1013.18_all.deb"]

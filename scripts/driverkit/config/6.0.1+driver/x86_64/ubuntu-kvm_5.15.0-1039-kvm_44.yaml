@@ -1,0 +1,8 @@
+kernelversion: 44
+kernelrelease: 5.15.0-1039-kvm
+target: ubuntu-kvm
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-kvm_5.15.0-1039-kvm_44.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-kvm_5.15.0-1039-kvm_44.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-headers-5.15.0-1039-kvm_5.15.0-1039.44_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-headers-5.15.0-1039-kvm_5.15.0-1039.44_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-5.15.0-1039_5.15.0-1039.44_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-5.15.0-1039_5.15.0-1039.44_all.deb"]

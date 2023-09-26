@@ -1,0 +1,7 @@
+kernelversion: 37
+kernelrelease: 4.4.0-1028-aws
+target: ubuntu-aws
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-aws_4.4.0-1028-aws_37.ko
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-headers-4.4.0-1028-aws_4.4.0-1028.37_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-aws-headers-4.4.0-1028_4.4.0-1028.37_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-aws-headers-4.4.0-1028_4.4.0-1028.37_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-headers-4.4.0-1028-aws_4.4.0-1028.37_amd64.deb"]

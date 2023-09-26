@@ -1,0 +1,7 @@
+kernelversion: 121
+kernelrelease: 4.4.0-1110-aws
+target: ubuntu-aws
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-aws_4.4.0-1110-aws_121.ko
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-aws-headers-4.4.0-1110_4.4.0-1110.121_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-aws-headers-4.4.0-1110_4.4.0-1110.121_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-headers-4.4.0-1110-aws_4.4.0-1110.121_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-headers-4.4.0-1110-aws_4.4.0-1110.121_amd64.deb"]

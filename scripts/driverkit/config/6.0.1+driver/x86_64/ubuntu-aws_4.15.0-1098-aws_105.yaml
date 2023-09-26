@@ -1,0 +1,8 @@
+kernelversion: 105
+kernelrelease: 4.15.0-1098-aws
+target: ubuntu-aws
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-aws_4.15.0-1098-aws_105.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-aws_4.15.0-1098-aws_105.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-aws-headers-4.15.0-1098_4.15.0-1098.105_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-aws-headers-4.15.0-1098_4.15.0-1098.105_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-headers-4.15.0-1098-aws_4.15.0-1098.105_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-headers-4.15.0-1098-aws_4.15.0-1098.105_amd64.deb"]

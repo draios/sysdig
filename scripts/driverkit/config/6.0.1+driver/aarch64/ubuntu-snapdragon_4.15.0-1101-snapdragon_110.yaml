@@ -1,0 +1,7 @@
+kernelversion: 110
+kernelrelease: 4.15.0-1101-snapdragon
+target: ubuntu-snapdragon
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-snapdragon_4.15.0-1101-snapdragon_110.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-snapdragon/linux-headers-4.15.0-1101-snapdragon_4.15.0-1101.110_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-snapdragon/linux-snapdragon-headers-4.15.0-1101_4.15.0-1101.110_arm64.deb"]

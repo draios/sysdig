@@ -1,0 +1,8 @@
+kernelversion: 115
+kernelrelease: 5.4.0-1106-oracle
+target: ubuntu-oracle
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-oracle_5.4.0-1106-oracle_115.ko
+  probe: output/6.0.1+driver/aarch64/scap_ubuntu-oracle_5.4.0-1106-oracle_115.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-oracle-headers-5.4.0-1106_5.4.0-1106.115_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-headers-5.4.0-1106-oracle_5.4.0-1106.115_arm64.deb"]

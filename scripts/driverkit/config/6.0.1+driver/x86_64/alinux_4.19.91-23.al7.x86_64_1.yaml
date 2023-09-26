@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 4.19.91-23.al7.x86_64
+target: alinux
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_alinux_4.19.91-23.al7.x86_64_1.ko
+  probe: output/6.0.1+driver/x86_64/scap_alinux_4.19.91-23.al7.x86_64_1.o
+kernelurls: ["http://mirrors.aliyun.com/alinux/2.1903/plus/x86_64/Packages/kernel-devel-4.19.91-23.al7.x86_64.rpm"]

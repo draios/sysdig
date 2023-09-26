@@ -1,0 +1,8 @@
+kernelversion: 71
+kernelrelease: 5.0.0-65-hwe
+target: ubuntu-hwe
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-hwe_5.0.0-65-hwe_71.ko
+  probe: output/6.0.1+driver/aarch64/scap_ubuntu-hwe_5.0.0-65-hwe_71.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-5.0/linux-headers-5.0.0-65-generic_5.0.0-65.71_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-5.0/linux-hwe-5.0-headers-5.0.0-65_5.0.0-65.71_all.deb"]

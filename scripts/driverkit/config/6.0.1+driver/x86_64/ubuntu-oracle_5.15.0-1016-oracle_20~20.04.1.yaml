@@ -1,0 +1,8 @@
+kernelversion: 20~20.04.1
+kernelrelease: 5.15.0-1016-oracle
+target: ubuntu-oracle
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-oracle_5.15.0-1016-oracle_20~20.04.1.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-oracle_5.15.0-1016-oracle_20~20.04.1.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle-5.15/linux-oracle-5.15-headers-5.15.0-1016_5.15.0-1016.20~20.04.1_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle-5.15/linux-headers-5.15.0-1016-oracle_5.15.0-1016.20~20.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle-5.15/linux-oracle-5.15-headers-5.15.0-1016_5.15.0-1016.20~20.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle-5.15/linux-headers-5.15.0-1016-oracle_5.15.0-1016.20~20.04.1_amd64.deb"]

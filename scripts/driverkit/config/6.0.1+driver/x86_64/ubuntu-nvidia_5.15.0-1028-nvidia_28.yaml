@@ -1,0 +1,8 @@
+kernelversion: 28
+kernelrelease: 5.15.0-1028-nvidia
+target: ubuntu-nvidia
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-nvidia_5.15.0-1028-nvidia_28.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-nvidia_5.15.0-1028-nvidia_28.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-nvidia/linux-nvidia-headers-5.15.0-1028_5.15.0-1028.28_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-nvidia/linux-headers-5.15.0-1028-nvidia-lowlatency_5.15.0-1028.28_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-nvidia/linux-nvidia-headers-5.15.0-1028_5.15.0-1028.28_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-nvidia/linux-headers-5.15.0-1028-nvidia_5.15.0-1028.28_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-nvidia/linux-headers-5.15.0-1028-nvidia_5.15.0-1028.28_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-nvidia/linux-headers-5.15.0-1028-nvidia-lowlatency_5.15.0-1028.28_amd64.deb"]

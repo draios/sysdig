@@ -1,0 +1,8 @@
+kernelversion: 76
+kernelrelease: 4.15.0-1068-oracle
+target: ubuntu-oracle
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-oracle_4.15.0-1068-oracle_76.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-oracle_4.15.0-1068-oracle_76.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle/linux-oracle-headers-4.15.0-1068_4.15.0-1068.76_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle/linux-headers-4.15.0-1068-oracle_4.15.0-1068.76_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle/linux-oracle-headers-4.15.0-1068_4.15.0-1068.76_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle/linux-headers-4.15.0-1068-oracle_4.15.0-1068.76_amd64.deb"]

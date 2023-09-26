@@ -1,0 +1,8 @@
+kernelversion: 76
+kernelrelease: 4.15.0-1071-azure
+target: ubuntu-azure
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-azure_4.15.0-1071-azure_76.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-azure_4.15.0-1071-azure_76.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure/linux-headers-4.15.0-1071-azure_4.15.0-1071.76_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-azure-headers-4.15.0-1071_4.15.0-1071.76_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure/linux-azure-headers-4.15.0-1071_4.15.0-1071.76_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-headers-4.15.0-1071-azure_4.15.0-1071.76_amd64.deb"]

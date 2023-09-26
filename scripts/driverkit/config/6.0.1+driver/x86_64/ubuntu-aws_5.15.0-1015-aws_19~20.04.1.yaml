@@ -1,0 +1,8 @@
+kernelversion: 19~20.04.1
+kernelrelease: 5.15.0-1015-aws
+target: ubuntu-aws
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-aws_5.15.0-1015-aws_19~20.04.1.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-aws_5.15.0-1015-aws_19~20.04.1.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws-5.15/linux-headers-5.15.0-1015-aws_5.15.0-1015.19~20.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws-5.15/linux-aws-5.15-headers-5.15.0-1015_5.15.0-1015.19~20.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws-5.15/linux-headers-5.15.0-1015-aws_5.15.0-1015.19~20.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws-5.15/linux-aws-5.15-headers-5.15.0-1015_5.15.0-1015.19~20.04.1_all.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 86~20.04.2
+kernelrelease: 5.15.0-79-hwe
+target: ubuntu-hwe
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-hwe_5.15.0-79-hwe_86~20.04.2.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-hwe_5.15.0-79-hwe_86~20.04.2.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-5.15/linux-hwe-5.15-headers-5.15.0-79_5.15.0-79.86~20.04.2_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-5.15/linux-hwe-5.15-headers-5.15.0-79_5.15.0-79.86~20.04.2_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-5.15/linux-headers-5.15.0-79-generic_5.15.0-79.86~20.04.2_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-5.15/linux-headers-5.15.0-79-generic_5.15.0-79.86~20.04.2_amd64.deb"]

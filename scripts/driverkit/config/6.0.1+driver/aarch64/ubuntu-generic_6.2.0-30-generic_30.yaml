@@ -1,0 +1,8 @@
+kernelversion: 30
+kernelrelease: 6.2.0-30-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-generic_6.2.0-30-generic_30.ko
+  probe: output/6.0.1+driver/aarch64/scap_ubuntu-generic_6.2.0-30-generic_30.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-6.2.0-30-generic-64k_6.2.0-30.30_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-6.2.0-30_6.2.0-30.30_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-6.2.0-30-generic_6.2.0-30.30_arm64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 3
+kernelrelease: 6.2.0-1003-ibm
+target: ubuntu-ibm
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-ibm_6.2.0-1003-ibm_3.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-ibm_6.2.0-1003-ibm_3.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-headers-6.2.0-1003-ibm_6.2.0-1003.3_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-ibm-headers-6.2.0-1003_6.2.0-1003.3_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm/linux-headers-6.2.0-1003-ibm_6.2.0-1003.3_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm/linux-ibm-headers-6.2.0-1003_6.2.0-1003.3_all.deb"]

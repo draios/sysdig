@@ -1,0 +1,8 @@
+kernelversion: 80
+kernelrelease: 5.4.0-72-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-generic_5.4.0-72-generic_80.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-generic_5.4.0-72-generic_80.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.4.0-72_5.4.0-72.80_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.4.0-72-lowlatency_5.4.0-72.80_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.4.0-72-generic_5.4.0-72.80_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.4.0-72-generic_5.4.0-72.80_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.4.0-72_5.4.0-72.80_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.4.0-72-lowlatency_5.4.0-72.80_amd64.deb"]

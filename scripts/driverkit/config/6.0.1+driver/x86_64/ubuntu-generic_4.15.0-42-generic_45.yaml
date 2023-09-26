@@ -1,0 +1,8 @@
+kernelversion: 45
+kernelrelease: 4.15.0-42-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-generic_4.15.0-42-generic_45.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-generic_4.15.0-42-generic_45.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-42-lowlatency_4.15.0-42.45_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-42-lowlatency_4.15.0-42.45_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-42-generic_4.15.0-42.45_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-42-generic_4.15.0-42.45_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-42_4.15.0-42.45_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-42_4.15.0-42.45_all.deb"]

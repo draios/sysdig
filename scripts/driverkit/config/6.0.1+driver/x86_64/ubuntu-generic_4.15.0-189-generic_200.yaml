@@ -1,0 +1,8 @@
+kernelversion: 200
+kernelrelease: 4.15.0-189-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-generic_4.15.0-189-generic_200.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-generic_4.15.0-189-generic_200.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-189-lowlatency_4.15.0-189.200_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-189-generic_4.15.0-189.200_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-189-generic_4.15.0-189.200_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-189_4.15.0-189.200_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-189_4.15.0-189.200_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-189-lowlatency_4.15.0-189.200_amd64.deb"]

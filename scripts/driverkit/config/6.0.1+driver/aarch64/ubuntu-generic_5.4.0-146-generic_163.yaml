@@ -1,0 +1,8 @@
+kernelversion: 163
+kernelrelease: 5.4.0-146-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-generic_5.4.0-146-generic_163.ko
+  probe: output/6.0.1+driver/aarch64/scap_ubuntu-generic_5.4.0-146-generic_163.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.4.0-146-generic_5.4.0-146.163_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.4.0-146_5.4.0-146.163_all.deb"]

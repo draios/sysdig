@@ -1,0 +1,8 @@
+kernelversion: 73
+kernelrelease: 4.15.0-1072-kvm
+target: ubuntu-kvm
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-kvm_4.15.0-1072-kvm_73.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-kvm_4.15.0-1072-kvm_73.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-headers-4.15.0-1072-kvm_4.15.0-1072.73_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-4.15.0-1072_4.15.0-1072.73_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-headers-4.15.0-1072-kvm_4.15.0-1072.73_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-4.15.0-1072_4.15.0-1072.73_all.deb"]

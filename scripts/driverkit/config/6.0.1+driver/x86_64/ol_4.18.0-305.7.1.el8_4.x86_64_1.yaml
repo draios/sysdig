@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 4.18.0-305.7.1.el8_4.x86_64
+target: ol
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ol_4.18.0-305.7.1.el8_4.x86_64_1.ko
+  probe: output/6.0.1+driver/x86_64/scap_ol_4.18.0-305.7.1.el8_4.x86_64_1.o
+kernelurls: ["http://yum.oracle.com/repo/OracleLinux/OL8/baseos/latest/x86_64/getPackage/kernel-devel-4.18.0-305.7.1.el8_4.x86_64.rpm"]

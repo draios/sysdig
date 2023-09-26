@@ -1,0 +1,7 @@
+kernelversion: 1
+kernelrelease: 3.10.0-693.2.1.el7.x86_64
+target: centos
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_centos_3.10.0-693.2.1.el7.x86_64_1.ko
+kernelurls: ["http://archive.kernel.org/centos/7.4.1708/updates/x86_64/Packages/kernel-devel-3.10.0-693.2.1.el7.x86_64.rpm"]

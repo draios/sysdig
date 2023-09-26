@@ -1,0 +1,8 @@
+kernelversion: 111+cvm1
+kernelrelease: 5.4.0-1105-azure
+target: ubuntu-azure
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-azure_5.4.0-1105-azure_111+cvm1.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-azure_5.4.0-1105-azure_111+cvm1.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-cvm/linux-azure-cvm-headers-5.4.0-1105_5.4.0-1105.111+cvm1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-cvm/linux-headers-5.4.0-1105-azure-cvm_5.4.0-1105.111+cvm1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure-cvm/linux-azure-cvm-headers-5.4.0-1105_5.4.0-1105.111+cvm1_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure-cvm/linux-headers-5.4.0-1105-azure-cvm_5.4.0-1105.111+cvm1_amd64.deb"]

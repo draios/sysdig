@@ -1,0 +1,8 @@
+kernelversion: 8~22.04.1
+kernelrelease: 6.2.0-1008-lowlatency
+target: ubuntu-lowlatency
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-lowlatency_6.2.0-1008-lowlatency_8~22.04.1.ko
+  probe: output/6.0.1+driver/aarch64/scap_ubuntu-lowlatency_6.2.0-1008-lowlatency_8~22.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency-hwe-6.2/linux-headers-6.2.0-1008-lowlatency_6.2.0-1008.8~22.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency-hwe-6.2/linux-headers-6.2.0-1008-lowlatency-64k_6.2.0-1008.8~22.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency-hwe-6.2/linux-lowlatency-hwe-6.2-headers-6.2.0-1008_6.2.0-1008.8~22.04.1_all.deb"]

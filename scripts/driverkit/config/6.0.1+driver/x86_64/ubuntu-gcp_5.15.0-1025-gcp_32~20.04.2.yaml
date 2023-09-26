@@ -1,0 +1,8 @@
+kernelversion: 32~20.04.2
+kernelrelease: 5.15.0-1025-gcp
+target: ubuntu-gcp
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-gcp_5.15.0-1025-gcp_32~20.04.2.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-gcp_5.15.0-1025-gcp_32~20.04.2.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp-5.15/linux-gcp-5.15-headers-5.15.0-1025_5.15.0-1025.32~20.04.2_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp-5.15/linux-headers-5.15.0-1025-gcp_5.15.0-1025.32~20.04.2_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp-5.15/linux-headers-5.15.0-1025-gcp_5.15.0-1025.32~20.04.2_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp-5.15/linux-gcp-5.15-headers-5.15.0-1025_5.15.0-1025.32~20.04.2_amd64.deb"]

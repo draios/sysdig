@@ -1,0 +1,8 @@
+kernelversion: 116
+kernelrelease: 5.4.0-1107-gcp
+target: ubuntu-gcp
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-gcp_5.4.0-1107-gcp_116.ko
+  probe: output/6.0.1+driver/aarch64/scap_ubuntu-gcp_5.4.0-1107-gcp_116.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp/linux-gcp-headers-5.4.0-1107_5.4.0-1107.116_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp/linux-headers-5.4.0-1107-gcp_5.4.0-1107.116_arm64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 6
+kernelrelease: 5.15.0-1003-gcp
+target: ubuntu-gcp
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-gcp_5.15.0-1003-gcp_6.ko
+  probe: output/6.0.1+driver/aarch64/scap_ubuntu-gcp_5.15.0-1003-gcp_6.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp/linux-headers-5.15.0-1003-gcp_5.15.0-1003.6_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp/linux-gcp-headers-5.15.0-1003_5.15.0-1003.6_arm64.deb"]

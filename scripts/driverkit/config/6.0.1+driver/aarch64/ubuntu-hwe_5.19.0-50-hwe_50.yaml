@@ -1,0 +1,8 @@
+kernelversion: 50
+kernelrelease: 5.19.0-50-hwe
+target: ubuntu-hwe
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-hwe_5.19.0-50-hwe_50.ko
+  probe: output/6.0.1+driver/aarch64/scap_ubuntu-hwe_5.19.0-50-hwe_50.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-5.19/linux-hwe-5.19-headers-5.19.0-50_5.19.0-50.50_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-5.19/linux-headers-5.19.0-50-generic-64k_5.19.0-50.50_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-5.19/linux-headers-5.19.0-50-generic_5.19.0-50.50_arm64.deb"]

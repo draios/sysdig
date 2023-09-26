@@ -1,0 +1,8 @@
+kernelversion: 42~22.04.1
+kernelrelease: 5.19.0-41-hwe
+target: ubuntu-hwe
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-hwe_5.19.0-41-hwe_42~22.04.1.ko
+  probe: output/6.0.1+driver/aarch64/scap_ubuntu-hwe_5.19.0-41-hwe_42~22.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-5.19/linux-headers-5.19.0-41-generic_5.19.0-41.42~22.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-5.19/linux-headers-5.19.0-41-generic-64k_5.19.0-41.42~22.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-5.19/linux-hwe-5.19-headers-5.19.0-41_5.19.0-41.42~22.04.1_all.deb"]

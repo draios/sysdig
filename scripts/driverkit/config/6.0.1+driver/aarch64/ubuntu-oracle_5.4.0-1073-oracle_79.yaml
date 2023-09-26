@@ -1,0 +1,8 @@
+kernelversion: 79
+kernelrelease: 5.4.0-1073-oracle
+target: ubuntu-oracle
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-oracle_5.4.0-1073-oracle_79.ko
+  probe: output/6.0.1+driver/aarch64/scap_ubuntu-oracle_5.4.0-1073-oracle_79.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-headers-5.4.0-1073-oracle_5.4.0-1073.79_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-oracle-headers-5.4.0-1073_5.4.0-1073.79_all.deb"]

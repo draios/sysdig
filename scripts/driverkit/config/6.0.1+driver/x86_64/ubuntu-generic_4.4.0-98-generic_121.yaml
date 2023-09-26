@@ -1,0 +1,7 @@
+kernelversion: 121
+kernelrelease: 4.4.0-98-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-generic_4.4.0-98-generic_121.ko
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.4.0-98_4.4.0-98.121_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.4.0-98-generic_4.4.0-98.121_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.4.0-98-lowlatency_4.4.0-98.121_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.4.0-98-generic_4.4.0-98.121_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.4.0-98-lowlatency_4.4.0-98.121_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.4.0-98_4.4.0-98.121_all.deb"]

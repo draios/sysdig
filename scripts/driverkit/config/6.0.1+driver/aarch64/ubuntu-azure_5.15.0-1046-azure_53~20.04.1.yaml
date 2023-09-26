@@ -1,0 +1,8 @@
+kernelversion: 53~20.04.1
+kernelrelease: 5.15.0-1046-azure
+target: ubuntu-azure
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-azure_5.15.0-1046-azure_53~20.04.1.ko
+  probe: output/6.0.1+driver/aarch64/scap_ubuntu-azure_5.15.0-1046-azure_53~20.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure-5.15/linux-headers-5.15.0-1046-azure_5.15.0-1046.53~20.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure-5.15/linux-azure-5.15-headers-5.15.0-1046_5.15.0-1046.53~20.04.1_all.deb"]

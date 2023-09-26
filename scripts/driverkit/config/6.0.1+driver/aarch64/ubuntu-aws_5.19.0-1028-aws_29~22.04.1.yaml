@@ -1,0 +1,8 @@
+kernelversion: 29~22.04.1
+kernelrelease: 5.19.0-1028-aws
+target: ubuntu-aws
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-aws_5.19.0-1028-aws_29~22.04.1.ko
+  probe: output/6.0.1+driver/aarch64/scap_ubuntu-aws_5.19.0-1028-aws_29~22.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws-5.19/linux-headers-5.19.0-1028-aws_5.19.0-1028.29~22.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws-5.19/linux-aws-5.19-headers-5.19.0-1028_5.19.0-1028.29~22.04.1_all.deb"]

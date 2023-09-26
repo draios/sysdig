@@ -1,0 +1,8 @@
+kernelversion: 42
+kernelrelease: 5.4.0-1039-oracle
+target: ubuntu-oracle
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-oracle_5.4.0-1039-oracle_42.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-oracle_5.4.0-1039-oracle_42.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle/linux-headers-5.4.0-1039-oracle_5.4.0-1039.42_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle/linux-headers-5.4.0-1039-oracle_5.4.0-1039.42_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle/linux-oracle-headers-5.4.0-1039_5.4.0-1039.42_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle/linux-oracle-headers-5.4.0-1039_5.4.0-1039.42_all.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 35
+kernelrelease: 4.15.0-1033-gke
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-generic_4.15.0-1033-gke_35.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-generic_4.15.0-1033-gke_35.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gke-4.15/linux-headers-4.15.0-1033-gke_4.15.0-1033.35_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gke-4.15/linux-gke-4.15-headers-4.15.0-1033_4.15.0-1033.35_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gke-4.15/linux-gke-4.15-headers-4.15.0-1033_4.15.0-1033.35_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gke-4.15/linux-headers-4.15.0-1033-gke_4.15.0-1033.35_amd64.deb"]

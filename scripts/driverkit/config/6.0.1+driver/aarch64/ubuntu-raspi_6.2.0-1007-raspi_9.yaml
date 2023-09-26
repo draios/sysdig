@@ -1,0 +1,8 @@
+kernelversion: 9
+kernelrelease: 6.2.0-1007-raspi
+target: ubuntu-raspi
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-raspi_6.2.0-1007-raspi_9.ko
+  probe: output/6.0.1+driver/aarch64/scap_ubuntu-raspi_6.2.0-1007-raspi_9.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-raspi/linux-headers-6.2.0-1007-raspi_6.2.0-1007.9_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-raspi/linux-raspi-headers-6.2.0-1007_6.2.0-1007.9_arm64.deb"]

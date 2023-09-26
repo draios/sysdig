@@ -1,0 +1,7 @@
+kernelversion: 213
+kernelrelease: 4.15.0-202-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-generic_4.15.0-202-generic_213.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.15.0-202_4.15.0-202.213_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.15.0-202-generic_4.15.0-202.213_arm64.deb"]
