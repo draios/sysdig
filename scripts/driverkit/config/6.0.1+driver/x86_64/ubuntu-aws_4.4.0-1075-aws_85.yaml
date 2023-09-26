@@ -1,0 +1,7 @@
+kernelversion: 85
+kernelrelease: 4.4.0-1075-aws
+target: ubuntu-aws
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-aws_4.4.0-1075-aws_85.ko
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-headers-4.4.0-1075-aws_4.4.0-1075.85_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-headers-4.4.0-1075-aws_4.4.0-1075.85_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-aws-headers-4.4.0-1075_4.4.0-1075.85_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-aws-headers-4.4.0-1075_4.4.0-1075.85_all.deb"]

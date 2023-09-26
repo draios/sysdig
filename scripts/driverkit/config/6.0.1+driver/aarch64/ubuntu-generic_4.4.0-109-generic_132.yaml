@@ -1,0 +1,7 @@
+kernelversion: 132
+kernelrelease: 4.4.0-109-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-generic_4.4.0-109-generic_132.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-109-generic_4.4.0-109.132_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-109_4.4.0-109.132_all.deb"]

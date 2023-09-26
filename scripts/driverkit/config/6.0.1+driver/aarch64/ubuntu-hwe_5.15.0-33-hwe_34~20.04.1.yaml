@@ -1,0 +1,8 @@
+kernelversion: 34~20.04.1
+kernelrelease: 5.15.0-33-hwe
+target: ubuntu-hwe
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-hwe_5.15.0-33-hwe_34~20.04.1.ko
+  probe: output/6.0.1+driver/aarch64/scap_ubuntu-hwe_5.15.0-33-hwe_34~20.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-5.15/linux-hwe-5.15-headers-5.15.0-33_5.15.0-33.34~20.04.1_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-5.15/linux-headers-5.15.0-33-generic-64k_5.15.0-33.34~20.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-5.15/linux-headers-5.15.0-33-generic_5.15.0-33.34~20.04.1_arm64.deb"]

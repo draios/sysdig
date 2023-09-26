@@ -1,0 +1,7 @@
+kernelversion: 87
+kernelrelease: 4.4.0-1080-kvm
+target: ubuntu-kvm
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-kvm_4.4.0-1080-kvm_87.ko
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-headers-4.4.0-1080-kvm_4.4.0-1080.87_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-4.4.0-1080_4.4.0-1080.87_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-headers-4.4.0-1080-kvm_4.4.0-1080.87_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-4.4.0-1080_4.4.0-1080.87_all.deb"]

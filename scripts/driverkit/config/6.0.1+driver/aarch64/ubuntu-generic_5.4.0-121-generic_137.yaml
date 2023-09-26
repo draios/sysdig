@@ -1,0 +1,8 @@
+kernelversion: 137
+kernelrelease: 5.4.0-121-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-generic_5.4.0-121-generic_137.ko
+  probe: output/6.0.1+driver/aarch64/scap_ubuntu-generic_5.4.0-121-generic_137.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.4.0-121_5.4.0-121.137_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-5.4.0-121-generic_5.4.0-121.137_arm64.deb"]

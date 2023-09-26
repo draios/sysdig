@@ -1,0 +1,8 @@
+kernelversion: 62
+kernelrelease: 5.4.0-1059-gke
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-generic_5.4.0-1059-gke_62.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-generic_5.4.0-1059-gke_62.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gke/linux-gke-headers-5.4.0-1059_5.4.0-1059.62_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gke/linux-headers-5.4.0-1059-gke_5.4.0-1059.62_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gke/linux-headers-5.4.0-1059-gke_5.4.0-1059.62_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gke/linux-gke-headers-5.4.0-1059_5.4.0-1059.62_amd64.deb"]

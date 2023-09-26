@@ -1,0 +1,8 @@
+kernelversion: 123
+kernelrelease: 4.15.0-121-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-generic_4.15.0-121-generic_123.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-generic_4.15.0-121-generic_123.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-121-lowlatency_4.15.0-121.123_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-121-generic_4.15.0-121.123_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-121-lowlatency_4.15.0-121.123_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-121-generic_4.15.0-121.123_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-121_4.15.0-121.123_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-121_4.15.0-121.123_all.deb"]

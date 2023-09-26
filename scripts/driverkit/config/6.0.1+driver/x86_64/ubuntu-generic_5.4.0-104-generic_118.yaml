@@ -1,0 +1,8 @@
+kernelversion: 118
+kernelrelease: 5.4.0-104-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-generic_5.4.0-104-generic_118.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-generic_5.4.0-104-generic_118.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.4.0-104-lowlatency_5.4.0-104.118_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.4.0-104-generic_5.4.0-104.118_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.4.0-104_5.4.0-104.118_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.4.0-104_5.4.0-104.118_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.4.0-104-generic_5.4.0-104.118_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.4.0-104-lowlatency_5.4.0-104.118_amd64.deb"]

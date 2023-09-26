@@ -1,0 +1,8 @@
+kernelversion: 105
+kernelrelease: 4.15.0-1103-kvm
+target: ubuntu-kvm
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-kvm_4.15.0-1103-kvm_105.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-kvm_4.15.0-1103-kvm_105.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-headers-4.15.0-1103-kvm_4.15.0-1103.105_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-4.15.0-1103_4.15.0-1103.105_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-4.15.0-1103_4.15.0-1103.105_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-headers-4.15.0-1103-kvm_4.15.0-1103.105_amd64.deb"]

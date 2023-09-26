@@ -1,0 +1,8 @@
+kernelversion: 21~20.04.2
+kernelrelease: 5.11.0-1020-aws
+target: ubuntu-aws
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-aws_5.11.0-1020-aws_21~20.04.2.ko
+  probe: output/6.0.1+driver/aarch64/scap_ubuntu-aws_5.11.0-1020-aws_21~20.04.2.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws-5.11/linux-aws-5.11-headers-5.11.0-1020_5.11.0-1020.21~20.04.2_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws-5.11/linux-headers-5.11.0-1020-aws_5.11.0-1020.21~20.04.2_arm64.deb"]

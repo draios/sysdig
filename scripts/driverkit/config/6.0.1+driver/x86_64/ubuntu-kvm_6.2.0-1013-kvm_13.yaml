@@ -1,0 +1,8 @@
+kernelversion: 13
+kernelrelease: 6.2.0-1013-kvm
+target: ubuntu-kvm
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-kvm_6.2.0-1013-kvm_13.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-kvm_6.2.0-1013-kvm_13.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-headers-6.2.0-1013-kvm_6.2.0-1013.13_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-headers-6.2.0-1013-kvm_6.2.0-1013.13_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-6.2.0-1013_6.2.0-1013.13_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-6.2.0-1013_6.2.0-1013.13_all.deb"]

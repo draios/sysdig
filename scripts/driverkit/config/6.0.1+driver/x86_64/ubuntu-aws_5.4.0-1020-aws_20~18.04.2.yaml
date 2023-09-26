@@ -1,0 +1,8 @@
+kernelversion: 20~18.04.2
+kernelrelease: 5.4.0-1020-aws
+target: ubuntu-aws
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-aws_5.4.0-1020-aws_20~18.04.2.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-aws_5.4.0-1020-aws_20~18.04.2.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws-5.4/linux-aws-5.4-headers-5.4.0-1020_5.4.0-1020.20~18.04.2_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws-5.4/linux-aws-5.4-headers-5.4.0-1020_5.4.0-1020.20~18.04.2_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws-5.4/linux-headers-5.4.0-1020-aws_5.4.0-1020.20~18.04.2_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws-5.4/linux-headers-5.4.0-1020-aws_5.4.0-1020.20~18.04.2_amd64.deb"]

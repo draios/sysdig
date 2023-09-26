@@ -1,0 +1,8 @@
+kernelversion: 95
+kernelrelease: 5.15.0-86-lowlatency
+target: ubuntu-lowlatency
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-lowlatency_5.15.0-86-lowlatency_95.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-lowlatency_5.15.0-86-lowlatency_95.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lowlatency/linux-lowlatency-headers-5.15.0-86_5.15.0-86.95_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lowlatency/linux-headers-5.15.0-86-lowlatency_5.15.0-86.95_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-lowlatency/linux-headers-5.15.0-86-lowlatency_5.15.0-86.95_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-lowlatency/linux-lowlatency-headers-5.15.0-86_5.15.0-86.95_all.deb"]

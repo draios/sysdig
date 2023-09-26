@@ -1,0 +1,7 @@
+kernelversion: 235
+kernelrelease: 4.4.0-203-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-generic_4.4.0-203-generic_235.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-203_4.4.0-203.235_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-203-generic_4.4.0-203.235_arm64.deb"]

@@ -1,0 +1,7 @@
+kernelversion: 91
+kernelrelease: 4.4.0-70-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-generic_4.4.0-70-generic_91.ko
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.4.0-70-lowlatency_4.4.0-70.91_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.4.0-70-lowlatency_4.4.0-70.91_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.4.0-70_4.4.0-70.91_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.4.0-70-generic_4.4.0-70.91_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.4.0-70-generic_4.4.0-70.91_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.4.0-70_4.4.0-70.91_all.deb"]

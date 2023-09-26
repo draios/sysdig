@@ -1,0 +1,8 @@
+kernelversion: 147
+kernelrelease: 4.15.0-1134-azure
+target: ubuntu-azure
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-azure_4.15.0-1134-azure_147.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-azure_4.15.0-1134-azure_147.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-4.15/linux-headers-4.15.0-1134-azure_4.15.0-1134.147_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-4.15/linux-azure-4.15-headers-4.15.0-1134_4.15.0-1134.147_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure-4.15/linux-azure-4.15-headers-4.15.0-1134_4.15.0-1134.147_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure-4.15/linux-headers-4.15.0-1134-azure_4.15.0-1134.147_amd64.deb"]

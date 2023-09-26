@@ -1,0 +1,7 @@
+kernelversion: 200
+kernelrelease: 4.4.0-171-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-generic_4.4.0-171-generic_200.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-171_4.4.0-171.200_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-171-generic_4.4.0-171.200_arm64.deb"]

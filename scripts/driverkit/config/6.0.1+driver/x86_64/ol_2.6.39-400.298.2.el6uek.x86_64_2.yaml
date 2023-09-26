@@ -1,0 +1,7 @@
+kernelversion: 2
+kernelrelease: 2.6.39-400.298.2.el6uek.x86_64
+target: ol
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ol_2.6.39-400.298.2.el6uek.x86_64_2.ko
+kernelurls: ["http://yum.oracle.com/repo/OracleLinux/OL6/UEK/latest/x86_64/getPackage/kernel-uek-devel-2.6.39-400.298.2.el6uek.x86_64.rpm"]

@@ -1,0 +1,8 @@
+kernelversion: 15
+kernelrelease: 5.4.0-1012-bluefield
+target: ubuntu-bluefield
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-bluefield_5.4.0-1012-bluefield_15.ko
+  probe: output/6.0.1+driver/aarch64/scap_ubuntu-bluefield_5.4.0-1012-bluefield_15.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-bluefield/linux-bluefield-headers-5.4.0-1012_5.4.0-1012.15_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-bluefield/linux-headers-5.4.0-1012-bluefield_5.4.0-1012.15_arm64.deb"]

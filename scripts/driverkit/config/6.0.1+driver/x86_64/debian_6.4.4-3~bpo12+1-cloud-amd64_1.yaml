@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 6.4.4-3~bpo12+1-cloud-amd64
+target: debian
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_debian_6.4.4-3~bpo12+1-cloud-amd64_1.ko
+  probe: output/6.0.1+driver/x86_64/scap_debian_6.4.4-3~bpo12+1-cloud-amd64_1.o
+kernelurls: ["http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-kbuild-6.4.0-0.deb12.2_6.4.4-3~bpo12+1_amd64.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-6.4.0-0.deb12.2-common_6.4.4-3~bpo12+1_all.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-6.4.0-0.deb12.2-cloud-amd64_6.4.4-3~bpo12+1_amd64.deb"]

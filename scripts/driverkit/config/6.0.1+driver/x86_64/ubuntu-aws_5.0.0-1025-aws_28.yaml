@@ -1,0 +1,8 @@
+kernelversion: 28
+kernelrelease: 5.0.0-1025-aws
+target: ubuntu-aws
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-aws_5.0.0-1025-aws_28.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-aws_5.0.0-1025-aws_28.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws-5.0/linux-aws-headers-5.0.0-1025_5.0.0-1025.28_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws-5.0/linux-headers-5.0.0-1025-aws_5.0.0-1025.28_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws-5.0/linux-aws-headers-5.0.0-1025_5.0.0-1025.28_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws-5.0/linux-headers-5.0.0-1025-aws_5.0.0-1025.28_amd64.deb"]

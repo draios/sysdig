@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 4.18.0-80.1.2.el8_0.aarch64
+target: centos
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_centos_4.18.0-80.1.2.el8_0.aarch64_1.ko
+  probe: output/6.0.1+driver/aarch64/scap_centos_4.18.0-80.1.2.el8_0.aarch64_1.o
+kernelurls: ["http://vault.centos.org/centos/8.0.1905/BaseOS/aarch64/os/Packages/kernel-devel-4.18.0-80.1.2.el8_0.aarch64.rpm"]

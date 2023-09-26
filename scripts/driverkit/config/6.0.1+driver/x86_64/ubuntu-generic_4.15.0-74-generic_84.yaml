@@ -1,0 +1,8 @@
+kernelversion: 84
+kernelrelease: 4.15.0-74-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-generic_4.15.0-74-generic_84.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-generic_4.15.0-74-generic_84.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-74-lowlatency_4.15.0-74.84_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-74_4.15.0-74.84_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-4.15.0-74-generic_4.15.0-74.84_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-74-lowlatency_4.15.0-74.84_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-74_4.15.0-74.84_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-4.15.0-74-generic_4.15.0-74.84_amd64.deb"]

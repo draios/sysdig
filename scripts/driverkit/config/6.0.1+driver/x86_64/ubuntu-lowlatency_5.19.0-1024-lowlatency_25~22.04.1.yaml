@@ -1,0 +1,8 @@
+kernelversion: 25~22.04.1
+kernelrelease: 5.19.0-1024-lowlatency
+target: ubuntu-lowlatency
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-lowlatency_5.19.0-1024-lowlatency_25~22.04.1.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-lowlatency_5.19.0-1024-lowlatency_25~22.04.1.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-lowlatency-hwe-5.19/linux-lowlatency-hwe-5.19-headers-5.19.0-1024_5.19.0-1024.25~22.04.1_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lowlatency-hwe-5.19/linux-lowlatency-hwe-5.19-headers-5.19.0-1024_5.19.0-1024.25~22.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-lowlatency-hwe-5.19/linux-headers-5.19.0-1024-lowlatency_5.19.0-1024.25~22.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lowlatency-hwe-5.19/linux-headers-5.19.0-1024-lowlatency_5.19.0-1024.25~22.04.1_amd64.deb"]

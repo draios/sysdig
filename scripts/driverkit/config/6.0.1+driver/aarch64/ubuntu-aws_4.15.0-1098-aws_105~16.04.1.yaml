@@ -1,0 +1,7 @@
+kernelversion: 105~16.04.1
+kernelrelease: 4.15.0-1098-aws
+target: ubuntu-aws
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-aws_4.15.0-1098-aws_105~16.04.1.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws-hwe/linux-headers-4.15.0-1098-aws_4.15.0-1098.105~16.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws-hwe/linux-aws-headers-4.15.0-1098_4.15.0-1098.105~16.04.1_all.deb"]

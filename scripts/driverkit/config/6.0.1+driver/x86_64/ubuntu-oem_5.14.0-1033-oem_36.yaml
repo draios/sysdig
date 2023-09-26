@@ -1,0 +1,8 @@
+kernelversion: 36
+kernelrelease: 5.14.0-1033-oem
+target: ubuntu-oem
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-oem_5.14.0-1033-oem_36.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-oem_5.14.0-1033-oem_36.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-5.14/linux-oem-5.14-headers-5.14.0-1033_5.14.0-1033.36_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-5.14/linux-oem-5.14-headers-5.14.0-1033_5.14.0-1033.36_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-5.14/linux-headers-5.14.0-1033-oem_5.14.0-1033.36_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-5.14/linux-headers-5.14.0-1033-oem_5.14.0-1033.36_amd64.deb"]

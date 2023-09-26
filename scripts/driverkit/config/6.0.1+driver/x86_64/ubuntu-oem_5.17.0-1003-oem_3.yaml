@@ -1,0 +1,8 @@
+kernelversion: 3
+kernelrelease: 5.17.0-1003-oem
+target: ubuntu-oem
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-oem_5.17.0-1003-oem_3.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-oem_5.17.0-1003-oem_3.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-5.17/linux-oem-5.17-headers-5.17.0-1003_5.17.0-1003.3_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-5.17/linux-headers-5.17.0-1003-oem_5.17.0-1003.3_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-5.17/linux-headers-5.17.0-1003-oem_5.17.0-1003.3_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-5.17/linux-oem-5.17-headers-5.17.0-1003_5.17.0-1003.3_all.deb"]

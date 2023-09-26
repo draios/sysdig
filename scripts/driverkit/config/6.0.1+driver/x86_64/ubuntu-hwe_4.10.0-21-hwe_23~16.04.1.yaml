@@ -1,0 +1,7 @@
+kernelversion: 23~16.04.1
+kernelrelease: 4.10.0-21-hwe
+target: ubuntu-hwe
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-hwe_4.10.0-21-hwe_23~16.04.1.ko
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-edge/linux-headers-4.10.0-21_4.10.0-21.23~16.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-edge/linux-headers-4.10.0-21-generic_4.10.0-21.23~16.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-edge/linux-headers-4.10.0-21_4.10.0-21.23~16.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-edge/linux-headers-4.10.0-21-lowlatency_4.10.0-21.23~16.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-edge/linux-headers-4.10.0-21-lowlatency_4.10.0-21.23~16.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-edge/linux-headers-4.10.0-21-generic_4.10.0-21.23~16.04.1_amd64.deb"]

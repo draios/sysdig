@@ -1,0 +1,7 @@
+kernelversion: 91
+kernelrelease: 4.4.0-1082-kvm
+target: ubuntu-kvm
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-kvm_4.4.0-1082-kvm_91.ko
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-headers-4.4.0-1082-kvm_4.4.0-1082.91_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-4.4.0-1082_4.4.0-1082.91_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-4.4.0-1082_4.4.0-1082.91_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-headers-4.4.0-1082-kvm_4.4.0-1082.91_amd64.deb"]

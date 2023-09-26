@@ -1,0 +1,7 @@
+kernelversion: 39
+kernelrelease: 4.4.0-1030-aws
+target: ubuntu-aws
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-aws_4.4.0-1030-aws_39.ko
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-headers-4.4.0-1030-aws_4.4.0-1030.39_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-aws-headers-4.4.0-1030_4.4.0-1030.39_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-aws-headers-4.4.0-1030_4.4.0-1030.39_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-headers-4.4.0-1030-aws_4.4.0-1030.39_amd64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 35
+kernelrelease: 5.4.0-1033-oracle
+target: ubuntu-oracle
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-oracle_5.4.0-1033-oracle_35.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-oracle_5.4.0-1033-oracle_35.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle-5.4/linux-headers-5.4.0-1033-oracle_5.4.0-1033.35_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle-5.4/linux-headers-5.4.0-1033-oracle_5.4.0-1033.35_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle-5.4/linux-oracle-5.4-headers-5.4.0-1033_5.4.0-1033.35_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle-5.4/linux-oracle-5.4-headers-5.4.0-1033_5.4.0-1033.35_all.deb"]

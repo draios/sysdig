@@ -1,0 +1,8 @@
+kernelversion: 51
+kernelrelease: 5.15.0-1045-oracle
+target: ubuntu-oracle
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-oracle_5.15.0-1045-oracle_51.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-oracle_5.15.0-1045-oracle_51.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle/linux-headers-5.15.0-1045-oracle_5.15.0-1045.51_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle/linux-oracle-headers-5.15.0-1045_5.15.0-1045.51_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle/linux-headers-5.15.0-1045-oracle_5.15.0-1045.51_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle/linux-oracle-headers-5.15.0-1045_5.15.0-1045.51_all.deb"]

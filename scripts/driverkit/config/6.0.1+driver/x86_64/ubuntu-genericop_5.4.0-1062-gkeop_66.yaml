@@ -1,0 +1,8 @@
+kernelversion: 66
+kernelrelease: 5.4.0-1062-gkeop
+target: ubuntu-genericop
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-genericop_5.4.0-1062-gkeop_66.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-genericop_5.4.0-1062-gkeop_66.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-gkeop/linux-headers-5.4.0-1062-gkeop_5.4.0-1062.66_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gkeop/linux-gkeop-headers-5.4.0-1062_5.4.0-1062.66_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gkeop/linux-gkeop-headers-5.4.0-1062_5.4.0-1062.66_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gkeop/linux-headers-5.4.0-1062-gkeop_5.4.0-1062.66_amd64.deb"]

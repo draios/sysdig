@@ -1,0 +1,8 @@
+kernelversion: 50
+kernelrelease: 4.15.0-1045-oem
+target: ubuntu-oem
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-oem_4.15.0-1045-oem_50.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-oem_4.15.0-1045-oem_50.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem/linux-oem-headers-4.15.0-1045_4.15.0-1045.50_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem/linux-headers-4.15.0-1045-oem_4.15.0-1045.50_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem/linux-headers-4.15.0-1045-oem_4.15.0-1045.50_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem/linux-oem-headers-4.15.0-1045_4.15.0-1045.50_all.deb"]

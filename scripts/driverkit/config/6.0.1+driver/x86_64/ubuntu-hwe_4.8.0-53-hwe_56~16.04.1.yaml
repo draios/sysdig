@@ -1,0 +1,7 @@
+kernelversion: 56~16.04.1
+kernelrelease: 4.8.0-53-hwe
+target: ubuntu-hwe
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-hwe_4.8.0-53-hwe_56~16.04.1.ko
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe/linux-headers-4.8.0-53_4.8.0-53.56~16.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe/linux-headers-4.8.0-53-lowlatency_4.8.0-53.56~16.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe/linux-headers-4.8.0-53-lowlatency_4.8.0-53.56~16.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe/linux-headers-4.8.0-53-generic_4.8.0-53.56~16.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe/linux-headers-4.8.0-53-generic_4.8.0-53.56~16.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe/linux-headers-4.8.0-53_4.8.0-53.56~16.04.1_all.deb"]

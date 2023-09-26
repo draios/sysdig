@@ -1,0 +1,8 @@
+kernelversion: 62
+kernelrelease: 5.4.0-1058-gcp
+target: ubuntu-gcp
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-gcp_5.4.0-1058-gcp_62.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-gcp_5.4.0-1058-gcp_62.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp/linux-headers-5.4.0-1058-gcp_5.4.0-1058.62_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp/linux-headers-5.4.0-1058-gcp_5.4.0-1058.62_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp/linux-gcp-headers-5.4.0-1058_5.4.0-1058.62_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp/linux-gcp-headers-5.4.0-1058_5.4.0-1058.62_amd64.deb"]

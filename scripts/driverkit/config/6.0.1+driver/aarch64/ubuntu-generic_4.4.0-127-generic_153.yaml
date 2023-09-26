@@ -1,0 +1,7 @@
+kernelversion: 153
+kernelrelease: 4.4.0-127-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/6.0.1+driver/aarch64/scap_ubuntu-generic_4.4.0-127-generic_153.ko
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-127_4.4.0-127.153_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-4.4.0-127-generic_4.4.0-127.153_arm64.deb"]

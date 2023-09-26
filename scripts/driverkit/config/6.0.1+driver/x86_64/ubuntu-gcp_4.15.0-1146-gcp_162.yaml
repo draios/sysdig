@@ -1,0 +1,8 @@
+kernelversion: 162
+kernelrelease: 4.15.0-1146-gcp
+target: ubuntu-gcp
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-gcp_4.15.0-1146-gcp_162.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-gcp_4.15.0-1146-gcp_162.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp-4.15/linux-headers-4.15.0-1146-gcp_4.15.0-1146.162_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp-4.15/linux-gcp-4.15-headers-4.15.0-1146_4.15.0-1146.162_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp-4.15/linux-gcp-4.15-headers-4.15.0-1146_4.15.0-1146.162_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp-4.15/linux-headers-4.15.0-1146-gcp_4.15.0-1146.162_amd64.deb"]

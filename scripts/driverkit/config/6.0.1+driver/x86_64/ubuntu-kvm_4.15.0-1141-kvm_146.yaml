@@ -1,0 +1,8 @@
+kernelversion: 146
+kernelrelease: 4.15.0-1141-kvm
+target: ubuntu-kvm
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-kvm_4.15.0-1141-kvm_146.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-kvm_4.15.0-1141-kvm_146.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-headers-4.15.0-1141-kvm_4.15.0-1141.146_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-4.15.0-1141_4.15.0-1141.146_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-4.15.0-1141_4.15.0-1141.146_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-headers-4.15.0-1141-kvm_4.15.0-1141.146_amd64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 99
+kernelrelease: 4.15.0-1090-oracle
+target: ubuntu-oracle
+architecture: amd64
+output:
+  module: output/6.0.1+driver/x86_64/scap_ubuntu-oracle_4.15.0-1090-oracle_99.ko
+  probe: output/6.0.1+driver/x86_64/scap_ubuntu-oracle_4.15.0-1090-oracle_99.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle/linux-headers-4.15.0-1090-oracle_4.15.0-1090.99_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle/linux-headers-4.15.0-1090-oracle_4.15.0-1090.99_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle/linux-oracle-headers-4.15.0-1090_4.15.0-1090.99_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle/linux-oracle-headers-4.15.0-1090_4.15.0-1090.99_all.deb"]
