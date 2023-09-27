@@ -1,0 +1,8 @@
+kernelversion: 43~20.04.1
+kernelrelease: 5.15.0-1040-ibm
+target: ubuntu-ibm
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-ibm_5.15.0-1040-ibm_43~20.04.1.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-ibm_5.15.0-1040-ibm_43~20.04.1.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm-5.15/linux-ibm-5.15-headers-5.15.0-1040_5.15.0-1040.43~20.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm-5.15/linux-ibm-5.15-headers-5.15.0-1040_5.15.0-1040.43~20.04.1_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm-5.15/linux-headers-5.15.0-1040-ibm_5.15.0-1040.43~20.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm-5.15/linux-headers-5.15.0-1040-ibm_5.15.0-1040.43~20.04.1_amd64.deb"]

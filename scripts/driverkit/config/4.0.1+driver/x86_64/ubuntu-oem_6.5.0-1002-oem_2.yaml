@@ -1,0 +1,8 @@
+kernelversion: 2
+kernelrelease: 6.5.0-1002-oem
+target: ubuntu-oem
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-oem_6.5.0-1002-oem_2.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-oem_6.5.0-1002-oem_2.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-6.5/linux-headers-6.5.0-1002-oem_6.5.0-1002.2_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-6.5/linux-oem-6.5-headers-6.5.0-1002_6.5.0-1002.2_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oem-6.5/linux-headers-6.5.0-1002-oem_6.5.0-1002.2_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oem-6.5/linux-oem-6.5-headers-6.5.0-1002_6.5.0-1002.2_all.deb"]

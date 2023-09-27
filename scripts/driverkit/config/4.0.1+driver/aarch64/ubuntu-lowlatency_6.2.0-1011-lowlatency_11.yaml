@@ -1,0 +1,8 @@
+kernelversion: 11
+kernelrelease: 6.2.0-1011-lowlatency
+target: ubuntu-lowlatency
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-lowlatency_6.2.0-1011-lowlatency_11.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-lowlatency_6.2.0-1011-lowlatency_11.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-6.2.0-1011-lowlatency_6.2.0-1011.11_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-6.2.0-1011-lowlatency-64k_6.2.0-1011.11_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-lowlatency-headers-6.2.0-1011_6.2.0-1011.11_all.deb"]

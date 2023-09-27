@@ -1,0 +1,8 @@
+kernelversion: 55
+kernelrelease: 5.15.0-1048-azure
+target: ubuntu-azure
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-azure_5.15.0-1048-azure_55.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-azure_5.15.0-1048-azure_55.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-azure-headers-5.15.0-1048_5.15.0-1048.55_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-headers-5.15.0-1048-azure_5.15.0-1048.55_arm64.deb"]

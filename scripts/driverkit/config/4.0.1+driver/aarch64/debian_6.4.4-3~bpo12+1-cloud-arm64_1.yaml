@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 6.4.4-3~bpo12+1-cloud-arm64
+target: debian
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_debian_6.4.4-3~bpo12+1-cloud-arm64_1.ko
+  probe: output/4.0.1+driver/aarch64/scap_debian_6.4.4-3~bpo12+1-cloud-arm64_1.o
+kernelurls: ["http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-6.4.0-0.deb12.2-common_6.4.4-3~bpo12+1_all.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-6.4.0-0.deb12.2-cloud-arm64_6.4.4-3~bpo12+1_arm64.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-kbuild-6.4.0-0.deb12.2_6.4.4-3~bpo12+1_arm64.deb"]

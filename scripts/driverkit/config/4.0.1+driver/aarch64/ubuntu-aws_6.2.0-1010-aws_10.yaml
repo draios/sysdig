@@ -1,0 +1,8 @@
+kernelversion: 10
+kernelrelease: 6.2.0-1010-aws
+target: ubuntu-aws
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-aws_6.2.0-1010-aws_10.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-aws_6.2.0-1010-aws_10.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-aws-headers-6.2.0-1010_6.2.0-1010.10_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-headers-6.2.0-1010-aws_6.2.0-1010.10_arm64.deb"]

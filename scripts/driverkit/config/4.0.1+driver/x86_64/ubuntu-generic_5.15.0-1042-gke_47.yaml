@@ -1,0 +1,8 @@
+kernelversion: 47
+kernelrelease: 5.15.0-1042-gke
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-generic_5.15.0-1042-gke_47.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-generic_5.15.0-1042-gke_47.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gke/linux-gke-headers-5.15.0-1042_5.15.0-1042.47_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gke/linux-headers-5.15.0-1042-gke_5.15.0-1042.47_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gke/linux-gke-headers-5.15.0-1042_5.15.0-1042.47_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gke/linux-headers-5.15.0-1042-gke_5.15.0-1042.47_amd64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 9~22.04.3
+kernelrelease: 6.2.0-1009-aws
+target: ubuntu-aws
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-aws_6.2.0-1009-aws_9~22.04.3.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-aws_6.2.0-1009-aws_9~22.04.3.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws-6.2/linux-headers-6.2.0-1009-aws_6.2.0-1009.9~22.04.3_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws-6.2/linux-aws-6.2-headers-6.2.0-1009_6.2.0-1009.9~22.04.3_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws-6.2/linux-aws-6.2-headers-6.2.0-1009_6.2.0-1009.9~22.04.3_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws-6.2/linux-headers-6.2.0-1009-aws_6.2.0-1009.9~22.04.3_amd64.deb"]

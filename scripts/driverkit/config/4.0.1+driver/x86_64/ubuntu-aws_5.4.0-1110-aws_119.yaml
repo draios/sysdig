@@ -1,0 +1,8 @@
+kernelversion: 119
+kernelrelease: 5.4.0-1110-aws
+target: ubuntu-aws
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-aws_5.4.0-1110-aws_119.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-aws_5.4.0-1110-aws_119.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-aws-headers-5.4.0-1110_5.4.0-1110.119_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-aws-headers-5.4.0-1110_5.4.0-1110.119_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-headers-5.4.0-1110-aws_5.4.0-1110.119_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-headers-5.4.0-1110-aws_5.4.0-1110.119_amd64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 34
+kernelrelease: 5.4.0-1030-xilinx
+target: ubuntu-xilinx
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-xilinx_5.4.0-1030-xilinx_34.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-xilinx_5.4.0-1030-xilinx_34.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-xilinx-zynqmp/linux-headers-5.4.0-1030-xilinx-zynqmp_5.4.0-1030.34_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-xilinx-zynqmp/linux-xilinx-zynqmp-headers-5.4.0-1030_5.4.0-1030.34_all.deb"]
