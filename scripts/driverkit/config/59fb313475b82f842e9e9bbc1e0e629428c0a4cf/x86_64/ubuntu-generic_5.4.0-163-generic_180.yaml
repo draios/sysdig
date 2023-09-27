@@ -1,0 +1,8 @@
+kernelversion: 180
+kernelrelease: 5.4.0-163-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-generic_5.4.0-163-generic_180.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-generic_5.4.0-163-generic_180.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.4.0-163-generic_5.4.0-163.180_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.4.0-163_5.4.0-163.180_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.4.0-163_5.4.0-163.180_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.4.0-163-lowlatency_5.4.0-163.180_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.4.0-163-generic_5.4.0-163.180_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.4.0-163-lowlatency_5.4.0-163.180_amd64.deb"]

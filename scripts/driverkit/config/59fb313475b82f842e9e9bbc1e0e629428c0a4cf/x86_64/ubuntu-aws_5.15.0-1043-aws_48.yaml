@@ -1,0 +1,8 @@
+kernelversion: 48
+kernelrelease: 5.15.0-1043-aws
+target: ubuntu-aws
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-aws_5.15.0-1043-aws_48.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-aws_5.15.0-1043-aws_48.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-aws-headers-5.15.0-1043_5.15.0-1043.48_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-aws-headers-5.15.0-1043_5.15.0-1043.48_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-headers-5.15.0-1043-aws_5.15.0-1043.48_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-headers-5.15.0-1043-aws_5.15.0-1043.48_amd64.deb"]

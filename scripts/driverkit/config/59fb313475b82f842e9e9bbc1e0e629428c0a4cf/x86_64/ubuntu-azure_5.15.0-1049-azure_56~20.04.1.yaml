@@ -1,0 +1,8 @@
+kernelversion: 56~20.04.1
+kernelrelease: 5.15.0-1049-azure
+target: ubuntu-azure
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-azure_5.15.0-1049-azure_56~20.04.1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-azure_5.15.0-1049-azure_56~20.04.1.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure-5.15/linux-azure-5.15-headers-5.15.0-1049_5.15.0-1049.56~20.04.1_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure-5.15/linux-headers-5.15.0-1049-azure_5.15.0-1049.56~20.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-5.15/linux-headers-5.15.0-1049-azure_5.15.0-1049.56~20.04.1_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-5.15/linux-azure-5.15-headers-5.15.0-1049_5.15.0-1049.56~20.04.1_all.deb"]

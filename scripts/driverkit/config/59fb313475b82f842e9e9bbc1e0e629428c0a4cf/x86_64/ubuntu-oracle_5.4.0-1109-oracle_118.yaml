@@ -1,0 +1,8 @@
+kernelversion: 118
+kernelrelease: 5.4.0-1109-oracle
+target: ubuntu-oracle
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-oracle_5.4.0-1109-oracle_118.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-oracle_5.4.0-1109-oracle_118.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle/linux-headers-5.4.0-1109-oracle_5.4.0-1109.118_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle/linux-oracle-headers-5.4.0-1109_5.4.0-1109.118_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle/linux-headers-5.4.0-1109-oracle_5.4.0-1109.118_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle/linux-oracle-headers-5.4.0-1109_5.4.0-1109.118_all.deb"]

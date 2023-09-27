@@ -1,0 +1,7 @@
+kernelversion: 2
+kernelrelease: 4.14.35-1902.306.2.7.el7uek.aarch64
+target: ol
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ol_4.14.35-1902.306.2.7.el7uek.aarch64_2.ko
+kernelurls: ["http://yum.oracle.com/repo/OracleLinux/OL7/latest/aarch64/getPackage/kernel-uek-devel-4.14.35-1902.306.2.7.el7uek.aarch64.rpm"]

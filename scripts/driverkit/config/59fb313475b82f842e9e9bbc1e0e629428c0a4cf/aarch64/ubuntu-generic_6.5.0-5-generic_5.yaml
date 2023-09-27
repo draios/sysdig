@@ -1,0 +1,8 @@
+kernelversion: 5
+kernelrelease: 6.5.0-5-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-generic_6.5.0-5-generic_5.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-generic_6.5.0-5-generic_5.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-6.5.0-5-generic-64k_6.5.0-5.5_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-6.5.0-5_6.5.0-5.5_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-6.5.0-5-generic_6.5.0-5.5_arm64.deb"]

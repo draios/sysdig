@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 5.14.0-364.el9.aarch64
+target: centos
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_centos_5.14.0-364.el9.aarch64_1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_centos_5.14.0-364.el9.aarch64_1.o
+kernelurls: ["http://mirror.stream.centos.org/9-stream/AppStream/aarch64/os/Packages/kernel-devel-5.14.0-364.el9.aarch64.rpm"]

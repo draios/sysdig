@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 5.14.0-284.30.1.el9_2.aarch64
+target: almalinux
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_almalinux_5.14.0-284.30.1.el9_2.aarch64_1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_almalinux_5.14.0-284.30.1.el9_2.aarch64_1.o
+kernelurls: ["http://repo.almalinux.org/almalinux/9.2/AppStream/aarch64/os/Packages/kernel-devel-5.14.0-284.30.1.el9_2.aarch64.rpm"]

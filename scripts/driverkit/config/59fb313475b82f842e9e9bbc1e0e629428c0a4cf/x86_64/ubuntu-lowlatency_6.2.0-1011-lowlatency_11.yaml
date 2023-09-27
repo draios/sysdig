@@ -1,0 +1,8 @@
+kernelversion: 11
+kernelrelease: 6.2.0-1011-lowlatency
+target: ubuntu-lowlatency
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-lowlatency_6.2.0-1011-lowlatency_11.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-lowlatency_6.2.0-1011-lowlatency_11.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-lowlatency/linux-lowlatency-headers-6.2.0-1011_6.2.0-1011.11_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lowlatency/linux-headers-6.2.0-1011-lowlatency_6.2.0-1011.11_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-lowlatency/linux-headers-6.2.0-1011-lowlatency_6.2.0-1011.11_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lowlatency/linux-lowlatency-headers-6.2.0-1011_6.2.0-1011.11_all.deb"]

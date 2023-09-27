@@ -1,0 +1,8 @@
+kernelversion: 121
+kernelrelease: 5.4.0-1112-gcp
+target: ubuntu-gcp
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-gcp_5.4.0-1112-gcp_121.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-gcp_5.4.0-1112-gcp_121.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp/linux-gcp-headers-5.4.0-1112_5.4.0-1112.121_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp/linux-headers-5.4.0-1112-gcp_5.4.0-1112.121_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp/linux-gcp-headers-5.4.0-1112_5.4.0-1112.121_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp/linux-headers-5.4.0-1112-gcp_5.4.0-1112.121_amd64.deb"]
