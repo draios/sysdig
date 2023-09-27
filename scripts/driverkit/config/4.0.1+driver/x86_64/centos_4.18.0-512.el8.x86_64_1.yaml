@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 4.18.0-512.el8.x86_64
+target: centos
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_centos_4.18.0-512.el8.x86_64_1.ko
+  probe: output/4.0.1+driver/x86_64/scap_centos_4.18.0-512.el8.x86_64_1.o
+kernelurls: ["http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages/kernel-devel-4.18.0-512.el8.x86_64.rpm"]

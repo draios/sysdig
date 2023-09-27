@@ -1,0 +1,8 @@
+kernelversion: 92
+kernelrelease: 5.15.0-83-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-generic_5.15.0-83-generic_92.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-generic_5.15.0-83-generic_92.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.15.0-83-generic_5.15.0-83.92_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.15.0-83_5.15.0-83.92_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.15.0-83_5.15.0-83.92_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.15.0-83-generic_5.15.0-83.92_amd64.deb"]

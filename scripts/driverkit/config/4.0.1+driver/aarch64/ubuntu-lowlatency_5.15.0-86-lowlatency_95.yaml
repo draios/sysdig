@@ -1,0 +1,8 @@
+kernelversion: 95
+kernelrelease: 5.15.0-86-lowlatency
+target: ubuntu-lowlatency
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-lowlatency_5.15.0-86-lowlatency_95.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-lowlatency_5.15.0-86-lowlatency_95.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-5.15.0-86-lowlatency-64k_5.15.0-86.95_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-lowlatency-headers-5.15.0-86_5.15.0-86.95_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-5.15.0-86-lowlatency_5.15.0-86.95_arm64.deb"]

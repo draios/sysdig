@@ -1,0 +1,8 @@
+kernelversion: 15~22.04.1
+kernelrelease: 6.2.0-1015-gcp
+target: ubuntu-gcp
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ubuntu-gcp_6.2.0-1015-gcp_15~22.04.1.ko
+  probe: output/4.0.1+driver/aarch64/scap_ubuntu-gcp_6.2.0-1015-gcp_15~22.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp-6.2/linux-gcp-6.2-headers-6.2.0-1015_6.2.0-1015.15~22.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp-6.2/linux-headers-6.2.0-1015-gcp_6.2.0-1015.15~22.04.1_arm64.deb"]

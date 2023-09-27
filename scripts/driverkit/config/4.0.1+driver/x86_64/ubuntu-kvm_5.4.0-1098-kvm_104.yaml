@@ -1,0 +1,8 @@
+kernelversion: 104
+kernelrelease: 5.4.0-1098-kvm
+target: ubuntu-kvm
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-kvm_5.4.0-1098-kvm_104.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-kvm_5.4.0-1098-kvm_104.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-headers-5.4.0-1098-kvm_5.4.0-1098.104_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-headers-5.4.0-1098-kvm_5.4.0-1098.104_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-5.4.0-1098_5.4.0-1098.104_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-5.4.0-1098_5.4.0-1098.104_all.deb"]

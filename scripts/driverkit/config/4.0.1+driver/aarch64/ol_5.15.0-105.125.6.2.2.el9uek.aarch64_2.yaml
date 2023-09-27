@@ -1,0 +1,8 @@
+kernelversion: 2
+kernelrelease: 5.15.0-105.125.6.2.2.el9uek.aarch64
+target: ol
+architecture: arm64
+output:
+  module: output/4.0.1+driver/aarch64/scap_ol_5.15.0-105.125.6.2.2.el9uek.aarch64_2.ko
+  probe: output/4.0.1+driver/aarch64/scap_ol_5.15.0-105.125.6.2.2.el9uek.aarch64_2.o
+kernelurls: ["http://yum.oracle.com/repo/OracleLinux/OL9/baseos/latest/aarch64/getPackage/kernel-uek-devel-5.15.0-105.125.6.2.2.el9uek.aarch64.rpm"]

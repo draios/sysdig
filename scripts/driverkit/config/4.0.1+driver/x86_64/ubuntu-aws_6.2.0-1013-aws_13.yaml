@@ -1,0 +1,8 @@
+kernelversion: 13
+kernelrelease: 6.2.0-1013-aws
+target: ubuntu-aws
+architecture: amd64
+output:
+  module: output/4.0.1+driver/x86_64/scap_ubuntu-aws_6.2.0-1013-aws_13.ko
+  probe: output/4.0.1+driver/x86_64/scap_ubuntu-aws_6.2.0-1013-aws_13.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-headers-6.2.0-1013-aws_6.2.0-1013.13_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-aws-headers-6.2.0-1013_6.2.0-1013.13_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-headers-6.2.0-1013-aws_6.2.0-1013.13_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-aws-headers-6.2.0-1013_6.2.0-1013.13_all.deb"]
