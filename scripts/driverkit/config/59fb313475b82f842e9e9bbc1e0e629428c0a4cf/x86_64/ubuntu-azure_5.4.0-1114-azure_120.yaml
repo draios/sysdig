@@ -1,0 +1,8 @@
+kernelversion: 120
+kernelrelease: 5.4.0-1114-azure
+target: ubuntu-azure
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-azure_5.4.0-1114-azure_120.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-azure_5.4.0-1114-azure_120.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure/linux-headers-5.4.0-1114-azure_5.4.0-1114.120_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-headers-5.4.0-1114-azure_5.4.0-1114.120_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure/linux-azure-headers-5.4.0-1114_5.4.0-1114.120_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-azure-headers-5.4.0-1114_5.4.0-1114.120_all.deb"]

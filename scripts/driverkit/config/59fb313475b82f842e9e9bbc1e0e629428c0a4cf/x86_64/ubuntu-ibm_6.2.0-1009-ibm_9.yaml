@@ -1,0 +1,8 @@
+kernelversion: 9
+kernelrelease: 6.2.0-1009-ibm
+target: ubuntu-ibm
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-ibm_6.2.0-1009-ibm_9.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-ibm_6.2.0-1009-ibm_9.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm/linux-ibm-headers-6.2.0-1009_6.2.0-1009.9_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-headers-6.2.0-1009-ibm_6.2.0-1009.9_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-ibm-headers-6.2.0-1009_6.2.0-1009.9_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm/linux-headers-6.2.0-1009-ibm_6.2.0-1009.9_amd64.deb"]

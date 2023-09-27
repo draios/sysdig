@@ -1,0 +1,8 @@
+kernelversion: 33~22.04.1
+kernelrelease: 6.2.0-33-hwe
+target: ubuntu-hwe
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-hwe_6.2.0-33-hwe_33~22.04.1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-hwe_6.2.0-33-hwe_33~22.04.1.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-6.2/linux-headers-6.2.0-33-generic_6.2.0-33.33~22.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-6.2/linux-hwe-6.2-headers-6.2.0-33_6.2.0-33.33~22.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-6.2/linux-hwe-6.2-headers-6.2.0-33_6.2.0-33.33~22.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-6.2/linux-headers-6.2.0-33-generic_6.2.0-33.33~22.04.1_amd64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 45
+kernelrelease: 5.15.0-1039-intel
+target: ubuntu-intel
+architecture: amd64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-intel_5.15.0-1039-intel_45.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/x86_64/scap_ubuntu-intel_5.15.0-1039-intel_45.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-intel-iotg/linux-headers-5.15.0-1039-intel-iotg_5.15.0-1039.45_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-intel-iotg/linux-intel-iotg-headers-5.15.0-1039_5.15.0-1039.45_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-intel-iotg/linux-headers-5.15.0-1039-intel-iotg_5.15.0-1039.45_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-intel-iotg/linux-intel-iotg-headers-5.15.0-1039_5.15.0-1039.45_all.deb"]

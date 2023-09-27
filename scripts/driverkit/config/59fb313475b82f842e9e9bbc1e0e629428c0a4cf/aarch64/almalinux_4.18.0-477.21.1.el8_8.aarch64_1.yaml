@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 4.18.0-477.21.1.el8_8.aarch64
+target: almalinux
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_almalinux_4.18.0-477.21.1.el8_8.aarch64_1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_almalinux_4.18.0-477.21.1.el8_8.aarch64_1.o
+kernelurls: ["http://repo.almalinux.org/almalinux/8/BaseOS/aarch64/os/Packages/kernel-devel-4.18.0-477.21.1.el8_8.aarch64.rpm"]

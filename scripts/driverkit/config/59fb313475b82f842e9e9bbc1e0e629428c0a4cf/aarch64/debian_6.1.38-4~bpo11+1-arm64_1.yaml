@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 6.1.38-4~bpo11+1-arm64
+target: debian
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_debian_6.1.38-4~bpo11+1-arm64_1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_debian_6.1.38-4~bpo11+1-arm64_1.o
+kernelurls: ["http://security.debian.org/pool/updates/main/l/linux/linux-kbuild-6.1_6.1.52-1_arm64.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-6.1.0-0.deb11.11-common_6.1.38-4~bpo11+1_all.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-6.1.0-0.deb11.11-arm64_6.1.38-4~bpo11+1_arm64.deb"]

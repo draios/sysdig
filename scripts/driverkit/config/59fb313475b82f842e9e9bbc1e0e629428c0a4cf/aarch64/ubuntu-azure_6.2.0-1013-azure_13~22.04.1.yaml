@@ -1,0 +1,8 @@
+kernelversion: 13~22.04.1
+kernelrelease: 6.2.0-1013-azure
+target: ubuntu-azure
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-azure_6.2.0-1013-azure_13~22.04.1.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-azure_6.2.0-1013-azure_13~22.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure-6.2/linux-headers-6.2.0-1013-azure_6.2.0-1013.13~22.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure-6.2/linux-azure-6.2-headers-6.2.0-1013_6.2.0-1013.13~22.04.1_all.deb"]

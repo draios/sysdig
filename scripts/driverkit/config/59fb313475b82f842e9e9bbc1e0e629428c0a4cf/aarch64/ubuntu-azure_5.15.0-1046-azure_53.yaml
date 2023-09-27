@@ -1,0 +1,8 @@
+kernelversion: 53
+kernelrelease: 5.15.0-1046-azure
+target: ubuntu-azure
+architecture: arm64
+output:
+  module: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-azure_5.15.0-1046-azure_53.ko
+  probe: output/59fb313475b82f842e9e9bbc1e0e629428c0a4cf/aarch64/scap_ubuntu-azure_5.15.0-1046-azure_53.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-azure-headers-5.15.0-1046_5.15.0-1046.53_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-headers-5.15.0-1046-azure_5.15.0-1046.53_arm64.deb"]
