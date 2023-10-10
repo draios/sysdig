@@ -67,7 +67,7 @@ void print_supported_fields(sinsp* inspector, plugin_utils& plugins, const std::
         if (src == s_syscall_source)
         {
             std::vector<const filter_check_info*> all_checks;
-            sinsp::get_filtercheck_fields_info(all_checks);
+            sinsp_filter_check_list().get_all_fields(all_checks);
             for (const auto& check : all_checks)
             {   
                 // todo: we need to polish this logic in libsinsp, it's not ok to

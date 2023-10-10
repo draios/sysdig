@@ -47,6 +47,12 @@ using namespace std;
 
 extern bool g_filterchecks_force_raw_times;
 
+// todo(jasondellaluce): this list is static and prevents from using
+// plugin-defined extraction fields. The right way would be to have a filtercheck
+// list owned by each component and populate depending on the loaded plugins.
+// this is not something that we plan on supporting for now.
+static sinsp_filter_check_list s_filterlist;
+
 ///////////////////////////////////////////////////////////////////////////////
 // spy_text_renderer implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -73,12 +79,14 @@ spy_text_renderer::spy_text_renderer(sinsp* inspector,
 			if(print_containers)
 			{
 				m_formatter = new sinsp_evt_formatter(m_inspector,
-					"*(latency=%evt.latency.human) (fd=%fd.name) %evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
+					"*(latency=%evt.latency.human) (fd=%fd.name) %evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info",
+					s_filterlist);
 			}
 			else
 			{
 				m_formatter = new sinsp_evt_formatter(m_inspector,
-					"*(latency=%evt.latency.human) (fd=%fd.name) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info");
+					"*(latency=%evt.latency.human) (fd=%fd.name) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info",
+					s_filterlist);
 			}
 		}
 		else if(sotype == spy_text_renderer::OT_LATENCY_APP)
@@ -86,12 +94,14 @@ spy_text_renderer::spy_text_renderer(sinsp* inspector,
 			if(print_containers)
 			{
 				m_formatter = new sinsp_evt_formatter(m_inspector,
-					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
+					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info",
+					s_filterlist);
 			}
 			else
 			{
 				m_formatter = new sinsp_evt_formatter(m_inspector,
-					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info");
+					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info",
+					s_filterlist);
 			}
 		}
 		else
@@ -99,11 +109,12 @@ spy_text_renderer::spy_text_renderer(sinsp* inspector,
 			if(print_containers)
 			{
 				m_formatter = new sinsp_evt_formatter(m_inspector,
-					"*%evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info");
+					"*%evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info",
+					s_filterlist);
 			}
 			else
 			{
-				m_formatter = new sinsp_evt_formatter(m_inspector, DEFAULT_OUTPUT_STR);
+				m_formatter = new sinsp_evt_formatter(m_inspector, DEFAULT_OUTPUT_STR, s_filterlist);
 			}
 		}
 	}
