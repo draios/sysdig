@@ -213,7 +213,7 @@ jobs:
           PRIVATE_KEY: ${{ secrets.SYSDIG_REPO_SIGNING_KEY }}
         run: printenv PRIVATE_KEY | gpg --import -
       - name: Sign RPMs 
-        run: rpm --define "_gpg_name ${{ env.KEY_ID }}" --addsign *.rpm
+        run: rpm --define "_gpg_name ${{ env.KEY_ID }}" --define "_binary_filedigest_algorithm 8" --addsign *.rpm
       - name: Check signature
         run: test "$(rpm -qpi *.rpm | awk '/Signature/' | grep -i none | wc -l)" -eq 0
       - name: Upload Signed RPMs
