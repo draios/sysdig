@@ -200,10 +200,10 @@ jobs:
       BUILD_VERSION: ${{ github.ref_name }}
       KEY_ID: EC51E8C4
     container:
-      image: centos:7 # ubi8 does not have rpmsign so we'll use CentOS
+      image: fedora:39
     steps:
       - name: Install deps
-        run: yum install -y rpm-sign
+        run: dnf install -y rpm-sign pinentry
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
