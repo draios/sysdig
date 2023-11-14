@@ -36,8 +36,8 @@ limitations under the License.
 #include "ctext.h"
 #include "cursesui.h"
 
-extern int32_t g_screen_w;
-extern bool g_filterchecks_force_raw_times;
+int32_t g_screen_w;
+bool g_filterchecks_force_raw_times;
 
 using namespace std;
 
