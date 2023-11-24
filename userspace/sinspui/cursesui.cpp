@@ -275,11 +275,6 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	m_json_spy_renderer = NULL;
 	m_json_spy_text_fmt = json_spy_text_fmt;
 
-	if(output_type == chisel_table::OT_JSON)
-	{
-		g_filterchecks_force_raw_times = true;
-	}
-
 #ifndef NOCURSESUI
 	m_viz = NULL;
 	m_spectro = NULL;
@@ -677,9 +672,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 			if(wi != NULL && wi->m_type == chisel_view_info::T_SPECTRO)
 			{
 				ASSERT(ty == chisel_table::TT_TABLE);
-				m_spectro = new curses_spectro(this, 
-					m_inspector, 
-					m_views.at(m_selected_view)->m_id == "spectro_traces");
+				m_spectro = new curses_spectro(this, m_inspector);
 				m_viz = NULL;
 				m_chart = m_spectro;
 			}
@@ -1874,10 +1867,7 @@ bool sinsp_cursesui::do_drilldown(string field, string val,
 
 	if(m_views.at(m_selected_view)->m_drilldown_increase_depth)
 	{
-		if(m_views.at(new_view_num)->m_id != "spectro_tracers")
-		{
-			m_view_depth++;
-		}
+		m_view_depth++;
 	}
 
 	string vfilter;
@@ -1996,20 +1986,13 @@ bool sinsp_cursesui::spectro_selection(string field, string val,
 	uint32_t j = 0;
 	string spectro_name;
 
- 	if(m_views.at(m_selected_view)->m_spectro_type == "tracers")
- 	{
-		spectro_name = "spectro_traces";
- 	}
- 	else
- 	{
-		if(ta == STA_SPECTRO)
-		{
-			spectro_name = "spectro_all";
-		}
-		else
-		{
-			spectro_name = "spectro_file";
-		}
+	if(ta == STA_SPECTRO)
+	{
+		spectro_name = "spectro_all";
+	}
+	else
+	{
+		spectro_name = "spectro_file";
 	}
 
 	for(j = 0; j < m_views.size(); ++j)
@@ -2042,12 +2025,6 @@ bool sinsp_cursesui::drillup()
 		sinsp_ui_selection_info* psinfo = NULL;
 
 		sinsp_ui_selection_info* sinfo = m_sel_hierarchy.at(m_sel_hierarchy.size() - 1);
-		bool is_spctro_app = false;
-
-		if(m_selected_view > 0 && m_views.at(m_selected_view)->m_id == "spectro_tracers")
-		{
-			is_spctro_app = true;
-		}
 
 		m_manual_filter = "";
 
@@ -2062,8 +2039,7 @@ bool sinsp_cursesui::drillup()
 		m_selected_view = sinfo->m_prev_selected_view;
 		m_selected_view_sidemenu_entry = sinfo->m_prev_selected_sidemenu_entry;
 
-		if(m_views.at(m_selected_view)->m_drilldown_increase_depth &&
-			!is_spctro_app)
+		if(m_views.at(m_selected_view)->m_drilldown_increase_depth)
 		{
 			if(sinfo != NULL && sinfo->m_is_drilldown)
 			{

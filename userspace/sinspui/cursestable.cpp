@@ -280,43 +280,26 @@ glogf("2, %d %s\n", spos, ss.c_str());
 void curses_table::print_wait()
 {
 	string wstr;
-	bool is_tracer_view = false;
 
 	chisel_view_info* vinfo = m_parent->get_selected_view();
-	if(vinfo)
-	{
-		if(vinfo->m_id == "tracers" ||
-			vinfo->m_id == "tracer_ids")
-		{
-			is_tracer_view = true;
-		}
-	}
-	else
+	if(!vinfo)
 	{
 		ASSERT(false);
 	}
 
-	if(is_tracer_view)
+	if(m_inspector->is_live())
 	{
-		print_line_centered("No data for this view.");
-		print_line_centered("Note: in order to see any data here, you need to push tracers to sysdig from your app as described here: XXX.", 2);
+		wstr = "Collecting Data";
 	}
 	else
 	{
-		if(m_inspector->is_live())
+		if(m_parent->is_eof())
 		{
-			wstr = "Collecting Data";
+			wstr = "No Data For This View";
 		}
-		else
-		{
-			if(m_parent->is_eof())
-			{
-				wstr = "No Data For This View";
-			}
-		}
-	
-		print_line_centered(wstr);
 	}
+	
+	print_line_centered(wstr);
 }
 
 void curses_table::print_error(string wstr)

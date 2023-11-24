@@ -151,15 +151,15 @@ static void usage()
 " -h, --help         Print this page\n"
 #ifndef MINIMAL_BUILD
 " -k <url>, --k8s-api=<url>\n"
-"                    Enable Kubernetes support by connecting to the API server\n"
+"                    [DEPRECATED] Enable Kubernetes support by connecting to the API server\n"
 "                    specified as argument. E.g. \"http://admin:password@127.0.0.1:8080\".\n"
 "                    The API server can also be specified via the environment variable\n"
 "                    SYSDIG_K8S_API.\n"
 " --node-name=<url>\n"
-"                    The node name is used as a filter when requesting metadata of pods\n"
+"                    [DEPRECATED] The node name is used as a filter when requesting metadata of pods\n"
 "                    to the API server; if empty, no filter is set\n"
 " -K <bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>], --k8s-api-cert=<bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>]\n"
-"                    Use the provided files names to authenticate user and (optionally) verify the K8S API\n"
+"                    [DEPRECATED] Use the provided files names to authenticate user and (optionally) verify the K8S API\n"
 "                    server identity.\n"
 "                    Each entry must specify full (absolute, or relative to the current directory) path\n"
 "                    to the respective file.\n"
@@ -198,7 +198,7 @@ static void usage()
 "                    By default, the first 80 bytes are captured. Use this\n"
 "                    option with caution, it can generate huge trace files.\n"
 " -T, --force-tracers-capture\n"
-"                    Tell the driver to make sure full buffers are captured from\n"
+"                    [DEPRECATED] Tell the driver to make sure full buffers are captured from\n"
 "                    /dev/null, to make sure that tracers are completely\n"
 "                    captured. Note that sysdig will enable extended /dev/null\n"
 "                    capture by itself after detecting that tracers are written\n"
@@ -382,13 +382,11 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	chisel_table::output_type output_type = chisel_table::OT_JSON;
 #endif
 #ifndef MINIMAL_BUILD
-	std::string* k8s_api = 0;
-	std::string* node_name = 0;
-	std::string* k8s_api_cert = 0;
-	std::string* mesos_api = 0;
+	bool k8s = false;
+	bool mesos = false;
 #endif // MINIMAL_BUILD
+	bool tracers = false;
 	bool terminal_with_mouse = false;
-	bool force_tracers_capture = false;
 	bool force_term_compat = false;
 	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
 	plugin_utils plugins;
@@ -410,11 +408,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"exclude-users", no_argument, 0, 'E' },
 		{"from", required_argument, 0, 0 },
 		{"help", no_argument, 0, 'h' },
-#ifndef MINIMAL_BUILD
-		{"k8s-api", required_argument, 0, 'k'},
-		{"node-name", required_argument, 0, 'N'},
-		{"k8s-api-cert", required_argument, 0, 'K' },
-#endif // MINIMAL_BUILD
 		{"json", no_argument, 0, 'j' },
 		{"interactive", optional_argument, 0, 0 },
 		{"large-environment", no_argument, 0, 0 },
@@ -515,13 +508,16 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				return sysdig_init_res(EXIT_SUCCESS);
 #ifndef MINIMAL_BUILD
 			case 'k':
-				k8s_api = new std::string(optarg);
+				//TODO(therealbobo): remove this on 0.36.0
+				k8s = true;
 				break;
 			case 'N':
-				node_name = new std::string(optarg);
+				//TODO(therealbobo): remove this on 0.36.0
+				k8s = true;
 				break;
 			case 'K':
-				k8s_api_cert = new std::string(optarg);
+				//TODO(therealbobo): remove this on 0.36.0
+				k8s = true;
 				break;
 #endif // MINIMAL_BUILD
 			case 'j':
@@ -532,7 +528,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 #ifndef MINIMAL_BUILD
 			case 'm':
-				mesos_api = new std::string(optarg);
+				//TODO(therealbobo): remove this on 0.36.0
+				mesos = true;
 				break;
 #endif // MINIMAL_BUILD
 			case 'n':
@@ -565,16 +562,13 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 			case 'r':
 				infiles.push_back(optarg);
-#ifndef MINIMAL_BUILD
-				k8s_api = new std::string();
-				mesos_api = new std::string();
-#endif // MINIMAL_BUILD
 				break;
 			case 's':
 				snaplen = atoi(optarg);
 				break;
 			case 'T':
-				force_tracers_capture = true;
+				//TODO(therealbobo): remove this on 0.36.0
+				tracers = true;
 				break;
 			case 'v':
 				display_view = optarg;
@@ -927,72 +921,35 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				inspector->set_snaplen(snaplen);
 			}
 
-			//
-			// If required, tell the driver to enable tracers capture
-			//
-			if(force_tracers_capture)
-			{
-				inspector->enable_tracers_capture();
-			}
-
 #ifndef MINIMAL_BUILD
 			//
 			// run k8s, if required
 			//
-			if(k8s_api)
+			if (k8s || getenv("SYSDIG_K8S_API") != NULL ||
+				getenv("SYSDIG_K8S_API_CERT") != NULL)
 			{
-				if(!k8s_api_cert)
-				{
-					if(char* k8s_cert_env = getenv("SYSDIG_K8S_API_CERT"))
-					{
-						k8s_api_cert = new std::string(k8s_cert_env);
-					}
-				}
-				inspector->init_k8s_client(k8s_api, k8s_api_cert, node_name);
-				k8s_api = 0;
-				k8s_api_cert = 0;
-			}
-			else if(char* k8s_api_env = getenv("SYSDIG_K8S_API"))
-			{
-				if(k8s_api_env != NULL)
-				{
-					if(!k8s_api_cert)
-					{
-						if(char* k8s_cert_env = getenv("SYSDIG_K8S_API_CERT"))
-						{
-							k8s_api_cert = new std::string(k8s_cert_env);
-						}
-					}
-					k8s_api = new std::string(k8s_api_env);
-					inspector->init_k8s_client(k8s_api, k8s_api_cert, node_name);
-				}
-				else
-				{
-					delete k8s_api;
-					delete k8s_api_cert;
-				}
-				k8s_api = 0;
-				k8s_api_cert = 0;
+				throw sinsp_exception(std::string("the k8s client is deprecated!"));
+				res.m_res = EXIT_FAILURE;
+				goto exit;
 			}
 
 			//
 			// run mesos, if required
 			//
-			if(mesos_api)
+			if(mesos ||  getenv("SYSDIG_MESOS_API") != NULL)
 			{
-				inspector->init_mesos_client(mesos_api);
+				throw sinsp_exception(std::string("the mesos client is deprecated!"));
+				res.m_res = EXIT_FAILURE;
+				goto exit;
 			}
-			else if(char* mesos_api_env = getenv("SYSDIG_MESOS_API"))
-			{
-				if(mesos_api_env != NULL)
-				{
-					mesos_api = new std::string(mesos_api_env);
-					inspector->init_mesos_client(mesos_api);
-				}
-			}
-			delete mesos_api;
-			mesos_api = 0;
 #endif // MINIMAL_BUILD
+
+			if(tracers)
+			{
+				throw sinsp_exception(std::string("tracers are deprecated!"));
+				res.m_res = EXIT_FAILURE;
+				goto exit;
+			}
 
 			if(output_type == chisel_table::OT_JSON)
 			{

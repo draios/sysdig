@@ -67,7 +67,6 @@ spy_text_renderer::spy_text_renderer(sinsp* inspector,
 	m_inspector = inspector;
 	m_viz_type = viz_type;
 	m_linecnt = 0;
-	g_filterchecks_force_raw_times = false;
 
 	//
 	// visualization-type inits
@@ -86,21 +85,6 @@ spy_text_renderer::spy_text_renderer(sinsp* inspector,
 			{
 				m_formatter = new sinsp_evt_formatter(m_inspector,
 					"*(latency=%evt.latency.human) (fd=%fd.name) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info",
-					s_filterlist);
-			}
-		}
-		else if(sotype == spy_text_renderer::OT_LATENCY_APP)
-		{
-			if(print_containers)
-			{
-				m_formatter = new sinsp_evt_formatter(m_inspector,
-					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info",
-					s_filterlist);
-			}
-			else
-			{
-				m_formatter = new sinsp_evt_formatter(m_inspector,
-					"*(latency=%tracer.latency.human) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info",
 					s_filterlist);
 			}
 		}
