@@ -242,15 +242,15 @@ static void usage()
 "                    print format selected.\n"
 #ifndef MINIMAL_BUILD
 " -k <url>, --k8s-api=<url>\n"
-"                    Enable Kubernetes support by connecting to the API server\n"
+"                    [DEPRECATED] Enable Kubernetes support by connecting to the API server\n"
 "                    specified as argument. E.g. \"http://admin:password@127.0.0.1:8080\".\n"
 "                    The API server can also be specified via the environment variable\n"
 "                    SYSDIG_K8S_API.\n"
 " --node-name=<url>\n"
-"                    The node name is used as a filter when requesting metadata of pods\n"
+"                    [DEPRECATED] The node name is used as a filter when requesting metadata of pods\n"
 "                    to the API server; if empty, no filter is set\n"
 " -K <bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>], --k8s-api-cert=<bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>]\n"
-"                    Use the provided files names to authenticate user and (optionally) verify the K8S API\n"
+"                    [DEPRECATED] Use the provided files names to authenticate user and (optionally) verify the K8S API\n"
 "                    server identity.\n"
 "                    Each entry must specify full (absolute, or relative to the current directory) path\n"
 "                    to the respective file.\n"
@@ -277,7 +277,7 @@ static void usage()
 "                    Select log level. Useful together with --debug.\n"
 " --list-markdown    like -l, but produces markdown output\n"
 " -m <url[,marathon_url]>, --mesos-api=<url[,marathon_url]>\n"
-"                    Enable Mesos support by connecting to the API server\n"
+"                    [DEPRECATED] Enable Mesos support by connecting to the API server\n"
 "                    specified as argument. E.g. \"http://admin:password@127.0.0.1:5050\".\n"
 "                    Marathon url is optional and defaults to Mesos address, port 8080.\n"
 "                    The API servers can also be specified via the environment variable\n"
@@ -299,8 +299,8 @@ static void usage()
 " -p <output_format>, --print=<output_format>\n"
 "                    Specify the format to be used when printing the events.\n"
 "                    With -pc or -pcontainer will use a container-friendly format.\n"
-"                    With -pk or -pkubernetes will use a kubernetes-friendly format.\n"
-"                    With -pm or -pmesos will use a mesos-friendly format.\n"
+"                    [DEPRECATED] With -pk or -pkubernetes will use a kubernetes-friendly format.\n"
+"                    [DEPRECATED] With -pm or -pmesos will use a mesos-friendly format.\n"
 "                    See the examples section below for more info.\n"
 " --plugin-info <pluginname>\n"
 "                    Print info for a single plugin. This includes name, author,\n"
@@ -330,7 +330,7 @@ static void usage()
 "                    capture, d for delta between event enter and exit, and\n"
 "                    D for delta from the previous event.\n"
 " -T, --force-tracers-capture\n"
-"                    Tell the driver to make sure full buffers are captured from\n"
+"                    [DEPRECATED] Tell the driver to make sure full buffers are captured from\n"
 "                    /dev/null, to make sure that tracers are completely\n"
 "                    captured. Note that sysdig will enable extended /dev/null\n"
 "                    capture by itself after detecting that tracers are written\n"
@@ -385,9 +385,9 @@ static void usage()
 "fields listed by 'sysdig -l'.\n\n"
 "Using -pc or -pcontainer, the default format will be changed to a container-friendly one:\n\n"
 "%%evt.num %%evt.outputtime %%evt.cpu %%container.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
-"Using -pk or -pkubernetes, the default format will be changed to a kubernetes-friendly one:\n\n"
+"[DEPRECATED] Using -pk or -pkubernetes, the default format will be changed to a kubernetes-friendly one:\n\n"
 "%%evt.num %%evt.outputtime %%evt.cpu %%k8s.pod.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
-"Using -pm or -pmesos, the default format will be changed to a mesos-friendly one:\n\n"
+"[DEPRECATED] Using -pm or -pmesos, the default format will be changed to a mesos-friendly one:\n\n"
 "%%evt.num %%evt.outputtime %%evt.cpu %%mesos.task.name (%%container.id) %%proc.name (%%thread.tid:%%thread.vtid) %%evt.dir %%evt.type %%evt.info\n\n"
 "Examples:\n\n"
 " Capture all the events from the live system and print them to screen\n"
@@ -1011,12 +1011,10 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	std::string cname;
 	std::vector<summary_table_entry> summary_table;
 #ifndef MINIMAL_BUILD
-	std::string* k8s_api = 0;
-	std::string* node_name = 0;
-	std::string* k8s_api_cert = 0;
-	std::string* mesos_api = 0;
+	bool k8s = false;
+	bool mesos = false;
 #endif // MINIMAL_BUILD
-	bool force_tracers_capture = false;
+	bool tracers = false;
 	std::set<std::string> suppress_comms;
 #ifdef HAS_CAPTURE
 	std::string cri_socket_path;
@@ -1067,20 +1065,12 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #endif
 		{"file-size", required_argument, 0, 'C' },
 		{"json", no_argument, 0, 'j' },
-#ifndef MINIMAL_BUILD
-		{"k8s-api", required_argument, 0, 'k'},
-		{"node-name", required_argument, 0, 'N'},
-		{"k8s-api-cert", required_argument, 0, 'K' },
-#endif // MINIMAL_BUILD
 		{"large-environment", no_argument, 0, 0 },
 		{"list", optional_argument, 0, 'l' },
 		{"list-events", no_argument, 0, 'L' },
 		{"list-markdown", optional_argument, 0, 0 },
 		{"libs-version", no_argument, 0, 0},
 		{"log-level", required_argument, 0, 0 },
-#ifndef MINIMAL_BUILD
-		{"mesos-api", required_argument, 0, 'm'},
-#endif // MINIMAL_BUILD
 #ifdef HAS_MODERN_BPF
 		{"modern-bpf", no_argument, 0, 0 },
 #endif
@@ -1317,13 +1307,16 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 #ifndef MINIMAL_BUILD
 			case 'k':
-				k8s_api = new std::string(optarg);
+				//TODO(therealbobo): remove this on 0.36.0
+				k8s = true;
 				break;
 			case 'N':
-				node_name = new std::string(optarg);
+				//TODO(therealbobo): remove this on 0.36.0
+				k8s = true;
 				break;
 			case 'K':
-				k8s_api_cert = new std::string(optarg);
+				//TODO(therealbobo): remove this on 0.36.0
+				k8s = true;
 				break;
 #endif // MINIMAL_BUILD
 			case 'h':
@@ -1342,7 +1335,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				return sysdig_init_res(EXIT_SUCCESS);
 #ifndef MINIMAL_BUILD
 			case 'm':
-				mesos_api = new std::string(optarg);
+				mesos = true;
 				break;
 #endif // MINIMAL_BUILD
 			case 'M':
@@ -1426,10 +1419,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				break;
 			case 'r':
 				infiles.emplace_back(optarg);
-#ifndef MINIMAL_BUILD
-				k8s_api = new std::string();
-				mesos_api = new std::string();
-#endif // MINIMAL_BUILD
 				break;
 			case 'S':
 				for(uint32_t j = 0; j < PPM_EVENT_MAX; j++)
@@ -1462,12 +1451,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				}
 				break;
 			case 'T':
-				force_tracers_capture = true;
+				//TODO(therealbobo): remove this on 0.36.0
+				tracers = true;
 				break;
 			case 'U':
 				suppress_comms.insert(std::string(optarg));
 				break;
 			case 'u':
+				//TODO(therealbobo): remove this on 0.36.0
 				opener.udig.enabled = true;
 				break;
 			case 'v':
@@ -1886,9 +1877,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			{
 				if (!inspector->suppress_events_comm(comm))
 				{
-					fprintf(stderr, "Could not add %s to the set of suppressed comms--did you specify more than %d values?\n",
-						comm.c_str(),
-						SCAP_MAX_SUPPRESSED_COMMS);
+					fprintf(stderr, "Could not add %s to the set of suppressed comms.\n",
+						comm.c_str());
 					res.m_res = EXIT_FAILURE;
 					goto exit;
 				}
@@ -1923,14 +1913,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				inspector->set_snaplen(snaplen);
 			}
 
-			//
-			// If required, tell the driver to enable tracers capture
-			//
-			if(force_tracers_capture)
-			{
-				inspector->enable_tracers_capture();
-			}
-
 			duration = ((double)clock()) / CLOCKS_PER_SEC;
 
 			if(outfile != "")
@@ -1948,60 +1930,38 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			//
 			// run k8s, if required
 			//
-			if(k8s_api)
+			if (k8s || getenv("SYSDIG_K8S_API") != NULL ||
+				getenv("SYSDIG_K8S_API_CERT") != NULL)
 			{
-				if(!k8s_api_cert)
-				{
-					if(char* k8s_cert_env = getenv("SYSDIG_K8S_API_CERT"))
-					{
-						k8s_api_cert = new std::string(k8s_cert_env);
-					}
-				}
-				inspector->init_k8s_client(k8s_api, k8s_api_cert, node_name, verbose);
-				k8s_api = 0;
-				k8s_api_cert = 0;
-			}
-			else if(char* k8s_api_env = getenv("SYSDIG_K8S_API"))
-			{
-				if(k8s_api_env != NULL)
-				{
-					if(!k8s_api_cert)
-					{
-						if(char* k8s_cert_env = getenv("SYSDIG_K8S_API_CERT"))
-						{
-							k8s_api_cert = new std::string(k8s_cert_env);
-						}
-					}
-					k8s_api = new std::string(k8s_api_env);
-					inspector->init_k8s_client(k8s_api, k8s_api_cert, node_name, verbose);
-				}
-				else
-				{
-					delete k8s_api;
-					delete k8s_api_cert;
-				}
-				k8s_api = 0;
-				k8s_api_cert = 0;
+				throw sinsp_exception(std::string("the k8s client is deprecated!"));
+				res.m_res = EXIT_FAILURE;
+				goto exit;
 			}
 
 			//
 			// run mesos, if required
 			//
-			if(mesos_api)
+			if(mesos ||  getenv("SYSDIG_MESOS_API") != NULL)
 			{
-				inspector->init_mesos_client(mesos_api, verbose);
+				throw sinsp_exception(std::string("the mesos client is deprecated!"));
+				res.m_res = EXIT_FAILURE;
+				goto exit;
 			}
-			else if(char* mesos_api_env = getenv("SYSDIG_MESOS_API"))
-			{
-				if(mesos_api_env != NULL)
-				{
-					mesos_api = new std::string(mesos_api_env);
-					inspector->init_mesos_client(mesos_api, verbose);
-				}
-			}
-			delete mesos_api;
-			mesos_api = 0;
 #endif
+			if(opener.udig.enabled)
+			{
+				throw sinsp_exception(std::string("the udig engine is deprecated!"));
+				res.m_res = EXIT_FAILURE;
+				goto exit;
+			}
+
+			if(tracers)
+			{
+				throw sinsp_exception(std::string("tracers are deprecated!"));
+				res.m_res = EXIT_FAILURE;
+				goto exit;
+			}
+
 #ifndef _WIN32
 			// Sysdig does not accept user input during the inspect loop
 			// If the user stops the program with Ctrl-C disabling input would prevent the echoed ^C

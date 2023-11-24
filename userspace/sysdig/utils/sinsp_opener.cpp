@@ -58,12 +58,6 @@ void sinsp_opener::open(sinsp* inspector) const
         sc_of_interest.remove(ppm_sc_code::PPM_SC_PAGE_FAULT_KERNEL);
     }
 
-    if(udig.enabled)
-    {
-        inspector->open_udig();
-        return;
-    }
-
     if(gvisor.enabled)
     {
         inspector->open_gvisor(gvisor.config, gvisor.root);
