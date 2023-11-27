@@ -22,6 +22,7 @@ endif() # NOT WIN32
 
 include(libscap)
 include(libsinsp)
+include(zlib)
 
 include_directories("${LIBSINSP_INCLUDE_DIRS}")
 include_directories("${PROJECT_BINARY_DIR}/userspace/sinspui")
