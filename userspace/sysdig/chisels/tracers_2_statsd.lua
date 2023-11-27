@@ -57,6 +57,10 @@ end
 
 -- Initialization callback
 function on_init()
+	print("This chisel uses tracers and is deprecated")
+	require ("os")
+	os.exit()
+
 	-- Initialize statsd
 	statsd = lstatsd({host = "127.0.0.1"})
 

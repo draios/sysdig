@@ -91,6 +91,10 @@ end
 
 -- Initialization callback
 function on_init()
+	print("This chisel uses tracers and is deprecated.")
+	require ("os")
+	os.exit()
+
 	-- Request the fields needed for this chisel
 	for j = 0, MAX_DEPTH do
 		local fname = "span.tag[" .. j .. "]"
