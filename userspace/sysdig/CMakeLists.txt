@@ -122,6 +122,8 @@ if(NOT WIN32)
 else()
 	include(luajit)
 
+	add_definitions(-DNOCURSESUI)
+
 	target_link_libraries(sysdig
 		sinsp
 		"${YAMLCPP_LIB}")
