@@ -52,3 +52,9 @@ view_info =
 		}
 	}
 }
+
+function on_init()
+	print("This chisel uses tracers and is deprecated.")
+	require ("os")
+	os.exit()
+end
