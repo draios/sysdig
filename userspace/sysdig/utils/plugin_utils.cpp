@@ -23,7 +23,7 @@ limitations under the License.
 #include <unordered_set>
 
 #include <utility>
-#include <tinydir.h>
+#include <filesystem>
 #include <yaml-cpp/yaml.h>
 #include <nlohmann/json.hpp>
 
@@ -96,38 +96,31 @@ namespace YAML {
 
 static bool iterate_plugins_dirs(
     const std::vector<std::string>& dirs,
-    const std::function<bool(const tinydir_file &)>& predicate)
+    const std::function<bool(const std::filesystem::path &)>& predicate)
 {
 	bool breakout = false;
 	for (const auto & plugin_dir : dirs)
 	{
-		if (plugin_dir.empty())
+		std::filesystem::path dir = plugin_dir;
+
+		if (!std::filesystem::exists(dir) || !std::filesystem::is_directory(dir))
 		{
 			continue;
 		}
 
-		tinydir_dir dir = {};
+        for (const auto &file : std::filesystem::directory_iterator(dir))
+        {
+            if (!std::filesystem::is_directory(file)
+                && file.path().extension() == SHAREDOBJ_EXT)
+            {
+                breakout = predicate(file);
+            }
+            else
+            {
+                continue;
+            }
+        }
 
-		for (tinydir_open(&dir, plugin_dir.c_str()); dir.has_next && !breakout; tinydir_next(&dir))
-		{
-			tinydir_file file;
-			tinydir_readfile(&dir, &file);
-
-			auto namelen = strlen(file.name);
-			auto extlen = strlen(SHAREDOBJ_EXT);
-			if (file.is_dir
-                || strcmp(file.name, ".") == 0
-				|| strcmp(file.name, "..") == 0
-				|| (namelen > extlen
-				    && strcmp(file.name + namelen -extlen, SHAREDOBJ_EXT) != 0))
-			{
-				continue;
-			}
-
-			breakout = predicate(file);
-		}
-
-		tinydir_close(&dir);
 		if (breakout)
 		{
 			break;
@@ -308,16 +301,20 @@ void plugin_utils::load_plugin(sinsp *inspector, const std::string& name)
         soname = SHAREDOBJ_PREFIX + name + SHAREDOBJ_EXT;
     }
     auto& plugins = m_plugins;
-    bool found = iterate_plugins_dirs(m_dirs, [&inspector, &name, &soname, &plugins] (const tinydir_file file) -> bool {
-        if (file.name == name || file.name == soname)
+    bool found = iterate_plugins_dirs(m_dirs, [&inspector, &name, &soname, &plugins] (const std::filesystem::path file) -> bool {
+
+        auto filename = file.filename();
+        auto filepath = std::filesystem::absolute(file);
+
+        if (filename == name || filename == soname)
         {
             plugin_entry p;
             p.used = true;
             p.inited = false;
-            p.libpath = file.path;
+            p.libpath = filepath;
             p.names.insert(soname);
-            p.names.insert(file.path);
-            p.names.insert(file.name);
+            p.names.insert(filepath);
+            p.names.insert(filename);
             p.names.insert(p.get_plugin(inspector)->name());
             plugins.push_back(p);
             return true; // break-out
@@ -334,17 +331,20 @@ void plugin_utils::read_plugins_from_dirs(sinsp *inspector)
 {
     auto& plugins = m_plugins;
     auto tmpinsp = std::unique_ptr<sinsp>(new sinsp());
-    iterate_plugins_dirs(m_dirs, [&inspector, &plugins, &tmpinsp] (const tinydir_file file) -> bool {
+    iterate_plugins_dirs(m_dirs, [&inspector, &plugins, &tmpinsp] (const std::filesystem::path file) -> bool {
+
+        auto filepath = std::filesystem::absolute(file);
+
         // we temporarily load the plugin just to read its info,
         // but we don't actually load it in our inspector
-        auto plugin = tmpinsp->register_plugin(file.path);
+        auto plugin = tmpinsp->register_plugin(filepath);
 
         plugin_entry p;
         p.used = false;
         p.inited = false;
-        p.libpath = file.path;
-        p.names.insert(file.path);
-        p.names.insert(file.name);
+        p.libpath = filepath;
+        p.names.insert(filepath);
+        p.names.insert(file.filename());
         p.names.insert(plugin->name());
         plugins.push_back(p);
         return false;
