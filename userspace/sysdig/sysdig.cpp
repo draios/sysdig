@@ -866,13 +866,13 @@ captureinfo do_inspect(sinsp* inspector,
 
 				if(etype == PPME_GENERIC_E)
 				{
-					sinsp_evt_param *parinfo = ev->get_param(0);
+					const sinsp_evt_param *parinfo = ev->get_param(0);
 					uint16_t id = *(int16_t *)parinfo->m_val;
 					summary_table[PPM_EVENT_MAX + id * 2].m_ncalls++;
 				}
 				else if(etype == PPME_GENERIC_X)
 				{
-					sinsp_evt_param *parinfo = ev->get_param(0);
+					const sinsp_evt_param *parinfo = ev->get_param(0);
 					uint16_t id = *(int16_t *)parinfo->m_val;
 					summary_table[PPM_EVENT_MAX + id * 2 + 1].m_ncalls++;
 				}
