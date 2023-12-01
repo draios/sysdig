@@ -438,7 +438,7 @@ void curses_table::render(bool data_changed)
 		//
 		vector<chisel_table_field>* row;
 
-		for(l = 0; l < (int32_t)MIN(m_data->size(), m_h - 1); l++)
+		for(l = 0; l < std::min((int32_t)m_data->size(),(int32_t)(m_h - 1)); l++)
 		{
 			if(l + m_firstrow >= (int32_t)m_data->size())
 			{
