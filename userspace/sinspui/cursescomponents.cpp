@@ -385,7 +385,7 @@ void curses_table_sidemenu::render()
 	//
 	// Render the rows
 	//
-	for(j = m_firstrow; j < MIN(m_firstrow + (int32_t)m_h - 1, (int32_t)m_entries.size()); j++)
+	for(j = m_firstrow; j < std::min(m_firstrow + (int32_t)m_h - 1, (int32_t)m_entries.size()); j++)
 	{
 		if(j == m_selct)
 		{
