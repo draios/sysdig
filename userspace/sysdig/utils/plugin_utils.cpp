@@ -303,8 +303,8 @@ void plugin_utils::load_plugin(sinsp *inspector, const std::string& name)
     auto& plugins = m_plugins;
     bool found = iterate_plugins_dirs(m_dirs, [&inspector, &name, &soname, &plugins] (const std::filesystem::path file) -> bool {
 
-        auto filename = file.filename();
-        auto filepath = std::filesystem::absolute(file);
+        auto filename = file.filename().generic_string();
+        auto filepath = std::filesystem::absolute(file).generic_string();
 
         if (filename == name || filename == soname)
         {
@@ -333,7 +333,7 @@ void plugin_utils::read_plugins_from_dirs(sinsp *inspector)
     auto tmpinsp = std::unique_ptr<sinsp>(new sinsp());
     iterate_plugins_dirs(m_dirs, [&inspector, &plugins, &tmpinsp] (const std::filesystem::path file) -> bool {
 
-        auto filepath = std::filesystem::absolute(file);
+        auto filepath = std::filesystem::absolute(file).generic_string();
 
         // we temporarily load the plugin just to read its info,
         // but we don't actually load it in our inspector
@@ -344,7 +344,7 @@ void plugin_utils::read_plugins_from_dirs(sinsp *inspector)
         p.inited = false;
         p.libpath = filepath;
         p.names.insert(filepath);
-        p.names.insert(file.filename());
+        p.names.insert(file.filename().generic_string());
         p.names.insert(plugin->name());
         plugins.push_back(p);
         return false;
