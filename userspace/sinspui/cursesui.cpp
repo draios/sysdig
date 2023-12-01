@@ -18,6 +18,7 @@ limitations under the License.
 */
 
 #include <iostream>
+#include <algorithm>
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "filter.h"
@@ -944,8 +945,8 @@ void sinsp_cursesui::draw_bottom_menu(vector<sinsp_menuitem_info>* items, bool i
 
 		attrset(m_colors[PROCESS]);
 		string fks = items->at(j).m_key;
-		mvaddnstr(m_screenh - 1, k, fks.c_str(), MAX(fks.size(), 2));
-		k += MAX(fks.size(), 2);
+		mvaddnstr(m_screenh - 1, k, fks.c_str(), std::max((uint32_t)fks.size(), (uint32_t)2));
+		k += std::max((uint32_t)fks.size(), (uint32_t)2);
 
 		attrset(m_colors[PANEL_HIGHLIGHT_FOCUS]);
 		fks = items->at(j).m_desc;
