@@ -19,13 +19,15 @@
 
 #set -e
 
-echo "* Setting up /usr/src links from host"
+if echo $@ | grep -q -v modern-bpf; then
+	echo "* Setting up /usr/src links from host"
 
-for i in $(ls $SYSDIG_HOST_ROOT/usr/src)
-do
-	ln -s $SYSDIG_HOST_ROOT/usr/src/$i /usr/src/$i
-done
+	for i in $(ls $HOST_ROOT/usr/src)
+	do
+		ln -s $HOST_ROOT/usr/src/$i /usr/src/$i
+	done
 
-/usr/bin/scap-driver-loader
+	/usr/bin/scap-driver-loader
+fi
 
 exec "$@"
