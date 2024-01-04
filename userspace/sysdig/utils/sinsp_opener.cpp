@@ -70,6 +70,7 @@ void sinsp_opener::open(sinsp* inspector) const
 		if(bpf.modern)
 		{
 			inspector->open_modern_bpf(DEFAULT_DRIVER_BUFFER_BYTES_DIM, bpf.cpus_for_each_syscall_buffer, true, sc_of_interest);
+			inspector->set_get_procs_cpu_from_driver(true);
 			return;
 		}
 #endif
