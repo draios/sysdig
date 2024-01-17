@@ -5,7 +5,7 @@ set -euo pipefail
 DRY_RUN="${DRY_RUN:-false}"
 TMPDIR="$(mktemp -d)"
 ARCH="$1"
-LIST_URL="https://raw.githubusercontent.com/falcosecurity/kernel-crawler/kernels/${ARCH}/list.json"
+LIST_URL="https://falcosecurity.github.io/kernel-crawler/${ARCH}/list.json"
 EXCLUDE_LIST=(.ArchLinux .Fedora .PhotonOS .Flatcar .OpenSUSE .RockyLinux .Oracle6 .Oracle7 .Oracle8)
 EXCLUDE_STRING=$(echo ${EXCLUDE_LIST[@]} | tr ' ' ',')
 
