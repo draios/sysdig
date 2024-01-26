@@ -31,5 +31,5 @@ ExternalProject_Add(
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
   TEST_COMMAND ""
-  PATCH_COMMAND sh -c "mv ./driver ../driver.tmp && rm -rf ./* && mv ../driver.tmp/* ."
+  PATCH_COMMAND sh -c "mv ./driver ../driver.tmp && rm -rf ./* && mv ../driver.tmp/* . && patch -p2 <${CMAKE_SOURCE_DIR}/gke_driver.patch"
 )

@@ -1,0 +1,21 @@
+diff --git a/driver/bpf/fillers.h b/driver/bpf/fillers.h
+index aebee43ed..5ad6f719e 100644
+--- a/driver/bpf/fillers.h
++++ b/driver/bpf/fillers.h
+@@ -5044,10 +5044,13 @@ FILLER(sched_drop, false)
+ 	return bpf_push_u32_to_ring(data, data->settings->sampling_ratio);
+ }
+ 
+-/* In this kernel version the instruction limit was bumped to 1000000 */
++/* In this kernel version the instruction limit was bumped to 1000000.
++ * We use these 2 values because they are the minimum required to run our eBPF probe
++ * on some GKE environments. See https://github.com/falcosecurity/libs/issues/1639
++ */
+ #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0))
+-#define MAX_THREADS_GROUPS 30
+-#define MAX_HIERARCHY_TRAVERSE 60
++#define MAX_THREADS_GROUPS 25
++#define MAX_HIERARCHY_TRAVERSE 35
+ #else
+ /* We need to find the right calibration here. On kernel 4.14 the limit
+  * seems to be MAX_THREADS_GROUPS*MAX_HIERARCHY_TRAVERSE <= 100
