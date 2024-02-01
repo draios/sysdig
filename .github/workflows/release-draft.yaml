@@ -144,6 +144,32 @@ jobs:
           name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.artifact_name }}-x86_64
           path: build/sysdig-${{ env.BUILD_VERSION }}*.${{ matrix.artifact_ext }}
 
+  build-release-others-arm64:
+    name: build-release-others-arm64
+    strategy:
+      matrix:
+        os: [macos-14]
+        include:
+          - os: macos-14
+            artifact_name: osx
+            artifact_ext: dmg
+    env:
+      BUILD_VERSION: ${{ github.ref_name }}
+    runs-on: ${{ matrix.os }}  
+    steps:
+      - name: Checkout Sysdig
+        uses: actions/checkout@v3
+      - name: Build
+        run: |
+          mkdir -p build
+          cd build && cmake -Wno-dev -DBUILD_DRIVER=OFF -DSYSDIG_VERSION="${{ env.BUILD_VERSION }}" ..
+          cmake --build . --target package --config Release
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.artifact_name }}-arm64
+          path: build/sysdig-${{ env.BUILD_VERSION }}*.${{ matrix.artifact_ext }}
+
   push-container-image:
     runs-on: ubuntu-latest
     needs: [build-release-linux-amd64, build-release-linux-arm64, sign-rpms, sign-debs]
