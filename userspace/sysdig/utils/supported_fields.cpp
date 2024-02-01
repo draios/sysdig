@@ -85,14 +85,14 @@ void print_supported_fields(sinsp* inspector, plugin_utils& plugins, const std::
             filterchecks.push_back(check->get_fields());
             filtecheck_lists.push_back(std::move(check));
         }
-        
+
         const auto classes = sinsp_filter_factory::check_infos_to_fieldclass_infos(filterchecks);
         for(const auto &fld_class : classes)
         {
             bool found = false;
             for (auto &info : field_infos)
             {
-                if (info.class_info.name == fld_class.name)
+                if (info.class_info.name == fld_class.name && info.class_info.shortdesc == fld_class.shortdesc)
                 {
                     found = true;
                     info.compatible_sources.insert(src);
