@@ -489,7 +489,11 @@ load_bpf_probe_compile() {
 	if [ "${TARGET_ID}" == "cos" ]; then
 		echo "* COS detected (build ${BUILD_ID}), using COS kernel headers"
 
-		BPF_KERNEL_SOURCES_URL="https://storage.googleapis.com/cos-tools/${BUILD_ID}/kernel-headers.tgz"
+		if [ "${ARCH}" == "aarch64" ]; then
+			BPF_KERNEL_SOURCES_URL="https://storage.googleapis.com/cos-tools/${BUILD_ID}/lakitu-arm64/kernel-headers.tgz"
+		else
+			BPF_KERNEL_SOURCES_URL="https://storage.googleapis.com/cos-tools/${BUILD_ID}/kernel-headers.tgz"
+		fi
 		KERNEL_EXTRA_VERSION="+"
 		STRIP_COMPONENTS=0
 
