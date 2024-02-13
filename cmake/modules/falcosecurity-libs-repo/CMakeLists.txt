@@ -30,4 +30,6 @@ ExternalProject_Add(
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
-  TEST_COMMAND "")
+  TEST_COMMAND ""
+  PATCH_COMMAND sh -c "patch -p1 <${CMAKE_SOURCE_DIR}/chisel.patch"
+)
