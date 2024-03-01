@@ -32,7 +32,7 @@ else()
   # ie., `cmake -DDRIVER_VERSION=dev ..`
   if(NOT DRIVER_VERSION)
     set(DRIVER_VERSION "7.0.0+driver")
-    set(DRIVER_CHECKSUM "SHA256=defdea24bf3b176c63f10900d3716fe4373151965cc09d3fe67a31a3a9af0b13")
+    set(DRIVER_CHECKSUM "SHA256=9f2a0f14827c0d9d1c3d1abe45b8f074dea531ebeca9859363a92f0d2475757e")
   endif()
 
   # cd /path/to/build && cmake /path/to/source
