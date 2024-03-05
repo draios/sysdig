@@ -19,7 +19,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
-          platforms: 'amd64,arm64'
+          platforms: 'amd64,arm64,s390x'
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -37,7 +37,7 @@ jobs:
         with:
           context: docker/builder
           file:  docker/builder/modern_bpf_probe.Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64,linux/s390x
           tags: ${{ format('{0}:dev,{0}:{1}', env.SKEL_BUILDER_IMAGE_BASE, github.sha) }}
           push: true
       
@@ -46,6 +46,6 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: docker/builder
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64,linux/s390x
           tags: ${{ format('{0}:dev,{0}:{1}', env.BUILDER_IMAGE_BASE, github.sha) }}
           push: true
