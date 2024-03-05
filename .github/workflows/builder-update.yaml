@@ -1,7 +1,8 @@
 name: Builder update
 on:
   push:
-    branches: [**]
+    branches:
+      - '**'
     paths: ['docker/builder/**']
 
 jobs:
