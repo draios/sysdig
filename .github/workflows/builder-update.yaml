@@ -1,7 +1,7 @@
 name: Builder update
 on:
   push:
-    branches: [s390x-ga]
+    branches: []
     paths: ['docker/builder/**']
 
 jobs:
