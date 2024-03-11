@@ -1,0 +1,12 @@
+diff --git a/userspace/libsinsp/sinsp.cpp b/userspace/libsinsp/sinsp.cpp
+index 29313a2b7..50ec4d6a1 100644
+--- a/userspace/libsinsp/sinsp.cpp
++++ b/userspace/libsinsp/sinsp.cpp
+@@ -1204,6 +1204,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
+ 			{
+ 				m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_EOF);
+ 			}
++			*puevt = evt;
+ 		}
+ 		else if(res == SCAP_UNEXPECTED_BLOCK)
+ 		{
