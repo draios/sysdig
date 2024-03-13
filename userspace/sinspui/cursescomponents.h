@@ -212,7 +212,7 @@ private:
 	ctext* m_ctext;
 	sinsp_cursesui* m_parent;
 	sinsp* m_inspector;
-	sinsp_filter* m_filter;
+	std::unique_ptr<sinsp_filter> m_filter;
 	uint32_t n_prints;
 	bool m_paused;
 	curses_table_sidemenu* m_sidemenu;

@@ -33,15 +33,15 @@ limitations under the License.
 #include <set>
 using namespace std;
 
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "filter.h"
-#include "filterchecks.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/filter.h>
+#include <libsinsp/filterchecks.h>
 
-#include "chisel_table.h"
+#include <chisel/chisel_table.h>
+#include <chisel/chisel_viewinfo.h>
 #include "cursescomponents.h"
 #include "cursestable.h"
-#include "chisel_viewinfo.h"
 #include "cursesui.h"
 #include "utils.h"
 
@@ -150,7 +150,7 @@ const char* spy_text_renderer::process_event_spy(sinsp_evt* evt, int64_t* len)
 		return NULL;
 	}
 
-	sinsp_fdinfo_t* m_fdinfo = evt->get_fd_info();
+	sinsp_fdinfo* m_fdinfo = evt->get_fd_info();
 	if(m_fdinfo == NULL)
 	{
 		return NULL;
@@ -835,11 +835,6 @@ curses_textbox::~curses_textbox()
 		delete m_searcher;
 	}
 
-	if(m_filter != NULL)
-	{
-		delete m_filter;
-	}
-
 	if(m_text_renderer)
 	{
 		delete m_text_renderer;
@@ -860,7 +855,7 @@ curses_textbox::~curses_textbox()
 void curses_textbox::set_filter(string filter)
 {
 	sinsp_filter_compiler compiler(m_inspector, filter);
-	m_filter = compiler.compile();
+	m_filter = std::move(compiler.compile());
 }
 
 void curses_textbox::print_no_data()

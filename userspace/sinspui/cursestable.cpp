@@ -32,15 +32,15 @@ limitations under the License.
 #include <set>
 using namespace std;
 
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "filter.h"
-#include "filterchecks.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/filter.h>
+#include <libsinsp/filterchecks.h>
 
 #ifndef NOCURSESUI
 
 #include <curses.h>
-#include "chisel_table.h"
+#include <chisel/chisel_table.h>
 #include "cursescomponents.h"
 #include "cursestable.h"
 #include "cursesui.h"
@@ -261,7 +261,7 @@ void curses_table::print_line_centered(string line, int32_t off)
 		for(uint32_t j = 0;; j++)
 		{
 			string ss = line.substr(spos, spos + m_parent->m_screenw);
-glogf("2, %d %s\n", spos, ss.c_str());
+			libsinsp_logger()->format("2, %d %s\n", spos, ss.c_str());
 
 			mvwprintw(m_tblwin, 
 				m_parent->m_screenh / 2 + off + j,

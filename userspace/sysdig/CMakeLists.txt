@@ -20,11 +20,6 @@ if(NOT WIN32)
 	include(ncurses)
 endif() # NOT WIN32
 
-include(libscap)
-include(libsinsp)
-include(zlib)
-
-include_directories("${LIBSINSP_INCLUDE_DIRS}")
 include_directories("${PROJECT_BINARY_DIR}/userspace/sinspui")
 include_directories(../sinspui)
 include_directories("${PROJECT_BINARY_DIR}/userspace/sysdig")
@@ -76,16 +71,12 @@ endif()
 target_include_directories(
 	sysdig
 	PUBLIC
-        "${LIBSCAP_INCLUDE_DIRS}"
-        "${LIBSINSP_INCLUDE_DIRS}"
 		"${YAMLCPP_INCLUDE_DIR}"
 		"${NJSON_INCLUDE_DIR}")
 
 target_include_directories(
 	csysdig
 	PUBLIC
-        "${LIBSCAP_INCLUDE_DIRS}"
-        "${LIBSINSP_INCLUDE_DIRS}"
 		"${YAMLCPP_INCLUDE_DIR}"
 		"${NJSON_INCLUDE_DIR}")
 

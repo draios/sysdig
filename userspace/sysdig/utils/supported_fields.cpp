@@ -28,7 +28,7 @@ limitations under the License.
 struct fields_info
 {
     std::set<std::string> compatible_sources;
-    gen_event_filter_factory::filter_fieldclass_info class_info;
+    sinsp_filter_factory::filter_fieldclass_info class_info;
 };
 
 void print_supported_fields(sinsp* inspector, plugin_utils& plugins, const std::string &source, bool verbose, bool markdown)

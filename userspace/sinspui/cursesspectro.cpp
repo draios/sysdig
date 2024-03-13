@@ -34,14 +34,14 @@ limitations under the License.
 #include <set>
 using namespace std;
 
-#include "sinsp.h"
-#include "filter.h"
-#include "filterchecks.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/filter.h>
+#include <libsinsp/filterchecks.h>
 
 #ifndef NOCURSESUI
 
 #include <curses.h>
-#include "chisel_table.h"
+#include <chisel/chisel_table.h>
 #include "ctext.h"
 #include "cursescomponents.h"
 #include "cursestable.h"
@@ -463,7 +463,7 @@ chisel_table_action curses_spectro::handle_input(int ch)
 				{
 					if(m_last_mevent.bstate & BUTTON1_CLICKED)
 					{
-						g_logger.format("mouse clicked");
+						libsinsp_logger()->format("mouse clicked");
 
 						if(m_last_mevent.y == (int)m_h - 2)
 						{
@@ -517,8 +517,8 @@ chisel_table_action curses_spectro::handle_input(int ch)
 									") and (evt.latency>=" + to_string(start_latency) +
 									" and evt.latency<" + to_string(end_latency) + ")";
 
-								g_logger.format("spectrogram drill down");
-								g_logger.format("filter: %s", m_selection_filter.c_str());
+								libsinsp_logger()->format("spectrogram drill down");
+								libsinsp_logger()->format("filter: %s", m_selection_filter.c_str());
 
 								m_selstart_x = -1;
 								m_selstart_y = -1;
