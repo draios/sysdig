@@ -20,6 +20,8 @@ if(NOT WIN32)
 	include(ncurses)
 endif() # NOT WIN32
 
+include(zlib)
+
 include_directories("${PROJECT_BINARY_DIR}/userspace/sinspui")
 include_directories(../sinspui)
 include_directories("${PROJECT_BINARY_DIR}/userspace/sysdig")

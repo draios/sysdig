@@ -27,18 +27,61 @@ if(NOT USE_BUNDLED_DEPS)
 else()
   set(YAMLCPP_SRC "${PROJECT_BINARY_DIR}/yaml-cpp-prefix/src/yaml-cpp")
   message(STATUS "Using bundled yaml-cpp in '${YAMLCPP_SRC}'")
+  set(YAMLCPP_INCLUDE_DIR "${YAMLCPP_SRC}/include")
   if(NOT WIN32)
     set(YAMLCPP_LIB "${YAMLCPP_SRC}/libyaml-cpp.a")
+    ExternalProject_Add(
+      yaml-cpp
+      URL "https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.7.0.tar.gz"
+      URL_HASH "SHA256=43e6a9fcb146ad871515f0d0873947e5d497a1c9c60c58cb102a97b47208b7c3"
+      BUILD_BYPRODUCTS ${YAMLCPP_LIB}
+      CMAKE_ARGS
+      -DCMAKE_BUILD_TYPE=Release
+      -DYAML_MSVC_SHARED_RT=Off
+      -DYAML_BUILD_SHARED_LIBS=Off
+      -DYAML_CPP_BUILD_TESTS=Off
+      -DYAML_CPP_BUILD_TOOLS=OFF
+      -DYAML_CPP_BUILD_CONTRIB=OFF
+      -DCMAKE_DEBUG_POSTFIX=''
+      BUILD_IN_SOURCE 1
+      INSTALL_COMMAND "")
   else()
     set(YAMLCPP_LIB "${YAMLCPP_SRC}/${CMAKE_BUILD_TYPE}/yaml-cpp.lib")
+    # see: https://cmake.org/cmake/help/latest/policy/CMP0091.html
+    if(CMAKE_VERSION VERSION_LESS 3.15.0)
+      ExternalProject_Add(
+        yaml-cpp
+        URL "https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.7.0.tar.gz"
+        URL_HASH "SHA256=43e6a9fcb146ad871515f0d0873947e5d497a1c9c60c58cb102a97b47208b7c3"
+        BUILD_BYPRODUCTS ${YAMLCPP_LIB}
+        CMAKE_ARGS
+        -DCMAKE_BUILD_TYPE=Release
+        -DYAML_MSVC_SHARED_RT=Off
+        -DYAML_BUILD_SHARED_LIBS=Off
+        -DYAML_CPP_BUILD_TESTS=Off
+        -DYAML_CPP_BUILD_TOOLS=OFF
+        -DYAML_CPP_BUILD_CONTRIB=OFF
+        -DCMAKE_DEBUG_POSTFIX=''
+        BUILD_IN_SOURCE 1
+        INSTALL_COMMAND "")
+    else()
+      ExternalProject_Add(
+        yaml-cpp
+        URL "https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.7.0.tar.gz"
+        URL_HASH "SHA256=43e6a9fcb146ad871515f0d0873947e5d497a1c9c60c58cb102a97b47208b7c3"
+        BUILD_BYPRODUCTS ${YAMLCPP_LIB}
+        CMAKE_ARGS
+        -DCMAKE_POLICY_DEFAULT_CMP0091:STRING=NEW
+        -DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY}
+        -DCMAKE_BUILD_TYPE=Release
+        -DYAML_MSVC_SHARED_RT=Off
+        -DYAML_BUILD_SHARED_LIBS=Off
+        -DYAML_CPP_BUILD_TESTS=Off
+        -DYAML_CPP_BUILD_TOOLS=OFF
+        -DYAML_CPP_BUILD_CONTRIB=OFF
+        -DCMAKE_DEBUG_POSTFIX=''
+        BUILD_IN_SOURCE 1
+        INSTALL_COMMAND "")
+    endif()
   endif()
-  set(YAMLCPP_INCLUDE_DIR "${YAMLCPP_SRC}/include")
-  ExternalProject_Add(
-    yaml-cpp
-    URL "https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.7.0.tar.gz"
-    URL_HASH "SHA256=43e6a9fcb146ad871515f0d0873947e5d497a1c9c60c58cb102a97b47208b7c3"
-    BUILD_BYPRODUCTS ${YAMLCPP_LIB}
-    CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -DYAML_MSVC_SHARED_RT=Off -DYAML_BUILD_SHARED_LIBS=Off -DYAML_CPP_BUILD_TESTS=Off -DYAML_CPP_BUILD_TOOLS=OFF -DYAML_CPP_BUILD_CONTRIB=OFF -DCMAKE_DEBUG_POSTFIX=''
-    BUILD_IN_SOURCE 1
-    INSTALL_COMMAND "")
 endif()
