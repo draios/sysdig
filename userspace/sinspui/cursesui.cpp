@@ -19,10 +19,10 @@ limitations under the License.
 
 #include <iostream>
 #include <algorithm>
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "filter.h"
-#include "filterchecks.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/filter.h>
+#include <libsinsp/filterchecks.h>
 
 #ifndef _WIN32
 #include <curses.h>
@@ -30,7 +30,7 @@ limitations under the License.
 #include <conio.h>
 #define getch _getch
 #endif
-#include "chisel_table.h"
+#include <chisel/chisel_table.h>
 #include "cursescomponents.h"
 #include "cursestable.h"
 #include "cursesspectro.h"
@@ -86,11 +86,6 @@ json_spy_renderer::json_spy_renderer(sinsp* inspector,
 json_spy_renderer::~json_spy_renderer()
 {
 	delete m_json_spy_renderer;
-
-	if(m_filter != NULL)
-	{
-		delete m_filter;
-	}
 }
 
 void json_spy_renderer::set_filter(string filter)
@@ -98,7 +93,7 @@ void json_spy_renderer::set_filter(string filter)
 	if(filter != "")
 	{
 		sinsp_filter_compiler compiler(m_inspector, filter);
-		m_filter = compiler.compile();
+		m_filter = std::move(compiler.compile());
 	}
 }
 
@@ -2266,11 +2261,11 @@ chisel_table_action sinsp_cursesui::handle_textbox_input(int ch)
 				if(*str != "")
 				{
 					sinsp_filter_compiler compiler(m_inspector, *str);
-					sinsp_filter* f;
+					std::unique_ptr<sinsp_filter> f;
 
 					try
 					{
-						f = compiler.compile();
+						f = std::move(compiler.compile());
 					}
 					catch(const sinsp_exception& e)
 					{
@@ -2300,7 +2295,6 @@ chisel_table_action sinsp_cursesui::handle_textbox_input(int ch)
 						break;
 					}
 
-					delete f;
 				}
 			}
 
@@ -2535,7 +2529,7 @@ chisel_table_action sinsp_cursesui::handle_input(int ch)
 			{
 				chisel_view_info* vinfo = get_selected_view();
 
-				g_logger.format("running action %d %s", m_selected_action_sidemenu_entry,
+				libsinsp_logger()->format("running action %d %s", m_selected_action_sidemenu_entry,
 					vinfo->m_name.c_str());
 				if(vinfo->m_actions.size() != 0)
 				{
@@ -3179,8 +3173,8 @@ void sinsp_cursesui::run_action(chisel_view_action_info* action)
 #endif // NOCURSESUI
 	}
 
-	g_logger.format("original command: %s", action->m_command.c_str());
-	g_logger.format("running command: %s", resolved_command.c_str());
+	libsinsp_logger()->format("original command: %s", action->m_command.c_str());
+	libsinsp_logger()->format("running command: %s", resolved_command.c_str());
 
 #ifndef NOCURSESUI
 	//
@@ -3225,7 +3219,7 @@ void sinsp_cursesui::run_action(chisel_view_action_info* action)
 		int sret = system(resolved_command.c_str());
 		if(sret == -1)
 		{
-			g_logger.format("command failed");
+			libsinsp_logger()->format("command failed");
 		}
 	}
 

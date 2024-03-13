@@ -32,8 +32,8 @@ else()
   # In case you want to test against another falcosecurity/libs version (or branch, or commit) just pass the variable -
   # ie., `cmake -DFALCOSECURITY_LIBS_VERSION=dev ..`
   if(NOT FALCOSECURITY_LIBS_VERSION)
-    set(FALCOSECURITY_LIBS_VERSION "0.14.2")
-    set(FALCOSECURITY_LIBS_CHECKSUM "SHA256=b4ae7bbf3ad031deee4a808145f9fd64b71c537406cc5a92f512823b2e52cdd5")
+    set(FALCOSECURITY_LIBS_VERSION "0.15.1")
+    set(FALCOSECURITY_LIBS_CHECKSUM "SHA256=8c2596fec3c25e9718a8b357b0504450cd26efbe653b79afcd66a8405f0dc08c")
   endif()
 
   # cd /path/to/build && cmake /path/to/source
@@ -57,10 +57,9 @@ endif()
 
 set(SCAP_HOST_ROOT_ENV_VAR_NAME "HOST_ROOT")
 
-if(NOT LIBSCAP_DIR)
-  set(LIBSCAP_DIR "${FALCOSECURITY_LIBS_SOURCE_DIR}")
-endif()
-set(LIBSINSP_DIR "${FALCOSECURITY_LIBS_SOURCE_DIR}")
+if(NOT LIBS_DIR)
+   set(LIBS_DIR "${FALCOSECURITY_LIBS_SOURCE_DIR}")
+ endif()
 
 # configure gVisor support
 set(BUILD_LIBSCAP_GVISOR ${BUILD_SYSDIG_GVISOR} CACHE BOOL "")

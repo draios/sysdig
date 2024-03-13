@@ -28,7 +28,7 @@ limitations under the License.
 #include <assert.h>
 #include <algorithm>
 
-#include <sinsp.h>
+#include <libsinsp/sinsp.h>
 #ifdef HAS_CAPTURE
 #ifndef WIN32
 #include "driver_config.h"
@@ -36,11 +36,11 @@ limitations under the License.
 #endif // HAS_CAPTURE
 #include "sysdig.h"
 #ifdef HAS_CHISELS
-#include "chisel.h"
-#include "chisel_utils.h"
+#include <chisel/chisel.h>
+#include <chisel/chisel_utils.h>
 #endif
-#include "chisel_table.h"
-#include "utils.h"
+#include <chisel/chisel_table.h>
+#include <libsinsp/utils.h>
 #include "utils/plugin_utils.h"
 #include "utils/sinsp_opener.h"
 #include "utils/supported_fields.h"
@@ -58,7 +58,7 @@ limitations under the License.
 #include "cursestable.h"
 #include "cursesui.h"
 #include "scap_open_exception.h"
-#include "chisel_capture_interrupt_exception.h"
+#include <chisel/chisel_capture_interrupt_exception.h>
 
 #define MOUSE_CAPABLE_TERM "xterm-1003"
 #define MOUSE_CAPABLE_TERM_COMPAT "xterm-1002"

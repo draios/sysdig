@@ -21,6 +21,8 @@ limitations under the License.
 #include <unistd.h>
 #endif
 
+#include <memory>
+
 #include "../sysdig/utils/sinsp_opener.h"
 
 #define UI_USER_INPUT_CHECK_PERIOD_NS 10000000
@@ -31,7 +33,6 @@ std::string combine_filters(std::string flt1, std::string flt2);
 class ctext;
 class sinsp_chart;
 class curses_spectro;
-extern sinsp_logger g_logger;
 
 class sinsp_menuitem_info
 {
@@ -350,7 +351,7 @@ private:
 	spy_text_renderer* m_json_spy_renderer;
 	sinsp* m_inspector;
 	Json::Value m_root;
-	sinsp_filter* m_filter;
+	std::unique_ptr<sinsp_filter> m_filter;
 	uint64_t m_linecnt;
 };
 

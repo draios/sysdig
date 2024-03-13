@@ -30,9 +30,10 @@ limitations under the License.
 #include <unordered_set>
 #include <atomic>
 
-#include <sinsp.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_cycledumper.h>
 #include "scap_open_exception.h"
-#include "chisel_capture_interrupt_exception.h"
+#include <chisel/chisel_capture_interrupt_exception.h>
 #ifdef HAS_CAPTURE
 #ifndef WIN32
 #include "driver_config.h"
@@ -40,9 +41,9 @@ limitations under the License.
 #endif // HAS_CAPTURE
 #include "sysdig.h"
 #ifdef HAS_CHISELS
-#include "chisel.h"
-#include "chisel_utils.h"
-#include "chisel_fields_info.h"
+#include <chisel/chisel.h>
+#include <chisel/chisel_utils.h>
+#include <chisel/chisel_fields_info.h>
 #endif
 #include "utils.h"
 #include "plugin.h"
@@ -542,7 +543,7 @@ static void initialize_chisels()
 //
 static void parse_chisel_args(
 	sinsp_chisel* ch,
-	std::shared_ptr<gen_event_filter_factory> filter_factory,
+	std::shared_ptr<sinsp_filter_factory> filter_factory,
 	int optind, int argc, char **argv, int32_t* n_filterargs)
 {
 	uint32_t nargs = ch->get_n_args();
@@ -589,8 +590,7 @@ static void parse_chisel_args(
 						try
 						{
 							sinsp_filter_compiler compiler(filter_factory, testflt);
-							sinsp_filter* s = compiler.compile();
-							delete s;
+							std::unique_ptr<sinsp_filter> s = compiler.compile();
 						}
 						catch(...)
 						{
@@ -737,6 +737,7 @@ std::vector<std::string> split_nextrun_args(std::string na)
 // Event processing loop
 //
 captureinfo do_inspect(sinsp* inspector,
+	sinsp_cycledumper* dumper,
 	uint64_t cnt,
 	uint64_t duration_to_tot_ns,
 	bool quiet,
@@ -744,7 +745,7 @@ captureinfo do_inspect(sinsp* inspector,
 	bool do_flush,
 	bool reset_colors,
 	bool print_progress,
-	sinsp_filter* display_filter,
+	std::unique_ptr<sinsp_filter> display_filter,
 	std::vector<summary_table_entry> &summary_table,
 	sinsp_evt_formatter* syscall_evt_formatter,
 	sinsp_evt_formatter* plugin_evt_formatter)
@@ -785,6 +786,10 @@ captureinfo do_inspect(sinsp* inspector,
 			break;
 		}
 		res = inspector->next(&ev);
+		if(dumper && ev && res != SCAP_EOF)
+		{
+			dumper->dump(ev);
+		}
 
 		if(res == SCAP_TIMEOUT || res == SCAP_FILTERED_EVENT)
 		{
@@ -897,7 +902,7 @@ captureinfo do_inspect(sinsp* inspector,
 				continue;
 			}
 
-			if(display_filter && !display_filter->run(ev))
+			if(display_filter.get() && !display_filter->run(ev))
 			{
 				continue;
 			}
@@ -983,6 +988,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 {
 	sysdig_init_res res;
 	std::unique_ptr<sinsp> inspector;
+	std::unique_ptr<sinsp_cycledumper> dumper;
 	std::vector<std::string> infiles;
 	std::string outfile;
 	int op;
@@ -995,7 +1001,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	std::string list_flds_source = "";
 	bool compress = false;
 	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
-	sinsp_filter* display_filter = NULL;
+	std::unique_ptr<sinsp_filter> display_filter;
 	double duration = 1;
 	int duration_to_tot = 0;
 	captureinfo cinfo;
@@ -1024,7 +1030,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	std::string plugin_config_file = "";
 	sinsp_opener opener;
 	std::unique_ptr<filter_check_list> filter_list;
-	std::shared_ptr<gen_event_filter_factory> filter_factory;
+	std::shared_ptr<sinsp_filter_factory> filter_factory;
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -1543,7 +1549,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 							fprintf(stderr, "invalid log level %s\n", optarg);
 							return sysdig_init_res(EXIT_FAILURE);
 						}
-						g_logger.add_stdout_log();
+						libsinsp_logger()->add_stdout_log();
 					}
 					else if (optname == "list-chisels") {
 						std::vector<chisel_desc> chlist;
@@ -1917,8 +1923,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 			if(outfile != "")
 			{
-				inspector->setup_cycle_writer(outfile, rollover_mb, duration_seconds, file_limit, event_limit, compress);
-				inspector->autodump_next_file();
+				dumper = std::make_unique<sinsp_cycledumper>(inspector.get(), outfile, rollover_mb, duration_seconds, file_limit, event_limit, compress);
 			}
 
 			//
@@ -1969,6 +1974,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			disable_tty_echo();
 #endif
 			cinfo = do_inspect(inspector.get(),
+				dumper.get(),
 				cnt,
 				uint64_t(duration_to_tot*ONE_SECOND_IN_NS),
 				quiet,
@@ -1976,7 +1982,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				unbuf_flag,
 				reset_colors,
 				opener.options.print_progress,
-				display_filter,
+				std::move(display_filter),
 				summary_table,
 				&syscall_evt_formatter,
 				&plugin_evt_formatter);
@@ -2059,11 +2065,6 @@ exit:
 	// Free all the stuff that was allocated
 	//
 	free_chisels();
-
-	if(display_filter)
-	{
-		delete display_filter;
-	}
 
 	return res;
 }

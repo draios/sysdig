@@ -64,6 +64,10 @@ endif()
 set(PACKAGE_NAME "sysdig")
 
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
+if(NOT DEFINED CHISEL_TOOL_LIBRARY_NAME)
+	set(CHISEL_TOOL_LIBRARY_NAME "sysdig")
+endif()
+add_definitions(-DCHISEL_TOOL_LIBRARY_NAME="${CHISEL_TOOL_LIBRARY_NAME}")
 
 option(BUILD_WARNINGS_AS_ERRORS "Enable building with -Wextra -Werror flags")
 
