@@ -754,21 +754,45 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 #ifndef NOCURSESUI
 		if(output_type == chisel_table::OT_CURSES)
 		{
-			//
-			// Check if terminal has mouse support
-			//
-			const char* mct = force_term_compat? MOUSE_CAPABLE_TERM_COMPAT : MOUSE_CAPABLE_TERM;
-			terminal_with_mouse = (tgetent(NULL, mct) != 0);
+			char* eterm = getenv("TERM");
 
-			if(terminal_with_mouse)
+			std::vector<std::string> terminal_types =
 			{
-				//
-				// Enable fine-grained mouse activity capture by setting xterm-1002
-				//
-				setenv("TERM", mct, 1);
+				MOUSE_CAPABLE_TERM,
+				eterm,
+				"xterm-color",
+				"xterm"
+			};
+
+			SCREEN* screen = NULL;
+
+			if(force_term_compat)
+			{
+				terminal_types.clear();
+				terminal_types.push_back(MOUSE_CAPABLE_TERM_COMPAT);
 			}
 
-			(void) initscr();      // initialize the curses library
+			//
+			// Try some of the most capable terminals, reverting to basic
+			// xterm if none works
+			//
+			for(const auto& term : terminal_types)
+			{
+				screen = newterm(term.c_str(), stdout, stdin);
+				if(screen != NULL)
+				{
+					break;
+				}
+			}
+
+			if(screen == NULL)
+			{
+				fprintf(stderr, "Error: Failed to initialize terminal.\n");
+				exit(1);
+			}
+
+			set_term(screen);
+
 			(void) nonl();         // tell curses not to do NL->CR/NL on output
 			intrflush(stdscr, false);
 			keypad(stdscr, true);
