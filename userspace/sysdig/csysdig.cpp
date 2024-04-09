@@ -760,8 +760,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			{
 				MOUSE_CAPABLE_TERM,
 				eterm,
-				"xterm-color",
-				"xterm"
+				"xterm",
+				"xterm-color"
 			};
 
 			SCREEN* screen = NULL;
