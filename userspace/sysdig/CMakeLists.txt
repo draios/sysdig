@@ -84,6 +84,12 @@ if(USE_BUNDLED_DEPS)
 	add_dependencies(csysdig luajit)
 endif()
 
+if(USE_BUNDLED_FALCOSECURITY_LIBS)
+    set(SINSP_LIB sinsp)
+else()
+    set(SINSP_LIB PkgConfig::LIBSINSP)
+endif()
+
 target_include_directories(
 	sysdig
 	PUBLIC
@@ -106,7 +112,7 @@ if(NOT WIN32)
 	include_directories(${PROJECT_BINARY_DIR}/driver/src)
 
 	target_link_libraries(sysdig
-		sinsp
+		"${SINSP_LIB}"
 		"${LUAJIT_LIB}"
 		yaml-cpp)
 
@@ -115,7 +121,7 @@ if(NOT WIN32)
 	endif()
 
 	target_link_libraries(csysdig
-		sinsp
+		"${SINSP_LIB}"
 		"${LUAJIT_LIB}"
 		"${CURSES_LIBRARIES}"
 		yaml-cpp)
@@ -138,12 +144,12 @@ else()
 	add_definitions(-DNOCURSESUI)
 
 	target_link_libraries(sysdig
-		sinsp
+		"${SINSP_LIB}"
 		"${LUAJIT_LIB}"
 		yaml-cpp)
 
 	target_link_libraries(csysdig
-		sinsp
+		"${SINSP_LIB}"
 		"${LUAJIT_LIB}"
 		yaml-cpp)
 

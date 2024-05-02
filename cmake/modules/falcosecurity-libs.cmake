@@ -16,6 +16,21 @@
 # limitations under the License.
 #
 
+option(USE_BUNDLED_FALCOSECURITY_LIBS
+	"Enable building of the bundled falcosecurity libraries"
+	${USE_BUNDLED_DEPS})
+
+if(NOT USE_BUNDLED_FALCOSECURITY_LIBS)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(LIBSINSP REQUIRED IMPORTED_TARGET libsinsp)
+    message(STATUS "Found libsinsp:
+  include: ${LIBSINSP_INCLUDE_DIRS}
+  lib: ${LIBSINSP_LIBRARIES}
+  cflags: ${LIBSINSP_CFLAGS}")
+    return()
+endif()
+
+# else(): using bundled falcosecurity libs
 set(FALCOSECURITY_LIBS_CMAKE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/falcosecurity-libs-repo")
 set(FALCOSECURITY_LIBS_CMAKE_WORKING_DIR "${CMAKE_BINARY_DIR}/falcosecurity-libs-repo")
 
