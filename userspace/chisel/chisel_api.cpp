@@ -1152,46 +1152,42 @@ int lua_cbacks::get_container_table(lua_State *ls)
 		lua_settable(ls, -3);
 
 		lua_pushliteral(ls, "type");
-		if(it->second->m_type == CT_DOCKER)
+		switch (it->second->m_type)
 		{
+		case CT_DOCKER:
 			lua_pushstring(ls, "docker");
-		}
-		else if(it->second->m_type == CT_LXC)
-		{
+			break;
+		case CT_LXC:
 			lua_pushstring(ls, "lxc");
-		}
-		else if(it->second->m_type == CT_LIBVIRT_LXC)
-		{
+			break;
+		case CT_LIBVIRT_LXC:
 			lua_pushstring(ls, "libvirt_lxc");
-		}
-		else if(it->second->m_type == CT_MESOS)
-		{
+			break;
+		case CT_MESOS:
 			lua_pushstring(ls, "mesos");
-		}
-		else if(it->second->m_type == CT_RKT)
-		{
+			break;
+		case CT_RKT:
 			lua_pushstring(ls, "rkt");
-		}
-		else if(it->second->m_type == CT_CRI)
-		{
+			break;
+		case CT_CRI:
 			lua_pushstring(ls, "cri");
-		}
-		else if(it->second->m_type == CT_CONTAINERD)
-		{
+			break;
+		case CT_CONTAINERD:
 			lua_pushstring(ls, "containerd");
-		}
-		else if(it->second->m_type == CT_CRIO)
-		{
+			break;
+		case CT_CRIO:
 			lua_pushstring(ls, "cri-o");
-		}
-		else if(it->second->m_type == CT_BPM)
-		{
+			break;
+		case CT_BPM:
 			lua_pushstring(ls, "bpm");
-		}
-		else
-		{
+			break;
+		case CT_PODMAN:
+			lua_pushstring(ls, "podman");
+			break;
+		default:
 			ASSERT(false);
 			lua_pushstring(ls, "unknown");
+			break;
 		}
 		lua_settable(ls, -3);
 
