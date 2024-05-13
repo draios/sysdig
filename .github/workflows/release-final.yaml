@@ -63,11 +63,13 @@ jobs:
       contents: read
 
     container:
-      image: centos:7
+      image: centos:8
 
     steps:
       - name: Install deps
         run: |
+          sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
+          sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
           yum -y install unzip createrepo_c git
           cd /tmp
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
