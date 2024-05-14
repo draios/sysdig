@@ -2,6 +2,12 @@ name: Finalize release
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Run finalize release on a specific tag.'
+        required: true
+        default: ''
 
 jobs:
   push-final-images:
@@ -9,7 +15,7 @@ jobs:
     env:
       SYSDIG_IMAGE_BASE: ghcr.io/draios/sysdig
       SYSDIG_DOCKERHUB_IMAGE_BASE: docker.io/sysdig/sysdig
-      RELEASE: ${{ github.event.release.name }}
+      RELEASE: ${{ (github.event_name == 'workflow_dispatch') && (github.event.inputs.version != '') && github.event.inputs.version || github.event.release.name }}
 
     steps:
       - name: Login to Docker Hub
