@@ -658,14 +658,6 @@ void handle_end_of_file(sinsp* inspector, bool print_progress, bool reset_colors
 {
 	std::string line;
 
-	// Notify the formatter that we are at the
-	// end of the capture in case it needs to
-	// write any terminating characters
-	if(formatter != NULL && formatter->on_capture_end(&line))
-	{
-		std::cout << line << std::endl;
-	}
-
 	if(reset_colors) {
 		std::cout << "\e[00m";
 	}
