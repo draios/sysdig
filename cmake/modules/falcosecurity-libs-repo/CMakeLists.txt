@@ -31,5 +31,5 @@ ExternalProject_Add(
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
   TEST_COMMAND ""
-  PATCH_COMMAND sh -c "patch -p1 <${CMAKE_SOURCE_DIR}/podman.patch"
+  PATCH_COMMAND ""
 )
