@@ -156,21 +156,21 @@ public:
 	void on_init();
 	void on_capture_start();
 	void on_capture_end();
-	bool get_nextrun_args(OUT std::string* args);
+	bool get_nextrun_args(std::string* args);
 	chisel_desc* get_lua_script_info()
 	{
 		return &m_lua_script_info;
 	}
 
 private:
-	bool openfile(std::string filename, OUT std::ifstream* is);
+	bool openfile(std::string filename, std::ifstream* is);
 	void free_lua_chisel();
 	static chisel_field_aggregation string_to_aggregation(std::string ag);
-	static void parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT void* columns);
-	static void parse_view_columns(lua_State *ls, OUT chisel_desc* cd, OUT void* columns);
-	static void parse_view_action(lua_State *ls, OUT chisel_desc* cd, OUT void* actions);
-	static void parse_view_actions(lua_State *ls, OUT chisel_desc* cd, OUT void* actions);
-	static bool parse_view_info(lua_State *ls, OUT chisel_desc* cd);
+	static void parse_view_column(lua_State *ls, chisel_desc* cd, void* columns);
+	static void parse_view_columns(lua_State *ls, chisel_desc* cd, void* columns);
+	static void parse_view_action(lua_State *ls, chisel_desc* cd, void* actions);
+	static void parse_view_actions(lua_State *ls, chisel_desc* cd, void* actions);
+	static bool parse_view_info(lua_State *ls, chisel_desc* cd);
 	static bool init_lua_chisel(chisel_desc &cd, std::string const &path);
 	void first_event_inits(sinsp_evt* evt);
 

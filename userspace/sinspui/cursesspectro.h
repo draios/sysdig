@@ -83,7 +83,7 @@ public:
 			return 0;
 		}
 	}
-	bool get_position(OUT int32_t* pos,	OUT int32_t* totlines, OUT float* percent, OUT bool* truncated)
+	bool get_position(int32_t* pos,	int32_t* totlines, float* percent, bool* truncated)
 	{
 		return false;
 	}

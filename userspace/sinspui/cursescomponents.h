@@ -86,10 +86,10 @@ public:
 	//
 	// Returns false if this chart doesn't support returning the current position
 	//
-	virtual bool get_position(OUT int32_t* pos, 
-		OUT int32_t* totlines, 
-		OUT float* percent,
-		OUT bool* truncated) = 0;
+	virtual bool get_position(int32_t* pos, 
+		int32_t* totlines, 
+		float* percent,
+		bool* truncated) = 0;
 };
 
 class curses_table_column_info
@@ -102,7 +102,7 @@ public:
 	//
 	// Use -1 as size for autosize
 	//
-	curses_table_column_info(IN filtercheck_field_info* info, int32_t size)
+	curses_table_column_info(filtercheck_field_info* info, int32_t size)
 	{
 		m_info = *info;
 		m_size = size;
@@ -194,7 +194,7 @@ public:
 	chisel_table_action handle_input(int ch);
 	void populate_sidemenu();
 	void reset();
-	bool get_position(OUT int32_t* pos, OUT int32_t* totlines, OUT float* percent, OUT bool* truncated);
+	bool get_position(int32_t* pos, int32_t* totlines, float* percent, bool* truncated);
 	std::string* get_last_search_string();
 	int8_t get_offset(int32_t* x, int32_t* y); 
 	int8_t scroll_to(int32_t x, int32_t y);

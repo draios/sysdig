@@ -310,7 +310,7 @@ void sinsp_chisel::free_lua_chisel()
 }
 
 #ifdef HAS_LUA_CHISELS
-void parse_lua_chisel_arg(lua_State *ls, OUT chisel_desc* cd)
+void parse_lua_chisel_arg(lua_State *ls, chisel_desc* cd)
 {
 	lua_pushnil(ls);
 	string name;
@@ -353,7 +353,7 @@ void parse_lua_chisel_arg(lua_State *ls, OUT chisel_desc* cd)
 	cd->m_args.push_back(chiselarg_desc(name, type, desc, optional));
 }
 
-void parse_lua_chisel_args(lua_State *ls, OUT chisel_desc* cd)
+void parse_lua_chisel_args(lua_State *ls, chisel_desc* cd)
 {
 	lua_pushnil(ls);
 
@@ -425,7 +425,7 @@ chisel_field_aggregation sinsp_chisel::string_to_aggregation(string ag)
 	return res;
 }
 
-void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT void* columns)
+void sinsp_chisel::parse_view_column(lua_State *ls, chisel_desc* cd, void* columns)
 {
 	vector<chisel_view_column_info>* cols = (vector<chisel_view_column_info>*)columns;
 
@@ -597,7 +597,7 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 		filterfield));
 }
 
-void sinsp_chisel::parse_view_columns(lua_State *ls, OUT chisel_desc* cd, OUT void* columns)
+void sinsp_chisel::parse_view_columns(lua_State *ls, chisel_desc* cd, void* columns)
 {
 	string name;
 	string type;
@@ -620,7 +620,7 @@ void sinsp_chisel::parse_view_columns(lua_State *ls, OUT chisel_desc* cd, OUT vo
 	}
 }
 
-void sinsp_chisel::parse_view_action(lua_State *ls, OUT chisel_desc* cd, OUT void* actions)
+void sinsp_chisel::parse_view_action(lua_State *ls, chisel_desc* cd, void* actions)
 {
 	vector<chisel_view_action_info>* keys = (vector<chisel_view_action_info>*)actions;
 
@@ -696,7 +696,7 @@ void sinsp_chisel::parse_view_action(lua_State *ls, OUT chisel_desc* cd, OUT voi
 		waitfinish));
 }
 
-void sinsp_chisel::parse_view_actions(lua_State *ls, OUT chisel_desc* cd, OUT void* actions)
+void sinsp_chisel::parse_view_actions(lua_State *ls, chisel_desc* cd, void* actions)
 {
 	string name;
 	string type;
@@ -719,7 +719,7 @@ void sinsp_chisel::parse_view_actions(lua_State *ls, OUT chisel_desc* cd, OUT vo
 	}
 }
 
-bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
+bool sinsp_chisel::parse_view_info(lua_State *ls, chisel_desc* cd)
 {
 	lua_getglobal(ls, "view_info");
 	if(lua_isnoneornil(ls, -1))
@@ -1129,7 +1129,7 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 // If the function succeeds, is is initialized to point to the file.
 // Otherwise, the return value is "false".
 //
-bool sinsp_chisel::openfile(string filename, OUT ifstream* is)
+bool sinsp_chisel::openfile(string filename, ifstream* is)
 {
 	uint32_t j;
 
@@ -1775,7 +1775,7 @@ void sinsp_chisel::on_capture_end()
 #endif // HAS_LUA_CHISELS
 }
 
-bool sinsp_chisel::get_nextrun_args(OUT string* args)
+bool sinsp_chisel::get_nextrun_args(string* args)
 {
 	ASSERT(m_lua_cinfo != NULL);
 

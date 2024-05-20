@@ -45,7 +45,7 @@ public:
 	void recreate_win(int h);
 	void update_rowkey(int32_t row);
 	void goto_row(int32_t row);
-	bool get_position(OUT int32_t* pos, OUT int32_t* totlines, OUT float* percent, OUT bool* truncated);
+	bool get_position(int32_t* pos, int32_t* totlines, float* percent, bool* truncated);
 	void follow_end();
 	std::string get_field_val(std::string fldname);
 	uint32_t get_data_size()

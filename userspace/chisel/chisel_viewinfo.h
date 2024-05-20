@@ -155,7 +155,7 @@ public:
 		std::string spectro_type,
 		bool propagate_filter);
 
-	void get_col_names_and_sizes(OUT std::vector<std::string>* colnames, OUT std::vector<int32_t>* colsizes);
+	void get_col_names_and_sizes(std::vector<std::string>* colnames, std::vector<int32_t>* colsizes);
 	chisel_view_column_info* get_key();
 	std::string get_filter(uint32_t depth) const;
 	viewtype get_type()

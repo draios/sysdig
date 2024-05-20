@@ -844,10 +844,10 @@ void curses_table::goto_row(int32_t row)
 	render(true);
 }
 
-bool curses_table::get_position(OUT int32_t* pos, 
-	OUT int32_t* totlines, 
-	OUT float* percent, 
-	OUT bool* truncated)
+bool curses_table::get_position(int32_t* pos, 
+	int32_t* totlines, 
+	float* percent, 
+	bool* truncated)
 {
 	if(m_data == NULL || m_data->size() == 0)
 	{

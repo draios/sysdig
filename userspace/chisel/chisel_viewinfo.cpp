@@ -227,7 +227,7 @@ void chisel_view_info::apply_tag(string tag)
 	set_sorting_col();
 }
 
-void chisel_view_info::get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes)
+void chisel_view_info::get_col_names_and_sizes(vector<string>* colnames, vector<int32_t>* colsizes)
 {
 	if(m_type == viewtype::T_LIST)
 	{

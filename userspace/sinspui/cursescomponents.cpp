@@ -1300,10 +1300,10 @@ void curses_textbox::reset()
 	n_prints = 0;
 }
 
-bool curses_textbox::get_position(OUT int32_t* pos,
-	OUT int32_t* totlines,
-	OUT float* percent,
-	OUT bool* truncated)
+bool curses_textbox::get_position(int32_t* pos,
+	int32_t* totlines,
+	float* percent,
+	bool* truncated)
 {
 	int32_t ox;
 
