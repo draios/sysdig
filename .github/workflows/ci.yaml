@@ -257,7 +257,7 @@ jobs:
             build/sysdig-*.${{ matrix.artifact_ext }}
 
   build-sysdig-others-arm64:
-    name: build-sysdig-other-amd64
+    name: build-sysdig-other-arm64
     strategy:
       matrix:
         os: [macos-14]
