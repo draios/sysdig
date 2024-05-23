@@ -93,7 +93,7 @@ void json_spy_renderer::set_filter(string filter)
 	if(filter != "")
 	{
 		sinsp_filter_compiler compiler(m_inspector, filter);
-		m_filter = std::move(compiler.compile());
+		m_filter = compiler.compile();
 	}
 }
 
@@ -2275,7 +2275,7 @@ chisel_table_action sinsp_cursesui::handle_textbox_input(int ch)
 
 					try
 					{
-						f = std::move(compiler.compile());
+						f = compiler.compile();
 					}
 					catch(const sinsp_exception& e)
 					{

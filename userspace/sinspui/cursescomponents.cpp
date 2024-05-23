@@ -855,7 +855,7 @@ curses_textbox::~curses_textbox()
 void curses_textbox::set_filter(string filter)
 {
 	sinsp_filter_compiler compiler(m_inspector, filter);
-	m_filter = std::move(compiler.compile());
+	m_filter = compiler.compile();
 }
 
 void curses_textbox::print_no_data()
