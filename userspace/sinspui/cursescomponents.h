@@ -23,6 +23,7 @@ public:
 	virtual bool on_search_key_pressed(std::string search_str) = 0;
 	virtual bool on_search_next() = 0;
 	virtual std::string* get_last_search_string() = 0;
+	virtual ~search_caller_interface() = default;
 };
 
 class sidemenu_list_entry
@@ -97,6 +98,7 @@ class curses_table_column_info
 public:	
 	curses_table_column_info()
 	{
+		m_size = -1;
 	}
 
 	//

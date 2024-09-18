@@ -176,7 +176,7 @@ public:
 	std::string m_description;
 	std::vector<std::string> m_tags;
 	std::vector<std::string> m_tips;
-	int32_t m_sortingcol;
+	uint32_t m_sortingcol;
 	std::vector<std::string> m_applies_to;
 	std::vector<chisel_view_column_info> m_columns;
 	bool m_use_defaults;
