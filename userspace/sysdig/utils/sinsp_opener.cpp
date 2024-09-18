@@ -44,7 +44,7 @@ void sinsp_opener::open(sinsp* inspector) const
 
     if (plugin.enabled)
     {
-        inspector->open_plugin(plugin.name, plugin.params);
+        inspector->open_plugin(plugin.name, plugin.params, sinsp_plugin_platform::SINSP_PLATFORM_HOSTINFO);
         return;
     }
 
