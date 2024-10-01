@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 6.4.0-slfo.1.6.2.aarch64
+target: opensuse
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_opensuse_6.4.0-slfo.1.6.2.aarch64_1.ko
+  probe: output/7.3.0+driver/aarch64/scap_opensuse_6.4.0-slfo.1.6.2.aarch64_1.o
+kernelurls: ["http://download.opensuse.org/distribution/leap/./16.0/repo/oss/noarch/kernel-devel-6.4.0-slfo.1.6.2.noarch.rpm","https://mirrors.edge.kernel.org/opensuse/distribution/leap/16.0/repo/oss/noarch/kernel-devel-6.4.0-slfo.1.6.2.noarch.rpm","http://download.opensuse.org/distribution/leap/./16.0/repo/oss/aarch64/kernel-default-devel-6.4.0-slfo.1.6.2.aarch64.rpm","https://mirrors.edge.kernel.org/opensuse/distribution/leap/16.0/repo/oss/aarch64/kernel-default-devel-6.4.0-slfo.1.6.2.aarch64.rpm"]

@@ -1,0 +1,8 @@
+kernelversion: 145
+kernelrelease: 5.4.0-1136-gcp
+target: ubuntu-gcp
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_ubuntu-gcp_5.4.0-1136-gcp_145.ko
+  probe: output/7.3.0+driver/x86_64/scap_ubuntu-gcp_5.4.0-1136-gcp_145.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp/linux-headers-5.4.0-1136-gcp_5.4.0-1136.145_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp/linux-gcp-headers-5.4.0-1136_5.4.0-1136.145_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gcp/linux-headers-5.4.0-1136-gcp_5.4.0-1136.145_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp/linux-gcp-headers-5.4.0-1136_5.4.0-1136.145_amd64.deb"]

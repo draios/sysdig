@@ -1,0 +1,8 @@
+kernelversion: 27~22.04.1
+kernelrelease: 6.5.0-1025-gcp
+target: ubuntu-gcp
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-gcp_6.5.0-1025-gcp_27~22.04.1.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-gcp_6.5.0-1025-gcp_27~22.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp-6.5/linux-headers-6.5.0-1025-gcp_6.5.0-1025.27~22.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp-6.5/linux-gcp-6.5-headers-6.5.0-1025_6.5.0-1025.27~22.04.1_arm64.deb"]

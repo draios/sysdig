@@ -1,0 +1,8 @@
+kernelversion: 53
+kernelrelease: 5.15.0-1048-gke
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-generic_5.15.0-1048-gke_53.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-generic_5.15.0-1048-gke_53.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gke/linux-gke-headers-5.15.0-1048_5.15.0-1048.53_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gke/linux-headers-5.15.0-1048-gke_5.15.0-1048.53_arm64.deb"]

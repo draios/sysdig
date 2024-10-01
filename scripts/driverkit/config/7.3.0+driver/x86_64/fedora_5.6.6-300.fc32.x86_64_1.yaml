@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 5.6.6-300.fc32.x86_64
+target: fedora
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_fedora_5.6.6-300.fc32.x86_64_1.ko
+  probe: output/7.3.0+driver/x86_64/scap_fedora_5.6.6-300.fc32.x86_64_1.o
+kernelurls: ["https://archives.fedoraproject.org/pub/archive/fedora/linux/releases/32/Everything/x86_64/os/Packages/k/kernel-devel-5.6.6-300.fc32.x86_64.rpm"]

@@ -1,0 +1,8 @@
+kernelversion: 15~22.04.1
+kernelrelease: 6.5.0-15-hwe
+target: ubuntu-hwe
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-hwe_6.5.0-15-hwe_15~22.04.1.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-hwe_6.5.0-15-hwe_15~22.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-6.5/linux-headers-6.5.0-15-generic_6.5.0-15.15~22.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-6.5/linux-hwe-6.5-headers-6.5.0-15_6.5.0-15.15~22.04.1_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-6.5/linux-headers-6.5.0-15-generic-64k_6.5.0-15.15~22.04.1_arm64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 6.1.90-1.ph5
+target: photon
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_photon_6.1.90-1.ph5_1.ko
+  probe: output/7.3.0+driver/aarch64/scap_photon_6.1.90-1.ph5_1.o
+kernelurls: ["https://packages.vmware.com/photon/5.0/photon_5.0_aarch64/aarch64/linux-devel-6.1.90-1.ph5.aarch64.rpm"]

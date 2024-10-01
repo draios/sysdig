@@ -1,0 +1,8 @@
+kernelversion: 13+3
+kernelrelease: 5.15.0-1013-nvidia
+target: ubuntu-nvidia
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-nvidia_5.15.0-1013-nvidia_13+3.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-nvidia_5.15.0-1013-nvidia_13+3.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-nvidia-tegra-igx-modules/linux-headers-tegra-oot-r36.3.1-5.15.0-1013-nvidia-tegra-igx_5.15.0-1013.13+3_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-nvidia-tegra-igx-modules/linux-headers-tegra-oot-jetson-5.15.0-1013-nvidia-tegra-igx_5.15.0-1013.13+3_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-nvidia-tegra-igx-modules/linux-headers-tegra-oot-jetson-5.15.0-1013-nvidia-tegra-igx-rt_5.15.0-1013.13+3_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-nvidia-tegra-igx-modules/linux-headers-tegra-oot-r36.3.1-5.15.0-1013-nvidia-tegra-igx-rt_5.15.0-1013.13+3_arm64.deb"]

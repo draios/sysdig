@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 6.10.11-100.fc39.aarch64
+target: fedora
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_fedora_6.10.11-100.fc39.aarch64_1.ko
+  probe: output/7.3.0+driver/aarch64/scap_fedora_6.10.11-100.fc39.aarch64_1.o
+kernelurls: ["https://mirrors.kernel.org/fedora/updates/39/Everything/aarch64/Packages/k/kernel-devel-6.10.11-100.fc39.aarch64.rpm"]

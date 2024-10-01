@@ -1,0 +1,8 @@
+kernelversion: 17~22.04.1
+kernelrelease: 6.5.0-1017-azure
+target: ubuntu-azure
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-azure_6.5.0-1017-azure_17~22.04.1.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-azure_6.5.0-1017-azure_17~22.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure-6.5/linux-headers-6.5.0-1017-azure_6.5.0-1017.17~22.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure-6.5/linux-azure-6.5-headers-6.5.0-1017_6.5.0-1017.17~22.04.1_all.deb"]

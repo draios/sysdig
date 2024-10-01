@@ -1,0 +1,7 @@
+kernelversion: 1
+kernelrelease: 4.12.14-lp150.42.1.g64c1ef2.aarch64
+target: opensuse
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_opensuse_4.12.14-lp150.42.1.g64c1ef2.aarch64_1.ko
+kernelurls: ["https://download.opensuse.org/repositories/Kernel:/./openSUSE-15.0:/Submit/ports/aarch64/kernel-default-devel-4.12.14-lp150.42.1.g64c1ef2.aarch64.rpm","https://download.opensuse.org/repositories/Kernel:/./openSUSE-15.0:/Submit/ports/noarch/kernel-devel-4.12.14-lp150.42.1.g64c1ef2.noarch.rpm"]

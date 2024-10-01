@@ -1,0 +1,8 @@
+kernelversion: 23
+kernelrelease: 6.5.0-1022-nvidia
+target: ubuntu-nvidia
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-nvidia_6.5.0-1022-nvidia_23.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-nvidia_6.5.0-1022-nvidia_23.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-nvidia-6.5/linux-headers-6.5.0-1022-nvidia_6.5.0-1022.23_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-nvidia-6.5/linux-nvidia-6.5-headers-6.5.0-1022_6.5.0-1022.23_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-nvidia-6.5/linux-headers-6.5.0-1022-nvidia-64k_6.5.0-1022.23_arm64.deb"]

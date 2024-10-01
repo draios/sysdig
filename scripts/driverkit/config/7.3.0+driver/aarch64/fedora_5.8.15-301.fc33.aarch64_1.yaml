@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 5.8.15-301.fc33.aarch64
+target: fedora
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_fedora_5.8.15-301.fc33.aarch64_1.ko
+  probe: output/7.3.0+driver/aarch64/scap_fedora_5.8.15-301.fc33.aarch64_1.o
+kernelurls: ["https://archives.fedoraproject.org/pub/archive/fedora/linux/releases/33/Everything/aarch64/os/Packages/k/kernel-devel-5.8.15-301.fc33.aarch64.rpm"]

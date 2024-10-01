@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 5.14.21-150500.53.2.aarch64
+target: opensuse
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_opensuse_5.14.21-150500.53.2.aarch64_1.ko
+  probe: output/7.3.0+driver/aarch64/scap_opensuse_5.14.21-150500.53.2.aarch64_1.o
+kernelurls: ["https://mirrors.edge.kernel.org/opensuse/distribution/leap/15.5/repo/oss/aarch64/kernel-default-devel-5.14.21-150500.53.2.aarch64.rpm","https://mirrors.edge.kernel.org/opensuse/distribution/leap/15.5/repo/oss/noarch/kernel-devel-5.14.21-150500.53.2.noarch.rpm","http://download.opensuse.org/distribution/leap/./15.5/repo/oss/noarch/kernel-devel-5.14.21-150500.53.2.noarch.rpm","http://download.opensuse.org/distribution/leap/./15.5/repo/oss/aarch64/kernel-default-devel-5.14.21-150500.53.2.aarch64.rpm"]

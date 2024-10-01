@@ -1,0 +1,8 @@
+kernelversion: 117~20.04.1
+kernelrelease: 5.15.0-107-hwe
+target: ubuntu-hwe
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-hwe_5.15.0-107-hwe_117~20.04.1.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-hwe_5.15.0-107-hwe_117~20.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-5.15/linux-headers-5.15.0-107-generic_5.15.0-107.117~20.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-5.15/linux-headers-5.15.0-107-generic-64k_5.15.0-107.117~20.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-5.15/linux-hwe-5.15-headers-5.15.0-107_5.15.0-107.117~20.04.1_all.deb"]

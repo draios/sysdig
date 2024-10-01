@@ -1,0 +1,8 @@
+kernelversion: 80
+kernelrelease: 5.4.0-1075-ibm
+target: ubuntu-ibm
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_ubuntu-ibm_5.4.0-1075-ibm_80.ko
+  probe: output/7.3.0+driver/x86_64/scap_ubuntu-ibm_5.4.0-1075-ibm_80.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm/linux-headers-5.4.0-1075-ibm_5.4.0-1075.80_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-ibm-headers-5.4.0-1075_5.4.0-1075.80_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm/linux-ibm-headers-5.4.0-1075_5.4.0-1075.80_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-headers-5.4.0-1075-ibm_5.4.0-1075.80_amd64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 120
+kernelrelease: 5.15.0-110-lowlatency
+target: ubuntu-lowlatency
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-lowlatency_5.15.0-110-lowlatency_120.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-lowlatency_5.15.0-110-lowlatency_120.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-lowlatency-headers-5.15.0-110_5.15.0-110.120_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-5.15.0-110-lowlatency-64k_5.15.0-110.120_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-5.15.0-110-lowlatency_5.15.0-110.120_arm64.deb"]

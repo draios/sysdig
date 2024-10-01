@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 4.19.115-5.ph3
+target: photon
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_photon_4.19.115-5.ph3_1.ko
+  probe: output/7.3.0+driver/aarch64/scap_photon_4.19.115-5.ph3_1.o
+kernelurls: ["https://packages.vmware.com/photon/3.0/photon_updates_3.0_aarch64/aarch64/linux-devel-4.19.115-5.ph3.aarch64.rpm"]

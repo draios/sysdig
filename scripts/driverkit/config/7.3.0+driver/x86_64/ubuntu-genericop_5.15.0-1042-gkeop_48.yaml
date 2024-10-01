@@ -1,0 +1,8 @@
+kernelversion: 48
+kernelrelease: 5.15.0-1042-gkeop
+target: ubuntu-genericop
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_ubuntu-genericop_5.15.0-1042-gkeop_48.ko
+  probe: output/7.3.0+driver/x86_64/scap_ubuntu-genericop_5.15.0-1042-gkeop_48.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gkeop/linux-headers-5.15.0-1042-gkeop_5.15.0-1042.48_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gkeop/linux-gkeop-headers-5.15.0-1042_5.15.0-1042.48_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gkeop/linux-gkeop-headers-5.15.0-1042_5.15.0-1042.48_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gkeop/linux-headers-5.15.0-1042-gkeop_5.15.0-1042.48_amd64.deb"]

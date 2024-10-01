@@ -1,0 +1,8 @@
+kernelversion: 22
+kernelrelease: 6.5.0-1019-laptop
+target: ubuntu-laptop
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-laptop_6.5.0-1019-laptop_22.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-laptop_6.5.0-1019-laptop_22.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-laptop/linux-headers-6.5.0-1019-laptop_6.5.0-1019.22_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-laptop/linux-laptop-headers-6.5.0-1019_6.5.0-1019.22_all.deb"]

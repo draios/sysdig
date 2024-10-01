@@ -1,0 +1,8 @@
+kernelversion: 74
+kernelrelease: 5.15.0-1068-oracle
+target: ubuntu-oracle
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-oracle_5.15.0-1068-oracle_74.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-oracle_5.15.0-1068-oracle_74.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-oracle-headers-5.15.0-1068_5.15.0-1068.74_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-headers-5.15.0-1068-oracle_5.15.0-1068.74_arm64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 5.10.118-7.ph4
+target: photon
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_photon_5.10.118-7.ph4_1.ko
+  probe: output/7.3.0+driver/x86_64/scap_photon_5.10.118-7.ph4_1.o
+kernelurls: ["https://packages.vmware.com/photon/4.0/photon_4.0_x86_64/x86_64/linux-aws-devel-5.10.118-7.ph4.x86_64.rpm"]

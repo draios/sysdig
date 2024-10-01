@@ -1,0 +1,8 @@
+kernelversion: 127
+kernelrelease: 5.4.0-1117-aws
+target: ubuntu-aws
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-aws_5.4.0-1117-aws_127.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-aws_5.4.0-1117-aws_127.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-headers-5.4.0-1117-aws_5.4.0-1117.127_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-aws-headers-5.4.0-1117_5.4.0-1117.127_all.deb"]

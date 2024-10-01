@@ -1,0 +1,8 @@
+kernelversion: 133
+kernelrelease: 5.4.0-1123-aws
+target: ubuntu-aws
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-aws_5.4.0-1123-aws_133.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-aws_5.4.0-1123-aws_133.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-aws-headers-5.4.0-1123_5.4.0-1123.133_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-aws/linux-headers-5.4.0-1123-aws_5.4.0-1123.133_arm64.deb"]

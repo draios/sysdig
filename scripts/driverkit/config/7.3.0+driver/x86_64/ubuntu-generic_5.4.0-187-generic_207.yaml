@@ -1,0 +1,8 @@
+kernelversion: 207
+kernelrelease: 5.4.0-187-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_ubuntu-generic_5.4.0-187-generic_207.ko
+  probe: output/7.3.0+driver/x86_64/scap_ubuntu-generic_5.4.0-187-generic_207.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.4.0-187_5.4.0-187.207_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.4.0-187-lowlatency_5.4.0-187.207_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.4.0-187-generic_5.4.0-187.207_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.4.0-187_5.4.0-187.207_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.4.0-187-lowlatency_5.4.0-187.207_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.4.0-187-generic_5.4.0-187.207_amd64.deb"]

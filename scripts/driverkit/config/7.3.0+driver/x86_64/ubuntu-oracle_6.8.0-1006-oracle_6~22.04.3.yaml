@@ -1,0 +1,8 @@
+kernelversion: 6~22.04.3
+kernelrelease: 6.8.0-1006-oracle
+target: ubuntu-oracle
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_ubuntu-oracle_6.8.0-1006-oracle_6~22.04.3.ko
+  probe: output/7.3.0+driver/x86_64/scap_ubuntu-oracle_6.8.0-1006-oracle_6~22.04.3.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle-6.8/linux-headers-6.8.0-1006-oracle_6.8.0-1006.6~22.04.3_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-oracle-6.8/linux-oracle-6.8-headers-6.8.0-1006_6.8.0-1006.6~22.04.3_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle-6.8/linux-headers-6.8.0-1006-oracle_6.8.0-1006.6~22.04.3_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-oracle-6.8/linux-oracle-6.8-headers-6.8.0-1006_6.8.0-1006.6~22.04.3_all.deb"]

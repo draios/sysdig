@@ -1,0 +1,8 @@
+kernelversion: 21~22.04.1
+kernelrelease: 6.5.0-21-hwe
+target: ubuntu-hwe
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_ubuntu-hwe_6.5.0-21-hwe_21~22.04.1.ko
+  probe: output/7.3.0+driver/x86_64/scap_ubuntu-hwe_6.5.0-21-hwe_21~22.04.1.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-6.5/linux-hwe-6.5-headers-6.5.0-21_6.5.0-21.21~22.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-6.5/linux-hwe-6.5-headers-6.5.0-21_6.5.0-21.21~22.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-6.5/linux-headers-6.5.0-21-generic_6.5.0-21.21~22.04.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-hwe-6.5/linux-headers-6.5.0-21-generic_6.5.0-21.21~22.04.1_amd64.deb"]

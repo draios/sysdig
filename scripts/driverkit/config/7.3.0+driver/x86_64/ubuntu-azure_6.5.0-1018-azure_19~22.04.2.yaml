@@ -1,0 +1,8 @@
+kernelversion: 19~22.04.2
+kernelrelease: 6.5.0-1018-azure
+target: ubuntu-azure
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_ubuntu-azure_6.5.0-1018-azure_19~22.04.2.ko
+  probe: output/7.3.0+driver/x86_64/scap_ubuntu-azure_6.5.0-1018-azure_19~22.04.2.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-6.5/linux-headers-6.5.0-1018-azure_6.5.0-1018.19~22.04.2_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-6.5/linux-azure-6.5-headers-6.5.0-1018_6.5.0-1018.19~22.04.2_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure-6.5/linux-azure-6.5-headers-6.5.0-1018_6.5.0-1018.19~22.04.2_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure-6.5/linux-headers-6.5.0-1018-azure_6.5.0-1018.19~22.04.2_amd64.deb"]

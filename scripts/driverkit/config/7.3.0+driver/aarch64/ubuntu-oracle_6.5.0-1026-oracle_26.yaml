@@ -1,0 +1,8 @@
+kernelversion: 26
+kernelrelease: 6.5.0-1026-oracle
+target: ubuntu-oracle
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-oracle_6.5.0-1026-oracle_26.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-oracle_6.5.0-1026-oracle_26.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-oracle-headers-6.5.0-1026_6.5.0-1026.26_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-headers-6.5.0-1026-oracle-64k_6.5.0-1026.26_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-headers-6.5.0-1026-oracle_6.5.0-1026.26_arm64.deb"]

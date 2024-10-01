@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 6.1.63-1+rpt1-rpi-arm64
+target: debian
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_debian_6.1.63-1+rpt1-rpi-arm64_1.ko
+  probe: output/7.3.0+driver/aarch64/scap_debian_6.1.63-1+rpt1-rpi-arm64_1.o
+kernelurls: ["http://archive.raspberrypi.com/debian/pool/main/l/linux/linux-headers-6.1.0-rpi7-common-rpi_6.1.63-1+rpt1_all.deb","http://archive.raspberrypi.com/debian/pool/main/l/linux/linux-headers-6.1.0-rpi7-rpi-v8_6.1.63-1+rpt1_arm64.deb","http://archive.raspberrypi.com/debian/pool/main/l/linux/linux-headers-6.1.0-rpi7-rpi-2712_6.1.63-1+rpt1_arm64.deb","http://archive.raspberrypi.com/debian/pool/main/l/linux/linux-kbuild-6.1_6.1.73-1+rpt1_arm64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 12
+kernelrelease: 6.8.0-1009-gke
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_ubuntu-generic_6.8.0-1009-gke_12.ko
+  probe: output/7.3.0+driver/x86_64/scap_ubuntu-generic_6.8.0-1009-gke_12.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gke/linux-gke-headers-6.8.0-1009_6.8.0-1009.12_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gke/linux-headers-6.8.0-1009-gke_6.8.0-1009.12_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gke/linux-headers-6.8.0-1009-gke_6.8.0-1009.12_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gke/linux-gke-headers-6.8.0-1009_6.8.0-1009.12_amd64.deb"]

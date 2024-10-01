@@ -1,0 +1,8 @@
+kernelversion: 11.1
+kernelrelease: 6.8.0-1011-nvidia
+target: ubuntu-nvidia
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_ubuntu-nvidia_6.8.0-1011-nvidia_11.1.ko
+  probe: output/7.3.0+driver/x86_64/scap_ubuntu-nvidia_6.8.0-1011-nvidia_11.1.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-nvidia-lowlatency/linux-nvidia-lowlatency-headers-6.8.0-1011_6.8.0-1011.11.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-nvidia-lowlatency/linux-nvidia-lowlatency-headers-6.8.0-1011_6.8.0-1011.11.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-nvidia-lowlatency/linux-headers-6.8.0-1011-nvidia-lowlatency_6.8.0-1011.11.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-nvidia-lowlatency/linux-headers-6.8.0-1011-nvidia-lowlatency_6.8.0-1011.11.1_amd64.deb"]

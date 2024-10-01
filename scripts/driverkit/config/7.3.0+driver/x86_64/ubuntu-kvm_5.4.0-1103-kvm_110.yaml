@@ -1,0 +1,8 @@
+kernelversion: 110
+kernelrelease: 5.4.0-1103-kvm
+target: ubuntu-kvm
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_ubuntu-kvm_5.4.0-1103-kvm_110.ko
+  probe: output/7.3.0+driver/x86_64/scap_ubuntu-kvm_5.4.0-1103-kvm_110.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-5.4.0-1103_5.4.0-1103.110_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-headers-5.4.0-1103-kvm_5.4.0-1103.110_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-kvm/linux-headers-5.4.0-1103-kvm_5.4.0-1103.110_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-kvm/linux-kvm-headers-5.4.0-1103_5.4.0-1103.110_all.deb"]

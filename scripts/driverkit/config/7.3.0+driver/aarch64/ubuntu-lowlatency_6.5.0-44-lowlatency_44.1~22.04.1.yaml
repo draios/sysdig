@@ -1,0 +1,8 @@
+kernelversion: 44.1~22.04.1
+kernelrelease: 6.5.0-44-lowlatency
+target: ubuntu-lowlatency
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-lowlatency_6.5.0-44-lowlatency_44.1~22.04.1.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-lowlatency_6.5.0-44-lowlatency_44.1~22.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency-hwe-6.5/linux-headers-6.5.0-44-lowlatency-64k_6.5.0-44.44.1~22.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency-hwe-6.5/linux-headers-6.5.0-44-lowlatency_6.5.0-44.44.1~22.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency-hwe-6.5/linux-lowlatency-hwe-6.5-headers-6.5.0-44_6.5.0-44.44.1~22.04.1_all.deb"]

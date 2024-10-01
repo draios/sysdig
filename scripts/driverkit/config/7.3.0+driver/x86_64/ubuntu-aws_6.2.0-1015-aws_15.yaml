@@ -1,0 +1,8 @@
+kernelversion: 15
+kernelrelease: 6.2.0-1015-aws
+target: ubuntu-aws
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_ubuntu-aws_6.2.0-1015-aws_15.ko
+  probe: output/7.3.0+driver/x86_64/scap_ubuntu-aws_6.2.0-1015-aws_15.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-aws-headers-6.2.0-1015_6.2.0-1015.15_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-headers-6.2.0-1015-aws_6.2.0-1015.15_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-aws-headers-6.2.0-1015_6.2.0-1015.15_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-headers-6.2.0-1015-aws_6.2.0-1015.15_amd64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 5.0.3.zen1-2
+target: arch
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_arch_5.0.3.zen1-2_1.ko
+  probe: output/7.3.0+driver/x86_64/scap_arch_5.0.3.zen1-2_1.o
+kernelurls: ["https://archive.archlinux.org/packages/l/linux-zen-headers/linux-zen-headers-5.0.3.zen1-2-x86_64.pkg.tar.xz"]

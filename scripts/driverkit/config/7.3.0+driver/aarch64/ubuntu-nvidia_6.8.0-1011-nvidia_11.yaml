@@ -1,0 +1,8 @@
+kernelversion: 11
+kernelrelease: 6.8.0-1011-nvidia
+target: ubuntu-nvidia
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-nvidia_6.8.0-1011-nvidia_11.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-nvidia_6.8.0-1011-nvidia_11.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-nvidia/linux-nvidia-headers-6.8.0-1011_6.8.0-1011.11_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-nvidia/linux-headers-6.8.0-1011-nvidia-64k_6.8.0-1011.11_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-nvidia/linux-headers-6.8.0-1011-nvidia_6.8.0-1011.11_arm64.deb"]

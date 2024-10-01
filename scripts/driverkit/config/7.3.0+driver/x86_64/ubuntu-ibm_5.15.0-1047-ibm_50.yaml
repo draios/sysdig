@@ -1,0 +1,8 @@
+kernelversion: 50
+kernelrelease: 5.15.0-1047-ibm
+target: ubuntu-ibm
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_ubuntu-ibm_5.15.0-1047-ibm_50.ko
+  probe: output/7.3.0+driver/x86_64/scap_ubuntu-ibm_5.15.0-1047-ibm_50.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm/linux-ibm-headers-5.15.0-1047_5.15.0-1047.50_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-headers-5.15.0-1047-ibm_5.15.0-1047.50_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm/linux-headers-5.15.0-1047-ibm_5.15.0-1047.50_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-ibm-headers-5.15.0-1047_5.15.0-1047.50_all.deb"]

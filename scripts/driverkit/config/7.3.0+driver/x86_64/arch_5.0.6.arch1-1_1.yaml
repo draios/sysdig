@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 5.0.6.arch1-1
+target: arch
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_arch_5.0.6.arch1-1_1.ko
+  probe: output/7.3.0+driver/x86_64/scap_arch_5.0.6.arch1-1_1.o
+kernelurls: ["https://archive.archlinux.org/packages/l/linux-headers/linux-headers-5.0.6.arch1-1-x86_64.pkg.tar.xz"]

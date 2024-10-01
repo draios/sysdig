@@ -1,0 +1,8 @@
+kernelversion: 17
+kernelrelease: 6.2.0-1017-aws
+target: ubuntu-aws
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_ubuntu-aws_6.2.0-1017-aws_17.ko
+  probe: output/7.3.0+driver/x86_64/scap_ubuntu-aws_6.2.0-1017-aws_17.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-headers-6.2.0-1017-aws_6.2.0-1017.17_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-headers-6.2.0-1017-aws_6.2.0-1017.17_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-aws-headers-6.2.0-1017_6.2.0-1017.17_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-aws-headers-6.2.0-1017_6.2.0-1017.17_all.deb"]

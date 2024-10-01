@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 6.9.7-1~bpo12+1-arm64
+target: debian
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_debian_6.9.7-1~bpo12+1-arm64_1.ko
+  probe: output/7.3.0+driver/aarch64/scap_debian_6.9.7-1~bpo12+1-arm64_1.o
+kernelurls: ["http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-6.9.7+bpo-common_6.9.7-1~bpo12+1_all.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-headers-6.9.7+bpo-arm64_6.9.7-1~bpo12+1_arm64.deb","http://mirrors.edge.kernel.org/debian/pool/main/l/linux/linux-kbuild-6.9.7+bpo_6.9.7-1~bpo12+1_arm64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 9
+kernelrelease: 6.5.0-9-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-generic_6.5.0-9-generic_9.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-generic_6.5.0-9-generic_9.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-6.5.0-9-generic_6.5.0-9.9_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-6.5.0-9_6.5.0-9.9_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-6.5.0-9-generic-64k_6.5.0-9.9_arm64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 4
+kernelrelease: 6.8.0-1004-raspi
+target: ubuntu-raspi
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-raspi_6.8.0-1004-raspi_4.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-raspi_6.8.0-1004-raspi_4.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-raspi/linux-headers-6.8.0-1004-raspi_6.8.0-1004.4_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-raspi/linux-raspi-headers-6.8.0-1004_6.8.0-1004.4_arm64.deb"]

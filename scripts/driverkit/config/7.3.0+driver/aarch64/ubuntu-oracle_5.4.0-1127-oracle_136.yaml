@@ -1,0 +1,8 @@
+kernelversion: 136
+kernelrelease: 5.4.0-1127-oracle
+target: ubuntu-oracle
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-oracle_5.4.0-1127-oracle_136.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-oracle_5.4.0-1127-oracle_136.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-headers-5.4.0-1127-oracle_5.4.0-1127.136_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-oracle/linux-oracle-headers-5.4.0-1127_5.4.0-1127.136_all.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 98
+kernelrelease: 5.4.0-1091-bluefield
+target: ubuntu-bluefield
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-bluefield_5.4.0-1091-bluefield_98.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-bluefield_5.4.0-1091-bluefield_98.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-bluefield/linux-bluefield-headers-5.4.0-1091_5.4.0-1091.98_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-bluefield/linux-headers-5.4.0-1091-bluefield_5.4.0-1091.98_arm64.deb"]
