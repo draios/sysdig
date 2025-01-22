@@ -159,7 +159,12 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 if(MSVC OR WIN32)
-	add_compile_definitions(_HAS_STD_BYTE=0)
+	add_compile_definitions(
+		_HAS_STD_BYTE=0
+		WIN32_LEAN_AND_MEAN
+		_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR
+		NOMINMAX
+	)
 endif()
 
 include(falcosecurity-libs)
