@@ -135,8 +135,6 @@ jobs:
 
   push-container-image:
     runs-on: ubuntu-24.04${{ matrix.platform == 'arm64' && '-arm' || '' }}
-    container:
-      image: ubuntu:22.04
     strategy:
       matrix:
         platform:
