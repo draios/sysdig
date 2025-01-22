@@ -24,11 +24,11 @@ jobs:
             arch: x86_64
           - name: arm64
             arch: aarch64
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04${{ matrix.name == 'arm64' && '-arm' || '' }}
     env:
       S3_BUCKET: download.draios.com
       S3_PREFIX: scap-drivers
-      DRIVERKIT_VERSION: 0.20.3
+      DRIVERKIT_VERSION: 0.20.5
 
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
