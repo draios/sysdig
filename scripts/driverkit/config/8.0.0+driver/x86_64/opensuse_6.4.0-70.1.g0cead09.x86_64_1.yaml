@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 6.4.0-70.1.g0cead09.x86_64
+target: opensuse
+architecture: amd64
+output:
+  module: output/8.0.0+driver/x86_64/scap_opensuse_6.4.0-70.1.g0cead09.x86_64_1.ko
+  probe: output/8.0.0+driver/x86_64/scap_opensuse_6.4.0-70.1.g0cead09.x86_64_1.o
+kernelurls: ["https://download.opensuse.org/repositories/Kernel:/./SUSE-2024/standard/noarch/kernel-devel-6.4.0-70.1.g0cead09.noarch.rpm","https://download.opensuse.org/repositories/Kernel:/./SUSE-2024/standard/x86_64/kernel-default-devel-6.4.0-70.1.g0cead09.x86_64.rpm"]

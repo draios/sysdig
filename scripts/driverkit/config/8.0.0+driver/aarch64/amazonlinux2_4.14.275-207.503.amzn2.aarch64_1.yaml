@@ -1,0 +1,7 @@
+kernelversion: 1
+kernelrelease: 4.14.275-207.503.amzn2.aarch64
+target: amazonlinux2
+architecture: arm64
+output:
+  module: output/8.0.0+driver/aarch64/scap_amazonlinux2_4.14.275-207.503.amzn2.aarch64_1.ko
+kernelurls: ["http://amazonlinux.us-east-1.amazonaws.com/2/core/2.0/aarch64/030fc98d163402a0f10513900e023c2000b0d049799b47f92665f4a3b80a6551/../../../../../blobstore/b8d1118333d23467250a74c21b70e04bc8f78f1e1aab43f425179e13b2049ff2/kernel-devel-4.14.275-207.503.amzn2.aarch64.rpm"]

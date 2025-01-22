@@ -1,0 +1,8 @@
+kernelversion: 15
+kernelrelease: 6.8.0-1012-gke
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/8.0.0+driver/x86_64/scap_ubuntu-generic_6.8.0-1012-gke_15.ko
+  probe: output/8.0.0+driver/x86_64/scap_ubuntu-generic_6.8.0-1012-gke_15.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gke/linux-headers-6.8.0-1012-gke_6.8.0-1012.15_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gke/linux-headers-6.8.0-1012-gke_6.8.0-1012.15_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gke/linux-gke-headers-6.8.0-1012_6.8.0-1012.15_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-gke/linux-headers-6.8.0-1012-gke_6.8.0-1012.15_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gke/linux-gke-headers-6.8.0-1012_6.8.0-1012.15_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-gke/linux-gke-headers-6.8.0-1012_6.8.0-1012.15_amd64.deb"]

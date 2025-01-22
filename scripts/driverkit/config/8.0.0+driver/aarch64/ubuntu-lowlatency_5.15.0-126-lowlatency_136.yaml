@@ -1,0 +1,8 @@
+kernelversion: 136
+kernelrelease: 5.15.0-126-lowlatency
+target: ubuntu-lowlatency
+architecture: arm64
+output:
+  module: output/8.0.0+driver/aarch64/scap_ubuntu-lowlatency_5.15.0-126-lowlatency_136.ko
+  probe: output/8.0.0+driver/aarch64/scap_ubuntu-lowlatency_5.15.0-126-lowlatency_136.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-5.15.0-126-lowlatency-64k_5.15.0-126.136_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-lowlatency-headers-5.15.0-126_5.15.0-126.136_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-5.15.0-126-lowlatency_5.15.0-126.136_arm64.deb"]

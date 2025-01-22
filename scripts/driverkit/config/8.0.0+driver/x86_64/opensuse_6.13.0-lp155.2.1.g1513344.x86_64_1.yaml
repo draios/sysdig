@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 6.13.0-lp155.2.1.g1513344.x86_64
+target: opensuse
+architecture: amd64
+output:
+  module: output/8.0.0+driver/x86_64/scap_opensuse_6.13.0-lp155.2.1.g1513344.x86_64_1.ko
+  probe: output/8.0.0+driver/x86_64/scap_opensuse_6.13.0-lp155.2.1.g1513344.x86_64_1.o
+kernelurls: ["https://download.opensuse.org/repositories/Kernel:/./stable:/Backport/standard/x86_64/kernel-default-devel-6.13.0-lp155.2.1.g1513344.x86_64.rpm","https://download.opensuse.org/repositories/Kernel:/./stable:/Backport/standard/noarch/kernel-devel-6.13.0-lp155.2.1.g1513344.noarch.rpm"]

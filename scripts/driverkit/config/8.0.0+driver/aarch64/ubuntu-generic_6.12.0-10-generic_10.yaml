@@ -1,0 +1,8 @@
+kernelversion: 10
+kernelrelease: 6.12.0-10-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/8.0.0+driver/aarch64/scap_ubuntu-generic_6.12.0-10-generic_10.ko
+  probe: output/8.0.0+driver/aarch64/scap_ubuntu-generic_6.12.0-10-generic_10.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-6.12.0-10-generic_6.12.0-10.10_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-6.12.0-10_6.12.0-10.10_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-6.12.0-10-generic-64k_6.12.0-10.10_arm64.deb"]

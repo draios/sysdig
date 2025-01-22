@@ -1,0 +1,8 @@
+kernelversion: 22
+kernelrelease: 6.8.0-1020-aws
+target: ubuntu-aws
+architecture: amd64
+output:
+  module: output/8.0.0+driver/x86_64/scap_ubuntu-aws_6.8.0-1020-aws_22.ko
+  probe: output/8.0.0+driver/x86_64/scap_ubuntu-aws_6.8.0-1020-aws_22.o
+kernelurls: ["http://archive.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-headers-6.8.0-1020-aws_6.8.0-1020.22_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-aws-headers-6.8.0-1020_6.8.0-1020.22_all.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-aws-headers-6.8.0-1020_6.8.0-1020.22_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-aws/linux-headers-6.8.0-1020-aws_6.8.0-1020.22_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-headers-6.8.0-1020-aws_6.8.0-1020.22_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-aws/linux-aws-headers-6.8.0-1020_6.8.0-1020.22_all.deb"]
