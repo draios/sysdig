@@ -22,7 +22,7 @@ option(USE_BUNDLED_FALCOSECURITY_LIBS
 
 if(NOT USE_BUNDLED_FALCOSECURITY_LIBS)
     find_package(PkgConfig REQUIRED)
-    pkg_check_modules(LIBSINSP REQUIRED IMPORTED_TARGET libsinsp)
+    pkg_check_modules(LIBSINSP REQUIRED IMPORTED_TARGET libsinsp>=0.20.0)
     message(STATUS "Found libsinsp:
   include: ${LIBSINSP_INCLUDE_DIRS}
   lib: ${LIBSINSP_LIBRARIES}

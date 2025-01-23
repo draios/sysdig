@@ -842,10 +842,10 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 			lua_pushnumber(ls, (uint32_t)tinfo.m_fdlimit);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "uid");
-			lua_pushnumber(ls, (uint32_t)tinfo.get_user()->uid);
+			lua_pushnumber(ls, (uint32_t)tinfo.m_uid);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "gid");
-			lua_pushnumber(ls, (uint32_t)tinfo.get_group()->gid);
+			lua_pushnumber(ls, (uint32_t)tinfo.m_gid);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "nchilds");
 			lua_pushnumber(ls, (uint32_t)tinfo.get_num_not_leader_threads());
