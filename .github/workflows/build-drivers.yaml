@@ -41,12 +41,12 @@ jobs:
 
       - name: Download DriverKit
         run: |
-          wget -O driverkit.tar.gz https://github.com/falcosecurity/driverkit/releases/download/v${{ env.DRIVERKIT_VERSION }}/driverkit_${{ env.DRIVERKIT_VERSION }}_linux_amd64.tar.gz && \
+          wget -O driverkit.tar.gz https://github.com/falcosecurity/driverkit/releases/download/v${{ env.DRIVERKIT_VERSION }}/driverkit_${{ env.DRIVERKIT_VERSION }}_linux_${{ matrix.name }}.tar.gz && \
             tar -xvf driverkit.tar.gz && \
             rm -rf driverkit.tar.gz && \
             chmod +x ./driverkit
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v5
         with:
           python-version: 3.8
 

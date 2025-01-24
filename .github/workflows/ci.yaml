@@ -55,10 +55,10 @@ jobs:
           make install && \
           cd ../.. && \
           rm -fr bpftool && \
-          curl -LO https://ziglang.org/builds/zig-linux-$(uname -m)-${ZIG_VERSION}.tar.xz && \
-          tar -xaf zig-linux-$(uname -m)-${ZIG_VERSION}.tar.xz && \
-          rm -v zig-linux-$(uname -m)-${ZIG_VERSION}.tar.xz && \
-          cd zig-linux-$(uname -m)-${ZIG_VERSION} &&  \
+          curl -LO https://ziglang.org/builds/zig-linux-"$(uname -m)"-"${ZIG_VERSION}".tar.xz && \
+          tar -xaf zig-linux-"$(uname -m)"-"${ZIG_VERSION}".tar.xz && \
+          rm -v zig-linux-"$(uname -m)"-"${ZIG_VERSION}".tar.xz && \
+          cd zig-linux-"$(uname -m)"-"${ZIG_VERSION}" &&  \
           cp -v zig /usr/bin && \
           find lib -exec cp --parents {} /usr/ \; && \
           cd .. && \
@@ -107,40 +107,24 @@ jobs:
           path: |
             build/sysdig-*.tar.gz
 
-  build-sysdig-others-amd64:
-    name: build-sysdig-other-amd64
+  build-sysdig-others:
+    name: build-sysdig-${{ matrix.os }}-${{ matrix.arch }}
     strategy:
       matrix:
-        os: [windows-latest, macos-13]
+        os: [windows-latest, macos-13, macos-14]
         include:
           - os: windows-latest
+            artifact_name: win
+            artifact_ext: exe
+            arch: x86_64
           - os: macos-13
             artifact_name: osx
             artifact_ext: dmg
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout Sysdig
-        uses: actions/checkout@v4
-      - name: Build
-        run: |
-          cmake -Wno-dev -S . -B build
-          cmake --build build --target package --config Release
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: sysdig-dev-${{ matrix.artifact_name }}-x86_64.${{ matrix.artifact_ext }}
-          path: |
-            build/sysdig-*.${{ matrix.artifact_ext }}
-
-  build-sysdig-others-arm64:
-    name: build-sysdig-other-arm64
-    strategy:
-      matrix:
-        os: [macos-14]
-        include:
+            arch: x86_64
           - os: macos-14
             artifact_name: osx
             artifact_ext: dmg
+            arch: arm64
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Sysdig
@@ -149,9 +133,8 @@ jobs:
         run: |
           cmake -Wno-dev -S . -B build
           cmake --build build --target package --config Release
-      - name: Upload artifacts
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: sysdig-dev-${{ matrix.artifact_name }}-arm64.${{ matrix.artifact_ext }}
-          path: |
-            build/sysdig-*.${{ matrix.artifact_ext }}
+          name: sysdig-dev-${{ matrix.artifact_name }}-${{ matrix.arch }}
+          path: build/sysdig-*.${{ matrix.artifact_ext }}
