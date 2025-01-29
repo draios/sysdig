@@ -13,7 +13,7 @@ jobs:
   build-release-linux:
     runs-on: ubuntu-24.04${{ matrix.platform == 'arm64' && '-arm' || '' }}
     container:
-      image: ubuntu:22.04
+      image: ubuntu:24.04
     strategy:
       matrix:
         platform:
@@ -65,10 +65,10 @@ jobs:
           make install && \
           cd ../.. && \
           rm -fr bpftool && \
-          curl -LO https://ziglang.org/builds/zig-linux-$(uname -m)-${ZIG_VERSION}.tar.xz && \
-          tar -xaf zig-linux-$(uname -m)-${ZIG_VERSION}.tar.xz && \
-          rm -v zig-linux-$(uname -m)-${ZIG_VERSION}.tar.xz && \
-          cd zig-linux-$(uname -m)-${ZIG_VERSION} &&  \
+          curl -LO https://ziglang.org/builds/zig-linux-"$(uname -m)"-"${ZIG_VERSION}".tar.xz && \
+          tar -xaf zig-linux-"$(uname -m)"-"${ZIG_VERSION}".tar.xz && \
+          rm -v zig-linux-"$(uname -m)"-"${ZIG_VERSION}".tar.xz && \
+          cd zig-linux-"$(uname -m)"-"${ZIG_VERSION}" &&  \
           cp -v zig /usr/bin && \
           find lib -exec cp --parents {} /usr/ \; && \
           cd .. && \
@@ -97,12 +97,12 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.release_arch }}
+          name: sysdig-release-${{ env.BUILD_VERSION }}-linux-${{ matrix.release_arch }}
           path: |
             build/sysdig-${{ env.BUILD_VERSION }}*
 
-  build-release-others-amd64:
-    name: build-release-others-amd64
+  build-release-others:
+    name: build-release-others
     strategy:
       matrix:
         os: [windows-latest, macos-13, macos-14]
@@ -147,7 +147,7 @@ jobs:
         - platform: arm64
           base_arch: aarch64
           release_arch: aarch64
-    needs: [build-release-linux,  sign-rpms, sign-debs]
+    needs: [build-release-linux,  sign-linux-packages]
     env:
       REGISTRY: ghcr.io
       SYSDIG_IMAGE_BASE: ghcr.io/draios/sysdig
@@ -158,12 +158,12 @@ jobs:
       - name: Download artifacts aarch64
         uses: actions/download-artifact@v4
         with:
-          name: sysdig-release-${{ env.BUILD_VERSION }}-aarch64
+          name: sysdig-release-${{ env.BUILD_VERSION }}-linux-aarch64
 
       - name: Download artifacts x86_64
         uses: actions/download-artifact@v4
         with:
-          name: sysdig-release-${{ env.BUILD_VERSION }}-x86_64
+          name: sysdig-release-${{ env.BUILD_VERSION }}-linux-x86_64
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -185,44 +185,10 @@ jobs:
           build-args:
             BUILD_VERSION=${{ env.BUILD_VERSION }}
 
-  sign-rpms:
-    strategy:
-      matrix:
-        name: [amd64, arm64]
-        include:
-          - name: amd64
-            arch: x86_64
-          - name: arm64
-            arch: aarch64
-    needs: build-release-linux
-    runs-on: ubuntu-latest
-    env:
-      KEY_ID: EC51E8C4
+  sign-linux-packages:
+    runs-on: ubuntu-24.04
     container:
-      image: fedora:39
-    steps:
-      - name: Install deps
-        run: dnf install -y rpm-sign pinentry
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.arch }}
-      - name: Import private key
-        env:
-          PRIVATE_KEY: ${{ secrets.SYSDIG_REPO_SIGNING_KEY }}
-        run: printenv PRIVATE_KEY | gpg --import -
-      - name: Sign RPMs
-        run: rpm --define "_gpg_name ${{ env.KEY_ID }}" --define "_binary_filedigest_algorithm 8" --addsign *.rpm
-      - name: Check signature
-        run: test "$(rpm -qpi *.rpm | awk '/Signature/' | grep -i none | wc -l)" -eq 0
-      - name: Upload Signed RPMs
-        uses: actions/upload-artifact@v4
-        with:
-          name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.arch }}-rpms
-          path: "*.rpm"
-
-  sign-debs:
-    runs-on: ubuntu-latest
+      image: ubuntu:24.04
     strategy:
       matrix:
         name: [amd64, arm64]
@@ -234,16 +200,14 @@ jobs:
     needs: build-release-linux
     env:
       KEY_ID: EC51E8C4
-    container:
-      image: debian:bullseye-slim
     steps:
       - name: Install deps
-        run: apt-get update && apt-get -y install dpkg-sig
+        run: apt update && apt -y install debsigs rpm
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.arch }}
+          name: sysdig-release-${{ env.BUILD_VERSION }}-linux-${{ matrix.arch }}
 
       - name: Import private key
         env:
@@ -251,20 +215,29 @@ jobs:
         run: printenv PRIVATE_KEY | gpg --import -
 
       - name: Sign DEBs
-        run: dpkg-sig -k ${{ env.KEY_ID }} -s builder *.deb
+        run: debsigs --sign=origin --default-key="${{ env.KEY_ID }}" *.deb
 
-      - name: Check signature
-        run: dpkg-sig --verify *.deb
+      - name: Check signature DEBs
+        run: debsigs --verify *.deb
 
-      - name: Upload Signed DEBs
+      - name: Sign RPMs
+        run: rpm --define "_gpg_name ${{ env.KEY_ID }}" --define "_binary_filedigest_algorithm 8" --addsign *.rpm
+
+      - name: Check signature RPMs
+        run: test "$(rpm -qpi *.rpm | awk '/Signature/' | grep -i none | wc -l)" -eq 0
+
+      - name: Upload Signed Packages
         uses: actions/upload-artifact@v4
         with:
-          name: sysdig-release-${{ env.BUILD_VERSION }}-${{ matrix.arch }}-debs
-          path: "*.deb"
+          name: sysdig-release-${{ env.BUILD_VERSION }}-linux-${{ matrix.arch }}
+          overwrite: true
+          path: |
+            *.deb
+            *.rpm
 
   create-draft-release:
     runs-on: ubuntu-latest
-    needs: [push-container-image, build-release-linux, sign-rpms, sign-debs]
+    needs: [push-container-image, build-release-linux, sign-linux-packages, build-release-others]
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
