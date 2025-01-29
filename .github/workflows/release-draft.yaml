@@ -202,7 +202,7 @@ jobs:
       KEY_ID: EC51E8C4
     steps:
       - name: Install deps
-        run: apt update && apt -y install debsigs rpm
+        run: apt update && apt -y install debsig-verify debsigs rpm
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -218,7 +218,7 @@ jobs:
         run: debsigs --sign=origin --default-key="${{ env.KEY_ID }}" *.deb
 
       - name: Check signature DEBs
-        run: debsigs --verify *.deb
+        run: debsig-verify *.deb
 
       - name: Sign RPMs
         run: rpm --define "_gpg_name ${{ env.KEY_ID }}" --define "_binary_filedigest_algorithm 8" --addsign *.rpm
