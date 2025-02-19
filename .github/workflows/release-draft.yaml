@@ -28,7 +28,7 @@ jobs:
           release_arch: aarch64
 
     env:
-      ZIG_VERSION: 0.14.0-dev.2851+b074fb7dd
+      ZIG_VERSION: 0.14.0-dev.3259+0779e847f
 
     steps:
       - name: Checkout Sysdig
