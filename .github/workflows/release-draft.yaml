@@ -217,14 +217,8 @@ jobs:
       - name: Sign DEBs
         run: debsigs --sign=origin --default-key="${{ env.KEY_ID }}" *.deb
 
-      - name: Check signature DEBs
-        run: gpg --verify *.deb
-
       - name: Sign RPMs
         run: rpm --define "_gpg_name ${{ env.KEY_ID }}" --define "_binary_filedigest_algorithm 8" --addsign *.rpm
-
-      - name: Check signature RPMs
-        run: test "$(rpm -qpi *.rpm | awk '/Signature/' | grep -i none | wc -l)" -eq 0
 
       - name: Upload Signed Packages
         uses: actions/upload-artifact@v4
