@@ -202,7 +202,7 @@ jobs:
       KEY_ID: EC51E8C4
     steps:
       - name: Install deps
-        run: apt update && apt -y install debsigs gpg rpm
+        run: apt update && apt -y install debsigs gpg rpm gnupg2
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
