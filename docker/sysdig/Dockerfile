@@ -2,11 +2,11 @@ FROM registry.access.redhat.com/ubi8/ubi
 
 LABEL usage="docker run --rm -i -t --privileged --net=host -v /var/run/docker.sock:/host/var/run/docker.sock -v /dev:/host/dev -v /proc:/host/proc:ro -v /boot:/host/boot:ro -v /src:/src -v /lib/modules:/host/lib/modules:ro -v /usr:/host/usr:ro -v /etc:/host/etc:ro --name NAME IMAGE"
 
-ARG BUILD_VERSION 0.1.1dev
-ENV BUILD_VERSION ${BUILD_VERSION}
+ARG BUILD_VERSION=0.1.1dev
+ENV BUILD_VERSION=${BUILD_VERSION}
 
-ENV HOST_ROOT /host
-ENV HOME /root
+ENV HOST_ROOT=/host
+ENV HOME=/root
 
 RUN yum -y install \
     make \
