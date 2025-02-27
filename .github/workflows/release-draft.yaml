@@ -180,8 +180,9 @@ jobs:
         with:
           file: docker/sysdig/Dockerfile
           context: .
-          tags: ${{ env.SYSDIG_IMAGE_BASE }}:${{ env.BUILD_VERSION }}-draft
+          tags: ${{ env.SYSDIG_IMAGE_BASE }}:${{ env.BUILD_VERSION }}-${{ matrix.platform }}-draft
           push: true
+          provenance: false
           build-args:
             BUILD_VERSION=${{ env.BUILD_VERSION }}
 

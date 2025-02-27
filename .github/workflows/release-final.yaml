@@ -31,15 +31,48 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish final docker images
+      - name: Publish final docker images (amd64)
         uses: akhilerm/tag-push-action@v2.0.0
         with:
-          src: ${{ env.SYSDIG_IMAGE_BASE }}:${{ env.RELEASE }}-draft
+          src: ${{ env.SYSDIG_IMAGE_BASE }}:${{ env.RELEASE }}-amd64-draft
           dst: |
-            ${{ env.SYSDIG_IMAGE_BASE }}:${{ env.RELEASE }}
-            ${{ env.SYSDIG_IMAGE_BASE }}:latest
-            ${{ env.SYSDIG_DOCKERHUB_IMAGE_BASE }}:${{ env.RELEASE }}
-            ${{ env.SYSDIG_DOCKERHUB_IMAGE_BASE }}:latest
+            ${{ env.SYSDIG_IMAGE_BASE }}:${{ env.RELEASE }}-amd64
+            ${{ env.SYSDIG_IMAGE_BASE }}:latest-amd64
+            ${{ env.SYSDIG_DOCKERHUB_IMAGE_BASE }}:${{ env.RELEASE }}-amd64
+            ${{ env.SYSDIG_DOCKERHUB_IMAGE_BASE }}:latest-amd64
+
+      - name: Publish final docker images (aarch64)
+        uses: akhilerm/tag-push-action@v2.0.0
+        with:
+          src: ${{ env.SYSDIG_IMAGE_BASE }}:${{ env.RELEASE }}-aarch64-draft
+          dst: |
+            ${{ env.SYSDIG_IMAGE_BASE }}:${{ env.RELEASE }}-aarch64
+            ${{ env.SYSDIG_IMAGE_BASE }}:latest-aarch64
+            ${{ env.SYSDIG_DOCKERHUB_IMAGE_BASE }}:${{ env.RELEASE }}-aarch64
+            ${{ env.SYSDIG_DOCKERHUB_IMAGE_BASE }}:latest-aarch64
+
+      - name: Create latest manifest and push
+        run: |
+          docker manifest create \
+            ${{ env.SYSDIG_IMAGE_BASE }}:${{ env.RELEASE }} \
+            --amend ${{ env.SYSDIG_IMAGE_BASE }}:${{ env.RELEASE }}-amd64 \
+            --amend ${{ env.SYSDIG_IMAGE_BASE }}:${{ env.RELEASE }}-aarch64
+          docker manifest push ${{ env.SYSDIG_IMAGE_BASE }}:${{ env.RELEASE }}
+          docker manifest create \
+            ${{ env.SYSDIG_DOCKERHUB_IMAGE_BASE }}:${{ env.RELEASE }} \
+            --amend ${{ env.SYSDIG_DOCKERHUB_IMAGE_BASE }}:${{ env.RELEASE }}-amd64 \
+            --amend ${{ env.SYSDIG_DOCKERHUB_IMAGE_BASE }}:${{ env.RELEASE }}-aarch64
+          docker manifest push ${{ env.SYSDIG_DOCKERHUB_IMAGE_BASE }}:${{ env.RELEASE }}
+          docker manifest create \
+            ${{ env.SYSDIG_IMAGE_BASE }}:latest \
+            --amend ${{ env.SYSDIG_IMAGE_BASE }}:latest-amd64 \
+            --amend ${{ env.SYSDIG_IMAGE_BASE }}:latest-aarch64
+          docker manifest push ${{ env.SYSDIG_IMAGE_BASE }}:latest
+          docker manifest create \
+            ${{ env.SYSDIG_DOCKERHUB_IMAGE_BASE }}:latest \
+            --amend ${{ env.SYSDIG_DOCKERHUB_IMAGE_BASE }}:latest-amd64 \
+            --amend ${{ env.SYSDIG_DOCKERHUB_IMAGE_BASE }}:latest-aarch64
+          docker manifest push ${{ env.SYSDIG_DOCKERHUB_IMAGE_BASE }}:latest
 
   release-rpm:
     strategy:
