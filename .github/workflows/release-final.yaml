@@ -116,7 +116,7 @@ jobs:
           ./aws/install
 
       - name: Checkout Sysdig
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           path: sysdig
 
@@ -182,7 +182,7 @@ jobs:
           sudo apt-get update && sudo apt-get -y install dpkg-dev gpg
 
       - name: Checkout Sysdig
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           path: sysdig
 
@@ -243,7 +243,7 @@ jobs:
 
     steps:
       - name: Checkout Sysdig
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           path: sysdig
 
