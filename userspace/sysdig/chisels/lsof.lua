@@ -21,7 +21,7 @@ limitations under the License.
 description = "This chisel prints the open file descriptors for every process in the system, with an output that is similar to the one of lsof. Output is at a point in time; adjust this in the filter.  It defaults to time of evt.num=0";
 short_description = "List (and optionally filter) the open file descriptors.";
 category = "System State";
-		
+
 -- Argument list
 args =
 {
@@ -66,7 +66,7 @@ function on_init()
 end
 
 -- Final chisel initialization
-function on_capture_start()	
+function on_capture_start()
 	capturing = true
 	return true
 end
@@ -83,16 +83,16 @@ function on_capture_end()
 	if not capturing then
 		return
 	end
-	
-	if match == false then
+
+	local ttable = sysdig.get_thread_table(filter)
+
+	if match == false and next(ttable) == nil then
 		print("empty capture or no event matching the filter")
 		return
 	end
 
-	local ttable = sysdig.get_thread_table(filter)
-
 	local sorted_ttable = pairs_top_by_val(ttable, 0, function(t,a,b) return a < b end)
-	
+
 	print(extend_string("COMMAND", 20) ..
 		extend_string("PID", 8) ..
 		extend_string("TID", 8) ..

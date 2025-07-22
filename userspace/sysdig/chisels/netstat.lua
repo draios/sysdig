@@ -21,7 +21,7 @@ limitations under the License.
 description = "Print the system network connections, with an output that is similar to the one of netstat. Output is at a point in time; adjust this in the filter. It defaults to time of evt.num=0";
 short_description = "List (and optionally filter) network connections.";
 category = "System State";
-		
+
 -- Argument list
 args =
 {
@@ -66,7 +66,7 @@ function on_init()
 end
 
 -- Final chisel initialization
-function on_capture_start()	
+function on_capture_start()
 	capturing = true
 	return true
 end
@@ -83,13 +83,13 @@ function on_capture_end()
 	if not capturing then
 		return
 	end
-	
-	if match == false then
+
+	local ttable = sysdig.get_thread_table(filter)
+
+	if match == false and next(ttable) == nil then
 		print("empty capture or no event matching the filter")
 		return
 	end
-
-	local ttable = sysdig.get_thread_table(filter)
 
 	print(extend_string("Proto", 6) ..
 		extend_string("Server Address", 25) ..
@@ -99,7 +99,7 @@ function on_capture_end()
 
 	for tid, proc in pairs(ttable) do
 		local fdtable = proc.fdtable
-		
+
 		for fd, fdinfo in pairs(fdtable) do
 			local cip = fdinfo.cip
 			local cport = fdinfo.cport
