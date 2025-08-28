@@ -165,9 +165,8 @@ include(container_plugin)
 # Install the plugin
 install(
 	FILES "${PROJECT_BINARY_DIR}/container_plugin-prefix/src/libcontainer.so"
-	DESTINATION "${FALCO_ABSOLUTE_SHARE_DIR}/plugins"
-	COMPONENT "${FALCO_COMPONENT_NAME}"
-)
+	DESTINATION share/sysdig/plugins
+	COMPONENT "${SYSDIG_COMPONENT_NAME}")
 # Install additional config override file to enable the container plugin
 #if(UNIX)
 #	install(
