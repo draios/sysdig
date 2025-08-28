@@ -40,19 +40,13 @@ jobs:
             git \
             libelf-dev \
             libtool \
+            linux-tools-`uname -r` \
             llvm \
             ninja-build \
             pkg-config \
             rpm \
             wget \
             xz-utils && \
-          git clone https://github.com/libbpf/bpftool.git --branch v7.3.0 --single-branch && \
-          cd bpftool && \
-          git submodule update --init && \
-          cd src && \
-          make install && \
-          cd ../.. && \
-          rm -fr bpftool && \
           curl -LO https://ziglang.org/builds/zig-linux-"$(uname -m)"-"${ZIG_VERSION}".tar.xz && \
           tar -xaf zig-linux-"$(uname -m)"-"${ZIG_VERSION}".tar.xz && \
           rm -v zig-linux-"$(uname -m)"-"${ZIG_VERSION}".tar.xz && \
