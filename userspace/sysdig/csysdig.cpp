@@ -569,7 +569,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			case 'p':
 				if(std::string(optarg) == "c" || std::string(optarg) == "container")
 				{
-					inspector->set_print_container_data(true);
+					//inspector->set_print_container_data(true);
 					print_containers = true;
 				}
 
@@ -631,14 +631,14 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 #endif
 #ifdef HAS_CAPTURE
 #ifndef MINIMAL_BUILD
-					else if(optname == "cri")
-					{
-						cri_socket_path = optarg;
-					}
-					else if(optname == "cri-timeout")
-					{
-						inspector->set_cri_timeout(sinsp_numparser::parsed64(optarg));
-					}
+					//else if(optname == "cri")
+					//{
+					//	cri_socket_path = optarg;
+					//}
+					//else if(optname == "cri-timeout")
+					//{
+					//	inspector->set_cri_timeout(sinsp_numparser::parsed64(optarg));
+					//}
 #endif // MINIMAL_BUILD
 #endif
 					else if(optname == "logfile")
@@ -700,10 +700,10 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		}
 
 #ifdef HAS_CAPTURE
-		if(!cri_socket_path.empty())
-		{
-			inspector->set_cri_socket_path(cri_socket_path);
-		}
+		//if(!cri_socket_path.empty())
+		//{
+		//	inspector->set_cri_socket_path(cri_socket_path);
+		//}
 #endif
 
 		std::string filter;

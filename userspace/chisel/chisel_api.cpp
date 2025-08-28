@@ -842,10 +842,10 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 			lua_pushnumber(ls, (uint32_t)tinfo.m_fdlimit);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "uid");
-			lua_pushnumber(ls, (uint32_t)tinfo.m_uid);
+			lua_pushnumber(ls, (uint32_t)tinfo.get_user()->uid);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "gid");
-			lua_pushnumber(ls, (uint32_t)tinfo.m_gid);
+			lua_pushnumber(ls, (uint32_t)tinfo.get_group()->gid);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "nchilds");
 			lua_pushnumber(ls, (uint32_t)tinfo.get_num_not_leader_threads());
@@ -1109,6 +1109,26 @@ int lua_cbacks::get_thread_table_barebone_nofds(lua_State *ls)
 	return get_thread_table_int(ls, false, true);
 }
 
+enum container_type
+{
+    CT_DOCKER = 0,
+    CT_LXC = 1,
+    CT_LIBVIRT_LXC = 2,
+    CT_MESOS = 3, // deprecated
+    CT_RKT = 4,   // deprecated
+    CT_CUSTOM = 5,
+    CT_CRI = 6,
+    CT_CONTAINERD = 7,
+    CT_CRIO = 8,
+    CT_BPM = 9,
+    CT_STATIC = 10,
+    CT_PODMAN = 11,
+
+    // Default value, may be changed if necessary
+    CT_HOST = 0xfffe,
+    CT_UNKNOWN = 0xffff
+};
+
 int lua_cbacks::get_container_table(lua_State *ls)
 {
 #ifndef _WIN32
@@ -1130,71 +1150,85 @@ int lua_cbacks::get_container_table(lua_State *ls)
 	//
 	// Retrieve the container list
 	//
-	const sinsp_container_manager::map_ptr_t ctable = ch->m_inspector->m_container_manager.get_containers();
+	const auto ctable = ch->m_inspector->m_thread_manager
+		->get_table(sinsp_thread_manager::s_containers_table_name);
 
 	lua_newtable(ls);
 
 	//
 	// Go through the list
 	//
-	j = 0;
-	for(auto it = ctable->begin(); it != ctable->end(); ++it)
-	{
-		lua_newtable(ls);
-		lua_pushliteral(ls, "id");
-		lua_pushstring(ls, it->second->m_id.c_str());
-		lua_settable(ls, -3);
-		lua_pushliteral(ls, "name");
-		lua_pushstring(ls, it->second->m_name.c_str());
-		lua_settable(ls, -3);
-		lua_pushliteral(ls, "image");
-		lua_pushstring(ls, it->second->m_image.c_str());
-		lua_settable(ls, -3);
+	if(ctable != nullptr) {
+		auto fld_id = ctable->get_field<std::string>("container_id");
+		auto fld_name = ctable->get_field<std::string>("name");
+		auto fld_image = ctable->get_field<std::string>("image");
+		auto fld_type = ctable->get_field<int>("type");
+		auto it = [&](sinsp_table_entry& e) -> bool {
+			std::string id, name, image;
+			int type;
+			e.read_field(fld_id, id);
+			e.read_field(fld_name, name);
+			e.read_field(fld_image, image);
+			e.read_field(fld_type, type);
 
-		lua_pushliteral(ls, "type");
-		switch (it->second->m_type)
-		{
-		case CT_DOCKER:
-			lua_pushstring(ls, "docker");
-			break;
-		case CT_LXC:
-			lua_pushstring(ls, "lxc");
-			break;
-		case CT_LIBVIRT_LXC:
-			lua_pushstring(ls, "libvirt_lxc");
-			break;
-		case CT_MESOS:
-			lua_pushstring(ls, "mesos");
-			break;
-		case CT_RKT:
-			lua_pushstring(ls, "rkt");
-			break;
-		case CT_CRI:
-			lua_pushstring(ls, "cri");
-			break;
-		case CT_CONTAINERD:
-			lua_pushstring(ls, "containerd");
-			break;
-		case CT_CRIO:
-			lua_pushstring(ls, "cri-o");
-			break;
-		case CT_BPM:
-			lua_pushstring(ls, "bpm");
-			break;
-		case CT_PODMAN:
-			lua_pushstring(ls, "podman");
-			break;
-		default:
-			ASSERT(false);
-			lua_pushstring(ls, "unknown");
-			break;
-		}
-		lua_settable(ls, -3);
+			lua_newtable(ls);
+			lua_pushliteral(ls, "id");
+			lua_pushstring(ls, id.c_str());
+			lua_settable(ls, -3);
+			lua_pushliteral(ls, "name");
+			lua_pushstring(ls, name.c_str());
+			lua_settable(ls, -3);
+			lua_pushliteral(ls, "image");
+			lua_pushstring(ls, image.c_str());
+			lua_settable(ls, -3);
 
-		//
-		// Set the key for this entry
-		//
-		lua_rawseti(ls,-2, (uint32_t)++j);
+			lua_pushliteral(ls, "type");
+			switch (type)
+			{
+			case container_type::CT_DOCKER:
+				lua_pushstring(ls, "docker");
+				break;
+			case container_type::CT_LXC:
+				lua_pushstring(ls, "lxc");
+				break;
+			case container_type::CT_LIBVIRT_LXC:
+				lua_pushstring(ls, "libvirt_lxc");
+				break;
+			case container_type::CT_MESOS:
+				lua_pushstring(ls, "mesos");
+				break;
+			case container_type::CT_RKT:
+				lua_pushstring(ls, "rkt");
+				break;
+			case container_type::CT_CRI:
+				lua_pushstring(ls, "cri");
+				break;
+			case container_type::CT_CONTAINERD:
+				lua_pushstring(ls, "containerd");
+				break;
+			case container_type::CT_CRIO:
+				lua_pushstring(ls, "cri-o");
+				break;
+			case container_type::CT_BPM:
+				lua_pushstring(ls, "bpm");
+				break;
+			case container_type::CT_PODMAN:
+				lua_pushstring(ls, "podman");
+				break;
+			default:
+				ASSERT(false);
+				lua_pushstring(ls, "unknown");
+				break;
+			}
+			lua_settable(ls, -3);
+
+			//
+			// Set the key for this entry
+			//
+			lua_rawseti(ls,-2, (uint32_t)++j);
+			return true;
+		};
+		ctable->foreach_entry(it);
 	}
 
 #endif
@@ -1205,13 +1239,13 @@ int lua_cbacks::is_print_container_data(lua_State *ls)
 {
         lua_getglobal(ls, "sichisel");
 
-        sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+        //sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
         lua_pop(ls, 1);
 
-        ASSERT(ch);
-        ASSERT(ch->m_lua_cinfo);
+        //ASSERT(ch);
+        //ASSERT(ch->m_lua_cinfo);
 
-        lua_pushboolean(ls, ch->m_inspector->is_print_container_data());
+        lua_pushboolean(ls, true);
         return 1;
 }
 

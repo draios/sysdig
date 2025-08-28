@@ -925,7 +925,20 @@ void curses_textbox::process_event_spy(sinsp_evt* evt, int32_t next_res)
 	{
 		wattrset(m_win, m_parent->m_colors[sinsp_cursesui::LED_COLOR]);
 
-		m_ctext->printf(" [%s]", m_inspector->m_container_manager.get_container_name(m_tinfo).c_str());
+		const auto ctable = m_inspector->m_thread_manager
+			->get_table(sinsp_thread_manager::s_containers_table_name);
+
+		std::string container_name = "host";
+		if(!m_tinfo->get_container_id().empty())
+		{
+			if(ctable != nullptr) {
+				auto fld_name = ctable->get_field<std::string>("name");
+
+				auto container_info = ctable->get_entry(m_tinfo->get_container_id());
+				container_info.read_field(fld_name, container_name);
+			}
+		}
+		m_ctext->printf(" [%s]", container_name.c_str());
 
 		if(eflags & EF_READS_FROM_FD)
 		{

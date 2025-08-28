@@ -103,7 +103,7 @@ void sinsp_opener::open(sinsp* inspector) const
         inspector->set_get_procs_cpu_from_driver(true);
         return;
     }
-    
+
     // default to kernel module if no other option is specified
     try
     {

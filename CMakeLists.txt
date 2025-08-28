@@ -71,14 +71,6 @@ add_definitions(-DCHISEL_TOOL_LIBRARY_NAME="${CHISEL_TOOL_LIBRARY_NAME}")
 
 option(BUILD_WARNINGS_AS_ERRORS "Enable building with -Wextra -Werror flags")
 
-if(APPLE)
-	set(MINIMAL_BUILD ON)
-endif()
-
-if(MINIMAL_BUILD)
-  set(MINIMAL_BUILD_FLAGS "-DMINIMAL_BUILD")
-endif()
-
 if(MUSL_OPTIMIZED_BUILD)
 	set(SYSDIG_MUSL_FLAGS "-static -Os")
 endif()
@@ -122,9 +114,7 @@ if(NOT WIN32)
 	endif()
 
 else()
-	set(MINIMAL_BUILD ON)
-
-	set(SYSDIG_FLAGS_WIN "-D_CRT_SECURE_NO_WARNINGS -DWIN32 -DMINIMAL_BUILD /EHsc /W3 /Zi")
+	set(SYSDIG_FLAGS_WIN "-D_CRT_SECURE_NO_WARNINGS -DWIN32 /EHsc /W3 /Zi")
 
 	if(CMAKE_VERSION VERSION_LESS 3.15.0)
 		set(SYSDIG_FLAGS_WIN_DEBUG "/MTd /Od")
@@ -170,6 +160,23 @@ endif()
 include(falcosecurity-libs)
 include(yaml-cpp)
 include(nlohmann-json)
+
+include(container_plugin)
+# Install the plugin
+install(
+	FILES "${PROJECT_BINARY_DIR}/container_plugin-prefix/src/libcontainer.so"
+	DESTINATION "${FALCO_ABSOLUTE_SHARE_DIR}/plugins"
+	COMPONENT "${FALCO_COMPONENT_NAME}"
+)
+# Install additional config override file to enable the container plugin
+#if(UNIX)
+#	install(
+#		FILES "${PROJECT_SOURCE_DIR}/config/falco.container_plugin.yaml"
+#		DESTINATION "${FALCO_ETC_DIR}/config.d"
+#		COMPONENT "${FALCO_COMPONENT_NAME}"
+#	)
+#endif()
+
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	if(NOT DEFINED DRIVER_VERSION)

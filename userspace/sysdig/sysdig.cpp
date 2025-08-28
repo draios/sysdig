@@ -1147,6 +1147,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		plugins.add_directory(SYSDIG_PLUGINS_DIR);
 		plugins.read_plugins_from_dirs(inspector.get());
 
+		// Load container plugin
+		auto container_config = R"({"engines":{"docker":{"enabled":true,"sockets":["/var/run/docker.sock"]},"podman":{"enabled":true,"sockets":["/run/podman/podman.sock","/run/user/1000/podman/podman.sock"]},"containerd":{"enabled":false,"sockets":["/run/containerd/containerd.sock"]},"cri":{"enabled":true,"sockets":["/run/crio/crio.sock"]},"lxc":{"enabled":false},"libvirt_lxc":{"enabled":false},"bpm":{"enabled":false}}})";
+		plugins.load_plugin(inspector.get(), "container");
+		plugins.config_plugin(inspector.get(), "container", container_config);
+
 		//
 		// Parse the args
 		//
@@ -1400,7 +1405,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					// This enables chisels to determine if they should print container information
 					if(inspector != NULL)
 					{
-						inspector->set_print_container_data(true);
+						//inspector->set_print_container_data(true);
 					}
 				}
 				else if(std::string(optarg) == "k" || std::string(optarg) == "kubernetes")
@@ -1410,7 +1415,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					// This enables chisels to determine if they should print container information
 					if(inspector != NULL)
 					{
-						inspector->set_print_container_data(true);
+						//inspector->set_print_container_data(true);
 					}
 				}
 				else if(std::string(optarg) == "m" || std::string(optarg) == "mesos")
@@ -1420,7 +1425,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					// This enables chisels to determine if they should print container information
 					if(inspector != NULL)
 					{
-						inspector->set_print_container_data(true);
+						//inspector->set_print_container_data(true);
 					}
 				}
 				else
@@ -1582,7 +1587,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						cri_socket_path = optarg;
 					}
 					else if (optname == "cri-timeout") {
-						inspector->set_cri_timeout(sinsp_numparser::parsed64(optarg));
+						//inspector->set_cri_timeout(sinsp_numparser::parsed64(optarg));
 					}
 #endif
 					else if (optname == "unbuffered") {
@@ -1730,7 +1735,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #ifdef HAS_CAPTURE
 		if(!cri_socket_path.empty())
 		{
-			inspector->set_cri_socket_path(cri_socket_path);
+			//inspector->set_cri_socket_path(cri_socket_path);
 		}
 #endif
 
