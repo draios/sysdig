@@ -11,14 +11,14 @@ jobs:
   build-sysdig-linux:
     runs-on: ubuntu-24.04${{ matrix.platform == 'arm64' && '-arm' || '' }}
     container:
-      image: ubuntu:22.04
+      image: ubuntu:24.04
     strategy:
       matrix:
         platform:
           - amd64
           - arm64
     env:
-      ZIG_VERSION: 0.14.0-dev.3259+0779e847f
+      ZIG_VERSION: 0.14.1
 
     steps:
       - name: Checkout Sysdig
@@ -32,8 +32,6 @@ jobs:
           cp -v scripts/zig-c++ /usr/bin/
           apt update && \
           apt install -y --no-install-recommends \
-            autoconf \
-            automake \
             build-essential \
             ca-certificates \
             clang \
