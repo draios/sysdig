@@ -37,7 +37,6 @@ cmake_minimum_required(VERSION 3.12)
 
 project(sysdig)
 
-option(MINIMAL_BUILD "Produce a minimal sysdig binary with only the essential features (no eBPF probe driver, no kubernetes, no mesos, no marathon and no container metadata)" OFF)
 option(MUSL_OPTIMIZED_BUILD "Enable if you want a musl optimized build" OFF)
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
 
@@ -78,7 +77,7 @@ endif()
 if(NOT WIN32)
 
 	set(SYSDIG_DEBUG_FLAGS "-D_DEBUG")
-	set(CMAKE_COMMON_FLAGS "-Wall -ggdb ${MINIMAL_BUILD_FLAGS} ${SYSDIG_MUSL_FLAGS}")
+	set(CMAKE_COMMON_FLAGS "-Wall -ggdb ${SYSDIG_MUSL_FLAGS}")
 
 	if(BUILD_WARNINGS_AS_ERRORS)
 		set(CMAKE_SUPPRESSED_WARNINGS "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare -Wno-type-limits -Wno-implicit-fallthrough -Wno-format-truncation")
@@ -134,7 +133,7 @@ else()
 	set(CMAKE_CXX_FLAGS_RELEASE "${SYSDIG_FLAGS_WIN_RELEASE}")
 endif()
 
-# Modern BPF is not supported on not Linux systems and in MINIMAL_BUILD
+# Modern BPF is not supported on not Linux systems
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	option(BUILD_SYSDIG_MODERN_BPF "Build modern BPF support for Sysdig" ON)
 	if(BUILD_SYSDIG_MODERN_BPF)

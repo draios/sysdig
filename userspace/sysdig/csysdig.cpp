@@ -26,7 +26,6 @@ limitations under the License.
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <assert.h>
-#include <algorithm>
 
 #include <libsinsp/sinsp.h>
 #ifdef HAS_CAPTURE
@@ -126,13 +125,6 @@ static void usage()
 "                    1:2. The modern BPF probe allows you to choose different mappings, for\n"
 "                    example, 1:1 would mean a syscall buffer for each CPU.\n"
 #endif
-#ifdef HAS_CAPTURE
-" --cri <path>       Path to CRI socket for container metadata\n"
-"                    Use the specified socket to fetch data from a CRI-compatible runtime\n"
-"\n"
-" --cri-timeout <timeout_ms>\n"
-"                    Wait at most <timeout_ms> milliseconds for response from CRI\n"
-#endif
 " -d <period>, --delay=<period>\n"
 "                    Set the delay between updates, in milliseconds. This works\n"
 "                    similarly to the -d option in top.\n"
@@ -149,28 +141,6 @@ static void usage()
 "                    better with terminals like putty. Try to use this flag if you experience\n"
 "                    terminal issues like the mouse not working.\n"
 " -h, --help         Print this page\n"
-#ifndef MINIMAL_BUILD
-" -k <url>, --k8s-api=<url>\n"
-"                    [DEPRECATED] Enable Kubernetes support by connecting to the API server\n"
-"                    specified as argument. E.g. \"http://admin:password@127.0.0.1:8080\".\n"
-"                    The API server can also be specified via the environment variable\n"
-"                    SYSDIG_K8S_API.\n"
-" --node-name=<url>\n"
-"                    [DEPRECATED] The node name is used as a filter when requesting metadata of pods\n"
-"                    to the API server; if empty, no filter is set\n"
-" -K <bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>], --k8s-api-cert=<bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>]\n"
-"                    [DEPRECATED] Use the provided files names to authenticate user and (optionally) verify the K8S API\n"
-"                    server identity.\n"
-"                    Each entry must specify full (absolute, or relative to the current directory) path\n"
-"                    to the respective file.\n"
-"                    Private key password is optional (needed only if key is password protected).\n"
-"                    CA certificate is optional. For all files, only PEM file format is supported. \n"
-"                    Specifying CA certificate only is obsoleted - when single entry is provided \n"
-"                    for this option, it will be interpreted as the name of a file containing bearer token.\n"
-"                    Note that the format of this command-line option prohibits use of files whose names contain\n"
-"                    ':' or '#' characters in the file name.\n"
-"                    Option can also be provided via the environment variable SYSDIG_K8S_API_CERT.\n"
-#endif // MINIMAL_BUILD
 " -l, --list         List all the fields that can be used in views.\n"
 " --large-environment\n"
 "                    Support environments larger than 4KiB\n"
@@ -197,14 +167,6 @@ static void usage()
 "                    Capture the first <len> bytes of each I/O buffer.\n"
 "                    By default, the first 80 bytes are captured. Use this\n"
 "                    option with caution, it can generate huge trace files.\n"
-" -T, --force-tracers-capture\n"
-"                    [DEPRECATED] Tell the driver to make sure full buffers are captured from\n"
-"                    /dev/null, to make sure that tracers are completely\n"
-"                    captured. Note that sysdig will enable extended /dev/null\n"
-"                    capture by itself after detecting that tracers are written\n"
-"                    there, but that could result in the truncation of some\n"
-"                    tracers at the beginning of the capture. This option allows\n"
-"                    preventing that.\n"
 " -v <view_id>, --view=<view_id>\n"
 "                    Run the view with the given ID when csysdig starts.\n"
 "                    View IDs can be found in the view documentation pages in\n"
@@ -389,20 +351,12 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	int32_t json_last_row = 0;
 	int32_t sorting_col = -1;
 	bool list_views = false;
-#ifdef HAS_CAPTURE
-	std::string cri_socket_path;
-#endif
 
 #ifndef _WIN32
 	chisel_table::output_type output_type = chisel_table::OT_CURSES;
 #else
 	chisel_table::output_type output_type = chisel_table::OT_JSON;
 #endif
-#ifndef MINIMAL_BUILD
-	bool k8s = false;
-	bool mesos = false;
-#endif // MINIMAL_BUILD
-	bool tracers = false;
 	bool terminal_with_mouse = false;
 	bool force_term_compat = false;
 	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
@@ -417,10 +371,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 #ifdef HAS_MODERN_BPF
 		{"cpus-for-each-buffer", required_argument, 0, 0 },
 #endif
-#ifdef HAS_CAPTURE
-		{"cri", required_argument, 0, 0 },
-		{"cri-timeout", required_argument, 0, 0 },
-#endif
 		{"delay", required_argument, 0, 'd' },
 		{"exclude-users", no_argument, 0, 'E' },
 		{"from", required_argument, 0, 0 },
@@ -430,9 +380,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"large-environment", no_argument, 0, 0 },
 		{"list", optional_argument, 0, 'l' },
 		{"list-views", no_argument, 0, 0},
-#ifndef MINIMAL_BUILD
-		{"mesos-api", required_argument, 0, 'm'},
-#endif // MINIMAL_BUILD
 #ifdef HAS_MODERN_BPF
 		{"modern-bpf", no_argument, 0, 0 },
 #endif
@@ -444,7 +391,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		{"raw", no_argument, 0, 0 },
 		{"snaplen", required_argument, 0, 's' },
 		{"logfile", required_argument, 0, 0 },
-		{"force-tracers-capture", required_argument, 0, 'T'},
 		{"force-term-compat", no_argument, 0, 0},
 		{"sortingcol", required_argument, 0, 0 },
 		{"to", required_argument, 0, 0 },
@@ -471,7 +417,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Parse the args
 		//
 		while((op = getopt_long(argc, argv,
-			"AB::d:Ehk:K:jlm:n:p:Rr:s:Tv:X", long_options, &long_index)) != -1)
+			"AB::d:Ehk:K:jlm:n:p:Rr:s:v:X", long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -523,32 +469,12 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				usage();
 				delete inspector;
 				return sysdig_init_res(EXIT_SUCCESS);
-#ifndef MINIMAL_BUILD
-			case 'k':
-				//TODO(therealbobo): remove this on 0.36.0
-				k8s = true;
-				break;
-			case 'N':
-				//TODO(therealbobo): remove this on 0.36.0
-				k8s = true;
-				break;
-			case 'K':
-				//TODO(therealbobo): remove this on 0.36.0
-				k8s = true;
-				break;
-#endif // MINIMAL_BUILD
 			case 'j':
 				output_type = chisel_table::OT_JSON;
 				break;
 			case 'l':
 				list_flds = true;
 				break;
-#ifndef MINIMAL_BUILD
-			case 'm':
-				//TODO(therealbobo): remove this on 0.36.0
-				mesos = true;
-				break;
-#endif // MINIMAL_BUILD
 			case 'n':
 				try
 				{
@@ -582,10 +508,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				break;
 			case 's':
 				snaplen = atoi(optarg);
-				break;
-			case 'T':
-				//TODO(therealbobo): remove this on 0.36.0
-				tracers = true;
 				break;
 			case 'v':
 				display_view = optarg;
@@ -628,18 +550,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 					{
 						opener.bpf.cpus_for_each_syscall_buffer = sinsp_numparser::parsed16(optarg);
 					}
-#endif
-#ifdef HAS_CAPTURE
-#ifndef MINIMAL_BUILD
-					//else if(optname == "cri")
-					//{
-					//	cri_socket_path = optarg;
-					//}
-					//else if(optname == "cri-timeout")
-					//{
-					//	inspector->set_cri_timeout(sinsp_numparser::parsed64(optarg));
-					//}
-#endif // MINIMAL_BUILD
 #endif
 					else if(optname == "logfile")
 					{
@@ -698,13 +608,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			delete inspector;
 			return sysdig_init_res(EXIT_SUCCESS);
 		}
-
-#ifdef HAS_CAPTURE
-		//if(!cri_socket_path.empty())
-		//{
-		//	inspector->set_cri_socket_path(cri_socket_path);
-		//}
-#endif
 
 		std::string filter;
 
@@ -960,36 +863,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			if(snaplen != 0)
 			{
 				inspector->set_snaplen(snaplen);
-			}
-
-#ifndef MINIMAL_BUILD
-			//
-			// run k8s, if required
-			//
-			if (k8s || getenv("SYSDIG_K8S_API") != NULL ||
-				getenv("SYSDIG_K8S_API_CERT") != NULL)
-			{
-				throw sinsp_exception(std::string("the k8s client is deprecated!"));
-				res.m_res = EXIT_FAILURE;
-				goto exit;
-			}
-
-			//
-			// run mesos, if required
-			//
-			if(mesos ||  getenv("SYSDIG_MESOS_API") != NULL)
-			{
-				throw sinsp_exception(std::string("the mesos client is deprecated!"));
-				res.m_res = EXIT_FAILURE;
-				goto exit;
-			}
-#endif // MINIMAL_BUILD
-
-			if(tracers)
-			{
-				throw sinsp_exception(std::string("tracers are deprecated!"));
-				res.m_res = EXIT_FAILURE;
-				goto exit;
 			}
 
 			if(output_type == chisel_table::OT_JSON)

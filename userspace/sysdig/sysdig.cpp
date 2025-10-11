@@ -27,7 +27,6 @@ limitations under the License.
 #include <sys/stat.h>
 #include <assert.h>
 #include <algorithm>
-#include <unordered_set>
 #include <atomic>
 #include <filesystem>
 
@@ -157,15 +156,6 @@ static void usage()
 "                    starting at 0 and continuing upward. The units of file_size\n"
 "                    are millions of bytes (10^6, not 2^20). Use the -W flag to\n"
 "                    determine how many files will be saved to disk.\n"
-#ifdef HAS_CAPTURE
-#ifndef MINIMAL_BUILD
-" --cri <path>       Path to CRI socket for container metadata\n"
-"                    Use the specified socket to fetch data from a CRI-compatible runtime\n"
-"\n"
-" --cri-timeout <timeout_ms>\n"
-"                    Wait at most <timeout_ms> milliseconds for response from CRI\n"
-#endif // MINIMAL_BUILD
-#endif // HAS_CAPTURE
 " -d, --displayflt   Make the given filter a display one\n"
 "                    Setting this option causes the events to be filtered\n"
 "                    after being parsed by the state system. Events are\n"
@@ -250,28 +240,6 @@ static void usage()
 #endif
 " -j, --json         Emit output as json, data buffer encoding will depend from the\n"
 "                    print format selected.\n"
-#ifndef MINIMAL_BUILD
-" -k <url>, --k8s-api=<url>\n"
-"                    [DEPRECATED] Enable Kubernetes support by connecting to the API server\n"
-"                    specified as argument. E.g. \"http://admin:password@127.0.0.1:8080\".\n"
-"                    The API server can also be specified via the environment variable\n"
-"                    SYSDIG_K8S_API.\n"
-" --node-name=<url>\n"
-"                    [DEPRECATED] The node name is used as a filter when requesting metadata of pods\n"
-"                    to the API server; if empty, no filter is set\n"
-" -K <bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>], --k8s-api-cert=<bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>]\n"
-"                    [DEPRECATED] Use the provided files names to authenticate user and (optionally) verify the K8S API\n"
-"                    server identity.\n"
-"                    Each entry must specify full (absolute, or relative to the current directory) path\n"
-"                    to the respective file.\n"
-"                    Private key password is optional (needed only if key is password protected).\n"
-"                    CA certificate is optional. For all files, only PEM file format is supported. \n"
-"                    Specifying CA certificate only is obsoleted - when single entry is provided \n"
-"                    for this option, it will be interpreted as the name of a file containing bearer token.\n"
-"                    Note that the format of this command-line option prohibits use of files whose names contain\n"
-"                    ':' or '#' characters in the file name.\n"
-"                    Option can also be provided via the environment variable SYSDIG_K8S_API_CERT.\n"
-#endif // MINIMAL_BUILD
 " -L, --list-events  List the events that the engine supports\n"
 " -l, --list         List the fields that can be used for filtering and output\n"
 "                    formatting. Use -lv to get additional information for each\n"
@@ -341,14 +309,6 @@ static void usage()
 "                    epoch, r for relative time from the beginning of the\n"
 "                    capture, d for delta between event enter and exit, and\n"
 "                    D for delta from the previous event.\n"
-" -T, --force-tracers-capture\n"
-"                    [DEPRECATED] Tell the driver to make sure full buffers are captured from\n"
-"                    /dev/null, to make sure that tracers are completely\n"
-"                    captured. Note that sysdig will enable extended /dev/null\n"
-"                    capture by itself after detecting that tracers are written\n"
-"                    there, but that could result in the truncation of some\n"
-"                    tracers at the beginning of the capture. This option allows\n"
-"                    preventing that.\n"
 " --unbuffered       Turn off output buffering. This causes every single line\n"
 "                    emitted by sysdig to be flushed, which generates higher CPU\n"
 "                    usage but is useful when piping sysdig's output into another\n"
@@ -1042,15 +1002,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	bool filter_proclist_flag = false;
 	std::string cname;
 	std::vector<summary_table_entry> summary_table;
-#ifndef MINIMAL_BUILD
-	bool k8s = false;
-	bool mesos = false;
-#endif // MINIMAL_BUILD
-	bool tracers = false;
 	std::set<std::string> suppress_comms;
-#ifdef HAS_CAPTURE
-	std::string cri_socket_path;
-#endif
 	plugin_utils plugins;
 	bool list_plugins = false;
 	std::string plugin_config_file = "";
@@ -1077,10 +1029,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 #endif
 #ifdef HAS_MODERN_BPF
 		{"cpus-for-each-buffer", required_argument, 0, 0 },
-#endif
-#ifdef HAS_CAPTURE
-		{"cri", required_argument, 0, 0 },
-		{"cri-timeout", required_argument, 0, 0 },
 #endif
 		{"displayflt", no_argument, 0, 'd' },
 		{"debug", no_argument, 0, 'D'},
@@ -1121,9 +1069,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		{"snaplen", required_argument, 0, 's' },
 		{"summary", no_argument, 0, 'S' },
 		{"suppress-comm", required_argument, 0, 'U' },
-		{"udig", required_argument, 0, 'u' },
 		{"timetype", required_argument, 0, 't' },
-		{"force-tracers-capture", required_argument, 0, 'T'},
 		{"unbuffered", no_argument, 0, 0 },
 		{"verbose", no_argument, 0, 'v' },
 		{"version", no_argument, 0, 0 },
@@ -1167,14 +1113,11 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		//
 		// Parse the args
 		//
-		while((op = getopt_long(argc, argv,
-                                        "AbB::c:"
-                                        "C:"
-                                        "dDEe:F"
-                                        "g:G:"
-                                        "hH:I:i:jk:K:lLm:M:n:Pp:qRr:Ss:t:TU:uv"
-                                        "W:"
-                                        "w:xXz", long_options, &long_index)) != -1)
+		while (
+			(op = getopt_long(argc, argv,
+								"AbB::c:C:dDEe:Fg:G:"
+								"hH:I:i:jlLm:M:n:Pp:qRr:Ss:t:U:vW:w:xXz",
+								long_options, &long_index)) != -1)
 		{
 			switch(op)
 			{
@@ -1341,20 +1284,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				//
 				jflag = true;
 				break;
-#ifndef MINIMAL_BUILD
-			case 'k':
-				//TODO(therealbobo): remove this on 0.36.0
-				k8s = true;
-				break;
-			case 'N':
-				//TODO(therealbobo): remove this on 0.36.0
-				k8s = true;
-				break;
-			case 'K':
-				//TODO(therealbobo): remove this on 0.36.0
-				k8s = true;
-				break;
-#endif // MINIMAL_BUILD
 			case 'h':
 				usage();
 				return sysdig_init_res(EXIT_SUCCESS);
@@ -1369,11 +1298,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				// todo(jasondellaluce): support CLI for printing in markdown too
 				print_supported_events(inspector.get(), false);
 				return sysdig_init_res(EXIT_SUCCESS);
-#ifndef MINIMAL_BUILD
-			case 'm':
-				mesos = true;
-				break;
-#endif // MINIMAL_BUILD
 			case 'M':
 				duration_to_tot = atoi(optarg);
 				if(duration_to_tot <= 0)
@@ -1487,16 +1411,8 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					}
 				}
 				break;
-			case 'T':
-				//TODO(therealbobo): remove this on 0.36.0
-				tracers = true;
-				break;
 			case 'U':
 				suppress_comms.insert(std::string(optarg));
-				break;
-			case 'u':
-				//TODO(therealbobo): remove this on 0.36.0
-				opener.udig.enabled = true;
 				break;
 			case 'v':
 				verbose = true;
@@ -1592,14 +1508,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 					else if(optname == "cpus-for-each-buffer")
 					{
 						opener.bpf.cpus_for_each_syscall_buffer = sinsp_numparser::parsed16(optarg);
-					}
-#endif
-#ifdef HAS_CAPTURE
-					else if (optname == "cri") {
-						cri_socket_path = optarg;
-					}
-					else if (optname == "cri-timeout") {
-						//inspector->set_cri_timeout(sinsp_numparser::parsed64(optarg));
 					}
 #endif
 					else if (optname == "unbuffered") {
@@ -1743,13 +1651,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			printf("   $ sysdig -H dummy:'{\"jitter\":50}' --plugin-info=dummy\n\n");
 			return sysdig_init_res(EXIT_SUCCESS);
 		}
-
-#ifdef HAS_CAPTURE
-		if(!cri_socket_path.empty())
-		{
-			//inspector->set_cri_socket_path(cri_socket_path);
-		}
-#endif
 
 		if (opener.plugin.enabled)
 		{
@@ -2000,42 +1901,6 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			// Notify the chisels that the capture is starting
 			//
 			chisels_on_capture_start();
-
-#ifndef MINIMAL_BUILD
-			//
-			// run k8s, if required
-			//
-			if (k8s || getenv("SYSDIG_K8S_API") != NULL ||
-				getenv("SYSDIG_K8S_API_CERT") != NULL)
-			{
-				throw sinsp_exception(std::string("the k8s client is deprecated!"));
-				res.m_res = EXIT_FAILURE;
-				goto exit;
-			}
-
-			//
-			// run mesos, if required
-			//
-			if(mesos ||  getenv("SYSDIG_MESOS_API") != NULL)
-			{
-				throw sinsp_exception(std::string("the mesos client is deprecated!"));
-				res.m_res = EXIT_FAILURE;
-				goto exit;
-			}
-#endif
-			if(opener.udig.enabled)
-			{
-				throw sinsp_exception(std::string("the udig engine is deprecated!"));
-				res.m_res = EXIT_FAILURE;
-				goto exit;
-			}
-
-			if(tracers)
-			{
-				throw sinsp_exception(std::string("tracers are deprecated!"));
-				res.m_res = EXIT_FAILURE;
-				goto exit;
-			}
 
 #ifndef _WIN32
 			// Sysdig does not accept user input during the inspect loop

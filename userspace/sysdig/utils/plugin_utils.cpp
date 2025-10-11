@@ -20,8 +20,6 @@ limitations under the License.
 #include "common.h"
 #include "plugin_utils.h"
 
-#include <unordered_set>
-
 #include <utility>
 #include <filesystem>
 #include <yaml-cpp/yaml.h>
