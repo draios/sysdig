@@ -29,6 +29,7 @@ limitations under the License.
 #include <algorithm>
 #include <unordered_set>
 #include <atomic>
+#include <filesystem>
 
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_cycledumper.h>
@@ -53,6 +54,8 @@ limitations under the License.
 #include "utils/plugin_utils.h"
 #include "utils/supported_events.h"
 #include "utils/supported_fields.h"
+
+#include <yaml-cpp/yaml.h>
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -1148,7 +1151,16 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		plugins.read_plugins_from_dirs(inspector.get());
 
 		// Load container plugin
-		auto container_config = R"({"hooks":["create","start"],"engines":{"docker":{"enabled":true,"sockets":["/var/run/docker.sock"]},"podman":{"enabled":true,"sockets":["/run/podman/podman.sock","/run/user/1000/podman/podman.sock"]},"containerd":{"enabled":false,"sockets":["/run/containerd/containerd.sock"]},"cri":{"enabled":true,"sockets":["/run/crio/crio.sock"]},"lxc":{"enabled":false},"libvirt_lxc":{"enabled":false},"bpm":{"enabled":false}}})";
+		std::string container_config = R"({"hooks":["create","start"],"engines":{"docker":{"enabled":true,"sockets":["/var/run/docker.sock"]},"podman":{"enabled":true,"sockets":["/run/podman/podman.sock","/run/user/1000/podman/podman.sock"]},"containerd":{"enabled":false,"sockets":["/run/containerd/containerd.sock"]},"cri":{"enabled":true,"sockets":["/run/crio/crio.sock"]},"lxc":{"enabled":false},"libvirt_lxc":{"enabled":false},"bpm":{"enabled":false}}})";
+		auto container_config_file = "/etc/sysdig/container.yaml";
+		if (std::filesystem::exists(container_config_file))
+		{
+			YAML::Node node = YAML::LoadFile(container_config_file);
+			YAML::Emitter emitter;
+			emitter << YAML::DoubleQuoted << YAML::Flow << YAML::BeginSeq << node;
+			container_config = emitter.c_str() + 1;
+		}
+
 		plugins.load_plugin(inspector.get(), "container");
 		plugins.config_plugin(inspector.get(), "container", container_config);
 
