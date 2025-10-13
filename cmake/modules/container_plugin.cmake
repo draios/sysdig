@@ -17,28 +17,79 @@ include(ExternalProject)
 
 string(TOLOWER ${CMAKE_HOST_SYSTEM_NAME} PLUGINS_SYSTEM_NAME)
 
-set(CONTAINER_LIBRARY
-	"${CMAKE_CURRENT_BINARY_DIR}/container_plugin-prefix/src/container_plugin/libcontainer.so"
-)
+set(CONTAINER_VERSION "0.3.7")
 
-if(NOT CONTAINER_VERSION)
-	set(CONTAINER_VERSION "0.3.7")
-endif()
-if(NOT CONTAINER_HASH)
+if(UNIX AND NOT APPLE)
+
+	set(CONTAINER_LIBRARY
+		"${CMAKE_BINARY_DIR}/container_plugin-prefix/src/container_plugin/libcontainer.so"
+	)
 	if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "x86_64")
 		set(CONTAINER_HASH "658f96c4b4a56d1bf945a788d60571076f808ae1bcc877c4ba3625b0fd752d8d")
 	else() # arm64
 		set(CONTAINER_HASH "34a153aca0164843a169193aba092a3063b24bca9ef80fd4f1d1f1919aba3bde")
 	endif()
-endif()
-if(NOT TARGET container_plugin)
-	message(STATUS "Fetching container plugin ${CONTAINER_VERSION} in '${CONTAINER_LIBRARY}'")
-	ExternalProject_Add(
-		container_plugin
-		URL "https://download.falco.org/plugins/stable/container-${CONTAINER_VERSION}-${PLUGINS_SYSTEM_NAME}-${CMAKE_HOST_SYSTEM_PROCESSOR}.tar.gz"
-		#URL_HASH "SHA256=${CONTAINER_HASH}"
-		CONFIGURE_COMMAND ""
-		BUILD_COMMAND ""
-		INSTALL_COMMAND ""
-	)
+
+	if(NOT TARGET container_plugin)
+		message(STATUS "Fetching container plugin ${CONTAINER_VERSION} in '${CONTAINER_LIBRARY}'")
+		ExternalProject_Add(
+			container_plugin
+			URL "https://download.falco.org/plugins/stable/container-${CONTAINER_VERSION}-${PLUGINS_SYSTEM_NAME}-${CMAKE_HOST_SYSTEM_PROCESSOR}.tar.gz"
+			#URL_HASH "SHA256=${CONTAINER_HASH}"
+			BUILD_BYPRODUCTS "${CONTAINER_LIBRARY}"
+			CONFIGURE_COMMAND ""
+			BUILD_COMMAND ""
+			INSTALL_COMMAND ""
+		)
+
+		install(
+			FILES "${CONTAINER_LIBRARY}"
+			DESTINATION share/plugins
+			COMPONENT "${SYSDIG_COMPONENT_NAME}"
+		)
+	endif()
+else()
+
+	# Determine the correct library extension for the platform
+	if(APPLE)
+		set(CONTAINER_LIB_EXT "dylib")
+	elseif(WIN32)
+		set(CONTAINER_LIB_EXT "dll")
+	else()
+		set(CONTAINER_LIB_EXT "so")
+	endif()
+
+	# On Windows, shared libraries don't have the "lib" prefix
+	# and multi-config generators place outputs in config subdirectories
+	if(WIN32)
+		set(CONTAINER_LIBRARY
+			"${CMAKE_BINARY_DIR}/container_plugin-prefix/src/container_plugin/plugins/container/${CMAKE_BUILD_TYPE}/container.${CONTAINER_LIB_EXT}"
+		)
+	else()
+		set(CONTAINER_LIBRARY
+			"${CMAKE_BINARY_DIR}/container_plugin-prefix/src/container_plugin/plugins/container/libcontainer.${CONTAINER_LIB_EXT}"
+		)
+	endif()
+	if(NOT TARGET container_plugin)
+		message(STATUS "Fetching container plugin source ${CONTAINER_VERSION} in '${CONTAINER_LIBRARY}'")
+		ExternalProject_Add(
+			container_plugin
+			URL "https://github.com/falcosecurity/plugins/archive/refs/tags/plugins/container/v${CONTAINER_VERSION}.tar.gz"
+			#URL_HASH ""
+			SOURCE_SUBDIR plugins/container
+			BUILD_IN_SOURCE 1
+			BUILD_BYPRODUCTS "${CONTAINER_LIBRARY}"
+			CONFIGURE_COMMAND
+			${CMAKE_COMMAND} . -DENABLE_ASYNC=OFF -G "${CMAKE_GENERATOR}"
+			BUILD_COMMAND ${CMAKE_COMMAND} --build . --config ${CMAKE_BUILD_TYPE}
+			INSTALL_COMMAND ""
+		)
+
+		install(
+			FILES "${CONTAINER_LIBRARY}"
+			DESTINATION share/plugins
+			COMPONENT "${SYSDIG_COMPONENT_NAME}"
+		)
+	endif()
+
 endif()

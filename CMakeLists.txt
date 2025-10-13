@@ -155,27 +155,16 @@ if(MSVC OR WIN32)
 		_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR
 		NOMINMAX
 	)
+
+	# Set MSVC runtime library for Windows builds (CMake 3.15+)
+	# This ensures consistent runtime linkage across all targets and dependencies
+	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
 include(falcosecurity-libs)
 include(yaml-cpp)
 include(nlohmann-json)
-
 include(container_plugin)
-# Install the plugin
-install(
-	FILES "${PROJECT_BINARY_DIR}/container_plugin-prefix/src/libcontainer.so"
-	DESTINATION share/sysdig/plugins
-	COMPONENT "${SYSDIG_COMPONENT_NAME}")
-# Install additional config override file to enable the container plugin
-#if(UNIX)
-#	install(
-#		FILES "${PROJECT_SOURCE_DIR}/config/falco.container_plugin.yaml"
-#		DESTINATION "${FALCO_ETC_DIR}/config.d"
-#		COMPONENT "${FALCO_COMPONENT_NAME}"
-#	)
-#endif()
-
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	if(NOT DEFINED DRIVER_VERSION)

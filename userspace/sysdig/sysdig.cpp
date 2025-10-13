@@ -1148,7 +1148,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		plugins.read_plugins_from_dirs(inspector.get());
 
 		// Load container plugin
-		auto container_config = R"({"engines":{"docker":{"enabled":true,"sockets":["/var/run/docker.sock"]},"podman":{"enabled":true,"sockets":["/run/podman/podman.sock","/run/user/1000/podman/podman.sock"]},"containerd":{"enabled":false,"sockets":["/run/containerd/containerd.sock"]},"cri":{"enabled":true,"sockets":["/run/crio/crio.sock"]},"lxc":{"enabled":false},"libvirt_lxc":{"enabled":false},"bpm":{"enabled":false}}})";
+		auto container_config = R"({"hooks":["create","start"],"engines":{"docker":{"enabled":true,"sockets":["/var/run/docker.sock"]},"podman":{"enabled":true,"sockets":["/run/podman/podman.sock","/run/user/1000/podman/podman.sock"]},"containerd":{"enabled":false,"sockets":["/run/containerd/containerd.sock"]},"cri":{"enabled":true,"sockets":["/run/crio/crio.sock"]},"lxc":{"enabled":false},"libvirt_lxc":{"enabled":false},"bpm":{"enabled":false}}})";
 		plugins.load_plugin(inspector.get(), "container");
 		plugins.config_plugin(inspector.get(), "container", container_config);
 
