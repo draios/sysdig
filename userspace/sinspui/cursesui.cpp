@@ -240,6 +240,7 @@ uint64_t json_spy_renderer::get_count()
 // sinsp_cursesui implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
+	std::shared_ptr<sinsp_filter_check_list> filter_list,
 	sinsp_opener* source_opener,
 	string cmdline_capture_filter,
 	uint64_t refresh_interval_ns,
@@ -251,6 +252,7 @@ sinsp_cursesui::sinsp_cursesui(sinsp* inspector,
 	sinsp_evt::param_fmt json_spy_text_fmt)
 {
 	m_inspector = inspector;
+	m_filter_check_list = filter_list;
 	m_source_opener = source_opener;
 	m_selected_view = 0;
 	m_prev_selected_view = 0;
@@ -586,13 +588,13 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		if(wi->m_type == chisel_view_info::T_TABLE)
 		{
 			ty = chisel_table::TT_TABLE;
-			m_datatable = new chisel_table(m_inspector, ty, m_refresh_interval_ns, 
+			m_datatable = new chisel_table(m_inspector, m_filter_check_list, ty, m_refresh_interval_ns,
 				m_output_type, m_json_first_row, m_json_last_row);
 		}
 		else if(wi->m_type == chisel_view_info::T_LIST)
 		{
 			ty = chisel_table::TT_LIST;
-			m_datatable = new chisel_table(m_inspector, ty, m_refresh_interval_ns, 
+			m_datatable = new chisel_table(m_inspector, m_filter_check_list, ty, m_refresh_interval_ns,
 				m_output_type, m_json_first_row, m_json_last_row);
 		}
 		else if(wi->m_type == chisel_view_info::T_SPECTRO)
@@ -604,12 +606,12 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 			//
 			if(m_refresh_interval_ns == 2000000000)
 			{
-				m_datatable = new chisel_table(m_inspector, ty, m_refresh_interval_ns / 4, 
+				m_datatable = new chisel_table(m_inspector, m_filter_check_list, ty, m_refresh_interval_ns / 4,
 					m_output_type, m_json_first_row, m_json_last_row);
 			}
 			else
 			{
-				m_datatable = new chisel_table(m_inspector, ty, m_refresh_interval_ns, 
+				m_datatable = new chisel_table(m_inspector, m_filter_check_list, ty, m_refresh_interval_ns,
 					m_output_type, m_json_first_row, m_json_last_row);
 			}
 		}

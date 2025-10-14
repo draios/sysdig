@@ -137,7 +137,7 @@ void plugin_utils::plugin_entry::init(sinsp *inspector, filter_check_list* flist
     }
     if (plugin->caps() & CAP_EXTRACTION)
     {
-        // todo(jasondellaluce): manage field name conflicts
+        // todo(therealbobo): manage field name conflicts
         flist->add_filter_check(sinsp_plugin::new_filtercheck(plugin));
     }
     inited = true;

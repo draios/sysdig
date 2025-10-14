@@ -43,9 +43,6 @@ extern "C" {
 #endif
 
 #include <cctype>
-#include <fstream>
-#include <iostream>
-#include <locale>
 #ifdef _WIN32
 #include <io.h>
 #else
@@ -60,11 +57,6 @@ using namespace std;
 extern vector<chiseldir_info>* g_chisel_dirs;
 extern sinsp_evttables g_infotables;
 void lua_stackdump(lua_State *L);
-
-// todo(jasondellaluce): this list is static and prevents chisels from using
-// plugin-defined extraction fields. The right way would be to have a filtercheck
-// list owned by each chisel itself and populate depending on the loaded plugins.
-static sinsp_filter_check_list s_filterlist;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Lua callbacks
@@ -326,7 +318,7 @@ int lua_cbacks::request_field(lua_State *ls)
 		throw sinsp_exception("chisel error");
 	}
 
-	auto chk = s_filterlist.new_filter_check_from_fldname(fld,
+	auto chk = ch->m_filter_check_list->new_filter_check_from_fldname(fld,
 		inspector,
 		false).release();
 
@@ -1239,11 +1231,11 @@ int lua_cbacks::is_print_container_data(lua_State *ls)
 {
         lua_getglobal(ls, "sichisel");
 
-        //sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
+        sinsp_chisel* ch = (sinsp_chisel*)lua_touserdata(ls, -1);
         lua_pop(ls, 1);
 
-        //ASSERT(ch);
-        //ASSERT(ch->m_lua_cinfo);
+        ASSERT(ch);
+        ASSERT(ch->m_lua_cinfo);
 
         lua_pushboolean(ls, true);
         return 1;

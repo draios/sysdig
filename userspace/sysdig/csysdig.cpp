@@ -21,6 +21,7 @@ limitations under the License.
 
 #include <stdio.h>
 #include <iostream>
+#include <filesystem>
 #include <time.h>
 #include <signal.h>
 #include <fcntl.h>
@@ -28,6 +29,7 @@ limitations under the License.
 #include <assert.h>
 
 #include <libsinsp/sinsp.h>
+#include "plugin_manager.h"
 #ifdef HAS_CAPTURE
 #ifndef WIN32
 #include "driver_config.h"
@@ -43,6 +45,8 @@ limitations under the License.
 #include "utils/plugin_utils.h"
 #include "utils/sinsp_opener.h"
 #include "utils/supported_fields.h"
+
+#include <yaml-cpp/yaml.h>
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -363,6 +367,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	plugin_utils plugins;
 	bool list_plugins = false;
 	sinsp_opener opener;
+	std::shared_ptr<sinsp_filter_check_list> filter_list;
 
 	static struct option long_options[] =
 	{
@@ -412,6 +417,20 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 #endif
 		plugins.add_directory(SYSDIG_PLUGINS_DIR);
 		plugins.read_plugins_from_dirs(inspector);
+
+		// Load container plugin
+		std::string container_config = R"({"hooks":["create","start"],"engines":{"docker":{"enabled":true,"sockets":["/var/run/docker.sock"]},"podman":{"enabled":true,"sockets":["/run/podman/podman.sock","/run/user/1000/podman/podman.sock"]},"containerd":{"enabled":false,"sockets":["/run/containerd/containerd.sock"]},"cri":{"enabled":true,"sockets":["/run/crio/crio.sock"]},"lxc":{"enabled":false},"libvirt_lxc":{"enabled":false},"bpm":{"enabled":false}}})";
+		auto container_config_file = "/etc/sysdig/container.yaml";
+		if (std::filesystem::exists(container_config_file))
+		{
+			YAML::Node node = YAML::LoadFile(container_config_file);
+			YAML::Emitter emitter;
+			emitter << YAML::DoubleQuoted << YAML::Flow << YAML::BeginSeq << node;
+			container_config = emitter.c_str() + 1;
+		}
+
+		plugins.load_plugin(inspector, "container");
+		plugins.config_plugin(inspector, "container", container_config);
 
 		//
 		// Parse the args
@@ -495,7 +514,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			case 'p':
 				if(std::string(optarg) == "c" || std::string(optarg) == "container")
 				{
-					//inspector->set_print_container_data(true);
 					print_containers = true;
 				}
 
@@ -634,6 +652,19 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 				{
 					filter += " ";
 				}
+			}
+		}
+
+		// TODO(therealbobo): add plugins filterchecks
+		filter_list = std::make_shared<sinsp_filter_check_list>();
+		plugins.init_loaded_plugins(inspector, filter_list.get());
+
+		for (auto plugin : inspector->m_plugin_manager->plugins())
+		{
+			if (plugin->caps() & CAP_EXTRACTION)
+			{
+				// todo(therealbobo): manage field name conflicts
+				filter_list->add_filter_check(sinsp_plugin::new_filtercheck(plugin));
 			}
 		}
 
@@ -798,6 +829,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			// Initialize the UI
 			//
 			sinsp_cursesui ui(inspector,
+				filter_list,
 				&opener,
 				(filter.size() != 0)? filter : "",
 				refresh_interval_ns,

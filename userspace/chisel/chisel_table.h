@@ -266,7 +266,7 @@ public:
 		chisel_field_aggregation m_merge_aggregation;
 	};
 
-	chisel_table(sinsp* inspector, tabletype type,
+	chisel_table(sinsp* inspector, std::shared_ptr<sinsp_filter_check_list> filter_list, tabletype type,
 		uint64_t refresh_interval_ns, chisel_table::output_type output_type,
 		uint32_t json_first_row, uint32_t json_last_row);
 	~chisel_table();
@@ -345,6 +345,7 @@ private:
 	void print_json(std::vector<chisel_sample_row>* sample_data, uint64_t time_delta);
 
 	sinsp* m_inspector;
+	std::shared_ptr<sinsp_filter_check_list> m_filter_check_list;
 	std::unordered_map<chisel_table_field, chisel_table_field*, chisel_table_field_hasher>* m_table;
 	std::unordered_map<chisel_table_field, chisel_table_field*, chisel_table_field_hasher> m_premerge_table;
 	std::unordered_map<chisel_table_field, chisel_table_field*, chisel_table_field_hasher> m_merge_table;

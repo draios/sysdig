@@ -432,7 +432,7 @@ public:
 		LAST_COLORELEMENT
 	};
 
-	sinsp_cursesui(sinsp* inspector, sinsp_opener* source_opener, 
+	sinsp_cursesui(sinsp* inspector, std::shared_ptr<sinsp_filter_check_list> filter_list, sinsp_opener* source_opener,
 		std::string cmdline_capture_filter, uint64_t refresh_interval_ns, 
 		bool print_containers, chisel_table::output_type output_type, bool is_mousedrag_available,
 		int32_t json_first_row, int32_t json_last_row, int32_t sorting_col,
@@ -756,6 +756,7 @@ public:
 	bool m_offline_replay;
 	uint64_t m_refresh_interval_ns;
 	sinsp* m_inspector;
+	std::shared_ptr<sinsp_filter_check_list> m_filter_check_list;
 	uint32_t m_view_depth;
 	bool m_is_mousedrag_available;
 
@@ -829,4 +830,3 @@ private:
 	sinsp_evt::param_fmt m_json_spy_text_fmt;
 	uint64_t m_n_progress_reports;
 };
-

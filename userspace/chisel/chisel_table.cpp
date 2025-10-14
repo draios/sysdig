@@ -32,11 +32,6 @@ using namespace std;
 
 extern sinsp_evttables g_infotables;
 
-// todo(jasondellaluce): this list is static and prevents chisels from using
-// plugin-defined extraction fields. The right way would be to have a filtercheck
-// list owned by each chisel itself and populate depending on the loaded plugins.
-static sinsp_filter_check_list s_filterlist;
-
 //
 //
 // Table sorter functor
@@ -81,10 +76,11 @@ struct table_row_cmp
 	bool m_ascending;
 };
 
-chisel_table::chisel_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns,
+chisel_table::chisel_table(sinsp* inspector, std::shared_ptr<sinsp_filter_check_list> filter_list, tabletype type, uint64_t refresh_interval_ns,
 	chisel_table::output_type output_type, uint32_t json_first_row, uint32_t json_last_row)
 {
 	m_inspector = inspector;
+	m_filter_check_list = filter_list;
 	m_type = type;
 	m_is_key_present = false;
 	m_is_groupby_key_present = false;
@@ -174,7 +170,7 @@ void chisel_table::configure(vector<chisel_view_column_info>* entries, const str
 
 	for(auto vit : *entries)
 	{
-		auto chk = s_filterlist.new_filter_check_from_fldname(vit.get_field(m_view_depth),
+		auto chk = m_filter_check_list->new_filter_check_from_fldname(vit.get_field(m_view_depth),
 			m_inspector,
 			false).release();
 
@@ -216,7 +212,7 @@ void chisel_table::configure(vector<chisel_view_column_info>* entries, const str
 	}
 	else
 	{
-		auto chk = s_filterlist.new_filter_check_from_fldname("util.cnt",
+		auto chk = m_filter_check_list->new_filter_check_from_fldname("util.cnt",
 			m_inspector,
 			false).release();
 

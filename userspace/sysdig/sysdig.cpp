@@ -1160,8 +1160,20 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						return sysdig_init_res(EXIT_SUCCESS);
 					}
 
+					// TODO(therealbobo): add plugins filterchecks
+					auto filter_list = std::make_shared<sinsp_filter_check_list>();
+
+					for (auto plugin : inspector->m_plugin_manager->plugins())
+					{
+						if (plugin->caps() & CAP_EXTRACTION)
+						{
+							// todo(therealbobo): manage field name conflicts
+							filter_list->add_filter_check(sinsp_plugin::new_filtercheck(plugin));
+						}
+					}
+					auto tmp_filter_factory = std::make_shared<sinsp_filter_factory>(inspector.get(), *filter_list.get());
 					sinsp_chisel* ch = new sinsp_chisel(inspector.get(), chisel);
-					parse_chisel_args(ch, filter_factory, optind, argc, argv, &n_filterargs);
+					parse_chisel_args(ch, tmp_filter_factory, optind, argc, argv, &n_filterargs);
 					g_chisels.push_back(ch);
 				}
 #endif
@@ -1337,32 +1349,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				else if(std::string(optarg) == "c" || std::string(optarg) == "container")
 				{
 					output_format = "*%evt.num %evt.outputtime %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
-
-					// This enables chisels to determine if they should print container information
-					if(inspector != NULL)
-					{
-						//inspector->set_print_container_data(true);
-					}
 				}
 				else if(std::string(optarg) == "k" || std::string(optarg) == "kubernetes")
 				{
 					output_format = "*%evt.num %evt.outputtime %evt.cpu %k8s.pod.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
-
-					// This enables chisels to determine if they should print container information
-					if(inspector != NULL)
-					{
-						//inspector->set_print_container_data(true);
-					}
 				}
 				else if(std::string(optarg) == "m" || std::string(optarg) == "mesos")
 				{
 					output_format = "*%evt.num %evt.outputtime %evt.cpu %mesos.task.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
-
-					// This enables chisels to determine if they should print container information
-					if(inspector != NULL)
-					{
-						//inspector->set_print_container_data(true);
-					}
 				}
 				else
 				{
@@ -1640,7 +1634,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 		// all plugins have been loaded and configured so now we initialize them
 		plugins.init_loaded_plugins(inspector.get(), filter_list.get());
-		
+
 		if (list_plugins)
 		{
 			plugins.print_plugin_info_list(inspector.get());
@@ -1715,6 +1709,22 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			print_supported_fields(inspector.get(), plugins, list_flds_source, verbose, list_flds_markdown);
 			res.m_res = EXIT_SUCCESS;
 			goto exit;
+		}
+
+		for (auto &ch : g_chisels)
+		{
+			auto filter_list = std::make_shared<sinsp_filter_check_list>();
+
+			for (auto plugin : inspector->m_plugin_manager->plugins())
+			{
+				if (plugin->caps() & CAP_EXTRACTION)
+				{
+					// todo(therealbobo): manage field name conflicts
+					filter_list->add_filter_check(sinsp_plugin::new_filtercheck(plugin));
+				}
+			}
+			auto tmp_filter_factory = std::make_shared<sinsp_filter_factory>(inspector.get(), *filter_list.get());
+			ch->set_filter_list(filter_list);
 		}
 
 		std::string filter;

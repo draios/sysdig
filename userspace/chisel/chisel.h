@@ -111,7 +111,7 @@ public:
 class chiselinfo
 {
 public:
-	chiselinfo(sinsp* inspector);
+	chiselinfo(sinsp* inspector, std::shared_ptr<sinsp_filter_check_list> filter_check_list);
 	void init(std::string filterstr, std::string formatterstr);
 	void set_filter(std::string filterstr);
 	void set_formatter(std::string formatterstr);
@@ -129,9 +129,10 @@ public:
 
 private:
 	sinsp* m_inspector;
+	std::shared_ptr<sinsp_filter_check_list> m_filter_check_list;
 };
 
-class SINSP_PUBLIC sinsp_chisel
+class sinsp_chisel
 {
 public:
 	sinsp_chisel(sinsp* inspector, std::string filename, bool is_file = true);
@@ -153,6 +154,7 @@ public:
 	bool run(sinsp_evt* evt);
 	void do_timeout(sinsp_evt* evt);
 	void do_end_of_sample();
+	void set_filter_list(std::shared_ptr<sinsp_filter_check_list> filter_list);
 	void on_init();
 	void on_capture_start();
 	void on_capture_end();
@@ -178,6 +180,7 @@ private:
 	std::string m_description;
 	std::vector<std::string> m_argvals;
 	std::string m_filename;
+	std::shared_ptr<sinsp_filter_check_list> m_filter_check_list;
 	lua_State* m_ls;
 	chisel_desc m_lua_script_info;
 	bool m_lua_has_handle_evt;

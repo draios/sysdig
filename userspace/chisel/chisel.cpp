@@ -60,11 +60,6 @@ using namespace std;
 extern vector<chiseldir_info>* g_chisel_dirs;
 extern sinsp_evttables g_infotables;
 
-// todo(jasondellaluce): this list is static and prevents chisels from using
-// plugin-defined extraction fields. The right way would be to have a filtercheck
-// list owned by each chisel itself and populate depending on the loaded plugins.
-static sinsp_filter_check_list s_filterlist;
-
 ///////////////////////////////////////////////////////////////////////////////
 // For Lua debugging
 ///////////////////////////////////////////////////////////////////////////////
@@ -167,12 +162,13 @@ const static struct luaL_Reg ll_evt [] =
 ///////////////////////////////////////////////////////////////////////////////
 // chiselinfo implementation
 ///////////////////////////////////////////////////////////////////////////////
-chiselinfo::chiselinfo(sinsp* inspector)
+chiselinfo::chiselinfo(sinsp* inspector, std::shared_ptr<sinsp_filter_check_list> filter_check_list)
 {
 	m_filter = NULL;
 	m_formatter = NULL;
 	m_dumper = NULL;
 	m_inspector = inspector;
+	m_filter_check_list = filter_check_list;
 	m_has_nextrun_args = false;
 	m_end_capture = false;
 
@@ -232,11 +228,11 @@ void chiselinfo::set_formatter(string formatterstr)
 
 	if(formatterstr == "" || formatterstr == "default")
 	{
-		m_formatter = new sinsp_evt_formatter(m_inspector, DEFAULT_OUTPUT_STR, s_filterlist);
+		m_formatter = new sinsp_evt_formatter(m_inspector, DEFAULT_OUTPUT_STR, *m_filter_check_list);
 	}
 	else
 	{
-		m_formatter = new sinsp_evt_formatter(m_inspector, formatterstr, s_filterlist);
+		m_formatter = new sinsp_evt_formatter(m_inspector, formatterstr, *m_filter_check_list);
 	}
 }
 
@@ -255,7 +251,7 @@ void chiselinfo::set_callback_precise_interval(uint64_t interval)
 ///////////////////////////////////////////////////////////////////////////////
 // chisel implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_chisel::sinsp_chisel(sinsp* inspector, string filename, bool is_file)
+sinsp_chisel::sinsp_chisel(sinsp* inspector, std::string filename, bool is_file)
 {
 	m_inspector = inspector;
 	m_ls = NULL;
@@ -1224,7 +1220,7 @@ void sinsp_chisel::load(string cmdstr, bool is_file)
 	//
 	// Allocate the chisel context for the script
 	//
-	m_lua_cinfo = new chiselinfo(m_inspector);
+	m_lua_cinfo = new chiselinfo(m_inspector, m_filter_check_list);
 
 	//
 	// Set the context globals
@@ -1447,6 +1443,12 @@ void sinsp_chisel::set_args(vector<pair<string, string>> args)
 		lua_pop(m_ls, 1);
 	}
 #endif
+}
+
+
+void sinsp_chisel::set_filter_list(std::shared_ptr<sinsp_filter_check_list> filter_list)
+{
+	m_filter_check_list = std::move(filter_list);
 }
 
 void sinsp_chisel::on_init()
