@@ -37,13 +37,13 @@ using namespace std;
 #include <libsinsp/sinsp_int.h>
 #include <libsinsp/filter.h>
 #include <libsinsp/filterchecks.h>
+#include <libsinsp/utils.h>
 
 #include <chisel/chisel_table.h>
 #include <chisel/chisel_viewinfo.h>
 #include "cursescomponents.h"
 #include "cursestable.h"
 #include "cursesui.h"
-#include "utils.h"
 
 extern bool g_filterchecks_force_raw_times;
 

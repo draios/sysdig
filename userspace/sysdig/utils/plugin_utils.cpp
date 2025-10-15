@@ -27,8 +27,8 @@ limitations under the License.
 #include <yaml-cpp/yaml.h>
 #include <nlohmann/json.hpp>
 
-#include <filterchecks.h>
-#include <plugin_manager.h>
+#include <libsinsp/filterchecks.h>
+#include <libsinsp/plugin_manager.h>
 
 #ifdef _WIN32
 #define SHAREDOBJ_PREFIX ""

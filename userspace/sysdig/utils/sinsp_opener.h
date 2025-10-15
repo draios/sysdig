@@ -18,7 +18,7 @@ limitations under the License.
 */
 #pragma once
 
-#include <sinsp.h>
+#include <libsinsp/sinsp.h>
 
 #include <string>
 

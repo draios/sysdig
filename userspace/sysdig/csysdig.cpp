@@ -57,7 +57,7 @@ limitations under the License.
 #include "cursescomponents.h"
 #include "cursestable.h"
 #include "cursesui.h"
-#include "scap_open_exception.h"
+#include <libsinsp/scap_open_exception.h>
 #include <chisel/chisel_capture_interrupt_exception.h>
 
 #define MOUSE_CAPABLE_TERM "xterm-1003"

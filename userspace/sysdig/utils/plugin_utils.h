@@ -23,8 +23,8 @@ limitations under the License.
 #include <string>
 #include <memory>
 #include <unordered_set>
-#include <sinsp.h>
-#include <plugin.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/plugin.h>
 
 class plugin_utils
 {

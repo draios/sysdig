@@ -22,7 +22,7 @@ limitations under the License.
 
 #include "sinsp_opener.h"
 
-#include <sinsp_exception.h>
+#include <libsinsp/sinsp_exception.h>
 #ifdef HAS_CAPTURE
 #ifndef WIN32
 #include "driver_config.h"

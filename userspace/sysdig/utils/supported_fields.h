@@ -20,7 +20,7 @@ limitations under the License.
 #pragma once
 
 #include <string>
-#include <sinsp.h>
+#include <libsinsp/sinsp.h>
 #include "plugin_utils.h"
 
 void print_supported_fields(

@@ -19,7 +19,7 @@ limitations under the License.
 
 #include "common.h"
 #include "supported_fields.h"
-#include <filterchecks.h>
+#include <libsinsp/filterchecks.h>
 
 #include <map>
 #include <set>
