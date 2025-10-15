@@ -48,7 +48,7 @@ else()
   # ie., `cmake -DFALCOSECURITY_LIBS_VERSION=dev ..`
   if(NOT FALCOSECURITY_LIBS_VERSION)
     set(FALCOSECURITY_LIBS_VERSION "0.21.0")
-    set(FALCOSECURITY_LIBS_CHECKSUM "")
+    set(FALCOSECURITY_LIBS_CHECKSUM "SHA256=9e977001dd42586df42a5dc7e7a948c297124865a233402e44bdec68839d322a")
   endif()
 
   # cd /path/to/build && cmake /path/to/source
