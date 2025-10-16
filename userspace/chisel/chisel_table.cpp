@@ -23,8 +23,6 @@ draios/sysdig project.
 
 */
 
-#include <algorithm>
-
 #include <libsinsp/sinsp.h>
 #include <chisel/chisel_table.h>
 
@@ -159,7 +157,8 @@ void chisel_table::configure(vector<chisel_view_column_info>* entries, const str
 	//////////////////////////////////////////////////////////////////////////////////////
 	if(filter != "")
 	{
-		sinsp_filter_compiler compiler(m_inspector, filter);
+		auto filter_factory = std::make_shared<sinsp_filter_factory>(m_inspector, *m_filter_check_list);
+		sinsp_filter_compiler compiler(filter_factory, filter);
 		m_filter = compiler.compile().release();
 	}
 

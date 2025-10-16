@@ -331,7 +331,8 @@ public:
 class json_spy_renderer
 {
 public:
-	json_spy_renderer(sinsp* inspector, 
+	json_spy_renderer(sinsp* inspector,
+		std::shared_ptr<sinsp_filter_check_list> filter_check_list,
 		sinsp_cursesui* parent,
 		int32_t viz_type, 
 		spy_text_renderer::sysdig_output_type sotype, 
@@ -350,6 +351,7 @@ private:
 
 	spy_text_renderer* m_json_spy_renderer;
 	sinsp* m_inspector;
+	std::shared_ptr<sinsp_filter_check_list> m_filter_check_list;
 	Json::Value m_root;
 	std::unique_ptr<sinsp_filter> m_filter;
 	uint64_t m_linecnt;

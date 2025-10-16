@@ -22,7 +22,6 @@ falcosecurity/libs project, has been reintroduced to the
 draios/sysdig project.
 
 */
-#include <algorithm>
 #include <libsinsp/sinsp.h>
 #include <chisel/chisel_viewinfo.h>
 

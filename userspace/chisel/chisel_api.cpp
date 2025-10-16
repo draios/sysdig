@@ -738,7 +738,8 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 		{
 			try
 			{
-				compiler = std::make_unique<sinsp_filter_compiler>(ch->m_inspector, filterstr);
+				auto filter_factory = std::make_shared<sinsp_filter_factory>(ch->m_inspector, *ch->m_filter_check_list);
+				compiler = std::make_unique<sinsp_filter_compiler>(filter_factory, filterstr);
 				filter = compiler->compile();
 			}
 			catch(const sinsp_exception& e)

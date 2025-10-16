@@ -63,7 +63,8 @@ int do_sleep(DWORD usec)
 ///////////////////////////////////////////////////////////////////////////////
 // json_spy_renderer implementation
 ///////////////////////////////////////////////////////////////////////////////
-json_spy_renderer::json_spy_renderer(sinsp* inspector, 
+json_spy_renderer::json_spy_renderer(sinsp* inspector,
+	std::shared_ptr<sinsp_filter_check_list> filter_check_list,
 	sinsp_cursesui* parent,
 	int32_t viz_type, 
 	spy_text_renderer::sysdig_output_type sotype, 
@@ -71,11 +72,13 @@ json_spy_renderer::json_spy_renderer(sinsp* inspector,
 	sinsp_evt::param_fmt text_fmt)
 {
 	m_inspector = inspector;
+	m_filter_check_list = filter_check_list;
 	m_filter = NULL;
 	m_root = Json::Value(Json::arrayValue);
 	m_linecnt = 0;
 
-	m_json_spy_renderer = new spy_text_renderer(inspector, 
+	m_json_spy_renderer = new spy_text_renderer(inspector,
+		m_filter_check_list,
 		parent,
 		viz_type, 
 		sotype, 
@@ -92,7 +95,8 @@ void json_spy_renderer::set_filter(string filter)
 {
 	if(filter != "")
 	{
-		sinsp_filter_compiler compiler(m_inspector, filter);
+		auto filter_factory = std::make_shared<sinsp_filter_factory>(m_inspector, *m_filter_check_list);
+		sinsp_filter_compiler compiler(filter_factory, filter);
 		m_filter = compiler.compile();
 	}
 }
@@ -651,6 +655,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 		if(m_output_type == chisel_table::OT_JSON)
 		{
 			m_json_spy_renderer= new json_spy_renderer(m_inspector,
+				m_filter_check_list,
 				this,
 				m_selected_view,
 				spy_text_renderer::OT_NORMAL,
@@ -662,7 +667,7 @@ void sinsp_cursesui::start(bool is_drilldown, bool is_spy_switch)
 #ifndef NOCURSESUI
 		else
 		{
-			m_spy_box = new curses_textbox(m_inspector, this, m_selected_view, dig_otype);
+			m_spy_box = new curses_textbox(m_inspector, m_filter_check_list, this, m_selected_view, dig_otype);
 			m_spy_box->reset();
 			m_chart = m_spy_box;
 			m_spy_box->set_filter(m_complete_filter);
@@ -2278,7 +2283,9 @@ chisel_table_action sinsp_cursesui::handle_textbox_input(int ch)
 			{
 				if(*str != "")
 				{
-					sinsp_filter_compiler compiler(m_inspector, *str);
+					// TODO(therealbobo): use a populated filter check list
+					auto filter_factory = std::make_shared<sinsp_filter_factory>(m_inspector, *m_filter_check_list);
+					sinsp_filter_compiler compiler(filter_factory, *str);
 					std::unique_ptr<sinsp_filter> f;
 
 					try

@@ -57,7 +57,8 @@ public:
 	};
 	
 	spy_text_renderer(sinsp* inspector, 
-		sinsp_cursesui* parent, 
+		std::shared_ptr<sinsp_filter_check_list> filter_check_list,
+		sinsp_cursesui* parent,
 		int32_t viz_type, 
 		sysdig_output_type sotype, 
 		bool print_containers,
@@ -67,6 +68,7 @@ public:
 
 	sinsp_evt_formatter* m_formatter;
 	sinsp* m_inspector;
+	std::shared_ptr<sinsp_filter_check_list> m_filter_check_list;
 	int32_t m_viz_type;
 	uint64_t m_linecnt;
 };
@@ -186,7 +188,7 @@ class curses_textbox :
 public sinsp_chart, public search_caller_interface
 {
 public:
-	curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type, spy_text_renderer::sysdig_output_type sotype);
+	curses_textbox(sinsp* inspector, std::shared_ptr<sinsp_filter_check_list> filter_check_list, sinsp_cursesui* parent, int32_t viz_type, spy_text_renderer::sysdig_output_type sotype);
 	~curses_textbox();
 	void render();
 	void set_filter(std::string filter);
@@ -214,6 +216,7 @@ private:
 	ctext* m_ctext;
 	sinsp_cursesui* m_parent;
 	sinsp* m_inspector;
+	std::shared_ptr<sinsp_filter_check_list> m_filter_check_list;
 	std::unique_ptr<sinsp_filter> m_filter;
 	uint32_t n_prints;
 	bool m_paused;

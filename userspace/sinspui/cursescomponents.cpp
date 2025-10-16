@@ -47,16 +47,11 @@ using namespace std;
 
 extern bool g_filterchecks_force_raw_times;
 
-// todo(jasondellaluce): this list is static and prevents from using
-// plugin-defined extraction fields. The right way would be to have a filtercheck
-// list owned by each component and populate depending on the loaded plugins.
-// this is not something that we plan on supporting for now.
-static sinsp_filter_check_list s_filterlist;
-
 ///////////////////////////////////////////////////////////////////////////////
 // spy_text_renderer implementation
 ///////////////////////////////////////////////////////////////////////////////
 spy_text_renderer::spy_text_renderer(sinsp* inspector, 
+	std::shared_ptr<sinsp_filter_check_list> filter_check_list,
 	sinsp_cursesui* parent,
 	int32_t viz_type, 
 	sysdig_output_type sotype, 
@@ -65,6 +60,7 @@ spy_text_renderer::spy_text_renderer(sinsp* inspector,
 {
 	m_formatter = NULL;
 	m_inspector = inspector;
+	m_filter_check_list = filter_check_list;
 	m_viz_type = viz_type;
 	m_linecnt = 0;
 
@@ -79,13 +75,13 @@ spy_text_renderer::spy_text_renderer(sinsp* inspector,
 			{
 				m_formatter = new sinsp_evt_formatter(m_inspector,
 					"*(latency=%evt.latency.human) (fd=%fd.name) %evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info",
-					s_filterlist);
+					*m_filter_check_list);
 			}
 			else
 			{
 				m_formatter = new sinsp_evt_formatter(m_inspector,
 					"*(latency=%evt.latency.human) (fd=%fd.name) %evt.num %evt.time %evt.cpu %proc.name %thread.tid %evt.dir %evt.type %evt.info",
-					s_filterlist);
+					*m_filter_check_list);
 			}
 		}
 		else
@@ -94,11 +90,11 @@ spy_text_renderer::spy_text_renderer(sinsp* inspector,
 			{
 				m_formatter = new sinsp_evt_formatter(m_inspector,
 					"*%evt.num %evt.time %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info",
-					s_filterlist);
+					*m_filter_check_list);
 			}
 			else
 			{
-				m_formatter = new sinsp_evt_formatter(m_inspector, DEFAULT_OUTPUT_STR, s_filterlist);
+				m_formatter = new sinsp_evt_formatter(m_inspector, DEFAULT_OUTPUT_STR, *m_filter_check_list);
 			}
 		}
 	}
@@ -737,7 +733,7 @@ chisel_table_action curses_table_sidemenu::handle_input(int ch)
 ///////////////////////////////////////////////////////////////////////////////
 // curses_textbox implementation
 ///////////////////////////////////////////////////////////////////////////////
-curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t viz_type, spy_text_renderer::sysdig_output_type sotype)
+curses_textbox::curses_textbox(sinsp* inspector, std::shared_ptr<sinsp_filter_check_list> filter_check_list, sinsp_cursesui* parent, int32_t viz_type, spy_text_renderer::sysdig_output_type sotype)
 {
 	ASSERT(inspector != NULL);
 	ASSERT(parent != NULL);
@@ -748,6 +744,7 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 	m_filter = NULL;
 	m_text_renderer = NULL;
 	m_inspector = inspector;
+	m_filter_check_list = filter_check_list;
 	n_prints = 0;
 	m_paused = false;
 	m_sidemenu = NULL;
@@ -766,8 +763,9 @@ curses_textbox::curses_textbox(sinsp* inspector, sinsp_cursesui* parent, int32_t
 	config.m_scroll_on_append = true;
 	config.m_bounding_box = true;
 
-	m_text_renderer = new spy_text_renderer(inspector, 
-		parent, 
+	m_text_renderer = new spy_text_renderer(inspector,
+		m_filter_check_list,
+		parent,
 		viz_type, 
 		sotype, 
 		m_parent->m_print_containers,
@@ -854,8 +852,12 @@ curses_textbox::~curses_textbox()
 
 void curses_textbox::set_filter(string filter)
 {
-	sinsp_filter_compiler compiler(m_inspector, filter);
-	m_filter = compiler.compile();
+	if(filter != "")
+	{
+		auto filter_factory = std::make_shared<sinsp_filter_factory>(m_inspector, *m_filter_check_list);
+		sinsp_filter_compiler compiler(filter_factory, filter);
+		m_filter = compiler.compile();
+	}
 }
 
 void curses_textbox::print_no_data()

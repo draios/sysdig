@@ -204,8 +204,8 @@ void chiselinfo::init(string filterstr, string formatterstr)
 
 void chiselinfo::set_filter(string filterstr)
 {
-
-	sinsp_filter_compiler compiler(m_inspector, filterstr);
+	auto filter_factory = std::make_shared<sinsp_filter_factory>(m_inspector, *m_filter_check_list);
+	sinsp_filter_compiler compiler(filter_factory, filterstr);
 	if(m_filter)
 	{
 		delete m_filter;
