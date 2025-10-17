@@ -28,7 +28,7 @@ jobs:
           release_arch: aarch64
 
     env:
-      ZIG_VERSION: 0.14.0-dev.3259+0779e847f
+      ZIG_VERSION: 0.14.1
 
     steps:
       - name: Checkout Sysdig
@@ -42,8 +42,6 @@ jobs:
           cp -v scripts/zig-c++ /usr/bin/
           apt update && \
           apt install -y --no-install-recommends \
-            autoconf \
-            automake \
             build-essential \
             ca-certificates \
             clang \
@@ -52,6 +50,7 @@ jobs:
             git \
             libelf-dev \
             libtool \
+            linux-tools-`uname -r` \
             llvm \
             ninja-build \
             pkg-config \
@@ -65,14 +64,15 @@ jobs:
           make install && \
           cd ../.. && \
           rm -fr bpftool && \
-          curl -LO https://ziglang.org/builds/zig-linux-"$(uname -m)"-"${ZIG_VERSION}".tar.xz && \
-          tar -xaf zig-linux-"$(uname -m)"-"${ZIG_VERSION}".tar.xz && \
-          rm -v zig-linux-"$(uname -m)"-"${ZIG_VERSION}".tar.xz && \
-          cd zig-linux-"$(uname -m)"-"${ZIG_VERSION}" &&  \
+          curl -LO "https://ziglang.org/download/${ZIG_VERSION}/zig-$(uname -m)-linux-${ZIG_VERSION}.tar.xz" && \
+          tar -xaf "zig-$(uname -m)-linux-${ZIG_VERSION}.tar.xz" && \
+          rm -v  "zig-$(uname -m)-linux-${ZIG_VERSION}.tar.xz" && \
+          cd zig-* &&  \
           cp -v zig /usr/bin && \
           find lib -exec cp --parents {} /usr/ \; && \
           cd .. && \
           rm -fr zig*
+
 
       - name: Build Sysdig
         env:

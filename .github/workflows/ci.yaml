@@ -47,6 +47,13 @@ jobs:
             rpm \
             wget \
             xz-utils && \
+          git clone https://github.com/libbpf/bpftool.git --branch v7.3.0 --single-branch && \
+          cd bpftool && \
+          git submodule update --init && \
+          cd src && \
+          make install && \
+          cd ../.. && \
+          rm -fr bpftool && \
           curl -LO "https://ziglang.org/download/${ZIG_VERSION}/zig-$(uname -m)-linux-${ZIG_VERSION}.tar.xz" && \
           tar -xaf "zig-$(uname -m)-linux-${ZIG_VERSION}.tar.xz" && \
           rm -v  "zig-$(uname -m)-linux-${ZIG_VERSION}.tar.xz" && \
