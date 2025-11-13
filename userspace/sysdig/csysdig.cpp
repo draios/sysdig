@@ -21,9 +21,6 @@ limitations under the License.
 
 #include <stdio.h>
 #include <iostream>
-#include <fstream>
-#include <sstream>
-#include <filesystem>
 #include <time.h>
 #include <signal.h>
 #include <fcntl.h>
@@ -418,19 +415,8 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		plugins.add_directory(SYSDIG_PLUGINS_DIR);
 		plugins.read_plugins_from_dirs(inspector);
 
-		// Load container plugin
-		std::string container_config = R"({"hooks":["create","start"],"engines":{"docker":{"enabled":true,"sockets":["/var/run/docker.sock"]},"podman":{"enabled":true,"sockets":["/run/podman/podman.sock","/run/user/1000/podman/podman.sock"]},"containerd":{"enabled":false,"sockets":["/run/containerd/containerd.sock"]},"cri":{"enabled":true,"sockets":["/run/crio/crio.sock"]},"lxc":{"enabled":false},"libvirt_lxc":{"enabled":false},"bpm":{"enabled":false}}})";
-		auto container_config_file = "/etc/sysdig/container.json";
-		if (std::filesystem::exists(container_config_file))
-		{
-			std::ifstream file(container_config_file);
-			std::stringstream buffer;
-			buffer << file.rdbuf();
-			container_config = buffer.str();
-		}
-
-		plugins.load_plugin(inspector, "container");
-		plugins.config_plugin(inspector, "container", container_config);
+		// Load container plugin (if available)
+		plugins.load_container_plugin_if_available(inspector);
 
 		//
 		// Parse the args

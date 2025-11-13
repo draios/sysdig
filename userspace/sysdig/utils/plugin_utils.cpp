@@ -22,6 +22,8 @@ limitations under the License.
 
 #include <utility>
 #include <filesystem>
+#include <fstream>
+#include <sstream>
 #include <yaml-cpp/yaml.h>
 #include <nlohmann/json.hpp>
 
@@ -643,4 +645,53 @@ std::vector<std::unique_ptr<sinsp_filter_check>> plugin_utils::get_filterchecks(
         }
     }
     return list;
+}
+
+bool plugin_utils::load_container_plugin_if_available(sinsp *inspector)
+{
+    // Check if container plugin exists in any of the plugin directories
+    std::string soname = SHAREDOBJ_PREFIX "container" SHAREDOBJ_EXT;
+    bool plugin_exists = false;
+
+    iterate_plugins_dirs(m_dirs, [&soname, &plugin_exists] (const std::filesystem::path file) -> bool {
+        auto filename = file.filename().generic_string();
+        if (filename == soname)
+        {
+            plugin_exists = true;
+            return true; // break-out
+        }
+        return false;
+    });
+
+    if (!plugin_exists)
+    {
+        fprintf(stderr, "Warning: container plugin (%s) not found in plugin directories. Container metadata will not be available.\n", soname.c_str());
+        fprintf(stderr, "         This is expected if you're running sysdig standalone (not installed via package manager).\n");
+        return false;
+    }
+
+    try
+    {
+        // Load container configuration from file or use default
+        std::string container_config = R"({"hooks":["create","start"],"engines":{"docker":{"enabled":true,"sockets":["/var/run/docker.sock"]},"podman":{"enabled":true,"sockets":["/run/podman/podman.sock","/run/user/1000/podman/podman.sock"]},"containerd":{"enabled":false,"sockets":["/run/containerd/containerd.sock"]},"cri":{"enabled":true,"sockets":["/run/crio/crio.sock", "/run/containerd/containerd.sock"]},"lxc":{"enabled":false},"libvirt_lxc":{"enabled":false},"bpm":{"enabled":false}}})";
+        auto container_config_file = "/etc/sysdig/container.json";
+        if (std::filesystem::exists(container_config_file))
+        {
+            std::ifstream file(container_config_file);
+            std::stringstream buffer;
+            buffer << file.rdbuf();
+            container_config = buffer.str();
+        }
+
+        // Load and configure the plugin
+        load_plugin(inspector, "container");
+        config_plugin(inspector, "container", container_config);
+        return true;
+    }
+    catch (const sinsp_exception& e)
+    {
+        fprintf(stderr, "Warning: failed to load container plugin: %s\n", e.what());
+        fprintf(stderr, "         Container metadata will not be available.\n");
+        return false;
+    }
 }

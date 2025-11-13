@@ -39,6 +39,9 @@ public:
 
 	void config_plugin(sinsp *inspector, const std::string& name, const std::string& conf);
 
+	// Load container plugin if available, with graceful fallback
+	bool load_container_plugin_if_available(sinsp *inspector);
+
 	void select_input_plugin(sinsp *inspector, filter_check_list* flist, const std::string& name, const std::string& params);
 	void clear_input_plugin();
 

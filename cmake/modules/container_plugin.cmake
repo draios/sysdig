@@ -17,7 +17,7 @@ include(ExternalProject)
 
 string(TOLOWER ${CMAKE_HOST_SYSTEM_NAME} PLUGINS_SYSTEM_NAME)
 
-set(CONTAINER_VERSION "0.3.7")
+set(CONTAINER_VERSION "0.4.1")
 
 if(UNIX AND NOT APPLE)
 
@@ -25,9 +25,9 @@ if(UNIX AND NOT APPLE)
 		"${CMAKE_BINARY_DIR}/container_plugin-prefix/src/container_plugin/libcontainer.so"
 	)
 	if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "x86_64")
-		set(CONTAINER_HASH "fd4e0b36ff9eb8ea34ee8166d0bfa29f9de7939e7c6e1ef931a9d6261b20f5ab")
+		set(CONTAINER_HASH "2ca0390f8b44bb4d0ec4c7f030dfb82af349897d00276393b6cb29281e14588e")
 	else() # arm64
-		set(CONTAINER_HASH "fb13572da413d2272d249459f0afd1879514a265e43acaaa8a844163bede239d")
+		set(CONTAINER_HASH "aa69ae222fb3947d9eac3756e06d5006964e1544130d3ebff398a18462fd0b12")
 	endif()
 
 	if(NOT TARGET container_plugin)
@@ -75,7 +75,7 @@ else()
 		ExternalProject_Add(
 			container_plugin
 			URL "https://github.com/falcosecurity/plugins/archive/refs/tags/plugins/container/v${CONTAINER_VERSION}.tar.gz"
-			URL_HASH "SHA256=da063e8d99310596a4c369fb010053e391247f2db6cd3fae9e733582923b71c4"
+			URL_HASH "SHA256=7adbd1062533dbd3f6d18e77abe44f63dd80cf40ebb7755d0a1bdb8298888ac4"
 			SOURCE_SUBDIR plugins/container
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS "${CONTAINER_LIBRARY}"

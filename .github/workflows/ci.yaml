@@ -40,7 +40,7 @@ jobs:
             git \
             libelf-dev \
             libtool \
-            linux-tools-`uname -r` \
+            linux-tools-$(uname -r) \
             llvm \
             ninja-build \
             pkg-config \
