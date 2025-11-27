@@ -1,0 +1,8 @@
+kernelversion: 156
+kernelrelease: 5.4.0-1147-gcp
+target: ubuntu-gcp
+architecture: arm64
+output:
+  module: output/8.1.0+driver/aarch64/scap_ubuntu-gcp_5.4.0-1147-gcp_156.ko
+  probe: output/8.1.0+driver/aarch64/scap_ubuntu-gcp_5.4.0-1147-gcp_156.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp/linux-headers-5.4.0-1147-gcp_5.4.0-1147.156_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp/linux-gcp-headers-5.4.0-1147_5.4.0-1147.156_arm64.deb"]

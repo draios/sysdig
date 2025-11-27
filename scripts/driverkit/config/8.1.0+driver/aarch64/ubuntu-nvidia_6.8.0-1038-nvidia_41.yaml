@@ -1,0 +1,8 @@
+kernelversion: 41
+kernelrelease: 6.8.0-1038-nvidia
+target: ubuntu-nvidia
+architecture: arm64
+output:
+  module: output/8.1.0+driver/aarch64/scap_ubuntu-nvidia_6.8.0-1038-nvidia_41.ko
+  probe: output/8.1.0+driver/aarch64/scap_ubuntu-nvidia_6.8.0-1038-nvidia_41.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-nvidia/linux-headers-6.8.0-1038-nvidia_6.8.0-1038.41_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-nvidia/linux-headers-6.8.0-1038-nvidia-64k_6.8.0-1038.41_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-nvidia/linux-nvidia-headers-6.8.0-1038_6.8.0-1038.41_all.deb"]

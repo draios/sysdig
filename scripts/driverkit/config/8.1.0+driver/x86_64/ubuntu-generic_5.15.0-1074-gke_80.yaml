@@ -1,0 +1,8 @@
+kernelversion: 80
+kernelrelease: 5.15.0-1074-gke
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/8.1.0+driver/x86_64/scap_ubuntu-generic_5.15.0-1074-gke_80.ko
+  probe: output/8.1.0+driver/x86_64/scap_ubuntu-generic_5.15.0-1074-gke_80.o
+kernelurls: ["http://archive.ubuntu.com/ubuntu/pool/main/l/linux-gke/linux-gke-headers-5.15.0-1074_5.15.0-1074.80_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gke/linux-headers-5.15.0-1074-gke_5.15.0-1074.80_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gke/linux-gke-headers-5.15.0-1074_5.15.0-1074.80_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gke/linux-headers-5.15.0-1074-gke_5.15.0-1074.80_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gke/linux-gke-headers-5.15.0-1074_5.15.0-1074.80_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-gke/linux-headers-5.15.0-1074-gke_5.15.0-1074.80_amd64.deb"]

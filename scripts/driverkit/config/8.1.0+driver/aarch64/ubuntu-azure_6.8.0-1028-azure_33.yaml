@@ -1,0 +1,8 @@
+kernelversion: 33
+kernelrelease: 6.8.0-1028-azure
+target: ubuntu-azure
+architecture: arm64
+output:
+  module: output/8.1.0+driver/aarch64/scap_ubuntu-azure_6.8.0-1028-azure_33.ko
+  probe: output/8.1.0+driver/aarch64/scap_ubuntu-azure_6.8.0-1028-azure_33.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-azure-headers-6.8.0-1028_6.8.0-1028.33_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-headers-6.8.0-1028-azure_6.8.0-1028.33_arm64.deb"]

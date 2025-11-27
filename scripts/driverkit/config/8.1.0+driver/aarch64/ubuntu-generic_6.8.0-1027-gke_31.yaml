@@ -1,0 +1,8 @@
+kernelversion: 31
+kernelrelease: 6.8.0-1027-gke
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/8.1.0+driver/aarch64/scap_ubuntu-generic_6.8.0-1027-gke_31.ko
+  probe: output/8.1.0+driver/aarch64/scap_ubuntu-generic_6.8.0-1027-gke_31.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gke/linux-gke-headers-6.8.0-1027_6.8.0-1027.31_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gke/linux-headers-6.8.0-1027-gke_6.8.0-1027.31_arm64.deb"]

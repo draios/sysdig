@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 6.12.31-35.92.amzn2023.x86_64
+target: amazonlinux2023
+architecture: amd64
+output:
+  module: output/8.1.0+driver/x86_64/scap_amazonlinux2023_6.12.31-35.92.amzn2023.x86_64_1.ko
+  probe: output/8.1.0+driver/x86_64/scap_amazonlinux2023_6.12.31-35.92.amzn2023.x86_64_1.o
+kernelurls: ["https://cdn.amazonlinux.com/al2023/core/guids/8c978296cb2b51259bcd168169eb5e8193568ea4590c79d76d9def8d00b49b22/x86_64/../../../../blobstore/52f779ae0fb1f5f19fe0eb2de989f2a3be1b35069b3216b54f20fb48aac2b6b6/kernel-devel-6.12.31-35.92.amzn2023.x86_64.rpm"]
