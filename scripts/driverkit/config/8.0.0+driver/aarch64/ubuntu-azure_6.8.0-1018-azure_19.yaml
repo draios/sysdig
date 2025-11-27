@@ -1,0 +1,8 @@
+kernelversion: 19
+kernelrelease: 6.8.0-1018-azure
+target: ubuntu-azure
+architecture: arm64
+output:
+  module: output/8.0.0+driver/aarch64/scap_ubuntu-azure_6.8.0-1018-azure_19.ko
+  probe: output/8.0.0+driver/aarch64/scap_ubuntu-azure_6.8.0-1018-azure_19.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure-nvidia/linux-azure-nvidia-headers-6.8.0-1018_6.8.0-1018.19_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure-nvidia/linux-headers-6.8.0-1018-azure-nvidia_6.8.0-1018.19_arm64.deb"]

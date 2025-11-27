@@ -1,0 +1,8 @@
+kernelversion: 81
+kernelrelease: 6.8.0-81-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/8.0.0+driver/x86_64/scap_ubuntu-generic_6.8.0-81-generic_81.ko
+  probe: output/8.0.0+driver/x86_64/scap_ubuntu-generic_6.8.0-81-generic_81.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-6.8.0-81-generic_6.8.0-81.81_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-6.8.0-81_6.8.0-81.81_all.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-6.8.0-81-generic_6.8.0-81.81_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-6.8.0-81_6.8.0-81.81_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-6.8.0-81_6.8.0-81.81_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-6.8.0-81-generic_6.8.0-81.81_amd64.deb"]

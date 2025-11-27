@@ -1,0 +1,8 @@
+kernelversion: 39~22.04.1
+kernelrelease: 6.8.0-1037-gcp
+target: ubuntu-gcp
+architecture: arm64
+output:
+  module: output/8.0.0+driver/aarch64/scap_ubuntu-gcp_6.8.0-1037-gcp_39~22.04.1.ko
+  probe: output/8.0.0+driver/aarch64/scap_ubuntu-gcp_6.8.0-1037-gcp_39~22.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp-6.8/linux-headers-6.8.0-1037-gcp_6.8.0-1037.39~22.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp-6.8/linux-gcp-6.8-headers-6.8.0-1037_6.8.0-1037.39~22.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp-6.8/linux-headers-6.8.0-1037-gcp-64k_6.8.0-1037.39~22.04.1_arm64.deb"]

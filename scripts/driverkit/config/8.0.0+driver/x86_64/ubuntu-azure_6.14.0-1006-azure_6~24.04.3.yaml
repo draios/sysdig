@@ -1,0 +1,8 @@
+kernelversion: 6~24.04.3
+kernelrelease: 6.14.0-1006-azure
+target: ubuntu-azure
+architecture: amd64
+output:
+  module: output/8.0.0+driver/x86_64/scap_ubuntu-azure_6.14.0-1006-azure_6~24.04.3.ko
+  probe: output/8.0.0+driver/x86_64/scap_ubuntu-azure_6.14.0-1006-azure_6~24.04.3.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure-6.14/linux-headers-6.14.0-1006-azure_6.14.0-1006.6~24.04.3_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure-6.14/linux-azure-6.14-headers-6.14.0-1006_6.14.0-1006.6~24.04.3_all.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-azure-6.14/linux-azure-6.14-headers-6.14.0-1006_6.14.0-1006.6~24.04.3_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-6.14/linux-headers-6.14.0-1006-azure_6.14.0-1006.6~24.04.3_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-6.14/linux-azure-6.14-headers-6.14.0-1006_6.14.0-1006.6~24.04.3_all.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-azure-6.14/linux-headers-6.14.0-1006-azure_6.14.0-1006.6~24.04.3_amd64.deb"]

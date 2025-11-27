@@ -1,0 +1,8 @@
+kernelversion: 157
+kernelrelease: 5.4.0-1150-azure
+target: ubuntu-azure
+architecture: arm64
+output:
+  module: output/8.0.0+driver/aarch64/scap_ubuntu-azure_5.4.0-1150-azure_157.ko
+  probe: output/8.0.0+driver/aarch64/scap_ubuntu-azure_5.4.0-1150-azure_157.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-headers-5.4.0-1150-azure_5.4.0-1150.157_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-azure-headers-5.4.0-1150_5.4.0-1150.157_all.deb"]

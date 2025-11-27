@@ -1,0 +1,8 @@
+kernelversion: 84
+kernelrelease: 5.15.0-1081-ibm
+target: ubuntu-ibm
+architecture: amd64
+output:
+  module: output/8.0.0+driver/x86_64/scap_ubuntu-ibm_5.15.0-1081-ibm_84.ko
+  probe: output/8.0.0+driver/x86_64/scap_ubuntu-ibm_5.15.0-1081-ibm_84.o
+kernelurls: ["http://archive.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-headers-5.15.0-1081-ibm_5.15.0-1081.84_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm/linux-ibm-headers-5.15.0-1081_5.15.0-1081.84_all.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-ibm-headers-5.15.0-1081_5.15.0-1081.84_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-ibm/linux-headers-5.15.0-1081-ibm_5.15.0-1081.84_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-headers-5.15.0-1081-ibm_5.15.0-1081.84_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-ibm/linux-ibm-headers-5.15.0-1081_5.15.0-1081.84_all.deb"]

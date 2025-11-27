@@ -1,0 +1,8 @@
+kernelversion: 16~24.04.1
+kernelrelease: 6.14.0-1015-gcp
+target: ubuntu-gcp
+architecture: arm64
+output:
+  module: output/8.0.0+driver/aarch64/scap_ubuntu-gcp_6.14.0-1015-gcp_16~24.04.1.ko
+  probe: output/8.0.0+driver/aarch64/scap_ubuntu-gcp_6.14.0-1015-gcp_16~24.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp-6.14/linux-headers-6.14.0-1015-gcp-64k_6.14.0-1015.16~24.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp-6.14/linux-gcp-6.14-headers-6.14.0-1015_6.14.0-1015.16~24.04.1_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-gcp-6.14/linux-headers-6.14.0-1015-gcp_6.14.0-1015.16~24.04.1_arm64.deb"]

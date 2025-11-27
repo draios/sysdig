@@ -5,4 +5,4 @@ architecture: amd64
 output:
   module: output/8.0.0+driver/x86_64/scap_amazonlinux2_5.4.80-40.140.amzn2.x86_64_1.ko
   probe: output/8.0.0+driver/x86_64/scap_amazonlinux2_5.4.80-40.140.amzn2.x86_64_1.o
-kernelurls: ["http://amazonlinux.us-east-1.amazonaws.com/2/extras/kernel-ng/stable/x86_64/f9bb600b110c667c6e2c57454f861bb81462dc01d366747d6614565287e7f066/../../../../../../blobstore/3cb078ddedcc8f7fb68c09538f4bb0f4c372e7af700265c9f987cd50b29ed493/kernel-devel-5.4.80-40.140.amzn2.x86_64.rpm"]
+kernelurls: ["http://amazonlinux.us-east-1.amazonaws.com/2/extras/kernel-5.4/stable/x86_64/b1fe3429893bd2c163d51010e8edf3d3770cbb076ab095c7d2b1dbb84aeaf28b/../../../../../../blobstore/3cb078ddedcc8f7fb68c09538f4bb0f4c372e7af700265c9f987cd50b29ed493/kernel-devel-5.4.80-40.140.amzn2.x86_64.rpm"]

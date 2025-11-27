@@ -1,0 +1,8 @@
+kernelversion: 49~22.04.1
+kernelrelease: 6.8.0-1042-azure
+target: ubuntu-azure
+architecture: amd64
+output:
+  module: output/8.0.0+driver/x86_64/scap_ubuntu-azure_6.8.0-1042-azure_49~22.04.1.ko
+  probe: output/8.0.0+driver/x86_64/scap_ubuntu-azure_6.8.0-1042-azure_49~22.04.1.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure-fde-6.8/linux-azure-fde-6.8-headers-6.8.0-1042_6.8.0-1042.49~22.04.1_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-azure-fde-6.8/linux-headers-6.8.0-1042-azure-fde_6.8.0-1042.49~22.04.1_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-azure-fde-6.8/linux-headers-6.8.0-1042-azure-fde_6.8.0-1042.49~22.04.1_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-azure-fde-6.8/linux-azure-fde-6.8-headers-6.8.0-1042_6.8.0-1042.49~22.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-fde-6.8/linux-azure-fde-6.8-headers-6.8.0-1042_6.8.0-1042.49~22.04.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-fde-6.8/linux-headers-6.8.0-1042-azure-fde_6.8.0-1042.49~22.04.1_amd64.deb"]
