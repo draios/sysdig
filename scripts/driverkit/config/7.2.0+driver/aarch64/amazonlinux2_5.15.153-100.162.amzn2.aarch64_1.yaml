@@ -1,8 +1,0 @@
-kernelversion: 1
-kernelrelease: 5.15.153-100.162.amzn2.aarch64
-target: amazonlinux2
-architecture: arm64
-output:
-  module: output/7.2.0+driver/aarch64/scap_amazonlinux2_5.15.153-100.162.amzn2.aarch64_1.ko
-  probe: output/7.2.0+driver/aarch64/scap_amazonlinux2_5.15.153-100.162.amzn2.aarch64_1.o
-kernelurls: ["http://amazonlinux.us-east-1.amazonaws.com/2/extras/kernel-5.15/stable/aarch64/ba94e2cc3f4a75964084a2ec95068b0eda6d0a27f2b2f60c75eeedcda30e257a/../../../../../../blobstore/b37dad91d5b7bbbb6bac9efe605fff0ef639d1d6ab2b4b6beffe45a1b4fc54ca/kernel-devel-5.15.153-100.162.amzn2.aarch64.rpm"]

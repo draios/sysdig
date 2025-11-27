@@ -1,8 +1,0 @@
-kernelversion: 1
-kernelrelease: 6.9.1-lp155.4.1.g2045ec5.aarch64
-target: opensuse
-architecture: arm64
-output:
-  module: output/7.2.0+driver/aarch64/scap_opensuse_6.9.1-lp155.4.1.g2045ec5.aarch64_1.ko
-  probe: output/7.2.0+driver/aarch64/scap_opensuse_6.9.1-lp155.4.1.g2045ec5.aarch64_1.o
-kernelurls: ["https://download.opensuse.org/repositories/Kernel:/./stable:/Backport/standard/aarch64/kernel-default-devel-6.9.1-lp155.4.1.g2045ec5.aarch64.rpm","https://download.opensuse.org/repositories/Kernel:/./stable:/Backport/standard/noarch/kernel-devel-6.9.1-lp155.4.1.g2045ec5.noarch.rpm"]
