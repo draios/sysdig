@@ -1,0 +1,8 @@
+kernelversion: 55.2
+kernelrelease: 6.8.0-53-lowlatency
+target: ubuntu-lowlatency
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_ubuntu-lowlatency_6.8.0-53-lowlatency_55.2.ko
+  probe: output/7.3.0+driver/x86_64/scap_ubuntu-lowlatency_6.8.0-53-lowlatency_55.2.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-lowlatency/linux-headers-6.8.0-53-lowlatency_6.8.0-53.55.2_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-lowlatency/linux-headers-6.8.0-53-lowlatency_6.8.0-53.55.2_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lowlatency/linux-headers-6.8.0-53-lowlatency_6.8.0-53.55.2_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-lowlatency/linux-lowlatency-headers-6.8.0-53_6.8.0-53.55.2_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-lowlatency/linux-lowlatency-headers-6.8.0-53_6.8.0-53.55.2_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lowlatency/linux-lowlatency-headers-6.8.0-53_6.8.0-53.55.2_all.deb"]

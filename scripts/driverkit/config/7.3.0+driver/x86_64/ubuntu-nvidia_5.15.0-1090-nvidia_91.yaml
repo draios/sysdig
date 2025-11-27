@@ -1,0 +1,8 @@
+kernelversion: 91
+kernelrelease: 5.15.0-1090-nvidia
+target: ubuntu-nvidia
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_ubuntu-nvidia_5.15.0-1090-nvidia_91.ko
+  probe: output/7.3.0+driver/x86_64/scap_ubuntu-nvidia_5.15.0-1090-nvidia_91.o
+kernelurls: ["http://archive.ubuntu.com/ubuntu/pool/main/l/linux-nvidia/linux-headers-5.15.0-1090-nvidia-lowlatency_5.15.0-1090.91_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-nvidia/linux-headers-5.15.0-1090-nvidia_5.15.0-1090.91_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-nvidia/linux-nvidia-headers-5.15.0-1090_5.15.0-1090.91_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-nvidia/linux-headers-5.15.0-1090-nvidia_5.15.0-1090.91_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-nvidia/linux-nvidia-headers-5.15.0-1090_5.15.0-1090.91_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-nvidia/linux-headers-5.15.0-1090-nvidia_5.15.0-1090.91_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-nvidia/linux-headers-5.15.0-1090-nvidia-lowlatency_5.15.0-1090.91_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-nvidia/linux-nvidia-headers-5.15.0-1090_5.15.0-1090.91_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-nvidia/linux-headers-5.15.0-1090-nvidia-lowlatency_5.15.0-1090.91_amd64.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 67
+kernelrelease: 6.8.0-64-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_ubuntu-generic_6.8.0-64-generic_67.ko
+  probe: output/7.3.0+driver/x86_64/scap_ubuntu-generic_6.8.0-64-generic_67.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-6.8.0-64_6.8.0-64.67_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-6.8.0-64-generic_6.8.0-64.67_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-6.8.0-64_6.8.0-64.67_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-6.8.0-64-generic_6.8.0-64.67_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-6.8.0-64-generic_6.8.0-64.67_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-6.8.0-64_6.8.0-64.67_all.deb"]

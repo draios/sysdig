@@ -1,0 +1,8 @@
+kernelversion: 74
+kernelrelease: 5.15.0-1066-gkeop
+target: ubuntu-genericop
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_ubuntu-genericop_5.15.0-1066-gkeop_74.ko
+  probe: output/7.3.0+driver/x86_64/scap_ubuntu-genericop_5.15.0-1066-gkeop_74.o
+kernelurls: ["http://archive.ubuntu.com/ubuntu/pool/main/l/linux-gkeop/linux-gkeop-headers-5.15.0-1066_5.15.0-1066.74_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gkeop/linux-headers-5.15.0-1066-gkeop_5.15.0-1066.74_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-gkeop/linux-headers-5.15.0-1066-gkeop_5.15.0-1066.74_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gkeop/linux-gkeop-headers-5.15.0-1066_5.15.0-1066.74_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gkeop/linux-gkeop-headers-5.15.0-1066_5.15.0-1066.74_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gkeop/linux-headers-5.15.0-1066-gkeop_5.15.0-1066.74_amd64.deb"]

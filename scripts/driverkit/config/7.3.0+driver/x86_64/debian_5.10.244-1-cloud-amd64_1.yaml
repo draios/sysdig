@@ -1,0 +1,8 @@
+kernelversion: 1
+kernelrelease: 5.10.244-1-cloud-amd64
+target: debian
+architecture: amd64
+output:
+  module: output/7.3.0+driver/x86_64/scap_debian_5.10.244-1-cloud-amd64_1.ko
+  probe: output/7.3.0+driver/x86_64/scap_debian_5.10.244-1-cloud-amd64_1.o
+kernelurls: ["http://security.debian.org/debian-security/pool/updates/main/l/linux/linux-headers-5.10.0-36-common_5.10.244-1_all.deb","http://security.debian.org/debian-security/pool/updates/main/l/linux/linux-headers-5.10.0-36-cloud-amd64_5.10.244-1_amd64.deb","http://security.debian.org/debian-security/pool/updates/main/l/linux/linux-kbuild-5.10_5.10.244-1_amd64.deb"]

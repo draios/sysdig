@@ -1,0 +1,8 @@
+kernelversion: 81
+kernelrelease: 5.15.0-1078-raspi
+target: ubuntu-raspi
+architecture: arm64
+output:
+  module: output/7.3.0+driver/aarch64/scap_ubuntu-raspi_5.15.0-1078-raspi_81.ko
+  probe: output/7.3.0+driver/aarch64/scap_ubuntu-raspi_5.15.0-1078-raspi_81.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-raspi/linux-headers-5.15.0-1078-raspi_5.15.0-1078.81_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-raspi/linux-raspi-headers-5.15.0-1078_5.15.0-1078.81_arm64.deb"]
