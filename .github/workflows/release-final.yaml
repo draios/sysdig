@@ -101,19 +101,29 @@ jobs:
       id-token: write
       contents: read
 
-    container:
-      image: centos:8
-
     steps:
       - name: Install deps
         run: |
-          sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
-          sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
-          yum -y install unzip createrepo_c git
-          cd /tmp
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip awscliv2.zip
-          ./aws/install
+          sudo apt-get update && sudo apt-get -y install dpkg-dev gpg createrepo-c
+
+      - name: Cleanup
+        run: |
+          sudo rm -rf /usr/lib/jvm
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/local/julia*
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/local/share/chromium
+          sudo rm -rf /opt/microsoft /opt/google
+          sudo rm -rf /opt/az
+          sudo rm -rf /usr/local/share/powershell
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -fr /usr/lib/google-cloud-sdk
+          sudo rm -fr /home/runner/.rustup
+          docker system prune -af || true
+          docker builder prune -af || true
+          df -h
 
       - name: Checkout Sysdig
         uses: actions/checkout@v4
@@ -180,6 +190,25 @@ jobs:
       - name: Install deps
         run: |
           sudo apt-get update && sudo apt-get -y install dpkg-dev gpg
+
+      - name: Cleanup
+        run: |
+          sudo rm -rf /usr/lib/jvm
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/local/julia*
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/local/share/chromium
+          sudo rm -rf /opt/microsoft /opt/google
+          sudo rm -rf /opt/az
+          sudo rm -rf /usr/local/share/powershell
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -fr /usr/lib/google-cloud-sdk
+          sudo rm -fr /home/runner/.rustup
+          docker system prune -af || true
+          docker builder prune -af || true
+          df -h
 
       - name: Checkout Sysdig
         uses: actions/checkout@v4
