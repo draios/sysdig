@@ -123,9 +123,13 @@ jobs:
     steps:
       - name: Checkout Sysdig
         uses: actions/checkout@v4
+      - name: Install NSIS
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install nsis -y
       - name: Build
         run: |
-          cmake -Wno-dev -DBUILD_DRIVER=OFF -DSYSDIG_VERSION="${{ env.BUILD_VERSION }}" -S . -B build
+          cmake -Wno-dev -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DBUILD_DRIVER=OFF -DSYSDIG_VERSION="${{ env.BUILD_VERSION }}" -S . -B build
           cmake --build build --target package --config Release
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
