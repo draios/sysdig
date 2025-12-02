@@ -44,7 +44,7 @@ if(UNIX AND NOT APPLE)
 
 		install(
 			FILES "${CONTAINER_LIBRARY}"
-			DESTINATION local/share/sysdig/plugins
+			DESTINATION share/sysdig/plugins
 			COMPONENT "${SYSDIG_COMPONENT_NAME}"
 		)
 	endif()
