@@ -135,7 +135,7 @@ private:
 class sinsp_chisel
 {
 public:
-	sinsp_chisel(sinsp* inspector, std::string filename, bool is_file = true);
+    sinsp_chisel(sinsp* inspector, std::string filename, std::shared_ptr<sinsp_filter_check_list> filter_list, bool is_file = true);
 	~sinsp_chisel();
 
 	static void add_lua_package_path(lua_State* ls, const std::string& path);

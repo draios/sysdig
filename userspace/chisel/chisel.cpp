@@ -251,7 +251,7 @@ void chiselinfo::set_callback_precise_interval(uint64_t interval)
 ///////////////////////////////////////////////////////////////////////////////
 // chisel implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_chisel::sinsp_chisel(sinsp* inspector, std::string filename, bool is_file)
+sinsp_chisel::sinsp_chisel(sinsp* inspector, std::string filename, std::shared_ptr<sinsp_filter_check_list> filter_list, bool is_file)
 {
 	m_inspector = inspector;
 	m_ls = NULL;
@@ -261,6 +261,7 @@ sinsp_chisel::sinsp_chisel(sinsp* inspector, std::string filename, bool is_file)
 	m_lua_last_interval_sample_time = 0;
 	m_lua_last_interval_ts = 0;
 	m_udp_socket = 0;
+	m_filter_check_list = std::move(filter_list);
 
 	load(filename, is_file);
 }

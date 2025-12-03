@@ -48,6 +48,8 @@ limitations under the License.
 #include <chisel/chisel_fields_info.h>
 #endif
 
+#include "filterchecks/sinsp_filtercheck_syslog.h"
+
 #include "utils/sinsp_opener.h"
 #include "utils/plugin_utils.h"
 #include "utils/supported_events.h"
@@ -696,19 +698,15 @@ std::vector<std::string> split_nextrun_args(std::string na)
 //
 // Event processing loop
 //
-captureinfo do_inspect(sinsp* inspector,
-	sinsp_cycledumper* dumper,
-	uint64_t cnt,
-	uint64_t duration_to_tot_ns,
-	bool quiet,
-	bool json,
-	bool do_flush,
-	bool reset_colors,
-	bool print_progress,
-	std::unique_ptr<sinsp_filter> display_filter,
-	std::vector<summary_table_entry> &summary_table,
-	sinsp_evt_formatter* syscall_evt_formatter,
-	sinsp_evt_formatter* plugin_evt_formatter)
+captureinfo do_inspect(sinsp *inspector, sinsp_cycledumper *dumper,
+                       uint64_t cnt, uint64_t duration_to_tot_ns, bool quiet,
+                       bool json, bool do_flush, bool reset_colors,
+                       bool print_progress,
+                       std::unique_ptr<sinsp_filter> display_filter,
+                       std::vector<summary_table_entry> &summary_table,
+                       sinsp_evt_formatter *syscall_evt_formatter,
+                       sinsp_evt_formatter *plugin_evt_formatter,
+                       std::shared_ptr<sinsp_syslog_decoder> syslog_decoder)
 {
 	captureinfo retval;
 	int32_t res;
@@ -745,7 +743,10 @@ captureinfo do_inspect(sinsp* inspector,
 			handle_end_of_file(inspector, print_progress, reset_colors, formatter);
 			break;
 		}
+        syslog_decoder->reset();
 		res = inspector->next(&ev);
+        syslog_decoder->parse(ev);
+
 		if(dumper && ev && res != SCAP_EOF)
 		{
 			dumper->dump(ev);
@@ -825,9 +826,9 @@ captureinfo do_inspect(sinsp* inspector,
 #ifdef HAS_CHISELS
 		if(!g_chisels.empty())
 		{
-			for(std::vector<sinsp_chisel*>::iterator it = g_chisels.begin(); it != g_chisels.end(); ++it)
+			for(const auto& chisel : g_chisels)
 			{
-				if((*it)->run(ev) == false)
+				if(chisel->run(ev) == false)
 				{
 					continue;
 				}
@@ -1008,6 +1009,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 	std::shared_ptr<sinsp_filter_factory> filter_factory;
 	color_term_out color_flag = COLOR;
 	bool user_defined_format = false;
+    std::shared_ptr<sinsp_syslog_decoder> syslog_decoder = std::make_shared<sinsp_syslog_decoder>();
 
 	// These variables are for the cycle_writer engine
 	int duration_seconds = 0;
@@ -1085,6 +1087,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		inspector->set_hostname_and_port_resolution_mode(false);
 
 		filter_list.reset(new sinsp_filter_check_list());
+        filter_list->add_filter_check(std::make_unique<sinsp_filter_check_syslog>(syslog_decoder));
 		filter_factory.reset(new sinsp_filter_factory(inspector.get(), *filter_list.get()));
 
 #ifdef HAS_CHISELS
@@ -1148,6 +1151,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 
 					// TODO(therealbobo): add plugins filterchecks
 					auto filter_list = std::make_shared<sinsp_filter_check_list>();
+                    filter_list->add_filter_check(std::make_unique<sinsp_filter_check_syslog>(syslog_decoder));
 
 					for (auto plugin : inspector->m_plugin_manager->plugins())
 					{
@@ -1158,7 +1162,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						}
 					}
 					auto tmp_filter_factory = std::make_shared<sinsp_filter_factory>(inspector.get(), *filter_list.get());
-					sinsp_chisel* ch = new sinsp_chisel(inspector.get(), chisel);
+					sinsp_chisel* ch = new sinsp_chisel(inspector.get(), chisel, filter_list);
 					parse_chisel_args(ch, tmp_filter_factory, optind, argc, argv, &n_filterargs);
 					g_chisels.push_back(ch);
 				}
@@ -1701,6 +1705,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		for (auto &ch : g_chisels)
 		{
 			auto filter_list = std::make_shared<sinsp_filter_check_list>();
+            filter_list->add_filter_check(std::make_unique<sinsp_filter_check_syslog>(syslog_decoder));
 
 			for (auto plugin : inspector->m_plugin_manager->plugins())
 			{
@@ -1905,19 +1910,14 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			// from messing up the output and possibly the shell line after program termination.
 			disable_tty_echo();
 #endif
-			cinfo = do_inspect(inspector.get(),
-				dumper.get(),
-				cnt,
-				uint64_t(duration_to_tot*ONE_SECOND_IN_NS),
-				quiet,
-				jflag,
-				unbuf_flag,
-				reset_colors,
-				opener.options.print_progress,
-				std::move(display_filter),
-				summary_table,
-				&syscall_evt_formatter,
-				&plugin_evt_formatter);
+                        cinfo = do_inspect(
+                            inspector.get(), dumper.get(), cnt,
+                            uint64_t(duration_to_tot * ONE_SECOND_IN_NS), quiet,
+                            jflag, unbuf_flag, reset_colors,
+                            opener.options.print_progress,
+                            std::move(display_filter), summary_table,
+                            &syscall_evt_formatter, &plugin_evt_formatter,
+                            syslog_decoder);
 
 			duration = ((double)clock()) / CLOCKS_PER_SEC - duration;
 

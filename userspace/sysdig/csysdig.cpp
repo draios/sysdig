@@ -44,6 +44,7 @@ limitations under the License.
 #include "utils/plugin_utils.h"
 #include "utils/sinsp_opener.h"
 #include "utils/supported_fields.h"
+#include "filterchecks/sinsp_filtercheck_syslog.h"
 
 #ifdef _WIN32
 #include "win32/getopt.h"
@@ -258,7 +259,8 @@ static void print_views(chisel_view_manager* view_manager)
 captureinfo do_inspect(sinsp* inspector,
 					   uint64_t cnt,
 					   sinsp_cursesui* ui,
-					   const chisel_table::output_type& output_type)
+					   const chisel_table::output_type& output_type,
+                       std::shared_ptr<sinsp_syslog_decoder> syslog_decoder)
 {
 	captureinfo retval;
 	int32_t res;
@@ -279,7 +281,9 @@ captureinfo do_inspect(sinsp* inspector,
 			break;
 		}
 
+        syslog_decoder->reset();
 		res = inspector->next(&ev);
+        syslog_decoder->parse(ev);
 
 		if(res == SCAP_TIMEOUT || res == SCAP_FILTERED_EVENT)
 		{
@@ -352,6 +356,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	int32_t json_last_row = 0;
 	int32_t sorting_col = -1;
 	bool list_views = false;
+    std::shared_ptr<sinsp_syslog_decoder> syslog_decoder = std::make_shared<sinsp_syslog_decoder>();
 
 #ifndef _WIN32
 	chisel_table::output_type output_type = chisel_table::OT_CURSES;
@@ -643,6 +648,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 
 		// TODO(therealbobo): add plugins filterchecks
 		filter_list = std::make_shared<sinsp_filter_check_list>();
+        filter_list->add_filter_check(std::make_unique<sinsp_filter_check_syslog>(syslog_decoder));
 		plugins.init_loaded_plugins(inspector, filter_list.get());
 
 		for (auto plugin : inspector->m_plugin_manager->plugins())
@@ -895,10 +901,7 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			//
 			// Start the capture loop
 			//
-			cinfo = do_inspect(inspector,
-				cnt,
-				&ui,
-				output_type);
+            cinfo = do_inspect(inspector, cnt, &ui, output_type, syslog_decoder);
 
 			if(output_type == chisel_table::OT_JSON)
 			{

@@ -1152,7 +1152,7 @@ int lua_cbacks::get_container_table(lua_State *ls)
 	// Go through the list
 	//
 	if(ctable != nullptr) {
-		auto fld_id = ctable->get_field<std::string>("container_id");
+		auto fld_id = ctable->get_field<std::string>("id");
 		auto fld_name = ctable->get_field<std::string>("name");
 		auto fld_image = ctable->get_field<std::string>("image");
 		auto fld_type = ctable->get_field<int>("type");
@@ -1178,6 +1178,9 @@ int lua_cbacks::get_container_table(lua_State *ls)
 			lua_pushliteral(ls, "type");
 			switch (type)
 			{
+			case container_type::CT_HOST:
+				lua_pushstring(ls, "");
+				break;
 			case container_type::CT_DOCKER:
 				lua_pushstring(ls, "docker");
 				break;

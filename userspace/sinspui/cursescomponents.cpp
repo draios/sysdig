@@ -129,7 +129,12 @@ const char* spy_text_renderer::process_event_spy(sinsp_evt* evt, int64_t* len)
 	//
 	// Get and validate the length
 	//
-	const sinsp_evt_param* parinfo = evt->get_param(0);
+	const sinsp_evt_param* parinfo;
+    try {
+        parinfo = evt->get_param(0);
+    } catch (...) {
+        return NULL;
+    }
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	*len = *(int64_t*)parinfo->m_val;
 	if(*len <= 0)
