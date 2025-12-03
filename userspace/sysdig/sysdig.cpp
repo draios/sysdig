@@ -1335,6 +1335,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 				else if(std::string(optarg) == "c" || std::string(optarg) == "container")
 				{
 					output_format = "*%evt.num %evt.outputtime %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
+					output_format_plugin = "*%evt.num %evt.outputtime %evt.cpu %container.name (%container.id) %proc.name (%thread.tid:%thread.vtid) %evt.dir %evt.type %evt.info";
 				}
 				else if(std::string(optarg) == "k" || std::string(optarg) == "kubernetes")
 				{
