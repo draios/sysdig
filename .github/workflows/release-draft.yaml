@@ -105,13 +105,13 @@ jobs:
     name: build-release-others
     strategy:
       matrix:
-        os: [windows-latest, macos-13, macos-14]
+        os: [windows-latest, macos-15-intel, macos-14]
         include:
           - os: windows-latest
             artifact_name: win
             artifact_ext: exe
             arch: x86_64
-          - os: macos-13
+          - os: macos-15-intel
             artifact_name: osx
             artifact_ext: dmg
             arch: x86_64
