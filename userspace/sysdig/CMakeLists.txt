@@ -20,7 +20,6 @@ if(NOT WIN32)
 	include(ncurses)
 endif() # NOT WIN32
 
-include(zlib)
 include(luajit)
 
 include_directories("${PROJECT_BINARY_DIR}/userspace/sinspui")
