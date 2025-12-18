@@ -136,7 +136,7 @@ const char* spy_text_renderer::process_event_spy(sinsp_evt* evt, int64_t* len)
         return NULL;
     }
 	ASSERT(parinfo->m_len == sizeof(int64_t));
-	*len = *(int64_t*)parinfo->m_val;
+	*len = *(int64_t*)parinfo->data();
 	if(*len <= 0)
 	{
 		return NULL;

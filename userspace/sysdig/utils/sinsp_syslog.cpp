@@ -100,7 +100,9 @@ void sinsp_syslog_decoder::parse(sinsp_evt* evt) {
         parinfo = evt->get_param(1);
     }
 
-    const char* data = parinfo->m_val;
-    uint32_t datalen = parinfo->m_len;
-    parse_data(data, datalen);
+	if(parinfo) {
+		const char* data = parinfo->data();
+		uint32_t datalen = parinfo->len();
+		parse_data(data, datalen);
+	}
 }

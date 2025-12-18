@@ -857,13 +857,13 @@ captureinfo do_inspect(sinsp *inspector, sinsp_cycledumper *dumper,
 				if(etype == PPME_GENERIC_E)
 				{
 					const sinsp_evt_param *parinfo = ev->get_param(0);
-					uint16_t id = *(int16_t *)parinfo->m_val;
+					uint16_t id = *(int16_t *)parinfo->data();
 					summary_table[PPM_EVENT_MAX + id * 2].m_ncalls++;
 				}
 				else if(etype == PPME_GENERIC_X)
 				{
 					const sinsp_evt_param *parinfo = ev->get_param(0);
-					uint16_t id = *(int16_t *)parinfo->m_val;
+					uint16_t id = *(int16_t *)parinfo->data();
 					summary_table[PPM_EVENT_MAX + id * 2 + 1].m_ncalls++;
 				}
 				else
