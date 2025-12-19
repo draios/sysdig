@@ -1647,6 +1647,12 @@ void sinsp_chisel::do_timeout(sinsp_evt* evt)
 				}
 			}
 
+			//
+			// Make the event available to the API
+			//
+			lua_pushlightuserdata(m_ls, evt);
+			lua_setglobal(m_ls, "sievt");
+
 			lua_getglobal(m_ls, "on_interval");
 
 			lua_pushnumber(m_ls, (double)(ts / 1000000000));
@@ -1678,6 +1684,12 @@ void sinsp_chisel::do_timeout(sinsp_evt* evt)
 		if(ts - m_lua_last_interval_sample_time >= interval)
 		{
 			uint64_t t;
+
+			//
+			// Make the event available to the API
+			//
+			lua_pushlightuserdata(m_ls, evt);
+			lua_setglobal(m_ls, "sievt");
 
 			for(t = m_lua_last_interval_sample_time; t <= ts - interval; t += interval)
 			{
