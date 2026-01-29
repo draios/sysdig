@@ -283,7 +283,17 @@ captureinfo do_inspect(sinsp* inspector,
 
         syslog_decoder->reset();
 		res = inspector->next(&ev);
-        syslog_decoder->parse(ev);
+        if (ev)
+        {
+            const uint16_t etype = ev->get_scap_evt()->type;
+            if (etype == PPME_SYSCALL_WRITE_X || etype == PPME_SYSCALL_WRITEV_X ||
+                etype == PPME_SYSCALL_PWRITE_X || etype == PPME_SYSCALL_PWRITEV_X ||
+                etype == PPME_SOCKET_SEND_X || etype == PPME_SOCKET_SENDTO_X ||
+                etype == PPME_SOCKET_SENDMSG_X || etype == PPME_SOCKET_SENDMMSG_X)
+            {
+                syslog_decoder->parse(ev);
+            }
+        }
 
 		if(res == SCAP_TIMEOUT || res == SCAP_FILTERED_EVENT)
 		{

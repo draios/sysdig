@@ -76,34 +76,31 @@ std::string sinsp_syslog_decoder::get_info_line() const {
 }
 
 void sinsp_syslog_decoder::parse(sinsp_evt* evt) {
-	if(!evt || !evt->get_fd_info()) {
+	const sinsp_evt_param *parinfo = nullptr;
+	uint16_t etype = evt->get_scap_evt()->type;
+
+	if((etype == PPME_SOCKET_SENDMMSG_X) &&
+	   evt->get_num_params() == 0) {
 		return;
 	}
 
+    if (evt->get_syscall_return_value() < 0) {
+        return;
+    }
+    
 	// Check if this is a syslog fd
-	if(!evt->get_fd_info()->is_syslog()) {
+	if(evt->get_fd_info() == nullptr || !evt->get_fd_info()->is_syslog()) {
 		return;
 	}
-
-	// Extract the data buffer based on event type
-	uint16_t etype = evt->get_type();
-	const sinsp_evt_param* parinfo = nullptr;
 
 	// Determine which parameter contains the data based on event type
-	if(etype == PPME_SOCKET_SENDMMSG_X) {
-		parinfo = evt->get_param(2);
-	} else if(etype == PPME_SYSCALL_READV_X || etype == PPME_SYSCALL_PREADV_X ||
-	          etype == PPME_SOCKET_RECVMSG_X) {
-		parinfo = evt->get_param(2);
-	} else if(etype == PPME_SOCKET_RECVMMSG_X) {
-		parinfo = evt->get_param(3);
-	} else {
-		parinfo = evt->get_param(1);
-	}
+    if(etype == PPME_SOCKET_SENDMMSG_X) {
+        parinfo = evt->get_param(3);
+    } else {
+        parinfo = evt->get_param(1);
+    }
 
-	if(parinfo) {
-		const char* data = parinfo->m_val;
-		uint32_t datalen = parinfo->m_len;
-		parse_data(data, datalen);
-	}
+    const char* data = parinfo->m_val;
+    uint32_t datalen = parinfo->m_len;
+    parse_data(data, datalen);
 }
