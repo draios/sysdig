@@ -17,8 +17,9 @@ option(USE_BUNDLED_YAMLCPP "Enable building of the bundled yamlcpp" ${USE_BUNDLE
 if(USE_BUNDLED_YAMLCPP)
     include(FetchContent)
     FetchContent_Declare(yamlcpp
-        URL https://github.com/jbeder/yaml-cpp/archive/refs/tags/0.8.0.tar.gz
-        URL_HASH SHA256=fbe74bbdcee21d656715688706da3c8becfd946d92cd44705cc6098bb23b3a16
+        GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+        GIT_TAG yaml-cpp-0.9.0
+        GIT_SHALLOW ON
     )
     FetchContent_MakeAvailable(yamlcpp)
 else()
