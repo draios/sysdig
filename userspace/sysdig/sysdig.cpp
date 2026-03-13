@@ -55,6 +55,8 @@ limitations under the License.
 #include "utils/supported_events.h"
 #include "utils/supported_fields.h"
 
+#include <CLI/CLI.hpp>
+
 #ifdef _WIN32
 #include "win32/getopt.h"
 #include <io.h>
@@ -80,6 +82,95 @@ enum color_term_out {
 };
 
 static void usage();
+
+//
+// Command-line options structure (for CLI11 refactoring)
+//
+struct sysdig_options {
+	// Common options
+	bool help = false;
+	bool version = false;
+	bool libs_version = false;
+	bool quiet = false;
+	bool verbose = false;
+	bool debug = false;
+	bool json = false;
+	bool unbuffered = false;
+	bool compress = false;
+	bool print_progress = false;
+	bool exclude_users = false;
+	bool summary = false;
+	bool resolve_ports = false;
+
+	// Display format options
+	bool print_ascii = false;
+	bool print_base64 = false;
+	bool print_hex = false;
+	bool print_hex_ascii = false;
+	std::string print_format;
+
+	// Capture options
+	std::string bpf_probe;
+	bool modern_bpf = false;
+	int cpus_for_each_buffer = 0;
+	bool page_faults = false;
+	bool large_environment = false;
+
+	// I/O options
+	std::vector<std::string> read_files;
+	std::string write_file;
+	int snaplen = 0;
+	uint64_t num_events = std::numeric_limits<uint64_t>::max();
+	int max_seconds = 0;
+
+	// File rotation options
+	int file_size_mb = 0;
+	int duration_seconds = 0;
+	int file_limit = 0;
+	unsigned long event_limit = 0;
+
+	// Filter options
+	bool display_filter = false;
+	bool filter_proclist = false;
+	std::vector<std::string> suppress_comms;
+
+	// Time format
+	std::string time_format;
+
+	// Color output
+	std::string color_mode;
+
+	// Log level
+	std::string log_level;
+
+	// Plugin options
+	std::vector<std::string> plugins;
+	std::string input_plugin;
+	std::string plugin_config_file;
+	bool list_plugins = false;
+	std::string plugin_info;
+
+	// gVisor options
+	std::string gvisor_config;
+	std::string gvisor_root;
+	std::string gvisor_generate_config;
+
+	// List options
+	bool list_fields = false;
+	bool list_fields_markdown = false;
+	std::string list_fields_source;
+	bool list_events = false;
+
+#ifdef HAS_CHISELS
+	// Chisel options
+	std::vector<std::string> chisels;
+	bool list_chisels = false;
+	std::string chisel_info;
+#endif
+
+	// Remaining positional args (filter)
+	std::vector<std::string> filter_args;
+};
 
 //
 // Helper functions
@@ -973,6 +1064,209 @@ std::string escape_output_format(const std::string& s)
     }
 
     return ss.str();
+}
+
+//
+// CLI11-based argument parser
+//
+sysdig_options parse_args_cli11(int argc, char **argv)
+{
+	sysdig_options opts;
+
+	CLI::App app{"sysdig - the universal system visibility tool with native support for containers\n"
+	             "sysdig version " SYSDIG_VERSION};
+
+	// Disable help flag so we can handle it ourselves for backwards compatibility
+	app.set_help_flag("");
+	app.allow_extras();  // Allow extra arguments for filter
+
+	// Common options
+	app.add_flag("-h,--help", opts.help, "Print this help message");
+	app.add_flag("--version", opts.version, "Print version number");
+	app.add_flag("--libs-version", opts.libs_version, "Print the falcosecurity/libs version");
+	app.add_flag("-q,--quiet", opts.quiet, "Don't print events on the screen (useful when dumping to disk)");
+	app.add_flag("-v,--verbose", opts.verbose, "Verbose output");
+	app.add_flag("-D,--debug", opts.debug, "Capture events about sysdig itself and display internal events");
+	app.add_flag("-j,--json", opts.json, "Emit output as json");
+	app.add_flag("--unbuffered", opts.unbuffered, "Turn off output buffering");
+	app.add_flag("-z,--compress", opts.compress, "Used with -w, enables compression for trace files");
+	app.add_flag("-P,--progress", opts.print_progress, "Print progress on stderr while processing trace files");
+	app.add_flag("-E,--exclude-users", opts.exclude_users, "Don't create user/group tables");
+	app.add_flag("-S,--summary", opts.summary, "Print event summary when capture ends");
+	app.add_flag("-R,--resolve-ports", opts.resolve_ports, "Resolve port numbers to names");
+
+	// Display format options
+	auto ascii_flag = app.add_flag("-A,--print-ascii", opts.print_ascii,
+	                               "Print only text portion of data buffers");
+	auto base64_flag = app.add_flag("-b,--print-base64", opts.print_base64,
+	                                "Print data buffers in base64");
+	auto hex_flag = app.add_flag("-x,--print-hex", opts.print_hex,
+	                             "Print data buffers in hex");
+	auto hex_ascii_flag = app.add_flag("-X,--print-hex-ascii", opts.print_hex_ascii,
+	                                   "Print data buffers in hex and ASCII");
+
+	// Make display format flags mutually exclusive
+	ascii_flag->excludes(base64_flag)->excludes(hex_flag)->excludes(hex_ascii_flag);
+	base64_flag->excludes(hex_flag)->excludes(hex_ascii_flag);
+	hex_flag->excludes(hex_ascii_flag);
+
+	app.add_option("-p,--print", opts.print_format, "Specify the format for printing events")
+	   ->type_name("FORMAT");
+
+	// Capture options
+	app.add_option("-B,--bpf", opts.bpf_probe,
+	              "Enable live capture using BPF probe")
+	   ->type_name("PROBE");
+
+#ifdef HAS_MODERN_BPF
+	app.add_flag("--modern-bpf", opts.modern_bpf,
+	            "Enable live capture using modern BPF probe");
+	app.add_option("--cpus-for-each-buffer", opts.cpus_for_each_buffer,
+	              "CPUs per syscall buffer (modern BPF only)")
+	   ->type_name("NUM");
+#endif
+
+	app.add_flag("--page-faults", opts.page_faults, "Capture user/kernel page faults");
+	app.add_flag("--large-environment", opts.large_environment,
+	            "Support environments larger than 4KiB");
+
+	// I/O options
+	app.add_option("-r,--read,--readfile", opts.read_files, "Read events from file")
+	   ->type_name("FILE")
+	   ->check(CLI::ExistingFile);
+
+	app.add_option("-w,--write,--writefile", opts.write_file, "Write captured events to file")
+	   ->type_name("FILE");
+
+	app.add_option("-s,--snaplen", opts.snaplen, "Capture first <len> bytes of I/O buffers")
+	   ->type_name("LEN");
+
+	app.add_option("-n,--numevents", opts.num_events, "Stop capturing after <num> events")
+	   ->type_name("NUM");
+
+	app.add_option("-M", opts.max_seconds, "Stop collecting after <num_seconds>")
+	   ->type_name("SECONDS");
+
+	// File rotation options
+	app.add_option("-C,--file-size", opts.file_size_mb,
+	              "Rotate capture files when they reach this size (MB)")
+	   ->type_name("MB");
+
+	app.add_option("-G,--seconds", opts.duration_seconds,
+	              "Rotate dump file every <num_seconds>")
+	   ->type_name("SECONDS");
+
+	app.add_option("-W,--limit", opts.file_limit,
+	              "Limit number of capture files in rotation")
+	   ->type_name("NUM");
+
+	app.add_option("-e,--event-limit", opts.event_limit,
+	              "Number of events per dump file")
+	   ->type_name("NUM");
+
+	// Filter options
+	app.add_flag("-d,--displayflt", opts.display_filter,
+	            "Make filter a display filter (applied after state system)");
+	app.add_flag("-F,--fatfile", "Enable fatfile mode when writing")
+	   ->each([](const std::string&) { /* handled in old code */ });
+	app.add_flag("--filter-proclist", opts.filter_proclist,
+	            "Apply filter to /proc dump");
+
+	app.add_option("-U,--suppress-comm", opts.suppress_comms,
+	              "Ignore events from processes with this comm")
+	   ->type_name("COMM");
+
+	// Time format
+	app.add_option("-t,--timetype", opts.time_format,
+	              "Change event time display (h=human, a=absolute, r=relative, d=delta, D=delta-previous)")
+	   ->type_name("TYPE")
+	   ->check(CLI::IsMember({"h", "a", "r", "d", "D"}));
+
+	// Color output
+	app.add_option("--color", opts.color_mode, "Set color settings (true/false/force)")
+	   ->type_name("MODE")
+	   ->check(CLI::IsMember({"true", "false", "force"}));
+
+	// Log level
+	app.add_option("--log-level", opts.log_level, "Select log level")
+	   ->type_name("LEVEL")
+	   ->check(CLI::IsMember({"trace", "debug", "info", "notice", "warning", "error", "critical", "fatal"}));
+
+	// Plugin options
+	app.add_option("-H,--plugin", opts.plugins, "Register a plugin with optional init config")
+	   ->type_name("PLUGIN[:CONFIG]");
+
+	app.add_option("-I,--input", opts.input_plugin, "Set plugin as input source with open params")
+	   ->type_name("PLUGIN[:PARAMS]");
+
+	app.add_option("--plugin-config-file", opts.plugin_config_file,
+	              "Load plugin configuration from file")
+	   ->type_name("FILE")
+	   ->check(CLI::ExistingFile);
+
+	app.add_flag("-Il", opts.list_plugins, "List loaded plugins");
+
+	app.add_option("--plugin-info", opts.plugin_info, "Print info for a single plugin")
+	   ->type_name("PLUGIN");
+
+	// gVisor options
+	app.add_option("-g,--gvisor-config", opts.gvisor_config,
+	              "Parse events from gVisor using config file")
+	   ->type_name("FILE")
+	   ->check(CLI::ExistingFile);
+
+	app.add_option("--gvisor-root", opts.gvisor_root,
+	              "gVisor root directory for container state")
+	   ->type_name("PATH");
+
+	app.add_option("--gvisor-generate-config", opts.gvisor_generate_config,
+	              "Generate gVisor configuration file")
+	   ->type_name("SOCKET");
+
+	// List options
+	app.add_option("-l,--list", opts.list_fields_source, "List fields for filtering/output")
+	   ->default_str("")
+	   ->expected(0, 1)
+	   ->type_name("SOURCE");
+
+	app.add_option("--list-markdown", opts.list_fields_source, "List fields in markdown format")
+	   ->default_str("")
+	   ->expected(0, 1)
+	   ->type_name("SOURCE")
+	   ->each([&opts](const std::string&) { opts.list_fields_markdown = true; });
+
+	app.add_flag("-L,--list-events", opts.list_events, "List events the engine supports");
+
+#ifdef HAS_CHISELS
+	// Chisel options
+	app.add_option("-c,--chisel", opts.chisels, "Run specified chisel with arguments")
+	   ->type_name("CHISEL [ARGS]");
+
+	app.add_flag("-cl,--list-chisels", opts.list_chisels, "List available chisels");
+
+	app.add_option("-i,--chisel-info", opts.chisel_info,
+	              "Get description and arguments for a chisel")
+	   ->type_name("CHISEL");
+#endif
+
+	try {
+		app.parse(argc, argv);
+
+		// Handle list-fields flag specially
+		if(app.count("-l") || app.count("--list")) {
+			opts.list_fields = true;
+		}
+
+		// Collect remaining arguments as filter
+		opts.filter_args = app.remaining();
+
+	} catch(const CLI::ParseError &e) {
+		// For now, if CLI11 parsing fails, we'll fall back to getopt
+		// In full migration, we'd handle this with: app.exit(e);
+		throw;
+	}
+
+	return opts;
 }
 
 //

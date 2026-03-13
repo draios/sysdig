@@ -22,6 +22,7 @@ endif() # NOT WIN32
 
 include(zlib)
 include(luajit)
+include(cli11)
 
 include_directories("${PROJECT_BINARY_DIR}/userspace/sinspui")
 include_directories(../sinspui)
@@ -86,6 +87,7 @@ if(USE_BUNDLED_DEPS)
 	add_dependencies(csysdig yaml-cpp)
 	add_dependencies(sysdig luajit)
 	add_dependencies(csysdig luajit)
+	# CLI11 is header-only, no build dependency needed
 endif()
 
 if(USE_BUNDLED_FALCOSECURITY_LIBS)
@@ -118,7 +120,8 @@ if(NOT WIN32)
 	target_link_libraries(sysdig
 		"${SINSP_LIB}"
 		"${LUAJIT_LIB}"
-		yaml-cpp)
+		yaml-cpp
+		CLI11::CLI11)
 
 	if(USE_BUNDLED_NCURSES)
 		add_dependencies(csysdig ncurses)
@@ -128,7 +131,8 @@ if(NOT WIN32)
 		"${SINSP_LIB}"
 		"${LUAJIT_LIB}"
 		"${CURSES_LIBRARIES}"
-		yaml-cpp)
+		yaml-cpp
+		CLI11::CLI11)
 
 	add_subdirectory(man)
 
@@ -150,7 +154,8 @@ else()
 	target_link_libraries(sysdig
 		"${SINSP_LIB}"
 		"${LUAJIT_LIB}"
-		yaml-cpp)
+		yaml-cpp
+		CLI11::CLI11)
 
 	target_link_libraries(csysdig
 		"${SINSP_LIB}"

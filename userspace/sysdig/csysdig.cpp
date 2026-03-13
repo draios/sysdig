@@ -46,6 +46,8 @@ limitations under the License.
 #include "utils/supported_fields.h"
 #include "filterchecks/sinsp_filtercheck_syslog.h"
 
+#include <CLI/CLI.hpp>
+
 #ifdef _WIN32
 #include "win32/getopt.h"
 #include <io.h>
@@ -67,6 +69,51 @@ limitations under the License.
 static bool g_terminate = false;
 static bool g_plugin_input = false;
 static void usage();
+
+//
+// Command-line options structure (for CLI11 refactoring)
+//
+struct csysdig_options {
+	// Common options
+	bool help = false;
+	bool version = false;
+	bool exclude_users = false;
+	bool resolve_ports = false;
+	bool list_fields = false;
+	bool list_views = false;
+
+	// Display format options
+	bool print_ascii = false;
+	bool print_hex_ascii = false;
+	bool print_containers = false;
+	bool json = false;
+	bool raw = false;
+	bool interactive = false;
+
+	// Capture options
+	std::string bpf_probe;
+	bool modern_bpf = false;
+	int cpus_for_each_buffer = 0;
+	bool page_faults = false;
+	bool large_environment = false;
+
+	// I/O options
+	std::vector<std::string> read_files;
+	int snaplen = 0;
+	uint64_t num_events = std::numeric_limits<uint64_t>::max();
+
+	// UI options
+	uint64_t refresh_interval_ms = 2000;  // Default 2 seconds
+	std::string view_id;
+	std::string logfile;
+	bool force_term_compat = false;
+	int32_t json_first_row = 0;
+	int32_t json_last_row = 0;
+	int32_t sorting_col = -1;
+
+	// Remaining positional args (filter)
+	std::vector<std::string> filter_args;
+};
 
 //
 // Helper functions
@@ -344,6 +391,116 @@ captureinfo do_inspect(sinsp* inspector,
 }
 
 std::string g_version_string = SYSDIG_VERSION;
+
+//
+// CLI11-based argument parser for csysdig
+//
+csysdig_options parse_args_cli11_csysdig(int argc, char **argv)
+{
+	csysdig_options opts;
+
+	CLI::App app{"csysdig - the ncurses user interface for sysdig\n"
+	             "csysdig version " SYSDIG_VERSION};
+
+	// Disable help flag so we can handle it ourselves for backwards compatibility
+	app.set_help_flag("");
+	app.allow_extras();  // Allow extra arguments for filter
+
+	// Common options
+	app.add_flag("-h,--help", opts.help, "Print this help message");
+	app.add_flag("--version", opts.version, "Print version number");
+	app.add_flag("-E,--exclude-users", opts.exclude_users, "Don't create user/group tables");
+	app.add_flag("-R,--resolve-ports", opts.resolve_ports, "Resolve port numbers to names");
+	app.add_flag("-l,--list", opts.list_fields, "List all fields that can be used in views");
+	app.add_flag("--list-views", opts.list_views, "List available views");
+
+	// Display format options
+	auto ascii_flag = app.add_flag("-A,--print-ascii", opts.print_ascii,
+	                               "When emitting JSON, print only text portion of data buffers");
+	auto hex_ascii_flag = app.add_flag("-X,--print-hex-ascii", opts.print_hex_ascii,
+	                                   "When emitting JSON, print data buffers in hex and ASCII");
+
+	// Make display format flags mutually exclusive
+	ascii_flag->excludes(hex_ascii_flag);
+
+	app.add_flag("-j,--json", opts.json, "Enable JSON output");
+	app.add_flag("--raw", opts.raw, "Print raw output instead of ncurses");
+	app.add_flag("--interactive", opts.interactive, "Enable interactive mode");
+
+	auto print_opt = app.add_option("-p,--print", "Print format (c/container for container-friendly format)");
+	print_opt->each([&opts](const std::string& val) {
+		if(val == "c" || val == "container") {
+			opts.print_containers = true;
+		}
+	});
+
+	// Capture options
+	app.add_option("-B,--bpf", opts.bpf_probe,
+	              "Enable live capture using BPF probe")
+	   ->type_name("PROBE");
+
+#ifdef HAS_MODERN_BPF
+	app.add_flag("--modern-bpf", opts.modern_bpf,
+	            "Enable live capture using modern BPF probe");
+	app.add_option("--cpus-for-each-buffer", opts.cpus_for_each_buffer,
+	              "CPUs per syscall buffer (modern BPF only)")
+	   ->type_name("NUM");
+#endif
+
+	app.add_flag("--page-faults", opts.page_faults, "Capture user/kernel page faults");
+	app.add_flag("--large-environment", opts.large_environment,
+	            "Support environments larger than 4KiB");
+
+	// I/O options
+	app.add_option("-r,--read,--readfile", opts.read_files, "Read events from file")
+	   ->type_name("FILE")
+	   ->check(CLI::ExistingFile);
+
+	app.add_option("-s,--snaplen", opts.snaplen, "Capture first <len> bytes of I/O buffers")
+	   ->type_name("LEN");
+
+	app.add_option("-n,--numevents", opts.num_events, "Stop capturing after <num> events")
+	   ->type_name("NUM");
+
+	// UI options
+	app.add_option("-d,--delay", opts.refresh_interval_ms,
+	              "Set delay between updates in milliseconds")
+	   ->type_name("MS")
+	   ->check(CLI::Range(100, 3600000));  // 100ms to 1 hour
+
+	app.add_option("-v,--view", opts.view_id,
+	              "Run the view with the given ID when csysdig starts")
+	   ->type_name("VIEW_ID");
+
+	app.add_option("--logfile", opts.logfile, "Print program logs into the given file")
+	   ->type_name("FILE");
+
+	app.add_flag("--force-term-compat", opts.force_term_compat,
+	            "Try to configure simple terminal settings for better compatibility");
+
+	app.add_option("--from", opts.json_first_row, "First row for JSON output")
+	   ->type_name("ROW");
+
+	app.add_option("--to", opts.json_last_row, "Last row for JSON output")
+	   ->type_name("ROW");
+
+	app.add_option("--sortingcol", opts.sorting_col, "Sorting column number")
+	   ->type_name("COL");
+
+	try {
+		app.parse(argc, argv);
+
+		// Collect remaining arguments as filter
+		opts.filter_args = app.remaining();
+
+	} catch(const CLI::ParseError &e) {
+		// For now, if CLI11 parsing fails, we'll fall back to getopt
+		// In full migration, we'd handle this with: app.exit(e);
+		throw;
+	}
+
+	return opts;
+}
 
 sysdig_init_res csysdig_init(int argc, char **argv)
 {
