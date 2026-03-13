@@ -26,6 +26,7 @@ limitations under the License.
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <assert.h>
+#include <cstring>
 
 #include <libsinsp/sinsp.h>
 #include "plugin_manager.h"
@@ -49,11 +50,9 @@ limitations under the License.
 #include <CLI/CLI.hpp>
 
 #ifdef _WIN32
-#include "win32/getopt.h"
 #include <io.h>
 #else
 #include <unistd.h>
-#include <getopt.h>
 #include <term.h>
 #endif
 
@@ -114,6 +113,53 @@ struct csysdig_options {
 	// Remaining positional args (filter)
 	std::vector<std::string> filter_args;
 };
+
+static bool is_short_option_with_value_csysdig(const std::string& arg, const std::string& opts)
+{
+	return arg.size() > 2 && arg[0] == '-' && arg[1] != '-' && opts.find(arg[1]) != std::string::npos;
+}
+
+static std::vector<std::string> normalize_csysdig_argv(int argc, char** argv)
+{
+	std::vector<std::string> normalized;
+	normalized.reserve(argc);
+	if(argc > 0)
+	{
+		normalized.emplace_back(argv[0]);
+	}
+
+	for(int i = 1; i < argc; ++i)
+	{
+		std::string arg = argv[i];
+		if(is_short_option_with_value_csysdig(arg, "Bdnprsv"))
+		{
+			normalized.emplace_back(arg.substr(0, 2));
+			normalized.emplace_back(arg.substr(2));
+			continue;
+		}
+
+		normalized.emplace_back(std::move(arg));
+	}
+
+	return normalized;
+}
+
+static std::vector<char*> argv_ptrs_csysdig(std::vector<std::string>& args)
+{
+	std::vector<char*> res;
+	res.reserve(args.size());
+	for(auto& arg : args)
+	{
+		res.push_back(arg.data());
+	}
+	return res;
+}
+
+static int count_enabled_formats(const csysdig_options& opts)
+{
+	return (opts.print_ascii ? 1 : 0) +
+		(opts.print_hex_ascii ? 1 : 0);
+}
 
 //
 // Helper functions
@@ -415,13 +461,10 @@ csysdig_options parse_args_cli11_csysdig(int argc, char **argv)
 	app.add_flag("--list-views", opts.list_views, "List available views");
 
 	// Display format options
-	auto ascii_flag = app.add_flag("-A,--print-ascii", opts.print_ascii,
-	                               "When emitting JSON, print only text portion of data buffers");
-	auto hex_ascii_flag = app.add_flag("-X,--print-hex-ascii", opts.print_hex_ascii,
-	                                   "When emitting JSON, print data buffers in hex and ASCII");
-
-	// Make display format flags mutually exclusive
-	ascii_flag->excludes(hex_ascii_flag);
+	app.add_flag("-A,--print-ascii", opts.print_ascii,
+	             "When emitting JSON, print only text portion of data buffers");
+	app.add_flag("-X,--print-hex-ascii", opts.print_hex_ascii,
+	             "When emitting JSON, print data buffers in hex and ASCII");
 
 	app.add_flag("-j,--json", opts.json, "Enable JSON output");
 	app.add_flag("--raw", opts.raw, "Print raw output instead of ncurses");
@@ -437,6 +480,7 @@ csysdig_options parse_args_cli11_csysdig(int argc, char **argv)
 	// Capture options
 	app.add_option("-B,--bpf", opts.bpf_probe,
 	              "Enable live capture using BPF probe")
+	   ->expected(0, 1)
 	   ->type_name("PROBE");
 
 #ifdef HAS_MODERN_BPF
@@ -494,9 +538,7 @@ csysdig_options parse_args_cli11_csysdig(int argc, char **argv)
 		opts.filter_args = app.remaining();
 
 	} catch(const CLI::ParseError &e) {
-		// For now, if CLI11 parsing fails, we'll fall back to getopt
-		// In full migration, we'd handle this with: app.exit(e);
-		throw;
+		throw sinsp_exception(e.what());
 	}
 
 	return opts;
@@ -507,13 +549,11 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	sysdig_init_res res;
 	sinsp* inspector = NULL;
 	std::vector<std::string> infiles;
-	int op;
 	uint64_t cnt = -1;
 	uint32_t snaplen = 0;
-	int long_index = 0;
-	int32_t n_filterargs = 0;
 	captureinfo cinfo;
 	std::string errorstr;
+	std::string filter;
 	std::string display_view;
 	bool print_containers = false;
 	uint64_t refresh_interval_ns = 2000000000;
@@ -534,51 +574,18 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 	bool force_term_compat = false;
 	sinsp_evt::param_fmt event_buffer_format = sinsp_evt::PF_NORMAL;
 	plugin_utils plugins;
-	bool list_plugins = false;
 	sinsp_opener opener;
 	std::shared_ptr<sinsp_filter_check_list> filter_list;
-
-	static struct option long_options[] =
-	{
-		{"print-ascii", no_argument, 0, 'A' },
-		{"bpf", optional_argument, 0, 'B' },
-#ifdef HAS_MODERN_BPF
-		{"cpus-for-each-buffer", required_argument, 0, 0 },
-#endif
-		{"delay", required_argument, 0, 'd' },
-		{"exclude-users", no_argument, 0, 'E' },
-		{"from", required_argument, 0, 0 },
-		{"help", no_argument, 0, 'h' },
-		{"json", no_argument, 0, 'j' },
-		{"interactive", optional_argument, 0, 0 },
-		{"large-environment", no_argument, 0, 0 },
-		{"list", optional_argument, 0, 'l' },
-		{"list-views", no_argument, 0, 0},
-#ifdef HAS_MODERN_BPF
-		{"modern-bpf", no_argument, 0, 0 },
-#endif
-		{"numevents", required_argument, 0, 'n' },
-		{"page-faults", no_argument, 0, 0 },
-		{"print", required_argument, 0, 'p' },
-		{"resolve-ports", no_argument, 0, 'R'},
-		{"readfile", required_argument, 0, 'r' },
-		{"raw", no_argument, 0, 0 },
-		{"snaplen", required_argument, 0, 's' },
-		{"logfile", required_argument, 0, 0 },
-		{"force-term-compat", no_argument, 0, 0},
-		{"sortingcol", required_argument, 0, 0 },
-		{"to", required_argument, 0, 0 },
-		{"view", required_argument, 0, 'v' },
-		{"version", no_argument, 0, 0 },
-		{"print-hex-ascii", no_argument, 0, 'X'},
-		{0, 0, 0, 0}
-	};
 
 	//
 	// Parse the arguments
 	//
 	try
 	{
+		auto normalized_args = normalize_csysdig_argv(argc, argv);
+		auto normalized_argv = argv_ptrs_csysdig(normalized_args);
+		auto opts = parse_args_cli11_csysdig((int)normalized_argv.size(), normalized_argv.data());
+
 		inspector = new sinsp();
 
 #ifdef HAS_CHISELS
@@ -590,202 +597,138 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 		// Load container plugin (if available)
 		plugins.load_container_plugin_if_available(inspector);
 
-		//
-		// Parse the args
-		//
-		while((op = getopt_long(argc, argv,
-			"AB::d:Ehk:K:jlm:n:p:Rr:s:v:X", long_options, &long_index)) != -1)
+		if(count_enabled_formats(opts) > 1)
 		{
-			switch(op)
-			{
-			case '?':
-				//
-				// Command line error
-				//
-				throw sinsp_exception("command line error");
-				break;
-			case 'A':
-				if(event_buffer_format != sinsp_evt::PF_NORMAL)
-				{
-					fprintf(stderr, "you cannot specify more than one output format\n");
-					delete inspector;
-					return sysdig_init_res(EXIT_SUCCESS);
-				}
-
-				event_buffer_format = sinsp_evt::PF_EOLS_COMPACT;
-				break;
-			case 'B':
-			{
-				opener.bpf.enabled = true;
-				if(optarg)
-				{
-					opener.bpf.probe = optarg;
-				}
-				break;
-			}
-			case 'd':
-				try
-				{
-					refresh_interval_ns = sinsp_numparser::parseu64(optarg) * 1000000;
-				}
-				catch(...)
-				{
-					throw sinsp_exception("can't parse the -d argument, make sure it's a number");
-				}
-
-				if(refresh_interval_ns < 100000000)
-				{
-					throw sinsp_exception("Period must be bigger then 100ms");
-				}
-
-				break;
-			case 'E':
-				inspector->set_import_users(false);
-				break;
-			case 'h':
-				usage();
-				delete inspector;
-				return sysdig_init_res(EXIT_SUCCESS);
-			case 'j':
-				output_type = chisel_table::OT_JSON;
-				break;
-			case 'l':
-				list_flds = true;
-				break;
-			case 'n':
-				try
-				{
-					cnt = sinsp_numparser::parseu64(optarg);
-				}
-				catch(...)
-				{
-					throw sinsp_exception("can't parse the -n argument, make sure it's a number");
-				}
-
-				if(cnt <= 0)
-				{
-					throw sinsp_exception(std::string("invalid event count ") + optarg);
-					res.m_res = EXIT_FAILURE;
-					goto exit;
-				}
-				break;
-			case 'p':
-				if(std::string(optarg) == "c" || std::string(optarg) == "container")
-				{
-					print_containers = true;
-				}
-
-				break;
-			case 'R':
-				inspector->set_hostname_and_port_resolution_mode(true);
-				break;
-			case 'r':
-				infiles.push_back(optarg);
-				break;
-			case 's':
-				snaplen = atoi(optarg);
-				break;
-			case 'v':
-				display_view = optarg;
-				break;
-			case 'X':
-				if(event_buffer_format != sinsp_evt::PF_NORMAL)
-				{
-					fprintf(stderr, "you cannot specify more than one output format\n");
-					delete inspector;
-					return sysdig_init_res(EXIT_FAILURE);
-				}
-
-				event_buffer_format = sinsp_evt::PF_HEXASCII;
-				break;
-			case 0:
-				{
-					if(long_options[long_index].flag != 0)
-					{
-						break;
-					}
-
-					std::string optname = std::string(long_options[long_index].name);
-					if(optname == "version")
-					{
-						printf("sysdig version %s\n", SYSDIG_VERSION);
-						delete inspector;
-						return sysdig_init_res(EXIT_SUCCESS);
-					}
-					else if(optname == "interactive")
-					{
-						is_interactive = true;
-						output_type = chisel_table::OT_JSON;
-					}
-					else if(optname == "large-environment")
-					{
-						inspector->set_large_envs(true);
-					}
-#ifdef HAS_MODERN_BPF
-					else if(optname == "cpus-for-each-buffer")
-					{
-						opener.bpf.cpus_for_each_syscall_buffer = sinsp_numparser::parsed16(optarg);
-					}
-#endif
-					else if(optname == "logfile")
-					{
-						inspector->set_log_file(optarg);
-					}
-					else if(optname == "raw")
-					{
-						output_type = chisel_table::OT_RAW;
-					}
-					else if(optname == "force-term-compat")
-					{
-						force_term_compat = true;
-					}
-					else if(optname == "from")
-					{
-						json_first_row = sinsp_numparser::parsed32(optarg);
-					}
-#ifdef HAS_MODERN_BPF
-					else if(optname == "modern-bpf")
-					{
-						opener.bpf.enabled = true;
-						opener.bpf.modern = true;
-					}
-#endif
-					else if(optname == "to")
-					{
-						json_last_row = sinsp_numparser::parsed32(optarg);
-					}
-					else if(optname == "sortingcol")
-					{
-						sorting_col = sinsp_numparser::parsed32(optarg);
-					}
-					else if(optname == "list-views")
-					{
-						list_views = true;
-					}
-					else if(optname == "page-faults")
-					{
-						opener.options.page_faults = true;
-					}
-				}
-				break;
-			default:
-				break;
-			}
+			fprintf(stderr, "you cannot specify more than one output format\n");
+			delete inspector;
+			return sysdig_init_res(EXIT_FAILURE);
 		}
 
-		if (list_plugins)
+		if(opts.help)
 		{
-			plugins.print_plugin_info_list(inspector);
-			printf("More detailed info about individual plugins can be printed with the --plugin-info option:\n");
-			printf(" Detailed info about a single plugin\n");
-			printf("   $ sysdig --plugin-info=dummy\n\n");
-			printf(" Detailed info about a single plugin with a given configuration\n");
-			printf("   $ sysdig -H dummy:'{\"jitter\":50}' --plugin-info=dummy\n\n");
+			usage();
 			delete inspector;
 			return sysdig_init_res(EXIT_SUCCESS);
 		}
 
-		std::string filter;
+		if(opts.version)
+		{
+			printf("sysdig version %s\n", SYSDIG_VERSION);
+			delete inspector;
+			return sysdig_init_res(EXIT_SUCCESS);
+		}
+
+		if(opts.print_ascii)
+		{
+			event_buffer_format = sinsp_evt::PF_EOLS_COMPACT;
+		}
+		else if(opts.print_hex_ascii)
+		{
+			event_buffer_format = sinsp_evt::PF_HEXASCII;
+		}
+
+		if(!opts.bpf_probe.empty() || std::find(normalized_args.begin(), normalized_args.end(), "-B") != normalized_args.end())
+		{
+			opener.bpf.enabled = true;
+			opener.bpf.probe = opts.bpf_probe;
+		}
+
+		if(opts.refresh_interval_ms != 2000)
+		{
+			refresh_interval_ns = opts.refresh_interval_ms * 1000000;
+			if(refresh_interval_ns < 100000000)
+			{
+				throw sinsp_exception("Period must be bigger then 100ms");
+			}
+		}
+
+		if(opts.exclude_users)
+		{
+			inspector->set_import_users(false);
+		}
+
+		if(opts.json)
+		{
+			output_type = chisel_table::OT_JSON;
+		}
+
+		list_flds = opts.list_fields;
+
+		if(opts.num_events != std::numeric_limits<uint64_t>::max())
+		{
+			if(opts.num_events == 0)
+			{
+				throw sinsp_exception("invalid event count 0");
+			}
+			cnt = opts.num_events;
+		}
+
+		print_containers = opts.print_containers;
+
+		if(opts.resolve_ports)
+		{
+			inspector->set_hostname_and_port_resolution_mode(true);
+		}
+
+		infiles = opts.read_files;
+		snaplen = (uint32_t)opts.snaplen;
+		display_view = opts.view_id;
+
+		if(opts.interactive)
+		{
+			is_interactive = true;
+			output_type = chisel_table::OT_JSON;
+		}
+
+		if(opts.large_environment)
+		{
+			inspector->set_large_envs(true);
+		}
+
+#ifdef HAS_MODERN_BPF
+		if(opts.cpus_for_each_buffer != 0)
+		{
+			opener.bpf.cpus_for_each_syscall_buffer = (uint16_t)opts.cpus_for_each_buffer;
+		}
+		if(opts.modern_bpf)
+		{
+			opener.bpf.enabled = true;
+			opener.bpf.modern = true;
+		}
+#endif
+
+		if(!opts.logfile.empty())
+		{
+			inspector->set_log_file(opts.logfile.c_str());
+		}
+
+		if(opts.raw)
+		{
+			output_type = chisel_table::OT_RAW;
+		}
+
+		force_term_compat = opts.force_term_compat;
+		json_first_row = opts.json_first_row;
+		json_last_row = opts.json_last_row;
+		sorting_col = opts.sorting_col;
+		list_views = opts.list_views;
+
+		if(opts.page_faults)
+		{
+			opener.options.page_faults = true;
+		}
+
+		if(!opts.filter_args.empty())
+		{
+			for(size_t j = 0; j < opts.filter_args.size(); j++)
+			{
+				filter += opts.filter_args[j];
+				if(j + 1 < opts.filter_args.size())
+				{
+					filter += " ";
+				}
+			}
+		}
 
 		//
 		// If -l was specified, print the fields and exit
@@ -796,21 +739,6 @@ sysdig_init_res csysdig_init(int argc, char **argv)
 			print_supported_fields(inspector, plugins, "", true, false);
 			res.m_res = EXIT_SUCCESS;
 			goto exit;
-		}
-
-		//
-		// the filter is at the end of the command line
-		//
-		if(optind + n_filterargs < argc)
-		{
-			for(int32_t j = optind + n_filterargs; j < argc; j++)
-			{
-				filter += argv[j];
-				if(j < argc)
-				{
-					filter += " ";
-				}
-			}
 		}
 
 		// TODO(therealbobo): add plugins filterchecks

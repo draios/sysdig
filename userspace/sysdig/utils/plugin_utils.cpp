@@ -38,7 +38,7 @@ limitations under the License.
 #define SHAREDOBJ_EXT    ".so"
 #endif
 
-static const char* err_plugin_not_found = "plugin not found, use -Il to list all the installed plugins: ";
+static const char* err_plugin_not_found = "plugin not found, use -I l to list all the installed plugins: ";
 static const char* err_plugin_no_source_cap = "plugin does not support the event sourcing capability: ";
 
 namespace YAML {

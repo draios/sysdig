@@ -156,6 +156,12 @@ MOUSE USAGE
 
 COMMAND LINE OPTIONS
 --------------------
+
+**-A**, **--print-ascii**
+  When emitting JSON, only print the text portion of data buffers and preserve line endings.
+
+**-B**[_bpf_probe_], **--bpf**[=_bpf_probe_]
+  Enable live capture using the specified BPF probe instead of the kernel module. If no probe path is provided, csysdig will try to load one automatically.
   
 **-d** _period_, **--delay**=_period_  
   Set the delay between updates, in milliseconds (by default = 2000). This works similarly to the -d option in top.  
@@ -169,26 +175,35 @@ COMMAND LINE OPTIONS
 **-h**, **--help**  
   Print this page
 
-**-k**, **--k8s-api**
-  Enable Kubernetes support by connecting to the API server specified as argument. E.g. "http://admin:password@127.0.0.1:8080". The API server can also be specified via the environment variable SYSDIG_K8S_API.
+**--interactive**
+  Enable interactive JSON mode. csysdig prints `ready` once initialization completes and then accepts UI commands on stdin.
 
-**-K** _btfile | certfile:keyfile[#password][:cacertfile]_, **--k8s-api-cert=**_btfile | certfile:keyfile[#password][:cacertfile]_
-  Use the provided files names to authenticate user and (optionally) verify the K8S API server identity. Each entry must specify full (absolute, or relative to the current directory) path to the respective file. Private key password is optional (needed only if key is password protected). CA certificate is optional. For all files, only PEM file format is supported. Specifying CA certificate only is obsoleted - when single entry is provided for this option, it will be interpreted as the name of a file containing bearer token. Note that the format of this command-line option prohibits use of files whose names contain ':' or '#' characters in the file name. Option can also be provided via the environment variable SYSDIG_K8S_API_CERT.
+**-j**, **--json**
+  Emit JSON output instead of the curses interface.
 
 **-l**, **--list**  
   List all the fields that can be used in views.
+
+**--list-views**
+  List the available csysdig views and exit.
+
+**--large-environment**
+  Support environments larger than 4KiB by reading the full environment from `/proc` when needed.
   
 **--logfile** _file_  
   Print program logs into the given file.
 
-**-m** _url[,marathon-url]_, **--mesos-api=**_url[,marathon-url]_
-  Enable Mesos support by connecting to the API server specified as argument (e.g. http://admin:password@127.0.0.1:5050). Mesos url is required. Marathon url is optional, defaulting to auto-follow - if Marathon API server is not provided, csysdig will attempt to retrieve (and subsequently follow, if it migrates) the location of Marathon API server from the Mesos master. Note that, with auto-follow, csysdig will likely receive a cluster internal IP address for Marathon API server, so running csysdig with Marathon auto-follow from a node that is not part of Mesos cluster may not work. Additionally, running csysdig with Mesos support on a node that has no containers managed by Mesos is of limited use because, although cluster metadata will be collected, there will be no Mesos/Marathon filtering capability. The API servers can also be specified via the environment variable SYSDIG_MESOS_API.
-  
 **-n** _num_, **--numevents**=_num_  
   Stop capturing after _num_ events
 
 **--page-faults**
   Capture user/kernel major/minor page faults
+
+**--modern-bpf**
+  Enable live capture using the modern BPF probe instead of the kernel module.
+
+**--cpus-for-each-buffer** _num_
+  Set how many CPUs are assigned to each syscall buffer when using the modern BPF probe.
 
 **-pc**, **-pcontainers**_  
   Instruct csysdig to use a container-friendly format in its views. This will cause several of the views to contain additional container-related columns.
@@ -198,14 +213,26 @@ COMMAND LINE OPTIONS
   
 **-r** _readfile_, **--read**=_readfile_  
   Read the events from _readfile_.
+
+**--raw**
+  Print raw output to a regular terminal instead of enabling the curses interface.
   
 **-s** _len_, **--snaplen**=_len_  
   Capture the first _len_ bytes of each I/O buffer. By default, the first 80 bytes are captured. Use this option with caution, it can generate huge trace files.
 
-**-T**, **--force-tracers-capture**  
-  Tell the driver to make sure full buffers are captured from /dev/null, to make sure that tracers are completely captured. Note that sysdig will enable extended /dev/null capture by itself after detecting that tracers are written there, but that could result in the truncation of some tracers at the beginning of the capture. This option allows preventing that.
+**--from** _row_
+  In JSON mode, start output from the specified row.
 
-**-v** _view_id_, **--views**=_view_id_  
+**--to** _row_
+  In JSON mode, stop output at the specified row.
+
+**--sortingcol** _col_
+  In JSON mode, sort output by the specified column number.
+
+**-X**, **--print-hex-ascii**
+  When emitting JSON, print data buffers in both hexadecimal and ASCII form.
+
+**-v** _view_id_, **--view**=_view_id_
   Run the view with the given ID when csysdig starts. View IDs can be found in the view documentation pages in csysdig. Combine this option with a command line filter for complete output customization.
 
 **--version**  

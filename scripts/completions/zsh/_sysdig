@@ -214,19 +214,27 @@ _arguments                                                                      
     '(-d --displayflt)'{-d,--displayflt}'[Make the given filter a display one]'                                 \
     '(-D --debug)'{-D,--debug}'[Capture events about sysdig itself]'                                            \
     '(-E --exclude-users)'{-E,--exclude-users}'[Don'\''t create the user/group tables when starting]'           \
-    '(-e --events)'{-e,--events}'[Rotate the capture file every <num> events]:Maximum event number:'            \
+    '(-e --event-limit)'{-e,--event-limit}'[Rotate the capture file every <num> events]:Maximum event number:'  \
     '(-F --fatfile)'{-F,--fatfile}'[Enable fatfile mode]'                                                       \
     '(-G --seconds)'{-G,--seconds=-}'[Rotate the capture file every <num> seconds]:Rotation period (seconds):'  \
+    '(-g --gvisor-config)'{-g,--gvisor-config=-}'[Parse events from gVisor using a config file]:Config file:_files' \
+    '--gvisor-root=[gVisor root directory]:Root path:_files -/'                                                  \
+    '--gvisor-generate-config=-[Generate a gVisor configuration file]:Socket path:_files'                       \
     '(-h --help)'{-h,--help}'[Print this help]'                                                                 \
+    '(-H --plugin)'{-H,--plugin=-}'[Register a plugin with optional init config]:Plugin spec:'                  \
+    '(-I --input)'{-I,--input=-}'[Select a plugin as input source]:Plugin input spec:'                          \
     '(-j --json)'{-j,--json}'[Emit output as JSON]'                                                             \
-    '(-k --k8s-api)'{-k,--k8s-api}'[Kubernetes API server]'                                                     \
     '(-L --list-events)'{-L,--list-events}'[List the events that the engine supports]'                          \
-    '(-l -lv --list)'{-l,--list}'[List the fields that can be used for filtering]'                              \
-    '(-l -lv --list)-lv[Verbosely list the fields that can be used for filtering]'                              \
+    '(-l --list)'{-l,--list}'[List the fields that can be used for filtering]:Field source:'                    \
+    '--list-markdown=[List the fields in markdown format]:Field source:'                                         \
+    '--libs-version[Print the falcosecurity/libs version]'                                                       \
+    '--log-level=[Select log level]:Log level:(trace debug info notice warning error critical fatal)'           \
     '(-n --numevents)'{-n,--numevents=-}'[Stop capturing after <num> events]:Max <num> events:'                 \
     '--page-faults[Capture user/kernel major/minor page faults]'                                                \
     '(-P --progress)'{-P,--progress}'[Print progress on stderr while processing trace files]'                   \
     '(-p --print)'{-p,--print=-}'[Specify the event format (default reported with "sysdig -pp")]:Event output format:->format' \
+    '--plugin-config-file=[Load plugin configuration from file]:Config file:_files'                             \
+    '--plugin-info=[Print info for a single plugin]:Plugin name:'                                                \
     '(-q --quiet)'{-q,--quiet}'[Do not print events on the screen]'                                             \
     '(-r --read)'{-r,--read=-}'[Read events from <readfile.scap>]:Input file:_files -g "*.scap"'                \
     '(-R --resolve-ports)'{-R,--resolve-ports}'[Resolve port numbers to names.]'                \
@@ -239,7 +247,11 @@ _arguments                                                                      
        d\:"delta between enter/exit"                                                                            \
        D\:"delta from previous event"))'                                                                        \
     '(-v --verbose)'{-v,--verbose}'[Verbose output]'                                                            \
+    '--color=[Set color mode]:Color mode:(true false force)'                                                    \
+    '--filter-proclist[Apply filter to /proc dump when reading from a file]'                                    \
+    '--large-environment[Support environments larger than 4KiB]'                                                \
     '--unbuffered[Disable buffering of output]'                                                                 \
+    '--version[Print version number]'                                                                           \
     '(-w --write)'{-w,--write=-}'[Write events to <writefile.scap>]:Output file:_files -g "*.scap"'             \
     '(-W --limit)'{-W,--limit}'[Limit split captures (-C, -G or -e) to a given number of files]:Max # of files' \
     '(-x --print-hex)'{-x,--print-hex}'[Print data buffers in hex]'                                             \

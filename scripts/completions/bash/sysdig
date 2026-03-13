@@ -14,24 +14,40 @@ _sysdig_complete()
   -D                                            \
   --debug                                       \
   -e                                            \
-  --events                                      \
+  --event-limit                                 \
   -E                                            \
   --exclude-users                               \
   -F                                            \
   --fatfile                                     \
   -G                                            \
   --seconds                                     \
+  -H                                            \
+  --plugin                                      \
+  -I                                            \
+  --input                                       \
+  -i                                            \
+  --chisel-info                                 \
   -h                                            \
   --help                                        \
   -j                                            \
   --json                                        \
-  -k                                            \
-  --k8s-api                                     \
   -L                                            \
   --list-events                                 \
   -l                                            \
   --list                                        \
-  -lv                                           \
+  --list-markdown                               \
+  --libs-version                                \
+  --log-level                                   \
+  --color                                       \
+  --filter-proclist                             \
+  --gvisor-config                               \
+  --gvisor-root                                 \
+  --gvisor-generate-config                      \
+  --plugin-config-file                          \
+  --plugin-info                                 \
+  --large-environment                           \
+  --unbuffered                                  \
+  --version                                     \
   --page-faults                                 \
   -P                                            \
   --progress                                    \
@@ -64,9 +80,7 @@ _sysdig_complete()
   -t                                            \
   --timetype                                    \
   -c                                            \
-  --chisel                                      \
-  -i                                            \
-  --chisel-info'
+  --chisel'
 
   local cur=${COMP_WORDS[COMP_CWORD]}
   local prev=${COMP_WORDS[COMP_CWORD-1]}

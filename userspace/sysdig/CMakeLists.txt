@@ -37,12 +37,10 @@ if(NOT WIN32)
 		csysdig.cpp)
 else()
 	set(SOURCE_FILES
-		sysdig.cpp
-		win32/getopt.c)
+		sysdig.cpp)
 
 	set(SOURCE_FILES_CSYSDIG
-		csysdig.cpp
-		win32/getopt.c)
+		csysdig.cpp)
 endif()
 
 list(APPEND SOURCE_FILES
@@ -160,7 +158,8 @@ else()
 	target_link_libraries(csysdig
 		"${SINSP_LIB}"
 		"${LUAJIT_LIB}"
-		yaml-cpp)
+		yaml-cpp
+		CLI11::CLI11)
 
 	target_link_libraries(sysdig odbc32.lib odbccp32.lib Netapi32.lib Iphlpapi.lib)
 

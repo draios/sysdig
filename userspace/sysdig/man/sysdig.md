@@ -139,9 +139,9 @@ OPTIONS
   Registers a plugin, using the passed init config if present. A path can also be used as pluginname. The format of initconf is controlled by the plugin, refer to each plugin's documentation to learn about it.
 
 **-I** _pluginname_[:_openparams_], **--input** _pluginname_[:_openparams_]
-  Capture events using the plugin with name pluginname, passing to the plugin the openparams string as parameters. The format of inputargs is controller by the plugin, refer to each plugin's documentation to learn about it. The event sources available for capture vary depending on which plugins have been installed. You can list the plugins that have been loaded by using the -Il flag.
+  Capture events using the plugin with name pluginname, passing to the plugin the openparams string as parameters. The format of inputargs is controller by the plugin, refer to each plugin's documentation to learn about it. The event sources available for capture vary depending on which plugins have been installed. You can list the plugins that have been loaded by using `-I l`.
 
-**-Il**, **--list-inputs**
+**-I l**
   List the loaded plugins. Sysdig looks for plugins in the following directories: ./plugins, ~/.plugins, /usr/share/sysdig/plugins.
 
 **--plugin-config-file**
@@ -153,23 +153,41 @@ OPTIONS
 **-j**, **--json**
   Emit output as json, data buffer encoding will depend from the print format selected.
 
-**-k**, **--k8s-api**
-  Enable Kubernetes support by connecting to the API server specified as argument. E.g. "http://admin:password@127.0.0.1:8080". The API server can also be specified via the environment variable SYSDIG_K8S_API.
-
-**-K** _btfile | certfile:keyfile[#password][:cacertfile]_, **--k8s-api-cert=**_btfile | certfile:keyfile[#password][:cacertfile]_
-  Use the provided files names to authenticate user and (optionally) verify the K8S API server identity. Each entry must specify full (absolute, or relative to the current directory) path to the respective file. Private key password is optional (needed only if key is password protected). CA certificate is optional. For all files, only PEM file format is supported. Specifying CA certificate only is obsoleted - when single entry is provided for this option, it will be interpreted as the name of a file containing bearer token. Note that the format of this command-line option prohibits use of files whose names contain ':' or '#' characters in the file name. Option can also be provided via the environment variable SYSDIG_K8S_API_CERT.
-
 **-L**, **--list-events**
   List the events that the engine supports
   
 **-l**, **--list**
-  List the fields that can be used for filtering and output formatting. Use -lv to get additional information for each field.
+  List the fields that can be used for filtering and output formatting.
 
 **--list-markdown**
   Like -l, but produces markdown output
 
-**-m** _url[,marathon-url]_, **--mesos-api=**_url[,marathon-url]_
-  Enable Mesos support by connecting to the API server specified as argument (e.g. http://admin:password@127.0.0.1:5050). Mesos url is required. Marathon url is optional, defaulting to auto-follow - if Marathon API server is not provided, sysdig will attempt to retrieve (and subsequently follow, if it migrates) the location of Marathon API server from the Mesos master. Note that, with auto-follow, sysdig will likely receive a cluster internal IP address for Marathon API server, so running sysdig with Marathon auto-follow from a node that is not part of Mesos cluster may not work. Additionally, running sysdig with Mesos support on a node that has no containers managed by Mesos is of limited use because, although cluster metadata will be collected, there will be no Mesos/Marathon filtering capability. The API servers can also be specified via the environment variable SYSDIG_MESOS_API.
+**--libs-version**
+  Print the falcosecurity/libs version.
+
+**--log-level**=_trace|debug|info|notice|warning|error|critical|fatal_
+  Select the minimum log level. Useful together with **--debug**.
+
+**--color**=_true|false|force_
+  Control colorized output. `true` enables color when stdout is a terminal, `false` disables it, and `force` always enables it.
+
+**--filter-proclist**
+  Apply the command-line filter to the `/proc` dump included in trace files.
+
+**--plugin-info** _pluginname_
+  Print detailed information for a single plugin and exit.
+
+**--plugin-config-file** _file_
+  Load plugin configuration from a Falco-compatible YAML configuration file.
+
+**-g** _config_, **--gvisor-config**=_config_
+  Parse events from gVisor using the provided configuration file.
+
+**--gvisor-root** _path_
+  Set the gVisor root directory used to resolve container state.
+
+**--gvisor-generate-config**[=_socket_]
+  Generate a gVisor configuration file and print it to standard output.
 
 **-M** _num_seconds_
   Stop collecting after reaching <num_seconds>
@@ -179,6 +197,15 @@ OPTIONS
 
 **--page-faults**
   Capture user/kernel major/minor page faults
+
+**--large-environment**
+  Support environments larger than 4KiB by reading the full environment from `/proc` when needed.
+
+**--modern-bpf**
+  Enable live capture using the modern BPF probe instead of the kernel module.
+
+**--cpus-for-each-buffer** _num_
+  Set how many CPUs are assigned to each syscall buffer when using the modern BPF probe.
 
 **-P**, **--progress**  
   Print progress on stderr while processing trace files.
@@ -203,9 +230,6 @@ OPTIONS
 
 **-t** _timetype_, **--timetype**=_timetype_  
   Change the way event time is displayed. Accepted values are **h** for human-readable string, **a** for absolute timestamp from epoch, **r** for relative time from the first displayed event, **d** for delta between event enter and exit, and **D** for delta from the previous event.
-
-**-T**, **--force-tracers-capture**  
-  Tell the driver to make sure full buffers are captured from /dev/null, to make sure that tracers are completely captured. Note that sysdig will enable extended /dev/null capture by itself after detecting that tracers are written there, but that could result in the truncation of some tracers at the beginning of the capture. This option allows preventing that.
 
 **--unbuffered**  
   Turn off output buffering. This causes every single line emitted by sysdig to be flushed, which generates higher CPU usage but is useful when piping sysdig's output into another process or into a script. 
