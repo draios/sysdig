@@ -817,7 +817,8 @@ captureinfo do_inspect(sinsp *inspector, sinsp_cycledumper *dumper,
 			duration_start = ev->get_ts();
 		} else if(duration_to_tot_ns > 0)
 		{
-			if(ev->get_ts() - duration_start >= duration_to_tot_ns)
+			if(ev->get_ts() > duration_start &&
+			   ev->get_ts() - duration_start >= duration_to_tot_ns)
 			{
 				handle_end_of_file(inspector, print_progress, reset_colors, formatter);
 				break;
