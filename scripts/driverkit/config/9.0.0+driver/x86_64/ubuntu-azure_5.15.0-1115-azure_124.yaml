@@ -1,0 +1,8 @@
+kernelversion: 124
+kernelrelease: 5.15.0-1115-azure
+target: ubuntu-azure
+architecture: amd64
+output:
+  module: output/9.0.0+driver/x86_64/scap_ubuntu-azure_5.15.0-1115-azure_124.ko
+  probe: output/9.0.0+driver/x86_64/scap_ubuntu-azure_5.15.0-1115-azure_124.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-fde/linux-headers-5.15.0-1115-azure-fde_5.15.0-1115.124_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-fde/linux-azure-fde-headers-5.15.0-1115_5.15.0-1115.124_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-headers-5.15.0-1115-azure_5.15.0-1115.124_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-azure-headers-5.15.0-1115_5.15.0-1115.124_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-azure-headers-5.15.0-1115_5.15.0-1115.124_all.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-headers-5.15.0-1115-azure_5.15.0-1115.124_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-azure-fde/linux-headers-5.15.0-1115-azure-fde_5.15.0-1115.124_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-azure-fde/linux-azure-fde-headers-5.15.0-1115_5.15.0-1115.124_all.deb"]

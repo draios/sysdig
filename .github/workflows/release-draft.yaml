@@ -92,7 +92,7 @@ jobs:
             -S . \
             -B build \
             -G Ninja
-          cmake --build build --target package --config Release
+          cmake --build build --target package --config Release --parallel
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -103,14 +103,20 @@ jobs:
 
   build-release-others:
     name: build-release-others
+    timeout-minutes: 45
     strategy:
       matrix:
-        os: [windows-latest, macos-15-intel, macos-14]
+        os: [windows-latest, windows-11-arm, macos-15-intel, macos-14]
         include:
           - os: windows-latest
             artifact_name: win
             artifact_ext: exe
             arch: x86_64
+          - os: windows-11-arm
+            artifact_name: win
+            artifact_ext: exe
+            arch: arm64
+            cmake_extra_args: -A x64
           - os: macos-15-intel
             artifact_name: osx
             artifact_ext: dmg
@@ -124,13 +130,13 @@ jobs:
       - name: Checkout Sysdig
         uses: actions/checkout@v4
       - name: Install NSIS
-        if: matrix.os == 'windows-latest'
+        if: startsWith(matrix.os, 'windows')
         run: |
           choco install nsis -y
       - name: Build
         run: |
-          cmake -Wno-dev -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DBUILD_DRIVER=OFF -DSYSDIG_VERSION="${{ env.BUILD_VERSION }}" -S . -B build
-          cmake --build build --target package --config Release
+          cmake -Wno-dev "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" ${{ matrix.cmake_extra_args }} -DBUILD_DRIVER=OFF -DSYSDIG_VERSION="${{ env.BUILD_VERSION }}" -S . -B build
+          cmake --build build --target package --config Release --parallel
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:

@@ -1,0 +1,8 @@
+kernelversion: 114.1
+kernelrelease: 6.8.0-114-lowlatency
+target: ubuntu-lowlatency
+architecture: amd64
+output:
+  module: output/8.0.0+driver/x86_64/scap_ubuntu-lowlatency_6.8.0-114-lowlatency_114.1.ko
+  probe: output/8.0.0+driver/x86_64/scap_ubuntu-lowlatency_6.8.0-114-lowlatency_114.1.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lowlatency/linux-headers-6.8.0-114-lowlatency_6.8.0-114.114.1_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-lowlatency/linux-lowlatency-headers-6.8.0-114_6.8.0-114.114.1_all.deb"]

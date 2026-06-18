@@ -83,7 +83,7 @@ else()
 				ExternalProject_Add(luajit
 					PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"
 					GIT_REPOSITORY "https://github.com/LuaJIT/LuaJIT"
-					GIT_TAG "f3c856915b4ce7ccd24341e8ac73e8a9fd934171"
+					GIT_TAG "8e6520a7aecd0517e792b359afbbfd7274791f5f"
 					CONFIGURE_COMMAND ""
 					BUILD_COMMAND make
 					BUILD_IN_SOURCE 1
@@ -100,7 +100,7 @@ else()
 			ExternalProject_Add(luajit
 				PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"
 					GIT_REPOSITORY "https://github.com/LuaJIT/LuaJIT"
-					GIT_TAG "f3c856915b4ce7ccd24341e8ac73e8a9fd934171"
+					GIT_TAG "8e6520a7aecd0517e792b359afbbfd7274791f5f"
 				CONFIGURE_COMMAND ""
 				BUILD_COMMAND msvcbuild.bat static
 				BUILD_BYPRODUCTS ${LUAJIT_LIB}

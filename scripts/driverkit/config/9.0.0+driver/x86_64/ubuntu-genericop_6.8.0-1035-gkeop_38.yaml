@@ -1,0 +1,8 @@
+kernelversion: 38
+kernelrelease: 6.8.0-1035-gkeop
+target: ubuntu-genericop
+architecture: amd64
+output:
+  module: output/9.0.0+driver/x86_64/scap_ubuntu-genericop_6.8.0-1035-gkeop_38.ko
+  probe: output/9.0.0+driver/x86_64/scap_ubuntu-genericop_6.8.0-1035-gkeop_38.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gkeop/linux-gkeop-headers-6.8.0-1035_6.8.0-1035.38_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gkeop/linux-gkeop-headers-6.8.0-1035_6.8.0-1035.38_all.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-gkeop/linux-gkeop-headers-6.8.0-1035_6.8.0-1035.38_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gkeop/linux-headers-6.8.0-1035-gkeop_6.8.0-1035.38_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gkeop/linux-headers-6.8.0-1035-gkeop_6.8.0-1035.38_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-gkeop/linux-headers-6.8.0-1035-gkeop_6.8.0-1035.38_amd64.deb"]

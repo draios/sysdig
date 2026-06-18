@@ -1,0 +1,8 @@
+kernelversion: 45
+kernelrelease: 6.8.0-1042-gkeop
+target: ubuntu-genericop
+architecture: amd64
+output:
+  module: output/8.0.0+driver/x86_64/scap_ubuntu-genericop_6.8.0-1042-gkeop_45.ko
+  probe: output/8.0.0+driver/x86_64/scap_ubuntu-genericop_6.8.0-1042-gkeop_45.o
+kernelurls: ["http://archive.ubuntu.com/ubuntu/pool/main/l/linux-gkeop/linux-gkeop-headers-6.8.0-1042_6.8.0-1042.45_all.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-gkeop/linux-headers-6.8.0-1042-gkeop_6.8.0-1042.45_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gkeop/linux-gkeop-headers-6.8.0-1042_6.8.0-1042.45_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-gkeop/linux-headers-6.8.0-1042-gkeop_6.8.0-1042.45_amd64.deb"]

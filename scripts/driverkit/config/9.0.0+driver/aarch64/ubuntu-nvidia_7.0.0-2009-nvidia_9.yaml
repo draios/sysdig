@@ -1,0 +1,8 @@
+kernelversion: 9
+kernelrelease: 7.0.0-2009-nvidia
+target: ubuntu-nvidia
+architecture: arm64
+output:
+  module: output/9.0.0+driver/aarch64/scap_ubuntu-nvidia_7.0.0-2009-nvidia_9.ko
+  probe: output/9.0.0+driver/aarch64/scap_ubuntu-nvidia_7.0.0-2009-nvidia_9.o
+kernelurls: ["http://archive.ubuntu.com/ubuntu/pool/main/l/linux-nvidia-bos/linux-nvidia-bos-headers-7.0.0-2009_7.0.0-2009.9_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-nvidia-bos/linux-headers-7.0.0-2009-nvidia-bos-64k_7.0.0-2009.9_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-nvidia-bos/linux-nvidia-bos-headers-7.0.0-2009_7.0.0-2009.9_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-nvidia-bos/linux-headers-7.0.0-2009-nvidia-bos-64k_7.0.0-2009.9_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-nvidia-bos/linux-headers-7.0.0-2009-nvidia-bos_7.0.0-2009.9_arm64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-nvidia-bos/linux-nvidia-bos-headers-7.0.0-2009_7.0.0-2009.9_all.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-nvidia-bos/linux-headers-7.0.0-2009-nvidia-bos-64k_7.0.0-2009.9_arm64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-nvidia-bos/linux-headers-7.0.0-2009-nvidia-bos_7.0.0-2009.9_arm64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-nvidia-bos/linux-headers-7.0.0-2009-nvidia-bos_7.0.0-2009.9_arm64.deb"]

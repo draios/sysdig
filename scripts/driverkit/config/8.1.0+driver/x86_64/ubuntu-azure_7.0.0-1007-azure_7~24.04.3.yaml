@@ -1,0 +1,8 @@
+kernelversion: 7~24.04.3
+kernelrelease: 7.0.0-1007-azure
+target: ubuntu-azure
+architecture: amd64
+output:
+  module: output/8.1.0+driver/x86_64/scap_ubuntu-azure_7.0.0-1007-azure_7~24.04.3.ko
+  probe: output/8.1.0+driver/x86_64/scap_ubuntu-azure_7.0.0-1007-azure_7~24.04.3.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-fde-7.0/linux-headers-7.0.0-1007-azure-fde_7.0.0-1007.7~24.04.3_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-azure-fde-7.0/linux-azure-fde-7.0-headers-7.0.0-1007_7.0.0-1007.7~24.04.3_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure-fde-7.0/linux-azure-fde-7.0-headers-7.0.0-1007_7.0.0-1007.7~24.04.3_all.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-azure-fde-7.0/linux-headers-7.0.0-1007-azure-fde_7.0.0-1007.7~24.04.3_amd64.deb"]

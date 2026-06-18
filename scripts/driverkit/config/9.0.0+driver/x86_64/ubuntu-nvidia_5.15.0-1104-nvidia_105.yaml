@@ -1,0 +1,8 @@
+kernelversion: 105
+kernelrelease: 5.15.0-1104-nvidia
+target: ubuntu-nvidia
+architecture: amd64
+output:
+  module: output/9.0.0+driver/x86_64/scap_ubuntu-nvidia_5.15.0-1104-nvidia_105.ko
+  probe: output/9.0.0+driver/x86_64/scap_ubuntu-nvidia_5.15.0-1104-nvidia_105.o
+kernelurls: ["http://archive.ubuntu.com/ubuntu/pool/main/l/linux-nvidia/linux-nvidia-headers-5.15.0-1104_5.15.0-1104.105_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-nvidia/linux-headers-5.15.0-1104-nvidia-lowlatency_5.15.0-1104.105_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-nvidia/linux-nvidia-headers-5.15.0-1104_5.15.0-1104.105_all.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-nvidia/linux-headers-5.15.0-1104-nvidia_5.15.0-1104.105_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-nvidia/linux-headers-5.15.0-1104-nvidia-lowlatency_5.15.0-1104.105_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-nvidia/linux-headers-5.15.0-1104-nvidia_5.15.0-1104.105_amd64.deb"]
