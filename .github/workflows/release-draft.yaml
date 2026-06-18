@@ -92,7 +92,7 @@ jobs:
             -S . \
             -B build \
             -G Ninja
-          cmake --build build --target package --config Release
+          cmake --build build --target package --config Release --parallel
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -134,7 +134,7 @@ jobs:
       - name: Build
         run: |
           cmake -Wno-dev "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" -DBUILD_DRIVER=OFF -DSYSDIG_VERSION="${{ env.BUILD_VERSION }}" -S . -B build
-          cmake --build build --target package --config Release
+          cmake --build build --target package --config Release --parallel
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
