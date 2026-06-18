@@ -1,0 +1,8 @@
+kernelversion: 4~24.04.3
+kernelrelease: 6.17.0-1004-gcp
+target: ubuntu-gcp
+architecture: amd64
+output:
+  module: output/8.0.0+driver/x86_64/scap_ubuntu-gcp_6.17.0-1004-gcp_4~24.04.3.ko
+  probe: output/8.0.0+driver/x86_64/scap_ubuntu-gcp_6.17.0-1004-gcp_4~24.04.3.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp-6.17/linux-headers-6.17.0-1004-gcp_6.17.0-1004.4~24.04.3_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux-gcp-6.17/linux-gcp-6.17-headers-6.17.0-1004_6.17.0-1004.4~24.04.3_amd64.deb"]

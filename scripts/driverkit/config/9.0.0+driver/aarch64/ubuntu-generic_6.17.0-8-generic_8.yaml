@@ -1,0 +1,8 @@
+kernelversion: 8
+kernelrelease: 6.17.0-8-generic
+target: ubuntu-generic
+architecture: arm64
+output:
+  module: output/9.0.0+driver/aarch64/scap_ubuntu-generic_6.17.0-8-generic_8.ko
+  probe: output/9.0.0+driver/aarch64/scap_ubuntu-generic_6.17.0-8-generic_8.o
+kernelurls: ["http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-6.17.0-8-generic_6.17.0-8.8_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-6.17.0-8-generic_6.17.0-8.8_arm64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-6.17.0-8_6.17.0-8.8_all.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-6.17.0-8_6.17.0-8.8_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-6.17.0-8_6.17.0-8.8_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-6.17.0-8_6.17.0-8.8_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-6.17.0-8-generic-64k_6.17.0-8.8_arm64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-6.17.0-8-generic-64k_6.17.0-8.8_arm64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-6.17.0-8-generic_6.17.0-8.8_arm64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-6.17.0-8-generic-64k_6.17.0-8.8_arm64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-6.17.0-8-generic_6.17.0-8.8_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-headers-6.17.0-8-generic-64k_6.17.0-8.8_arm64.deb"]

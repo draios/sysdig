@@ -1,0 +1,8 @@
+kernelversion: 184
+kernelrelease: 5.15.0-174-lowlatency
+target: ubuntu-lowlatency
+architecture: arm64
+output:
+  module: output/9.0.0+driver/aarch64/scap_ubuntu-lowlatency_5.15.0-174-lowlatency_184.ko
+  probe: output/9.0.0+driver/aarch64/scap_ubuntu-lowlatency_5.15.0-174-lowlatency_184.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-5.15.0-174-lowlatency-64k_5.15.0-174.184_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-headers-5.15.0-174-lowlatency_5.15.0-174.184_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-lowlatency/linux-lowlatency-headers-5.15.0-174_5.15.0-174.184_all.deb"]

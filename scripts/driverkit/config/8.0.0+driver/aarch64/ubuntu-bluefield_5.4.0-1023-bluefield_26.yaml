@@ -5,4 +5,4 @@ architecture: arm64
 output:
   module: output/8.0.0+driver/aarch64/scap_ubuntu-bluefield_5.4.0-1023-bluefield_26.ko
   probe: output/8.0.0+driver/aarch64/scap_ubuntu-bluefield_5.4.0-1023-bluefield_26.o
-kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-bluefield/linux-headers-5.4.0-1023-bluefield_5.4.0-1023.26_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-bluefield/linux-bluefield-headers-5.4.0-1023_5.4.0-1023.26_all.deb"]
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-bluefield/linux-bluefield-headers-5.4.0-1023_5.4.0-1023.26_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-bluefield/linux-headers-5.4.0-1023-bluefield_5.4.0-1023.26_arm64.deb"]

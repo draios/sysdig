@@ -1,0 +1,8 @@
+kernelversion: 38~24.04.1
+kernelrelease: 6.17.0-38-hwe
+target: ubuntu-hwe
+architecture: arm64
+output:
+  module: output/8.1.0+driver/aarch64/scap_ubuntu-hwe_6.17.0-38-hwe_38~24.04.1.ko
+  probe: output/8.1.0+driver/aarch64/scap_ubuntu-hwe_6.17.0-38-hwe_38~24.04.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-6.17/linux-headers-6.17.0-38-generic_6.17.0-38.38~24.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-6.17/linux-headers-6.17.0-38-generic-64k_6.17.0-38.38~24.04.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-hwe-6.17/linux-hwe-6.17-headers-6.17.0-38_6.17.0-38.38~24.04.1_all.deb"]

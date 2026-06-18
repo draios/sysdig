@@ -1,0 +1,8 @@
+kernelversion: 182
+kernelrelease: 5.15.0-172-generic
+target: ubuntu-generic
+architecture: amd64
+output:
+  module: output/9.0.0+driver/x86_64/scap_ubuntu-generic_5.15.0-172-generic_182.ko
+  probe: output/9.0.0+driver/x86_64/scap_ubuntu-generic_5.15.0-172-generic_182.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.15.0-172_5.15.0-172.182_all.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.15.0-172-generic_5.15.0-172.182_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.15.0-172_5.15.0-172.182_all.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.15.0-172-generic_5.15.0-172.182_amd64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux/linux-headers-5.15.0-172-generic_5.15.0-172.182_amd64.deb","http://mirrors.edge.kernel.org/ubuntu/pool/main/l/linux/linux-headers-5.15.0-172_5.15.0-172.182_all.deb"]

@@ -1,0 +1,8 @@
+kernelversion: 65
+kernelrelease: 6.8.0-1059-azure
+target: ubuntu-azure
+architecture: amd64
+output:
+  module: output/9.0.0+driver/x86_64/scap_ubuntu-azure_6.8.0-1059-azure_65.ko
+  probe: output/9.0.0+driver/x86_64/scap_ubuntu-azure_6.8.0-1059-azure_65.o
+kernelurls: ["http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-azure-headers-6.8.0-1059_6.8.0-1059.65_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-headers-6.8.0-1059-azure_6.8.0-1059.65_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-headers-6.8.0-1059-azure_6.8.0-1059.65_amd64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-azure/linux-azure-headers-6.8.0-1059_6.8.0-1059.65_all.deb"]

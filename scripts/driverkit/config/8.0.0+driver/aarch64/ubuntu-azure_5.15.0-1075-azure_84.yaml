@@ -5,4 +5,4 @@ architecture: arm64
 output:
   module: output/8.0.0+driver/aarch64/scap_ubuntu-azure_5.15.0-1075-azure_84.ko
   probe: output/8.0.0+driver/aarch64/scap_ubuntu-azure_5.15.0-1075-azure_84.o
-kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-headers-5.15.0-1075-azure_5.15.0-1075.84_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-azure-headers-5.15.0-1075_5.15.0-1075.84_all.deb"]
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-azure-headers-5.15.0-1075_5.15.0-1075.84_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-azure/linux-headers-5.15.0-1075-azure_5.15.0-1075.84_arm64.deb"]

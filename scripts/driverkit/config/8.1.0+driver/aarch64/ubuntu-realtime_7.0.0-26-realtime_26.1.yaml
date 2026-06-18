@@ -1,0 +1,8 @@
+kernelversion: 26.1
+kernelrelease: 7.0.0-26-realtime
+target: ubuntu-realtime
+architecture: arm64
+output:
+  module: output/8.1.0+driver/aarch64/scap_ubuntu-realtime_7.0.0-26-realtime_26.1.ko
+  probe: output/8.1.0+driver/aarch64/scap_ubuntu-realtime_7.0.0-26-realtime_26.1.o
+kernelurls: ["http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-realtime/linux-headers-7.0.0-26-realtime_7.0.0-26.26.1_arm64.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-realtime/linux-headers-7.0.0-26-realtime_7.0.0-26.26.1_arm64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-realtime/linux-realtime-headers-7.0.0-26_7.0.0-26.26.1_all.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-realtime/linux-headers-7.0.0-26-realtime-64k_7.0.0-26.26.1_arm64.deb","http://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux-realtime/linux-realtime-headers-7.0.0-26_7.0.0-26.26.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-realtime/linux-realtime-headers-7.0.0-26_7.0.0-26.26.1_all.deb","http://security.ubuntu.com/ubuntu/pool/main/l/linux-realtime/linux-headers-7.0.0-26-realtime-64k_7.0.0-26.26.1_arm64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-realtime/linux-headers-7.0.0-26-realtime-64k_7.0.0-26.26.1_arm64.deb","http://archive.ubuntu.com/ubuntu/pool/main/l/linux-realtime/linux-headers-7.0.0-26-realtime_7.0.0-26.26.1_arm64.deb"]
