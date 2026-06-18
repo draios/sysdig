@@ -97,12 +97,18 @@ else()
 					COMPONENT "libs-deps"
 					FILES_MATCHING PATTERN "*.h")
 		else()
+			# LuaJIT JIT has no ARM64 Windows backend; build interpreter-only on that target.
+			if(CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64")
+				set(_LUAJIT_BUILD_COMMAND ${CMAKE_COMMAND} -E env "XCFLAGS=/DLUAJIT_DISABLE_JIT" msvcbuild.bat static)
+			else()
+				set(_LUAJIT_BUILD_COMMAND msvcbuild.bat static)
+			endif()
 			ExternalProject_Add(luajit
 				PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"
 					GIT_REPOSITORY "https://github.com/LuaJIT/LuaJIT"
 					GIT_TAG "f3c856915b4ce7ccd24341e8ac73e8a9fd934171"
 				CONFIGURE_COMMAND ""
-				BUILD_COMMAND msvcbuild.bat static
+				BUILD_COMMAND ${_LUAJIT_BUILD_COMMAND}
 				BUILD_BYPRODUCTS ${LUAJIT_LIB}
 				BINARY_DIR "${LUAJIT_SRC}"
 				INSTALL_COMMAND "")
