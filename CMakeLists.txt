@@ -33,7 +33,7 @@ if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/CMakeLists.txt)
 		"The following wiki page has more information on manually building sysdig: http://bit.ly/1oJ84UI")
 endif()
 
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.12...4.0)
 
 project(sysdig)
 
