@@ -97,12 +97,19 @@ else()
 					COMPONENT "libs-deps"
 					FILES_MATCHING PATTERN "*.h")
 		else()
+			# On ARM64 Windows the JIT backend (lj_asm_arm64.h) causes long
+			# hangs or failures with MSVC. Disable it; the interpreter still works.
+			if("$ENV{PROCESSOR_ARCHITECTURE}" MATCHES "ARM64" OR "$ENV{PROCESSOR_ARCHITEW6432}" MATCHES "ARM64")
+				set(_LUAJIT_BUILD_COMMAND ${CMAKE_COMMAND} -E env "XCFLAGS=/DLUAJIT_DISABLE_JIT" msvcbuild.bat static)
+			else()
+				set(_LUAJIT_BUILD_COMMAND msvcbuild.bat static)
+			endif()
 			ExternalProject_Add(luajit
 				PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"
 					GIT_REPOSITORY "https://github.com/LuaJIT/LuaJIT"
 					GIT_TAG "8e6520a7aecd0517e792b359afbbfd7274791f5f"
 				CONFIGURE_COMMAND ""
-				BUILD_COMMAND msvcbuild.bat static
+				BUILD_COMMAND ${_LUAJIT_BUILD_COMMAND}
 				BUILD_BYPRODUCTS ${LUAJIT_LIB}
 				BINARY_DIR "${LUAJIT_SRC}"
 				INSTALL_COMMAND "")
