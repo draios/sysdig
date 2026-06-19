@@ -79,8 +79,13 @@ else()
 			SOURCE_SUBDIR plugins/container
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS "${CONTAINER_LIBRARY}"
+			# USE_NEON=OFF: the plugin pulls in RE-flex, whose SIMD detection uses
+			# check_cxx_source_runs() for NEON. On Windows arm64 the NEON test
+			# compiles and then *runs* a scratch executable, which hangs the build
+			# on the windows-11-arm runner. Disabling NEON skips that run-test
+			# (scalar fallback) and is a no-op on Windows x86_64.
 			CONFIGURE_COMMAND
-			${CMAKE_COMMAND} . -DENABLE_ASYNC=OFF -G "${CMAKE_GENERATOR}"
+			${CMAKE_COMMAND} . -DENABLE_ASYNC=OFF -DUSE_NEON=OFF -G "${CMAKE_GENERATOR}"
 			BUILD_COMMAND ${CMAKE_COMMAND} --build . --config ${CMAKE_BUILD_TYPE}
 			INSTALL_COMMAND ""
 		)
