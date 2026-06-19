@@ -72,8 +72,8 @@ else()
 			elseif(APPLE)
 				ExternalProject_Add(luajit
 					PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"
-					URL "https://github.com/LuaJIT/LuaJIT/archive/8635cbabf3094c4d8bd00578c7d812bea87bb2d3.tar.gz"
-					URL_HASH "SHA256=835035b244c3dc3d3d19bdd5ac623af90b84207e6330fb78f9fa51d6e200d760"
+					URL "https://github.com/LuaJIT/LuaJIT/archive/8e6520a7aecd0517e792b359afbbfd7274791f5f.tar.gz"
+					URL_HASH "SHA256=9c4c370559352e0622231d5a1f28e95ff56e2dce6308238e6588b0943aac5e63"
 					CONFIGURE_COMMAND ""
 					BUILD_COMMAND make MACOSX_DEPLOYMENT_TARGET=10.14
 					BUILD_IN_SOURCE 1
@@ -83,7 +83,7 @@ else()
 				ExternalProject_Add(luajit
 					PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"
 					GIT_REPOSITORY "https://github.com/LuaJIT/LuaJIT"
-					GIT_TAG "f3c856915b4ce7ccd24341e8ac73e8a9fd934171"
+					GIT_TAG "8e6520a7aecd0517e792b359afbbfd7274791f5f"
 					CONFIGURE_COMMAND ""
 					BUILD_COMMAND make
 					BUILD_IN_SOURCE 1
@@ -100,7 +100,7 @@ else()
 			ExternalProject_Add(luajit
 				PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"
 					GIT_REPOSITORY "https://github.com/LuaJIT/LuaJIT"
-					GIT_TAG "f3c856915b4ce7ccd24341e8ac73e8a9fd934171"
+					GIT_TAG "8e6520a7aecd0517e792b359afbbfd7274791f5f"
 				CONFIGURE_COMMAND ""
 				BUILD_COMMAND msvcbuild.bat static
 				BUILD_BYPRODUCTS ${LUAJIT_LIB}
