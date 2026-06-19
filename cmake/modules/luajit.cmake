@@ -72,8 +72,8 @@ else()
 			elseif(APPLE)
 				ExternalProject_Add(luajit
 					PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"
-					URL "https://github.com/LuaJIT/LuaJIT/archive/8635cbabf3094c4d8bd00578c7d812bea87bb2d3.tar.gz"
-					URL_HASH "SHA256=835035b244c3dc3d3d19bdd5ac623af90b84207e6330fb78f9fa51d6e200d760"
+					URL "https://github.com/LuaJIT/LuaJIT/archive/8e6520a7aecd0517e792b359afbbfd7274791f5f.tar.gz"
+					URL_HASH "SHA256=9c4c370559352e0622231d5a1f28e95ff56e2dce6308238e6588b0943aac5e63"
 					CONFIGURE_COMMAND ""
 					BUILD_COMMAND make MACOSX_DEPLOYMENT_TARGET=10.14
 					BUILD_IN_SOURCE 1
@@ -83,7 +83,7 @@ else()
 				ExternalProject_Add(luajit
 					PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"
 					GIT_REPOSITORY "https://github.com/LuaJIT/LuaJIT"
-					GIT_TAG "f3c856915b4ce7ccd24341e8ac73e8a9fd934171"
+					GIT_TAG "8e6520a7aecd0517e792b359afbbfd7274791f5f"
 					CONFIGURE_COMMAND ""
 					BUILD_COMMAND make
 					BUILD_IN_SOURCE 1
@@ -97,12 +97,26 @@ else()
 					COMPONENT "libs-deps"
 					FILES_MATCHING PATTERN "*.h")
 		else()
+			# msvcbuild.bat selects its DynASM target from %VSCMD_ARG_TGT_ARCH%,
+			# which a VS dev prompt sets but which is absent inside CMake's MSBuild
+			# custom build step. Without it the script defaults to the x64 source
+			# (vm_x64.dasc) regardless of the real compiler, so on arm64 the
+			# generated buildvm_arch.h references CCallState.nfpr (an x64-only
+			# field) and the arm64 build fails with C2039. Pass the actual VS
+			# target platform through so the DynASM source matches the compiler.
+			if(CMAKE_VS_PLATFORM_NAME STREQUAL "ARM64")
+				set(LUAJIT_MSVC_TGT_ARCH "arm64")
+			elseif(CMAKE_VS_PLATFORM_NAME STREQUAL "Win32")
+				set(LUAJIT_MSVC_TGT_ARCH "x86")
+			else()
+				set(LUAJIT_MSVC_TGT_ARCH "x64")
+			endif()
 			ExternalProject_Add(luajit
 				PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"
 					GIT_REPOSITORY "https://github.com/LuaJIT/LuaJIT"
-					GIT_TAG "f3c856915b4ce7ccd24341e8ac73e8a9fd934171"
+					GIT_TAG "8e6520a7aecd0517e792b359afbbfd7274791f5f"
 				CONFIGURE_COMMAND ""
-				BUILD_COMMAND msvcbuild.bat static
+				BUILD_COMMAND cmd /c "set VSCMD_ARG_TGT_ARCH=${LUAJIT_MSVC_TGT_ARCH}&& msvcbuild.bat static"
 				BUILD_BYPRODUCTS ${LUAJIT_LIB}
 				BINARY_DIR "${LUAJIT_SRC}"
 				INSTALL_COMMAND "")

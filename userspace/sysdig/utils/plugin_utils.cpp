@@ -279,15 +279,36 @@ void plugin_utils::load_plugin(sinsp *inspector, const std::string& name)
         }
     }
 
-    // If it is a path, register it
-	if (name.find('/') != std::string::npos)
+    // If it is a path, register it.
+	if (name.find('/') != std::string::npos
+#ifdef _WIN32
+        // On Windows, also accept backslash separators and drive-letter
+        // paths like "C:\path\plugin.dll".
+        || name.find('\\') != std::string::npos
+        || (name.size() >= 2 && name[1] == ':')
+#endif
+        )
 	{
+        // Load the plugin to get its canonical name, then check if an existing
+        // entry (e.g., from read_plugins_from_dirs) already represents it.
+        // If so, update that entry rather than creating a duplicate.
+        std::string canonical_name = inspector->register_plugin(name)->name();
+        for (auto &existing : m_plugins)
+        {
+            if (existing.names.find(canonical_name) != existing.names.end())
+            {
+                existing.used = true;
+                existing.libpath = name;
+                existing.names.insert(name);
+                return;
+            }
+        }
         plugin_entry p;
         p.used = true;
         p.inited = false;
         p.libpath = name;
         p.names.insert(name);
-        p.names.insert(p.get_plugin(inspector)->name());
+        p.names.insert(canonical_name);
         m_plugins.push_back(p);
 		return;
 	}

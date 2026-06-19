@@ -977,6 +977,23 @@ std::string escape_output_format(const std::string& s)
 }
 
 //
+// Find the ':' separating a plugin/input name from its trailing
+// config/params (e.g. "name:config"). On Windows, a leading drive-letter
+// colon ("C:\path") must not be mistaken for that separator.
+//
+static size_t find_name_config_separator(const std::string& s)
+{
+	size_t start = 0;
+#ifdef _WIN32
+	if(s.size() >= 2 && s[1] == ':')
+	{
+		start = 2;
+	}
+#endif
+	return s.find(':', start);
+}
+
+//
 // ARGUMENT PARSING AND PROGRAM SETUP
 //
 sysdig_init_res sysdig_init(int argc, char **argv)
@@ -1230,7 +1247,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 			case 'H':
 				{
 					std::string pluginname = optarg;
-					size_t cpos = pluginname.find(':');
+					size_t cpos = find_name_config_separator(pluginname);
 					std::string pgname = pluginname;
 					std::string pginitconf;
 					// Extract init config from string if present
@@ -1252,7 +1269,7 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 						break;
 					}
 
-					size_t cpos = inputname.find(':');
+					size_t cpos = find_name_config_separator(inputname);
 					std::string pgname = inputname;
 					std::string pgpars;
 					// Extract open params from string if present
@@ -1976,8 +1993,15 @@ sysdig_init_res sysdig_init(int argc, char **argv)
 		handle_end_of_file(NULL, opener.options.print_progress, reset_colors);
 		res.m_res = EXIT_FAILURE;
 	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << std::endl;
+		handle_end_of_file(NULL, opener.options.print_progress, reset_colors);
+		res.m_res = EXIT_FAILURE;
+	}
 	catch(...)
 	{
+		std::cerr << "unknown exception" << std::endl;
 		handle_end_of_file(NULL, opener.options.print_progress, reset_colors);
 		res.m_res = EXIT_FAILURE;
 	}

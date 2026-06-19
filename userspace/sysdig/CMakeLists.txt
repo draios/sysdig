@@ -164,17 +164,17 @@ else()
 	add_custom_command(TARGET sysdig POST_BUILD
 		COMMAND "${CMAKE_COMMAND}" -E copy_directory
 			"${PROJECT_SOURCE_DIR}/userspace/sysdig/chisels"
-			"${PROJECT_BINARY_DIR}/$(Configuration)/chisels")
+			"${PROJECT_BINARY_DIR}/$<CONFIG>/chisels")
 
 	add_custom_command(TARGET sysdig POST_BUILD
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different
 			$<TARGET_FILE:sysdig>
-			"${PROJECT_BINARY_DIR}/$(Configuration)/sysdig.exe")
+			"${PROJECT_BINARY_DIR}/$<CONFIG>/sysdig.exe")
 
 	add_custom_command(TARGET csysdig POST_BUILD
 		COMMAND "${CMAKE_COMMAND}" -E copy_if_different
 			$<TARGET_FILE:csysdig>
-			"${PROJECT_BINARY_DIR}/$(Configuration)/csysdig.exe")
+			"${PROJECT_BINARY_DIR}/$<CONFIG>/csysdig.exe")
 
 	install(TARGETS sysdig
 			DESTINATION programs
