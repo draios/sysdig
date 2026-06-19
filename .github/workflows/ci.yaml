@@ -108,6 +108,7 @@ jobs:
 
   build-sysdig-others:
     name: build-sysdig-${{ matrix.os }}-${{ matrix.arch }}
+    timeout-minutes: 45
     strategy:
       matrix:
         os: [windows-latest, windows-11-arm, macos-15-intel, macos-14]
@@ -137,6 +138,11 @@ jobs:
         run: |
           choco install nsis -y
       - name: Build
+        # Disable MSBuild node reuse: on the windows-11-arm runner a leftover
+        # MSBuild node deadlocks the nested try_compile of the container plugin
+        # configure step, hanging the whole build.
+        env:
+          MSBUILDDISABLENODEREUSE: 1
         run: |
           cmake -Wno-dev "-DCMAKE_POLICY_VERSION_MINIMUM=3.5" -S . -B build
           cmake --build build --target package --config Release
