@@ -97,12 +97,26 @@ else()
 					COMPONENT "libs-deps"
 					FILES_MATCHING PATTERN "*.h")
 		else()
+			# msvcbuild.bat selects its DynASM target from %VSCMD_ARG_TGT_ARCH%,
+			# which a VS dev prompt sets but which is absent inside CMake's MSBuild
+			# custom build step. Without it the script defaults to the x64 source
+			# (vm_x64.dasc) regardless of the real compiler, so on arm64 the
+			# generated buildvm_arch.h references CCallState.nfpr (an x64-only
+			# field) and the arm64 build fails with C2039. Pass the actual VS
+			# target platform through so the DynASM source matches the compiler.
+			if(CMAKE_VS_PLATFORM_NAME STREQUAL "ARM64")
+				set(LUAJIT_MSVC_TGT_ARCH "arm64")
+			elseif(CMAKE_VS_PLATFORM_NAME STREQUAL "Win32")
+				set(LUAJIT_MSVC_TGT_ARCH "x86")
+			else()
+				set(LUAJIT_MSVC_TGT_ARCH "x64")
+			endif()
 			ExternalProject_Add(luajit
 				PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"
 					GIT_REPOSITORY "https://github.com/LuaJIT/LuaJIT"
 					GIT_TAG "8e6520a7aecd0517e792b359afbbfd7274791f5f"
 				CONFIGURE_COMMAND ""
-				BUILD_COMMAND msvcbuild.bat static
+				BUILD_COMMAND cmd /c "set VSCMD_ARG_TGT_ARCH=${LUAJIT_MSVC_TGT_ARCH}&& msvcbuild.bat static"
 				BUILD_BYPRODUCTS ${LUAJIT_LIB}
 				BINARY_DIR "${LUAJIT_SRC}"
 				INSTALL_COMMAND "")
