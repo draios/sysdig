@@ -66,9 +66,11 @@ function install_deb {
 	fi
 
 	echo "* Installing Sysdig public key"
-	curl -s https://download.sysdig.com/DRAIOS-GPG-KEY.public | apt-key add -
+	mkdir -p /etc/apt/keyrings/
+	curl -s https://download.sysdig.com/DRAIOS-GPG-KEY.public -o /etc/apt/keyrings/DRAIOS-GPG-KEY.public
 	echo "* Installing Sysdig repository"
 	curl -s -o /etc/apt/sources.list.d/draios.list "https://download.sysdig.com/$SYSDIG_REPOSITORY_NAME/deb/draios.list"
+	sed -i 's|deb|deb [signed-by=/etc/apt/keyrings/DRAIOS-GPG-KEY.public]|' /etc/apt/sources.list.d/draios.list
 	apt-get -qq update < /dev/null
 	echo "* Installing kernel headers"
 	apt-get -qq -y install linux-headers-$(uname -r) < /dev/null || kernel_warning
