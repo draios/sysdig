@@ -156,16 +156,17 @@ void json_spy_renderer::process_event_spy(sinsp_evt* evt, int32_t next_res)
 
 		line["p"] = tinfo->m_comm;
 
-		if(!tinfo->get_container_id().empty())
+		auto container_id = m_inspector->m_plugin_tables.get_container_id(*tinfo);
+		if(!container_id.empty())
 		{
 			const auto ctable = m_inspector->m_thread_manager
-				->get_table(sinsp_thread_manager::s_containers_table_name);
+				->get_table("containers");
 
 			if(ctable != nullptr) {
 				auto fld_name = ctable->get_field<std::string>("name");
 				std::string container_name;
 
-				auto container_info = ctable->get_entry(tinfo->get_container_id());
+				auto container_info = ctable->get_entry(container_id);
 				container_info.read_field(fld_name, container_name);
 
 				if(!container_name.empty())

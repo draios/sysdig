@@ -26,6 +26,7 @@ draios/sysdig project.
 #include <libscap/strl.h>
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
+#include <libsinsp/user.h>
 #include <chisel/chisel.h>
 #include <chisel/chisel_api.h>
 #include <libsinsp/filter.h>
@@ -835,10 +836,10 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 			lua_pushnumber(ls, (uint32_t)tinfo.m_fdlimit);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "uid");
-			lua_pushnumber(ls, (uint32_t)tinfo.get_user()->uid);
+			lua_pushnumber(ls, tinfo.m_uid);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "gid");
-			lua_pushnumber(ls, (uint32_t)tinfo.get_group()->gid);
+			lua_pushnumber(ls, tinfo.m_gid);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "nchilds");
 			lua_pushnumber(ls, (uint32_t)tinfo.get_num_not_leader_threads());
@@ -866,7 +867,11 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 			// Extract the user name
 			//
 			lua_pushliteral(ls, "username");
-			lua_pushstring(ls, tinfo.get_user()->name);
+			{
+				auto container_id = ch->m_inspector->m_plugin_tables.get_container_id(tinfo);
+				auto* user_info = ch->m_inspector->m_usergroup_manager->get_user(container_id, tinfo.m_uid);
+				lua_pushstring(ls, user_info ? user_info->name : "<NA>");
+			}
 			lua_settable(ls, -3);
 
 			//
@@ -1144,7 +1149,7 @@ int lua_cbacks::get_container_table(lua_State *ls)
 	// Retrieve the container list
 	//
 	const auto ctable = ch->m_inspector->m_thread_manager
-		->get_table(sinsp_thread_manager::s_containers_table_name);
+		->get_table("containers");
 
 	lua_newtable(ls);
 
