@@ -20,7 +20,11 @@ if(NOT WIN32)
 	include(ncurses)
 endif() # NOT WIN32
 
-include(zlib)
+# zlib is only needed to build the bundled falcosecurity libs, and its
+# CMake module comes from them.
+if(USE_BUNDLED_FALCOSECURITY_LIBS)
+	include(zlib)
+endif()
 include(luajit)
 
 include_directories("${PROJECT_BINARY_DIR}/userspace/sinspui")
